@@ -1,23 +1,13 @@
 /**
  * bills-attach — attaches a bill to a job and pushes it to Xero as ACCPAY.
  *
- * **THIS IS THE CORE INVARIANT MOMENT** of the architecture: attachment to
- * a job is the single-shot Xero push. No reconciliation drift, no per-bill
- * chatter during the job, no waiting for job completion.
+ * Single-shot push principle (per docs/ROADMAP.md):
+ *   - Bill enters via any of 3 lanes; sits as 'received' or 'verified'
+ *   - User attaches → push to Xero ACCPAY exactly once, original-dated
+ *   - No reconciliation drift, no per-bill chatter during the job
  *
- * Input: { bill_id: UUID, job_id: UUID }
- * Output: { ok: true, xero_invoice_id?: string, stub_id?: string }
- *
- * Behaviour:
- *   1. Verify bill is in 'verified' or 'received' state
- *   2. Verify job exists in same organization (RLS enforces)
- *   3. Update bill: status='attached', job_id=<>, attached_at=now()
- *   4. Build Xero ACCPAY payload from bill + line items
- *   5. Push to Xero via xero_integrations OAuth (or stub if XERO_STUB_MODE=true)
- *   6. Record xero_invoice_id, xero_synced_at on the bill
- *   7. Append to xero_sync_log (idempotent on idempotency_key)
- *
- * STATUS: skeleton — Xero adapter port pending. See _shared/xero/adapter.ts.
+ * Input:  { bill_id: UUID, job_id: UUID }
+ * Output: { ok: true, xero_invoice_id?: string, is_stub: boolean }
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -56,7 +46,7 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'bill_id and job_id required' }, 400);
     }
 
-    // Verify caller has access to the bill + job (RLS does the work)
+    // Read bill via user client → RLS confirms access
     const { data: bill, error: billErr } = await userClient
       .from('bills')
       .select('*, line_items:bill_line_items(*)')
@@ -72,10 +62,8 @@ Deno.serve(async (req) => {
     if (jobErr || !job) return json({ ok: false, error: 'Job not found' }, 404);
 
     if (bill.organization_id !== job.organization_id) {
-      // Belt-and-braces — RLS should prevent this anyway
-      return json({ ok: false, error: 'Bill and job belong to different orgs' }, 400);
+      return json({ ok: false, error: 'Bill and job in different orgs' }, 400);
     }
-
     if (bill.status === 'attached' || bill.status === 'paid') {
       return json({ ok: false, error: `Bill already ${bill.status}` }, 409);
     }
@@ -85,6 +73,7 @@ Deno.serve(async (req) => {
     const {
       data: { user },
     } = await userClient.auth.getUser();
+
     const { error: updateErr } = await admin
       .from('bills')
       .update({
@@ -97,7 +86,7 @@ Deno.serve(async (req) => {
       .eq('id', bill.id);
     if (updateErr) return json({ ok: false, error: `Attach failed: ${updateErr.message}` }, 500);
 
-    // Push to Xero (single shot, original-dated)
+    // Push to Xero (real or stub)
     const result = await pushBillToXero({
       admin,
       organizationId: bill.organization_id,
@@ -105,7 +94,6 @@ Deno.serve(async (req) => {
       job,
     });
 
-    // Record on bill + sync log
     await admin
       .from('bills')
       .update({
@@ -115,7 +103,11 @@ Deno.serve(async (req) => {
       })
       .eq('id', bill.id);
 
-    return json({ ok: true, ...result });
+    return json({
+      ok: true,
+      xero_invoice_id: result.xeroInvoiceId,
+      is_stub: result.isStub,
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return json({ ok: false, error: msg }, 500);
