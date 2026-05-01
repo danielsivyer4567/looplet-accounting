@@ -36,9 +36,26 @@ export function BillsPage() {
 
   return (
     <section>
-      <h1>Bills</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1>Bills</h1>
+        <Link
+          to="/bills/upload"
+          style={{
+            padding: '0.5rem 1rem',
+            background: '#1c5135',
+            color: '#fff',
+            border: '1px solid #2da565',
+            borderRadius: 4,
+            textDecoration: 'none',
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          + Upload bill
+        </Link>
+      </div>
 
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', marginTop: '1rem' }}>
         {filters.map((f) => (
           <button
             key={f.label}

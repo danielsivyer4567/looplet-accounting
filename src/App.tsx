@@ -6,6 +6,7 @@ import { LoginPage } from '@/pages/Login';
 import { SignupPage } from '@/pages/Signup';
 import { DashboardPage } from '@/pages/Dashboard';
 import { BillsPage } from '@/pages/Bills';
+import { BillUploadPage } from '@/pages/BillUpload';
 import { BillDetailPage } from '@/pages/BillDetail';
 import { AllocationsPage } from '@/pages/Allocations';
 import { JobsPage } from '@/pages/Jobs';
@@ -37,6 +38,7 @@ export function App() {
           >
             <Route index element={<DashboardPage />} />
             <Route path="bills" element={<BillsPage />} />
+            <Route path="bills/upload" element={<BillUploadPage />} />
             <Route path="bills/:id" element={<BillDetailPage />} />
             <Route path="allocations" element={<AllocationsPage />} />
             <Route path="jobs" element={<JobsPage />} />
