@@ -25,6 +25,7 @@ import { extractBillData } from '../_shared/ocr/index.ts';
 import { extractTextFromPdf } from '../_shared/ocr/textExtract.ts';
 import { parseBillHeaders } from '../_shared/ocr/headerParser.ts';
 import type { ExtractedBill } from '../_shared/ocr/prompt.ts';
+import { routeBill, type RouterResult } from '../_shared/bills/router.ts';
 
 interface RequestBody {
   bill_id: string;
@@ -111,12 +112,15 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString(),
         })
         .eq('id', bill.id);
+      // Run routing on the cache-hit too — same job_reference, same matching.
+      const routing = await runRouting(admin, bill.id, bill.organization_id, cacheRow);
       return json({
         ok: true,
         method: 'cache',
         cache_hit: true,
         provider: cacheRow.ocr_provider,
         extracted: cacheRow.raw_extracted,
+        routing,
       });
     }
 
@@ -138,6 +142,10 @@ Deno.serve(async (req) => {
           };
 
           await persistExtraction(admin, bill.id, extracted, contentSha256, 'text-only');
+          const routing = await runRouting(admin, bill.id, bill.organization_id, {
+            job_reference_raw: extracted.job_reference,
+            confidence: extracted.confidence,
+          });
 
           return json({
             ok: true,
@@ -146,6 +154,7 @@ Deno.serve(async (req) => {
             provider: 'text-only',
             extracted,
             confidence_score: headers.confidence,
+            routing,
           });
         }
         // Low-confidence text — fall through to vision (vision sees layout)
@@ -157,6 +166,10 @@ Deno.serve(async (req) => {
     extracted._extraction_method = 'vision';
 
     await persistExtraction(admin, bill.id, extracted, contentSha256, provider);
+    const routing = await runRouting(admin, bill.id, bill.organization_id, {
+      job_reference_raw: extracted.job_reference,
+      confidence: extracted.confidence,
+    });
 
     return json({
       ok: true,
@@ -165,6 +178,7 @@ Deno.serve(async (req) => {
       provider,
       extracted,
       raw_length: raw.length,
+      routing,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -204,6 +218,22 @@ async function persistExtraction(
       updated_at: new Date().toISOString(),
     })
     .eq('id', billId);
+}
+
+async function runRouting(
+  // deno-lint-ignore no-explicit-any
+  admin: any,
+  billId: string,
+  organizationId: string,
+  source: { job_reference_raw?: string | null; confidence?: ExtractedBill['confidence'] },
+): Promise<RouterResult> {
+  return await routeBill({
+    admin,
+    billId,
+    organizationId,
+    jobReferenceRaw: source.job_reference_raw ?? null,
+    extractedConfidence: source.confidence ?? 'medium',
+  });
 }
 
 function json(body: unknown, status = 200): Response {
