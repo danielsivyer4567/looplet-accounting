@@ -44,6 +44,15 @@ export interface ExtractedBill {
   job_reference: string | null;
   confidence: 'high' | 'medium' | 'low';
   notes: string;
+  // Internal: which path produced this. Set by bills-extract; not from the model.
+  _extraction_method?: 'text' | 'vision' | 'hybrid';
+  _extraction_meta?: {
+    found?: string[];
+    missing?: string[];
+    confidence_score?: number;
+    math_consistent?: boolean;
+    page_count?: number;
+  };
 }
 
 /**

@@ -1,31 +1,36 @@
 /**
- * bills-extract — runs OCR on an uploaded bill, writes extracted data to the
- * `bills` row, and returns the structured result.
+ * bills-extract — extracts structured data from an uploaded bill.
  *
- * **Once-off OCR per file:** computes SHA-256 of the file bytes and looks up
- * any prior bill in the same organization with the same hash and a real
- * extraction. If found, copies the extraction onto the current bill and
- * skips the OCR call entirely. Saves cost + latency on re-uploads of the
- * same supplier statement / invoice / receipt.
+ * Two-stage pipeline:
+ *   1. Once-off SHA-256 dedup → cache hit returns instantly
+ *   2. Born-digital PDFs: try text extraction first
+ *        - if header parse confidence ≥ 0.8, persist and return
+ *          (~100ms, $0)
+ *        - otherwise fall through to vision OCR
+ *   3. Vision OCR — Groq / OpenAI / Kimi via the provider router
  *
- * Trigger: invoked from frontend after a bill upload. Async; the bill row
- * status transitions: received → verified (during cache check) →
- * verified (with extraction) on success.
+ * The text-first path covers ~70% of supplier bills (born-digital PDFs
+ * from Reece, Bunnings Trade, Tradelink, etc.) at zero cost. Photos and
+ * scanned PDFs always go through vision.
  *
- * Auth: requires the user's JWT; RLS does the org-scoping when we read/write
- * `bills`.
+ * Auth: requires user JWT; RLS scopes the bill row.
  *
  * Input:  { bill_id: UUID }
- * Output: { ok: true, extracted: { ... }, cache_hit: boolean, provider?: string }
+ * Output: { ok: true, extracted, cache_hit, method: 'cache'|'text'|'vision', provider? }
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { extractBillData } from '../_shared/ocr/index.ts';
+import { extractTextFromPdf } from '../_shared/ocr/textExtract.ts';
+import { parseBillHeaders } from '../_shared/ocr/headerParser.ts';
+import type { ExtractedBill } from '../_shared/ocr/prompt.ts';
 
 interface RequestBody {
   bill_id: string;
 }
+
+const TEXT_CONFIDENCE_THRESHOLD = 0.8;
 
 Deno.serve(async (req) => {
   const pre = preflight(req);
@@ -42,13 +47,9 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'Server config missing' }, 500);
     }
 
-    // Service-role client for storage + cross-row writes (RLS bypassed; we
-    // MUST scope manually by the caller's accessible orgs).
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-
-    // User-scoped client for the initial bill read (RLS enforced).
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -61,7 +62,6 @@ Deno.serve(async (req) => {
     const body = (await req.json()) as RequestBody;
     if (!body.bill_id) return json({ ok: false, error: 'bill_id required' }, 400);
 
-    // Read the bill — RLS ensures the caller is in the right org.
     const { data: bill, error: billErr } = await userClient
       .from('bills')
       .select('id, organization_id, storage_key, mime_type, status, content_sha256')
@@ -69,13 +69,12 @@ Deno.serve(async (req) => {
       .single();
     if (billErr || !bill) return json({ ok: false, error: 'Bill not found' }, 404);
 
-    // Move to verifying state.
     await admin
       .from('bills')
       .update({ status: 'verified', updated_at: new Date().toISOString() })
       .eq('id', bill.id);
 
-    // Pull file bytes from storage.
+    // Pull file bytes
     const { data: fileBlob, error: storageErr } = await admin.storage
       .from('bills')
       .download(bill.storage_key);
@@ -84,14 +83,12 @@ Deno.serve(async (req) => {
     }
     const bytes = new Uint8Array(await fileBlob.arrayBuffer());
 
-    // Compute SHA-256 of bytes (hex, lowercase, 64 chars).
+    // SHA-256 dedup
     const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
     const contentSha256 = Array.from(new Uint8Array(hashBuffer))
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
 
-    // Cache lookup: any prior bill in this org with the same content hash
-    // and a real extraction → copy it. Strict org scope; never cross-tenant.
     const { data: cacheRow } = await admin
       .from('bills')
       .select(
@@ -106,8 +103,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (cacheRow) {
-      // Cache hit. Copy fields, set the hash on this row, return.
-      const { error: copyErr } = await admin
+      await admin
         .from('bills')
         .update({
           ...cacheRow,
@@ -115,48 +111,56 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString(),
         })
         .eq('id', bill.id);
-      if (copyErr) {
-        return json({ ok: false, error: `Cache copy failed: ${copyErr.message}` }, 500);
-      }
       return json({
         ok: true,
+        method: 'cache',
         cache_hit: true,
         provider: cacheRow.ocr_provider,
         extracted: cacheRow.raw_extracted,
       });
     }
 
-    // Cache miss — run OCR.
-    const { data: extracted, raw, provider } = await extractBillData(bytes, bill.mime_type);
+    // Text-first path for PDFs
+    if (bill.mime_type === 'application/pdf') {
+      const textRes = await extractTextFromPdf(bytes);
+      if (!textRes.empty) {
+        const headers = parseBillHeaders(textRes.fullText);
+        if (headers.confidence >= TEXT_CONFIDENCE_THRESHOLD) {
+          // High-confidence text-only extraction — persist and skip vision
+          const extracted = headers.data as ExtractedBill;
+          extracted._extraction_method = 'text';
+          extracted._extraction_meta = {
+            found: headers.found,
+            missing: headers.missing,
+            confidence_score: headers.confidence,
+            math_consistent: headers.mathConsistent,
+            page_count: textRes.pageCount,
+          };
 
-    const { error: updateErr } = await admin
-      .from('bills')
-      .update({
-        content_sha256: contentSha256,
-        supplier_name_raw: extracted.supplier_name,
-        supplier_abn: extracted.supplier_abn,
-        invoice_number: extracted.invoice_number,
-        invoice_date: extracted.invoice_date,
-        due_date: extracted.due_date,
-        total_inc_gst_cents:
-          extracted.total_inc_gst != null ? Math.round(extracted.total_inc_gst * 100) : null,
-        gst_cents: extracted.gst_amount != null ? Math.round(extracted.gst_amount * 100) : null,
-        subtotal_ex_gst_cents:
-          extracted.subtotal_ex_gst != null ? Math.round(extracted.subtotal_ex_gst * 100) : null,
-        currency_code: extracted.currency || 'AUD',
-        job_reference_raw: extracted.job_reference,
-        notes: extracted.notes || null,
-        raw_extracted: extracted,
-        ocr_provider: provider,
-        ocr_confidence:
-          extracted.confidence === 'high' ? 0.9 : extracted.confidence === 'low' ? 0.4 : 0.7,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', bill.id);
-    if (updateErr) return json({ ok: false, error: `DB write failed: ${updateErr.message}` }, 500);
+          await persistExtraction(admin, bill.id, extracted, contentSha256, 'text-only');
+
+          return json({
+            ok: true,
+            method: 'text',
+            cache_hit: false,
+            provider: 'text-only',
+            extracted,
+            confidence_score: headers.confidence,
+          });
+        }
+        // Low-confidence text — fall through to vision (vision sees layout)
+      }
+    }
+
+    // Vision path
+    const { data: extracted, raw, provider } = await extractBillData(bytes, bill.mime_type);
+    extracted._extraction_method = 'vision';
+
+    await persistExtraction(admin, bill.id, extracted, contentSha256, provider);
 
     return json({
       ok: true,
+      method: 'vision',
       cache_hit: false,
       provider,
       extracted,
@@ -167,6 +171,40 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: msg }, 500);
   }
 });
+
+async function persistExtraction(
+  // deno-lint-ignore no-explicit-any
+  admin: any,
+  billId: string,
+  extracted: ExtractedBill,
+  contentSha256: string,
+  provider: string,
+): Promise<void> {
+  await admin
+    .from('bills')
+    .update({
+      content_sha256: contentSha256,
+      supplier_name_raw: extracted.supplier_name,
+      supplier_abn: extracted.supplier_abn,
+      invoice_number: extracted.invoice_number,
+      invoice_date: extracted.invoice_date,
+      due_date: extracted.due_date,
+      total_inc_gst_cents:
+        extracted.total_inc_gst != null ? Math.round(extracted.total_inc_gst * 100) : null,
+      gst_cents: extracted.gst_amount != null ? Math.round(extracted.gst_amount * 100) : null,
+      subtotal_ex_gst_cents:
+        extracted.subtotal_ex_gst != null ? Math.round(extracted.subtotal_ex_gst * 100) : null,
+      currency_code: extracted.currency || 'AUD',
+      job_reference_raw: extracted.job_reference,
+      notes: extracted.notes || null,
+      raw_extracted: extracted,
+      ocr_provider: provider,
+      ocr_confidence:
+        extracted.confidence === 'high' ? 0.9 : extracted.confidence === 'low' ? 0.4 : 0.7,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', billId);
+}
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
