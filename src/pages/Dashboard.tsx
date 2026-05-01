@@ -1,7 +1,10 @@
 import { useOrg } from '@/contexts/OrgContext';
+import { useRealtimePnl } from '@/hooks/useRealtimePnl';
+import { formatMoney, formatMoneyCompact } from '@/lib/money';
 
 export function DashboardPage() {
   const { currentOrg } = useOrg();
+  const { pnl, loading, error } = useRealtimePnl();
 
   if (!currentOrg) {
     return (
@@ -9,50 +12,111 @@ export function DashboardPage() {
         <h1>Welcome to Looplet Accounting</h1>
         <p style={{ color: '#aaa' }}>
           Create your first organisation in the sidebar to get started. Each organisation is fully
-          isolated — its bills, jobs, employees, and Xero connection are yours alone.
+          isolated — bills, jobs, employees, and Xero connection are yours alone.
         </p>
       </section>
     );
   }
 
+  if (loading) return <p style={{ color: '#888' }}>Loading P&L…</p>;
+  if (error) return <p style={{ color: 'salmon' }}>Failed to load: {error}</p>;
+
+  const data = pnl ?? {
+    revenue_inc_gst_cents: 0,
+    cost_bills_cents: 0,
+    cost_wages_cents: 0,
+    cost_overhead_cents: 0,
+    total_cost_cents: 0,
+    gross_profit_cents: 0,
+    gst_set_aside_cents: 0,
+    tax_set_aside_cents: 0,
+    really_yours_cents: 0,
+  };
+
   return (
     <section>
       <h1>{currentOrg.name}</h1>
-      <p style={{ color: '#aaa' }}>
-        Once Phase 4 lands, this dashboard shows your real-time per-job profit, GST set-aside, tax
-        set-aside, daily overhead share, and "what's really yours" headline number.
-      </p>
+      <p style={{ color: '#888', fontSize: 14 }}>YTD across all jobs in this organisation.</p>
+
+      <div
+        style={{
+          padding: '2rem',
+          background: '#0d2f1f',
+          borderRadius: 8,
+          border: '1px solid #1c5135',
+          marginBottom: '2rem',
+        }}
+      >
+        <div
+          style={{ fontSize: 12, color: '#86c7a3', textTransform: 'uppercase', letterSpacing: 1 }}
+        >
+          What's really yours (YTD)
+        </div>
+        <div style={{ fontSize: 48, fontWeight: 700, marginTop: '0.5rem' }}>
+          {formatMoney(data.really_yours_cents)}
+        </div>
+        <div style={{ fontSize: 12, color: '#5e8d72', marginTop: '0.5rem' }}>
+          Gross profit minus GST set-aside minus income tax set-aside.
+          <br />
+          Estimate — confirm with your accountant.
+        </div>
+      </div>
+
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
           gap: '1rem',
-          marginTop: '2rem',
         }}
       >
-        {[
-          { label: "What's really yours (YTD)", value: '—', hint: 'Phase 4' },
-          { label: 'GST set-aside (this quarter)', value: '—', hint: 'Phase 4' },
-          { label: 'Tax set-aside (YTD)', value: '—', hint: 'Phase 4' },
-          { label: 'Active jobs', value: '0', hint: 'Phase 3' },
-          { label: 'Bills awaiting attachment', value: '0', hint: 'Phase 3' },
-          { label: 'Overdue customer invoices', value: '0', hint: 'Phase 4' },
-        ].map((card) => (
-          <div
-            key={card.label}
-            style={{
-              padding: '1rem',
-              background: '#1a1a1a',
-              borderRadius: 6,
-              border: '1px solid #2a2a2a',
-            }}
-          >
-            <div style={{ fontSize: 12, color: '#888', marginBottom: '0.5rem' }}>{card.label}</div>
-            <div style={{ fontSize: 28, fontWeight: 600 }}>{card.value}</div>
-            <div style={{ fontSize: 11, color: '#555', marginTop: '0.5rem' }}>{card.hint}</div>
-          </div>
-        ))}
+        <Card label="Revenue (inc GST)" value={data.revenue_inc_gst_cents} positive />
+        <Card label="Cost — bills" value={-data.cost_bills_cents} />
+        <Card label="Cost — wages (loaded)" value={-data.cost_wages_cents} />
+        <Card label="Cost — overhead share" value={-data.cost_overhead_cents} />
+        <Card label="Gross profit" value={data.gross_profit_cents} positive />
+        <Card label="GST set-aside" value={-data.gst_set_aside_cents} hint="Quarter total" />
+        <Card label="Tax set-aside (est.)" value={-data.tax_set_aside_cents} hint="ADR 0003" />
       </div>
+
+      <p style={{ color: '#666', fontSize: 12, marginTop: '1.5rem' }}>
+        Every number above is computed in real time from{' '}
+        <code>v_organization_realtime_pnl</code> on Supabase. No reconciliation, no Xero
+        round-trip.
+      </p>
     </section>
+  );
+}
+
+function Card({
+  label,
+  value,
+  hint,
+  positive,
+}: {
+  label: string;
+  value: number;
+  hint?: string;
+  positive?: boolean;
+}) {
+  const colour = positive ? '#86c7a3' : value < 0 ? '#e9a3a3' : '#aaa';
+  return (
+    <div
+      style={{
+        padding: '1rem',
+        background: '#1a1a1a',
+        borderRadius: 6,
+        border: '1px solid #2a2a2a',
+      }}
+    >
+      <div
+        style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}
+      >
+        {label}
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 600, marginTop: '0.4rem', color: colour }}>
+        {formatMoneyCompact(value)}
+      </div>
+      {hint && <div style={{ fontSize: 11, color: '#555', marginTop: '0.4rem' }}>{hint}</div>}
+    </div>
   );
 }
