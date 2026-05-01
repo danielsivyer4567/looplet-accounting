@@ -18,7 +18,7 @@ jobs:
     name: Lint, Typecheck, Test, Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v4
         with:
@@ -53,7 +53,7 @@ jobs:
     # This job MUST be green for any deploy. Cross-tenant leak = P0.
     # See docs/ROADMAP.md → Foundational Disciplines → Multi-tenancy.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v4
         with:
