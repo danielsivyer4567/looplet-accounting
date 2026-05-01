@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useOrg } from '@/contexts/OrgContext';
 import { useAllocationQueue, type QueueBill } from '@/hooks/useAllocationQueue';
 import { supabase } from '@/lib/supabase';
@@ -187,12 +188,22 @@ function BillCard({
             </div>
           </>
         ) : (
-          <div style={{ fontSize: 12, color: '#888' }}>
-            No suggestion. Open the bill to attach manually.
-            <br />
-            <span style={{ fontSize: 11, color: '#555' }}>
-              (Bill detail page coming in Phase 4.x)
-            </span>
+          <div style={{ fontSize: 13 }}>
+            <Link
+              to={`/bills/${bill.id}`}
+              style={{
+                display: 'inline-block',
+                padding: '0.4rem 0.75rem',
+                background: '#2a2a2a',
+                color: '#fff',
+                border: '1px solid #444',
+                borderRadius: 4,
+                textDecoration: 'none',
+                fontSize: 13,
+              }}
+            >
+              Open & attach manually →
+            </Link>
           </div>
         )}
       </div>
