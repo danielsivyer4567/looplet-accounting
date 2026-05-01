@@ -34,7 +34,7 @@ export function Layout() {
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.end}
+              end={item.end ?? false}
               style={({ isActive }) => ({
                 padding: '0.5rem 0.75rem',
                 borderRadius: 4,
