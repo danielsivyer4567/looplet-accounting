@@ -1,0 +1,35 @@
+version: 2
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Australia/Brisbane'
+    open-pull-requests-limit: 5
+    groups:
+      react:
+        patterns:
+          - 'react'
+          - 'react-dom'
+          - 'react-router-dom'
+      typescript:
+        patterns:
+          - 'typescript'
+          - 'typescript-eslint'
+          - '@types/*'
+      vite:
+        patterns:
+          - 'vite'
+          - '@vitejs/*'
+          - 'vitest'
+          - '@vitest/*'
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Australia/Brisbane'
