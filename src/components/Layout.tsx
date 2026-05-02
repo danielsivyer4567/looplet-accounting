@@ -15,7 +15,9 @@ const navItems = [
   { to: '/suppliers', label: 'Suppliers' },
   { to: '/employees', label: 'Employees' },
   { to: '/subscriptions', label: 'Subscriptions' },
+  { to: '/debts', label: 'Debts' },
   { to: '/reports', label: 'Reports' },
+  { to: '/quality', label: 'Quality' },
   { to: '/settings', label: 'Settings' },
 ];
 
