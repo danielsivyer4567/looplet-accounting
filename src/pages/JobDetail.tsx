@@ -175,7 +175,12 @@ export function JobDetailPage() {
             )}
           </div>
         </div>
-        {!editing && <button onClick={startEdit} style={editBtn}>✎ Edit</button>}
+        <div style={{ display: 'flex', gap: 8 }}>
+          {customer && (
+            <button onClick={() => navigate(`/invoices/new?job_id=${job.id}&customer_id=${customer.id}`)} style={primaryBtn}>+ Raise invoice</button>
+          )}
+          {!editing && <button onClick={startEdit} style={editBtn}>✎ Edit</button>}
+        </div>
       </div>
 
       {(overBudget || lowMargin) && (

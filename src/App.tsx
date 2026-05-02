@@ -13,6 +13,9 @@ import { ReconciliationPage } from '@/pages/Reconciliation';
 import { JobsPage } from '@/pages/Jobs';
 import { JobDetailPage } from '@/pages/JobDetail';
 import { CustomersPage } from '@/pages/Customers';
+import { CustomerDetailPage } from '@/pages/CustomerDetail';
+import { InvoicesPage } from '@/pages/Invoices';
+import { InvoiceDetailPage } from '@/pages/InvoiceDetail';
 import { SuppliersPage } from '@/pages/Suppliers';
 import { SupplierDetailPage } from '@/pages/SupplierDetail';
 import { EmployeesPage } from '@/pages/Employees';
@@ -64,7 +67,10 @@ export function App() {
             <Route path="jobs" element={<JobsPage />} />
             <Route path="jobs/:id" element={<JobDetailPage />} />
             <Route path="customers" element={<CustomersPage />} />
-            <Route path="customers/:id" element={<PlaceholderPage title="Customer detail" back="/customers" />} />
+            <Route path="customers/:id" element={<CustomerDetailPage />} />
+            <Route path="invoices" element={<InvoicesPage />} />
+            <Route path="invoices/new" element={<InvoiceDetailPage />} />
+            <Route path="invoices/:id" element={<InvoiceDetailPage />} />
             <Route path="suppliers" element={<SuppliersPage />} />
             <Route path="suppliers/:id" element={<SupplierDetailPage />} />
             <Route path="employees" element={<EmployeesPage />} />
