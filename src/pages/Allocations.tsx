@@ -2,13 +2,17 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useOrg } from '@/contexts/OrgContext';
 import { useAllocationQueue, type QueueBill } from '@/hooks/useAllocationQueue';
+import { useJobs } from '@/hooks/useJobs';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
 
 export function AllocationsPage() {
   const { currentOrg } = useOrg();
   const { bills, loading, error, refresh } = useAllocationQueue();
+  const { jobs } = useJobs();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkMsg, setBulkMsg] = useState<string | null>(null);
 
   if (!currentOrg) {
     return (
@@ -76,6 +80,44 @@ export function AllocationsPage() {
     setBusyId(null);
   };
 
+  const billsWithSuggestion = bills.filter((b) => b.suggested_job?.id);
+
+  const bulkAttachAllSuggestions = async () => {
+    if (billsWithSuggestion.length === 0) return;
+    if (!confirm(`Attach ${billsWithSuggestion.length} bill${billsWithSuggestion.length === 1 ? '' : 's'} to their suggested job? You can detach individually if any are wrong.`)) return;
+    setBulkBusy(true);
+    setBulkMsg(`Attaching 0 / ${billsWithSuggestion.length}…`);
+    let n = 0;
+    for (const b of billsWithSuggestion) {
+      if (!b.suggested_job?.id) continue;
+      // Direct DB update — fast, idempotent. Skips bills-attach edge fn (no Xero push in stub mode).
+      await supabase
+        .from('bills')
+        .update({
+          job_id: b.suggested_job.id,
+          suggested_job_id: null,
+          suggested_match_score: null,
+          status: 'attached',
+        })
+        .eq('id', b.id);
+      n += 1;
+      setBulkMsg(`Attaching ${n} / ${billsWithSuggestion.length}…`);
+    }
+    setBulkMsg(`✓ Attached ${n} bills.`);
+    setBulkBusy(false);
+    await refresh();
+  };
+
+  const quickAssignToJob = async (billId: string, jobId: string) => {
+    setBusyId(billId);
+    await supabase
+      .from('bills')
+      .update({ job_id: jobId, suggested_job_id: null, suggested_match_score: null, status: 'attached' })
+      .eq('id', billId);
+    await refresh();
+    setBusyId(null);
+  };
+
   return (
     <section>
       <h1>Allocations</h1>
@@ -84,14 +126,42 @@ export function AllocationsPage() {
         the top, no-suggestion at the bottom.
       </p>
 
+      {billsWithSuggestion.length > 0 && (
+        <div style={{ marginTop: 12, padding: 12, background: '#0d2f1f', border: '1px solid #1c5135', borderRadius: 6 }}>
+          <strong style={{ color: '#86c7a3' }}>
+            {billsWithSuggestion.length} bills have AI-suggested job matches.
+          </strong>
+          <button
+            onClick={bulkAttachAllSuggestions}
+            disabled={bulkBusy}
+            style={{
+              marginLeft: 12,
+              padding: '0.4rem 1rem',
+              background: '#1c5135',
+              color: '#fff',
+              border: '1px solid #2da565',
+              borderRadius: 4,
+              cursor: bulkBusy ? 'wait' : 'pointer',
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            {bulkBusy ? 'Attaching…' : `✓ Bulk-attach all ${billsWithSuggestion.length}`}
+          </button>
+          {bulkMsg && <div style={{ color: '#aaa', fontSize: 12, marginTop: 6 }}>{bulkMsg}</div>}
+        </div>
+      )}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.5rem' }}>
         {bills.map((b) => (
           <BillCard
             key={b.id}
             bill={b}
             busy={busyId === b.id}
+            jobs={jobs}
             onConfirm={(jobId) => confirmAttach(b, jobId)}
             onReject={() => rejectSuggestion(b.id)}
+            onQuickAssign={(jobId) => quickAssignToJob(b.id, jobId)}
           />
         ))}
       </div>
@@ -102,13 +172,17 @@ export function AllocationsPage() {
 function BillCard({
   bill,
   busy,
+  jobs,
   onConfirm,
   onReject,
+  onQuickAssign,
 }: {
   bill: QueueBill;
   busy: boolean;
+  jobs: import('@/hooks/useJobs').JobListRow[];
   onConfirm: (jobId: string) => void;
   onReject: () => void;
+  onQuickAssign: (jobId: string) => void;
 }) {
   const score = bill.suggested_match_score ?? 0;
   const sugg = bill.suggested_job;
@@ -188,21 +262,32 @@ function BillCard({
             </div>
           </>
         ) : (
-          <div style={{ fontSize: 13 }}>
-            <Link
-              to={`/bills/${bill.id}`}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <select
+              onChange={(e) => e.target.value && onQuickAssign(e.target.value)}
+              defaultValue=""
+              disabled={busy}
               style={{
-                display: 'inline-block',
-                padding: '0.4rem 0.75rem',
-                background: '#2a2a2a',
+                padding: '0.4rem 0.5rem',
+                background: '#0a0a0a',
                 color: '#fff',
                 border: '1px solid #444',
                 borderRadius: 4,
-                textDecoration: 'none',
-                fontSize: 13,
+                fontSize: 12,
               }}
             >
-              Open & attach manually →
+              <option value="">— quick-assign to job —</option>
+              {jobs.map((j) => (
+                <option key={j.id} value={j.id}>
+                  {j.job_number} · {j.name}
+                </option>
+              ))}
+            </select>
+            <Link
+              to={`/bills/${bill.id}`}
+              style={{ color: '#888', fontSize: 11, textAlign: 'right' }}
+            >
+              or open detail page →
             </Link>
           </div>
         )}

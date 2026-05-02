@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { OrgProvider } from '@/contexts/OrgContext';
 import { Layout } from '@/components/Layout';
@@ -17,6 +17,18 @@ import { SettingsPage } from '@/pages/Settings';
 import { GmailCallbackPage } from '@/pages/GmailCallback';
 import { AutoSetupPage } from '@/pages/onboarding/AutoSetup';
 import { TriagePage } from '@/pages/onboarding/Triage';
+
+function PlaceholderPage({ title, back }: { title: string; back: string }) {
+  return (
+    <section>
+      <h1>{title}</h1>
+      <p style={{ color: '#888' }}>Detail view coming in a future phase.</p>
+      <Link to={back} style={{ color: '#86c7a3', fontSize: 13 }}>
+        &larr; Back
+      </Link>
+    </section>
+  );
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -45,8 +57,11 @@ export function App() {
             <Route path="bills/:id" element={<BillDetailPage />} />
             <Route path="allocations" element={<AllocationsPage />} />
             <Route path="jobs" element={<JobsPage />} />
+            <Route path="jobs/:id" element={<PlaceholderPage title="Job detail" back="/jobs" />} />
             <Route path="customers" element={<CustomersPage />} />
+            <Route path="customers/:id" element={<PlaceholderPage title="Customer detail" back="/customers" />} />
             <Route path="suppliers" element={<SuppliersPage />} />
+            <Route path="suppliers/:id" element={<PlaceholderPage title="Supplier detail" back="/suppliers" />} />
             <Route path="employees" element={<EmployeesPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="settings/gmail-callback" element={<GmailCallbackPage />} />

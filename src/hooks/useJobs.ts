@@ -12,6 +12,14 @@ export interface JobListRow {
   created_at: string;
   attached_bills: [{ count: number }] | [];
   suggested_bills: [{ count: number }] | [];
+  // Live P&L from v_job_pnl
+  cost_bills_cents?: number;
+  cost_wages_cents?: number;
+  cost_overhead_cents?: number;
+  total_cost_cents?: number;
+  revenue_inc_gst_cents?: number;
+  gross_profit_cents?: number;
+  budget_cents?: number;
 }
 
 export function useJobs() {
@@ -29,20 +37,32 @@ export function useJobs() {
     setLoading(true);
     setError(null);
 
-    const { data, error: queryErr } = await supabase
-      .from('jobs')
-      .select(
-        'id, job_number, name, status, created_at, attached_bills:bills!job_id(count), suggested_bills:bills!suggested_job_id(count)',
-      )
-      .eq('organization_id', currentOrg.id)
-      .order('created_at', { ascending: false })
-      .limit(200);
+    // Fetch jobs + bill counts in parallel with v_job_pnl for live numbers
+    const [{ data: jobsData, error: jobsErr }, { data: pnlData }] = await Promise.all([
+      supabase
+        .from('jobs')
+        .select(
+          'id, job_number, name, status, created_at, attached_bills:bills!job_id(count), suggested_bills:bills!suggested_job_id(count)',
+        )
+        .eq('organization_id', currentOrg.id)
+        .order('created_at', { ascending: false })
+        .limit(200),
+      supabase.from('v_job_pnl').select('*').eq('organization_id', currentOrg.id),
+    ]);
 
-    if (queryErr) {
-      setError(queryErr.message);
+    if (jobsErr) {
+      setError(jobsErr.message);
       setJobs([]);
     } else {
-      setJobs((data ?? []) as unknown as JobListRow[]);
+      // Index P&L by job_id for an O(1) merge
+      const pnlByJob = new Map<string, any>();
+      for (const row of (pnlData ?? []) as any[]) pnlByJob.set(row.job_id, row);
+
+      const merged: JobListRow[] = ((jobsData ?? []) as any[]).map((j) => ({
+        ...j,
+        ...(pnlByJob.get(j.id) ?? {}),
+      }));
+      setJobs(merged);
     }
     setLoading(false);
   }, [currentOrg]);
