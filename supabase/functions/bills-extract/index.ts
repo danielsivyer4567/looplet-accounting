@@ -53,13 +53,19 @@ Deno.serve(async (req) => {
     });
 
     // Accept either user JWT or service_role (used by bills-extract-batch and Pub/Sub push).
-    // Detect service_role by parsing the JWT claims (more robust than string match).
+    // Detection: (a) exact match against SUPABASE_SERVICE_ROLE_KEY env, OR
+    // (b) decoded JWT claim role === 'service_role'. JWT uses base64url which
+    // requires translation before atob.
     const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-    let isServiceRole = false;
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1] ?? ''));
-      isServiceRole = payload?.role === 'service_role';
-    } catch { /* fall through to user-jwt path */ }
+    let isServiceRole = token === serviceKey;
+    if (!isServiceRole) {
+      try {
+        const payloadB64 = (token.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/');
+        const padded = payloadB64 + '='.repeat((4 - (payloadB64.length % 4)) % 4);
+        const payload = JSON.parse(atob(padded));
+        isServiceRole = payload?.role === 'service_role';
+      } catch { /* fall through to user-jwt path */ }
+    }
 
     let dbClient: any;
     if (isServiceRole) {

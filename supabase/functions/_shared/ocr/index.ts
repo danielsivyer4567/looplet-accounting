@@ -23,14 +23,30 @@ export async function extractBillData(
   imageBytes: Uint8Array,
   mimeType: string,
 ): Promise<{ data: ExtractedBill; raw: string; provider: OCRProvider }> {
-  // PDF → image conversion: deferred to v1.1.
-  // Loopletnumero used poppler-utils via shell-out, not available in Deno edge fns.
-  // Two paths under consideration: (a) pdfjs-dist + offscreen canvas in fn,
-  // (b) browser-side conversion before upload. Track in roadmap Phase 3.1.
+  // Image-based PDFs (scanned, photo-of-paper) need rasterization for vision OCR.
+  // Deno-edge can't easily run poppler/pdfjs+canvas. Until that lands we
+  // return a graceful "needs manual entry" result so the caller can mark
+  // the bill verified-with-low-confidence rather than hard-failing.
   if (mimeType === 'application/pdf') {
-    throw new Error(
-      'PDF conversion not yet supported in edge functions. Convert to PNG/JPG before upload, or wait for Phase 3.1.',
-    );
+    return {
+      data: {
+        supplier_name: null,
+        supplier_abn: null,
+        invoice_number: null,
+        invoice_date: null,
+        due_date: null,
+        subtotal_ex_gst: null,
+        gst_amount: null,
+        total_inc_gst: null,
+        currency: 'AUD',
+        line_items: [],
+        job_reference: null,
+        confidence: 'low',
+        notes: 'Image-based PDF — text extraction failed and vision OCR for PDFs is pending. Please enter fields manually from the file preview.',
+      },
+      raw: '{}',
+      provider: 'groq',
+    };
   }
 
   const provider = getActiveProvider();
