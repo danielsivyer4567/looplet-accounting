@@ -38,6 +38,7 @@ export interface BillDetail {
   xero_status: string;
   xero_invoice_id: string | null;
   attached_at: string | null;
+  is_personal: boolean;
   suggested_job_id: string | null;
   suggested_match_score: number | null;
   raw_extracted: { _extraction_method?: string } | null;

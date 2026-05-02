@@ -91,9 +91,12 @@ export function BillDetailPage() {
       <Link to="/bills" style={{ color: '#888', fontSize: 13 }}>
         ← back to bills
       </Link>
-      <h1 style={{ marginTop: '0.5rem' }}>
-        {bill.supplier_name_raw ?? <span style={{ color: '#888' }}>Bill {bill.id.slice(0, 8)}</span>}
-      </h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '0.5rem' }}>
+        <h1 style={{ margin: 0 }}>
+          {bill.supplier_name_raw ?? <span style={{ color: '#888' }}>Bill {bill.id.slice(0, 8)}</span>}
+        </h1>
+        <PersonalToggle bill={bill} onChange={() => void refresh()} />
+      </div>
       <StatusBar bill={bill} />
 
       {actionError && (
@@ -294,6 +297,34 @@ export function BillDetailPage() {
         </div>
       </div>
     </section>
+  );
+}
+
+function PersonalToggle({ bill, onChange }: { bill: Bill; onChange: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const toggle = async () => {
+    setBusy(true);
+    await supabase.from('bills').update({ is_personal: !bill.is_personal }).eq('id', bill.id);
+    setBusy(false);
+    onChange();
+  };
+  return (
+    <button
+      onClick={toggle}
+      disabled={busy}
+      style={{
+        padding: '0.3rem 0.75rem',
+        background: bill.is_personal ? '#3d2818' : 'transparent',
+        color: bill.is_personal ? '#f0c47a' : '#aaa',
+        border: '1px solid ' + (bill.is_personal ? '#d28d4a' : '#333'),
+        borderRadius: 3,
+        fontSize: 12,
+        cursor: busy ? 'wait' : 'pointer',
+      }}
+      title="Tag as a personal (non-business) expense — excluded from P&L, BAS, and tax set-aside."
+    >
+      {bill.is_personal ? '★ Personal' : 'Mark personal'}
+    </button>
   );
 }
 

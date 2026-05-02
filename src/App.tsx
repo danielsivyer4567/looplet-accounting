@@ -16,6 +16,10 @@ import { CustomersPage } from '@/pages/Customers';
 import { CustomerDetailPage } from '@/pages/CustomerDetail';
 import { InvoicesPage } from '@/pages/Invoices';
 import { InvoiceDetailPage } from '@/pages/InvoiceDetail';
+import { SubscriptionsPage } from '@/pages/Subscriptions';
+import { ReportsIndexPage } from '@/pages/reports/Index';
+import { BasReportPage } from '@/pages/reports/Bas';
+import { CashFlowPage } from '@/pages/reports/CashFlow';
 import { SuppliersPage } from '@/pages/Suppliers';
 import { SupplierDetailPage } from '@/pages/SupplierDetail';
 import { EmployeesPage } from '@/pages/Employees';
@@ -71,6 +75,10 @@ export function App() {
             <Route path="invoices" element={<InvoicesPage />} />
             <Route path="invoices/new" element={<InvoiceDetailPage />} />
             <Route path="invoices/:id" element={<InvoiceDetailPage />} />
+            <Route path="subscriptions" element={<SubscriptionsPage />} />
+            <Route path="reports" element={<ReportsIndexPage />} />
+            <Route path="reports/bas" element={<BasReportPage />} />
+            <Route path="reports/cash-flow" element={<CashFlowPage />} />
             <Route path="suppliers" element={<SuppliersPage />} />
             <Route path="suppliers/:id" element={<SupplierDetailPage />} />
             <Route path="employees" element={<EmployeesPage />} />
