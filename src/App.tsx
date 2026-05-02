@@ -12,6 +12,7 @@ import { AllocationsPage } from '@/pages/Allocations';
 import { JobsPage } from '@/pages/Jobs';
 import { CustomersPage } from '@/pages/Customers';
 import { SuppliersPage } from '@/pages/Suppliers';
+import { SupplierDetailPage } from '@/pages/SupplierDetail';
 import { EmployeesPage } from '@/pages/Employees';
 import { SettingsPage } from '@/pages/Settings';
 import { GmailCallbackPage } from '@/pages/GmailCallback';
@@ -62,7 +63,7 @@ export function App() {
             <Route path="customers" element={<CustomersPage />} />
             <Route path="customers/:id" element={<PlaceholderPage title="Customer detail" back="/customers" />} />
             <Route path="suppliers" element={<SuppliersPage />} />
-            <Route path="suppliers/:id" element={<PlaceholderPage title="Supplier detail" back="/suppliers" />} />
+            <Route path="suppliers/:id" element={<SupplierDetailPage />} />
             <Route path="employees" element={<EmployeesPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="settings/gmail-callback" element={<GmailCallbackPage />} />
