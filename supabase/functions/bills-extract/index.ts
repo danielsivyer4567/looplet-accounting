@@ -91,6 +91,17 @@ Deno.serve(async (req) => {
     }
     const bytes = new Uint8Array(await fileBlob.arrayBuffer());
 
+    // Extract structural metadata (PDF info dict / EXIF / XMP) — free signal
+    // before any OCR. Will be merged into raw_extracted and used to pre-fill
+    // supplier_name / invoice_number / invoice_date if OCR misses them.
+    let docMetadata: any = null;
+    try {
+      const { extractDocumentMetadata } = await import('../_shared/ocr/metadata.ts');
+      docMetadata = await extractDocumentMetadata(bytes, bill.mime_type);
+    } catch (mdErr) {
+      console.warn('metadata extraction skipped:', mdErr);
+    }
+
     // SHA-256 dedup
     const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
     const contentSha256 = Array.from(new Uint8Array(hashBuffer))
@@ -148,7 +159,7 @@ Deno.serve(async (req) => {
             page_count: textRes.pageCount,
           };
 
-          await persistExtraction(admin, bill.id, extracted, contentSha256, 'text-only');
+          await persistExtraction(admin, bill.id, extracted, contentSha256, 'text-only', docMetadata);
           const routing = await runRouting(admin, bill.id, bill.organization_id, {
             job_reference_raw: extracted.job_reference,
             confidence: extracted.confidence,
@@ -172,7 +183,7 @@ Deno.serve(async (req) => {
     const { data: extracted, raw, provider } = await extractBillData(bytes, bill.mime_type);
     extracted._extraction_method = 'vision';
 
-    await persistExtraction(admin, bill.id, extracted, contentSha256, provider);
+    await persistExtraction(admin, bill.id, extracted, contentSha256, provider, docMetadata);
     const routing = await runRouting(admin, bill.id, bill.organization_id, {
       job_reference_raw: extracted.job_reference,
       confidence: extracted.confidence,
@@ -200,15 +211,24 @@ async function persistExtraction(
   extracted: ExtractedBill,
   contentSha256: string,
   provider: string,
+  // deno-lint-ignore no-explicit-any
+  docMetadata?: any,
 ): Promise<void> {
+  // Backfill empty OCR fields from metadata if metadata has them
+  const filledSupplier = extracted.supplier_name || docMetadata?.candidate_supplier || docMetadata?.author || null;
+  const filledInvoiceNumber = extracted.invoice_number || docMetadata?.candidate_invoice_number || null;
+  const filledInvoiceDate = extracted.invoice_date
+    || (docMetadata?.taken_at ? docMetadata.taken_at.slice(0, 10) : null)
+    || (docMetadata?.created_at ? docMetadata.created_at.slice(0, 10) : null);
+
   await admin
     .from('bills')
     .update({
       content_sha256: contentSha256,
-      supplier_name_raw: extracted.supplier_name,
+      supplier_name_raw: filledSupplier,
       supplier_abn: extracted.supplier_abn,
-      invoice_number: extracted.invoice_number,
-      invoice_date: extracted.invoice_date,
+      invoice_number: filledInvoiceNumber,
+      invoice_date: filledInvoiceDate,
       due_date: extracted.due_date,
       total_inc_gst_cents:
         extracted.total_inc_gst != null ? Math.round(extracted.total_inc_gst * 100) : null,
@@ -218,7 +238,9 @@ async function persistExtraction(
       currency_code: extracted.currency || 'AUD',
       job_reference_raw: extracted.job_reference,
       notes: extracted.notes || null,
-      raw_extracted: extracted,
+      raw_extracted: docMetadata
+        ? { ...extracted, _document_metadata: docMetadata }
+        : extracted,
       ocr_provider: provider,
       ocr_confidence:
         extracted.confidence === 'high' ? 0.9 : extracted.confidence === 'low' ? 0.4 : 0.7,
