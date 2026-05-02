@@ -94,10 +94,16 @@ export async function ingestGmailMessage(
     }
   }
 
+  const NOISE_FILENAME = /(logo|icon|footer|header|signature|banner|outlook[-_]o|image00[0-9]|email[-_]\d|spacer)/i;
   const parts = flattenParts(msg.payload);
-  const attachments = parts.filter(
-    (p) => p.body?.attachmentId && p.mimeType && ACCEPTED_MIME.has(p.mimeType),
-  );
+  const attachments = parts.filter((p) => {
+    if (!p.body?.attachmentId || !p.mimeType) return false;
+    if (!ACCEPTED_MIME.has(p.mimeType)) return false;
+    const size = p.body.size ?? 0;
+    if (size > 0 && size < 30_000) return false;
+    if (p.filename && NOISE_FILENAME.test(p.filename)) return false;
+    return true;
+  });
 
   if (attachments.length === 0) {
     result.rejected.push({ message_id: messageId, reason: 'no PDF/image attachments' });

@@ -239,14 +239,23 @@ async function ingestMessage(
     return result;
   }
 
-  // Walk parts looking for accepted attachments
+  // Walk parts looking for accepted attachments. Filter out obvious email
+  // assets (logos, icons, footers) BEFORE we even download them.
+  const NOISE_FILENAME = /(logo|icon|footer|header|signature|banner|outlook[-_]o|image00[0-9]|email[-_]\d|spacer)/i;
   const parts = flattenParts(msg.payload);
-  const attachments = parts.filter(
-    (p) => p.body?.attachmentId && p.mimeType && ACCEPTED_MIME.has(p.mimeType),
-  );
+  const attachments = parts.filter((p) => {
+    if (!p.body?.attachmentId || !p.mimeType) return false;
+    if (!ACCEPTED_MIME.has(p.mimeType)) return false;
+    // Skip files < 30KB (almost always email signature assets)
+    const size = p.body.size ?? 0;
+    if (size > 0 && size < 30_000) return false;
+    // Skip obvious asset filenames
+    if (p.filename && NOISE_FILENAME.test(p.filename)) return false;
+    return true;
+  });
 
   if (attachments.length === 0) {
-    result.rejected.push({ message_id: messageId, reason: 'no PDF/image attachments' });
+    result.rejected.push({ message_id: messageId, reason: 'no real PDF/image invoice attachments (filtered logos/icons)' });
     return result;
   }
 
