@@ -37,6 +37,11 @@ export function BankConnect() {
 
   const handleConnect = async () => {
     setError(null);
+    const mobile = window.prompt(
+      'Australian mobile number (Basiq requires this to start the Connect flow):',
+      '04',
+    );
+    if (!mobile) return;
     setConnecting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -49,7 +54,7 @@ export function BankConnect() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ organization_id: currentOrg.id, redirect_uri }),
+        body: JSON.stringify({ organization_id: currentOrg.id, redirect_uri, mobile }),
       });
       const body = await res.json();
       if (!res.ok || !body.ok) throw new Error(body.error ?? `${res.status}`);

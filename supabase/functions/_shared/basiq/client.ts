@@ -111,12 +111,28 @@ export async function getOrCreateBasiqUser(
   return created.id;
 }
 
-/** Create an auth_link the user can click to start the Connect flow. */
+/** Patch a Basiq user (e.g. to set a mobile number on an existing user). */
+export async function updateBasiqUser(
+  basiqUserId: string,
+  fields: { mobile?: string; email?: string; firstName?: string; lastName?: string },
+): Promise<void> {
+  await basiqFetch(`/users/${basiqUserId}`, {
+    method: 'POST', // Basiq uses POST (not PATCH) for user updates
+    body: JSON.stringify(fields),
+  });
+}
+
+/**
+ * Create an auth_link the user can click to start the Connect flow.
+ * Basiq requires a mobile to exist on the user OR be passed in the request.
+ */
 export async function createAuthLink(
   basiqUserId: string,
   redirectUrl?: string,
+  mobile?: string,
 ): Promise<{ url: string; expiresAt: string }> {
-  const body: Record<string, unknown> = { mobile: undefined };
+  const body: Record<string, unknown> = {};
+  if (mobile) body.mobile = mobile;
   if (redirectUrl) body.callback = redirectUrl;
   const data = await basiqFetch<{
     type: string;

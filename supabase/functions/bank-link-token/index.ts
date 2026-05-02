@@ -11,7 +11,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
-import { getOrCreateBasiqUser, createAuthLink } from '../_shared/basiq/client.ts';
+import { getOrCreateBasiqUser, createAuthLink, updateBasiqUser } from '../_shared/basiq/client.ts';
 
 interface RequestBody {
   organization_id: string;
@@ -59,8 +59,18 @@ Deno.serve(async (req) => {
     const email = body.email ?? user?.email;
     if (!email) return json({ ok: false, error: 'No email available for Basiq user' }, 400);
 
-    const basiqUserId = await getOrCreateBasiqUser(admin, body.organization_id, email, body.mobile);
-    const link = await createAuthLink(basiqUserId, body.redirect_uri);
+    const mobile = normaliseAuMobile(body.mobile);
+    if (!mobile) {
+      return json({
+        ok: false,
+        error: 'mobile required (Basiq needs an AU mobile in +614… form to start the Connect flow)',
+      }, 400);
+    }
+
+    const basiqUserId = await getOrCreateBasiqUser(admin, body.organization_id, email, mobile);
+    // If the Basiq user already existed without a mobile, patch it now.
+    try { await updateBasiqUser(basiqUserId, { mobile }); } catch { /* ignore — user may already have it */ }
+    const link = await createAuthLink(basiqUserId, body.redirect_uri, mobile);
 
     return json({
       ok: true,
@@ -79,4 +89,18 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+/**
+ * Accept "0412345678", "+61412345678", "+61 412 345 678" etc.
+ * Return strict E.164 "+614xxxxxxxx" or null.
+ */
+function normaliseAuMobile(input?: string): string | null {
+  if (!input) return null;
+  const digits = input.replace(/\D/g, '');
+  if (!digits) return null;
+  if (digits.startsWith('614') && digits.length === 11) return `+${digits}`;
+  if (digits.startsWith('04') && digits.length === 10) return `+61${digits.slice(1)}`;
+  if (digits.startsWith('4') && digits.length === 9) return `+61${digits}`;
+  return null;
 }
