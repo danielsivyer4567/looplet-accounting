@@ -26,6 +26,11 @@ import {
   extractAbn,
   extractTotalCents,
 } from '../_shared/gmail/classify.ts';
+import {
+  bestSupplierFromSubjects,
+  bestSubjectIntent,
+  senderRolePattern,
+} from '../_shared/gmail/subjectSignals.ts';
 
 interface RequestBody {
   integration_id: string;
@@ -165,6 +170,31 @@ Deno.serve(async (req) => {
   }
 });
 
+interface ClassificationResult {
+  kind: 'supplier' | 'contractor' | 'customer' | 'personal' | 'subscription' | 'internal_admin' | 'unknown';
+  category: string | null;
+  display_name: string;
+  confidence: number;
+  reason: string;
+}
+
+async function lookupKnownSenderViaRpc(
+  admin: SupabaseClient,
+  email: string,
+): Promise<ClassificationResult | null> {
+  if (!email) return null;
+  const { data, error } = await admin.rpc('lookup_known_sender', { p_email: email });
+  if (error || !data || (data as any[]).length === 0) return null;
+  const row = (data as any[])[0];
+  return {
+    kind: row.kind ?? 'unknown',
+    category: row.category_code ?? null,
+    display_name: row.brand_name ?? email,
+    confidence: Number(row.confidence ?? 1.0),
+    reason: `Known sender: ${row.brand_name} (${row.arm} arm)${row.is_marketing ? ' [marketing arm — auto-dismiss]' : ''}`,
+  };
+}
+
 interface ClusterAccumulator {
   display_name: string;
   primary_email: string;
@@ -271,18 +301,98 @@ async function upsertCluster(
   canonical_key: string,
   c: ClusterAccumulator,
 ) {
-  // Run classifier with the cluster's accumulated context
   const sampleEmail = c.primary_email;
   const domain = [...c.observed_domains][0] ?? domainOf(sampleEmail);
-  const cls = classifyEntity({
-    sender_address: sampleEmail,
-    sender_domain: domain,
-    sender_name: c.display_name,
-    recent_subjects: c.sample_subjects,
-    is_outbound: c.is_outbound,
-  });
 
-  const status = cls.confidence >= 0.6 ? 'pending'
+  // === Signal cascade (highest priority first) ===
+  // 1. Known senders DB lookup
+  let cls = await lookupKnownSenderViaRpc(admin, sampleEmail);
+
+  // 2. Subject "Invoice from X" extraction — overrides if no DB match
+  const supplierFromSubject = bestSupplierFromSubjects(c.sample_subjects);
+  const subjectIntent = bestSubjectIntent(c.sample_subjects);
+
+  if (!cls && supplierFromSubject) {
+    cls = {
+      kind: 'contractor',
+      category: 'subcontractor',
+      display_name: supplierFromSubject,
+      confidence: 0.9,
+      reason: `Subject says "from ${supplierFromSubject}" (sender: ${sampleEmail})`,
+    };
+  }
+
+  // 3. Subject intent override for marketing
+  if (!cls && subjectIntent.is_marketing) {
+    cls = {
+      kind: 'unknown',
+      category: 'marketing',
+      display_name: c.display_name,
+      confidence: subjectIntent.confidence,
+      reason: `Subject intent: marketing/promotional`,
+    };
+  }
+
+  // 4. Sender role pattern (invoices@/marketing@/noreply@)
+  const senderRole = senderRolePattern(sampleEmail);
+  if (!cls && senderRole.role === 'invoice') {
+    cls = {
+      kind: 'supplier',
+      category: 'uncategorized',
+      display_name: c.display_name,
+      confidence: senderRole.confidence,
+      reason: `Sender role: invoices@-style address (transactional)`,
+    };
+  }
+  if (!cls && senderRole.role === 'marketing') {
+    cls = {
+      kind: 'unknown',
+      category: 'marketing',
+      display_name: c.display_name,
+      confidence: senderRole.confidence,
+      reason: `Sender role: marketing@-style address`,
+    };
+  }
+
+  // 5. ABN extracted → definitive supplier
+  if (!cls && c.abn) {
+    cls = {
+      kind: 'supplier',
+      category: 'uncategorized',
+      display_name: c.display_name,
+      confidence: 0.7,
+      reason: `ABN ${c.abn} extracted from body`,
+    };
+  }
+
+  // 6. Heuristic fallback (the original KNOWN_TRADE_SUPPLIERS shortlist)
+  if (!cls) {
+    const heuristic = classifyEntity({
+      sender_address: sampleEmail,
+      sender_domain: domain,
+      sender_name: c.display_name,
+      recent_subjects: c.sample_subjects,
+      is_outbound: c.is_outbound,
+    });
+    cls = {
+      kind: heuristic.kind,
+      category: heuristic.category,
+      display_name: heuristic.display_name,
+      confidence: heuristic.confidence,
+      reason: heuristic.reason,
+    };
+  }
+
+  // Boost confidence if multiple signals agree (subject intent confirms a known sender)
+  if (subjectIntent.intent === 'tax_invoice' || subjectIntent.intent === 'invoice' || subjectIntent.intent === 'receipt') {
+    cls.confidence = Math.max(cls.confidence, 0.85);
+  }
+
+  // Marketing intent overrides anything not explicitly invoice
+  const isMarketingArm = cls.reason.includes('marketing arm') || subjectIntent.is_marketing
+    || (senderRole.role === 'marketing' && cls.kind !== 'supplier');
+
+  const status = isMarketingArm ? 'dismissed'
     : cls.confidence >= 0.3 ? 'pending'
     : 'needs_review';
 
@@ -316,6 +426,7 @@ async function upsertCluster(
       organization_id,
       canonical_key,
       display_name: cls.display_name || c.display_name,
+      extracted_supplier_name: supplierFromSubject ?? null,
       primary_email: c.primary_email,
       observed_emails: merged_emails,
       observed_domains: merged_domains,
