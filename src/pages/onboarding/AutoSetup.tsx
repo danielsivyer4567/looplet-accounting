@@ -16,6 +16,7 @@ export function AutoSetupPage() {
   const { progress, refresh: refreshProgress } = useStagedEntities();
 
   const [running, setRunning] = useState(false);
+  const [aiRunning, setAiRunning] = useState(false);
   const [status, setStatus] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
@@ -93,6 +94,50 @@ export function AutoSetupPage() {
     }
   };
 
+  const runAiClassify = async () => {
+    if (!activeGmail) return;
+    setError(null);
+    setAiRunning(true);
+    setStatus('Classifying with AI…');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in');
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gmail-classify-ai`;
+
+      let totals = { processed: 0, classified: 0, unchanged: 0, errors: 0 };
+      let pass = 0;
+      let remaining = -1;
+
+      // Loop until remaining = 0 or we've done 5 passes
+      while (remaining !== 0 && pass < 5) {
+        pass += 1;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ integration_id: activeGmail.id, batch_size: 25, max_batches: 20 }),
+        });
+        const body = await res.json();
+        if (!res.ok || !body.ok) throw new Error(body.error ?? `${res.status}`);
+        totals.processed += body.stats.processed;
+        totals.classified += body.stats.classified;
+        totals.unchanged += body.stats.unchanged;
+        totals.errors += body.stats.errors;
+        remaining = body.remaining ?? 0;
+        setStatus(`AI pass ${pass}: ${totals.classified} classified · ${remaining} still unmatched`);
+      }
+
+      setStatus(`✓ AI classification done. ${totals.classified} entities pre-categorised. Open triage to review.`);
+      await refreshProgress();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAiRunning(false);
+    }
+  };
+
   return (
     <section>
       <h1>Auto Setup</h1>
@@ -124,27 +169,47 @@ export function AutoSetupPage() {
               <ProgressBar progress={progress} />
             )}
 
-            <button
-              onClick={runMine}
-              disabled={running || gmailLoading}
-              style={{
-                marginTop: 12,
-                padding: '0.6rem 1rem',
-                background: running ? '#222' : '#1c5135',
-                color: '#fff',
-                border: '1px solid #2da565',
-                borderRadius: 4,
-                cursor: running ? 'wait' : 'pointer',
-                fontSize: 13,
-                fontWeight: 600,
-              }}
-            >
-              {running
-                ? 'Mining…'
-                : progress && progress.total_entities > 0
-                ? '↻ Re-run mining (will merge with existing entities)'
-                : '▶ Run Auto Setup mining'}
-            </button>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+              <button
+                onClick={runMine}
+                disabled={running || aiRunning || gmailLoading}
+                style={{
+                  padding: '0.6rem 1rem',
+                  background: running ? '#222' : '#1c5135',
+                  color: '#fff',
+                  border: '1px solid #2da565',
+                  borderRadius: 4,
+                  cursor: running ? 'wait' : 'pointer',
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                {running
+                  ? 'Mining…'
+                  : progress && progress.total_entities > 0
+                  ? '↻ Re-run mining'
+                  : '▶ 1. Run Auto Setup mining'}
+              </button>
+
+              {progress && progress.total_entities > 0 && (
+                <button
+                  onClick={runAiClassify}
+                  disabled={running || aiRunning}
+                  style={{
+                    padding: '0.6rem 1rem',
+                    background: aiRunning ? '#222' : '#3a2563',
+                    color: '#fff',
+                    border: '1px solid #6b4ba0',
+                    borderRadius: 4,
+                    cursor: aiRunning ? 'wait' : 'pointer',
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}
+                >
+                  {aiRunning ? 'AI thinking…' : '✨ 2. AI-classify the unknowns'}
+                </button>
+              )}
+            </div>
           </div>
 
           {progress && progress.total_entities > 0 && (

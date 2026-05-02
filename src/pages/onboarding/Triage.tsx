@@ -42,6 +42,63 @@ export function TriagePage() {
 
   const remaining = (progress?.pending_count ?? 0) + (progress?.needs_review_count ?? 0);
 
+  const bulkApproveGroup = async (kind: EntityKind) => {
+    const rows = (groups[kind] ?? []).filter((e) => e.status === 'pending' || e.status === 'needs_review');
+    if (rows.length === 0) return;
+    if (!confirm(`Approve all ${rows.length} ${kindLabel(kind)} entities using their predicted categories? You can still edit individually after.`)) return;
+    setBusy('bulk:' + kind);
+    setError(null);
+    try {
+      for (const e of rows) {
+        if (!e.predicted_category) continue;
+        await updateOneInternal(e, { status: 'approved', user_kind: e.predicted_kind, user_category: e.predicted_category });
+      }
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const bulkDismissGroup = async (kind: EntityKind) => {
+    const rows = (groups[kind] ?? []).filter((e) => e.status === 'pending' || e.status === 'needs_review');
+    if (rows.length === 0) return;
+    if (!confirm(`Dismiss all ${rows.length} ${kindLabel(kind)} entities? They won't become rules.`)) return;
+    setBusy('bulk:' + kind);
+    setError(null);
+    try {
+      for (const e of rows) {
+        await updateOneInternal(e, { status: 'dismissed' });
+      }
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const updateOneInternal = async (
+    e: StagedEntity,
+    updates: { status: 'approved' | 'dismissed'; user_kind?: EntityKind; user_category?: string | null },
+  ) => {
+    const { error: ueErr } = await supabase
+      .from('staged_entities')
+      .update({
+        status: updates.status,
+        user_kind: updates.user_kind ?? e.predicted_kind,
+        user_category: updates.user_category ?? e.predicted_category,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq('id', e.id);
+    if (ueErr) throw ueErr;
+
+    if (updates.status === 'approved') {
+      await onApprove(e, updates.user_kind ?? e.predicted_kind, updates.user_category ?? e.predicted_category);
+    }
+  };
+
   const updateOne = async (
     e: StagedEntity,
     updates: { status: 'approved' | 'dismissed'; user_kind?: EntityKind; user_category?: string | null },
@@ -49,22 +106,7 @@ export function TriagePage() {
     setError(null);
     setBusy(e.id);
     try {
-      // 1. Update staged_entities
-      const { error: ueErr } = await supabase
-        .from('staged_entities')
-        .update({
-          status: updates.status,
-          user_kind: updates.user_kind ?? e.predicted_kind,
-          user_category: updates.user_category ?? e.predicted_category,
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq('id', e.id);
-      if (ueErr) throw ueErr;
-
-      // 2. If approved, create supplier/customer + rule
-      if (updates.status === 'approved') {
-        await onApprove(e, updates.user_kind ?? e.predicted_kind, updates.user_category ?? e.predicted_category);
-      }
+      await updateOneInternal(e, updates);
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -176,9 +218,27 @@ export function TriagePage() {
         if (rows.length === 0) return null;
         return (
           <div key={k} style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: 14, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
-              {kindLabel(k)} ({rows.length})
-            </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <h2 style={{ fontSize: 14, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, margin: 0 }}>
+                {kindLabel(k)} ({rows.length})
+              </h2>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  onClick={() => bulkApproveGroup(k)}
+                  disabled={busy === 'bulk:' + k}
+                  style={{ ...btn, background: '#1c5135', color: '#86c7a3', borderColor: '#2da565' }}
+                >
+                  {busy === 'bulk:' + k ? '…' : '✓ Approve all predictions'}
+                </button>
+                <button
+                  onClick={() => bulkDismissGroup(k)}
+                  disabled={busy === 'bulk:' + k}
+                  style={{ ...btn, background: 'transparent', color: '#e9a3a3', borderColor: '#3d1818' }}
+                >
+                  ✕ Dismiss all
+                </button>
+              </div>
+            </div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
