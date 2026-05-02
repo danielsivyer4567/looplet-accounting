@@ -24,10 +24,19 @@ export async function getBasiqServerToken(): Promise<string> {
     return cachedToken.value;
   }
 
+  // Basiq API keys are issued in two forms:
+  //   1. Pre-encoded: "<base64(client_id:client_secret)>" — use directly
+  //   2. Raw "client_id:client_secret" — needs base64
+  // Detect which we have. Pre-encoded keys end in '=' padding or have no colon.
+  const looksPreEncoded = !BASIQ_API_KEY.includes(':') || BASIQ_API_KEY.endsWith('=');
+  const authHeader = looksPreEncoded
+    ? `Basic ${BASIQ_API_KEY}`
+    : `Basic ${btoa(BASIQ_API_KEY)}`;
+
   const resp = await fetch(`${BASIQ_BASE}/token`, {
     method: 'POST',
     headers: {
-      Authorization: `Basic ${btoa(BASIQ_API_KEY + ':')}`,
+      Authorization: authHeader,
       'Content-Type': 'application/x-www-form-urlencoded',
       'basiq-version': '3.0',
     },
