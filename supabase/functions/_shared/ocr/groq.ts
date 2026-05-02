@@ -16,7 +16,14 @@ export async function extractBillDataGroq(
   const model = Deno.env.get('GROQ_VISION_MODEL') ?? 'meta-llama/llama-4-scout-17b-16e-instruct';
   const baseUrl = Deno.env.get('GROQ_BASE_URL') ?? 'https://api.groq.com/openai/v1';
 
-  const base64 = btoa(String.fromCharCode(...imageBytes));
+  // Chunked base64 encoding — `String.fromCharCode(...bytes)` blows the call
+  // stack at ~125k bytes due to argument-spread limits. Process 32k at a time.
+  let binary = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < imageBytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...imageBytes.subarray(i, i + CHUNK));
+  }
+  const base64 = btoa(binary);
   const dataUrl = `data:${mimeType};base64,${base64}`;
 
   const res = await fetch(`${baseUrl}/chat/completions`, {

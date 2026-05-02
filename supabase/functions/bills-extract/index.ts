@@ -53,8 +53,14 @@ Deno.serve(async (req) => {
     });
 
     // Accept either user JWT or service_role (used by bills-extract-batch and Pub/Sub push).
-    // If the caller is service_role we skip the user lookup and use admin client.
-    const isServiceRole = authHeader.includes(serviceKey);
+    // Detect service_role by parsing the JWT claims (more robust than string match).
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+    let isServiceRole = false;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1] ?? ''));
+      isServiceRole = payload?.role === 'service_role';
+    } catch { /* fall through to user-jwt path */ }
+
     let dbClient: any;
     if (isServiceRole) {
       dbClient = admin;
