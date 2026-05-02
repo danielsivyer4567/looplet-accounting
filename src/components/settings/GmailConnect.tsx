@@ -8,6 +8,8 @@ export function GmailConnect() {
   const { integrations, loading, refresh } = useGmailIntegrations();
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [backfilling, setBackfilling] = useState<string | null>(null);
+  const [backfillStatus, setBackfillStatus] = useState<string>('');
 
   if (!currentOrg) return null;
 
@@ -43,9 +45,6 @@ export function GmailConnect() {
     await supabase.from('gmail_integrations').update({ is_active: false }).eq('id', id);
     await refresh();
   };
-
-  const [backfilling, setBackfilling] = useState<string | null>(null);
-  const [backfillStatus, setBackfillStatus] = useState<string>('');
 
   const handleBackfill = async (id: string, gmail: string) => {
     if (!confirm(`Scan last 6 months of ${gmail} for invoices? Each PDF/image attachment becomes a bill and runs OCR.`)) return;

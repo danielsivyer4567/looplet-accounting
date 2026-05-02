@@ -15,6 +15,8 @@ import { SuppliersPage } from '@/pages/Suppliers';
 import { EmployeesPage } from '@/pages/Employees';
 import { SettingsPage } from '@/pages/Settings';
 import { GmailCallbackPage } from '@/pages/GmailCallback';
+import { AutoSetupPage } from '@/pages/onboarding/AutoSetup';
+import { TriagePage } from '@/pages/onboarding/Triage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -48,6 +50,8 @@ export function App() {
             <Route path="employees" element={<EmployeesPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="settings/gmail-callback" element={<GmailCallbackPage />} />
+            <Route path="onboarding" element={<AutoSetupPage />} />
+            <Route path="onboarding/triage" element={<TriagePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

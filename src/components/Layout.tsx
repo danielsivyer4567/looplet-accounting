@@ -5,6 +5,7 @@ import { OrgSelector } from './OrgSelector';
 
 const navItems = [
   { to: '/', label: 'Dashboard', end: true },
+  { to: '/onboarding', label: 'Auto Setup' },
   { to: '/bills', label: 'Bills' },
   { to: '/allocations', label: 'Allocations' },
   { to: '/jobs', label: 'Jobs' },

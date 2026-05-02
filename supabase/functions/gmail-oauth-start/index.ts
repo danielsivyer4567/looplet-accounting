@@ -12,11 +12,11 @@ import { corsHeaders, preflight } from '../_shared/cors.ts';
 
 const GMAIL_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 
-// Minimum scopes for read-only access to attachments + metadata
-const SCOPES = [
-  'https://www.googleapis.com/auth/gmail.readonly',
-  'https://www.googleapis.com/auth/gmail.metadata',
-];
+// gmail.readonly covers headers, body, and attachments. We initially also
+// requested gmail.metadata, but Google rejects messages.list `q=` filtering
+// whenever the metadata scope is granted ("Metadata scope does not support
+// 'q' parameter"), even if readonly is also granted.
+const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
 
 Deno.serve(async (req) => {
   const pre = preflight(req);
