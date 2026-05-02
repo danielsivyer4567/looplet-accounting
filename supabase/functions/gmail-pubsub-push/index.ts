@@ -223,6 +223,22 @@ async function ingestMessage(
     }
   }
 
+  // Match against intake_rules (user-curated classification rules from triage).
+  // If a rule matches and is_personal=true → skip the email entirely (don't even create a bill).
+  // If a rule matches with category info → store rule + category on the bill so bills-extract can pre-fill.
+  const { data: ruleRows } = await admin.rpc('match_intake_rule', {
+    p_org_id: integ.organization_id,
+    p_sender_email: fromAddress,
+    p_subject: subject,
+  });
+  const rule = (ruleRows as any[])?.[0];
+
+  if (rule?.is_personal) {
+    result.rejected.push({ message_id: messageId, reason: `intake_rule says personal — skipped` });
+    if (rule.rule_id) await admin.rpc('record_intake_rule_hit', { p_rule_id: rule.rule_id });
+    return result;
+  }
+
   // Walk parts looking for accepted attachments
   const parts = flattenParts(msg.payload);
   const attachments = parts.filter(
@@ -276,6 +292,10 @@ async function ingestMessage(
         mime_type: part.mimeType,
         file_size_bytes: bytes.length,
         currency_code: 'AUD',
+        applied_intake_rule_id: rule?.rule_id ?? null,
+        auto_category_code: rule?.category_code ?? null,
+        supplier_id: rule?.supplier_id ?? null,
+        suggested_job_id: rule?.job_id ?? null,
         intake_metadata: {
           gmail_message_id: messageId,
           gmail_thread_id: msg.threadId,
@@ -288,6 +308,20 @@ async function ingestMessage(
 
     if (insErr || !bill) {
       result.rejected.push({ message_id: messageId, reason: `bill insert ${insErr?.message}` });
+      continue;
+    }
+
+    // Record rule hit for analytics
+    if (rule?.rule_id) {
+      admin.rpc('record_intake_rule_hit', { p_rule_id: rule.rule_id }).then(() => {});
+    }
+
+    // Skip OCR entirely if rule says we already know the answer
+    if (rule?.skip_ocr) {
+      await admin.from('bills')
+        .update({ status: 'verified' })
+        .eq('id', bill.id);
+      result.bills.push({ bill_id: bill.id as string, filename });
       continue;
     }
 
