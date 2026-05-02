@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 import { BankCsvImport } from './BankCsvImport';
+import { BankStatementImport } from './BankStatementImport';
 
 interface BankConnectionRow {
   id: string;
@@ -111,6 +112,7 @@ export function BankConnect() {
             {connecting ? 'Opening Basiq…' : '+ Connect bank account (Basiq)'}
           </button>
           <BankCsvImport onImported={refresh} />
+          <BankStatementImport onImported={refresh} />
         </div>
       ) : (
         <>
@@ -171,6 +173,7 @@ export function BankConnect() {
             {connecting ? 'Opening…' : '+ Connect another account (Basiq)'}
           </button>
           <BankCsvImport onImported={refresh} />
+          <BankStatementImport onImported={refresh} />
         </>
       )}
 
