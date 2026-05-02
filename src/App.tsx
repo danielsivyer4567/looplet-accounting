@@ -9,7 +9,9 @@ import { BillsPage } from '@/pages/Bills';
 import { BillUploadPage } from '@/pages/BillUpload';
 import { BillDetailPage } from '@/pages/BillDetail';
 import { AllocationsPage } from '@/pages/Allocations';
+import { ReconciliationPage } from '@/pages/Reconciliation';
 import { JobsPage } from '@/pages/Jobs';
+import { JobDetailPage } from '@/pages/JobDetail';
 import { CustomersPage } from '@/pages/Customers';
 import { SuppliersPage } from '@/pages/Suppliers';
 import { SupplierDetailPage } from '@/pages/SupplierDetail';
@@ -58,8 +60,9 @@ export function App() {
             <Route path="bills/upload" element={<BillUploadPage />} />
             <Route path="bills/:id" element={<BillDetailPage />} />
             <Route path="allocations" element={<AllocationsPage />} />
+            <Route path="reconciliation" element={<ReconciliationPage />} />
             <Route path="jobs" element={<JobsPage />} />
-            <Route path="jobs/:id" element={<PlaceholderPage title="Job detail" back="/jobs" />} />
+            <Route path="jobs/:id" element={<JobDetailPage />} />
             <Route path="customers" element={<CustomersPage />} />
             <Route path="customers/:id" element={<PlaceholderPage title="Customer detail" back="/customers" />} />
             <Route path="suppliers" element={<SuppliersPage />} />
