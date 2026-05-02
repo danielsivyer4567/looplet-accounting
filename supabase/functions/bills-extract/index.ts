@@ -51,19 +51,26 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const {
-      data: { user },
-      error: userErr,
-    } = await userClient.auth.getUser();
-    if (userErr || !user) return json({ ok: false, error: 'Invalid token' }, 401);
+
+    // Accept either user JWT or service_role (used by bills-extract-batch and Pub/Sub push).
+    // If the caller is service_role we skip the user lookup and use admin client.
+    const isServiceRole = authHeader.includes(serviceKey);
+    let dbClient: any;
+    if (isServiceRole) {
+      dbClient = admin;
+    } else {
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user }, error: userErr } = await userClient.auth.getUser();
+      if (userErr || !user) return json({ ok: false, error: 'Invalid token' }, 401);
+      dbClient = userClient;
+    }
 
     const body = (await req.json()) as RequestBody;
     if (!body.bill_id) return json({ ok: false, error: 'bill_id required' }, 400);
 
-    const { data: bill, error: billErr } = await userClient
+    const { data: bill, error: billErr } = await dbClient
       .from('bills')
       .select('id, organization_id, storage_key, mime_type, status, content_sha256')
       .eq('id', body.bill_id)
