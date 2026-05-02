@@ -1,18 +1,56 @@
+import { useNavigate } from 'react-router-dom';
 import { useOrg } from '@/contexts/OrgContext';
-import { useJobPnl, type JobPnl } from '@/hooks/useJobPnl';
-import { formatMoney } from '@/lib/money';
+import { useJobs } from '@/hooks/useJobs';
+import type { JobStatus } from '@/hooks/useJobs';
 
-const statusColors: Record<JobPnl['job_status'], string> = {
+const statusColors: Record<JobStatus, string> = {
   draft: '#888',
   active: '#86c7a3',
   paused: '#d2c886',
   completed: '#7799d6',
-  cancelled: '#888',
+  cancelled: '#555',
 };
+
+function getBillCount(val: [{ count: number }] | []): number {
+  if (val.length === 0) return 0;
+  const row = val[0];
+  if (!row) return 0;
+  return row.count;
+}
+
+// ---------------------------------------------------------------------------
+// Stat card
+// ---------------------------------------------------------------------------
+
+function StatCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div
+      style={{
+        padding: '1rem 1.5rem',
+        background: '#1a1a1a',
+        border: '1px solid #2a2a2a',
+        borderRadius: 6,
+        minWidth: 160,
+      }}
+    >
+      <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 28, fontWeight: 700, color: '#86c7a3', marginTop: '0.3rem' }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
 
 export function JobsPage() {
   const { currentOrg } = useOrg();
-  const { jobs, loading, error } = useJobPnl();
+  const { jobs, loading, error } = useJobs();
+  const navigate = useNavigate();
 
   if (!currentOrg) {
     return (
@@ -22,84 +60,108 @@ export function JobsPage() {
       </section>
     );
   }
-  if (loading) return <p style={{ color: '#888' }}>Loading jobs…</p>;
-  if (error) return <p style={{ color: 'salmon' }}>Failed to load: {error}</p>;
 
-  if (jobs.length === 0) {
-    return (
-      <section>
-        <h1>Jobs</h1>
-        <p style={{ color: '#888' }}>No jobs yet for {currentOrg.name}.</p>
-        <p style={{ color: '#666', fontSize: 14 }}>
-          Phase 4.x: Job-creation form lands alongside Bills attachment UI. For now, jobs can be
-          inserted directly via SQL on the <code>jobs</code> table.
-        </p>
-      </section>
-    );
-  }
+  const activeCount = jobs.filter((j) => j.status === 'active').length;
+  const totalAttachedBills = jobs.reduce((sum, j) => sum + getBillCount(j.attached_bills), 0);
 
   return (
     <section>
-      <h1>Jobs</h1>
-      <p style={{ color: '#888', fontSize: 14 }}>
-        Live per-job P&L from <code>v_job_pnl</code>. Profit = revenue − bills − wages − overhead share.
-      </p>
-      <table style={{ width: '100%', marginTop: '1.5rem', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-            <th style={th}>Job #</th>
-            <th style={th}>Name</th>
-            <th style={th}>Status</th>
-            <th style={thRight}>Revenue</th>
-            <th style={thRight}>Costs</th>
-            <th style={thRight}>Profit</th>
-            <th style={thRight}>Margin</th>
-          </tr>
-        </thead>
-        <tbody>
-          {jobs.map((j) => {
-            const margin =
-              j.revenue_inc_gst_cents > 0
-                ? (j.gross_profit_cents / j.revenue_inc_gst_cents) * 100
-                : 0;
-            return (
-              <tr key={j.job_id} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                <td style={td}>
-                  <code style={{ color: '#888' }}>{j.job_number}</code>
-                </td>
-                <td style={td}>{j.job_name}</td>
-                <td style={td}>
-                  <span
-                    style={{
-                      padding: '0.15rem 0.5rem',
-                      fontSize: 11,
-                      borderRadius: 3,
-                      background: '#222',
-                      color: statusColors[j.job_status],
-                    }}
-                  >
-                    {j.job_status}
-                  </span>
-                </td>
-                <td style={tdRight}>{formatMoney(j.revenue_inc_gst_cents)}</td>
-                <td style={tdRight}>{formatMoney(j.total_cost_cents)}</td>
-                <td
-                  style={{
-                    ...tdRight,
-                    color: j.gross_profit_cents >= 0 ? '#86c7a3' : '#e9a3a3',
-                    fontWeight: 600,
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1rem' }}>
+        <h1 style={{ margin: 0 }}>Jobs</h1>
+        {!loading && (
+          <span style={{ color: '#888', fontSize: 13 }}>
+            {jobs.length} job{jobs.length !== 1 ? 's' : ''}
+          </span>
+        )}
+      </div>
+
+      {/* Stat cards */}
+      {!loading && !error && (
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.75rem', flexWrap: 'wrap' }}>
+          <StatCard label="Active jobs" value={activeCount} />
+          <StatCard label="Total bills attached" value={totalAttachedBills} />
+        </div>
+      )}
+
+      {loading ? (
+        <p style={{ color: '#888' }}>Loading jobs…</p>
+      ) : error ? (
+        <p style={{ color: 'salmon' }}>Failed to load: {error}</p>
+      ) : jobs.length === 0 ? (
+        <p style={{ color: '#888' }}>No jobs yet for {currentOrg.name}.</p>
+      ) : (
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
+              <th style={th}>Job #</th>
+              <th style={th}>Name</th>
+              <th style={th}>Status</th>
+              <th style={thRight}>Bills attached</th>
+              <th style={thRight}>Bills suggested</th>
+              <th style={th}>Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {jobs.map((j) => {
+              const attached = getBillCount(j.attached_bills);
+              const suggested = getBillCount(j.suggested_bills);
+              const created = new Date(j.created_at).toLocaleDateString('en-AU', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              });
+              return (
+                <tr
+                  key={j.id}
+                  style={{ borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
+                  onClick={() => void navigate(`/jobs/${j.id}`)}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLTableRowElement).style.background = '#202020';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLTableRowElement).style.background = '';
                   }}
                 >
-                  {formatMoney(j.gross_profit_cents)}
-                </td>
-                <td style={{ ...tdRight, color: margin >= 20 ? '#86c7a3' : margin >= 10 ? '#d2c886' : '#e9a3a3' }}>
-                  {margin.toFixed(1)}%
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  <td style={td}>
+                    <code style={{ color: '#888', fontSize: 12 }}>{j.job_number}</code>
+                  </td>
+                  <td style={{ ...td, fontWeight: 500 }}>{j.name}</td>
+                  <td style={td}>
+                    <span
+                      style={{
+                        padding: '0.15rem 0.5rem',
+                        fontSize: 11,
+                        borderRadius: 3,
+                        background: '#222',
+                        color: statusColors[j.status],
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {j.status}
+                    </span>
+                  </td>
+                  <td style={tdRight}>
+                    {attached > 0 ? (
+                      <span style={{ color: '#86c7a3', fontWeight: 600 }}>{attached}</span>
+                    ) : (
+                      <span style={{ color: '#444' }}>0</span>
+                    )}
+                  </td>
+                  <td style={tdRight}>
+                    {suggested > 0 ? (
+                      <span style={{ color: '#d2c886' }}>{suggested}</span>
+                    ) : (
+                      <span style={{ color: '#444' }}>0</span>
+                    )}
+                  </td>
+                  <td style={{ ...td, color: '#666', fontSize: 13 }}>{created}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
     </section>
   );
 }
@@ -114,5 +176,5 @@ const th: React.CSSProperties = {
   fontWeight: 500,
 };
 const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
-const td: React.CSSProperties = { padding: '0.65rem 0.75rem', textAlign: 'left' };
+const td: React.CSSProperties = { padding: '0.65rem 0.75rem' };
 const tdRight: React.CSSProperties = { ...td, textAlign: 'right' };

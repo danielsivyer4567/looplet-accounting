@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 import { useGmailIntegrations } from '@/hooks/useGmailIntegrations';
 import { useStagedEntities } from '@/hooks/onboarding/useStagedEntities';
+import { DetectedInsights } from '@/components/onboarding/DetectedInsights';
 
 /**
  * Auto Setup — landing page for the first-scrape onboarding.
@@ -238,6 +239,8 @@ export function AutoSetupPage() {
           {error && (
             <p style={{ color: 'salmon', fontSize: 13, marginTop: 12 }}>{error}</p>
           )}
+
+          <DetectedInsights />
         </>
       )}
     </section>
