@@ -15,6 +15,7 @@ import { SuppliersPage } from '@/pages/Suppliers';
 import { EmployeesPage } from '@/pages/Employees';
 import { SettingsPage } from '@/pages/Settings';
 import { GmailCallbackPage } from '@/pages/GmailCallback';
+import { BankCallbackPage } from '@/pages/BankCallback';
 import { AutoSetupPage } from '@/pages/onboarding/AutoSetup';
 import { TriagePage } from '@/pages/onboarding/Triage';
 
@@ -65,6 +66,7 @@ export function App() {
             <Route path="employees" element={<EmployeesPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="settings/gmail-callback" element={<GmailCallbackPage />} />
+            <Route path="settings/bank-callback" element={<BankCallbackPage />} />
             <Route path="onboarding" element={<AutoSetupPage />} />
             <Route path="onboarding/triage" element={<TriagePage />} />
           </Route>

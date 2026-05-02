@@ -1,4 +1,5 @@
 import { GmailConnect } from '@/components/settings/GmailConnect';
+import { BankConnect } from '@/components/settings/BankConnect';
 
 export function SettingsPage() {
   return (
@@ -13,6 +14,7 @@ export function SettingsPage() {
         <li>Team members + invitations</li>
       </ul>
       <GmailConnect />
+      <BankConnect />
     </section>
   );
 }
