@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
+import { BankCsvImport } from './BankCsvImport';
 
 interface BankConnectionRow {
   id: string;
@@ -92,22 +93,25 @@ export function BankConnect() {
       {loading ? (
         <p style={{ color: '#888' }}>Loading…</p>
       ) : connections.length === 0 ? (
-        <button
-          onClick={handleConnect}
-          disabled={connecting}
-          style={{
-            padding: '0.5rem 1rem',
-            background: '#1c4868',
-            color: '#fff',
-            border: '1px solid #5096d8',
-            borderRadius: 4,
-            cursor: connecting ? 'wait' : 'pointer',
-            fontSize: 13,
-            fontWeight: 600,
-          }}
-        >
-          {connecting ? 'Opening Basiq…' : '+ Connect bank account'}
-        </button>
+        <div>
+          <button
+            onClick={handleConnect}
+            disabled={connecting}
+            style={{
+              padding: '0.5rem 1rem',
+              background: '#1c4868',
+              color: '#fff',
+              border: '1px solid #5096d8',
+              borderRadius: 4,
+              cursor: connecting ? 'wait' : 'pointer',
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            {connecting ? 'Opening Basiq…' : '+ Connect bank account (Basiq)'}
+          </button>
+          <BankCsvImport onImported={refresh} />
+        </div>
       ) : (
         <>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -164,8 +168,9 @@ export function BankConnect() {
               fontSize: 12,
             }}
           >
-            {connecting ? 'Opening…' : '+ Connect another account'}
+            {connecting ? 'Opening…' : '+ Connect another account (Basiq)'}
           </button>
+          <BankCsvImport onImported={refresh} />
         </>
       )}
 
