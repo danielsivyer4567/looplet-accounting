@@ -2,9 +2,11 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 import { formatMoney } from '@/lib/money';
+import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 
 interface Subscription {
   id: string;
+  organization_id: string;
   merchant_name: string;
   cadence: string;
   amount_cents: number;
@@ -144,6 +146,7 @@ export function SubscriptionsPage() {
                 <th style={th}>Tag</th>
                 <th style={th}>Next</th>
                 <th style={th}>Confidence</th>
+                <th style={th}></th>
               </tr>
             </thead>
             <tbody>
@@ -172,6 +175,16 @@ export function SubscriptionsPage() {
                     </td>
                     <td style={td}>{s.next_expected_at ?? '—'}</td>
                     <td style={td}>{s.confidence != null ? `${(s.confidence * 100).toFixed(0)}%` : '—'}</td>
+                    <td style={td}>
+                      <MoveToOrgButton
+                        table="subscriptions"
+                        rowId={s.id}
+                        currentOrgId={s.organization_id}
+                        fkColumnsToNull={['supplier_id']}
+                        label="⇄ Move"
+                        onMoved={() => void refresh()}
+                      />
+                    </td>
                   </tr>
                 );
               })}

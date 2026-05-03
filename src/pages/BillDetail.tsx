@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useBill, getBillFileUrl, type BillDetail as Bill } from '@/hooks/useBill';
 import { JobPicker } from '@/components/JobPicker';
+import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
 
@@ -95,7 +96,16 @@ export function BillDetailPage() {
         <h1 style={{ margin: 0 }}>
           {bill.supplier_name_raw ?? <span style={{ color: '#888' }}>Bill {bill.id.slice(0, 8)}</span>}
         </h1>
-        <PersonalToggle bill={bill} onChange={() => void refresh()} />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <PersonalToggle bill={bill} onChange={() => void refresh()} />
+          <MoveToOrgButton
+            table="bills"
+            rowId={bill.id}
+            currentOrgId={bill.organization_id}
+            fkColumnsToNull={['supplier_id', 'job_id', 'suggested_job_id']}
+            onMoved={() => { window.location.href = '/bills'; }}
+          />
+        </div>
       </div>
       <StatusBar bill={bill} />
 
