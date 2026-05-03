@@ -119,12 +119,28 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Fire-and-forget: kick subscriptions detection so newly-synced txns
+    // immediately update the recurring-payment list.
+    void fireAndForgetSubsDetect(supabaseUrl, serviceKey, body.organization_id);
+
     return json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return json({ ok: false, error: msg }, 500);
   }
 });
+
+async function fireAndForgetSubsDetect(supabaseUrl: string, serviceKey: string, orgId: string) {
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/subscriptions-detect`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ organization_id: orgId }),
+    });
+  } catch {
+    // Don't fail bank-sync if subscription detection has a hiccup
+  }
+}
 
 async function syncOne(
   admin: SupabaseClient,

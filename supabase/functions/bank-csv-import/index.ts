@@ -178,6 +178,15 @@ Deno.serve(async (req) => {
       .update({ last_synced_at: new Date().toISOString(), last_error: null })
       .eq('id', connectionId);
 
+    // Fire-and-forget subscription detection
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/subscriptions-detect`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organization_id: body.organization_id }),
+      });
+    } catch { /* swallow */ }
+
     return json({
       ok: true,
       imported,

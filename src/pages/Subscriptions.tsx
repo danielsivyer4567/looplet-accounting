@@ -28,6 +28,8 @@ export function SubscriptionsPage() {
   const [filter, setFilter] = useState<typeof STATUS_FILTERS[number]>('all');
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
+  const [detecting, setDetecting] = useState(false);
+  const [detectMsg, setDetectMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -68,13 +70,42 @@ export function SubscriptionsPage() {
     void refresh();
   };
 
+  const detect = async () => {
+    if (!currentOrg) return;
+    setDetecting(true);
+    setDetectMsg(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in');
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/subscriptions-detect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ organization_id: currentOrg.id }),
+      });
+      const body = await res.json();
+      if (!res.ok || !body.ok) throw new Error(body.error ?? `${res.status}`);
+      setDetectMsg(`Scanned ${body.scanned_txns} txns · ${body.upserted} new + ${body.updated} updated subscriptions`);
+      void refresh();
+    } catch (e) {
+      setDetectMsg('Detection error: ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setDetecting(false);
+    }
+  };
+
   return (
     <section>
-      <h1>Subscriptions</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+        <h1 style={{ margin: 0 }}>Subscriptions</h1>
+        <button onClick={detect} disabled={detecting} style={{ padding: '0.4rem 1rem', background: '#1c4868', color: '#fff', border: '1px solid #5096d8', borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: detecting ? 'wait' : 'pointer' }}>
+          {detecting ? 'Detecting…' : '↻ Re-detect from bank feed'}
+        </button>
+      </div>
       <p style={{ color: '#888', fontSize: 13 }}>
-        Recurring payments detected from bank transactions and bills.
-        Tag each as business or personal so they roll up correctly in your P&L.
+        Recurring payments detected from bank transactions. Auto-runs after every bank-sync;
+        re-run manually anytime. Tag each as business or personal so they roll up correctly in your P&L.
       </p>
+      {detectMsg && <p style={{ marginTop: 4, fontSize: 12, color: detectMsg.startsWith('Detection error') ? 'salmon' : '#86c7a3' }}>{detectMsg}</p>}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, maxWidth: 1100, marginTop: 16 }}>
         <Kpi label="Active subscriptions" value={String(subs.filter((s) => s.status !== 'cancelled').length)} colour="#aaa" />
