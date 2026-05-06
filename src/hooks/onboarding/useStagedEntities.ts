@@ -32,6 +32,13 @@ export interface StagedEntity {
   user_kind: EntityKind | null;
   user_category: string | null;
   is_recurring: boolean;
+  // Sonar (Perplexity) enrichment — fact-check + grounded category prediction
+  sonar_summary: string | null;
+  sonar_suggested_kind: EntityKind | null;
+  sonar_suggested_category: string | null;
+  sonar_confidence: number | null;
+  sonar_evidence_url: string | null;
+  sonar_enriched_at: string | null;
 }
 
 export interface OnboardingProgress {

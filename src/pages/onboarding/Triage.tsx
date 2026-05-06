@@ -26,6 +26,43 @@ export function TriagePage() {
 
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sonarMsg, setSonarMsg] = useState<string | null>(null);
+
+  const enrichWithSonar = async () => {
+    if (!currentOrg) return;
+    setBusy('sonar');
+    setSonarMsg(null);
+    setError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in');
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/staged-entities-enrich-sonar`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ organization_id: currentOrg.id, batch_size: 15, max_batches: 4 }),
+      });
+      const body = await res.json();
+      if (!res.ok || !body.ok) throw new Error(body.error ?? `${res.status}`);
+      setSonarMsg(
+        `Sonar enriched ${body.stats.enriched} (${body.stats.errors} errors). ${body.remaining} entities still un-enriched.`,
+      );
+      await refresh();
+    } catch (err) {
+      setError(`Sonar enrich: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const sonarPendingCount = entities.filter(
+    (e) =>
+      (e.status === 'pending' || e.status === 'needs_review') &&
+      e.sonar_enriched_at == null,
+  ).length;
 
   // Group by predicted_kind for easier scanning
   const groups = useMemo(() => {
@@ -281,6 +318,46 @@ export function TriagePage() {
         <p style={{ color: 'salmon', fontSize: 12 }}>{error}</p>
       )}
 
+      <div style={{
+        marginBottom: 16,
+        padding: 10,
+        background: '#0e1820',
+        border: '1px solid #1f3a52',
+        borderRadius: 6,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: 12,
+        flexWrap: 'wrap',
+      }}>
+        <div>
+          <strong style={{ color: '#7fb6e8' }}>✦ Sonar fact-check</strong>
+          <div style={{ fontSize: 11, color: '#9ab0c0', marginTop: 3 }}>
+            Use Perplexity Sonar (web-grounded) to verify what each sender actually does + suggest a category with citation.
+            {sonarPendingCount > 0 && ` ${sonarPendingCount} entit${sonarPendingCount === 1 ? 'y' : 'ies'} not yet enriched.`}
+          </div>
+        </div>
+        <button
+          onClick={() => void enrichWithSonar()}
+          disabled={busy === 'sonar' || sonarPendingCount === 0}
+          style={{
+            padding: '0.5rem 1rem',
+            background: '#1c4868',
+            color: '#fff',
+            border: '1px solid #5096d8',
+            borderRadius: 4,
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: busy === 'sonar' || sonarPendingCount === 0 ? 'wait' : 'pointer',
+          }}
+        >
+          {busy === 'sonar' ? 'Enriching…' : sonarPendingCount === 0 ? '✓ All enriched' : `✦ Enrich next ${Math.min(60, sonarPendingCount)} with Sonar`}
+        </button>
+      </div>
+      {sonarMsg && (
+        <p style={{ marginTop: 4, marginBottom: 16, fontSize: 12, color: '#86c7a3' }}>{sonarMsg}</p>
+      )}
+
       {highConfCount > 0 && (
         <div style={{
           marginBottom: 24,
@@ -397,12 +474,42 @@ function TriageRow({
 
   const isReviewed = entity.status === 'approved' || entity.status === 'dismissed';
 
+  const sonarKindDiffers = entity.sonar_suggested_kind && entity.sonar_suggested_kind !== kind;
+  const sonarCatDiffers = entity.sonar_suggested_category && entity.sonar_suggested_category !== category;
+  const applySonar = () => {
+    if (entity.sonar_suggested_kind) setKind(entity.sonar_suggested_kind);
+    if (entity.sonar_suggested_category) setCategory(entity.sonar_suggested_category);
+  };
+
   return (
     <tr style={{ borderBottom: '1px solid #1a1a1a', opacity: isReviewed ? 0.5 : 1 }}>
       <td style={td}>
         <div style={{ fontWeight: 600 }}>{entity.display_name}</div>
         <div style={{ color: '#888', fontSize: 11 }}>{entity.primary_email}</div>
         {entity.abn && <div style={{ color: '#86c7a3', fontSize: 10 }}>ABN {entity.abn}</div>}
+        {entity.sonar_summary && (
+          <div style={{
+            marginTop: 6,
+            padding: '4px 6px',
+            background: '#0e1820',
+            border: '1px solid #1f3a52',
+            borderRadius: 3,
+            fontSize: 11,
+            color: '#9ab0c0',
+            maxWidth: 340,
+            lineHeight: 1.35,
+          }}>
+            <span style={{ color: '#7fb6e8', fontWeight: 600 }}>✦ Sonar:</span> {entity.sonar_summary}
+            {entity.sonar_evidence_url && (
+              <a
+                href={entity.sonar_evidence_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ marginLeft: 6, color: '#5096d8', fontSize: 10, textDecoration: 'none' }}
+              >source ↗</a>
+            )}
+          </div>
+        )}
       </td>
       <td style={td}>
         {entity.sample_subjects.slice(0, 2).map((s, i) => (
@@ -427,6 +534,19 @@ function TriageRow({
         <div style={{ color: '#666', fontSize: 10, marginTop: 2 }}>
           {Math.round(entity.confidence * 100)}% · {entity.prediction_reason}
         </div>
+        {(sonarKindDiffers || sonarCatDiffers) && !isReviewed && (
+          <button
+            onClick={applySonar}
+            disabled={busy}
+            style={{
+              marginTop: 4, padding: '0.15rem 0.5rem',
+              background: '#1c4868', color: '#9bcaf3',
+              border: '1px solid #5096d8', borderRadius: 3,
+              fontSize: 10, cursor: 'pointer',
+            }}
+            title={`Sonar suggests: ${entity.sonar_suggested_kind ?? '?'}/${entity.sonar_suggested_category ?? '?'} (${entity.sonar_confidence != null ? Math.round(entity.sonar_confidence * 100) : '?'}%)`}
+          >✦ Use Sonar's pick</button>
+        )}
       </td>
       <td style={td}>
         <select
@@ -442,6 +562,11 @@ function TriageRow({
             </option>
           ))}
         </select>
+        {entity.sonar_suggested_category && entity.sonar_suggested_category !== category && (
+          <div style={{ fontSize: 10, color: '#7fb6e8', marginTop: 2 }}>
+            ✦ Sonar: {entity.sonar_suggested_category}
+          </div>
+        )}
       </td>
       <td style={td}>
         {isReviewed ? (
