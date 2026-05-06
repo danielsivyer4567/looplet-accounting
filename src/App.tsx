@@ -110,6 +110,7 @@ export function App() {
             <Route path="settings/gmail-callback" element={<GmailCallbackPage />} />
             <Route path="settings/bank-callback" element={<BankCallbackPage />} />
             <Route path="settings/xero-callback" element={<XeroCallbackPage />} />
+            <Route path="auth/callback/xero" element={<XeroCallbackPage />} />
             <Route path="payment-runs" element={<PaymentRunsPage />} />
             <Route path="payment-runs/new" element={<NewPaymentRunPage />} />
             <Route path="payment-runs/:id" element={<PaymentRunDetailPage />} />

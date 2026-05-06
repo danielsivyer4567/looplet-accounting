@@ -57,7 +57,9 @@ export function XeroConnect() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in');
 
-      const redirect_uri = `${window.location.origin}/settings/xero-callback`;
+      const redirect_uri =
+        import.meta.env.VITE_XERO_REDIRECT_URI ||
+        `${window.location.origin}/settings/xero-callback`;
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/xero-oauth-start`;
       const res = await fetch(url, {
         method: 'POST',
