@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
@@ -11,6 +11,7 @@ interface Subscription {
   id: string;
   organization_id: string;
   merchant_name: string;
+  merchant_canonical_key: string | null;
   cadence: string;
   amount_cents: number;
   status: string;
@@ -37,6 +38,7 @@ export function SubscriptionsPage() {
   const [detecting, setDetecting] = useState(false);
   const [detectMsg, setDetectMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
@@ -45,6 +47,7 @@ export function SubscriptionsPage() {
       .from('subscriptions')
       .select('*')
       .eq('organization_id', currentOrg.id)
+      .order('merchant_name', { ascending: true })
       .order('amount_cents', { ascending: false });
     if (filter !== 'all') q = q.eq('status', filter);
     const { data, error: e } = await q;
@@ -66,17 +69,43 @@ export function SubscriptionsPage() {
     return s.amount_cents;
   };
 
-  const totalMonthly = subs.filter((s) => s.status !== 'cancelled').reduce((a, s) => a + monthlyEquivalent(s), 0);
-  const businessOnly = subs.filter((s) => s.is_business && !s.is_personal).reduce((a, s) => a + monthlyEquivalent(s) * 12, 0);
-  const personalOnly = subs.filter((s) => s.is_personal).reduce((a, s) => a + monthlyEquivalent(s) * 12, 0);
+  // Group by merchant_name (lowercased + trimmed) so duplicates collapse
+  const grouped = useMemo(() => {
+    const m = new Map<string, { name: string; rows: Subscription[] }>();
+    for (const s of subs) {
+      const key = s.merchant_name.trim().toLowerCase();
+      if (!m.has(key)) m.set(key, { name: s.merchant_name, rows: [] });
+      m.get(key)!.rows.push(s);
+    }
+    return Array.from(m.values());
+  }, [subs]);
+
+  const totalMonthly = subs.filter((s) => s.status !== 'cancelled' && s.status !== 'dismissed').reduce((a, s) => a + monthlyEquivalent(s), 0);
+  const businessOnly = subs.filter((s) => s.is_business && !s.is_personal && s.status !== 'dismissed').reduce((a, s) => a + monthlyEquivalent(s) * 12, 0);
+  const personalOnly = subs.filter((s) => s.is_personal && s.status !== 'dismissed').reduce((a, s) => a + monthlyEquivalent(s) * 12, 0);
 
   const setFlag = async (id: string, patch: Partial<Subscription>) => {
     const { error: e } = await supabase.from('subscriptions').update(patch).eq('id', id);
-    if (e) {
-      setError(`Failed to update tag: ${e.message}`);
-      return;
-    }
+    if (e) { setError(`Failed to update: ${e.message}`); return; }
     void refresh();
+  };
+
+  const setStatus = async (id: string, status: 'confirmed' | 'dismissed' | 'candidate') => {
+    const { error: e } = await supabase
+      .from('subscriptions')
+      .update({ status, reviewed_at: new Date().toISOString() })
+      .eq('id', id);
+    if (e) { setError(`Failed to set status=${status}: ${e.message}`); return; }
+    void refresh();
+  };
+
+  const toggleExpanded = (key: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   };
 
   const detect = async () => {
@@ -111,13 +140,14 @@ export function SubscriptionsPage() {
         </button>
       </div>
       <p style={{ color: '#888', fontSize: 13 }}>
-        Recurring payments detected from bank transactions. Auto-runs after every bank-sync;
-        re-run manually anytime. Tag each as business or personal so they roll up correctly in your P&L.
+        Recurring payments detected from bank transactions and email senders.
+        Tag each as business or personal so they roll up correctly in your P&L.
+        Multiple variants of the same merchant (different sender domains) are grouped — click to expand.
       </p>
       {detectMsg && <p style={{ marginTop: 4, fontSize: 12, color: detectMsg.startsWith('Detection error') ? 'salmon' : '#86c7a3' }}>{detectMsg}</p>}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, maxWidth: 1100, marginTop: 16 }}>
-        <Kpi label="Active subscriptions" value={String(subs.filter((s) => s.status !== 'cancelled').length)} colour="#aaa" />
+        <Kpi label="Active subscriptions" value={String(subs.filter((s) => s.status !== 'cancelled' && s.status !== 'dismissed').length)} colour="#aaa" />
         <Kpi label="Monthly total" value={formatMoney(totalMonthly)} colour="#d2c886" sub="all active" />
         <Kpi label="Annual: business" value={formatMoney(businessOnly)} colour="#86c7a3" sub="deductible" />
         <Kpi label="Annual: personal" value={formatMoney(personalOnly)} colour="#f0c47a" sub="non-deductible" />
@@ -135,6 +165,8 @@ export function SubscriptionsPage() {
         ))}
       </div>
 
+      {error && <p style={{ color: 'salmon', marginTop: 8, fontSize: 12 }}>{error}</p>}
+
       {loading ? (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, maxWidth: 1100, marginTop: 16 }}>
@@ -144,16 +176,17 @@ export function SubscriptionsPage() {
             <SkeletonTable rows={6} cols={10} />
           </div>
         </>
-      ) : error ? <p style={{ color: 'salmon', marginTop: 16 }}>{error}</p> :
+      ) :
         subs.length === 0 ? (
           <div style={{ marginTop: 24, padding: 16, background: '#0e0e0e', border: '1px dashed #2a2a2a', borderRadius: 4, color: '#888', fontSize: 13 }}>
-            No subscriptions detected yet. They appear once enough recurring transactions land in your bank feed (typically 3+ instances of the same merchant).
+            No subscriptions detected yet. Run Auto Setup to scan your email, or sync your bank feed.
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 16 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
+                  <th style={{ ...th, width: 24 }}></th>
                   <th style={th}>Merchant</th>
                   <th style={th}>Cadence</th>
                   <th style={thRight}>Amount</th>
@@ -161,63 +194,74 @@ export function SubscriptionsPage() {
                   <th style={thRight}>Annual</th>
                   <th style={th}>Status</th>
                   <th style={th}>Tag</th>
-                  <th style={th}>Next</th>
                   <th style={th}>Confidence</th>
-                  <th style={th}></th>
+                  <th style={th}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {subs.map((s) => {
-                  const monthly = monthlyEquivalent(s);
-                  const annual = monthly * 12;
+                {grouped.map((g) => {
+                  const groupKey = g.name.toLowerCase();
+                  const isGroup = g.rows.length > 1;
+                  const isOpen = expanded.has(groupKey);
+
+                  if (!isGroup) {
+                    const s = g.rows[0]!;
+                    return (
+                      <SubRow
+                        key={s.id}
+                        s={s}
+                        monthly={monthlyEquivalent(s)}
+                        indent={false}
+                        navigate={navigate}
+                        setFlag={setFlag}
+                        setStatus={setStatus}
+                        refresh={refresh}
+                      />
+                    );
+                  }
+
+                  // Grouped header
+                  const groupMonthly = g.rows.reduce((a, s) => a + monthlyEquivalent(s), 0);
+                  const groupAnnual = groupMonthly * 12;
+                  const distinctStatuses = new Set(g.rows.map((s) => s.status));
                   return (
-                    <tr key={s.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                      <td style={td}>
-                        <a
-                          onClick={(e) => { e.preventDefault(); navigate(`/subscriptions/${s.id}`); }}
-                          href={`/subscriptions/${s.id}`}
-                          style={{ color: '#86c7a3', textDecoration: 'none', cursor: 'pointer' }}
-                        ><strong>{s.merchant_name}</strong></a>
-                      </td>
-                      <td style={td}>{s.cadence}</td>
-                      <td style={tdRight}>{formatMoney(s.amount_cents)}</td>
-                      <td style={tdRight}>{formatMoney(monthly)}</td>
-                      <td style={tdRight}>{formatMoney(annual)}</td>
-                      <td style={td}><Pill status={s.status} /></td>
-                      <td style={td}>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          <button
-                            onClick={() => setFlag(s.id, { is_business: !s.is_business, is_personal: false } as Partial<Subscription>)}
-                            style={tagBtn(s.is_business && !s.is_personal, '#86c7a3')}
-                          >Biz</button>
-                          <button
-                            onClick={() => setFlag(s.id, { is_personal: !s.is_personal, is_business: false } as Partial<Subscription>)}
-                            style={tagBtn(s.is_personal, '#f0c47a')}
-                          >Personal</button>
-                        </div>
-                      </td>
-                      <td style={td}>{s.next_expected_at ?? '—'}</td>
-                      <td style={td}>{s.confidence != null ? `${(s.confidence * 100).toFixed(0)}%` : '—'}</td>
-                      <td style={td}>
-                        <div style={{ display: 'inline-flex', gap: 4 }}>
-                          <AllocationSplitButton
-                            resourceType="subscription"
-                            resourceId={s.id}
-                            hostOrgId={s.organization_id}
-                            label="⊟ Split"
-                            onSaved={() => void refresh()}
-                          />
-                          <MoveToOrgButton
-                            table="subscriptions"
-                            rowId={s.id}
-                            currentOrgId={s.organization_id}
-                            fkColumnsToNull={['supplier_id']}
-                            label="⇄ Move"
-                            onMoved={() => void refresh()}
-                          />
-                        </div>
-                      </td>
-                    </tr>
+                    <>
+                      <tr
+                        key={`g:${groupKey}`}
+                        style={{ borderBottom: '1px solid #2a2a2a', background: '#141414', cursor: 'pointer' }}
+                        onClick={() => toggleExpanded(groupKey)}
+                      >
+                        <td style={{ ...td, color: '#888', fontFamily: 'monospace' }}>{isOpen ? '▾' : '▸'}</td>
+                        <td style={td}>
+                          <strong style={{ color: '#e3e3e3' }}>{g.name}</strong>
+                          <span style={{ marginLeft: 6, fontSize: 11, color: '#888' }}>({g.rows.length} variants)</span>
+                        </td>
+                        <td style={td}>—</td>
+                        <td style={tdRight}>—</td>
+                        <td style={tdRight}>{formatMoney(groupMonthly)}</td>
+                        <td style={tdRight}>{formatMoney(groupAnnual)}</td>
+                        <td style={td}>
+                          {Array.from(distinctStatuses).map((s) => <Pill key={s} status={s} />)}
+                        </td>
+                        <td style={td}></td>
+                        <td style={td}></td>
+                        <td style={td} onClick={(e) => e.stopPropagation()}>
+                          <span style={{ fontSize: 11, color: '#666' }}>click to expand</span>
+                        </td>
+                      </tr>
+                      {isOpen && g.rows.map((s) => (
+                        <SubRow
+                          key={s.id}
+                          s={s}
+                          monthly={monthlyEquivalent(s)}
+                          indent={true}
+                          navigate={navigate}
+                          setFlag={setFlag}
+                          setStatus={setStatus}
+                          refresh={refresh}
+                        />
+                      ))}
+                    </>
                   );
                 })}
               </tbody>
@@ -231,7 +275,97 @@ export function SubscriptionsPage() {
   );
 }
 
-function Kpi({ label, value, colour, sub }: { label: string; value: string; colour: string; sub?: string }) {
+function SubRow({
+  s, monthly, indent, navigate, setFlag, setStatus, refresh,
+}: {
+  s: Subscription;
+  monthly: number;
+  indent: boolean;
+  navigate: ReturnType<typeof useNavigate>;
+  setFlag: (id: string, patch: Partial<Subscription>) => Promise<void>;
+  setStatus: (id: string, status: 'confirmed' | 'dismissed' | 'candidate') => Promise<void>;
+  refresh: () => void;
+}) {
+  const annual = monthly * 12;
+  const sourceHint = s.merchant_canonical_key
+    ? s.merchant_canonical_key.replace(/^domain:/, '@').replace(/^email:/, '')
+    : '—';
+  return (
+    <tr style={{ borderBottom: '1px solid #1a1a1a', opacity: s.status === 'dismissed' ? 0.5 : 1 }}>
+      <td style={td}></td>
+      <td style={{ ...td, paddingLeft: indent ? 28 : undefined }}>
+        <a
+          onClick={(e) => { e.preventDefault(); navigate(`/subscriptions/${s.id}`); }}
+          href={`/subscriptions/${s.id}`}
+          style={{ color: '#86c7a3', textDecoration: 'none', cursor: 'pointer' }}
+        >
+          {indent ? <span style={{ color: '#666' }}>↳ </span> : null}
+          <strong>{s.merchant_name}</strong>
+        </a>
+        <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>{sourceHint}</div>
+      </td>
+      <td style={td}>{s.cadence}</td>
+      <td style={tdRight}>{s.amount_cents > 0 ? formatMoney(s.amount_cents) : '—'}</td>
+      <td style={tdRight}>{monthly > 0 ? formatMoney(monthly) : '—'}</td>
+      <td style={tdRight}>{annual > 0 ? formatMoney(annual) : '—'}</td>
+      <td style={td}><Pill status={s.status} /></td>
+      <td style={td}>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button
+            onClick={() => setFlag(s.id, { is_business: !s.is_business, is_personal: false } as Partial<Subscription>)}
+            style={tagBtn(s.is_business && !s.is_personal, '#86c7a3')}
+          >Biz</button>
+          <button
+            onClick={() => setFlag(s.id, { is_personal: !s.is_personal, is_business: false } as Partial<Subscription>)}
+            style={tagBtn(s.is_personal, '#f0c47a')}
+          >Personal</button>
+        </div>
+      </td>
+      <td style={td}>{s.confidence != null ? `${(s.confidence * 100).toFixed(0)}%` : '—'}</td>
+      <td style={td}>
+        <div style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap' }}>
+          {s.status !== 'confirmed' && (
+            <button
+              onClick={() => void setStatus(s.id, 'confirmed')}
+              style={{ ...actionBtn, background: '#0d2f1f', color: '#86c7a3', border: '1px solid #1c5135' }}
+              title="Confirm this is a real subscription"
+            >✓ Keep</button>
+          )}
+          {s.status !== 'dismissed' && (
+            <button
+              onClick={() => void setStatus(s.id, 'dismissed')}
+              style={{ ...actionBtn, background: '#3d1818', color: '#e9a3a3', border: '1px solid #5d2828' }}
+              title="Dismiss — not a real subscription / wrong / duplicate"
+            >✕ Dismiss</button>
+          )}
+          {s.status === 'dismissed' && (
+            <button
+              onClick={() => void setStatus(s.id, 'candidate')}
+              style={{ ...actionBtn, background: 'transparent', color: '#888', border: '1px solid #333' }}
+            >↺ Restore</button>
+          )}
+          <AllocationSplitButton
+            resourceType="subscription"
+            resourceId={s.id}
+            hostOrgId={s.organization_id}
+            label="⊟ Split"
+            onSaved={() => refresh()}
+          />
+          <MoveToOrgButton
+            table="subscriptions"
+            rowId={s.id}
+            currentOrgId={s.organization_id}
+            fkColumnsToNull={['supplier_id']}
+            label="⇄ Move"
+            onMoved={() => refresh()}
+          />
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function Kpi({ label, value, colour, sub }: { label: string; value: string; colour: string; sub?: string | undefined }) {
   return (
     <div style={{ padding: 12, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 6 }}>
       <div style={{ fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
@@ -245,7 +379,7 @@ function Pill({ status }: { status: string }) {
     : status === 'candidate' ? '#5096d8'
     : status === 'cancelled' ? '#666'
     : status === 'dismissed' ? '#d2c886' : '#888';
-  return <span style={{ padding: '0.15rem 0.5rem', fontSize: 11, borderRadius: 3, background: '#222', color: c, textTransform: 'uppercase' }}>{status}</span>;
+  return <span style={{ padding: '0.15rem 0.5rem', fontSize: 11, borderRadius: 3, background: '#222', color: c, textTransform: 'uppercase', marginRight: 4 }}>{status}</span>;
 }
 function tagBtn(active: boolean, colour: string): React.CSSProperties {
   return {
@@ -261,3 +395,10 @@ const th: React.CSSProperties = { padding: '0.4rem 0.5rem', textAlign: 'left', f
 const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
 const td: React.CSSProperties = { padding: '0.5rem' };
 const tdRight: React.CSSProperties = { ...td, textAlign: 'right' };
+const actionBtn: React.CSSProperties = {
+  padding: '0.15rem 0.5rem',
+  borderRadius: 3,
+  fontSize: 10,
+  cursor: 'pointer',
+  fontWeight: 500,
+};
