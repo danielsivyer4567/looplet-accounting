@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 import { formatMoney } from '@/lib/money';
+import { SkeletonTable } from '@/components/Skeleton';
 
 interface BankTxn {
   id: string;
@@ -225,7 +226,7 @@ export function ReconciliationPage() {
       </p>
 
       {loading ? (
-        <p style={{ color: '#888' }}>Loading…</p>
+        <SkeletonTable rows={8} cols={5} />
       ) : error ? (
         <p style={{ color: 'salmon' }}>{error}</p>
       ) : (
@@ -258,43 +259,45 @@ export function ReconciliationPage() {
           {matched.length > 0 && (
             <>
               <h2 style={h2}>Recently matched (last 20)</h2>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-                    <th style={th}>Date</th>
-                    <th style={th}>Description</th>
-                    <th style={thRight}>Amount</th>
-                    <th style={th}>Matched to</th>
-                    <th style={thRight}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {matched.map((m) => (
-                    <tr key={m.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                      <td style={td}>{m.posted_at.slice(0, 10)}</td>
-                      <td style={td}>{m.description}</td>
-                      <td style={tdRight}>{formatMoney(m.amount_cents)}</td>
-                      <td style={td}>
-                        {m.matched_bill_id && (
-                          <Link to={`/bills/${m.matched_bill_id}`} style={{ color: '#86c7a3', fontSize: 12 }}>
-                            bill →
-                          </Link>
-                        )}
-                        {m.matched_invoice_id && (
-                          <Link to={`/invoices/${m.matched_invoice_id}`} style={{ color: '#86c7a3', fontSize: 12 }}>
-                            invoice →
-                          </Link>
-                        )}
-                      </td>
-                      <td style={tdRight}>
-                        <button onClick={() => void undoMatch(m.id, m.matched_bill_id, m.matched_invoice_id)} disabled={busyId === m.id} style={ghostBtn}>
-                          undo
-                        </button>
-                      </td>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
+                      <th style={th}>Date</th>
+                      <th style={th}>Description</th>
+                      <th style={thRight}>Amount</th>
+                      <th style={th}>Matched to</th>
+                      <th style={thRight}></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {matched.map((m) => (
+                      <tr key={m.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
+                        <td style={td}>{m.posted_at.slice(0, 10)}</td>
+                        <td style={td}>{m.description}</td>
+                        <td style={tdRight}>{formatMoney(m.amount_cents)}</td>
+                        <td style={td}>
+                          {m.matched_bill_id && (
+                            <Link to={`/bills/${m.matched_bill_id}`} style={{ color: '#86c7a3', fontSize: 12 }}>
+                              bill →
+                            </Link>
+                          )}
+                          {m.matched_invoice_id && (
+                            <Link to={`/invoices/${m.matched_invoice_id}`} style={{ color: '#86c7a3', fontSize: 12 }}>
+                              invoice →
+                            </Link>
+                          )}
+                        </td>
+                        <td style={tdRight}>
+                          <button onClick={() => void undoMatch(m.id, m.matched_bill_id, m.matched_invoice_id)} disabled={busyId === m.id} style={ghostBtn}>
+                            undo
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </>
           )}
 

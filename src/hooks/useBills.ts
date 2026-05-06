@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 
@@ -17,19 +17,24 @@ export interface BillListRow {
   attached_job?: { id: string; job_number: string } | null;
 }
 
-export function useBills(statusFilter?: BillListRow['status']) {
+export function useBills(statusFilter?: BillListRow['status'], pageSize = 100) {
   const { currentOrg } = useOrg();
   const [bills, setBills] = useState<BillListRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const offsetRef = useRef(0);
 
-  const fetch = useCallback(async () => {
+  const fetch = useCallback(async (reset = true) => {
     if (!currentOrg) {
       setBills([]);
       setLoading(false);
       return;
     }
     setLoading(true);
+    const from = reset ? 0 : offsetRef.current;
+    const to = from + pageSize - 1;
+
     let q = supabase
       .from('bills')
       .select(
@@ -38,23 +43,35 @@ export function useBills(statusFilter?: BillListRow['status']) {
       .eq('organization_id', currentOrg.id)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
-      .limit(100);
+      .range(from, to);
 
     if (statusFilter) q = q.eq('status', statusFilter);
 
     const { data, error: queryErr } = await q;
     if (queryErr) {
       setError(queryErr.message);
-      setBills([]);
+      if (reset) setBills([]);
     } else {
-      setBills((data ?? []) as unknown as BillListRow[]);
+      const fetched = (data ?? []) as unknown as BillListRow[];
+      if (reset) {
+        setBills(fetched);
+      } else {
+        setBills((prev) => [...prev, ...fetched]);
+      }
+      offsetRef.current = from + fetched.length;
+      setHasMore(fetched.length === pageSize);
     }
     setLoading(false);
-  }, [currentOrg, statusFilter]);
+  }, [currentOrg, statusFilter, pageSize]);
 
   useEffect(() => {
-    void fetch();
+    offsetRef.current = 0;
+    void fetch(true);
   }, [fetch]);
 
-  return { bills, loading, error, refresh: fetch };
+  const loadMore = useCallback(async () => {
+    await fetch(false);
+  }, [fetch]);
+
+  return { bills, loading, error, refresh: () => { offsetRef.current = 0; return fetch(true); }, hasMore, loadMore };
 }

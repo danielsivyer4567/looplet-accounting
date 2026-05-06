@@ -1,7 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 import { formatMoney } from '@/lib/money';
+import { SkeletonTable } from '@/components/Skeleton';
 
 interface Debt {
   id: string;
@@ -34,6 +36,7 @@ const DEBT_KINDS = ['credit_card', 'personal_loan', 'mortgage', 'business_loan',
 
 export function DebtsPage() {
   const { currentOrg } = useOrg();
+  const navigate = useNavigate();
   const [debts, setDebts] = useState<Debt[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,55 +81,65 @@ export function DebtsPage() {
       {showAdd && <AddDebtForm onClose={() => setShowAdd(false)} onAdded={() => { setShowAdd(false); void refresh(); }} />}
 
       <h2 style={h2}>Debts</h2>
-      {loading ? <p style={{ color: '#888' }}>Loading…</p> : debts.length === 0 ? (
+      {loading ? <SkeletonTable rows={4} cols={7} /> : debts.length === 0 ? (
         <p style={{ color: '#888', fontSize: 13 }}>No debts tracked yet. Add one to start watching the cash bleed.</p>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead><tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-            <th style={th}>Name</th><th style={th}>Kind</th><th style={th}>Lender</th>
-            <th style={thRight}>Balance</th><th style={thRight}>Interest %</th>
-            <th style={thRight}>Min payment</th><th style={th}>Tag</th>
-          </tr></thead>
-          <tbody>
-            {debts.map((d) => (
-              <tr key={d.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                <td style={td}><strong>{d.name}</strong></td>
-                <td style={td}>{d.kind.replace(/_/g, ' ')}</td>
-                <td style={td}>{d.lender_name ?? '—'}{d.account_number_last4 ? <span style={{ color: '#666' }}> ···{d.account_number_last4}</span> : null}</td>
-                <td style={tdRight}><strong>{formatMoney(d.current_balance_cents)}</strong></td>
-                <td style={tdRight}>{d.interest_rate_pct != null ? `${Number(d.interest_rate_pct).toFixed(2)}%` : '—'}</td>
-                <td style={tdRight}>{d.minimum_payment_cents != null ? formatMoney(d.minimum_payment_cents) : '—'}</td>
-                <td style={td}>{d.is_personal ? <Pill colour="#f0c47a">Personal</Pill> : <Pill colour="#86c7a3">Business</Pill>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead><tr style={{ borderBottom: '1px solid #2a2a2a' }}>
+              <th style={th}>Name</th><th style={th}>Kind</th><th style={th}>Lender</th>
+              <th style={thRight}>Balance</th><th style={thRight}>Interest %</th>
+              <th style={thRight}>Min payment</th><th style={th}>Tag</th>
+            </tr></thead>
+            <tbody>
+              {debts.map((d) => (
+                <tr
+                  key={d.id}
+                  style={{ borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
+                  onClick={() => navigate(`/debts/${d.id}`)}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = '#202020'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = ''; }}
+                >
+                  <td style={td}><strong>{d.name}</strong></td>
+                  <td style={td}>{d.kind.replace(/_/g, ' ')}</td>
+                  <td style={td}>{d.lender_name ?? '—'}{d.account_number_last4 ? <span style={{ color: '#666' }}> ···{d.account_number_last4}</span> : null}</td>
+                  <td style={tdRight}><strong>{formatMoney(d.current_balance_cents)}</strong></td>
+                  <td style={tdRight}>{d.interest_rate_pct != null ? `${Number(d.interest_rate_pct).toFixed(2)}%` : '—'}</td>
+                  <td style={tdRight}>{d.minimum_payment_cents != null ? formatMoney(d.minimum_payment_cents) : '—'}</td>
+                  <td style={td}>{d.is_personal ? <Pill colour="#f0c47a">Personal</Pill> : <Pill colour="#86c7a3">Business</Pill>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <h2 style={h2}>Recent payments</h2>
       {payments.length === 0 ? (
         <p style={{ color: '#888', fontSize: 13 }}>No payments recorded yet.</p>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead><tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-            <th style={th}>Date</th><th style={th}>Debt</th>
-            <th style={thRight}>Total</th><th style={thRight}>Principal</th><th style={thRight}>Interest</th>
-          </tr></thead>
-          <tbody>
-            {payments.map((p) => {
-              const debt = debts.find((d) => d.id === p.debt_id);
-              return (
-                <tr key={p.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                  <td style={td}>{p.paid_at.slice(0, 10)}</td>
-                  <td style={td}>{debt?.name ?? '—'}</td>
-                  <td style={tdRight}>{formatMoney(p.total_cents)}</td>
-                  <td style={tdRight}>{p.principal_cents != null ? formatMoney(p.principal_cents) : '—'}</td>
-                  <td style={tdRight}>{p.interest_cents != null ? formatMoney(p.interest_cents) : '—'}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead><tr style={{ borderBottom: '1px solid #2a2a2a' }}>
+              <th style={th}>Date</th><th style={th}>Debt</th>
+              <th style={thRight}>Total</th><th style={thRight}>Principal</th><th style={thRight}>Interest</th>
+            </tr></thead>
+            <tbody>
+              {payments.map((p) => {
+                const debt = debts.find((d) => d.id === p.debt_id);
+                return (
+                  <tr key={p.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
+                    <td style={td}>{p.paid_at.slice(0, 10)}</td>
+                    <td style={td}>{debt?.name ?? '—'}</td>
+                    <td style={tdRight}>{formatMoney(p.total_cents)}</td>
+                    <td style={tdRight}>{p.principal_cents != null ? formatMoney(p.principal_cents) : '—'}</td>
+                    <td style={tdRight}>{p.interest_cents != null ? formatMoney(p.interest_cents) : '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <p style={{ marginTop: 32, padding: 10, background: '#0e0e0e', border: '1px dashed #2a2a2a', borderRadius: 4, fontSize: 12, color: '#666' }}>

@@ -54,7 +54,20 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !serviceKey) return json({ ok: false, error: 'Server config missing' }, 500);
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    if (!supabaseUrl || !serviceKey || !anonKey) return json({ ok: false, error: 'Server config missing' }, 500);
+
+    // Tolerant auth: service-role bypasses; user JWTs must verify org membership
+    // through RLS before we touch tenant data with the admin client.
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+    let isServiceRole = token === serviceKey;
+    if (!isServiceRole) {
+      try {
+        const payloadB64 = (token.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/');
+        const payload = JSON.parse(atob(payloadB64 + '='.repeat((4 - payloadB64.length % 4) % 4)));
+        isServiceRole = payload?.role === 'service_role';
+      } catch { /* fall through */ }
+    }
 
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
@@ -62,6 +75,19 @@ Deno.serve(async (req) => {
 
     const body = (await req.json()) as RequestBody;
     if (!body.organization_id) return json({ ok: false, error: 'organization_id required' }, 400);
+
+    // Org membership check via user-JWT (RLS enforces). Service-role skips.
+    if (!isServiceRole) {
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: org } = await userClient
+        .from('organizations')
+        .select('id')
+        .eq('id', body.organization_id)
+        .maybeSingle();
+      if (!org) return json({ ok: false, error: 'Organisation not accessible' }, 403);
+    }
 
     // Pull last 18 months of debit txns (+ a small buffer for yearly subs)
     const cutoff = new Date();

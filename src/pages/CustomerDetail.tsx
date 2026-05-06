@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 import { formatMoney } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
+import { ArchiveButton } from '@/components/ArchiveButton';
 
 interface Customer {
   id: string;
@@ -14,6 +15,7 @@ interface Customer {
   billing_address: Record<string, unknown> | null;
   notes: string | null;
   created_at: string;
+  deleted_at: string | null;
 }
 
 interface Pnl {
@@ -125,6 +127,15 @@ export function CustomerDetailPage() {
           <button onClick={() => navigate(`/invoices/new?customer_id=${customer.id}`)} style={btnPrim}>+ Raise invoice</button>
           <MoveToOrgButton table="customers" rowId={customer.id} currentOrgId={currentOrg.id} onMoved={() => { window.location.href = '/customers'; }} />
           {!editing && <button onClick={startEdit} style={btnGhost}>✎ Edit</button>}
+          <ArchiveButton
+            table="customers"
+            rowId={customer.id}
+            isArchived={!!customer.deleted_at}
+            onChange={(nowArchived) => {
+              if (nowArchived) { window.location.href = '/customers'; }
+              else { void refresh(); }
+            }}
+          />
         </div>
       </div>
 

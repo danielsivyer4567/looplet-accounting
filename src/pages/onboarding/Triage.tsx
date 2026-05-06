@@ -42,6 +42,45 @@ export function TriagePage() {
 
   const remaining = (progress?.pending_count ?? 0) + (progress?.needs_review_count ?? 0);
 
+  const bulkApproveAllHighConfidence = async () => {
+    const candidates = entities.filter(
+      (e) =>
+        (e.status === 'pending' || e.status === 'needs_review') &&
+        e.predicted_category != null &&
+        e.confidence >= 0.8,
+    );
+    if (candidates.length === 0) return;
+    if (!confirm(
+      `Approve ${candidates.length} entities with ≥80% AI confidence using their predicted classifications?\n\n`
+      + `This will:\n`
+      + `  • Create supplier/customer records for the right kinds\n`
+      + `  • Insert intake_rules so future emails auto-route\n`
+      + `  • Mark these as approved\n\n`
+      + `You can still edit individually after.`,
+    )) return;
+    setBusy('bulk:high-conf');
+    setError(null);
+    let done = 0;
+    try {
+      for (const e of candidates) {
+        await updateOneInternal(e, { status: 'approved', user_kind: e.predicted_kind, user_category: e.predicted_category });
+        done += 1;
+      }
+      await refresh();
+    } catch (err) {
+      setError(`Stopped at ${done}/${candidates.length}: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const highConfCount = entities.filter(
+    (e) =>
+      (e.status === 'pending' || e.status === 'needs_review') &&
+      e.predicted_category != null &&
+      e.confidence >= 0.8,
+  ).length;
+
   const bulkApproveGroup = async (kind: EntityKind) => {
     const rows = (groups[kind] ?? []).filter((e) => e.status === 'pending' || e.status === 'needs_review');
     if (rows.length === 0) return;
@@ -211,6 +250,46 @@ export function TriagePage() {
 
       {error && (
         <p style={{ color: 'salmon', fontSize: 12 }}>{error}</p>
+      )}
+
+      {highConfCount > 0 && (
+        <div style={{
+          marginBottom: 24,
+          padding: 12,
+          background: '#0d2f1f',
+          border: '1px solid #1c5135',
+          borderRadius: 6,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 12,
+          flexWrap: 'wrap',
+        }}>
+          <div>
+            <strong style={{ color: '#86c7a3' }}>
+              {highConfCount} entit{highConfCount === 1 ? 'y has' : 'ies have'} high-confidence (≥80%) AI predictions
+            </strong>
+            <div style={{ fontSize: 11, color: '#aaa', marginTop: 3 }}>
+              One click approves all of them, creates supplier/customer records, and inserts intake_rules for auto-routing.
+            </div>
+          </div>
+          <button
+            onClick={bulkApproveAllHighConfidence}
+            disabled={busy === 'bulk:high-conf'}
+            style={{
+              padding: '0.5rem 1.25rem',
+              background: '#1c5135',
+              color: '#fff',
+              border: '1px solid #2da565',
+              borderRadius: 4,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: busy === 'bulk:high-conf' ? 'wait' : 'pointer',
+            }}
+          >
+            {busy === 'bulk:high-conf' ? 'Approving…' : `✓ Approve all ${highConfCount} high-confidence`}
+          </button>
+        </div>
       )}
 
       {(['supplier', 'contractor', 'subscription', 'internal_admin', 'customer', 'personal', 'unknown'] as EntityKind[]).map((k) => {

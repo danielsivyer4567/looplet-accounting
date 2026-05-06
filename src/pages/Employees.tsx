@@ -1,7 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 import { formatMoney } from '@/lib/money';
+import { SkeletonTable } from '@/components/Skeleton';
 
 interface Employee {
   id: string;
@@ -38,6 +40,7 @@ interface Timesheet {
 
 export function EmployeesPage() {
   const { currentOrg } = useOrg();
+  const navigate = useNavigate();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
@@ -106,55 +109,65 @@ export function EmployeesPage() {
       )}
 
       <h2 style={h2}>Employees</h2>
-      {loading ? <p style={{ color: '#888' }}>Loading…</p> : employees.length === 0 ? (
+      {loading ? <SkeletonTable rows={4} cols={6} /> : employees.length === 0 ? (
         <p style={{ color: '#888', fontSize: 13 }}>No employees yet. Add one to start logging time against jobs.</p>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead><tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-            <th style={th}>Name</th><th style={th}>Role</th><th style={th}>Email</th>
-            <th style={thRight}>Base $/hr</th><th style={thRight}>Loaded $/hr</th><th style={th}>Status</th>
-          </tr></thead>
-          <tbody>
-            {employees.map((e) => {
-              const w = e.wage_components ?? {};
-              const loaded = w.loaded_hourly_rate_cents ?? computeLoadedRate(w);
-              return (
-                <tr key={e.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                  <td style={td}><strong>{e.full_name}</strong></td>
-                  <td style={td}>{e.role ?? '—'}</td>
-                  <td style={td}>{e.email ?? '—'}</td>
-                  <td style={tdRight}>{w.base_hourly_rate != null ? `$${w.base_hourly_rate.toFixed(2)}` : '—'}</td>
-                  <td style={tdRight}>{loaded > 0 ? formatMoney(loaded) : '—'}</td>
-                  <td style={td}>{e.is_active ? <Pill on>Active</Pill> : <Pill>Inactive</Pill>}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead><tr style={{ borderBottom: '1px solid #2a2a2a' }}>
+              <th style={th}>Name</th><th style={th}>Role</th><th style={th}>Email</th>
+              <th style={thRight}>Base $/hr</th><th style={thRight}>Loaded $/hr</th><th style={th}>Status</th>
+            </tr></thead>
+            <tbody>
+              {employees.map((e) => {
+                const w = e.wage_components ?? {};
+                const loaded = w.loaded_hourly_rate_cents ?? computeLoadedRate(w);
+                return (
+                  <tr
+                    key={e.id}
+                    style={{ borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
+                    onClick={() => navigate(`/employees/${e.id}`)}
+                    onMouseEnter={(ev) => { (ev.currentTarget as HTMLTableRowElement).style.background = '#202020'; }}
+                    onMouseLeave={(ev) => { (ev.currentTarget as HTMLTableRowElement).style.background = ''; }}
+                  >
+                    <td style={td}><strong>{e.full_name}</strong></td>
+                    <td style={td}>{e.role ?? '—'}</td>
+                    <td style={td}>{e.email ?? '—'}</td>
+                    <td style={tdRight}>{w.base_hourly_rate != null ? `$${w.base_hourly_rate.toFixed(2)}` : '—'}</td>
+                    <td style={tdRight}>{loaded > 0 ? formatMoney(loaded) : '—'}</td>
+                    <td style={td}>{e.is_active ? <Pill on>Active</Pill> : <Pill>Inactive</Pill>}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <h2 style={h2}>Recent timesheets (last 30 days)</h2>
       {timesheets.length === 0 ? (
         <p style={{ color: '#888', fontSize: 13 }}>No timesheet entries yet. Log time against a job to start cost-tracking.</p>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead><tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-            <th style={th}>Date</th><th style={th}>Employee</th><th style={th}>Job</th>
-            <th style={thRight}>Hours</th><th style={thRight}>Rate</th><th style={thRight}>Cost</th>
-          </tr></thead>
-          <tbody>
-            {timesheets.map((t) => (
-              <tr key={t.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                <td style={td}>{t.work_date}</td>
-                <td style={td}>{t.employee?.full_name ?? '—'}</td>
-                <td style={td}>{t.job ? `${t.job.job_number} · ${t.job.name}` : <span style={{ color: '#666' }}>(unassigned)</span>}</td>
-                <td style={tdRight}>{Number(t.hours).toFixed(2)}</td>
-                <td style={tdRight}>{formatMoney(t.loaded_hourly_rate_cents)}</td>
-                <td style={tdRight}>{formatMoney(t.total_cost_cents)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead><tr style={{ borderBottom: '1px solid #2a2a2a' }}>
+              <th style={th}>Date</th><th style={th}>Employee</th><th style={th}>Job</th>
+              <th style={thRight}>Hours</th><th style={thRight}>Rate</th><th style={thRight}>Cost</th>
+            </tr></thead>
+            <tbody>
+              {timesheets.map((t) => (
+                <tr key={t.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
+                  <td style={td}>{t.work_date}</td>
+                  <td style={td}>{t.employee?.full_name ?? '—'}</td>
+                  <td style={td}>{t.job ? `${t.job.job_number} · ${t.job.name}` : <span style={{ color: '#666' }}>(unassigned)</span>}</td>
+                  <td style={tdRight}>{Number(t.hours).toFixed(2)}</td>
+                  <td style={tdRight}>{formatMoney(t.loaded_hourly_rate_cents)}</td>
+                  <td style={tdRight}>{formatMoney(t.total_cost_cents)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <p style={{ marginTop: 32, padding: 10, background: '#0e0e0e', border: '1px dashed #2a2a2a', borderRadius: 4, fontSize: 12, color: '#666' }}>

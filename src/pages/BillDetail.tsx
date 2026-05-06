@@ -6,12 +6,96 @@ import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
 
+// ---------------------------------------------------------------------------
+// Draft shape for the edit form. Money fields are stored as dollar strings
+// so the user types "$123.45" naturally; we convert to cents on save.
+// ---------------------------------------------------------------------------
+interface BillDraft {
+  supplier_name_raw: string;
+  supplier_abn: string;
+  invoice_number: string;
+  invoice_date: string;
+  due_date: string;
+  total_inc_gst_dollars: string;
+  gst_dollars: string;
+  subtotal_ex_gst_dollars: string;
+  job_reference_raw: string;
+  notes: string;
+}
+
+function billToDraft(bill: Bill): BillDraft {
+  const cents2str = (c: number | null) =>
+    c != null ? (c / 100).toFixed(2) : '';
+  return {
+    supplier_name_raw: bill.supplier_name_raw ?? '',
+    supplier_abn: bill.supplier_abn ?? '',
+    invoice_number: bill.invoice_number ?? '',
+    invoice_date: bill.invoice_date ?? '',
+    due_date: bill.due_date ?? '',
+    total_inc_gst_dollars: cents2str(bill.total_inc_gst_cents),
+    gst_dollars: cents2str(bill.gst_cents),
+    subtotal_ex_gst_dollars: cents2str(bill.subtotal_ex_gst_cents),
+    job_reference_raw: bill.job_reference_raw ?? '',
+    notes: bill.notes ?? '',
+  };
+}
+
+/** Parse a dollar string to cents integer (null if blank / not a number). */
+function parseDollarsToCents(s: string): number | null {
+  const trimmed = s.trim().replace(/^\$/, '');
+  if (trimmed === '') return null;
+  const n = parseFloat(trimmed);
+  if (isNaN(n)) return null;
+  return Math.round(n * 100);
+}
+
+/**
+ * AU GST auto-compute rules:
+ * 1. total given, gst blank  → gst = round(total / 11)
+ * 2. subtotal + gst given, total blank → total = subtotal + gst
+ * Returns updated cents values (null = leave as-is / blank).
+ */
+function autoComputeGst(draft: BillDraft): {
+  total: number | null;
+  gst: number | null;
+  subtotal: number | null;
+} {
+  const total = parseDollarsToCents(draft.total_inc_gst_dollars);
+  const gst = parseDollarsToCents(draft.gst_dollars);
+  const subtotal = parseDollarsToCents(draft.subtotal_ex_gst_dollars);
+
+  let resolvedTotal = total;
+  let resolvedGst = gst;
+  let resolvedSubtotal = subtotal;
+
+  // Rule 1: total given, gst blank
+  if (total != null && gst == null) {
+    resolvedGst = Math.round(total / 11);
+    if (subtotal == null) {
+      resolvedSubtotal = total - resolvedGst;
+    }
+  }
+
+  // Rule 2: subtotal + gst given, total blank
+  if (subtotal != null && gst != null && total == null) {
+    resolvedTotal = subtotal + gst;
+  }
+
+  return { total: resolvedTotal, gst: resolvedGst, subtotal: resolvedSubtotal };
+}
+
 export function BillDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { bill, loading, error, refresh } = useBill(id);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Edit-mode state
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<BillDraft | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
 
   useEffect(() => {
     if (bill) {
@@ -29,6 +113,62 @@ export function BillDetailPage() {
       </section>
     );
   }
+
+  const startEdit = () => {
+    setDraft(billToDraft(bill));
+    setEditing(true);
+    setSavedFlash(false);
+    setActionError(null);
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setDraft(null);
+    setActionError(null);
+  };
+
+  const saveBill = async () => {
+    if (!draft) return;
+    setSaving(true);
+    setActionError(null);
+    try {
+      const computed = autoComputeGst(draft);
+      const payload: Record<string, unknown> = {
+        supplier_name_raw: draft.supplier_name_raw.trim() || null,
+        supplier_abn: draft.supplier_abn.trim() || null,
+        invoice_number: draft.invoice_number.trim() || null,
+        invoice_date: draft.invoice_date.trim() || null,
+        due_date: draft.due_date.trim() || null,
+        total_inc_gst_cents: computed.total,
+        gst_cents: computed.gst,
+        subtotal_ex_gst_cents: computed.subtotal,
+        job_reference_raw: draft.job_reference_raw.trim() || null,
+        notes: draft.notes.trim() || null,
+      };
+
+      const { error: saveErr } = await supabase
+        .from('bills')
+        .update(payload)
+        .eq('id', bill.id);
+
+      if (saveErr) {
+        setActionError(saveErr.message);
+        return;
+      }
+
+      await refresh();
+      setEditing(false);
+      setDraft(null);
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 2500);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const setField = <K extends keyof BillDraft>(key: K, value: BillDraft[K]) => {
+    setDraft((prev) => (prev ? { ...prev, [key]: value } : prev));
+  };
 
   const attachToJob = async (jobId: string) => {
     setBusy(true);
@@ -96,8 +236,16 @@ export function BillDetailPage() {
         <h1 style={{ margin: 0 }}>
           {bill.supplier_name_raw ?? <span style={{ color: '#888' }}>Bill {bill.id.slice(0, 8)}</span>}
         </h1>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {savedFlash && (
+            <span style={{ fontSize: 12, color: '#86c7a3', fontWeight: 600 }}>✓ Saved</span>
+          )}
           <PersonalToggle bill={bill} onChange={() => void refresh()} />
+          {!editing && (
+            <button onClick={startEdit} style={editBtnStyle}>
+              ✎ Edit
+            </button>
+          )}
           <MoveToOrgButton
             table="bills"
             rowId={bill.id}
@@ -161,23 +309,133 @@ export function BillDetailPage() {
 
         {/* Right: extracted data + actions */}
         <div>
-          <h3 style={{ fontSize: 14, color: '#aaa', marginBottom: '0.5rem' }}>Extracted</h3>
-          <Field label="Supplier" value={bill.supplier_name_raw} />
-          <Field label="ABN" value={bill.supplier_abn} mono />
-          <Field label="Invoice #" value={bill.invoice_number} mono />
-          <Field label="Date" value={bill.invoice_date} />
-          <Field label="Due" value={bill.due_date} />
-          <Field
-            label="Total inc GST"
-            value={bill.total_inc_gst_cents != null ? formatMoney(bill.total_inc_gst_cents) : null}
-            highlight
-          />
-          <Field label="GST" value={bill.gst_cents != null ? formatMoney(bill.gst_cents) : null} />
-          <Field
-            label="Subtotal ex GST"
-            value={bill.subtotal_ex_gst_cents != null ? formatMoney(bill.subtotal_ex_gst_cents) : null}
-          />
-          <Field label="Job ref" value={bill.job_reference_raw} mono />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <h3 style={{ fontSize: 14, color: '#aaa', margin: 0 }}>Extracted</h3>
+            {editing && (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => void saveBill()}
+                  disabled={saving}
+                  style={primaryBtnStyle}
+                >
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
+                <button
+                  onClick={cancelEdit}
+                  disabled={saving}
+                  style={ghostBtnStyle}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+
+          {editing && draft ? (
+            <>
+              <EditField label="Supplier">
+                <input
+                  value={draft.supplier_name_raw}
+                  onChange={(e) => setField('supplier_name_raw', e.target.value)}
+                  style={inpStyle}
+                  placeholder="Supplier name"
+                />
+              </EditField>
+              <EditField label="ABN">
+                <input
+                  value={draft.supplier_abn}
+                  onChange={(e) => setField('supplier_abn', e.target.value)}
+                  style={{ ...inpStyle, fontFamily: 'ui-monospace, monospace' }}
+                  placeholder="XX XXX XXX XXX"
+                />
+              </EditField>
+              <EditField label="Invoice #">
+                <input
+                  value={draft.invoice_number}
+                  onChange={(e) => setField('invoice_number', e.target.value)}
+                  style={{ ...inpStyle, fontFamily: 'ui-monospace, monospace' }}
+                  placeholder="INV-001"
+                />
+              </EditField>
+              <EditField label="Date">
+                <input
+                  type="date"
+                  value={draft.invoice_date}
+                  onChange={(e) => setField('invoice_date', e.target.value)}
+                  style={inpStyle}
+                />
+              </EditField>
+              <EditField label="Due">
+                <input
+                  type="date"
+                  value={draft.due_date}
+                  onChange={(e) => setField('due_date', e.target.value)}
+                  style={inpStyle}
+                />
+              </EditField>
+              <EditField label="Total inc GST" hint="Auto-computes GST = total ÷ 11 if GST left blank">
+                <input
+                  value={draft.total_inc_gst_dollars}
+                  onChange={(e) => setField('total_inc_gst_dollars', e.target.value)}
+                  style={{ ...inpStyle, fontWeight: 600 }}
+                  placeholder="0.00"
+                />
+              </EditField>
+              <EditField label="GST">
+                <input
+                  value={draft.gst_dollars}
+                  onChange={(e) => setField('gst_dollars', e.target.value)}
+                  style={inpStyle}
+                  placeholder="0.00"
+                />
+              </EditField>
+              <EditField label="Subtotal ex GST">
+                <input
+                  value={draft.subtotal_ex_gst_dollars}
+                  onChange={(e) => setField('subtotal_ex_gst_dollars', e.target.value)}
+                  style={inpStyle}
+                  placeholder="0.00"
+                />
+              </EditField>
+              <EditField label="Job ref">
+                <input
+                  value={draft.job_reference_raw}
+                  onChange={(e) => setField('job_reference_raw', e.target.value)}
+                  style={{ ...inpStyle, fontFamily: 'ui-monospace, monospace' }}
+                  placeholder="e.g. JOB-042"
+                />
+              </EditField>
+              <EditField label="Notes">
+                <textarea
+                  value={draft.notes}
+                  onChange={(e) => setField('notes', e.target.value)}
+                  style={{ ...inpStyle, height: 72, resize: 'vertical', lineHeight: '1.4' }}
+                  placeholder="Internal notes…"
+                />
+              </EditField>
+            </>
+          ) : (
+            <>
+              <Field label="Supplier" value={bill.supplier_name_raw} />
+              <Field label="ABN" value={bill.supplier_abn} mono />
+              <Field label="Invoice #" value={bill.invoice_number} mono />
+              <Field label="Date" value={bill.invoice_date} />
+              <Field label="Due" value={bill.due_date} />
+              <Field
+                label="Total inc GST"
+                value={bill.total_inc_gst_cents != null ? formatMoney(bill.total_inc_gst_cents) : null}
+                highlight
+              />
+              <Field label="GST" value={bill.gst_cents != null ? formatMoney(bill.gst_cents) : null} />
+              <Field
+                label="Subtotal ex GST"
+                value={bill.subtotal_ex_gst_cents != null ? formatMoney(bill.subtotal_ex_gst_cents) : null}
+              />
+              <Field label="Job ref" value={bill.job_reference_raw} mono />
+              {bill.notes && <Field label="Notes" value={bill.notes} />}
+            </>
+          )}
+
           <Field
             label="OCR"
             value={
@@ -355,6 +613,79 @@ function StatusBar({ bill }: { bill: Bill }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Shared style constants (mirrors SupplierDetail pattern)
+// ---------------------------------------------------------------------------
+const editBtnStyle: React.CSSProperties = {
+  padding: '0.3rem 0.75rem',
+  background: 'transparent',
+  color: '#aaa',
+  border: '1px solid #333',
+  borderRadius: 3,
+  fontSize: 12,
+  cursor: 'pointer',
+};
+
+const primaryBtnStyle: React.CSSProperties = {
+  padding: '0.4rem 1rem',
+  background: '#1c4868',
+  color: '#fff',
+  border: '1px solid #5096d8',
+  borderRadius: 4,
+  fontSize: 12,
+  fontWeight: 600,
+  cursor: 'pointer',
+};
+
+const ghostBtnStyle: React.CSSProperties = {
+  padding: '0.4rem 1rem',
+  background: 'transparent',
+  color: '#aaa',
+  border: '1px solid #333',
+  borderRadius: 4,
+  fontSize: 12,
+  cursor: 'pointer',
+};
+
+const inpStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '5px 8px',
+  background: '#000',
+  color: '#ddd',
+  border: '1px solid #333',
+  borderRadius: 3,
+  fontSize: 12,
+  boxSizing: 'border-box',
+};
+
+// ---------------------------------------------------------------------------
+// EditField — label + arbitrary input child, same row layout as Field
+// ---------------------------------------------------------------------------
+function EditField({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', padding: '0.35rem 0', borderBottom: '1px solid #1a1a1a', gap: 8 }}>
+      <div style={{ fontSize: 12, color: '#888', width: 130, flexShrink: 0, paddingTop: 6 }}>
+        {label}
+        {hint && (
+          <div style={{ fontSize: 10, color: '#555', marginTop: 2, lineHeight: 1.3 }}>{hint}</div>
+        )}
+      </div>
+      <div style={{ flex: 1 }}>{children}</div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Field — read-only display row
+// ---------------------------------------------------------------------------
 function Field({
   label,
   value,

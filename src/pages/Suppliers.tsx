@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useOrg } from '@/contexts/OrgContext';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
+import { SkeletonTable } from '@/components/Skeleton';
 
 // ---------------------------------------------------------------------------
 // Top-5 horizontal bar chart (dependency-free inline SVG)
@@ -126,82 +127,84 @@ export function SuppliersPage() {
       )}
 
       {loading ? (
-        <p style={{ color: '#888' }}>Loading…</p>
+        <SkeletonTable rows={5} cols={7} />
       ) : error ? (
         <p style={{ color: 'salmon' }}>Failed to load: {error}</p>
       ) : suppliers.length === 0 ? (
         <p style={{ color: '#888' }}>No suppliers found for {currentOrg.name}.</p>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-              <th style={th}>Name</th>
-              <th style={th}>ABN</th>
-              <th style={th}>Email</th>
-              <th style={th}>Phone</th>
-              <th style={th}>Account code</th>
-              <th style={thRight}>Balance owing</th>
-              <th style={thRight}>Total spend</th>
-            </tr>
-          </thead>
-          <tbody>
-            {suppliers.map((s) => (
-              <tr
-                key={s.id}
-                style={{ borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
-                onClick={() => void navigate(`/suppliers/${s.id}`)}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLTableRowElement).style.background = '#202020';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLTableRowElement).style.background = '';
-                }}
-              >
-                <td style={{ ...td, fontWeight: 500 }}>{s.name}</td>
-                <td style={td}>
-                  {s.abn ? (
-                    <code style={{ color: '#888', fontSize: 12 }}>{s.abn}</code>
-                  ) : (
-                    <span style={{ color: '#444' }}>—</span>
-                  )}
-                </td>
-                <td style={td}>
-                  {s.email ? (
-                    <span style={{ color: '#aaa', fontSize: 13 }}>{s.email}</span>
-                  ) : (
-                    <span style={{ color: '#444' }}>—</span>
-                  )}
-                </td>
-                <td style={td}>
-                  {s.contact_phone ? (
-                    <span style={{ color: '#aaa', fontSize: 13 }}>{s.contact_phone}</span>
-                  ) : (
-                    <span style={{ color: '#444' }}>—</span>
-                  )}
-                </td>
-                <td style={td}>
-                  {s.default_account_code ? (
-                    <code style={{ color: '#d2c886', fontSize: 12 }}>{s.default_account_code}</code>
-                  ) : (
-                    <span style={{ color: '#444' }}>—</span>
-                  )}
-                </td>
-                <td style={tdRight}>
-                  {s.current_balance_owing_cents != null ? (
-                    <span style={{ color: s.current_balance_owing_cents > 0 ? '#e9a3a3' : '#aaa' }}>
-                      {formatMoney(s.current_balance_owing_cents)}
-                    </span>
-                  ) : (
-                    <span style={{ color: '#444' }}>—</span>
-                  )}
-                </td>
-                <td style={{ ...tdRight, color: '#86c7a3', fontWeight: 500 }}>
-                  {formatMoney(spendMap.get(s.id) ?? 0)}
-                </td>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
+                <th style={th}>Name</th>
+                <th style={th}>ABN</th>
+                <th style={th}>Email</th>
+                <th style={th}>Phone</th>
+                <th style={th}>Account code</th>
+                <th style={thRight}>Balance owing</th>
+                <th style={thRight}>Total spend</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {suppliers.map((s) => (
+                <tr
+                  key={s.id}
+                  style={{ borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
+                  onClick={() => void navigate(`/suppliers/${s.id}`)}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLTableRowElement).style.background = '#202020';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLTableRowElement).style.background = '';
+                  }}
+                >
+                  <td style={{ ...td, fontWeight: 500 }}>{s.name}</td>
+                  <td style={td}>
+                    {s.abn ? (
+                      <code style={{ color: '#888', fontSize: 12 }}>{s.abn}</code>
+                    ) : (
+                      <span style={{ color: '#444' }}>—</span>
+                    )}
+                  </td>
+                  <td style={td}>
+                    {s.email ? (
+                      <span style={{ color: '#aaa', fontSize: 13 }}>{s.email}</span>
+                    ) : (
+                      <span style={{ color: '#444' }}>—</span>
+                    )}
+                  </td>
+                  <td style={td}>
+                    {s.contact_phone ? (
+                      <span style={{ color: '#aaa', fontSize: 13 }}>{s.contact_phone}</span>
+                    ) : (
+                      <span style={{ color: '#444' }}>—</span>
+                    )}
+                  </td>
+                  <td style={td}>
+                    {s.default_account_code ? (
+                      <code style={{ color: '#d2c886', fontSize: 12 }}>{s.default_account_code}</code>
+                    ) : (
+                      <span style={{ color: '#444' }}>—</span>
+                    )}
+                  </td>
+                  <td style={tdRight}>
+                    {s.current_balance_owing_cents != null ? (
+                      <span style={{ color: s.current_balance_owing_cents > 0 ? '#e9a3a3' : '#aaa' }}>
+                        {formatMoney(s.current_balance_owing_cents)}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#444' }}>—</span>
+                    )}
+                  </td>
+                  <td style={{ ...tdRight, color: '#86c7a3', fontWeight: 500 }}>
+                    {formatMoney(spendMap.get(s.id) ?? 0)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );

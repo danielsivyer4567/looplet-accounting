@@ -4,7 +4,7 @@ import { useOrg } from '@/contexts/OrgContext';
 
 interface Props {
   /** Table to update (e.g. 'bills', 'subscriptions', 'invoices'). */
-  table: 'bills' | 'subscriptions' | 'invoices' | 'jobs' | 'suppliers' | 'customers';
+  table: 'bills' | 'subscriptions' | 'invoices' | 'jobs' | 'suppliers' | 'customers' | 'debts' | 'employees';
   /** Row id to move. */
   rowId: string;
   /** Current organization_id of the row. Used to filter the dropdown. */

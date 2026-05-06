@@ -28,13 +28,30 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !serviceKey) {
-      return json({ ok: false, error: 'Server config missing' }, 500);
+    const cronSecret = Deno.env.get('BANK_SYNC_ALL_CRON_SECRET');
+    if (!supabaseUrl || !serviceKey || !cronSecret) {
+      return json({ ok: false, error: 'Server config missing (need BANK_SYNC_ALL_CRON_SECRET)' }, 500);
     }
 
-    // Public-callable (no-verify-jwt). The actual work is idempotent upsert
-    // of bank data into rows already keyed by org/connection — calling this
-    // out of band just triggers an extra Basiq fetch.
+    // SECURITY: deployed --no-verify-jwt because pg_cron calls this. Gate
+    // access on a URL-query secret OR service-role bearer. Anything else =
+    // 403, no information about org_ids leaks in the response.
+    const url = new URL(req.url);
+    const urlSecret = url.searchParams.get('secret');
+    const authHeader = req.headers.get('Authorization') ?? '';
+    const bearer = authHeader.replace(/^Bearer\s+/i, '').trim();
+    let isServiceRole = bearer === serviceKey;
+    if (!isServiceRole && bearer) {
+      try {
+        const payloadB64 = (bearer.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/');
+        const payload = JSON.parse(atob(payloadB64 + '='.repeat((4 - payloadB64.length % 4) % 4)));
+        isServiceRole = payload?.role === 'service_role';
+      } catch { /* fall through */ }
+    }
+    if (!isServiceRole && urlSecret !== cronSecret) {
+      return json({ ok: false, error: 'forbidden' }, 403);
+    }
+
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });

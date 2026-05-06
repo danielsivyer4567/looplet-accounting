@@ -150,9 +150,10 @@ Deno.serve(async (req) => {
     let imported = 0;
     let duplicates = 0;
     let insertErrors = 0;
+    const importedTxnIds: string[] = [];
     for (const r of rows.parsed) {
       const externalId = await hashKey(`${r.posted_at}|${r.amount_cents}|${r.description}`);
-      const { error: txnErr } = await admin
+      const { data: upserted, error: txnErr } = await admin
         .from('bank_transactions')
         .upsert(
           {
@@ -167,9 +168,14 @@ Deno.serve(async (req) => {
             raw: { source: 'csv_import', format: body.format },
           },
           { onConflict: 'bank_account_id,external_id', ignoreDuplicates: false },
-        );
+        )
+        .select('id')
+        .single();
       if (txnErr) insertErrors += 1;
-      else imported += 1;
+      else {
+        imported += 1;
+        if (upserted?.id) importedTxnIds.push(upserted.id as string);
+      }
     }
 
     // Update last_synced_at on the connection
@@ -186,6 +192,23 @@ Deno.serve(async (req) => {
         body: JSON.stringify({ organization_id: body.organization_id }),
       });
     } catch { /* swallow */ }
+
+    // Fire-and-forget intake rule routing — auto-apply user-curated rules
+    // (descriptor_regex / amount_range) to the freshly-imported txns. Batch
+    // call so we only load active rules once.
+    if (importedTxnIds.length > 0) {
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/intake-routing-apply`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            organization_id: body.organization_id,
+            target: 'bank_transaction',
+            target_ids: importedTxnIds,
+          }),
+        });
+      } catch { /* swallow */ }
+    }
 
     return json({
       ok: true,

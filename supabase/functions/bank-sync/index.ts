@@ -99,6 +99,7 @@ Deno.serve(async (req) => {
     const fromDate = new Date(Date.now() - days * 86400 * 1000).toISOString().slice(0, 10);
 
     const results: any[] = [];
+    const allInsertedTxnIds: string[] = [];
     for (const c of connections) {
       try {
         const stats = await syncOne(
@@ -109,6 +110,9 @@ Deno.serve(async (req) => {
           fromDate,
         );
         results.push({ bank_connection_id: c.id, ...stats });
+        if (stats.inserted_txn_ids?.length) {
+          allInsertedTxnIds.push(...stats.inserted_txn_ids);
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         await admin
@@ -122,6 +126,18 @@ Deno.serve(async (req) => {
     // Fire-and-forget: kick subscriptions detection so newly-synced txns
     // immediately update the recurring-payment list.
     void fireAndForgetSubsDetect(supabaseUrl, serviceKey, body.organization_id);
+
+    // Fire-and-forget: auto-apply intake_rules to new txns (one batch call
+    // covers all connections). No-op if no rules or no new txns.
+    if (allInsertedTxnIds.length > 0) {
+      void fireAndForgetIntakeRouting(
+        supabaseUrl,
+        serviceKey,
+        body.organization_id,
+        'bank_transaction',
+        allInsertedTxnIds,
+      );
+    }
 
     return json({ ok: true, results });
   } catch (err) {
@@ -188,13 +204,14 @@ async function syncOne(
 
   let inserted = 0;
   let skipped = 0;
+  const insertedTxnIds: string[] = [];
   for (const t of txns) {
     const bankAccountId = acctMap.get(t.account);
     if (!bankAccountId) { skipped += 1; continue; }
     // Basiq amounts are signed: negative = money out, positive = money in.
     // That's already our convention (positive = money_in), so no inversion.
     const amount = toCents(t.amount);
-    const { error } = await admin
+    const { data: row, error } = await admin
       .from('bank_transactions')
       .upsert(
         {
@@ -210,8 +227,14 @@ async function syncOne(
           raw: t,
         },
         { onConflict: 'bank_account_id,external_id' },
-      );
-    if (error) skipped += 1; else inserted += 1;
+      )
+      .select('id')
+      .single();
+    if (error) skipped += 1;
+    else {
+      inserted += 1;
+      if (row?.id) insertedTxnIds.push(row.id as string);
+    }
   }
 
   // 4. Bump last_synced_at
@@ -224,7 +247,26 @@ async function syncOne(
     accounts_updated: acctUpdated,
     transactions_synced: inserted,
     transactions_skipped: skipped,
+    inserted_txn_ids: insertedTxnIds,
   };
+}
+
+async function fireAndForgetIntakeRouting(
+  supabaseUrl: string,
+  serviceKey: string,
+  orgId: string,
+  target: 'bill' | 'bank_transaction',
+  targetIds: string[],
+) {
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/intake-routing-apply`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ organization_id: orgId, target, target_ids: targetIds }),
+    });
+  } catch {
+    // Routing is non-critical to bank-sync.
+  }
 }
 
 function json(body: unknown, status = 200): Response {

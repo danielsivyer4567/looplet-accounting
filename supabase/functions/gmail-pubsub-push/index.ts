@@ -2,13 +2,15 @@
  * gmail-pubsub-push — receives Pub/Sub push notifications from Google when
  * mail arrives for a watched mailbox. Decodes the payload (base64-wrapped
  * { emailAddress, historyId }), then for that integration:
- *   1. Pulls the history delta since last_history_id via users.history.list
- *   2. For each new INBOX message, fetches the full payload + attachments
- *   3. Filters by allowlist (if configured) + accepted MIME types
- *   4. Uploads attachments to Supabase Storage
- *   5. Inserts into `bills` (source='gmail', status='received')
- *   6. Invokes `bills-extract` for each bill (fire-and-forget)
- *   7. Bumps last_history_id
+ *   1. Acknowledges Pub/Sub immediately (204) to prevent retry storms.
+ *   2. In the background (EdgeRuntime.waitUntil):
+ *      a. Bumps last_history_id so the next push picks up from here.
+ *      b. Pulls the history delta since last_history_id via users.history.list.
+ *      c. For each new INBOX message, fetches the full payload + attachments.
+ *      d. Filters by allowlist (if configured) + accepted MIME types.
+ *      e. Uploads attachments to Supabase Storage.
+ *      f. Inserts into `bills` (source='gmail', status='received').
+ *      g. Invokes `bills-extract` for each bill (fire-and-forget).
  *
  * Pub/Sub push payload shape:
  * {
@@ -31,6 +33,10 @@
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import { loadAndRefreshGmail } from '../_shared/gmail/auth.ts';
+
+// Deno / Supabase Edge Runtime global — used to keep the isolate alive after
+// we return the 204 response to Pub/Sub.
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
 
 const ACCEPTED_MIME = new Set([
   'application/pdf',
@@ -58,57 +64,91 @@ interface GmailNotification {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (req.method !== 'POST') return json({ ok: false, error: 'POST only' }, 405);
+  if (req.method !== 'POST') return new Response('POST only', { status: 405 });
 
+  // 1. Light token gate (Pub/Sub subscription URL includes ?token=...)
+  const expectedToken = Deno.env.get('GMAIL_PUSH_VERIFY_TOKEN');
+  if (expectedToken) {
+    const url = new URL(req.url);
+    const got = url.searchParams.get('token');
+    if (got !== expectedToken) {
+      // Return 401 — Pub/Sub will retry, but that's intentional: a mismatch
+      // means the subscription URL is wrong, not a transient error.
+      return new Response('Invalid push verification token', { status: 401 });
+    }
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!supabaseUrl || !serviceKey) {
+    // Return 200 so Pub/Sub doesn't retry on a config error we can't fix live.
+    console.error('gmail-pubsub-push: server config missing');
+    return new Response('', { status: 200 });
+  }
+
+  // 2. Parse body before returning — we need emailAddress to look up the integration.
+  let notif: GmailNotification;
   try {
-    // 1. Light token gate (Pub/Sub subscription includes ?token=... in URL)
-    const expectedToken = Deno.env.get('GMAIL_PUSH_VERIFY_TOKEN');
-    if (expectedToken) {
-      const url = new URL(req.url);
-      const got = url.searchParams.get('token');
-      if (got !== expectedToken) {
-        return json({ ok: false, error: 'Invalid push verification token' }, 401);
-      }
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !serviceKey) {
-      return json({ ok: false, error: 'Server config missing' }, 500);
-    }
-
-    const admin = createClient(supabaseUrl, serviceKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-
-    // 2. Decode Pub/Sub envelope
     const env = (await req.json()) as PubSubMessage;
     if (!env?.message?.data) {
-      return json({ ok: true, ignored: 'no data' }); // ack so Pub/Sub doesn't retry
+      // Nothing to process; ack so Pub/Sub doesn't retry.
+      return new Response('', { status: 204 });
     }
-
     const decoded = atob(env.message.data);
-    const notif = JSON.parse(decoded) as GmailNotification;
+    notif = JSON.parse(decoded) as GmailNotification;
+  } catch (e) {
+    // Malformed envelope — ack to avoid infinite retry.
+    console.error('gmail-pubsub-push: parse error:', e);
+    return new Response('', { status: 204 });
+  }
 
-    // 3. Locate the integration
-    const { data: integ, error: integErr } = await admin
-      .from('gmail_integrations')
-      .select('*')
-      .eq('gmail_address', notif.emailAddress)
-      .eq('is_active', true)
-      .maybeSingle();
+  const admin = createClient(supabaseUrl, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 
-    if (integErr || !integ) {
-      console.warn(`No active gmail_integration for ${notif.emailAddress}`);
-      return json({ ok: true, ignored: 'no integration' });
-    }
+  // 3. Look up the integration synchronously so we can ack quickly but still
+  //    verify we have something to process before spinning up background work.
+  const { data: integ, error: integErr } = await admin
+    .from('gmail_integrations')
+    .select('*')
+    .eq('gmail_address', notif.emailAddress)
+    .eq('is_active', true)
+    .maybeSingle();
 
-    // 4. Refresh access token if needed
+  if (integErr || !integ) {
+    console.warn(`gmail-pubsub-push: no active integration for ${notif.emailAddress}`);
+    // Ack — retrying won't help until an integration row exists.
+    return new Response('', { status: 204 });
+  }
+
+  // 4. Ack Pub/Sub immediately (204) then process in background.
+  //    This prevents Pub/Sub from retrying on slow attachment downloads.
+  const workPromise = processNotification(admin, supabaseUrl, serviceKey, integ, notif);
+
+  if (typeof EdgeRuntime !== 'undefined') {
+    EdgeRuntime.waitUntil(workPromise);
+  } else {
+    // Fallback for local/test environments where EdgeRuntime is absent.
+    workPromise.catch((e) => console.error('gmail-pubsub-push background error:', e));
+  }
+
+  return new Response('', { status: 204 });
+});
+
+async function processNotification(
+  admin: SupabaseClient,
+  supabaseUrl: string,
+  serviceKey: string,
+  integ: any,
+  notif: GmailNotification,
+): Promise<void> {
+  try {
+    // Refresh access token if needed.
     const { accessToken } = await loadAndRefreshGmail(admin, integ.id);
 
     const startHistoryId = integ.last_history_id ?? notif.historyId;
 
-    // 5. Pull history delta — what messages are new since startHistoryId?
+    // Pull history delta — what messages are new since startHistoryId?
     const histResp = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded&labelId=INBOX`,
       { headers: { Authorization: `Bearer ${accessToken}` } },
@@ -120,8 +160,7 @@ Deno.serve(async (req) => {
         .from('gmail_integrations')
         .update({ last_error: `history.list ${histResp.status}: ${t.slice(0, 200)}` })
         .eq('id', integ.id);
-      // 200 OK back to Pub/Sub so it doesn't retry-storm us on persistent errors
-      return json({ ok: false, error: `history.list failed: ${histResp.status}` });
+      return;
     }
 
     const hist = (await histResp.json()) as {
@@ -129,28 +168,7 @@ Deno.serve(async (req) => {
       historyId?: string;
     };
 
-    const messageIds = new Set<string>();
-    for (const h of hist.history ?? []) {
-      for (const m of h.messagesAdded ?? []) {
-        if (m.message?.id) messageIds.add(m.message.id);
-      }
-    }
-
-    const acceptedBills: Array<{ bill_id: string; filename: string }> = [];
-    const rejected: Array<{ message_id: string; reason: string }> = [];
-
-    for (const msgId of messageIds) {
-      try {
-        const result = await ingestMessage(admin, accessToken, integ, msgId);
-        acceptedBills.push(...result.bills);
-        rejected.push(...result.rejected);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        rejected.push({ message_id: msgId, reason: msg });
-      }
-    }
-
-    // 6. Bump last_history_id so next push picks up from here
+    // Bump last_history_id early so a concurrent push doesn't reprocess.
     const newHistoryId = hist.historyId ?? notif.historyId;
     await admin
       .from('gmail_integrations')
@@ -161,20 +179,26 @@ Deno.serve(async (req) => {
       })
       .eq('id', integ.id);
 
-    return json({
-      ok: true,
-      processed: messageIds.size,
-      bills_created: acceptedBills.length,
-      rejected: rejected.length,
-      details: { bills: acceptedBills, rejected: rejected.slice(0, 10) },
-    });
+    const messageIds = new Set<string>();
+    for (const h of hist.history ?? []) {
+      for (const m of h.messagesAdded ?? []) {
+        if (m.message?.id) messageIds.add(m.message.id);
+      }
+    }
+
+    if (messageIds.size === 0) return;  // nothing new — done
+
+    for (const msgId of messageIds) {
+      try {
+        await ingestMessage(admin, supabaseUrl, serviceKey, accessToken, integ, msgId);
+      } catch (err) {
+        console.error('gmail-pubsub-push: ingestMessage error', msgId, err);
+      }
+    }
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('gmail-pubsub-push error:', msg);
-    // Always return 200 to Pub/Sub for non-transient errors so it doesn't retry-storm
-    return json({ ok: false, error: msg });
+    console.error('gmail-pubsub-push: processNotification error:', err);
   }
-});
+}
 
 interface IngestResult {
   bills: Array<{ bill_id: string; filename: string }>;
@@ -183,6 +207,8 @@ interface IngestResult {
 
 async function ingestMessage(
   admin: SupabaseClient,
+  supabaseUrl: string,
+  serviceKey: string,
   accessToken: string,
   integ: any,
   messageId: string,
@@ -224,8 +250,8 @@ async function ingestMessage(
   }
 
   // Match against intake_rules (user-curated classification rules from triage).
-  // If a rule matches and is_personal=true → skip the email entirely (don't even create a bill).
-  // If a rule matches with category info → store rule + category on the bill so bills-extract can pre-fill.
+  // If a rule matches and is_personal=true → skip the email entirely.
+  // If a rule matches with category info → pre-fill on the bill so bills-extract can skip OCR.
   const { data: ruleRows } = await admin.rpc('match_intake_rule', {
     p_org_id: integ.organization_id,
     p_sender_email: fromAddress,
@@ -265,7 +291,7 @@ async function ingestMessage(
       { headers: { Authorization: `Bearer ${accessToken}` } },
     );
     if (!attResp.ok) {
-      result.rejected.push({ message_id: messageId, reason: `attachment ${attResp.status}` });
+      result.rejected.push({ message_id: messageId, reason: `attachment fetch ${attResp.status}` });
       continue;
     }
     const att = (await attResp.json()) as { data: string; size: number };
@@ -320,12 +346,12 @@ async function ingestMessage(
       continue;
     }
 
-    // Record rule hit for analytics
+    // Record rule hit for analytics.
     if (rule?.rule_id) {
       admin.rpc('record_intake_rule_hit', { p_rule_id: rule.rule_id }).then(() => {});
     }
 
-    // Skip OCR entirely if rule says we already know the answer
+    // Skip OCR entirely if rule says we already know the answer.
     if (rule?.skip_ocr) {
       await admin.from('bills')
         .update({ status: 'verified' })
@@ -334,9 +360,7 @@ async function ingestMessage(
       continue;
     }
 
-    // Fire-and-forget extract (don't block the Pub/Sub ack)
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    // Fire-and-forget extract.
     fetch(`${supabaseUrl}/functions/v1/bills-extract`, {
       method: 'POST',
       headers: {
@@ -385,11 +409,4 @@ function base64UrlDecode(s: string): Uint8Array {
   const out = new Uint8Array(raw.length);
   for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
   return out;
-}
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
 }

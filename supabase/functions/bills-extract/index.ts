@@ -144,6 +144,7 @@ Deno.serve(async (req) => {
         .eq('id', bill.id);
       // Run routing on the cache-hit too — same job_reference, same matching.
       const routing = await runRouting(admin, bill.id, bill.organization_id, cacheRow);
+      void fireAndForgetIntakeRouting(supabaseUrl, serviceKey, bill.organization_id, 'bill', bill.id);
       return json({
         ok: true,
         method: 'cache',
@@ -176,6 +177,7 @@ Deno.serve(async (req) => {
             job_reference_raw: extracted.job_reference,
             confidence: extracted.confidence,
           });
+          void fireAndForgetIntakeRouting(supabaseUrl, serviceKey, bill.organization_id, 'bill', bill.id);
 
           return json({
             ok: true,
@@ -200,6 +202,7 @@ Deno.serve(async (req) => {
       job_reference_raw: extracted.job_reference,
       confidence: extracted.confidence,
     });
+    void fireAndForgetIntakeRouting(supabaseUrl, serviceKey, bill.organization_id, 'bill', bill.id);
 
     return json({
       ok: true,
@@ -282,4 +285,27 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+/**
+ * Fire-and-forget call into intake-routing-apply. Mirrors the
+ * fireAndForgetSubsDetect pattern in bank-sync — never block the caller's
+ * response, never throw, just let the rules engine pick up the new row.
+ */
+async function fireAndForgetIntakeRouting(
+  supabaseUrl: string,
+  serviceKey: string,
+  orgId: string,
+  target: 'bill' | 'bank_transaction',
+  targetId: string,
+): Promise<void> {
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/intake-routing-apply`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ organization_id: orgId, target, target_id: targetId }),
+    });
+  } catch {
+    // Routing is non-critical to the OCR response.
+  }
 }

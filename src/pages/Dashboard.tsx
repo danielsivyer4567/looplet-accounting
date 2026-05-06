@@ -1,6 +1,7 @@
 import { useOrg } from '@/contexts/OrgContext';
 import { useRealtimePnl } from '@/hooks/useRealtimePnl';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
+import { SkeletonCard } from '@/components/Skeleton';
 
 export function DashboardPage() {
   const { currentOrg } = useOrg();
@@ -18,7 +19,25 @@ export function DashboardPage() {
     );
   }
 
-  if (loading) return <p style={{ color: '#888' }}>Loading P&L…</p>;
+  if (loading) {
+    return (
+      <section>
+        <h1 style={{ color: '#666', background: '#1a1a1a', borderRadius: 4, width: 180, height: 28, margin: '0 0 1rem' }} />
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '1rem',
+            marginBottom: '2rem',
+          }}
+        >
+          {Array.from({ length: 7 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+      </section>
+    );
+  }
   if (error) return <p style={{ color: 'salmon' }}>Failed to load: {error}</p>;
 
   const data = pnl ?? {

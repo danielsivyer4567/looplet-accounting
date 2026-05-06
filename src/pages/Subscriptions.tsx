@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 import { formatMoney } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
+import { SkeletonCard, SkeletonTable } from '@/components/Skeleton';
 
 interface Subscription {
   id: string;
@@ -27,6 +29,7 @@ const STATUS_FILTERS = ['all', 'detected', 'confirmed', 'cancelled', 'paused'] a
 
 export function SubscriptionsPage() {
   const { currentOrg } = useOrg();
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<typeof STATUS_FILTERS[number]>('all');
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,68 +131,85 @@ export function SubscriptionsPage() {
         ))}
       </div>
 
-      {loading ? <p style={{ color: '#888', marginTop: 16 }}>Loading…</p> : error ? <p style={{ color: 'salmon', marginTop: 16 }}>{error}</p> :
+      {loading ? (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, maxWidth: 1100, marginTop: 16 }}>
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+          <div style={{ marginTop: 20 }}>
+            <SkeletonTable rows={6} cols={10} />
+          </div>
+        </>
+      ) : error ? <p style={{ color: 'salmon', marginTop: 16 }}>{error}</p> :
         subs.length === 0 ? (
           <div style={{ marginTop: 24, padding: 16, background: '#0e0e0e', border: '1px dashed #2a2a2a', borderRadius: 4, color: '#888', fontSize: 13 }}>
             No subscriptions detected yet. They appear once enough recurring transactions land in your bank feed (typically 3+ instances of the same merchant).
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 16 }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-                <th style={th}>Merchant</th>
-                <th style={th}>Cadence</th>
-                <th style={thRight}>Amount</th>
-                <th style={thRight}>Monthly</th>
-                <th style={thRight}>Annual</th>
-                <th style={th}>Status</th>
-                <th style={th}>Tag</th>
-                <th style={th}>Next</th>
-                <th style={th}>Confidence</th>
-                <th style={th}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {subs.map((s) => {
-                const monthly = monthlyEquivalent(s);
-                const annual = monthly * 12;
-                return (
-                  <tr key={s.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                    <td style={td}><strong>{s.merchant_name}</strong></td>
-                    <td style={td}>{s.cadence}</td>
-                    <td style={tdRight}>{formatMoney(s.amount_cents)}</td>
-                    <td style={tdRight}>{formatMoney(monthly)}</td>
-                    <td style={tdRight}>{formatMoney(annual)}</td>
-                    <td style={td}><Pill status={s.status} /></td>
-                    <td style={td}>
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        <button
-                          onClick={() => setFlag(s.id, { is_business: !s.is_business, is_personal: false } as Partial<Subscription>)}
-                          style={tagBtn(s.is_business && !s.is_personal, '#86c7a3')}
-                        >Biz</button>
-                        <button
-                          onClick={() => setFlag(s.id, { is_personal: !s.is_personal, is_business: false } as Partial<Subscription>)}
-                          style={tagBtn(s.is_personal, '#f0c47a')}
-                        >Personal</button>
-                      </div>
-                    </td>
-                    <td style={td}>{s.next_expected_at ?? '—'}</td>
-                    <td style={td}>{s.confidence != null ? `${(s.confidence * 100).toFixed(0)}%` : '—'}</td>
-                    <td style={td}>
-                      <MoveToOrgButton
-                        table="subscriptions"
-                        rowId={s.id}
-                        currentOrgId={s.organization_id}
-                        fkColumnsToNull={['supplier_id']}
-                        label="⇄ Move"
-                        onMoved={() => void refresh()}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 16 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
+                  <th style={th}>Merchant</th>
+                  <th style={th}>Cadence</th>
+                  <th style={thRight}>Amount</th>
+                  <th style={thRight}>Monthly</th>
+                  <th style={thRight}>Annual</th>
+                  <th style={th}>Status</th>
+                  <th style={th}>Tag</th>
+                  <th style={th}>Next</th>
+                  <th style={th}>Confidence</th>
+                  <th style={th}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {subs.map((s) => {
+                  const monthly = monthlyEquivalent(s);
+                  const annual = monthly * 12;
+                  return (
+                    <tr key={s.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
+                      <td style={td}>
+                        <a
+                          onClick={(e) => { e.preventDefault(); navigate(`/subscriptions/${s.id}`); }}
+                          href={`/subscriptions/${s.id}`}
+                          style={{ color: '#86c7a3', textDecoration: 'none', cursor: 'pointer' }}
+                        ><strong>{s.merchant_name}</strong></a>
+                      </td>
+                      <td style={td}>{s.cadence}</td>
+                      <td style={tdRight}>{formatMoney(s.amount_cents)}</td>
+                      <td style={tdRight}>{formatMoney(monthly)}</td>
+                      <td style={tdRight}>{formatMoney(annual)}</td>
+                      <td style={td}><Pill status={s.status} /></td>
+                      <td style={td}>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <button
+                            onClick={() => setFlag(s.id, { is_business: !s.is_business, is_personal: false } as Partial<Subscription>)}
+                            style={tagBtn(s.is_business && !s.is_personal, '#86c7a3')}
+                          >Biz</button>
+                          <button
+                            onClick={() => setFlag(s.id, { is_personal: !s.is_personal, is_business: false } as Partial<Subscription>)}
+                            style={tagBtn(s.is_personal, '#f0c47a')}
+                          >Personal</button>
+                        </div>
+                      </td>
+                      <td style={td}>{s.next_expected_at ?? '—'}</td>
+                      <td style={td}>{s.confidence != null ? `${(s.confidence * 100).toFixed(0)}%` : '—'}</td>
+                      <td style={td}>
+                        <MoveToOrgButton
+                          table="subscriptions"
+                          rowId={s.id}
+                          currentOrgId={s.organization_id}
+                          fkColumnsToNull={['supplier_id']}
+                          label="⇄ Move"
+                          onMoved={() => void refresh()}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       <p style={{ marginTop: 32, padding: 10, background: '#0e0e0e', border: '1px dashed #2a2a2a', borderRadius: 4, fontSize: 12, color: '#666' }}>
         Future: alerts for unexpected charges (price increase, double-charge), cancellation tracking, vendor links to manage subscription, ROI per subscription against the job/customer it powers.

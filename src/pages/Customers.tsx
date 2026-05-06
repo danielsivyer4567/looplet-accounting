@@ -4,6 +4,7 @@ import { useOrg } from '@/contexts/OrgContext';
 import { useCustomers } from '@/hooks/useCustomers';
 import type { BillingAddress } from '@/hooks/useCustomers';
 import { supabase } from '@/lib/supabase';
+import { SkeletonTable } from '@/components/Skeleton';
 
 function formatAddress(addr: BillingAddress | null): string {
   if (!addr) return '—';
@@ -71,66 +72,68 @@ export function CustomersPage() {
       )}
 
       {loading ? (
-        <p style={{ color: '#888' }}>Loading…</p>
+        <SkeletonTable rows={5} cols={5} />
       ) : error ? (
         <p style={{ color: 'salmon' }}>Failed to load: {error}</p>
       ) : customers.length === 0 ? (
         <p style={{ color: '#888' }}>No customers found for {currentOrg.name}.</p>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-              <th style={th}>Name</th>
-              <th style={th}>Email</th>
-              <th style={th}>Phone</th>
-              <th style={th}>Billing address</th>
-              <th style={th}>ABN</th>
-            </tr>
-          </thead>
-          <tbody>
-            {customers.map((c) => (
-              <tr
-                key={c.id}
-                style={{ borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
-                onClick={() => void navigate(`/customers/${c.id}`)}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLTableRowElement).style.background = '#202020';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLTableRowElement).style.background = '';
-                }}
-              >
-                <td style={{ ...td, fontWeight: 500 }}>{c.name}</td>
-                <td style={td}>
-                  {c.email ? (
-                    <span style={{ color: '#aaa', fontSize: 13 }}>{c.email}</span>
-                  ) : (
-                    <span style={{ color: '#444' }}>—</span>
-                  )}
-                </td>
-                <td style={td}>
-                  {c.phone ? (
-                    <span style={{ color: '#aaa', fontSize: 13 }}>{c.phone}</span>
-                  ) : (
-                    <span style={{ color: '#444' }}>—</span>
-                  )}
-                </td>
-                <td style={td}>
-                  <span style={{ color: '#aaa', fontSize: 13 }}>
-                    {formatAddress(c.billing_address)}
-                  </span>
-                </td>
-                <td style={td}>
-                  {c.abn ? (
-                    <code style={{ color: '#888', fontSize: 12 }}>{c.abn}</code>
-                  ) : (
-                    <span style={{ color: '#444' }}>—</span>
-                  )}
-                </td>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
+                <th style={th}>Name</th>
+                <th style={th}>Email</th>
+                <th style={th}>Phone</th>
+                <th style={th}>Billing address</th>
+                <th style={th}>ABN</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {customers.map((c) => (
+                <tr
+                  key={c.id}
+                  style={{ borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
+                  onClick={() => void navigate(`/customers/${c.id}`)}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLTableRowElement).style.background = '#202020';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLTableRowElement).style.background = '';
+                  }}
+                >
+                  <td style={{ ...td, fontWeight: 500 }}>{c.name}</td>
+                  <td style={td}>
+                    {c.email ? (
+                      <span style={{ color: '#aaa', fontSize: 13 }}>{c.email}</span>
+                    ) : (
+                      <span style={{ color: '#444' }}>—</span>
+                    )}
+                  </td>
+                  <td style={td}>
+                    {c.phone ? (
+                      <span style={{ color: '#aaa', fontSize: 13 }}>{c.phone}</span>
+                    ) : (
+                      <span style={{ color: '#444' }}>—</span>
+                    )}
+                  </td>
+                  <td style={td}>
+                    <span style={{ color: '#aaa', fontSize: 13 }}>
+                      {formatAddress(c.billing_address)}
+                    </span>
+                  </td>
+                  <td style={td}>
+                    {c.abn ? (
+                      <code style={{ color: '#888', fontSize: 12 }}>{c.abn}</code>
+                    ) : (
+                      <span style={{ color: '#444' }}>—</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );

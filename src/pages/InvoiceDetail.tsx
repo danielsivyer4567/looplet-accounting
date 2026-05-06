@@ -34,7 +34,7 @@ interface LineItem {
   description: string;
   quantity: number;
   unit_price_cents: number;
-  gst_treatment: 'inc' | 'ex' | 'free';
+  gst_treatment: 'inc' | 'ex' | 'free' | 'zero';
   line_total_ex_gst_cents: number;
   line_gst_cents: number;
   line_total_inc_gst_cents: number;
@@ -47,6 +47,14 @@ interface Payment {
   reference: string | null;
   notes: string | null;
 }
+
+// UI labels for gst_treatment values (including virtual 'zero' which maps to DB 'free')
+const GST_TREATMENT_LABELS: Record<string, string> = {
+  ex: '+ GST',
+  inc: 'inc GST',
+  free: 'GST free',
+  zero: 'Zero-rated',
+};
 
 const NEW_LINE: Omit<LineItem, 'line_number'> = {
   description: '',
@@ -150,6 +158,8 @@ export function InvoiceDetailPage() {
         gst = Math.round(ex / 11);
         inc = ex;
       }
+      // 'free' = GST-free (no GST applies), 'zero' = zero-rated (GST applies at 0%, e.g. exports)
+      // Both produce gst=0, total_inc=total_ex. We store 'free' in the DB for both.
       next.line_total_ex_gst_cents = ex;
       next.line_gst_cents = gst;
       next.line_total_inc_gst_cents = inc;
@@ -225,7 +235,8 @@ export function InvoiceDetailPage() {
               description: l.description.trim(),
               quantity: l.quantity,
               unit_price_cents: l.unit_price_cents,
-              gst_treatment: l.gst_treatment,
+              // 'zero' is a UI-only concept; persisted as 'free' since DB enum has no 'zero' value
+              gst_treatment: l.gst_treatment === 'zero' ? 'free' : l.gst_treatment,
               line_total_ex_gst_cents: l.line_total_ex_gst_cents,
               line_gst_cents: l.line_gst_cents,
               line_total_inc_gst_cents: l.line_total_inc_gst_cents,
@@ -404,8 +415,9 @@ export function InvoiceDetailPage() {
                       <option value="ex">+ GST</option>
                       <option value="inc">inc GST</option>
                       <option value="free">GST free</option>
+                      <option value="zero">Zero-rated (free)</option>
                     </select>
-                  : l.gst_treatment}
+                  : GST_TREATMENT_LABELS[l.gst_treatment] ?? l.gst_treatment}
               </td>
               <td style={tdRight}>{formatMoney(l.line_total_inc_gst_cents)}</td>
               {editing && (

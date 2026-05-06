@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 import { formatMoney } from '@/lib/money';
+import { downloadCsv } from '@/lib/csv';
+import { SkeletonTable } from '@/components/Skeleton';
 
 interface BasRow {
   fy_start_year: number;
@@ -52,9 +54,39 @@ export function BasReportPage() {
   const totalSales = rows.reduce((a, r) => a + r.sales_ex_gst_cents, 0);
   const totalPurchases = rows.reduce((a, r) => a + r.purchases_ex_gst_cents, 0);
 
+  const handleExport = () => {
+    if (rows.length === 0) return;
+    const today = new Date();
+    // Use the most recent row's quarter label for the filename
+    const last = rows[0];
+    const filename = `bas-${last.fy_start_year}-Q${last.quarter_num}-export-${today.toISOString().slice(0, 10)}.csv`;
+    const exportRows = rows.map((r) => ({
+      FY: `${r.fy_start_year}-${(r.fy_start_year + 1).toString().slice(2)}`,
+      Quarter: QUARTER_NAMES[r.quarter_num],
+      'Quarter start': r.quarter_start,
+      'Quarter end': r.quarter_end,
+      'Due date': r.due_date,
+      'Sales ex GST': (r.sales_ex_gst_cents / 100).toFixed(2),
+      'Purchases ex GST': (r.purchases_ex_gst_cents / 100).toFixed(2),
+      'GST collected': (r.gst_collected_cents / 100).toFixed(2),
+      'GST paid': (r.gst_paid_cents / 100).toFixed(2),
+      'Net GST': (r.net_gst_cents / 100).toFixed(2),
+      'Invoice count': r.invoice_count,
+      'Bill count': r.bill_count,
+    }));
+    downloadCsv(filename, exportRows);
+  };
+
   return (
     <section>
-      <Link to="/reports" style={{ color: '#86c7a3', fontSize: 13 }}>&larr; Reports</Link>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <Link to="/reports" style={{ color: '#86c7a3', fontSize: 13 }}>&larr; Reports</Link>
+        {rows.length > 0 && (
+          <button onClick={handleExport} style={exportBtn} aria-label="Export BAS data as CSV">
+            &#8659; Export CSV
+          </button>
+        )}
+      </div>
       <h1 style={{ marginTop: '0.5rem' }}>BAS quarterly</h1>
       <p style={{ color: '#888', fontSize: 13 }}>
         GST collected from sales (invoices) minus GST paid on purchases (bills).
@@ -68,7 +100,9 @@ export function BasReportPage() {
       </div>
 
       {loading ? (
-        <p style={{ color: '#888', marginTop: 16 }}>Loading…</p>
+        <div style={{ marginTop: 16 }}>
+          <SkeletonTable rows={4} cols={9} />
+        </div>
       ) : error ? (
         <p style={{ color: 'salmon', marginTop: 16 }}>{error}</p>
       ) : rows.length === 0 ? (
@@ -76,41 +110,43 @@ export function BasReportPage() {
           No data yet. Issue some invoices and process some bills to start a BAS rollup.
         </div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 16 }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-              <th style={th}>FY</th>
-              <th style={th}>Quarter</th>
-              <th style={th}>Period</th>
-              <th style={th}>Due</th>
-              <th style={thRight}>Sales ex GST</th>
-              <th style={thRight}>Purchases ex GST</th>
-              <th style={thRight}>GST collected</th>
-              <th style={thRight}>GST paid</th>
-              <th style={thRight}>Net GST</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={`${r.fy_start_year}-${r.quarter_num}`} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                <td style={td}>{r.fy_start_year}-{(r.fy_start_year + 1).toString().slice(2)}</td>
-                <td style={td}><strong>{QUARTER_NAMES[r.quarter_num]}</strong></td>
-                <td style={td}><code style={{ color: '#888', fontSize: 11 }}>{r.quarter_start} → {r.quarter_end}</code></td>
-                <td style={td}>
-                  {r.due_date}
-                  {isOverdue(r.due_date) && r.net_gst_cents > 0 && <span style={{ marginLeft: 6, color: '#e9a3a3', fontSize: 11 }}>OVERDUE</span>}
-                </td>
-                <td style={tdRight}>{formatMoney(r.sales_ex_gst_cents)}</td>
-                <td style={tdRight}>{formatMoney(r.purchases_ex_gst_cents)}</td>
-                <td style={{ ...tdRight, color: '#86c7a3' }}>{formatMoney(r.gst_collected_cents)}</td>
-                <td style={{ ...tdRight, color: '#aaa' }}>{formatMoney(r.gst_paid_cents)}</td>
-                <td style={{ ...tdRight, color: r.net_gst_cents > 0 ? '#e9a3a3' : '#86c7a3', fontWeight: 600 }}>
-                  {formatMoney(r.net_gst_cents)}
-                </td>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 16 }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
+                <th style={th}>FY</th>
+                <th style={th}>Quarter</th>
+                <th style={th}>Period</th>
+                <th style={th}>Due</th>
+                <th style={thRight}>Sales ex GST</th>
+                <th style={thRight}>Purchases ex GST</th>
+                <th style={thRight}>GST collected</th>
+                <th style={thRight}>GST paid</th>
+                <th style={thRight}>Net GST</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={`${r.fy_start_year}-${r.quarter_num}`} style={{ borderBottom: '1px solid #1a1a1a' }}>
+                  <td style={td}>{r.fy_start_year}-{(r.fy_start_year + 1).toString().slice(2)}</td>
+                  <td style={td}><strong>{QUARTER_NAMES[r.quarter_num]}</strong></td>
+                  <td style={td}><code style={{ color: '#888', fontSize: 11 }}>{r.quarter_start} → {r.quarter_end}</code></td>
+                  <td style={td}>
+                    {r.due_date}
+                    {isOverdue(r.due_date) && r.net_gst_cents > 0 && <span style={{ marginLeft: 6, color: '#e9a3a3', fontSize: 11 }}>OVERDUE</span>}
+                  </td>
+                  <td style={tdRight}>{formatMoney(r.sales_ex_gst_cents)}</td>
+                  <td style={tdRight}>{formatMoney(r.purchases_ex_gst_cents)}</td>
+                  <td style={{ ...tdRight, color: '#86c7a3' }}>{formatMoney(r.gst_collected_cents)}</td>
+                  <td style={{ ...tdRight, color: '#aaa' }}>{formatMoney(r.gst_paid_cents)}</td>
+                  <td style={{ ...tdRight, color: r.net_gst_cents > 0 ? '#e9a3a3' : '#86c7a3', fontWeight: 600 }}>
+                    {formatMoney(r.net_gst_cents)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       <p style={{ marginTop: 32, padding: 10, background: '#0e0e0e', border: '1px dashed #2a2a2a', borderRadius: 4, fontSize: 12, color: '#666' }}>
         Future: PAYG withholding rollup, ATO BAS file export, in-product e-lodgement (requires Standard Business Reporting), historical comparison charts.
@@ -133,3 +169,4 @@ const th: React.CSSProperties = { padding: '0.4rem 0.5rem', textAlign: 'left', f
 const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
 const td: React.CSSProperties = { padding: '0.5rem' };
 const tdRight: React.CSSProperties = { ...td, textAlign: 'right' };
+const exportBtn: React.CSSProperties = { padding: '0.25rem 0.75rem', background: 'transparent', color: '#86c7a3', border: '1px solid #2da565', borderRadius: 4, fontSize: 12, cursor: 'pointer' };

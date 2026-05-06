@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useOrg } from '@/contexts/OrgContext';
 import { formatMoney } from '@/lib/money';
+import { SkeletonCard, SkeletonTable } from '@/components/Skeleton';
 
 const STATUS_FILTERS = ['all', 'draft', 'sent', 'partially_paid', 'paid', 'overdue', 'void'] as const;
 type Filter = typeof STATUS_FILTERS[number];
@@ -54,7 +55,14 @@ export function InvoicesPage() {
       </div>
 
       {loading ? (
-        <p style={{ color: '#888', marginTop: 16 }}>Loading…</p>
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, maxWidth: 1100, marginTop: 20 }}>
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <SkeletonTable rows={6} cols={9} />
+          </div>
+        </>
       ) : error ? (
         <p style={{ color: 'salmon', marginTop: 16 }}>{error}</p>
       ) : invoices.length === 0 ? (
@@ -62,48 +70,50 @@ export function InvoicesPage() {
           No invoices yet. Raise one to start tracking AR.
         </div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 16 }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-              <th style={th}>#</th>
-              <th style={th}>Customer</th>
-              <th style={th}>Job</th>
-              <th style={th}>Issued</th>
-              <th style={th}>Due</th>
-              <th style={th}>Status</th>
-              <th style={thRight}>Total</th>
-              <th style={thRight}>Paid</th>
-              <th style={thRight}>Balance</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invoices.map((inv) => (
-              <tr
-                key={inv.id}
-                style={{ borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
-                onClick={() => navigate(`/invoices/${inv.id}`)}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = '#202020'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = ''; }}
-              >
-                <td style={td}><code style={{ color: '#aaa', fontSize: 12 }}>{inv.invoice_number}</code></td>
-                <td style={td}>{inv.customer?.name ?? <span style={{ color: '#444' }}>—</span>}</td>
-                <td style={td}>
-                  {inv.job ? (
-                    <Link to={`/jobs/${inv.job.id}`} onClick={(e) => e.stopPropagation()} style={{ color: '#86c7a3', fontSize: 12 }}>
-                      {inv.job.job_number}
-                    </Link>
-                  ) : <span style={{ color: '#444' }}>—</span>}
-                </td>
-                <td style={td}>{inv.issue_date}</td>
-                <td style={td}>{inv.due_date}</td>
-                <td style={td}><StatusPill status={inv.status} /></td>
-                <td style={tdRight}>{formatMoney(inv.total_inc_gst_cents)}</td>
-                <td style={tdRight}>{formatMoney(inv.amount_paid_cents)}</td>
-                <td style={{ ...tdRight, color: inv.balance_due_cents > 0 ? '#d2c886' : '#86c7a3' }}>{formatMoney(inv.balance_due_cents)}</td>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 16 }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
+                <th style={th}>#</th>
+                <th style={th}>Customer</th>
+                <th style={th}>Job</th>
+                <th style={th}>Issued</th>
+                <th style={th}>Due</th>
+                <th style={th}>Status</th>
+                <th style={thRight}>Total</th>
+                <th style={thRight}>Paid</th>
+                <th style={thRight}>Balance</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {invoices.map((inv) => (
+                <tr
+                  key={inv.id}
+                  style={{ borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
+                  onClick={() => navigate(`/invoices/${inv.id}`)}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = '#202020'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = ''; }}
+                >
+                  <td style={td}><code style={{ color: '#aaa', fontSize: 12 }}>{inv.invoice_number}</code></td>
+                  <td style={td}>{inv.customer?.name ?? <span style={{ color: '#444' }}>—</span>}</td>
+                  <td style={td}>
+                    {inv.job ? (
+                      <Link to={`/jobs/${inv.job.id}`} onClick={(e) => e.stopPropagation()} style={{ color: '#86c7a3', fontSize: 12 }}>
+                        {inv.job.job_number}
+                      </Link>
+                    ) : <span style={{ color: '#444' }}>—</span>}
+                  </td>
+                  <td style={td}>{inv.issue_date}</td>
+                  <td style={td}>{inv.due_date}</td>
+                  <td style={td}><StatusPill status={inv.status} /></td>
+                  <td style={tdRight}>{formatMoney(inv.total_inc_gst_cents)}</td>
+                  <td style={tdRight}>{formatMoney(inv.amount_paid_cents)}</td>
+                  <td style={{ ...tdRight, color: inv.balance_due_cents > 0 ? '#d2c886' : '#86c7a3' }}>{formatMoney(inv.balance_due_cents)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 import { formatMoney } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
+import { ArchiveButton } from '@/components/ArchiveButton';
 
 interface Supplier {
   id: string;
@@ -15,6 +16,7 @@ interface Supplier {
   payment_terms_days: number;
   current_balance_owing_cents: number | null;
   created_at: string;
+  deleted_at: string | null;
 }
 
 interface BillRow {
@@ -45,7 +47,7 @@ export function SupplierDetailPage() {
     const [supRes, billRes] = await Promise.all([
       supabase
         .from('suppliers')
-        .select('id, name, abn, email, contact_phone, default_account_code, payment_terms_days, current_balance_owing_cents, created_at')
+        .select('id, name, abn, email, contact_phone, default_account_code, payment_terms_days, current_balance_owing_cents, created_at, deleted_at')
         .eq('id', id)
         .eq('organization_id', currentOrg.id)
         .maybeSingle(),
@@ -124,6 +126,15 @@ export function SupplierDetailPage() {
           <span style={{ display: 'inline-flex', gap: 8 }}>
             <button onClick={startEdit} style={editBtn}>✎ Edit</button>
             <MoveToOrgButton table="suppliers" rowId={supplier.id} currentOrgId={currentOrg.id} onMoved={() => { window.location.href = '/suppliers'; }} />
+            <ArchiveButton
+              table="suppliers"
+              rowId={supplier.id}
+              isArchived={!!supplier.deleted_at}
+              onChange={(nowArchived) => {
+                if (nowArchived) { window.location.href = '/suppliers'; }
+                else { void refresh(); }
+              }}
+            />
           </span>
         )}
       </div>

@@ -49,6 +49,19 @@ interface CustomerRow {
   email: string | null;
 }
 
+interface InvoiceSparkRow {
+  id: string;
+  invoice_date: string | null;
+  total_inc_gst_cents: number | null;
+  status: string;
+}
+
+interface SparkBucket {
+  weekStart: Date;
+  cumCost: number;
+  cumRevenue: number;
+}
+
 const JOB_STATUSES = ['quoted', 'active', 'on_hold', 'completed', 'cancelled', 'archived'];
 
 export function JobDetailPage() {
@@ -58,6 +71,7 @@ export function JobDetailPage() {
   const [job, setJob] = useState<JobRow | null>(null);
   const [pnl, setPnl] = useState<PnlRow | null>(null);
   const [bills, setBills] = useState<BillRow[]>([]);
+  const [invoicesSpark, setInvoicesSpark] = useState<InvoiceSparkRow[]>([]);
   const [customer, setCustomer] = useState<CustomerRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,18 +82,24 @@ export function JobDetailPage() {
   const refresh = useCallback(async () => {
     if (!currentOrg || !id) return;
     setLoading(true);
-    const [jobRes, pnlRes, billsRes] = await Promise.all([
+    const [jobRes, pnlRes, billsRes, invoicesRes] = await Promise.all([
       supabase.from('jobs').select('*').eq('id', id).eq('organization_id', currentOrg.id).maybeSingle(),
       supabase.from('v_job_pnl').select('*').eq('job_id', id).eq('organization_id', currentOrg.id).maybeSingle(),
       supabase.from('bills')
         .select('id, invoice_number, invoice_date, total_inc_gst_cents, status, supplier_id, supplier_name_raw')
         .eq('job_id', id).eq('organization_id', currentOrg.id).is('deleted_at', null)
         .order('invoice_date', { ascending: false, nullsFirst: false }),
+      supabase.from('invoices')
+        .select('id, invoice_date, total_inc_gst_cents, status')
+        .eq('job_id', id).eq('organization_id', currentOrg.id)
+        .not('status', 'in', '(void)')
+        .order('invoice_date', { ascending: true, nullsFirst: false }),
     ]);
     if (jobRes.error) setError(jobRes.error.message);
     setJob((jobRes.data ?? null) as JobRow | null);
     setPnl((pnlRes.data ?? null) as PnlRow | null);
     setBills((billsRes.data ?? []) as BillRow[]);
+    setInvoicesSpark((invoicesRes.data ?? []) as InvoiceSparkRow[]);
 
     if (jobRes.data?.customer_id) {
       const { data: cust } = await supabase
@@ -238,6 +258,12 @@ export function JobDetailPage() {
         <Kpi label="Budget" value={budget ? formatMoney(budget) : '—'} colour="#aaa" sub={budgetPct != null ? `${budgetPct.toFixed(0)}% used` : 'no budget set'} />
       </div>
 
+      <MarginSparkline
+        bills={bills}
+        invoices={invoicesSpark}
+        jobStartDate={job.start_date}
+      />
+
       <div style={{ marginTop: 20 }}>
         <h2 style={{ fontSize: 14, marginBottom: 8 }}>Cost breakdown</h2>
         <div style={breakdownRow}><span>Bills (supplier invoices)</span><span style={{ color: '#e9a3a3' }}>{formatMoney(pnl?.cost_bills_cents ?? 0)}</span></div>
@@ -299,6 +325,175 @@ export function JobDetailPage() {
         Future: invoices, payments received, timesheet hours allocated, margin trend chart.
       </p>
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Margin sparkline — pure inline SVG, no chart library
+// Shows cumulative cost (red), cumulative revenue (green), margin (white)
+// over weekly buckets from the first event to today.
+// ---------------------------------------------------------------------------
+
+function getMonday(d: Date): Date {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = (day === 0 ? -6 : 1 - day);
+  date.setDate(date.getDate() + diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function buildSparkBuckets(
+  bills: BillRow[],
+  invoices: InvoiceSparkRow[],
+  jobStartDate: string | null,
+): SparkBucket[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Collect all dates to find range
+  const allDates: Date[] = [];
+  if (jobStartDate) allDates.push(new Date(jobStartDate));
+  for (const b of bills) {
+    if (b.invoice_date) allDates.push(new Date(b.invoice_date));
+  }
+  for (const inv of invoices) {
+    if (inv.invoice_date) allDates.push(new Date(inv.invoice_date));
+  }
+  if (allDates.length === 0) return [];
+
+  const minDate = allDates.reduce((a, b) => (a < b ? a : b));
+  const startMonday = getMonday(minDate);
+  const endMonday = getMonday(today);
+
+  // Build list of weekly bucket start dates
+  const weeks: Date[] = [];
+  const cur = new Date(startMonday);
+  while (cur <= endMonday) {
+    weeks.push(new Date(cur));
+    cur.setDate(cur.getDate() + 7);
+  }
+  if (weeks.length === 0) return [];
+
+  // Map events to week index
+  const billsByWeek = new Map<number, number>(); // weekIdx -> cumulative cost cents
+  for (const b of bills) {
+    if (!b.invoice_date || b.total_inc_gst_cents == null) continue;
+    const d = new Date(b.invoice_date);
+    const mon = getMonday(d);
+    const idx = Math.round((mon.getTime() - startMonday.getTime()) / (7 * 86400000));
+    billsByWeek.set(idx, (billsByWeek.get(idx) ?? 0) + b.total_inc_gst_cents);
+  }
+  const invoicesByWeek = new Map<number, number>();
+  for (const inv of invoices) {
+    if (!inv.invoice_date || inv.total_inc_gst_cents == null) continue;
+    const d = new Date(inv.invoice_date);
+    const mon = getMonday(d);
+    const idx = Math.round((mon.getTime() - startMonday.getTime()) / (7 * 86400000));
+    invoicesByWeek.set(idx, (invoicesByWeek.get(idx) ?? 0) + inv.total_inc_gst_cents);
+  }
+
+  let cumCost = 0;
+  let cumRevenue = 0;
+  return weeks.map((weekStart, i) => {
+    cumCost += billsByWeek.get(i) ?? 0;
+    cumRevenue += invoicesByWeek.get(i) ?? 0;
+    return { weekStart, cumCost, cumRevenue };
+  });
+}
+
+function MarginSparkline({
+  bills,
+  invoices,
+  jobStartDate,
+}: {
+  bills: BillRow[];
+  invoices: InvoiceSparkRow[];
+  jobStartDate: string | null;
+}) {
+  const buckets = buildSparkBuckets(bills, invoices, jobStartDate);
+
+  const W = 600;
+  const H = 100;
+  const PAD = { top: 8, right: 16, bottom: 20, left: 8 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+
+  // At least 2 points to draw lines
+  if (buckets.length < 2) {
+    const hasAny = bills.length > 0 || invoices.length > 0;
+    return (
+      <div style={{ marginTop: 16, padding: 12, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 6, maxWidth: W, display: 'inline-block' }}>
+        <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Margin trend</div>
+        <p style={{ color: '#555', fontSize: 12, margin: 0 }}>{hasAny ? 'Not enough data yet — need events in at least 2 different weeks.' : 'Not enough data yet.'}</p>
+      </div>
+    );
+  }
+
+  const maxVal = Math.max(
+    ...buckets.map((b) => Math.max(b.cumCost, b.cumRevenue)),
+    1,
+  );
+  const minMargin = Math.min(...buckets.map((b) => b.cumRevenue - b.cumCost));
+  const maxMargin = Math.max(...buckets.map((b) => b.cumRevenue - b.cumCost));
+
+  // Unified Y scale: include 0 and all values
+  const yMin = Math.min(0, minMargin);
+  const yMax = Math.max(maxVal, maxMargin);
+  const yRange = yMax - yMin || 1;
+
+  const xScale = (i: number) => PAD.left + (i / (buckets.length - 1)) * chartW;
+  const yScale = (v: number) => PAD.top + chartH - ((v - yMin) / yRange) * chartH;
+
+  const polyPoints = (vals: number[]) =>
+    vals.map((v, i) => `${xScale(i).toFixed(1)},${yScale(v).toFixed(1)}`).join(' ');
+
+  const costPts = polyPoints(buckets.map((b) => b.cumCost));
+  const revPts = polyPoints(buckets.map((b) => b.cumRevenue));
+  const marginPts = polyPoints(buckets.map((b) => b.cumRevenue - b.cumCost));
+
+  // Zero line y position
+  const zeroY = yScale(0);
+
+  return (
+    <div style={{ marginTop: 16, padding: '12px 16px', background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 6, maxWidth: W + 32, display: 'inline-block' }}>
+      <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Margin trend</div>
+      <svg
+        width={W}
+        height={H}
+        role="img"
+        aria-label="Job margin trend sparkline showing cumulative cost, revenue, and margin by week"
+        style={{ display: 'block', overflow: 'visible' }}
+      >
+        {/* Zero baseline */}
+        <line x1={PAD.left} y1={zeroY} x2={W - PAD.right} y2={zeroY} stroke="#2a2a2a" strokeWidth={1} strokeDasharray="3,3" />
+
+        {/* Cumulative cost — red */}
+        <polyline points={costPts} fill="none" stroke="#e9a3a3" strokeWidth={1.5} strokeLinejoin="round" />
+        {/* Cumulative revenue — green */}
+        <polyline points={revPts} fill="none" stroke="#86c7a3" strokeWidth={1.5} strokeLinejoin="round" />
+        {/* Margin (revenue - cost) — white */}
+        <polyline points={marginPts} fill="none" stroke="#ffffff" strokeWidth={1} strokeLinejoin="round" strokeOpacity={0.55} />
+
+        {/* Axis labels: first and last week */}
+        <text x={PAD.left} y={H - 2} fontSize={9} fill="#555">{buckets[0].weekStart.toISOString().slice(0, 10)}</text>
+        <text x={W - PAD.right} y={H - 2} fontSize={9} fill="#555" textAnchor="end">{buckets[buckets.length - 1].weekStart.toISOString().slice(0, 10)}</text>
+      </svg>
+      <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
+        <Legend colour="#86c7a3" label="Cum. revenue" />
+        <Legend colour="#e9a3a3" label="Cum. cost" />
+        <Legend colour="rgba(255,255,255,0.55)" label="Margin" />
+      </div>
+    </div>
+  );
+}
+
+function Legend({ colour, label }: { colour: string; label: string }) {
+  return (
+    <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#888' }}>
+      <span style={{ display: 'inline-block', width: 14, height: 2, background: colour, borderRadius: 1 }} />
+      {label}
+    </span>
   );
 }
 
