@@ -168,7 +168,6 @@ export function JobDetailPage() {
   const grossProfit = pnl?.gross_profit_cents ?? 0;
   const margin = revenue > 0 ? (grossProfit / revenue) * 100 : null;
   const budget = job.budget_cents ?? 0;
-  const budgetRemaining = budget - totalCost;
   const budgetPct = budget > 0 ? (totalCost / budget) * 100 : null;
 
   // Margin alert if costs exceed 80% of revenue (or 90% of budget if no revenue yet)
@@ -476,8 +475,8 @@ function MarginSparkline({
         <polyline points={marginPts} fill="none" stroke="#ffffff" strokeWidth={1} strokeLinejoin="round" strokeOpacity={0.55} />
 
         {/* Axis labels: first and last week */}
-        <text x={PAD.left} y={H - 2} fontSize={9} fill="#555">{buckets[0].weekStart.toISOString().slice(0, 10)}</text>
-        <text x={W - PAD.right} y={H - 2} fontSize={9} fill="#555" textAnchor="end">{buckets[buckets.length - 1].weekStart.toISOString().slice(0, 10)}</text>
+        <text x={PAD.left} y={H - 2} fontSize={9} fill="#555">{buckets[0]?.weekStart.toISOString().slice(0, 10) ?? ''}</text>
+        <text x={W - PAD.right} y={H - 2} fontSize={9} fill="#555" textAnchor="end">{buckets[buckets.length - 1]?.weekStart.toISOString().slice(0, 10) ?? ''}</text>
       </svg>
       <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
         <Legend colour="#86c7a3" label="Cum. revenue" />

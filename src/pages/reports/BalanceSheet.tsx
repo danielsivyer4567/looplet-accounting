@@ -257,7 +257,7 @@ function Column({
         }}
       >
         <span style={{ color: '#fff' }}>Total</span>
-        <span style={{ color, fontVariantNumeric: 'tabular-nums' }}>{formatMoney(totalCents)}</span>
+        <span style={{ color: colour, fontVariantNumeric: 'tabular-nums' }}>{formatMoney(totalCents)}</span>
       </div>
     </div>
   );

@@ -32,8 +32,8 @@ interface MemberRow {
   is_default: boolean;
   invited_at: string | null;
   accepted_at: string | null;
-  email?: string;       // resolved from auth.users via profile join
-  full_name?: string;
+  email?: string | undefined;       // resolved from auth.users via profile join
+  full_name?: string | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -263,7 +263,7 @@ export function TeamPage() {
     const enriched: MemberRow[] = (data ?? []).map((m) => ({
       ...m,
       role_enum: m.role_enum as OrgRole | null,
-      email: empMap.get(m.user_id)?.email ?? (m.user_id === user?.id ? user.email ?? '' : ''),
+      email: empMap.get(m.user_id)?.email ?? (user && m.user_id === user.id ? user.email ?? '' : ''),
       full_name: empMap.get(m.user_id)?.full_name,
     }));
 

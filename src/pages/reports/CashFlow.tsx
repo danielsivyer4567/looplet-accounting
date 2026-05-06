@@ -77,17 +77,19 @@ export function CashFlowPage() {
   const max = Math.max(...rows.map((r) => Math.max(r.inflow, r.outflow)), 1);
 
   const handleExport = () => {
-    if (rows.length === 0) return;
+    const first = rows[0];
+    const last = rows[rows.length - 1];
+    if (!first || !last) return;
     // ISO week number helper (YYYY-Www)
-    const firstWeek = rows[0].week_start.replace(/-/g, '').slice(0, 6);
-    const lastWeek = rows[rows.length - 1].week_start.replace(/-/g, '').slice(0, 6);
+    const firstWeek = first.week_start.replace(/-/g, '').slice(0, 6);
+    const lastWeek = last.week_start.replace(/-/g, '').slice(0, 6);
     const filename = `cash-flow-${firstWeek}-to-${lastWeek}.csv`;
     const exportRows = rows.map((r) => ({
       'Week start': r.week_start,
       'Inflow (AUD)': (r.inflow / 100).toFixed(2),
       'Outflow (AUD)': (r.outflow / 100).toFixed(2),
       'Net (AUD)': (r.net / 100).toFixed(2),
-      'Running balance (AUD)': ((r as Record<string, unknown>).running as number / 100).toFixed(2),
+      'Running balance (AUD)': ((r as unknown as Record<string, unknown>).running as number / 100).toFixed(2),
     }));
     downloadCsv(filename, exportRows);
   };

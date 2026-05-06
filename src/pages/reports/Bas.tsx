@@ -55,10 +55,10 @@ export function BasReportPage() {
   const totalPurchases = rows.reduce((a, r) => a + r.purchases_ex_gst_cents, 0);
 
   const handleExport = () => {
-    if (rows.length === 0) return;
+    const last = rows[0];
+    if (!last) return;
     const today = new Date();
     // Use the most recent row's quarter label for the filename
-    const last = rows[0];
     const filename = `bas-${last.fy_start_year}-Q${last.quarter_num}-export-${today.toISOString().slice(0, 10)}.csv`;
     const exportRows = rows.map((r) => ({
       FY: `${r.fy_start_year}-${(r.fy_start_year + 1).toString().slice(2)}`,

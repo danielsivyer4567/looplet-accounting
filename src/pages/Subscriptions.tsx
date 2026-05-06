@@ -67,7 +67,6 @@ export function SubscriptionsPage() {
   };
 
   const totalMonthly = subs.filter((s) => s.status !== 'cancelled').reduce((a, s) => a + monthlyEquivalent(s), 0);
-  const totalAnnual = totalMonthly * 12;
   const businessOnly = subs.filter((s) => s.is_business && !s.is_personal).reduce((a, s) => a + monthlyEquivalent(s) * 12, 0);
   const personalOnly = subs.filter((s) => s.is_personal).reduce((a, s) => a + monthlyEquivalent(s) * 12, 0);
 

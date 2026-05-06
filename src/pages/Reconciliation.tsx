@@ -216,7 +216,9 @@ export function ReconciliationPage() {
     if (high.length === 0) return;
     if (!confirm(`Auto-match ${high.length} high-confidence transactions? You can undo individually.`)) return;
     for (const r of high) {
-      await matchTopCandidate(r.txn.id, r.txn.amount_cents, r.candidates[0]);
+      const top = r.candidates[0];
+      if (!top) continue;
+      await matchTopCandidate(r.txn.id, r.txn.amount_cents, top);
     }
   };
 
@@ -240,7 +242,7 @@ export function ReconciliationPage() {
                 {withSugg.length} unmatched txn{withSugg.length === 1 ? '' : 's'} have candidate matches.
               </strong>
               {' '}
-              {rows.some((r) => r.candidates[0]?.score >= 0.9) && (
+              {rows.some((r) => (r.candidates[0]?.score ?? 0) >= 0.9) && (
                 <button onClick={() => void bulkApplyHigh()} style={primaryBtn}>
                   ✓ Auto-match high-confidence
                 </button>

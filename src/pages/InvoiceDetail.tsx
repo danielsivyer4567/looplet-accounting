@@ -153,7 +153,9 @@ export function InvoiceDetailPage() {
   const updateLine = (idx: number, patch: Partial<LineItem>) => {
     setLines((prev) => {
       const copy = [...prev];
-      const next = { ...copy[idx], ...patch };
+      const existing = copy[idx];
+      if (!existing) return prev;
+      const next: LineItem = { ...existing, ...patch };
       const ex = Math.round(next.quantity * next.unit_price_cents);
       let gst = 0;
       let inc = ex;

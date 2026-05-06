@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, Link } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { OrgProvider } from '@/contexts/OrgContext';
 import { Layout } from '@/components/Layout';
@@ -43,18 +43,6 @@ import { NewPaymentRunPage } from '@/pages/NewPaymentRun';
 import { PaymentRunDetailPage } from '@/pages/PaymentRunDetail';
 import { PayrollPage } from '@/pages/Payroll';
 import { PayRunDetailPage } from '@/pages/PayRunDetail';
-
-function PlaceholderPage({ title, back }: { title: string; back: string }) {
-  return (
-    <section>
-      <h1>{title}</h1>
-      <p style={{ color: '#888' }}>Detail view coming in a future phase.</p>
-      <Link to={back} style={{ color: '#86c7a3', fontSize: 13 }}>
-        &larr; Back
-      </Link>
-    </section>
-  );
-}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();

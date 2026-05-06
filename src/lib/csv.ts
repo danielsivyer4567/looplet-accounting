@@ -5,9 +5,10 @@
  * Triggers a browser download via a temporary <a download> element.
  */
 export function downloadCsv(filename: string, rows: Array<Record<string, unknown>>): void {
-  if (rows.length === 0) return;
+  const first = rows[0];
+  if (!first) return;
 
-  const columns = Object.keys(rows[0]);
+  const columns = Object.keys(first);
 
   function escapeCell(value: unknown): string {
     const str = value == null ? '' : String(value);

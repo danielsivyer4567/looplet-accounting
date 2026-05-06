@@ -226,7 +226,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Stat({ label, value }: { label: string; value: string }) {
   return <div><div style={{ fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div><div style={{ marginTop: 3, color: '#ddd', fontSize: 13 }}>{value}</div></div>;
 }
-function Kpi({ label, value, colour, sub }: { label: string; value: string; colour: string; sub?: string }) {
+function Kpi({ label, value, colour, sub }: { label: string; value: string; colour: string; sub?: string | undefined }) {
   return (
     <div style={{ padding: 12, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 6 }}>
       <div style={{ fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>

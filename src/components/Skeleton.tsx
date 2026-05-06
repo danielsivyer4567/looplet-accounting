@@ -117,7 +117,7 @@ export function SkeletonTable({ rows = 5, cols = 5 }: SkeletonTableProps) {
         {Array.from({ length: cols }).map((_, i) => (
           <SkeletonLine
             key={i}
-            width={colWidths[i % colWidths.length]}
+            width={colWidths[i % colWidths.length] ?? '100%'}
             height={10}
           />
         ))}
