@@ -250,6 +250,7 @@ function LogTimeForm({ employees, jobs, computeLoadedRate, onClose, onLogged }: 
   const [workDate, setWorkDate] = useState(new Date().toISOString().slice(0, 10));
   const [hours, setHours] = useState(8);
   const [notes, setNotes] = useState('');
+  const [entryType, setEntryType] = useState<'ordinary' | 'overtime' | 'annual_leave' | 'sick_leave' | 'public_holiday'>('ordinary');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -269,6 +270,7 @@ function LogTimeForm({ employees, jobs, computeLoadedRate, onClose, onLogged }: 
       loaded_hourly_rate_cents: loadedRate,
       notes: notes.trim() || null,
       is_billable: true,
+      entry_type: entryType,
     });
     setBusy(false);
     if (error) { setErr(error.message); return; }
@@ -298,6 +300,15 @@ function LogTimeForm({ employees, jobs, computeLoadedRate, onClose, onLogged }: 
         </Field>
         <Field label="Hours"><input type="number" step="0.25" value={hours} onChange={(e) => setHours(parseFloat(e.target.value) || 0)} style={inp} /></Field>
       </div>
+      <Field label="Entry type">
+        <select value={entryType} onChange={(e) => setEntryType(e.target.value as typeof entryType)} style={inp}>
+          <option value="ordinary">Ordinary</option>
+          <option value="overtime">Overtime</option>
+          <option value="annual_leave">Annual leave</option>
+          <option value="sick_leave">Sick leave</option>
+          <option value="public_holiday">Public holiday</option>
+        </select>
+      </Field>
       <Field label="Notes"><input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What was worked on" style={inp} /></Field>
       <p style={{ marginTop: 8, fontSize: 12, color: '#86c7a3' }}>
         Cost: <strong>{formatMoney(totalCost)}</strong> ({hours}h × {formatMoney(loadedRate)}/hr loaded)

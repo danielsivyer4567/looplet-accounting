@@ -35,8 +35,14 @@ import { TeamPage } from '@/pages/Team';
 import { AuditLogPage } from '@/pages/AuditLog';
 import { GmailCallbackPage } from '@/pages/GmailCallback';
 import { BankCallbackPage } from '@/pages/BankCallback';
+import { XeroCallbackPage } from '@/pages/XeroCallback';
 import { AutoSetupPage } from '@/pages/onboarding/AutoSetup';
 import { TriagePage } from '@/pages/onboarding/Triage';
+import { PaymentRunsPage } from '@/pages/PaymentRuns';
+import { NewPaymentRunPage } from '@/pages/NewPaymentRun';
+import { PaymentRunDetailPage } from '@/pages/PaymentRunDetail';
+import { PayrollPage } from '@/pages/Payroll';
+import { PayRunDetailPage } from '@/pages/PayRunDetail';
 
 function PlaceholderPage({ title, back }: { title: string; back: string }) {
   return (
@@ -103,6 +109,12 @@ export function App() {
             <Route path="settings/audit-log" element={<AuditLogPage />} />
             <Route path="settings/gmail-callback" element={<GmailCallbackPage />} />
             <Route path="settings/bank-callback" element={<BankCallbackPage />} />
+            <Route path="settings/xero-callback" element={<XeroCallbackPage />} />
+            <Route path="payment-runs" element={<PaymentRunsPage />} />
+            <Route path="payment-runs/new" element={<NewPaymentRunPage />} />
+            <Route path="payment-runs/:id" element={<PaymentRunDetailPage />} />
+            <Route path="payroll" element={<PayrollPage />} />
+            <Route path="payroll/:id" element={<PayRunDetailPage />} />
             <Route path="onboarding" element={<AutoSetupPage />} />
             <Route path="onboarding/triage" element={<TriagePage />} />
           </Route>

@@ -4,6 +4,8 @@ import { useOrg } from '@/contexts/OrgContext';
 import { useBills, type BillListRow } from '@/hooks/useBills';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
+import { XeroStatusPill } from '@/components/XeroStatusPill';
+import { supabase } from '@/lib/supabase';
 
 const statusColors: Record<BillListRow['status'], string> = {
   received: '#888',
@@ -24,7 +26,29 @@ const filters: Array<{ label: string; value: BillListRow['status'] | null }> = [
 export function BillsPage() {
   const { currentOrg } = useOrg();
   const [filter, setFilter] = useState<BillListRow['status'] | null>(null);
-  const { bills, loading, error } = useBills(filter ?? undefined);
+  const { bills, loading, error, refresh } = useBills(filter ?? undefined);
+  const [repushingId, setRepushingId] = useState<string | null>(null);
+
+  const handleRepush = async (bill: BillListRow) => {
+    if (!currentOrg) return;
+    setRepushingId(bill.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/xero-push-bill`;
+      await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ organization_id: currentOrg.id, bill_id: bill.id }),
+      });
+      await refresh();
+    } finally {
+      setRepushingId(null);
+    }
+  };
 
   if (!currentOrg) {
     return (
@@ -134,10 +158,12 @@ export function BillsPage() {
                       {b.status}
                     </span>
                   </td>
-                  <td style={td}>
-                    <span style={{ fontSize: 11, color: b.xero_status === 'synced' ? '#86c7a3' : '#888' }}>
-                      {b.xero_status}
-                    </span>
+                  <td style={td} onClick={(e) => e.stopPropagation()}>
+                    <XeroStatusPill
+                      xeroStatus={b.xero_status}
+                      onRepush={() => handleRepush(b)}
+                      repushBusy={repushingId === b.id}
+                    />
                   </td>
                 </tr>
               ))}

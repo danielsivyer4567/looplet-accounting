@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 import { formatMoney } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
+import { XeroStatusPill } from '@/components/XeroStatusPill';
 
 interface Customer { id: string; name: string; email: string | null }
 interface Job { id: string; job_number: string; name: string; customer_id: string | null }
@@ -25,6 +26,10 @@ interface Invoice {
   internal_notes: string | null;
   sent_at: string | null;
   paid_at: string | null;
+  xero_status: string | null;
+  xero_invoice_id: string | null;
+  xero_synced_at: string | null;
+  metadata: Record<string, unknown>;
   customer: Customer | null;
   job: Job | null;
 }
@@ -82,6 +87,7 @@ export function InvoiceDetailPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(isNew);
+  const [xeroBusy, setXeroBusy] = useState(false);
 
   // Header form state (for new + edit)
   const [customerId, setCustomerId] = useState<string>(searchParams.get('customer_id') ?? '');
@@ -114,7 +120,7 @@ export function InvoiceDetailPage() {
           *,
           customer:customers!invoices_customer_id_fkey(id, name, email),
           job:jobs!invoices_job_id_fkey(id, job_number, name, customer_id)
-        `).eq('id', id).maybeSingle(),
+        `).eq('id', id).eq('organization_id', currentOrg.id).maybeSingle(),
         supabase.from('invoice_line_items').select('*').eq('invoice_id', id).order('line_number'),
         supabase.from('invoice_payments').select('*').eq('invoice_id', id).order('paid_at', { ascending: false }),
       ]);
@@ -257,11 +263,41 @@ export function InvoiceDetailPage() {
   };
 
   const markSent = async () => {
-    if (!invoice) return;
+    if (!invoice || !currentOrg) return;
     setBusy(true);
     await supabase.from('invoices').update({ status: 'sent', sent_at: new Date().toISOString() }).eq('id', invoice.id);
     setBusy(false);
     void refresh();
+
+    // Fire-and-forget Xero push after status transitions to 'sent'
+    void pushInvoiceToXero(invoice.id, currentOrg.id);
+  };
+
+  const pushInvoiceToXero = async (invoiceId: string, orgId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/xero-push-invoice`;
+      await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ organization_id: orgId, invoice_id: invoiceId }),
+      });
+      // Refresh to pick up updated xero_status
+      void refresh();
+    } catch {
+      // Silently fail — xero_status will show 'failed' and user can repush
+    }
+  };
+
+  const handleXeroRepush = async () => {
+    if (!invoice || !currentOrg) return;
+    setXeroBusy(true);
+    await pushInvoiceToXero(invoice.id, currentOrg.id);
+    setXeroBusy(false);
   };
 
   const recordPayment = async () => {
@@ -482,9 +518,25 @@ export function InvoiceDetailPage() {
         </>
       )}
 
-      <p style={{ marginTop: 32, padding: 10, background: '#0e0e0e', border: '1px dashed #2a2a2a', borderRadius: 4, fontSize: 12, color: '#666' }}>
-        Future: PDF render, email send via Gmail integration, public payment page (uses public_token), Xero ACCREC sync, auto-overdue cron.
-      </p>
+      {!isNew && invoice && (
+        <div style={{ marginTop: 24, padding: '10px 14px', background: '#0e0e0e', border: '1px solid #2a2a2a', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, color: '#888' }}>Xero</span>
+          <XeroStatusPill
+            xeroStatus={invoice.xero_status}
+            lastError={(invoice.metadata?.last_xero_error as string | null) ?? null}
+            onRepush={handleXeroRepush}
+            repushBusy={xeroBusy}
+          />
+          {invoice.xero_invoice_id && (
+            <code style={{ fontSize: 11, color: '#555' }}>{invoice.xero_invoice_id}</code>
+          )}
+          {invoice.xero_synced_at && (
+            <span style={{ fontSize: 11, color: '#555' }}>
+              last pushed {invoice.xero_synced_at.slice(0, 16).replace('T', ' ')} UTC
+            </span>
+          )}
+        </div>
+      )}
     </section>
   );
 }

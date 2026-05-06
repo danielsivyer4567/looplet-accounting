@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
+import { AllocationSplitButton } from '@/components/AllocationSplitButton';
 
 interface BankTxn {
   id: string;
@@ -138,6 +139,22 @@ export function ReconciliationPage() {
       if (rpcErr) throw rpcErr;
       const result = data as { ok: boolean; error?: string } | null;
       if (result && !result.ok) throw new Error(result.error ?? 'reconcile_match_bill failed');
+
+      // Fire-and-forget: push the now-paid bill to Xero (best effort)
+      if (currentOrg) {
+        void (async () => {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+            const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/xero-push-bill`;
+            await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+              body: JSON.stringify({ organization_id: currentOrg.id, bill_id: billId }),
+            });
+          } catch { /* silently ignore — xero_status will surface 'failed' */ }
+        })();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -237,7 +254,14 @@ export function ReconciliationPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {rows.map((r) => (
-                <TxnRow key={r.txn.id} row={r} busy={busyId === r.txn.id} onMatch={matchTopCandidate} />
+                <TxnRow
+                  key={r.txn.id}
+                  row={r}
+                  busy={busyId === r.txn.id}
+                  onMatch={matchTopCandidate}
+                  hostOrgId={currentOrg.id}
+                  onSplitSaved={() => void refresh()}
+                />
               ))}
             </div>
           )}
@@ -296,7 +320,19 @@ export function ReconciliationPage() {
   );
 }
 
-function TxnRow({ row, busy, onMatch }: { row: RowVm; busy: boolean; onMatch: (txnId: string, txnAmount: number, c: MatchCandidate) => void }) {
+function TxnRow({
+  row,
+  busy,
+  onMatch,
+  hostOrgId,
+  onSplitSaved,
+}: {
+  row: RowVm;
+  busy: boolean;
+  onMatch: (txnId: string, txnAmount: number, c: MatchCandidate) => void;
+  hostOrgId: string;
+  onSplitSaved: () => void;
+}) {
   const { txn, candidates } = row;
   const top = candidates[0];
 
@@ -308,6 +344,15 @@ function TxnRow({ row, busy, onMatch }: { row: RowVm; busy: boolean; onMatch: (t
           {txn.posted_at.slice(0, 10)}{' · '}
           <span style={{ color: txn.amount_cents < 0 ? '#e9a3a3' : '#86c7a3' }}>{formatMoney(txn.amount_cents)}</span>
           {txn.reference && <> · ref <code style={{ color: '#666' }}>{txn.reference}</code></>}
+        </div>
+        <div style={{ marginTop: 6 }}>
+          <AllocationSplitButton
+            resourceType="bank_transaction"
+            resourceId={txn.id}
+            hostOrgId={hostOrgId}
+            onSaved={onSplitSaved}
+            label="⊟ Split across businesses"
+          />
         </div>
       </div>
       <div style={{ minWidth: 360 }}>

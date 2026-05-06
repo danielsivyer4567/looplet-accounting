@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 import { formatMoney } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
+import { AllocationSplitButton } from '@/components/AllocationSplitButton';
 import { SkeletonCard, SkeletonTable } from '@/components/Skeleton';
 
 interface Subscription {
@@ -195,14 +196,23 @@ export function SubscriptionsPage() {
                       <td style={td}>{s.next_expected_at ?? '—'}</td>
                       <td style={td}>{s.confidence != null ? `${(s.confidence * 100).toFixed(0)}%` : '—'}</td>
                       <td style={td}>
-                        <MoveToOrgButton
-                          table="subscriptions"
-                          rowId={s.id}
-                          currentOrgId={s.organization_id}
-                          fkColumnsToNull={['supplier_id']}
-                          label="⇄ Move"
-                          onMoved={() => void refresh()}
-                        />
+                        <div style={{ display: 'inline-flex', gap: 4 }}>
+                          <AllocationSplitButton
+                            resourceType="subscription"
+                            resourceId={s.id}
+                            hostOrgId={s.organization_id}
+                            label="⊟ Split"
+                            onSaved={() => void refresh()}
+                          />
+                          <MoveToOrgButton
+                            table="subscriptions"
+                            rowId={s.id}
+                            currentOrgId={s.organization_id}
+                            fkColumnsToNull={['supplier_id']}
+                            label="⇄ Move"
+                            onMoved={() => void refresh()}
+                          />
+                        </div>
                       </td>
                     </tr>
                   );

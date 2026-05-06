@@ -39,7 +39,32 @@ interface Timesheet {
   total_cost_cents: number;
   is_billable: boolean;
   notes: string | null;
+  entry_type?: 'ordinary' | 'overtime' | 'annual_leave' | 'sick_leave' | 'public_holiday' | null;
   job?: { job_number: string; name: string } | null;
+}
+
+interface LeaveBalance {
+  id: string;
+  leave_type: 'annual' | 'sick' | 'long_service';
+  hours_accrued: number;
+  hours_taken: number;
+  hours_balance: number;
+}
+
+interface PaySlipLite {
+  id: string;
+  pay_run_id: string;
+  hours_ordinary: number;
+  hours_overtime: number;
+  hours_leave: number;
+  gross_total_cents: number;
+  payg_tax_cents: number;
+  super_guarantee_cents: number;
+  net_pay_cents: number;
+  ytd_gross_cents: number;
+  ytd_tax_cents: number;
+  ytd_super_cents: number;
+  pay_run?: { period_start: string; period_end: string; pay_date: string; status: string } | null;
 }
 
 // Mirrors Employees.tsx computeLoadedRate.
@@ -58,6 +83,8 @@ export function EmployeeDetailPage() {
   const [recentTs, setRecentTs] = useState<Timesheet[]>([]);
   const [allYearTs, setAllYearTs] = useState<Timesheet[]>([]);
   const [jobs, setJobs] = useState<JobLite[]>([]);
+  const [leave, setLeave] = useState<LeaveBalance[]>([]);
+  const [paySlips, setPaySlips] = useState<PaySlipLite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -76,7 +103,7 @@ export function EmployeeDetailPage() {
     yearAgo.setFullYear(yearAgo.getFullYear() - 1);
     const yearStr = yearAgo.toISOString().slice(0, 10);
 
-    const [empRes, recentRes, yearRes, jobsRes] = await Promise.all([
+    const [empRes, recentRes, yearRes, jobsRes, leaveRes, slipsRes] = await Promise.all([
       supabase.from('employees').select('*').eq('id', id).eq('organization_id', currentOrg.id).is('deleted_at', null).maybeSingle(),
       supabase.from('timesheet_entries')
         .select('*, job:jobs(job_number, name)')
@@ -88,6 +115,14 @@ export function EmployeeDetailPage() {
         .eq('employee_id', id).eq('organization_id', currentOrg.id).is('deleted_at', null)
         .gte('work_date', yearStr),
       supabase.from('jobs').select('id, job_number, name').eq('organization_id', currentOrg.id).is('deleted_at', null).order('job_number'),
+      supabase.from('leave_balances')
+        .select('id, leave_type, hours_accrued, hours_taken, hours_balance')
+        .eq('employee_id', id).eq('organization_id', currentOrg.id),
+      supabase.from('pay_slips')
+        .select('id, pay_run_id, hours_ordinary, hours_overtime, hours_leave, gross_total_cents, payg_tax_cents, super_guarantee_cents, net_pay_cents, ytd_gross_cents, ytd_tax_cents, ytd_super_cents, pay_run:pay_runs(period_start, period_end, pay_date, status)')
+        .eq('employee_id', id).eq('organization_id', currentOrg.id)
+        .order('created_at', { ascending: false })
+        .limit(10),
     ]);
     if (empRes.error) {
       setError(empRes.error.message);
@@ -98,6 +133,8 @@ export function EmployeeDetailPage() {
     setRecentTs((recentRes.data ?? []) as unknown as Timesheet[]);
     setAllYearTs((yearRes.data ?? []) as unknown as Timesheet[]);
     setJobs((jobsRes.data ?? []) as JobLite[]);
+    setLeave((leaveRes.data ?? []) as LeaveBalance[]);
+    setPaySlips((slipsRes.data ?? []) as unknown as PaySlipLite[]);
     setLoading(false);
   }, [currentOrg, id]);
 
@@ -381,7 +418,135 @@ export function EmployeeDetailPage() {
           </tbody>
         </table>
       )}
+
+      <h2 style={h2}>Leave balances</h2>
+      <LeaveBalancesPanel orgId={currentOrg.id} employeeId={employee.id} balances={leave} onChange={() => void refresh()} />
+
+      <h2 style={h2}>Recent payslips</h2>
+      {paySlips.length === 0 ? (
+        <p style={{ color: '#888', fontSize: 13 }}>No payslips yet for this employee.</p>
+      ) : (
+        <>
+          {(() => {
+            const latest = paySlips[0];
+            if (!latest) return null;
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, maxWidth: 720, marginBottom: 12 }}>
+                <KpiCard label="YTD gross" value={formatMoney(Number(latest.ytd_gross_cents))} colour="#aaa" />
+                <KpiCard label="YTD PAYG" value={formatMoney(Number(latest.ytd_tax_cents))} colour="#e9a3a3" />
+                <KpiCard label="YTD super" value={formatMoney(Number(latest.ytd_super_cents))} colour="#5096d8" />
+              </div>
+            );
+          })()}
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead><tr style={{ borderBottom: '1px solid #2a2a2a' }}>
+              <th style={th}>Period</th>
+              <th style={th}>Pay date</th>
+              <th style={th}>Status</th>
+              <th style={thRight}>Hours</th>
+              <th style={thRight}>Gross</th>
+              <th style={thRight}>PAYG</th>
+              <th style={thRight}>Super</th>
+              <th style={thRight}>Net</th>
+            </tr></thead>
+            <tbody>
+              {paySlips.map((s) => (
+                <tr key={s.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
+                  <td style={td}>
+                    <Link to={`/payroll/${s.pay_run_id}`} style={{ color: '#86c7a3', textDecoration: 'none' }}>
+                      {s.pay_run?.period_start} → {s.pay_run?.period_end}
+                    </Link>
+                  </td>
+                  <td style={td}>{s.pay_run?.pay_date ?? '—'}</td>
+                  <td style={td}><span style={{ color: s.pay_run?.status === 'paid' ? '#86c7a3' : '#888', fontSize: 11, textTransform: 'uppercase' }}>{s.pay_run?.status ?? '—'}</span></td>
+                  <td style={tdRight}>{(Number(s.hours_ordinary) + Number(s.hours_overtime) + Number(s.hours_leave)).toFixed(1)}</td>
+                  <td style={tdRight}>{formatMoney(Number(s.gross_total_cents))}</td>
+                  <td style={tdRight}>{formatMoney(Number(s.payg_tax_cents))}</td>
+                  <td style={tdRight}>{formatMoney(Number(s.super_guarantee_cents))}</td>
+                  <td style={tdRight}><strong>{formatMoney(Number(s.net_pay_cents))}</strong></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Leave balances panel — three rows (annual / sick / long_service) with
+// admin-editable accrued + taken hours. Initial rows auto-created on demand.
+// ---------------------------------------------------------------------------
+function LeaveBalancesPanel({ orgId, employeeId, balances, onChange }: {
+  orgId: string;
+  employeeId: string;
+  balances: LeaveBalance[];
+  onChange: () => void;
+}) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const types: Array<LeaveBalance['leave_type']> = ['annual', 'sick', 'long_service'];
+
+  const upsert = async (
+    leave_type: LeaveBalance['leave_type'],
+    field: 'hours_accrued' | 'hours_taken',
+    value: number,
+  ) => {
+    setBusy(`${leave_type}:${field}`);
+    setErr(null);
+    const existing = balances.find((b) => b.leave_type === leave_type);
+    if (existing) {
+      const { error: e } = await supabase
+        .from('leave_balances')
+        .update({ [field]: value })
+        .eq('id', existing.id);
+      if (e) setErr(e.message);
+    } else {
+      const { error: e } = await supabase.from('leave_balances').insert({
+        organization_id: orgId,
+        employee_id: employeeId,
+        leave_type,
+        hours_accrued: field === 'hours_accrued' ? value : 0,
+        hours_taken:   field === 'hours_taken'   ? value : 0,
+      });
+      if (e) setErr(e.message);
+    }
+    setBusy(null);
+    onChange();
+  };
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, maxWidth: 720 }}>
+      {types.map((t) => {
+        const b = balances.find((x) => x.leave_type === t);
+        return (
+          <div key={t} style={{ padding: 12, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 6 }}>
+            <div style={{ fontSize: 11, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              {t === 'long_service' ? 'Long service' : t} leave
+            </div>
+            <div style={{ marginTop: 6, fontSize: 22, color: '#86c7a3', fontWeight: 600 }}>
+              {(b?.hours_balance ?? 0).toFixed(1)} h
+            </div>
+            <div style={{ marginTop: 8, fontSize: 11, color: '#888', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              <label>Accrued
+                <input type="number" step="0.5" defaultValue={Number(b?.hours_accrued ?? 0)}
+                  onBlur={(e) => void upsert(t, 'hours_accrued', parseFloat(e.target.value) || 0)}
+                  disabled={busy === `${t}:hours_accrued`}
+                  style={{ ...inp, marginTop: 2 }} />
+              </label>
+              <label>Taken
+                <input type="number" step="0.5" defaultValue={Number(b?.hours_taken ?? 0)}
+                  onBlur={(e) => void upsert(t, 'hours_taken', parseFloat(e.target.value) || 0)}
+                  disabled={busy === `${t}:hours_taken`}
+                  style={{ ...inp, marginTop: 2 }} />
+              </label>
+            </div>
+          </div>
+        );
+      })}
+      {err && <p style={{ gridColumn: '1 / -1', color: 'salmon', fontSize: 12 }}>{err}</p>}
+    </div>
   );
 }
 
@@ -444,6 +609,7 @@ function LogTimeForm({ employee, jobs, loadedRate, onClose, onLogged }: { employ
   const [workDate, setWorkDate] = useState(new Date().toISOString().slice(0, 10));
   const [hours, setHours] = useState(8);
   const [notes, setNotes] = useState('');
+  const [entryType, setEntryType] = useState<'ordinary' | 'overtime' | 'annual_leave' | 'sick_leave' | 'public_holiday'>('ordinary');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -462,6 +628,7 @@ function LogTimeForm({ employee, jobs, loadedRate, onClose, onLogged }: { employ
       loaded_hourly_rate_cents: loadedRate,
       notes: notes.trim() || null,
       is_billable: true,
+      entry_type: entryType,
     });
     setBusy(false);
     if (error) {
@@ -481,12 +648,23 @@ function LogTimeForm({ employee, jobs, loadedRate, onClose, onLogged }: { employ
         <Field label="Date"><input type="date" value={workDate} onChange={(e) => setWorkDate(e.target.value)} style={inp} /></Field>
         <Field label="Hours"><input type="number" step="0.25" value={hours} onChange={(e) => setHours(parseFloat(e.target.value) || 0)} style={inp} /></Field>
       </div>
-      <Field label="Job (optional)">
-        <select value={jobId} onChange={(e) => setJobId(e.target.value)} style={inp}>
-          <option value="">— unassigned —</option>
-          {jobs.map((j) => <option key={j.id} value={j.id}>{j.job_number} · {j.name}</option>)}
-        </select>
-      </Field>
+      <div style={grid2}>
+        <Field label="Entry type">
+          <select value={entryType} onChange={(e) => setEntryType(e.target.value as typeof entryType)} style={inp}>
+            <option value="ordinary">Ordinary</option>
+            <option value="overtime">Overtime</option>
+            <option value="annual_leave">Annual leave</option>
+            <option value="sick_leave">Sick leave</option>
+            <option value="public_holiday">Public holiday</option>
+          </select>
+        </Field>
+        <Field label="Job (optional)">
+          <select value={jobId} onChange={(e) => setJobId(e.target.value)} style={inp}>
+            <option value="">— unassigned —</option>
+            {jobs.map((j) => <option key={j.id} value={j.id}>{j.job_number} · {j.name}</option>)}
+          </select>
+        </Field>
+      </div>
       <Field label="Notes"><input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What was worked on" style={inp} /></Field>
       <p style={{ marginTop: 8, fontSize: 12, color: '#86c7a3' }}>
         Cost: <strong>{formatMoney(totalCost)}</strong> ({hours}h × {formatMoney(loadedRate)}/hr loaded)

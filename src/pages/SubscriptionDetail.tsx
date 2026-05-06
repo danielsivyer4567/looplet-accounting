@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
+import { AllocationSplitButton } from '@/components/AllocationSplitButton';
 
 interface Subscription {
   id: string;
@@ -229,6 +230,12 @@ export function SubscriptionDetailPage() {
             <button onClick={redetect} disabled={redetecting} style={btnPrim} title="Re-run subscription detection across the org">
               {redetecting ? 'Detecting…' : '↻ Re-detect'}
             </button>
+            <AllocationSplitButton
+              resourceType="subscription"
+              resourceId={sub.id}
+              hostOrgId={currentOrg.id}
+              onSaved={() => void refresh()}
+            />
             <MoveToOrgButton
               table="subscriptions"
               rowId={sub.id}

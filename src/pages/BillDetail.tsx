@@ -3,8 +3,10 @@ import { useParams, Link } from 'react-router-dom';
 import { useBill, getBillFileUrl, type BillDetail as Bill } from '@/hooks/useBill';
 import { JobPicker } from '@/components/JobPicker';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
+import { AllocationSplitButton } from '@/components/AllocationSplitButton';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
+import { useOrg } from '@/contexts/OrgContext';
 
 // ---------------------------------------------------------------------------
 // Draft shape for the edit form. Money fields are stored as dollar strings
@@ -246,6 +248,12 @@ export function BillDetailPage() {
               ✎ Edit
             </button>
           )}
+          <AllocationSplitButton
+            resourceType="bill"
+            resourceId={bill.id}
+            hostOrgId={bill.organization_id}
+            onSaved={() => void refresh()}
+          />
           <MoveToOrgButton
             table="bills"
             rowId={bill.id}
@@ -477,6 +485,9 @@ export function BillDetailPage() {
             </>
           )}
 
+          {/* Effective per-org allocation (shown only when splits exist) */}
+          <EffectiveAllocations billId={bill.id} />
+
           {/* Attach UI */}
           <h3 style={{ fontSize: 14, color: '#aaa', marginTop: '1.5rem', marginBottom: '0.5rem' }}>
             {bill.status === 'attached' || bill.status === 'paid' ? 'Attached job' : 'Attach to a job'}
@@ -565,6 +576,91 @@ export function BillDetailPage() {
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * Effective per-org allocation table — surfaces the split math so the user
+ * can see, e.g., "Business A gets $66 of this $120 bill, Business B gets $54."
+ * Renders nothing when there are no splits (only a single host row).
+ */
+function EffectiveAllocations({ billId }: { billId: string }) {
+  const { organizations } = useOrg();
+  const [rows, setRows] = useState<Array<{
+    organization_id: string;
+    is_host: boolean;
+    percentage: number;
+    effective_total_inc_gst_cents: number;
+    effective_gst_cents: number;
+  }> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { data, error } = await supabase
+        .from('v_bill_effective_allocations')
+        .select('organization_id, is_host, percentage, effective_total_inc_gst_cents, effective_gst_cents')
+        .eq('bill_id', billId);
+      if (cancelled) return;
+      if (error || !data) {
+        setRows([]);
+        return;
+      }
+      setRows(
+        data.map((r) => ({
+          organization_id: r.organization_id as string,
+          is_host: !!r.is_host,
+          percentage: Number(r.percentage),
+          effective_total_inc_gst_cents: Number(r.effective_total_inc_gst_cents) || 0,
+          effective_gst_cents: Number(r.effective_gst_cents) || 0,
+        })),
+      );
+    })();
+    return () => { cancelled = true; };
+  }, [billId]);
+
+  if (!rows || rows.length <= 1) return null; // only host row → no splits → hide
+
+  return (
+    <>
+      <h3 style={{ fontSize: 14, color: '#aaa', marginTop: '1.5rem', marginBottom: '0.5rem' }}>
+        Effective allocation
+      </h3>
+      <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ borderBottom: '1px solid #2a2a2a', color: '#888' }}>
+            <th style={{ textAlign: 'left', padding: '0.4rem' }}>Business</th>
+            <th style={{ textAlign: 'right', padding: '0.4rem' }}>Share</th>
+            <th style={{ textAlign: 'right', padding: '0.4rem' }}>Effective inc GST</th>
+            <th style={{ textAlign: 'right', padding: '0.4rem' }}>Effective GST</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => {
+            const orgName = organizations.find((o) => o.id === r.organization_id)?.name
+              ?? r.organization_id.slice(0, 8);
+            return (
+              <tr key={r.organization_id} style={{ borderBottom: '1px solid #1a1a1a' }}>
+                <td style={{ padding: '0.4rem' }}>
+                  {r.is_host && <span style={{ color: '#86c7a3', marginRight: 4 }}>★</span>}
+                  {orgName}
+                  {r.is_host && <span style={{ color: '#666', fontSize: 11 }}> (host)</span>}
+                </td>
+                <td style={{ textAlign: 'right', padding: '0.4rem', fontFamily: 'ui-monospace, monospace' }}>
+                  {r.percentage.toFixed(2)}%
+                </td>
+                <td style={{ textAlign: 'right', padding: '0.4rem', fontWeight: 600 }}>
+                  {formatMoney(r.effective_total_inc_gst_cents)}
+                </td>
+                <td style={{ textAlign: 'right', padding: '0.4rem' }}>
+                  {formatMoney(r.effective_gst_cents)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </>
   );
 }
 
