@@ -164,7 +164,6 @@ export function TriagePage() {
     let customer_id: string | null = null;
 
     if (kind === 'supplier' || kind === 'contractor' || kind === 'subscription' || kind === 'internal_admin') {
-      // Upsert supplier
       const { data: sup, error: supErr } = await supabase
         .from('suppliers')
         .upsert(
@@ -178,7 +177,8 @@ export function TriagePage() {
         )
         .select('id')
         .single();
-      if (!supErr && sup) supplier_id = sup.id as string;
+      if (supErr) throw new Error(`suppliers upsert (${e.display_name}): ${supErr.message}`);
+      if (sup) supplier_id = sup.id as string;
     } else if (kind === 'customer') {
       const { data: cust, error: custErr } = await supabase
         .from('customers')
@@ -192,12 +192,12 @@ export function TriagePage() {
         )
         .select('id')
         .single();
-      if (!custErr && cust) customer_id = cust.id as string;
+      if (custErr) throw new Error(`customers upsert (${e.display_name}): ${custErr.message}`);
+      if (cust) customer_id = cust.id as string;
     }
 
-    // Create rule (skip for personal — no Xero mapping)
     const isPersonal = kind === 'personal' || category === 'personal_expense';
-    await supabase.from('intake_rules').insert({
+    const { error: ruleErr } = await supabase.from('intake_rules').insert({
       organization_id: currentOrg!.id,
       matcher_type,
       matcher_value,
@@ -209,16 +209,45 @@ export function TriagePage() {
       skip_ocr: false,
       notes: `Auto Setup — predicted ${e.predicted_kind} (${e.confidence})`,
     });
+    // Duplicate rules (same matcher_value) are not an error here — re-approving
+    // a sender shouldn't fail. Only surface non-23505 errors.
+    if (ruleErr && ruleErr.code !== '23505') {
+      throw new Error(`intake_rules insert (${matcher_value}): ${ruleErr.message}`);
+    }
 
-    // Link the staged entity to the supplier/customer
+    if (kind === 'subscription' && supplier_id) {
+      const { error: subErr } = await supabase.from('subscriptions').upsert(
+        {
+          organization_id: currentOrg!.id,
+          merchant_name: e.display_name,
+          merchant_canonical_key: e.canonical_key,
+          supplier_id,
+          status: 'candidate',
+          cadence: 'irregular',
+          amount_cents: 0,
+          confidence: e.confidence,
+          detection_reason: 'email_classifier',
+          observed_count: 0,
+          total_spent_cents: 0,
+          first_seen_at: e.first_seen_at ?? new Date().toISOString(),
+          last_seen_at: e.last_seen_at ?? new Date().toISOString(),
+        },
+        { onConflict: 'organization_id,merchant_canonical_key', ignoreDuplicates: true },
+      );
+      if (subErr && subErr.code !== '23505') {
+        throw new Error(`subscriptions upsert (${e.display_name}): ${subErr.message}`);
+      }
+    }
+
     if (supplier_id || customer_id) {
-      await supabase
+      const { error: linkErr } = await supabase
         .from('staged_entities')
         .update({
           resolved_supplier_id: supplier_id,
           resolved_customer_id: customer_id,
         })
         .eq('id', e.id);
+      if (linkErr) throw new Error(`staged_entities link (${e.id}): ${linkErr.message}`);
     }
   };
 

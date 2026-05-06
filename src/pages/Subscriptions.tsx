@@ -26,7 +26,7 @@ interface Subscription {
   notes: string | null;
 }
 
-const STATUS_FILTERS = ['all', 'detected', 'confirmed', 'cancelled', 'paused'] as const;
+const STATUS_FILTERS = ['all', 'candidate', 'confirmed', 'cancelled', 'dismissed'] as const;
 
 export function SubscriptionsPage() {
   const { currentOrg } = useOrg();
@@ -71,7 +71,11 @@ export function SubscriptionsPage() {
   const personalOnly = subs.filter((s) => s.is_personal).reduce((a, s) => a + monthlyEquivalent(s) * 12, 0);
 
   const setFlag = async (id: string, patch: Partial<Subscription>) => {
-    await supabase.from('subscriptions').update(patch).eq('id', id);
+    const { error: e } = await supabase.from('subscriptions').update(patch).eq('id', id);
+    if (e) {
+      setError(`Failed to update tag: ${e.message}`);
+      return;
+    }
     void refresh();
   };
 
@@ -237,7 +241,10 @@ function Kpi({ label, value, colour, sub }: { label: string; value: string; colo
   );
 }
 function Pill({ status }: { status: string }) {
-  const c = status === 'confirmed' ? '#86c7a3' : status === 'detected' ? '#5096d8' : status === 'cancelled' ? '#666' : status === 'paused' ? '#d2c886' : '#888';
+  const c = status === 'confirmed' ? '#86c7a3'
+    : status === 'candidate' ? '#5096d8'
+    : status === 'cancelled' ? '#666'
+    : status === 'dismissed' ? '#d2c886' : '#888';
   return <span style={{ padding: '0.15rem 0.5rem', fontSize: 11, borderRadius: 3, background: '#222', color: c, textTransform: 'uppercase' }}>{status}</span>;
 }
 function tagBtn(active: boolean, colour: string): React.CSSProperties {
