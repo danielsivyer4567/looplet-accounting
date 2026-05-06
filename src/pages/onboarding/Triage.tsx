@@ -118,6 +118,90 @@ export function TriagePage() {
       e.confidence >= 0.8,
   ).length;
 
+  // Sonar-aware bulk approve: prefer Sonar's pick when it's confident.
+  const bulkApproveSonarHighConfidence = async () => {
+    const candidates = entities.filter(
+      (e) =>
+        (e.status === 'pending' || e.status === 'needs_review') &&
+        e.sonar_enriched_at != null &&
+        e.sonar_confidence != null &&
+        e.sonar_confidence >= 0.85 &&
+        e.sonar_suggested_kind != null &&
+        e.sonar_suggested_category != null,
+    );
+    if (candidates.length === 0) return;
+    if (!confirm(
+      `Approve ${candidates.length} entities using Sonar's fact-checked classifications (≥85% Sonar confidence)?\n\n`
+      + `These have web-grounded summaries + citations. Sonar's kind/category will be used instead of the heuristic prediction.`,
+    )) return;
+    setBusy('bulk:sonar-conf');
+    setError(null);
+    let done = 0;
+    try {
+      for (const e of candidates) {
+        await updateOneInternal(e, {
+          status: 'approved',
+          user_kind: e.sonar_suggested_kind!,
+          user_category: e.sonar_suggested_category!,
+        });
+        done += 1;
+      }
+      await refresh();
+    } catch (err) {
+      setError(`Stopped at ${done}/${candidates.length}: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const sonarHighConfCount = entities.filter(
+    (e) =>
+      (e.status === 'pending' || e.status === 'needs_review') &&
+      e.sonar_enriched_at != null &&
+      e.sonar_confidence != null &&
+      e.sonar_confidence >= 0.85 &&
+      e.sonar_suggested_kind != null &&
+      e.sonar_suggested_category != null,
+  ).length;
+
+  // Bulk dismiss: low-confidence, no category, no Sonar evidence — likely junk
+  const bulkDismissJunk = async () => {
+    const junk = entities.filter(
+      (e) =>
+        (e.status === 'pending' || e.status === 'needs_review') &&
+        e.confidence < 0.4 &&
+        (e.sonar_enriched_at == null || (e.sonar_confidence ?? 0) < 0.4) &&
+        e.predicted_kind === 'unknown',
+    );
+    if (junk.length === 0) return;
+    if (!confirm(
+      `Dismiss ${junk.length} low-confidence "unknown" entities (Groq <40% AND Sonar <40% or unenriched)?\n\n`
+      + `These are senders neither classifier could confidently identify — typically transactional noise (one-off receipts, marketing).`,
+    )) return;
+    setBusy('bulk:junk');
+    setError(null);
+    let done = 0;
+    try {
+      for (const e of junk) {
+        await updateOneInternal(e, { status: 'dismissed' });
+        done += 1;
+      }
+      await refresh();
+    } catch (err) {
+      setError(`Stopped at ${done}/${junk.length}: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const junkCount = entities.filter(
+    (e) =>
+      (e.status === 'pending' || e.status === 'needs_review') &&
+      e.confidence < 0.4 &&
+      (e.sonar_enriched_at == null || (e.sonar_confidence ?? 0) < 0.4) &&
+      e.predicted_kind === 'unknown',
+  ).length;
+
   const bulkApproveGroup = async (kind: EntityKind) => {
     const rows = (groups[kind] ?? []).filter((e) => e.status === 'pending' || e.status === 'needs_review');
     if (rows.length === 0) return;
@@ -356,6 +440,85 @@ export function TriagePage() {
       </div>
       {sonarMsg && (
         <p style={{ marginTop: 4, marginBottom: 16, fontSize: 12, color: '#86c7a3' }}>{sonarMsg}</p>
+      )}
+
+      {sonarHighConfCount > 0 && (
+        <div style={{
+          marginBottom: 16,
+          padding: 12,
+          background: '#0e1820',
+          border: '1px solid #1f4d70',
+          borderRadius: 6,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 12,
+          flexWrap: 'wrap',
+        }}>
+          <div>
+            <strong style={{ color: '#7fb6e8' }}>
+              ✦ {sonarHighConfCount} entit{sonarHighConfCount === 1 ? 'y' : 'ies'} fact-checked by Sonar with ≥85% confidence
+            </strong>
+            <div style={{ fontSize: 11, color: '#9ab0c0', marginTop: 3 }}>
+              One click approves all using Sonar's web-verified kind + category (overrides Groq's heuristic guess).
+            </div>
+          </div>
+          <button
+            onClick={bulkApproveSonarHighConfidence}
+            disabled={busy === 'bulk:sonar-conf'}
+            style={{
+              padding: '0.5rem 1.25rem',
+              background: '#1c4868',
+              color: '#fff',
+              border: '1px solid #5096d8',
+              borderRadius: 4,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: busy === 'bulk:sonar-conf' ? 'wait' : 'pointer',
+            }}
+          >
+            {busy === 'bulk:sonar-conf' ? 'Approving…' : `✦ Approve all ${sonarHighConfCount} Sonar picks`}
+          </button>
+        </div>
+      )}
+
+      {junkCount > 0 && (
+        <div style={{
+          marginBottom: 16,
+          padding: 10,
+          background: '#1d1410',
+          border: '1px solid #3d2818',
+          borderRadius: 6,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 12,
+          flexWrap: 'wrap',
+        }}>
+          <div>
+            <span style={{ color: '#d2a886', fontWeight: 600 }}>
+              {junkCount} low-confidence "unknown" sender{junkCount === 1 ? '' : 's'}
+            </span>
+            <div style={{ fontSize: 11, color: '#a89380', marginTop: 3 }}>
+              Both Groq and Sonar have &lt;40% confidence — likely one-off receipts / marketing / noise.
+            </div>
+          </div>
+          <button
+            onClick={bulkDismissJunk}
+            disabled={busy === 'bulk:junk'}
+            style={{
+              padding: '0.4rem 1rem',
+              background: 'transparent',
+              color: '#e9a3a3',
+              border: '1px solid #5d2828',
+              borderRadius: 4,
+              fontSize: 12,
+              cursor: busy === 'bulk:junk' ? 'wait' : 'pointer',
+            }}
+          >
+            {busy === 'bulk:junk' ? 'Dismissing…' : `✕ Dismiss all ${junkCount}`}
+          </button>
+        </div>
       )}
 
       {highConfCount > 0 && (
