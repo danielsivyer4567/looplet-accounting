@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 import { formatMoney } from '@/lib/money';
+import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 
 interface Supplier {
   id: string;
@@ -120,7 +121,10 @@ export function SupplierDetailPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '0.5rem' }}>
         <h1 style={{ margin: 0 }}>{supplier.name}</h1>
         {!editing && (
-          <button onClick={startEdit} style={editBtn}>✎ Edit</button>
+          <span style={{ display: 'inline-flex', gap: 8 }}>
+            <button onClick={startEdit} style={editBtn}>✎ Edit</button>
+            <MoveToOrgButton table="suppliers" rowId={supplier.id} currentOrgId={currentOrg.id} onMoved={() => { window.location.href = '/suppliers'; }} />
+          </span>
         )}
       </div>
 

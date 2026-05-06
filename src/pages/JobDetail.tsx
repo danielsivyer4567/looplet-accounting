@@ -3,9 +3,11 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 import { formatMoney } from '@/lib/money';
+import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 
 interface JobRow {
   id: string;
+  organization_id: string;
   job_number: string;
   name: string;
   description: string | null;
@@ -180,6 +182,13 @@ export function JobDetailPage() {
             <button onClick={() => navigate(`/invoices/new?job_id=${job.id}&customer_id=${customer.id}`)} style={primaryBtn}>+ Raise invoice</button>
           )}
           {!editing && <button onClick={startEdit} style={editBtn}>✎ Edit</button>}
+          <MoveToOrgButton
+            table="jobs"
+            rowId={job.id}
+            currentOrgId={job.organization_id}
+            fkColumnsToNull={['customer_id']}
+            onMoved={() => { window.location.href = '/jobs'; }}
+          />
         </div>
       </div>
 

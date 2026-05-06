@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 import { formatMoney } from '@/lib/money';
+import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 
 interface Customer { id: string; name: string; email: string | null }
 interface Job { id: string; job_number: string; name: string; customer_id: string | null }
@@ -313,6 +314,13 @@ export function InvoiceDetailPage() {
             {invoice.status !== 'paid' && invoice.status !== 'void' && (
               <button onClick={voidInvoice} style={btnGhost}>Void</button>
             )}
+            <MoveToOrgButton
+              table="invoices"
+              rowId={invoice.id}
+              currentOrgId={currentOrg.id}
+              fkColumnsToNull={['customer_id', 'job_id']}
+              onMoved={() => { window.location.href = '/invoices'; }}
+            />
           </div>
         )}
       </div>

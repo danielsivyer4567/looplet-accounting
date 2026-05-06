@@ -15,7 +15,8 @@ interface BankTxn {
   bank_account_id: string;
 }
 
-interface MatchCandidate {
+interface BillMatchCandidate {
+  kind: 'bill';
   bill_id: string;
   bill_date: string;
   bill_amount_cents: number;
@@ -26,6 +27,21 @@ interface MatchCandidate {
   days_diff: number;
   score: number;
 }
+
+interface InvoiceMatchCandidate {
+  kind: 'invoice';
+  invoice_id: string;
+  invoice_number: string;
+  invoice_date: string;
+  invoice_balance_due_cents: number;
+  customer_id: string | null;
+  customer_name: string | null;
+  amount_diff_cents: number;
+  days_diff: number;
+  score: number;
+}
+
+type MatchCandidate = BillMatchCandidate | InvoiceMatchCandidate;
 
 interface RowVm {
   txn: BankTxn;
@@ -45,7 +61,7 @@ export function ReconciliationPage() {
     setLoading(true);
     setError(null);
 
-    const [txnRes, matchedRes, candRes] = await Promise.all([
+    const [txnRes, matchedRes, billCandRes, invoiceCandRes] = await Promise.all([
       supabase
         .from('bank_transactions')
         .select('id, posted_at, description, amount_cents, reference, matched_bill_id, matched_invoice_id, bank_account_id')
@@ -67,16 +83,31 @@ export function ReconciliationPage() {
         .eq('organization_id', currentOrg.id)
         .gte('score', 0.5)
         .order('score', { ascending: false }),
+      supabase
+        .from('v_bank_invoice_match_candidates')
+        .select('*')
+        .eq('organization_id', currentOrg.id)
+        .gte('score', 0.5)
+        .order('score', { ascending: false }),
     ]);
 
     if (txnRes.error) { setError(txnRes.error.message); setLoading(false); return; }
-    if (candRes.error) { setError(candRes.error.message); setLoading(false); return; }
+    if (billCandRes.error) { setError(billCandRes.error.message); setLoading(false); return; }
 
     const candidatesByTxn = new Map<string, MatchCandidate[]>();
-    for (const c of (candRes.data ?? []) as (MatchCandidate & { bank_transaction_id: string })[]) {
+    for (const c of (billCandRes.data ?? []) as Array<BillMatchCandidate & { bank_transaction_id: string }>) {
       const list = candidatesByTxn.get(c.bank_transaction_id) ?? [];
-      list.push(c);
+      list.push({ ...c, kind: 'bill' });
       candidatesByTxn.set(c.bank_transaction_id, list);
+    }
+    for (const c of (invoiceCandRes.data ?? []) as Array<InvoiceMatchCandidate & { bank_transaction_id: string }>) {
+      const list = candidatesByTxn.get(c.bank_transaction_id) ?? [];
+      list.push({ ...c, kind: 'invoice' });
+      candidatesByTxn.set(c.bank_transaction_id, list);
+    }
+    // Sort each txn's candidates by score desc
+    for (const list of candidatesByTxn.values()) {
+      list.sort((a, b) => b.score - a.score);
     }
 
     const vms: RowVm[] = ((txnRes.data ?? []) as BankTxn[]).map((t) => ({
@@ -93,16 +124,14 @@ export function ReconciliationPage() {
 
   if (!currentOrg) return null;
 
-  const matchTo = async (txnId: string, billId: string) => {
+  const matchToBill = async (txnId: string, billId: string) => {
     setBusyId(txnId);
     try {
-      // 1. Set matched_bill_id on the bank_transaction
       const { error: txnErr } = await supabase
         .from('bank_transactions')
         .update({ matched_bill_id: billId, manually_matched: true, match_confidence: 1.0 })
         .eq('id', txnId);
       if (txnErr) throw txnErr;
-      // 2. Mark the bill as paid
       const { error: billErr } = await supabase
         .from('bills')
         .update({ paid_at: new Date().toISOString(), status: 'paid' })
@@ -116,8 +145,37 @@ export function ReconciliationPage() {
     }
   };
 
-  const undoMatch = async (txnId: string, billId: string | null) => {
-    if (!confirm('Undo this match? The bill will go back to attached/unpaid.')) return;
+  const matchToInvoice = async (txnId: string, invoiceId: string, amountCents: number) => {
+    if (!currentOrg) return;
+    setBusyId(txnId);
+    try {
+      // 1. Mark the bank txn as matched
+      const { error: txnErr } = await supabase
+        .from('bank_transactions')
+        .update({ matched_invoice_id: invoiceId, manually_matched: true, match_confidence: 1.0 })
+        .eq('id', txnId);
+      if (txnErr) throw txnErr;
+      // 2. Insert an invoice_payment for the matched amount — triggers
+      //    invoices_apply_payment which auto-flips status to paid/partially_paid.
+      const { error: payErr } = await supabase.from('invoice_payments').insert({
+        organization_id: currentOrg.id,
+        invoice_id: invoiceId,
+        bank_transaction_id: txnId,
+        amount_cents: amountCents,
+        method: 'bank',
+        notes: 'Auto-matched from bank reconciliation',
+      });
+      if (payErr) throw payErr;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyId(null);
+      void refresh();
+    }
+  };
+
+  const undoMatch = async (txnId: string, billId: string | null, invoiceId: string | null) => {
+    if (!confirm('Undo this match?')) return;
     setBusyId(txnId);
     try {
       await supabase
@@ -126,6 +184,10 @@ export function ReconciliationPage() {
         .eq('id', txnId);
       if (billId) {
         await supabase.from('bills').update({ paid_at: null, status: 'attached' }).eq('id', billId);
+      }
+      if (invoiceId) {
+        // Delete any auto-created payment for this txn; trigger flips invoice status back
+        await supabase.from('invoice_payments').delete().eq('bank_transaction_id', txnId);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -136,14 +198,21 @@ export function ReconciliationPage() {
   };
 
   const withSugg = rows.filter((r) => r.candidates.length > 0);
-  const withoutSugg = rows.filter((r) => r.candidates.length === 0);
+
+  const matchTopCandidate = async (txnId: string, txnAmount: number, candidate: MatchCandidate) => {
+    if (candidate.kind === 'bill') {
+      await matchToBill(txnId, candidate.bill_id);
+    } else {
+      await matchToInvoice(txnId, candidate.invoice_id, txnAmount);
+    }
+  };
 
   const bulkApplyHigh = async () => {
     const high = rows.filter((r) => r.candidates[0] && r.candidates[0].score >= 0.9);
     if (high.length === 0) return;
-    if (!confirm(`Auto-match ${high.length} high-confidence transactions to bills? You can undo individually.`)) return;
+    if (!confirm(`Auto-match ${high.length} high-confidence transactions? You can undo individually.`)) return;
     for (const r of high) {
-      await matchTo(r.txn.id, r.candidates[0].bill_id);
+      await matchTopCandidate(r.txn.id, r.txn.amount_cents, r.candidates[0]);
     }
   };
 
@@ -151,8 +220,8 @@ export function ReconciliationPage() {
     <section>
       <h1 style={{ marginBottom: 4 }}>Reconciliation</h1>
       <p style={{ color: '#888', fontSize: 13 }}>
-        Match bank transactions to bills (and invoices, when those exist).
-        Bills go from <code>attached</code> → <code>paid</code> on match.
+        Match bank transactions to bills (money out) and invoices (money in).
+        Bills flip to <code>paid</code>; invoices auto-record an <code>invoice_payment</code> and the trigger flips status.
       </p>
 
       {loading ? (
@@ -181,7 +250,7 @@ export function ReconciliationPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {rows.map((r) => (
-                <TxnRow key={r.txn.id} row={r} busy={busyId === r.txn.id} onMatch={matchTo} />
+                <TxnRow key={r.txn.id} row={r} busy={busyId === r.txn.id} onMatch={matchTopCandidate} />
               ))}
             </div>
           )}
@@ -211,9 +280,14 @@ export function ReconciliationPage() {
                             bill →
                           </Link>
                         )}
+                        {m.matched_invoice_id && (
+                          <Link to={`/invoices/${m.matched_invoice_id}`} style={{ color: '#86c7a3', fontSize: 12 }}>
+                            invoice →
+                          </Link>
+                        )}
                       </td>
                       <td style={tdRight}>
-                        <button onClick={() => void undoMatch(m.id, m.matched_bill_id)} disabled={busyId === m.id} style={ghostBtn}>
+                        <button onClick={() => void undoMatch(m.id, m.matched_bill_id, m.matched_invoice_id)} disabled={busyId === m.id} style={ghostBtn}>
                           undo
                         </button>
                       </td>
@@ -233,7 +307,7 @@ export function ReconciliationPage() {
   );
 }
 
-function TxnRow({ row, busy, onMatch }: { row: RowVm; busy: boolean; onMatch: (txn: string, bill: string) => void }) {
+function TxnRow({ row, busy, onMatch }: { row: RowVm; busy: boolean; onMatch: (txnId: string, txnAmount: number, c: MatchCandidate) => void }) {
   const { txn, candidates } = row;
   const top = candidates[0];
 
@@ -247,20 +321,28 @@ function TxnRow({ row, busy, onMatch }: { row: RowVm; busy: boolean; onMatch: (t
           {txn.reference && <> · ref <code style={{ color: '#666' }}>{txn.reference}</code></>}
         </div>
       </div>
-      <div style={{ minWidth: 320 }}>
+      <div style={{ minWidth: 360 }}>
         {candidates.length === 0 ? (
           <div style={{ fontSize: 12, color: '#666', textAlign: 'right' }}>
-            No matching bill found
+            No matching bill or invoice found
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {candidates.map((c) => (
-              <div key={c.bill_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                <Link to={`/bills/${c.bill_id}`} style={{ fontSize: 12, color: '#aaa', textDecoration: 'none' }}>
-                  {c.supplier_name ?? '(no supplier)'} · <code>{c.bill_invoice_number ?? '—'}</code> · {c.bill_date} · {formatMoney(c.bill_amount_cents)}
-                </Link>
+            {candidates.map((c, i) => (
+              <div key={`${c.kind}-${i}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                {c.kind === 'bill' ? (
+                  <Link to={`/bills/${c.bill_id}`} style={{ fontSize: 12, color: '#aaa', textDecoration: 'none' }}>
+                    <span style={kindPill('#5096d8')}>BILL</span>
+                    {' '}{c.supplier_name ?? '(no supplier)'} · <code>{c.bill_invoice_number ?? '—'}</code> · {c.bill_date} · {formatMoney(c.bill_amount_cents)}
+                  </Link>
+                ) : (
+                  <Link to={`/invoices/${c.invoice_id}`} style={{ fontSize: 12, color: '#aaa', textDecoration: 'none' }}>
+                    <span style={kindPill('#86c7a3')}>INV</span>
+                    {' '}{c.customer_name ?? '(no customer)'} · <code>{c.invoice_number}</code> · {c.invoice_date} · owing {formatMoney(c.invoice_balance_due_cents)}
+                  </Link>
+                )}
                 <button
-                  onClick={() => onMatch(txn.id, c.bill_id)}
+                  onClick={() => onMatch(txn.id, txn.amount_cents, c)}
                   disabled={busy}
                   style={{
                     padding: '0.3rem 0.6rem',
@@ -285,6 +367,19 @@ function TxnRow({ row, busy, onMatch }: { row: RowVm; busy: boolean; onMatch: (t
     </div>
   );
 }
+
+const kindPill = (colour: string): React.CSSProperties => ({
+  display: 'inline-block',
+  padding: '1px 5px',
+  fontSize: 9,
+  fontWeight: 700,
+  letterSpacing: 0.5,
+  borderRadius: 2,
+  background: '#222',
+  color: colour,
+  border: `1px solid ${colour}`,
+  marginRight: 4,
+});
 
 const h2: React.CSSProperties = { fontSize: 14, marginTop: 24, marginBottom: 8 };
 const th: React.CSSProperties = { padding: '0.4rem 0.5rem', textAlign: 'left', fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 };

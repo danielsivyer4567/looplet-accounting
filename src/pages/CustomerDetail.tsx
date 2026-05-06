@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/contexts/OrgContext';
 import { formatMoney } from '@/lib/money';
+import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 
 interface Customer {
   id: string;
@@ -122,6 +123,7 @@ export function CustomerDetailPage() {
         <h1 style={{ margin: 0 }}>{customer.name}</h1>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => navigate(`/invoices/new?customer_id=${customer.id}`)} style={btnPrim}>+ Raise invoice</button>
+          <MoveToOrgButton table="customers" rowId={customer.id} currentOrgId={currentOrg.id} onMoved={() => { window.location.href = '/customers'; }} />
           {!editing && <button onClick={startEdit} style={btnGhost}>✎ Edit</button>}
         </div>
       </div>
