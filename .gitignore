@@ -13,8 +13,10 @@ build/
 .env
 .env.local
 .env.development
-.env.production
 .env.test
+# .env.production is committed — only contains public VITE_ values
+# (Supabase anon key + URL are designed to be public, protected by RLS)
+!.env.production
 
 # Supabase local
 supabase/.branches
