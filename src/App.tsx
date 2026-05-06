@@ -24,11 +24,15 @@ import { QualityPage } from '@/pages/Quality';
 import { ReportsIndexPage } from '@/pages/reports/Index';
 import { BasReportPage } from '@/pages/reports/Bas';
 import { CashFlowPage } from '@/pages/reports/CashFlow';
+import { BalanceSheetPage } from '@/pages/reports/BalanceSheet';
+import { NotificationsPage } from '@/pages/Notifications';
 import { SuppliersPage } from '@/pages/Suppliers';
 import { SupplierDetailPage } from '@/pages/SupplierDetail';
 import { EmployeesPage } from '@/pages/Employees';
 import { EmployeeDetailPage } from '@/pages/EmployeeDetail';
 import { SettingsPage } from '@/pages/Settings';
+import { TeamPage } from '@/pages/Team';
+import { AuditLogPage } from '@/pages/AuditLog';
 import { GmailCallbackPage } from '@/pages/GmailCallback';
 import { BankCallbackPage } from '@/pages/BankCallback';
 import { AutoSetupPage } from '@/pages/onboarding/AutoSetup';
@@ -88,11 +92,15 @@ export function App() {
             <Route path="reports" element={<ReportsIndexPage />} />
             <Route path="reports/bas" element={<BasReportPage />} />
             <Route path="reports/cash-flow" element={<CashFlowPage />} />
+            <Route path="reports/balance-sheet" element={<BalanceSheetPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
             <Route path="suppliers" element={<SuppliersPage />} />
             <Route path="suppliers/:id" element={<SupplierDetailPage />} />
             <Route path="employees" element={<EmployeesPage />} />
             <Route path="employees/:id" element={<EmployeeDetailPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="settings/team" element={<TeamPage />} />
+            <Route path="settings/audit-log" element={<AuditLogPage />} />
             <Route path="settings/gmail-callback" element={<GmailCallbackPage />} />
             <Route path="settings/bank-callback" element={<BankCallbackPage />} />
             <Route path="onboarding" element={<AutoSetupPage />} />

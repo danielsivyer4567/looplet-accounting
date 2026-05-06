@@ -1,0 +1,263 @@
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
+import { useOrg } from '@/contexts/OrgContext';
+
+interface NotificationRow {
+  id: string;
+  category: string;
+  severity: 'info' | 'warning' | 'error';
+  title: string;
+  body: string | null;
+  link: string | null;
+  read_at: string | null;
+  created_at: string;
+}
+
+const SEVERITY_COLOURS: Record<string, string> = {
+  info: '#86c7a3',
+  warning: '#e9c97a',
+  error: '#e9a3a3',
+};
+
+const ICON_MAP: Record<string, string> = {
+  bill_overdue: '🧾',
+  invoice_overdue: '📨',
+  bas_due: '🏛️',
+  connection_expiring: '🏦',
+  low_confidence_review: '🔍',
+  subscription_alert: '🔁',
+  cron_failed: '⚠️',
+};
+
+const POLL_MS = 60_000;
+const PANEL_LIMIT = 8;
+
+export function NotificationBell() {
+  const { currentOrg } = useOrg();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [recent, setRecent] = useState<NotificationRow[]>([]);
+  const [unread, setUnread] = useState(0);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const fetchRecent = useCallback(async () => {
+    if (!currentOrg) {
+      setRecent([]);
+      setUnread(0);
+      return;
+    }
+    const { data: list } = await supabase
+      .from('notifications')
+      .select('id, category, severity, title, body, link, read_at, created_at')
+      .eq('organization_id', currentOrg.id)
+      .is('dismissed_at', null)
+      .order('read_at', { ascending: true, nullsFirst: true })
+      .order('created_at', { ascending: false })
+      .limit(PANEL_LIMIT);
+    setRecent((list ?? []) as NotificationRow[]);
+
+    const { count } = await supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', currentOrg.id)
+      .is('dismissed_at', null)
+      .is('read_at', null);
+    setUnread(count ?? 0);
+  }, [currentOrg]);
+
+  // Initial + polling
+  useEffect(() => {
+    void fetchRecent();
+    const t = setInterval(() => void fetchRecent(), POLL_MS);
+    return () => clearInterval(t);
+  }, [fetchRecent]);
+
+  // Click outside to close
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (ev: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(ev.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  const handleNotificationClick = async (n: NotificationRow) => {
+    if (!n.read_at) {
+      await supabase
+        .from('notifications')
+        .update({ read_at: new Date().toISOString() })
+        .eq('id', n.id);
+    }
+    setOpen(false);
+    if (n.link) navigate(n.link);
+    void fetchRecent();
+  };
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-label={`Notifications${unread > 0 ? ` (${unread} unread)` : ''}`}
+        title="Notifications"
+        style={{
+          position: 'relative',
+          background: 'transparent',
+          border: '1px solid #444',
+          borderRadius: 4,
+          color: '#aaa',
+          fontSize: 14,
+          padding: '0.3rem 0.55rem',
+          cursor: 'pointer',
+          lineHeight: 1,
+        }}
+      >
+        <span aria-hidden style={{ fontSize: 14 }}>🔔</span>
+        {unread > 0 && (
+          <span
+            aria-hidden
+            style={{
+              position: 'absolute',
+              top: -6,
+              right: -6,
+              background: '#e9a3a3',
+              color: '#1a1a1a',
+              fontSize: 10,
+              fontWeight: 700,
+              minWidth: 16,
+              height: 16,
+              borderRadius: 8,
+              padding: '0 4px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxSizing: 'border-box',
+              border: '1px solid #1a1a1a',
+            }}
+          >
+            {unread > 99 ? '99+' : unread}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div
+          role="dialog"
+          aria-label="Notifications panel"
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 6px)',
+            right: 0,
+            width: 360,
+            maxHeight: 480,
+            background: '#0e0e0e',
+            border: '1px solid #2a2a2a',
+            borderRadius: 6,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            zIndex: 200,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div
+            style={{
+              padding: '0.6rem 0.85rem',
+              borderBottom: '1px solid #2a2a2a',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <strong style={{ fontSize: 13, color: '#ddd' }}>Notifications</strong>
+            {unread > 0 && (
+              <span style={{ fontSize: 11, color: '#888' }}>{unread} unread</span>
+            )}
+          </div>
+
+          <div style={{ overflowY: 'auto', flex: 1 }}>
+            {recent.length === 0 ? (
+              <div style={{ padding: 24, color: '#888', fontSize: 12, textAlign: 'center' }}>
+                You're all caught up.
+              </div>
+            ) : (
+              recent.map((n) => {
+                const isUnread = n.read_at == null;
+                return (
+                  <button
+                    key={n.id}
+                    onClick={() => void handleNotificationClick(n)}
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '0.6rem 0.85rem',
+                      background: isUnread ? '#161616' : 'transparent',
+                      border: 'none',
+                      borderBottom: '1px solid #1a1a1a',
+                      borderLeft: `3px solid ${SEVERITY_COLOURS[n.severity] ?? '#444'}`,
+                      cursor: 'pointer',
+                      color: '#ddd',
+                      display: 'flex',
+                      gap: 8,
+                      alignItems: 'flex-start',
+                    }}
+                  >
+                    <span aria-hidden style={{ fontSize: 14, lineHeight: 1.2 }}>
+                      {ICON_MAP[n.category] ?? '🔔'}
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span
+                        style={{
+                          display: 'block',
+                          fontSize: 12,
+                          fontWeight: isUnread ? 600 : 400,
+                          color: isUnread ? '#fff' : '#bbb',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {n.title}
+                      </span>
+                      {n.body && (
+                        <span
+                          style={{
+                            display: 'block',
+                            fontSize: 11,
+                            color: '#888',
+                            marginTop: 2,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {n.body}
+                        </span>
+                      )}
+                      <span style={{ display: 'block', fontSize: 10, color: '#555', marginTop: 3 }}>
+                        {new Date(n.created_at).toLocaleString()}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          <div style={{ borderTop: '1px solid #2a2a2a', padding: '0.5rem 0.85rem', textAlign: 'center' }}>
+            <Link
+              to="/notifications"
+              onClick={() => setOpen(false)}
+              style={{ fontSize: 12, color: '#86c7a3', textDecoration: 'none' }}
+            >
+              View all
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

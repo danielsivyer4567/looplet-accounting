@@ -20,10 +20,10 @@ const REPORTS = [
     status: 'planned',
   },
   {
-    to: null,
+    to: '/reports/balance-sheet',
     title: 'Balance sheet',
-    description: 'Assets (bank balances, AR), liabilities (AP, debts), equity. Needs general-ledger schema first.',
-    status: 'planned',
+    description: 'Assets (bank balances, AR), liabilities (AP, debts), equity. Approximate — based on bills/invoices, not a true GL ledger.',
+    status: 'live',
   },
   {
     to: null,

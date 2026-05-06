@@ -128,16 +128,16 @@ export function ReconciliationPage() {
   const matchToBill = async (txnId: string, billId: string) => {
     setBusyId(txnId);
     try {
-      const { error: txnErr } = await supabase
-        .from('bank_transactions')
-        .update({ matched_bill_id: billId, manually_matched: true, match_confidence: 1.0 })
-        .eq('id', txnId);
-      if (txnErr) throw txnErr;
-      const { error: billErr } = await supabase
-        .from('bills')
-        .update({ paid_at: new Date().toISOString(), status: 'paid' })
-        .eq('id', billId);
-      if (billErr) throw billErr;
+      // Atomic RPC — both updates in one tx so a connection drop can't
+      // leave the bank txn matched but the bill still 'attached'.
+      const { data, error: rpcErr } = await supabase.rpc('reconcile_match_bill', {
+        p_bank_transaction_id: txnId,
+        p_bill_id: billId,
+        p_match_confidence: 1.0,
+      });
+      if (rpcErr) throw rpcErr;
+      const result = data as { ok: boolean; error?: string } | null;
+      if (result && !result.ok) throw new Error(result.error ?? 'reconcile_match_bill failed');
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -147,26 +147,17 @@ export function ReconciliationPage() {
   };
 
   const matchToInvoice = async (txnId: string, invoiceId: string, amountCents: number) => {
-    if (!currentOrg) return;
     setBusyId(txnId);
     try {
-      // 1. Mark the bank txn as matched
-      const { error: txnErr } = await supabase
-        .from('bank_transactions')
-        .update({ matched_invoice_id: invoiceId, manually_matched: true, match_confidence: 1.0 })
-        .eq('id', txnId);
-      if (txnErr) throw txnErr;
-      // 2. Insert an invoice_payment for the matched amount — triggers
-      //    invoices_apply_payment which auto-flips status to paid/partially_paid.
-      const { error: payErr } = await supabase.from('invoice_payments').insert({
-        organization_id: currentOrg.id,
-        invoice_id: invoiceId,
-        bank_transaction_id: txnId,
-        amount_cents: amountCents,
-        method: 'bank',
-        notes: 'Auto-matched from bank reconciliation',
+      const { data, error: rpcErr } = await supabase.rpc('reconcile_match_invoice', {
+        p_bank_transaction_id: txnId,
+        p_invoice_id: invoiceId,
+        p_amount_cents: amountCents,
+        p_match_confidence: 1.0,
       });
-      if (payErr) throw payErr;
+      if (rpcErr) throw rpcErr;
+      const result = data as { ok: boolean; error?: string } | null;
+      if (result && !result.ok) throw new Error(result.error ?? 'reconcile_match_invoice failed');
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -175,21 +166,16 @@ export function ReconciliationPage() {
     }
   };
 
-  const undoMatch = async (txnId: string, billId: string | null, invoiceId: string | null) => {
+  const undoMatch = async (txnId: string, _billId: string | null, _invoiceId: string | null) => {
     if (!confirm('Undo this match?')) return;
     setBusyId(txnId);
     try {
-      await supabase
-        .from('bank_transactions')
-        .update({ matched_bill_id: null, matched_invoice_id: null, manually_matched: false, match_confidence: null })
-        .eq('id', txnId);
-      if (billId) {
-        await supabase.from('bills').update({ paid_at: null, status: 'attached' }).eq('id', billId);
-      }
-      if (invoiceId) {
-        // Delete any auto-created payment for this txn; trigger flips invoice status back
-        await supabase.from('invoice_payments').delete().eq('bank_transaction_id', txnId);
-      }
+      const { data, error: rpcErr } = await supabase.rpc('reconcile_undo_match', {
+        p_bank_transaction_id: txnId,
+      });
+      if (rpcErr) throw rpcErr;
+      const result = data as { ok: boolean; error?: string } | null;
+      if (result && !result.ok) throw new Error(result.error ?? 'reconcile_undo_match failed');
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOrg } from '@/contexts/OrgContext';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { OrgSelector } from './OrgSelector';
+import { NotificationBell } from './NotificationBell';
 
 const navItems = [
   { to: '/', label: 'Dashboard', end: true },
@@ -21,6 +22,7 @@ const navItems = [
   { to: '/reports', label: 'Reports' },
   { to: '/quality', label: 'Quality' },
   { to: '/settings', label: 'Settings' },
+  { to: '/notifications', label: 'Notifications' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -169,6 +171,7 @@ export function Layout() {
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexShrink: 0 }}>
+            <NotificationBell />
             {!isMobile && (
               <span style={{ color: '#888', fontSize: 13 }}>{user?.email}</span>
             )}
