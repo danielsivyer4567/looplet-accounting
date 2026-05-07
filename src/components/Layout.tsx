@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrg } from '@/contexts/OrgContext';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useAccountantHeartbeat } from '@/hooks/useAccountantHeartbeat';
 import { OrgSelector } from './OrgSelector';
 import { NotificationBell } from './NotificationBell';
 
@@ -77,6 +78,9 @@ export function Layout() {
   const { currentOrg } = useOrg();
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // No-op for non-accountants; for accountant role it logs pageviews + heartbeats.
+  useAccountantHeartbeat();
 
   const closeDrawer = () => setDrawerOpen(false);
 
