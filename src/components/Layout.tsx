@@ -9,6 +9,7 @@ import { NotificationBell } from './NotificationBell';
 const navItems = [
   { to: '/', label: 'Dashboard', end: true },
   { to: '/ask', label: '✦ Ask' },
+  { to: '/scan', label: '✦ Scan' },
   { to: '/onboarding', label: 'Auto Setup' },
   { to: '/bills', label: 'Bills' },
   { to: '/payment-runs', label: 'Payment Runs' },
