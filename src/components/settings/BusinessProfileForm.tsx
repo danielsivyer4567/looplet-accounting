@@ -75,6 +75,33 @@ export function BusinessProfileForm() {
     else setMsg('Saved. The /ask bot will use this profile on every question.');
   };
 
+  const autoDetect = async () => {
+    setSaving(true); setMsg(null); setErr(null);
+    const { data, error } = await supabase.rpc('business_profile_autodetect', { p_org_id: currentOrg.id });
+    setSaving(false);
+    if (error) {
+      setErr(error.message);
+      return;
+    }
+    const detected = data as Record<string, unknown>;
+    setProfile((p) => ({
+      ...p,
+      employees_count: (detected.employees_count as number) ?? p.employees_count,
+      subbies_count: (detected.subbies_count as number) ?? p.subbies_count,
+      is_gst_registered: (detected.is_gst_registered as boolean) ?? p.is_gst_registered,
+      estimated_annual_turnover_cents: (detected.estimated_annual_turnover_cents as number) ?? p.estimated_annual_turnover_cents,
+      aggregated_turnover_bracket: (detected.aggregated_turnover_bracket as string) ?? p.aggregated_turnover_bracket,
+      is_paygw_registered: (detected.is_paygw_registered as boolean) ?? p.is_paygw_registered,
+      is_paygi_registered: (detected.is_paygi_registered as boolean) ?? p.is_paygi_registered,
+      is_workcover_registered: (detected.is_workcover_registered as boolean) ?? p.is_workcover_registered,
+      is_tpar_required: (detected.is_tpar_required as boolean) ?? p.is_tpar_required,
+      bas_frequency: (detected.bas_frequency as string) ?? p.bas_frequency,
+      bas_paygw_included: (detected.bas_paygw_included as boolean) ?? p.bas_paygw_included,
+      vehicle_count: (detected.vehicle_count as number) ?? p.vehicle_count,
+    }));
+    setMsg(String(detected.detection_notes ?? 'Auto-detected. Review fields and Save.'));
+  };
+
   const set = <K extends keyof BusinessProfile>(k: K, v: BusinessProfile[K]) =>
     setProfile((p) => ({ ...p, [k]: v }));
 
@@ -213,7 +240,7 @@ export function BusinessProfileForm() {
         </Section>
       </div>
 
-      <div style={{ marginTop: 20, display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div style={{ marginTop: 20, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <button
           onClick={save}
           disabled={saving}
@@ -226,6 +253,20 @@ export function BusinessProfileForm() {
           }}
         >
           {saving ? 'Saving…' : 'Save profile'}
+        </button>
+        <button
+          onClick={autoDetect}
+          disabled={saving}
+          style={{
+            padding: '0.5rem 1rem',
+            background: 'transparent', color: '#7fb6e8',
+            border: '1px solid #1f3a52', borderRadius: 4,
+            fontSize: 12,
+            cursor: saving ? 'wait' : 'pointer',
+          }}
+          title="Infer profile fields from your existing books (employees, subbies, GST, revenue, etc.)"
+        >
+          ✦ Auto-detect from data
         </button>
         {msg && <span style={{ color: '#86c7a3', fontSize: 12 }}>{msg}</span>}
         {err && <span style={{ color: 'salmon', fontSize: 12 }}>{err}</span>}

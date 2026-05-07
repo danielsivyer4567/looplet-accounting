@@ -11,6 +11,7 @@ interface AskResponse {
   data_rows?: Record<string, unknown>[];
   data_row_count?: number;
   sonar_citations?: string[];
+  business_context?: string;
   error?: string;
 }
 
@@ -39,6 +40,7 @@ export function AskPage() {
   const [busy, setBusy] = useState(false);
   const [history, setHistory] = useState<ChatTurn[]>([]);
   const [showSql, setShowSql] = useState<Set<number>>(new Set());
+  const [showCtx, setShowCtx] = useState<Set<number>>(new Set());
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -84,6 +86,15 @@ export function AskPage() {
 
   const toggleSql = (idx: number) => {
     setShowSql((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
+  const toggleCtx = (idx: number) => {
+    setShowCtx((prev) => {
       const next = new Set(prev);
       if (next.has(idx)) next.delete(idx);
       else next.add(idx);
@@ -201,40 +212,40 @@ export function AskPage() {
                         </div>
                       )}
 
-                      {/* SQL transparency */}
-                      {(r.sql || r.sql_error) && (
-                        <div style={{ marginTop: 12, fontSize: 11 }}>
-                          <button
-                            onClick={() => toggleSql(idx)}
-                            style={{
-                              background: 'transparent',
-                              color: '#666',
-                              border: '1px solid #2a2a2a',
-                              borderRadius: 3,
-                              padding: '0.15rem 0.5rem',
-                              fontSize: 10,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            {sqlOpen ? '− hide SQL' : '+ show SQL'}
-                          </button>
+                      {/* Transparency: SQL + business context */}
+                      {(r.sql || r.sql_error || r.business_context) && (
+                        <div style={{ marginTop: 12, fontSize: 11, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            {(r.sql || r.sql_error) && (
+                              <button
+                                onClick={() => toggleSql(idx)}
+                                style={transparencyBtnStyle}
+                              >
+                                {sqlOpen ? '− hide SQL' : '+ show SQL'}
+                              </button>
+                            )}
+                            {r.business_context && (
+                              <button
+                                onClick={() => toggleCtx(idx)}
+                                style={transparencyBtnStyle}
+                                title="What the bot read about your business before answering"
+                              >
+                                {showCtx.has(idx) ? '− hide your profile' : '✦ show what I knew about your business'}
+                              </button>
+                            )}
+                          </div>
                           {sqlOpen && r.sql && (
-                            <pre style={{
-                              marginTop: 6,
-                              padding: 8,
-                              background: '#0a0a0a',
-                              border: '1px solid #2a2a2a',
-                              borderRadius: 3,
-                              fontSize: 11,
-                              color: '#aaa',
-                              whiteSpace: 'pre-wrap',
-                              wordBreak: 'break-word',
-                            }}>{r.sql}</pre>
+                            <pre style={preBlockStyle}>{r.sql}</pre>
                           )}
                           {sqlOpen && r.sql_error && (
-                            <div style={{ marginTop: 6, color: 'salmon', fontSize: 11 }}>
+                            <div style={{ color: 'salmon', fontSize: 11 }}>
                               SQL error: {r.sql_error}
                             </div>
+                          )}
+                          {showCtx.has(idx) && r.business_context && (
+                            <pre style={{ ...preBlockStyle, background: '#0e1820', borderColor: '#1f3a52', color: '#9ab0c0' }}>
+                              {r.business_context}
+                            </pre>
                           )}
                         </div>
                       )}
@@ -400,6 +411,28 @@ function renderAnswerWithCitations(text: string, citations: string[]): React.Rea
     return <span key={i}>{renderBold(part)}</span>;
   });
 }
+
+const transparencyBtnStyle: React.CSSProperties = {
+  background: 'transparent',
+  color: '#7fb6e8',
+  border: '1px solid #1f3a52',
+  borderRadius: 3,
+  padding: '0.15rem 0.5rem',
+  fontSize: 10,
+  cursor: 'pointer',
+};
+
+const preBlockStyle: React.CSSProperties = {
+  margin: 0,
+  padding: 8,
+  background: '#0a0a0a',
+  border: '1px solid #2a2a2a',
+  borderRadius: 3,
+  fontSize: 11,
+  color: '#aaa',
+  whiteSpace: 'pre-wrap',
+  wordBreak: 'break-word',
+};
 
 function renderBold(text: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);

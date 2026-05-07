@@ -115,6 +115,7 @@ Deno.serve(async (req) => {
       data_rows: dataRows.slice(0, 50), // cap to keep response small
       data_row_count: dataRows.length,
       sonar_citations: sonarCitations,
+      business_context: businessContext,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
