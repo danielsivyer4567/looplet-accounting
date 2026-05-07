@@ -127,17 +127,114 @@ async function loadBusinessContext(
   client: ReturnType<typeof createClient>,
   orgId: string,
 ): Promise<string> {
-  const { data, error } = await client
-    .from('v_business_context')
-    .select('*')
-    .eq('organization_id', orgId)
-    .maybeSingle();
-  if (error || !data) return '(no business profile on file — answer for the common case)';
+  // Run all the context queries in parallel for speed
+  const [
+    profileR,
+    topSuppliersR,
+    topCustomersR,
+    apSnapshotR,
+    arSnapshotR,
+    subsR,
+    categoriesR,
+    recentR,
+    pnlR,
+    basR,
+  ] = await Promise.all([
+    client.from('v_business_context').select('*').eq('organization_id', orgId).maybeSingle(),
+    // Top 5 suppliers by spend (lifetime — could refine to YTD)
+    client.rpc('ask_bot_query', {
+      p_sql: `SELECT s.name AS supplier, COUNT(b.id) AS bills_count, SUM(b.total_inc_gst_cents) AS total_cents
+              FROM bills b JOIN suppliers s ON s.id = b.supplier_id
+              WHERE b.organization_id = '${orgId}' AND b.deleted_at IS NULL
+              GROUP BY s.name ORDER BY total_cents DESC NULLS LAST LIMIT 5`,
+      p_max_rows: 5,
+    }),
+    client.rpc('ask_bot_query', {
+      p_sql: `SELECT c.name AS customer, COUNT(i.id) AS invoices_count, SUM(i.total_inc_gst_cents) AS total_cents
+              FROM invoices i JOIN customers c ON c.id = i.customer_id
+              WHERE i.organization_id = '${orgId}' AND i.deleted_at IS NULL
+              GROUP BY c.name ORDER BY total_cents DESC NULLS LAST LIMIT 5`,
+      p_max_rows: 5,
+    }),
+    // AP snapshot (unpaid bills)
+    client.rpc('ask_bot_query', {
+      p_sql: `SELECT COUNT(*) AS unpaid_count, COALESCE(SUM(total_inc_gst_cents), 0) AS unpaid_cents,
+                     COUNT(*) FILTER (WHERE due_date < CURRENT_DATE) AS overdue_count,
+                     COALESCE(SUM(total_inc_gst_cents) FILTER (WHERE due_date < CURRENT_DATE), 0) AS overdue_cents
+              FROM bills WHERE organization_id = '${orgId}' AND deleted_at IS NULL
+                AND status NOT IN ('paid','void') AND total_inc_gst_cents IS NOT NULL`,
+      p_max_rows: 1,
+    }),
+    // AR snapshot (unpaid invoices)
+    client.rpc('ask_bot_query', {
+      p_sql: `SELECT COUNT(*) AS unpaid_count, COALESCE(SUM(balance_due_cents), 0) AS unpaid_cents,
+                     COUNT(*) FILTER (WHERE due_date < CURRENT_DATE) AS overdue_count,
+                     COALESCE(SUM(balance_due_cents) FILTER (WHERE due_date < CURRENT_DATE), 0) AS overdue_cents
+              FROM invoices WHERE organization_id = '${orgId}' AND deleted_at IS NULL
+                AND status NOT IN ('paid','void') AND balance_due_cents > 0`,
+      p_max_rows: 1,
+    }),
+    // Subscription burn — convert all cadences to monthly equivalent
+    client.rpc('ask_bot_query', {
+      p_sql: `SELECT
+                COUNT(*) FILTER (WHERE status NOT IN ('cancelled','dismissed')) AS active_count,
+                COALESCE(SUM(CASE
+                  WHEN cadence = 'monthly' THEN amount_cents
+                  WHEN cadence IN ('yearly','annual') THEN amount_cents / 12
+                  WHEN cadence = 'weekly' THEN amount_cents * 433 / 100
+                  WHEN cadence = 'fortnightly' THEN amount_cents * 217 / 100
+                  WHEN cadence = 'quarterly' THEN amount_cents / 3
+                  ELSE amount_cents
+                END) FILTER (WHERE status NOT IN ('cancelled','dismissed')), 0) AS monthly_total_cents
+              FROM subscriptions WHERE organization_id = '${orgId}'`,
+      p_max_rows: 1,
+    }),
+    // Top spend categories
+    client.rpc('ask_bot_query', {
+      p_sql: `SELECT category_code, COUNT(*) AS bills_count, SUM(total_inc_gst_cents) AS total_cents
+              FROM bills WHERE organization_id = '${orgId}' AND deleted_at IS NULL
+                AND category_code IS NOT NULL
+              GROUP BY category_code ORDER BY total_cents DESC NULLS LAST LIMIT 6`,
+      p_max_rows: 6,
+    }),
+    // Recent 30 days activity
+    client.rpc('ask_bot_query', {
+      p_sql: `WITH r30 AS (SELECT (CURRENT_DATE - 30) AS cutoff)
+              SELECT
+                (SELECT COUNT(*) FROM bills b, r30 WHERE b.organization_id = '${orgId}' AND b.deleted_at IS NULL AND b.invoice_date >= r30.cutoff) AS bills_30d,
+                (SELECT COALESCE(SUM(total_inc_gst_cents), 0) FROM bills b, r30 WHERE b.organization_id = '${orgId}' AND b.deleted_at IS NULL AND b.invoice_date >= r30.cutoff) AS bills_30d_cents,
+                (SELECT COUNT(*) FROM invoices i, r30 WHERE i.organization_id = '${orgId}' AND i.deleted_at IS NULL AND i.issued_at >= r30.cutoff) AS invoices_30d,
+                (SELECT COALESCE(SUM(total_inc_gst_cents), 0) FROM invoices i, r30 WHERE i.organization_id = '${orgId}' AND i.deleted_at IS NULL AND i.issued_at >= r30.cutoff) AS invoices_30d_cents
+              FROM r30`,
+      p_max_rows: 1,
+    }),
+    // Latest P&L snapshot
+    client.from('v_organization_realtime_pnl').select('*').eq('organization_id', orgId).maybeSingle(),
+    // Most recent BAS quarter
+    client.rpc('ask_bot_query', {
+      p_sql: `SELECT fy_start_year, quarter_num, quarter_start, quarter_end, due_date,
+                     sales_inc_gst_cents, gst_collected_cents, gst_paid_cents, net_gst_owed_cents
+              FROM v_bas_quarterly WHERE organization_id = '${orgId}'
+              ORDER BY fy_start_year DESC, quarter_num DESC LIMIT 1`,
+      p_max_rows: 1,
+    }),
+  ]);
 
-  // Build a compact human-readable context block. Skip null/zero values to keep prompt tight.
+  const data = profileR.data as Record<string, unknown> | null;
+  if (!data) return '(no business profile on file — answer for the common case)';
+
+  const fmt = (cents: unknown): string => {
+    if (cents == null || cents === 0) return '$0';
+    const n = Number(cents);
+    return `$${(n / 100).toLocaleString('en-AU', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  };
+
   const parts: string[] = [];
+
+  // STATIC PROFILE
+  parts.push('=== BUSINESS PROFILE ===');
   if (data.organization_name) parts.push(`Business: ${data.organization_name}`);
-  if (data.entity_type) parts.push(`Entity: ${data.entity_type.replace('_', ' ')}`);
+  if (data.entity_type) parts.push(`Entity: ${String(data.entity_type).replace('_', ' ')}`);
   if (data.industry_label) parts.push(`Industry: ${data.industry_label}${data.industry_code ? ` (ANZSIC ${data.industry_code})` : ''}`);
   if (data.state_code) parts.push(`State: ${data.state_code}`);
   if (data.is_gst_registered != null) parts.push(`GST registered: ${data.is_gst_registered ? 'YES' : 'NO'}${data.bas_frequency ? ` (BAS ${data.bas_frequency})` : ''}`);
@@ -148,7 +245,7 @@ async function loadBusinessContext(
       under_50m: 'under $50M (medium business)',
       over_50m: 'over $50M (large business)',
     };
-    parts.push(`Aggregated turnover: ${bracketLabel[data.aggregated_turnover_bracket] ?? data.aggregated_turnover_bracket}`);
+    parts.push(`Aggregated turnover bracket: ${bracketLabel[String(data.aggregated_turnover_bracket)] ?? data.aggregated_turnover_bracket}`);
   }
   const regs: string[] = [];
   if (data.is_fbt_registered) regs.push('FBT');
@@ -156,17 +253,101 @@ async function loadBusinessContext(
   if (data.is_paygw_registered) regs.push('PAYG-W');
   if (data.is_workcover_registered) regs.push('WorkCover');
   if (regs.length) parts.push(`Tax registrations: ${regs.join(', ')}`);
-  if (data.is_tpar_required) parts.push(`TPAR required (pays subbies)`);
+  if (data.is_tpar_required) parts.push(`TPAR required (pays subbies — annual TPAR lodgement obligation)`);
   if (data.employees_count != null) parts.push(`Employees: ${data.employees_count}, subbies: ${data.subbies_count ?? 0}`);
   if (data.vehicle_count) {
-    const v = `${data.vehicle_count} vehicle${data.vehicle_count > 1 ? 's' : ''}`;
+    const v = `${data.vehicle_count} vehicle${Number(data.vehicle_count) > 1 ? 's' : ''}`;
     const usePct = data.primary_vehicle_business_use_pct != null ? `, primary at ${data.primary_vehicle_business_use_pct}% business use` : '';
     const log = data.has_logbook != null ? `, ${data.has_logbook ? 'logbook kept' : 'NO logbook'}` : '';
     parts.push(`Vehicles: ${v}${usePct}${log}`);
   }
-  if (data.office_setup) parts.push(`Office: ${data.office_setup.replace('_', ' ')}`);
-  if (data.live_active_jobs_count) parts.push(`Active jobs: ${data.live_active_jobs_count}`);
+  if (data.office_setup) parts.push(`Office: ${String(data.office_setup).replace('_', ' ')}`);
   if (data.notes) parts.push(`Notes: ${data.notes}`);
+
+  // LIVE FINANCIALS
+  const pnl = pnlR.data as Record<string, unknown> | null;
+  if (pnl) {
+    parts.push('');
+    parts.push('=== LIVE FINANCIALS (current FY) ===');
+    parts.push(`Revenue (inc GST): ${fmt(pnl.revenue_inc_gst_cents)}`);
+    parts.push(`Total cost: ${fmt(pnl.total_cost_cents)}`);
+    parts.push(`Gross profit: ${fmt(pnl.gross_profit_cents)}`);
+    parts.push(`GST collected − paid (set aside): ${fmt(pnl.gst_set_aside_cents)}`);
+    parts.push(`Tax estimated to set aside: ${fmt(pnl.tax_set_aside_cents)}`);
+    parts.push(`"Really yours" (after GST + tax set-aside): ${fmt(pnl.really_yours_cents)}`);
+  }
+
+  // BAS LATEST
+  const bas = (basR.data as Record<string, unknown>[] | null)?.[0];
+  if (bas) {
+    parts.push('');
+    parts.push('=== MOST RECENT BAS QUARTER ===');
+    parts.push(`FY${bas.fy_start_year}-Q${bas.quarter_num} (${bas.quarter_start} to ${bas.quarter_end}, due ${bas.due_date})`);
+    parts.push(`  Sales inc GST: ${fmt(bas.sales_inc_gst_cents)}, GST collected: ${fmt(bas.gst_collected_cents)}, GST paid: ${fmt(bas.gst_paid_cents)}, NET GST owed: ${fmt(bas.net_gst_owed_cents)}`);
+  }
+
+  // AP / AR
+  const ap = (apSnapshotR.data as Record<string, unknown>[] | null)?.[0];
+  const ar = (arSnapshotR.data as Record<string, unknown>[] | null)?.[0];
+  if (ap || ar) {
+    parts.push('');
+    parts.push('=== CASHFLOW POSITION ===');
+    if (ap) parts.push(`Unpaid bills (AP): ${ap.unpaid_count} bills totalling ${fmt(ap.unpaid_cents)} (${ap.overdue_count} overdue, ${fmt(ap.overdue_cents)} past due)`);
+    if (ar) parts.push(`Unpaid invoices (AR): ${ar.unpaid_count} invoices totalling ${fmt(ar.unpaid_cents)} (${ar.overdue_count} overdue, ${fmt(ar.overdue_cents)} past due)`);
+  }
+
+  // SPENDING HABITS
+  const topSuppliers = (topSuppliersR.data as Record<string, unknown>[] | null) ?? [];
+  if (topSuppliers.length > 0) {
+    parts.push('');
+    parts.push('=== TOP 5 SUPPLIERS BY SPEND ===');
+    topSuppliers.forEach((s, i) => {
+      parts.push(`${i + 1}. ${s.supplier} — ${fmt(s.total_cents)} across ${s.bills_count} bills`);
+    });
+  }
+
+  const categories = (categoriesR.data as Record<string, unknown>[] | null) ?? [];
+  if (categories.length > 0) {
+    parts.push('');
+    parts.push('=== TOP SPEND CATEGORIES ===');
+    categories.forEach((c, i) => {
+      parts.push(`${i + 1}. ${c.category_code}: ${fmt(c.total_cents)} (${c.bills_count} bills)`);
+    });
+  }
+
+  // INCOME HABITS
+  const topCustomers = (topCustomersR.data as Record<string, unknown>[] | null) ?? [];
+  if (topCustomers.length > 0) {
+    parts.push('');
+    parts.push('=== TOP 5 CUSTOMERS BY REVENUE ===');
+    topCustomers.forEach((c, i) => {
+      parts.push(`${i + 1}. ${c.customer} — ${fmt(c.total_cents)} across ${c.invoices_count} invoices`);
+    });
+  }
+
+  // SUBSCRIPTIONS
+  const subs = (subsR.data as Record<string, unknown>[] | null)?.[0];
+  if (subs && Number(subs.active_count) > 0) {
+    const monthly = Number(subs.monthly_total_cents);
+    const annual = monthly * 12;
+    parts.push('');
+    parts.push('=== SUBSCRIPTION BURN ===');
+    parts.push(`${subs.active_count} active subs · ${fmt(monthly)}/mo · ${fmt(annual)}/yr`);
+  }
+
+  // RECENT 30 DAYS
+  const recent = (recentR.data as Record<string, unknown>[] | null)?.[0];
+  if (recent && (Number(recent.bills_30d) > 0 || Number(recent.invoices_30d) > 0)) {
+    parts.push('');
+    parts.push('=== LAST 30 DAYS ACTIVITY ===');
+    parts.push(`Bills: ${recent.bills_30d} totalling ${fmt(recent.bills_30d_cents)}`);
+    parts.push(`Invoices: ${recent.invoices_30d} totalling ${fmt(recent.invoices_30d_cents)}`);
+  }
+
+  if (data.live_active_jobs_count) {
+    parts.push('');
+    parts.push(`Active jobs in progress: ${data.live_active_jobs_count}`);
+  }
 
   return parts.join('\n');
 }
