@@ -43,6 +43,7 @@ import { NewPaymentRunPage } from '@/pages/NewPaymentRun';
 import { PaymentRunDetailPage } from '@/pages/PaymentRunDetail';
 import { PayrollPage } from '@/pages/Payroll';
 import { PayRunDetailPage } from '@/pages/PayRunDetail';
+import { AskPage } from '@/pages/Ask';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -106,6 +107,7 @@ export function App() {
             <Route path="payroll/:id" element={<PayRunDetailPage />} />
             <Route path="onboarding" element={<AutoSetupPage />} />
             <Route path="onboarding/triage" element={<TriagePage />} />
+            <Route path="ask" element={<AskPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
