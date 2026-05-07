@@ -594,8 +594,7 @@ export function TriagePage() {
                   <th style={th}>Sample subjects</th>
                   <th style={thRight}>Msgs</th>
                   <th style={thRight}>Att.</th>
-                  <th style={th}>Predicted</th>
-                  <th style={th}>Category</th>
+                  <th style={th}>Category (Xero account)</th>
                   <th style={th}></th>
                 </tr>
               </thead>
@@ -637,11 +636,15 @@ function TriageRow({
 
   const isReviewed = entity.status === 'approved' || entity.status === 'dismissed';
 
-  const sonarKindDiffers = entity.sonar_suggested_kind && entity.sonar_suggested_kind !== kind;
-  const sonarCatDiffers = entity.sonar_suggested_category && entity.sonar_suggested_category !== category;
+  // Derive the kind from the chosen category. User only picks ONE thing.
+  const derivedKind = kindFromCategory(category) ?? kind;
+
+  const sonarDiffers =
+    (entity.sonar_suggested_category && entity.sonar_suggested_category !== category) ||
+    (entity.sonar_suggested_kind && entity.sonar_suggested_kind !== derivedKind);
   const applySonar = () => {
-    if (entity.sonar_suggested_kind) setKind(entity.sonar_suggested_kind);
     if (entity.sonar_suggested_category) setCategory(entity.sonar_suggested_category);
+    if (entity.sonar_suggested_kind) setKind(entity.sonar_suggested_kind);
   };
 
   return (
@@ -685,19 +688,25 @@ function TriageRow({
       <td style={tdRight}>{entity.attachment_count}</td>
       <td style={td}>
         <select
-          value={kind}
-          onChange={(e) => setKind(e.target.value as EntityKind)}
+          value={category ?? ''}
+          onChange={(e) => setCategory(e.target.value || null)}
           disabled={busy || isReviewed}
-          style={selectStyle}
+          style={{ ...selectStyle, minWidth: 220 }}
         >
-          {(['supplier', 'contractor', 'subscription', 'internal_admin', 'customer', 'personal', 'unknown'] as EntityKind[]).map((k) => (
-            <option key={k} value={k}>{kindLabel(k)}</option>
+          <option value="">— pick a category —</option>
+          {categories.map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.label}{c.xero_account_code ? ` (${c.xero_account_code})` : ''}
+            </option>
           ))}
         </select>
-        <div style={{ color: '#666', fontSize: 10, marginTop: 2 }}>
-          {Math.round(entity.confidence * 100)}% · {entity.prediction_reason}
+        <div style={{ color: '#666', fontSize: 10, marginTop: 3 }}>
+          → creates {kindActionLabel(derivedKind)}
+          {' · '}
+          {Math.round(entity.confidence * 100)}% conf
+          {entity.prediction_reason ? ` · ${entity.prediction_reason}` : ''}
         </div>
-        {(sonarKindDiffers || sonarCatDiffers) && !isReviewed && (
+        {sonarDiffers && !isReviewed && (
           <button
             onClick={applySonar}
             disabled={busy}
@@ -707,28 +716,8 @@ function TriageRow({
               border: '1px solid #5096d8', borderRadius: 3,
               fontSize: 10, cursor: 'pointer',
             }}
-            title={`Sonar suggests: ${entity.sonar_suggested_kind ?? '?'}/${entity.sonar_suggested_category ?? '?'} (${entity.sonar_confidence != null ? Math.round(entity.sonar_confidence * 100) : '?'}%)`}
-          >✦ Use Sonar's pick</button>
-        )}
-      </td>
-      <td style={td}>
-        <select
-          value={category ?? ''}
-          onChange={(e) => setCategory(e.target.value || null)}
-          disabled={busy || isReviewed}
-          style={selectStyle}
-        >
-          <option value="">— pick —</option>
-          {categories.map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.label}{c.xero_account_code ? ` (${c.xero_account_code})` : ''}
-            </option>
-          ))}
-        </select>
-        {entity.sonar_suggested_category && entity.sonar_suggested_category !== category && (
-          <div style={{ fontSize: 10, color: '#7fb6e8', marginTop: 2 }}>
-            ✦ Sonar: {entity.sonar_suggested_category}
-          </div>
+            title={`Sonar suggests: ${entity.sonar_suggested_category ?? '?'} (${entity.sonar_confidence != null ? Math.round(entity.sonar_confidence * 100) : '?'}%)`}
+          >✦ Use Sonar's pick: {entity.sonar_suggested_category ?? entity.sonar_suggested_kind}</button>
         )}
       </td>
       <td style={td}>
@@ -739,9 +728,10 @@ function TriageRow({
         ) : (
           <div style={{ display: 'flex', gap: 4 }}>
             <button
-              onClick={() => onApprove(kind, category)}
-              disabled={busy}
-              style={{ ...btn, background: '#1c5135', color: '#86c7a3', borderColor: '#2da565' }}
+              onClick={() => onApprove(derivedKind, category)}
+              disabled={busy || !category}
+              style={{ ...btn, background: '#1c5135', color: '#86c7a3', borderColor: '#2da565', opacity: !category ? 0.5 : 1 }}
+              title={!category ? 'Pick a category first' : `Approve as ${kindActionLabel(derivedKind)}`}
             >
               {busy ? '…' : '✓ Approve'}
             </button>
@@ -768,6 +758,38 @@ function kindLabel(k: EntityKind): string {
     case 'internal_admin': return 'Government / admin';
     case 'personal': return 'Personal';
     case 'unknown': return 'Needs review';
+  }
+}
+
+// What action does approving this row trigger? Used to clarify what happens.
+function kindActionLabel(k: EntityKind): string {
+  switch (k) {
+    case 'supplier': return 'a Supplier record';
+    case 'contractor': return 'a Subcontractor record';
+    case 'customer': return 'a Customer record';
+    case 'subscription': return 'a Subscription record';
+    case 'internal_admin': return 'a Government supplier (gov/admin)';
+    case 'personal': return 'a personal-expense rule (no business record)';
+    case 'unknown': return 'a rule only (no record)';
+  }
+}
+
+// Map a category code to the kind that should be created. Drives the Approve action.
+function kindFromCategory(category: string | null): EntityKind | null {
+  if (!category) return null;
+  switch (category) {
+    case 'customer_payment': return 'customer';
+    case 'personal_expense': return 'personal';
+    case 'subscriptions_saas':
+    case 'telephone_internet': return 'subscription';
+    case 'ato_bas_super': return 'internal_admin';
+    case 'subcontractor': return 'contractor';
+    case 'employee_wages':
+    case 'bank_fees':
+    case 'refunds':
+    case 'uncategorized': return 'unknown';
+    // Everything else = supplier (materials, fuel, motor_vehicle, insurance, rent, utilities, etc.)
+    default: return 'supplier';
   }
 }
 
