@@ -19,7 +19,8 @@ import { corsHeaders, preflight } from '../_shared/cors.ts';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const SONAR_URL = 'https://api.perplexity.ai/chat/completions';
 const GROQ_MODEL = 'llama-3.3-70b-versatile'; // good NL→SQL
-const SONAR_MODEL = 'sonar';
+// sonar-pro = web-grounded with deeper retrieval. Worth ~5x cost for legal/tax grounding.
+const SONAR_MODEL = 'sonar-pro';
 
 type Route = 'data' | 'knowledge' | 'hybrid';
 
@@ -193,7 +194,30 @@ Output JSON ONLY: {"sql": "SELECT ..."}`;
 }
 
 async function askSonar(question: string, sonarKey: string): Promise<{ text: string; citations: string[] }> {
-  const system = `You are an Australian small-business / trades-business accounting expert. Answer the user's question with web-grounded sources. Stay focused on Australian tax rules (ATO, BAS, GST, FBT, super, PAYG), business compliance, and trades-business norms. Be concise (3-6 sentences). Always include citation URLs to ATO, business.gov.au, or other authoritative sources where possible.`;
+  const system = `You are an Australian small-business compliance/tax research assistant. The user is a trades-business owner. Your job is to give a precise, web-grounded, LAW-BACKED answer.
+
+ANSWER STRUCTURE (always):
+1. **Direct answer** — yes/no/it depends, in one sentence.
+2. **The rule** — name the actual law, ATO ruling, section, or determination that applies. Examples:
+   - "ITAA 1997 §8-1" (general deduction)
+   - "ITAA 1997 §40-82 / s328-180" (instant asset write-off)
+   - "GST Act 1999 §11-5" (creditable acquisitions)
+   - "ATO TR 95/14" (taxation ruling)
+   - "ATO ID 2002/761" (interpretive decision)
+   - "FBTAA 1986 §136"
+   - "SGAA 1992" (super guarantee)
+   - "Fair Work Act 2009 §90"
+3. **Conditions / caveats** — what must be true for it to apply.
+4. **Citations** — every factual claim must have an inline [n] marker tied to a URL. Prefer in this order: ato.gov.au, legislation.gov.au, business.gov.au, fairwork.gov.au, asic.gov.au, abr.business.gov.au, then reputable accounting firms (BDO, KPMG, RSM, etc.).
+
+RULES:
+- NEVER make up section numbers or ATO ruling IDs. If you can't find one, say "I couldn't find a specific ruling — general principle is..."
+- Australian rules only. Don't cite IRS/HMRC.
+- Use Australian dates (DD MMM YYYY).
+- Trades-business context: utes, tools, fencing materials, subbies, BAS quarterly, PAYG instalments, FBT on private use of work vehicles.
+- Be concise (5-10 sentences total) but don't skip the rule citation.
+- If the question is genuinely ambiguous, identify the 2 most likely interpretations and answer both briefly.
+- Never tell the user to "consult an accountant" as a cop-out. Give them the actual rule. They can decide if they need an accountant from there.`;
 
   const resp = await fetch(SONAR_URL, {
     method: 'POST',
@@ -233,19 +257,25 @@ async function synthesize(
         : '';
 
   const sonarBlock = sonarText
-    ? `Sonar (web-grounded AU-tax knowledge):\n${sonarText}`
+    ? `Sonar (web-grounded AU-tax/law research with citations):\n${sonarText}`
     : '';
 
-  const system = `You are a friendly, sharp assistant for an Australian trades-business owner. Synthesize a single natural-language answer to the user's question, drawing on the data and/or knowledge sources provided.
+  const system = `You are a paralegal-grade assistant for an Australian trades-business owner. Synthesize a single law-backed answer.
 
-Guidelines:
-- Be concise (under 150 words usually).
-- Format money as AUD with $ and thousand separators (e.g., $12,450.00). Cents are stored as bigint — divide by 100.
-- If you have data rows, summarise the headline number first, then 1-2 supporting details.
-- If Sonar gave AU-tax context, weave it in naturally with [1], [2] citation markers — the UI will render the actual links.
-- Never invent numbers. Only use what's in the data block. If data is empty, say so.
-- Use Australian dates (DD MMM YYYY).
-- Write like a friendly accountant, not a chatbot. No "Hello! As an AI..." preamble.`;
+OUTPUT FORMAT:
+- **Bold the direct answer** in the first sentence (yes / no / it depends).
+- Then state the rule with the ATO ruling / ITAA section / GST Act section / Fair Work Act section that backs it. Use the exact citation marker [n] from the Sonar source — DO NOT renumber or invent markers.
+- List 1-3 conditions/caveats as bullet points if applicable.
+- If the user provided data, weave the actual numbers in.
+- Format money as AUD with $ and thousand separators. Cents stored as bigint → divide by 100.
+- Australian dates (DD MMM YYYY).
+
+CRITICAL:
+- NEVER invent section numbers, ATO IDs, or rulings. Only use what's in the Sonar block.
+- NEVER renumber citations. Sonar gives them as [1], [2], etc. — KEEP those exact markers.
+- NEVER say "consult your accountant" as the whole answer. Give the rule first.
+- If Sonar didn't return a clear citation, say "I couldn't find a specific ruling for this exact case — general principle is..."
+- No "Hello!" / "As an AI..." / "I'd be happy to..." preamble. Get straight to the answer.`;
 
   const user = `Question: ${question}\n\n${dataBlock}\n\n${sonarBlock}`;
 

@@ -21,14 +21,16 @@ interface ChatTurn {
 }
 
 const SUGGESTED_QUESTIONS = [
-  'What was my BAS GST last quarter?',
+  'Can I claim my new ute under instant asset write-off?',
+  'Are tools under $300 immediately deductible or do I depreciate?',
+  'Do I need to charge GST on a $50 deposit before work starts?',
+  'When does my next BAS need to be lodged?',
+  'Is FBT payable on a ute used 80% for work, 20% personal?',
+  'What records do I need to keep for ATO substantiation on fuel?',
+  'Can I claim home-office deductions as a tradie working out of a ute?',
+  'What\'s the super guarantee rate I owe my subbies vs employees?',
   'Show me my P&L year-to-date',
   'Top 5 suppliers by spend YTD',
-  'Unpaid bills overdue more than 14 days',
-  'Is my Bunnings spend within ATO substantiation rules?',
-  'What\'s the deadline for Q3 BAS lodgement?',
-  'Are tools and equipment under $300 deductible?',
-  'How much GST do I owe right now?',
 ];
 
 export function AskPage() {
@@ -175,7 +177,7 @@ export function AskPage() {
                         )}
                       </div>
 
-                      <div style={{ whiteSpace: 'pre-wrap' }}>{r.answer}</div>
+                      <div style={{ whiteSpace: 'pre-wrap' }}>{renderAnswerWithCitations(r.answer ?? '', r.sonar_citations ?? [])}</div>
 
                       {/* Data table preview */}
                       {r.data_rows && r.data_rows.length > 0 && (
@@ -356,4 +358,54 @@ function Pill({ text, colour, bg }: { text: string; colour: string; bg: string }
       fontWeight: 500,
     }}>{text}</span>
   );
+}
+
+// Renders the synthesized answer text with:
+//  - [n] markers → clickable superscript links to Sonar citation URLs
+//  - **bold** markdown → <strong>
+//  - bullet "- " line prefixes preserved
+function renderAnswerWithCitations(text: string, citations: string[]): React.ReactNode {
+  // Split on [n] preserving the markers
+  const parts = text.split(/(\[\d+\])/g);
+  return parts.map((part, i) => {
+    const m = /^\[(\d+)\]$/.exec(part);
+    if (m) {
+      const n = parseInt(m[1]!, 10);
+      const url = citations[n - 1];
+      if (url) {
+        return (
+          <a
+            key={i}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: '#7fb6e8',
+              fontSize: 10,
+              verticalAlign: 'super',
+              textDecoration: 'none',
+              padding: '1px 4px',
+              background: '#0e1820',
+              border: '1px solid #1f3a52',
+              borderRadius: 3,
+              marginLeft: 2,
+            }}
+            title={url}
+          >[{n}]</a>
+        );
+      }
+      return <sup key={i} style={{ color: '#666', fontSize: 10 }}>{part}</sup>;
+    }
+    // Render **bold** within this part
+    return <span key={i}>{renderBold(part)}</span>;
+  });
+}
+
+function renderBold(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    const m = /^\*\*([^*]+)\*\*$/.exec(part);
+    if (m) return <strong key={i} style={{ color: '#fff' }}>{m[1]}</strong>;
+    return <span key={i}>{part}</span>;
+  });
 }
