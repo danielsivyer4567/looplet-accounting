@@ -75,6 +75,9 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
+    // 0. LOAD BUSINESS CONTEXT — feeds into Sonar + synthesizer prompts
+    const businessContext = await loadBusinessContext(userClient, body.organization_id);
+
     // 1. ROUTE
     const route = await routeQuestion(body.question, groqKey);
 
@@ -95,13 +98,13 @@ Deno.serve(async (req) => {
     // 3. SONAR AGENT (knowledge + hybrid) — kicked off in parallel below would be ideal,
     // but for clarity we run sequentially. Sonar takes 2-4s typically.
     if ((route === 'knowledge' || route === 'hybrid') && sonarKey) {
-      const sonarResult = await askSonar(body.question, sonarKey);
+      const sonarResult = await askSonar(body.question, businessContext, sonarKey);
       sonarText = sonarResult.text;
       sonarCitations = sonarResult.citations;
     }
 
     // 4. SYNTHESIZE
-    const answer = await synthesize(body.question, dataRows, sonarText, sqlError, route, groqKey);
+    const answer = await synthesize(body.question, dataRows, sonarText, sqlError, route, businessContext, groqKey);
 
     return json({
       ok: true,
@@ -118,6 +121,54 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: msg }, 500);
   }
 });
+
+async function loadBusinessContext(
+  client: ReturnType<typeof createClient>,
+  orgId: string,
+): Promise<string> {
+  const { data, error } = await client
+    .from('v_business_context')
+    .select('*')
+    .eq('organization_id', orgId)
+    .maybeSingle();
+  if (error || !data) return '(no business profile on file — answer for the common case)';
+
+  // Build a compact human-readable context block. Skip null/zero values to keep prompt tight.
+  const parts: string[] = [];
+  if (data.organization_name) parts.push(`Business: ${data.organization_name}`);
+  if (data.entity_type) parts.push(`Entity: ${data.entity_type.replace('_', ' ')}`);
+  if (data.industry_label) parts.push(`Industry: ${data.industry_label}${data.industry_code ? ` (ANZSIC ${data.industry_code})` : ''}`);
+  if (data.state_code) parts.push(`State: ${data.state_code}`);
+  if (data.is_gst_registered != null) parts.push(`GST registered: ${data.is_gst_registered ? 'YES' : 'NO'}${data.bas_frequency ? ` (BAS ${data.bas_frequency})` : ''}`);
+  if (data.aggregated_turnover_bracket && data.aggregated_turnover_bracket !== 'unknown') {
+    const bracketLabel: Record<string, string> = {
+      under_2m: 'under $2M (small business entity, simplified depreciation eligible)',
+      under_10m: 'under $10M (small business entity)',
+      under_50m: 'under $50M (medium business)',
+      over_50m: 'over $50M (large business)',
+    };
+    parts.push(`Aggregated turnover: ${bracketLabel[data.aggregated_turnover_bracket] ?? data.aggregated_turnover_bracket}`);
+  }
+  const regs: string[] = [];
+  if (data.is_fbt_registered) regs.push('FBT');
+  if (data.is_paygi_registered) regs.push('PAYG-I');
+  if (data.is_paygw_registered) regs.push('PAYG-W');
+  if (data.is_workcover_registered) regs.push('WorkCover');
+  if (regs.length) parts.push(`Tax registrations: ${regs.join(', ')}`);
+  if (data.is_tpar_required) parts.push(`TPAR required (pays subbies)`);
+  if (data.employees_count != null) parts.push(`Employees: ${data.employees_count}, subbies: ${data.subbies_count ?? 0}`);
+  if (data.vehicle_count) {
+    const v = `${data.vehicle_count} vehicle${data.vehicle_count > 1 ? 's' : ''}`;
+    const usePct = data.primary_vehicle_business_use_pct != null ? `, primary at ${data.primary_vehicle_business_use_pct}% business use` : '';
+    const log = data.has_logbook != null ? `, ${data.has_logbook ? 'logbook kept' : 'NO logbook'}` : '';
+    parts.push(`Vehicles: ${v}${usePct}${log}`);
+  }
+  if (data.office_setup) parts.push(`Office: ${data.office_setup.replace('_', ' ')}`);
+  if (data.live_active_jobs_count) parts.push(`Active jobs: ${data.live_active_jobs_count}`);
+  if (data.notes) parts.push(`Notes: ${data.notes}`);
+
+  return parts.join('\n');
+}
 
 async function routeQuestion(question: string, groqKey: string): Promise<Route> {
   const system = `You are a router for a small-business accounting Q&A bot. Classify the user's question into ONE of:
@@ -193,8 +244,24 @@ Output JSON ONLY: {"sql": "SELECT ..."}`;
   return { sql, rows, error: null };
 }
 
-async function askSonar(question: string, sonarKey: string): Promise<{ text: string; citations: string[] }> {
-  const system = `You are an Australian small-business compliance/tax research assistant. The user is a trades-business owner. Your job is to give a precise, web-grounded, LAW-BACKED answer.
+async function askSonar(
+  question: string,
+  businessContext: string,
+  sonarKey: string,
+): Promise<{ text: string; citations: string[] }> {
+  const system = `You are an Australian small-business compliance/tax research assistant. The user is a trades-business owner. Your job is to give a precise, web-grounded, LAW-BACKED answer TAILORED to their specific situation.
+
+USER'S BUSINESS PROFILE (use this to filter which rules apply):
+${businessContext}
+
+When citing rules, use the profile to be specific:
+- If they're a sole trader with turnover under $10M → they're a "small business entity" eligible for §328-180 instant asset write-off, simplified depreciation pool, etc.
+- If they're a company → different tax rate (25% base rate entity if applicable), different FBT treatment.
+- If GST registered + quarterly BAS → reference GST §11-5 creditable acquisitions, BAS quarterly due dates.
+- If state=QLD → mention QLD-specific rules (payroll tax threshold $1.3M annually, WorkCover Queensland).
+- If they have subbies + TPAR required → reference TPAR lodgement obligations.
+- If primary vehicle has X% business use → use that exact % in apportionment examples.
+- If they have NO logbook but use vehicle for business → flag this is a problem for FBT/cents-per-km method limits.
 
 ANSWER STRUCTURE (always):
 1. **Direct answer** — yes/no/it depends, in one sentence.
@@ -246,6 +313,7 @@ async function synthesize(
   sonarText: string | null,
   sqlError: string | null,
   route: Route,
+  businessContext: string,
   groqKey: string,
 ): Promise<string> {
   const dataBlock = dataRows.length > 0
@@ -277,7 +345,7 @@ CRITICAL:
 - If Sonar didn't return a clear citation, say "I couldn't find a specific ruling for this exact case — general principle is..."
 - No "Hello!" / "As an AI..." / "I'd be happy to..." preamble. Get straight to the answer.`;
 
-  const user = `Question: ${question}\n\n${dataBlock}\n\n${sonarBlock}`;
+  const user = `User's business profile:\n${businessContext}\n\nQuestion: ${question}\n\n${dataBlock}\n\n${sonarBlock}\n\nSynthesize an answer tailored to THIS user's profile. Use their actual entity type, GST status, vehicle %, etc. when stating which rules apply.`;
 
   const resp = await fetch(GROQ_URL, {
     method: 'POST',

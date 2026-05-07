@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { OrgProfileForm } from '@/components/settings/OrgProfile';
+import { BusinessProfileForm } from '@/components/settings/BusinessProfileForm';
 import { GmailConnect } from '@/components/settings/GmailConnect';
 import { BankConnect } from '@/components/settings/BankConnect';
 import { XeroConnect } from '@/components/settings/XeroConnect';
@@ -11,6 +12,10 @@ export function SettingsPage() {
       <h1>Settings</h1>
 
       <OrgProfileForm />
+
+      <div style={{ marginTop: '2.5rem', borderTop: '1px solid #2a2a2a', paddingTop: '1.5rem' }}>
+        <BusinessProfileForm />
+      </div>
 
       <div style={{ marginTop: '2.5rem', borderTop: '1px solid #2a2a2a', paddingTop: '1.5rem' }}>
         <GmailConnect />
