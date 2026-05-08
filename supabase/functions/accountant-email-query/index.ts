@@ -31,7 +31,7 @@ import { corsHeaders, preflight } from '../_shared/cors.ts';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const RESEND_URL = 'https://api.resend.com/emails';
-const FROM_ADDR = 'Looplet Accounting <noreply@app.looplet.com.au>';
+const FROM_ADDR = 'Looplet Accounting <noreply@loopletai.com.au>';
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 interface ParsedEmail {
