@@ -15,7 +15,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 
 const RESEND_URL = 'https://api.resend.com/emails';
-const FROM_ADDR = 'Looplet Accounting <noreply@accounting.looplet.com.au>';
+const FROM_ADDR = 'Looplet Accounting <noreply@app.looplet.com.au>';
 
 interface RequestBody {
   session_id?: string;
