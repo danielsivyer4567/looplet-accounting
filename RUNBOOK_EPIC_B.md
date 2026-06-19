@@ -7,10 +7,11 @@ Project: `dxoikltymmknxqpkpyhi` · Branch: `epic-b-fill-the-books`
 - **B1 — reliable OCR.** New `supabase/functions/_shared/ocr/minimax.ts` (MiniMax-M3 vision,
   OpenAI-compatible). `ocr/index.ts` defaults to the `minimax` provider. Model `MiniMax-M3`,
   override with `MINIMAX_VISION_MODEL`.
-  - **PDFs:** MiniMax is image-only — born-digital PDFs still resolve via the text-layer path,
-    but image-based/scanned PDFs fall back to the manual-entry stub. `anthropic.ts`
-    (Claude, native PDF) remains available: set `OCR_PROVIDER=anthropic` + `ANTHROPIC_API_KEY`
-    if you need scanned PDFs OCR'd.
+  - **PDFs:** `pdfRasterize.ts` (MuPDF.js WASM) renders the PDF's first page to a PNG, which
+    MiniMax then OCRs — works for **born-digital AND scanned** PDFs. Born-digital PDFs still
+    take the cheap text-layer path first; only those that fail fall through to rasterize+vision.
+    Corrupt/encrypted PDFs that can't render fall back to the manual-entry stub. `anthropic.ts`
+    (Claude, native PDF) also remains available via `OCR_PROVIDER=anthropic`.
 - **B1 — GST capture.** `bills-extract` derives GST when the supplier didn't itemise it
   (AU 1/11 of the inclusive total, or total − subtotal), flagged `gst_estimated=true`.
   New column `bills.gst_estimated` (migration **0058**, applied live).

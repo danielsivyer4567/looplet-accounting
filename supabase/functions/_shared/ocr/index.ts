@@ -37,46 +37,59 @@ export async function extractBillData(
 ): Promise<{ data: ExtractedBill; raw: string; provider: OCRProvider }> {
   const provider = getActiveProvider();
 
-  // Claude reads PDFs natively (born-digital and scanned). MiniMax/groq/openai
-  // vision are image-only, and Deno-edge can't easily rasterize
-  // (poppler/pdfjs+canvas). For those providers, fall back to a graceful
-  // "needs manual entry" result for image-based PDFs the text path gave up on.
+  // Bytes/mime actually sent to the vision model. Image-only providers
+  // (MiniMax/groq/openai) can't read PDFs, so we rasterize the PDF's first
+  // page to a PNG and OCR that — works for born-digital AND scanned PDFs.
+  // Anthropic reads PDFs natively, so it gets the original bytes.
+  let ocrBytes = imageBytes;
+  let ocrMime = mimeType;
+
   if (mimeType === 'application/pdf' && !PDF_CAPABLE.has(provider)) {
-    return {
-      data: {
-        supplier_name: null,
-        supplier_abn: null,
-        invoice_number: null,
-        invoice_date: null,
-        due_date: null,
-        subtotal_ex_gst: null,
-        gst_amount: null,
-        total_inc_gst: null,
-        currency: 'AUD',
-        line_items: [],
-        job_reference: null,
-        confidence: 'low',
-        notes: `Image-based PDF — text extraction failed and ${provider} vision can't read PDFs. Set ANTHROPIC_API_KEY / OCR_PROVIDER=anthropic to OCR PDFs, or enter fields manually.`,
-      },
-      raw: '{}',
-      provider,
-    };
+    try {
+      const { rasterizePdfToPng } = await import('./pdfRasterize.ts');
+      const pages = await rasterizePdfToPng(imageBytes, { maxPages: 1, dpi: 200 });
+      if (pages.length === 0 || !pages[0]) throw new Error('no pages rendered');
+      ocrBytes = pages[0];
+      ocrMime = 'image/png';
+    } catch (err) {
+      // Corrupt/encrypted PDF or rasterizer failure → graceful manual-entry stub.
+      const msg = err instanceof Error ? err.message : String(err);
+      return {
+        data: {
+          supplier_name: null,
+          supplier_abn: null,
+          invoice_number: null,
+          invoice_date: null,
+          due_date: null,
+          subtotal_ex_gst: null,
+          gst_amount: null,
+          total_inc_gst: null,
+          currency: 'AUD',
+          line_items: [],
+          job_reference: null,
+          confidence: 'low',
+          notes: `Could not rasterize PDF for OCR (${msg}). Please enter fields manually from the file preview.`,
+        },
+        raw: '{}',
+        provider,
+      };
+    }
   }
 
   let result: { data: ExtractedBill; raw: string };
 
   switch (provider) {
     case 'minimax':
-      result = await extractBillDataMiniMax(imageBytes, mimeType);
+      result = await extractBillDataMiniMax(ocrBytes, ocrMime);
       break;
     case 'anthropic':
-      result = await extractBillDataAnthropic(imageBytes, mimeType);
+      result = await extractBillDataAnthropic(ocrBytes, ocrMime);
       break;
     case 'groq':
-      result = await extractBillDataGroq(imageBytes, mimeType);
+      result = await extractBillDataGroq(ocrBytes, ocrMime);
       break;
     case 'openai':
-      result = await extractBillDataOpenAI(imageBytes, mimeType);
+      result = await extractBillDataOpenAI(ocrBytes, ocrMime);
       break;
     case 'kimi':
       throw new Error(`Provider 'kimi' adapter not yet ported. Use 'anthropic', 'openai', or 'groq'.`);
