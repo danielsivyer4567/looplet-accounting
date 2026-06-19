@@ -6,20 +6,29 @@
 import { extractBillDataGroq } from './groq.ts';
 import { extractBillDataOpenAI } from './openai.ts';
 import { extractBillDataAnthropic } from './anthropic.ts';
+import { extractBillDataMiniMax } from './minimax.ts';
 import type { ExtractedBill } from './prompt.ts';
 
-export type OCRProvider = 'groq' | 'openai' | 'kimi' | 'anthropic';
+export type OCRProvider = 'minimax' | 'groq' | 'openai' | 'kimi' | 'anthropic';
+
+// Providers that can read PDFs natively (vs image-only vision providers, which
+// rely on the upstream born-digital text path for PDFs).
+const PDF_CAPABLE: ReadonlySet<OCRProvider> = new Set(['anthropic']);
 
 export function getActiveProvider(): OCRProvider {
   const raw = (Deno.env.get('OCR_PROVIDER') ?? '').toLowerCase().trim();
-  if (raw === 'groq' || raw === 'openai' || raw === 'kimi' || raw === 'anthropic') {
+  if (
+    raw === 'minimax' || raw === 'groq' || raw === 'openai' ||
+    raw === 'kimi' || raw === 'anthropic'
+  ) {
     return raw;
   }
-  // Default precedence: Anthropic (reliable vision + native PDF) → OpenAI → Groq.
+  // Default precedence: MiniMax → Anthropic → OpenAI → Groq.
+  if (Deno.env.get('MINIMAX_API_KEY')) return 'minimax';
   if (Deno.env.get('ANTHROPIC_API_KEY')) return 'anthropic';
   if (Deno.env.get('OPENAI_API_KEY')) return 'openai';
   if (Deno.env.get('GROQ_API_KEY')) return 'groq';
-  return 'anthropic';
+  return 'minimax';
 }
 
 export async function extractBillData(
@@ -28,11 +37,11 @@ export async function extractBillData(
 ): Promise<{ data: ExtractedBill; raw: string; provider: OCRProvider }> {
   const provider = getActiveProvider();
 
-  // Claude reads PDFs natively (born-digital and scanned). groq/openai vision
-  // cannot, and Deno-edge can't easily rasterize (poppler/pdfjs+canvas). For
-  // those providers only, fall back to a graceful "needs manual entry" result
-  // for image-based PDFs the text path already gave up on.
-  if (mimeType === 'application/pdf' && provider !== 'anthropic') {
+  // Claude reads PDFs natively (born-digital and scanned). MiniMax/groq/openai
+  // vision are image-only, and Deno-edge can't easily rasterize
+  // (poppler/pdfjs+canvas). For those providers, fall back to a graceful
+  // "needs manual entry" result for image-based PDFs the text path gave up on.
+  if (mimeType === 'application/pdf' && !PDF_CAPABLE.has(provider)) {
     return {
       data: {
         supplier_name: null,
@@ -57,6 +66,9 @@ export async function extractBillData(
   let result: { data: ExtractedBill; raw: string };
 
   switch (provider) {
+    case 'minimax':
+      result = await extractBillDataMiniMax(imageBytes, mimeType);
+      break;
     case 'anthropic':
       result = await extractBillDataAnthropic(imageBytes, mimeType);
       break;

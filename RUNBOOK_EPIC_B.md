@@ -4,10 +4,13 @@ Project: `dxoikltymmknxqpkpyhi` · Branch: `epic-b-fill-the-books`
 
 ## What shipped (code + live schema)
 
-- **B1 — reliable OCR.** New `supabase/functions/_shared/ocr/anthropic.ts` (Claude vision +
-  **native PDF** via `document` blocks, structured-output JSON schema). `ocr/index.ts` now
-  defaults to the `anthropic` provider and **no longer stubs PDFs** for it. Model
-  `claude-sonnet-4-6`, override with `ANTHROPIC_VISION_MODEL`.
+- **B1 — reliable OCR.** New `supabase/functions/_shared/ocr/minimax.ts` (MiniMax-M3 vision,
+  OpenAI-compatible). `ocr/index.ts` defaults to the `minimax` provider. Model `MiniMax-M3`,
+  override with `MINIMAX_VISION_MODEL`.
+  - **PDFs:** MiniMax is image-only — born-digital PDFs still resolve via the text-layer path,
+    but image-based/scanned PDFs fall back to the manual-entry stub. `anthropic.ts`
+    (Claude, native PDF) remains available: set `OCR_PROVIDER=anthropic` + `ANTHROPIC_API_KEY`
+    if you need scanned PDFs OCR'd.
 - **B1 — GST capture.** `bills-extract` derives GST when the supplier didn't itemise it
   (AU 1/11 of the inclusive total, or total − subtotal), flagged `gst_estimated=true`.
   New column `bills.gst_estimated` (migration **0058**, applied live).
@@ -19,13 +22,13 @@ Project: `dxoikltymmknxqpkpyhi` · Branch: `epic-b-fill-the-books`
 
 ## You must do (CLI — needs your Supabase auth)
 
-1. **Set the Anthropic key as an edge secret:**
+1. **Set the MiniMax key as an edge secret:**
    ```
-   supabase secrets set ANTHROPIC_API_KEY=sk-ant-... --project-ref dxoikltymmknxqpkpyhi
+   supabase secrets set MINIMAX_API_KEY=... --project-ref dxoikltymmknxqpkpyhi
    ```
-   (Optional: `supabase secrets set ANTHROPIC_VISION_MODEL=claude-sonnet-4-6`)
+   (Optional: `supabase secrets set MINIMAX_VISION_MODEL=MiniMax-M3`)
 
-   Until this is set, `OCR_PROVIDER` defaults to `anthropic` and extraction will error —
+   Until this is set, `OCR_PROVIDER` defaults to `minimax` and extraction will error —
    so set the key **before** the deploy below goes live to intake.
 
 ## Then (Claude can run these once the key is set)
