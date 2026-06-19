@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     const cutoff = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const { data: rows, error } = await admin
       .from('gmail_integrations')
-      .select('id, gmail_address')
+      .select('id, gmail_address, organization_id')
       .eq('is_active', true)
       .lt('watch_expires_at', cutoff);
 
@@ -65,10 +65,19 @@ Deno.serve(async (req) => {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         failed.push({ id: row.id, error: msg });
-        await admin
-          .from('gmail_integrations')
-          .update({ last_error: `watch renew: ${msg}`.slice(0, 500) })
-          .eq('id', row.id);
+        // Distinguish a dead connection (revoked / invalid refresh token) from a
+        // transient blip. On fatal auth errors, DISABLE the integration so the app
+        // shows a "Reconnect Gmail" banner and we stop silently no-op'ing every
+        // day — mirrors Xero's flagConnectionError(disable=true). See AUDIT.md B3.
+        // (Re-connecting via OAuth sets is_active=true again and resumes renewal.)
+        const fatal = /invalid_grant|\(400\)|\(401\)/i.test(msg);
+        const update: Record<string, unknown> = {
+          last_error: `watch renew: ${msg}`.slice(0, 500),
+        };
+        if (fatal) update.is_active = false;
+        await admin.from('gmail_integrations').update(update).eq('id', row.id);
+        // TODO(B3 follow-up): also emit a notification row once the notifications
+        // schema is confirmed, so the disconnect pings the user proactively.
       }
     }
 
