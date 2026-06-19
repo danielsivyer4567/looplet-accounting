@@ -5,6 +5,7 @@
 
 import { extractBillDataGroq } from './groq.ts';
 import { extractBillDataOpenAI } from './openai.ts';
+import { extractBillDataAnthropic } from './anthropic.ts';
 import type { ExtractedBill } from './prompt.ts';
 
 export type OCRProvider = 'groq' | 'openai' | 'kimi' | 'anthropic';
@@ -14,20 +15,24 @@ export function getActiveProvider(): OCRProvider {
   if (raw === 'groq' || raw === 'openai' || raw === 'kimi' || raw === 'anthropic') {
     return raw;
   }
-  if (Deno.env.get('GROQ_API_KEY')) return 'groq';
+  // Default precedence: Anthropic (reliable vision + native PDF) → OpenAI → Groq.
+  if (Deno.env.get('ANTHROPIC_API_KEY')) return 'anthropic';
   if (Deno.env.get('OPENAI_API_KEY')) return 'openai';
-  return 'groq';
+  if (Deno.env.get('GROQ_API_KEY')) return 'groq';
+  return 'anthropic';
 }
 
 export async function extractBillData(
   imageBytes: Uint8Array,
   mimeType: string,
 ): Promise<{ data: ExtractedBill; raw: string; provider: OCRProvider }> {
-  // Image-based PDFs (scanned, photo-of-paper) need rasterization for vision OCR.
-  // Deno-edge can't easily run poppler/pdfjs+canvas. Until that lands we
-  // return a graceful "needs manual entry" result so the caller can mark
-  // the bill verified-with-low-confidence rather than hard-failing.
-  if (mimeType === 'application/pdf') {
+  const provider = getActiveProvider();
+
+  // Claude reads PDFs natively (born-digital and scanned). groq/openai vision
+  // cannot, and Deno-edge can't easily rasterize (poppler/pdfjs+canvas). For
+  // those providers only, fall back to a graceful "needs manual entry" result
+  // for image-based PDFs the text path already gave up on.
+  if (mimeType === 'application/pdf' && provider !== 'anthropic') {
     return {
       data: {
         supplier_name: null,
@@ -42,17 +47,19 @@ export async function extractBillData(
         line_items: [],
         job_reference: null,
         confidence: 'low',
-        notes: 'Image-based PDF — text extraction failed and vision OCR for PDFs is pending. Please enter fields manually from the file preview.',
+        notes: `Image-based PDF — text extraction failed and ${provider} vision can't read PDFs. Set ANTHROPIC_API_KEY / OCR_PROVIDER=anthropic to OCR PDFs, or enter fields manually.`,
       },
       raw: '{}',
-      provider: 'groq',
+      provider,
     };
   }
 
-  const provider = getActiveProvider();
   let result: { data: ExtractedBill; raw: string };
 
   switch (provider) {
+    case 'anthropic':
+      result = await extractBillDataAnthropic(imageBytes, mimeType);
+      break;
     case 'groq':
       result = await extractBillDataGroq(imageBytes, mimeType);
       break;
@@ -60,10 +67,7 @@ export async function extractBillData(
       result = await extractBillDataOpenAI(imageBytes, mimeType);
       break;
     case 'kimi':
-    case 'anthropic':
-      throw new Error(
-        `Provider '${provider}' adapter not yet ported. Use 'groq' or 'openai' for v1.`,
-      );
+      throw new Error(`Provider 'kimi' adapter not yet ported. Use 'anthropic', 'openai', or 'groq'.`);
   }
 
   return { ...result, provider };

@@ -29,6 +29,9 @@ import { routeBill, type RouterResult } from '../_shared/bills/router.ts';
 
 interface RequestBody {
   bill_id: string;
+  // force: skip the SHA-256 dedup cache and re-run real OCR. Used by the
+  // repair backfill so a bill can't copy a failed duplicate's null values.
+  force?: boolean;
 }
 
 const TEXT_CONFIDENCE_THRESHOLD = 0.8;
@@ -120,16 +123,19 @@ Deno.serve(async (req) => {
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
 
-    const { data: cacheRow } = await admin
+    // Only reuse a duplicate that actually captured a total — never copy a
+    // failed (null-amount) extraction. `force` skips the cache entirely.
+    const { data: cacheRow } = body.force ? { data: null } : await admin
       .from('bills')
       .select(
-        'supplier_name_raw, supplier_abn, invoice_number, invoice_date, due_date, total_inc_gst_cents, gst_cents, subtotal_ex_gst_cents, currency_code, job_reference_raw, notes, raw_extracted, ocr_provider, ocr_confidence',
+        'supplier_name_raw, supplier_abn, invoice_number, invoice_date, due_date, total_inc_gst_cents, gst_cents, subtotal_ex_gst_cents, gst_estimated, currency_code, job_reference_raw, notes, raw_extracted, ocr_provider, ocr_confidence',
       )
       .eq('organization_id', bill.organization_id)
       .eq('content_sha256', contentSha256)
       .neq('id', bill.id)
       .is('deleted_at', null)
       .not('raw_extracted', 'is', null)
+      .not('total_inc_gst_cents', 'is', null)
       .limit(1)
       .maybeSingle();
 
@@ -219,6 +225,37 @@ Deno.serve(async (req) => {
   }
 });
 
+/**
+ * Capture GST even when the supplier didn't itemise it.
+ *   - GST read off the document → use it verbatim (estimated=false).
+ *   - total + subtotal both present → GST = total − subtotal (estimated=true).
+ *   - total only → AU standard rate: GST = round(total / 11), subtotal = total − GST.
+ *   - no total → leave null (nothing to derive from).
+ * Estimated GST is flagged so the BAS gate / human review can correct the
+ * GST-free exceptions (fresh food, some services, overseas) before lodgement.
+ */
+export function deriveGstCents(
+  totalCents: number | null,
+  gstCents: number | null,
+  subtotalCents: number | null,
+): { gstCents: number | null; subtotalCents: number | null; estimated: boolean } {
+  if (gstCents != null) {
+    return {
+      gstCents,
+      subtotalCents: subtotalCents ?? (totalCents != null ? totalCents - gstCents : null),
+      estimated: false,
+    };
+  }
+  if (totalCents == null) {
+    return { gstCents: null, subtotalCents, estimated: false };
+  }
+  if (subtotalCents != null && totalCents > subtotalCents) {
+    return { gstCents: totalCents - subtotalCents, subtotalCents, estimated: true };
+  }
+  const derivedGst = Math.round(totalCents / 11);
+  return { gstCents: derivedGst, subtotalCents: totalCents - derivedGst, estimated: true };
+}
+
 async function persistExtraction(
   // deno-lint-ignore no-explicit-any
   admin: any,
@@ -236,6 +273,14 @@ async function persistExtraction(
     || (docMetadata?.taken_at ? docMetadata.taken_at.slice(0, 10) : null)
     || (docMetadata?.created_at ? docMetadata.created_at.slice(0, 10) : null);
 
+  // Derive GST so the books (and BAS) fill even when the document only shows a
+  // total. AU standard-rated supplies are 1/11 of the GST-inclusive total.
+  const { gstCents, subtotalCents, estimated } = deriveGstCents(
+    extracted.total_inc_gst != null ? Math.round(extracted.total_inc_gst * 100) : null,
+    extracted.gst_amount != null ? Math.round(extracted.gst_amount * 100) : null,
+    extracted.subtotal_ex_gst != null ? Math.round(extracted.subtotal_ex_gst * 100) : null,
+  );
+
   await admin
     .from('bills')
     .update({
@@ -247,9 +292,9 @@ async function persistExtraction(
       due_date: extracted.due_date,
       total_inc_gst_cents:
         extracted.total_inc_gst != null ? Math.round(extracted.total_inc_gst * 100) : null,
-      gst_cents: extracted.gst_amount != null ? Math.round(extracted.gst_amount * 100) : null,
-      subtotal_ex_gst_cents:
-        extracted.subtotal_ex_gst != null ? Math.round(extracted.subtotal_ex_gst * 100) : null,
+      gst_cents: gstCents,
+      subtotal_ex_gst_cents: subtotalCents,
+      gst_estimated: estimated,
       currency_code: extracted.currency || 'AUD',
       job_reference_raw: extracted.job_reference,
       notes: extracted.notes || null,

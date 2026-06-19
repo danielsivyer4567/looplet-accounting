@@ -19,6 +19,11 @@ interface RequestBody {
   organization_id?: string;
   max?: number;
   delay_ms?: number;
+  // 'received' (default): drain newly-ingested bills awaiting first OCR.
+  // 'repair': re-OCR bills that already ran but never captured an amount/GST
+  //   (the v1 backfill — e.g. the 247 bills groq left empty). Re-extracts any
+  //   non-void bill missing total or GST regardless of status.
+  mode?: 'received' | 'repair';
 }
 
 Deno.serve(async (req) => {
@@ -56,24 +61,38 @@ Deno.serve(async (req) => {
 
     const max = Math.max(1, Math.min(50, body.max ?? 20));
     const delay_ms = Math.max(500, Math.min(5000, body.delay_ms ?? 2000));
+    const mode = body.mode === 'repair' ? 'repair' : 'received';
 
-    // Pull queue
-    const { data: queue } = await admin
-      .from('bills')
-      .select('id, original_filename')
-      .eq('organization_id', body.organization_id)
-      .eq('status', 'received')
-      .order('created_at', { ascending: true })
-      .limit(max);
-
-    const stats = { processed: 0, succeeded: 0, failed: 0, errors: [] as Array<{ bill_id: string; error: string }> };
-    if (!queue || queue.length === 0) {
-      const { count: stillReceived } = await admin
+    // remainingCount counts what's still outstanding for this mode.
+    const remainingCount = async (): Promise<number> => {
+      let q = admin
         .from('bills')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', body.organization_id)
-        .eq('status', 'received');
-      return json({ ok: true, stats, remaining: stillReceived ?? 0 });
+        .is('deleted_at', null);
+      q = mode === 'repair'
+        ? q.neq('status', 'void').or('total_inc_gst_cents.is.null,gst_cents.is.null')
+        : q.eq('status', 'received');
+      const { count } = await q;
+      return count ?? 0;
+    };
+
+    // Pull queue
+    let queueQ = admin
+      .from('bills')
+      .select('id, original_filename')
+      .eq('organization_id', body.organization_id)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: true })
+      .limit(max);
+    queueQ = mode === 'repair'
+      ? queueQ.neq('status', 'void').or('total_inc_gst_cents.is.null,gst_cents.is.null')
+      : queueQ.eq('status', 'received');
+    const { data: queue } = await queueQ;
+
+    const stats = { processed: 0, succeeded: 0, failed: 0, errors: [] as Array<{ bill_id: string; error: string }> };
+    if (!queue || queue.length === 0) {
+      return json({ ok: true, stats, remaining: await remainingCount(), mode });
     }
 
     const billsExtractUrl = `${supabaseUrl}/functions/v1/bills-extract`;
@@ -88,7 +107,7 @@ Deno.serve(async (req) => {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${serviceKey}`,
           },
-          body: JSON.stringify({ bill_id: bill.id }),
+          body: JSON.stringify({ bill_id: bill.id, force: mode === 'repair' }),
         });
         if (r.ok) {
           const j = await r.json();
@@ -113,18 +132,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Count remaining
-    const { count: remaining } = await admin
-      .from('bills')
-      .select('*', { count: 'exact', head: true })
-      .eq('organization_id', body.organization_id)
-      .eq('status', 'received');
-
     return json({
       ok: true,
       stats,
-      remaining: remaining ?? 0,
+      remaining: await remainingCount(),
       delay_ms,
+      mode,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
