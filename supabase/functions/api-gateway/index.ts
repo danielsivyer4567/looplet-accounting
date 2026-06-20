@@ -4,7 +4,10 @@
 //
 // REQUIRES:
 //   supabase/config.toml -> [functions.api-gateway] verify_jwt = false
-//   secret SUPABASE_JWT_SECRET (the project JWT secret, HS256)
+//   secret CONNECTOR_JWT_SECRET = the project JWT secret (HS256). It can't be
+//   named SUPABASE_JWT_SECRET — Supabase reserves the SUPABASE_ prefix for
+//   secrets, so that name is rejected. Paste the same JWT-secret value
+//   (Dashboard → Settings → API → JWT Secret) into CONNECTOR_JWT_SECRET.
 //
 // RLS WIRING (resolved): the minted token has no auth.uid(), so it carries an
 // `organization_id` claim instead. Migration 0069 extends get_accessible_org_ids()
@@ -18,7 +21,7 @@ import { allowAnonRequest, authenticateApiKey, clientIp, enforceRateLimit, logAp
 import { corsHeaders, preflight } from "../_shared/cors.ts";
 import { requireEnv } from "../_shared/env.ts";
 
-const JWT_SECRET = requireEnv("SUPABASE_JWT_SECRET");
+const JWT_SECRET = requireEnv("CONNECTOR_JWT_SECRET");
 const TTL_SECONDS = 15 * 60;
 
 async function signingKey(): Promise<CryptoKey> {
