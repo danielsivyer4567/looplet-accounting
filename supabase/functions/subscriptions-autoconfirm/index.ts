@@ -15,21 +15,41 @@
  * High-confidence bar (a candidate is auto-confirmed only if ALL hold):
  *   1. status is 'detected' or 'candidate'  (unreviewed — never re-touch a human
  *      decision: 'confirmed' / 'cancelled' / 'dismissed' / 'paused' are left alone)
- *   2. observed_count >= MIN_OCCURRENCES (3)  — recurring across >=3 occurrences
+ *   2. observed_count >= MIN_OCCURRENCES — recurring across >= that many occurrences
  *      of the same supplier (merchant_canonical_key)
  *   3. cadence is a recognised regular cadence (not null)
- *   4. confidence >= MIN_CONFIDENCE (0.80) — the detector's confidence already
- *      blends observation count with gap-regularity (near-identical amount on a
- *      regular cadence), so a high score means both "many times" and "regular".
+ *   4. confidence >= MIN_CONFIDENCE — see the coupling note below.
  *   5. amount_cents > 0 — a real recurring amount was learned.
  *
  * Everything below the bar is left untouched for manual review.
  *
+ * ── Coupling with subscriptions-detect's confidenceScore (IMPORTANT) ──────────
+ * MIN_CONFIDENCE is NOT an independent dial: it is tightly coupled to the exact
+ * score formula in subscriptions-detect/confidenceScore(), which is:
+ *
+ *     obsScore         = min(observed_count / 12, 1) * 0.5   // max 0.5 at 12+ obs
+ *     consistencyScore = max(0, 1 - cv) * 0.5                // max 0.5, cv = stdev/mean of gaps
+ *     confidence       = round((obsScore + consistencyScore) * 100) / 100
+ *
+ * Because consistencyScore is capped at 0.5, confidence can only reach 0.80 once
+ * obsScore >= 0.30, i.e. observed_count >= ~8. Concretely, the lowest observed_count
+ * that can EVER reach confidence 0.80 is 8 (and only with a near-perfect cadence,
+ * cv <= 0.067); the cadence-regularity allowance loosens as observations grow:
+ *     obs= 8 -> cv <= 0.067    obs=10 -> cv <= 0.233
+ *     obs= 9 -> cv <= 0.150    obs=12+ -> cv <= 0.400
+ * Anything with observed_count <= 7 mathematically CANNOT hit 0.80, so a lower
+ * MIN_OCCURRENCES would be dead code. MIN_OCCURRENCES is therefore set to 8 to
+ * match the real floor the confidence bar already implies (defence in depth +
+ * honest intent). If you change confidenceScore's weights/caps in the detector,
+ * RE-DERIVE both MIN_CONFIDENCE and MIN_OCCURRENCES here — they are a pair.
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
  * Idempotency: re-running only ever sees candidates still in 'detected'/'candidate'.
  * Once confirmed they no longer match the WHERE clause, so a second run is a no-op.
  *
- * Auth: service_role bypasses; a user JWT must pass an RLS org-access check
- *   before we touch tenant data with the admin client.
+ * Auth: service-role (raw service key only — NOT a self-asserted JWT role claim)
+ *   bypasses the org check; any other token must be a real user whose access to
+ *   the org is proven by an RLS-enforced read before we touch tenant data.
  *
  * Input:  { organization_id }
  * Output: { ok, stats: { evaluated, auto_confirmed, left_for_review } }
@@ -52,8 +72,11 @@ interface Candidate {
   status: string;
 }
 
+// Coupled to subscriptions-detect/confidenceScore() — see the module header.
+// 0.80 is only reachable once observed_count >= 8 (consistencyScore caps at 0.5),
+// so MIN_OCCURRENCES=8 makes the implied floor explicit rather than dead code.
 const MIN_CONFIDENCE = 0.80;
-const MIN_OCCURRENCES = 3;
+const MIN_OCCURRENCES = 8;
 const REVIEW_STATUSES = ['detected', 'candidate'];
 
 Deno.serve(async (req) => {
@@ -71,17 +94,12 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'Server config missing' }, 500);
     }
 
-    // Tolerant auth: service-role (raw key or service_role JWT) bypasses; user
-    // JWTs must verify org membership through RLS before we touch tenant data.
+    // Service-role detection is by RAW KEY MATCH ONLY. We deliberately do NOT
+    // decode the JWT and trust its `role` claim — an attacker controls the token
+    // body, so a self-asserted role:'service_role' would be forgeable. The only
+    // bearer we treat as service-role is the literal service key.
     const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-    let isServiceRole = token === serviceKey;
-    if (!isServiceRole) {
-      try {
-        const payloadB64 = (token.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/');
-        const payload = JSON.parse(atob(payloadB64 + '='.repeat((4 - payloadB64.length % 4) % 4)));
-        isServiceRole = payload?.role === 'service_role';
-      } catch { /* fall through to RLS check */ }
-    }
+    const isServiceRole = token === serviceKey;
 
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
@@ -90,11 +108,18 @@ Deno.serve(async (req) => {
     const body = (await req.json().catch(() => ({}))) as RequestBody;
     if (!body.organization_id) return json({ ok: false, error: 'organization_id required' }, 400);
 
-    // Org membership check via user-JWT (RLS enforces). Service-role skips.
+    // Any non-service-role caller must be a REAL, verified user with access to the
+    // org. We (a) verify the JWT identifies an actual user via getUser(), then
+    // (b) prove org access through an RLS-enforced read with that same user JWT.
     if (!isServiceRole) {
       const userClient = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
+        auth: { persistSession: false, autoRefreshToken: false },
       });
+      const { data: userData, error: userErr } = await userClient.auth.getUser();
+      if (userErr || !userData?.user) {
+        return json({ ok: false, error: 'Unauthorized' }, 401);
+      }
       const { data: org, error: orgErr } = await userClient
         .from('organizations')
         .select('id')
@@ -132,7 +157,10 @@ Deno.serve(async (req) => {
 
       // Guarded update: re-assert the status precondition in the WHERE clause so
       // two concurrent runs can't both flip the same row (the second update
-      // matches zero rows). confirmed_by stays NULL to mark this as automation.
+      // matches zero rows). organization_id is re-asserted as defence in depth.
+      // confirmation_source='auto' (not an overloaded NULL confirmed_by) is the
+      // authoritative marker that automation made this decision; confirmed_by
+      // stays NULL because no human user confirmed it.
       const { data: updated, error: updErr } = await admin
         .from('subscriptions')
         .update({
@@ -140,11 +168,13 @@ Deno.serve(async (req) => {
           auto_confirmed_at: nowIso,
           confirmed_at: nowIso,
           confirmed_by: null,
+          confirmation_source: 'auto',
           confirmation_reason: reason,
           reviewed_at: nowIso,
           updated_at: nowIso,
         })
         .eq('id', c.id)
+        .eq('organization_id', body.organization_id)
         .in('status', REVIEW_STATUSES)
         .select('id');
 
