@@ -145,12 +145,18 @@ export function BankConnect() {
                     {c.last_synced_at?.slice(0, 16).replace('T', ' ') ?? 'never'}
                   </td>
                   <td style={td}>
-                    <button
-                      onClick={() => handleSync(c.id)}
-                      style={smallBtn}
-                    >
-                      ↻ Sync
-                    </button>
+                    {c.provider === 'basiq' ? (
+                      <button onClick={() => handleSync(c.id)} style={smallBtn}>
+                        ↻ Sync
+                      </button>
+                    ) : (
+                      <span
+                        style={{ color: '#777', fontSize: 11, fontStyle: 'italic' }}
+                        title="Imported from a CSV/PDF statement — not a live bank feed. Use 'Connect bank account (Basiq)' for automatic syncing."
+                      >
+                        imported (no live feed)
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

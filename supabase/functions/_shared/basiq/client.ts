@@ -188,6 +188,26 @@ export async function getConnection(
   };
 }
 
+/** List all connections that exist for a Basiq user (server-side discovery). */
+export async function listConnections(basiqUserId: string): Promise<BasiqConnection[]> {
+  const data = await basiqFetch<{
+    data: Array<{
+      id: string;
+      status: string;
+      institution?: { id: string; name?: string; shortName?: string };
+      lastUsed?: string;
+      expiryDate?: string;
+    }>;
+  }>(`/users/${basiqUserId}/connections`);
+  return (data.data ?? []).map((c) => ({
+    id: c.id,
+    status: c.status,
+    institution: c.institution ?? { id: '' },
+    lastUsed: c.lastUsed,
+    expiryDate: c.expiryDate,
+  }));
+}
+
 export interface BasiqAccount {
   id: string;
   accountNo?: string;          // last digits or full
