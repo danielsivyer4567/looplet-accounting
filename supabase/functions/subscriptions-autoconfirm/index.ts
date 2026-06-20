@@ -77,7 +77,9 @@ interface Candidate {
 // so MIN_OCCURRENCES=8 makes the implied floor explicit rather than dead code.
 const MIN_CONFIDENCE = 0.80;
 const MIN_OCCURRENCES = 8;
-const REVIEW_STATUSES = ['detected', 'candidate'];
+// 'candidate' is the only unreviewed status in the subscription_status enum
+// (candidate|confirmed|dismissed|cancelled). 'detected' was a phantom value.
+const REVIEW_STATUSES = ['candidate'];
 
 Deno.serve(async (req) => {
   const pre = preflight(req);

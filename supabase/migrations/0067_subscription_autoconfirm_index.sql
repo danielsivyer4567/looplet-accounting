@@ -24,5 +24,5 @@ BEGIN
 
   CREATE INDEX IF NOT EXISTS subscriptions_org_candidate_idx
     ON public.subscriptions (organization_id)
-    WHERE status IN ('detected', 'candidate');
+    WHERE status = 'candidate';
 END $$;

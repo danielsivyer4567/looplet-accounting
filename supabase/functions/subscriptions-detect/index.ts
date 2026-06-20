@@ -165,7 +165,9 @@ Deno.serve(async (req) => {
           cadence,
           amount_cents: median,
           currency_code: 'AUD',
-          status: 'detected',
+          // 'candidate' is the unreviewed state in the subscription_status enum
+          // ('detected' was never a real enum label — inserting it errored).
+          status: 'candidate',
           confidence: confidenceScore(filtered.length, gaps),
           first_seen_at: firstSeen,
           last_seen_at: lastSeen,
