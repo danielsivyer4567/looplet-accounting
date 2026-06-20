@@ -24,7 +24,8 @@ import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { extractBillData } from '../_shared/ocr/index.ts';
 import { extractTextFromPdf } from '../_shared/ocr/textExtract.ts';
 import { parseBillHeaders } from '../_shared/ocr/headerParser.ts';
-import type { ExtractedBill } from '../_shared/ocr/prompt.ts';
+import type { DocumentKind, ExtractedBill } from '../_shared/ocr/prompt.ts';
+import { NON_FINANCIAL_KINDS } from '../_shared/ocr/prompt.ts';
 import { routeBill, type RouterResult } from '../_shared/bills/router.ts';
 
 interface RequestBody {
@@ -128,7 +129,7 @@ Deno.serve(async (req) => {
     const { data: cacheRow } = body.force ? { data: null } : await admin
       .from('bills')
       .select(
-        'supplier_name_raw, supplier_abn, invoice_number, invoice_date, due_date, total_inc_gst_cents, gst_cents, subtotal_ex_gst_cents, gst_estimated, currency_code, job_reference_raw, notes, raw_extracted, ocr_provider, ocr_confidence',
+        'supplier_name_raw, supplier_abn, invoice_number, invoice_date, due_date, total_inc_gst_cents, gst_cents, subtotal_ex_gst_cents, gst_estimated, currency_code, job_reference_raw, document_kind, is_probable_bill, notes, raw_extracted, ocr_provider, ocr_confidence',
       )
       .eq('organization_id', bill.organization_id)
       .eq('content_sha256', contentSha256)
@@ -256,6 +257,41 @@ export function deriveGstCents(
   return { gstCents: derivedGst, subtotalCents: totalCents - derivedGst, estimated: true };
 }
 
+/**
+ * Decide whether an extracted document is a probable bill (belongs on the
+ * active bills/BAS surface) or noise to keep out of sight.
+ *
+ * Noise = a non-financial document_kind (logo/photo/ui_screenshot/other),
+ * OR an extraction the model flagged 'low' with no total AND no supplier — the
+ * shape of the mis-filed images (supplier logos, "Pay Now" buttons, photos of
+ * finished fences) the OCR already recognises as "not a financial document".
+ *
+ * Nothing is deleted: is_probable_bill=false just defaults the row out of the
+ * active list and out of BAS scope; it can still be shown via the toggle.
+ */
+export function classifyBill(extracted: {
+  document_kind?: DocumentKind | string | null;
+  confidence?: ExtractedBill['confidence'];
+  total_inc_gst?: number | null;
+  supplier_name?: string | null;
+}): { documentKind: DocumentKind; isProbableBill: boolean } {
+  const documentKind: DocumentKind =
+    NON_FINANCIAL_KINDS.has(extracted.document_kind as DocumentKind) ||
+    ['invoice', 'quote', 'receipt', 'statement', 'order'].includes(
+      extracted.document_kind as string,
+    )
+      ? (extracted.document_kind as DocumentKind)
+      : 'invoice';
+
+  const nonFinancialKind = NON_FINANCIAL_KINDS.has(documentKind);
+  const lowAndEmpty =
+    extracted.confidence === 'low' &&
+    extracted.total_inc_gst == null &&
+    !extracted.supplier_name;
+
+  return { documentKind, isProbableBill: !(nonFinancialKind || lowAndEmpty) };
+}
+
 async function persistExtraction(
   // deno-lint-ignore no-explicit-any
   admin: any,
@@ -281,6 +317,15 @@ async function persistExtraction(
     extracted.subtotal_ex_gst != null ? Math.round(extracted.subtotal_ex_gst * 100) : null,
   );
 
+  // Classify the document so non-invoices (logos, photos of finished fences,
+  // "Pay Now" UI screenshots) are kept off the active bills list and out of BAS.
+  const { documentKind, isProbableBill } = classifyBill({
+    document_kind: extracted.document_kind,
+    confidence: extracted.confidence,
+    total_inc_gst: extracted.total_inc_gst,
+    supplier_name: filledSupplier,
+  });
+
   const { error: updateErr } = await admin
     .from('bills')
     .update({
@@ -297,6 +342,8 @@ async function persistExtraction(
       gst_estimated: estimated,
       currency_code: extracted.currency || 'AUD',
       job_reference_raw: extracted.job_reference,
+      document_kind: documentKind,
+      is_probable_bill: isProbableBill,
       notes: extracted.notes || null,
       raw_extracted: docMetadata
         ? { ...extracted, _document_metadata: docMetadata }

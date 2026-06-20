@@ -75,6 +75,7 @@ export async function extractBillData(
           currency: 'AUD',
           line_items: [],
           job_reference: null,
+          document_kind: 'invoice',
           confidence: 'low',
           notes: `Could not rasterize PDF for OCR (${msg}). Please enter fields manually from the file preview.`,
         },
