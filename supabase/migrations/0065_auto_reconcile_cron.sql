@@ -1,0 +1,48 @@
+-- 0065: pg_cron schedule for the auto-reconcile edge function (EPIC C2).
+--
+-- TRACKED FOR LATER — DO NOT RUN AS-IS. This file documents the intended
+-- schedule but is intentionally inert: the cron.schedule() call is commented
+-- out because (a) it requires the function to be deployed first, and (b) it
+-- needs real <PROJECT_REF> / <AUTO_RECONCILE_CRON_SECRET> values. Registering
+-- it live is a deliberate, separate step.
+--
+-- Auth gate mirrors notifications-cron / bank-sync-all: the function accepts a
+-- service-role bearer OR ?secret=<AUTO_RECONCILE_CRON_SECRET> URL param.
+--
+-- Before enabling:
+--   1. supabase functions deploy auto-reconcile --no-verify-jwt
+--   2. supabase secrets set AUTO_RECONCILE_CRON_SECRET=<random-32-char-string>
+--   3. Replace <PROJECT_REF> and <AUTO_RECONCILE_CRON_SECRET> below and run the
+--      cron.schedule() statement once (uncommented).
+--
+-- The worker has no body, so the cron must iterate orgs itself. Simplest is to
+-- POST once per active org; here we drive a single all-orgs sweep via a thin
+-- SQL loop that calls the function per organization. Runs 03:15 daily, after
+-- the overnight bank-sync but staggered off the 02:30 notifications-cron and
+-- 03:00 xero-sync windows.
+
+-- ----------------------------------------------------------------------------
+-- SELECT cron.schedule(
+--   'auto-reconcile-daily',
+--   '15 3 * * *',  -- 03:15 every day (server tz)
+--   $cron$
+--     SELECT net.http_post(
+--       url := 'https://<PROJECT_REF>.supabase.co/functions/v1/auto-reconcile'
+--              || '?secret=<AUTO_RECONCILE_CRON_SECRET>',
+--       headers := jsonb_build_object('Content-Type', 'application/json'),
+--       body := jsonb_build_object('organization_id', o.id)
+--     )
+--     FROM public.organizations o
+--     WHERE o.deleted_at IS NULL;
+--   $cron$
+-- );
+-- ----------------------------------------------------------------------------
+
+-- To inspect:
+--   SELECT * FROM cron.job WHERE jobname = 'auto-reconcile-daily';
+--   SELECT * FROM cron.job_run_details
+--    WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'auto-reconcile-daily')
+--    ORDER BY start_time DESC LIMIT 10;
+--
+-- To unschedule:
+--   SELECT cron.unschedule('auto-reconcile-daily');
