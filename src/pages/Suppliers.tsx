@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
@@ -9,7 +9,7 @@ import { SkeletonTable } from '@/components/Skeleton';
 // ---------------------------------------------------------------------------
 
 interface BarChartProps {
-  items: Array<{ label: string; value: number }>;
+  items: { label: string; value: number }[];
   max: number;
 }
 

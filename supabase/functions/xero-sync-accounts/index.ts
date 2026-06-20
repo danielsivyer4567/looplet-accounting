@@ -15,7 +15,8 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
-import { callXeroWithRetry, xeroFetch, XeroApiError } from '../_shared/xero/auth.ts';
+import { callXeroWithRetry, xeroFetch } from '../_shared/xero/auth.ts';
+import { requireEnv } from '../_shared/env.ts';
 
 interface XeroAccount {
   AccountID: string;
@@ -45,9 +46,9 @@ Deno.serve(async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  const supabaseUrl = requireEnv('SUPABASE_URL');
+  const serviceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
+  const anonKey = requireEnv('SUPABASE_ANON_KEY');
   const admin = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -117,10 +118,10 @@ Deno.serve(async (req) => {
         // Batch upsert into xero_account_codes
         if (accounts.length > 0) {
           const rows = accounts
-            .filter((a) => a.Code) // skip accounts with no code
+            .filter((a): a is XeroAccount & { Code: string } => Boolean(a.Code)) // skip accounts with no code
             .map((a) => ({
               organization_id: orgId,
-              code: a.Code!,
+              code: a.Code,
               name: a.Name,
               type: a.Type,
               tax_type: a.TaxType ?? null,

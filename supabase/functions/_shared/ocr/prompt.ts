@@ -68,12 +68,12 @@ export interface ExtractedBill {
   gst_amount: number | null;
   total_inc_gst: number | null;
   currency: string;
-  line_items: Array<{
+  line_items: {
     description: string;
     quantity: number;
     unit_price: number;
     total: number;
-  }>;
+  }[];
   job_reference: string | null;
   confidence: 'high' | 'medium' | 'low';
   notes: string;

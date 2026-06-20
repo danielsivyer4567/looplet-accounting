@@ -63,9 +63,11 @@ Deno.serve(async (req) => {
       .eq('status', 'active');
     if (error) return json({ ok: false, error: error.message }, 500);
 
-    const orgIds = Array.from(new Set((rows ?? []).map((r: any) => r.organization_id)));
+    const orgIds = Array.from(
+      new Set((rows ?? []).map((r: { organization_id: string }) => r.organization_id)),
+    );
 
-    const results: Array<{ org: string; ok: boolean; detail?: unknown }> = [];
+    const results: { org: string; ok: boolean; detail?: unknown }[] = [];
     for (const orgId of orgIds) {
       try {
         const res = await fetch(`${supabaseUrl}/functions/v1/bank-sync`, {

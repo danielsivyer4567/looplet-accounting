@@ -32,7 +32,7 @@ export async function extractTextFromPdf(bytes: Uint8Array): Promise<TextExtract
       pageCount: totalPages ?? 1,
       empty: trimmed.length < MIN_USEFUL_CHARS,
     };
-  } catch (err) {
+  } catch {
     // unpdf throws on corrupt or password-protected PDFs — treat as empty
     // so caller falls back to vision.
     return {

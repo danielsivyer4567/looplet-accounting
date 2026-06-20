@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { useBills, type BillListRow } from '@/hooks/useBills';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
@@ -15,7 +15,7 @@ const statusColors: Record<BillListRow['status'], string> = {
   void: '#666',
 };
 
-const filters: Array<{ label: string; value: BillListRow['status'] | null }> = [
+const filters: { label: string; value: BillListRow['status'] | null }[] = [
   { label: 'All', value: null },
   { label: 'Received', value: 'received' },
   { label: 'Verified', value: 'verified' },

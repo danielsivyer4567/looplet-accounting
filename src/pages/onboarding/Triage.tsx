@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import {
   useStagedEntities,
   type StagedEntity,
@@ -139,10 +139,13 @@ export function TriagePage() {
     let done = 0;
     try {
       for (const e of candidates) {
+        const sonarKind = e.sonar_suggested_kind;
+        const sonarCategory = e.sonar_suggested_category;
+        if (sonarKind == null || sonarCategory == null) continue;
         await updateOneInternal(e, {
           status: 'approved',
-          user_kind: e.sonar_suggested_kind!,
-          user_category: e.sonar_suggested_category!,
+          user_kind: sonarKind,
+          user_category: sonarCategory,
         });
         done += 1;
       }
@@ -276,6 +279,8 @@ export function TriagePage() {
   };
 
   const onApprove = async (e: StagedEntity, kind: EntityKind, category: string | null) => {
+    if (!currentOrg) throw new Error('No organisation selected');
+    const orgId = currentOrg.id;
     const matcher_value = e.canonical_key.startsWith('domain:')
       ? e.canonical_key.replace('domain:', '')
       : e.primary_email ?? e.canonical_key.replace('email:', '');
@@ -289,7 +294,7 @@ export function TriagePage() {
         .from('suppliers')
         .upsert(
           {
-            organization_id: currentOrg!.id,
+            organization_id: orgId,
             name: e.display_name,
             email: e.primary_email,
             abn: e.abn,
@@ -305,7 +310,7 @@ export function TriagePage() {
         .from('customers')
         .upsert(
           {
-            organization_id: currentOrg!.id,
+            organization_id: orgId,
             name: e.display_name,
             email: e.primary_email,
           },
@@ -319,7 +324,7 @@ export function TriagePage() {
 
     const isPersonal = kind === 'personal' || category === 'personal_expense';
     const { error: ruleErr } = await supabase.from('intake_rules').insert({
-      organization_id: currentOrg!.id,
+      organization_id: orgId,
       matcher_type,
       matcher_value,
       matcher_priority: matcher_type === 'sender_address' ? 50 : 100,
@@ -339,7 +344,7 @@ export function TriagePage() {
     if (kind === 'subscription' && supplier_id) {
       const { error: subErr } = await supabase.from('subscriptions').upsert(
         {
-          organization_id: currentOrg!.id,
+          organization_id: orgId,
           merchant_name: e.display_name,
           merchant_canonical_key: e.canonical_key,
           supplier_id,

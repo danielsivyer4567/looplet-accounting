@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 
 export type JobStatus = 'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
 
@@ -55,10 +55,11 @@ export function useJobs() {
       setJobs([]);
     } else {
       // Index P&L by job_id for an O(1) merge
-      const pnlByJob = new Map<string, any>();
-      for (const row of (pnlData ?? []) as any[]) pnlByJob.set(row.job_id, row);
+      type PnlRow = { job_id: string } & Partial<JobListRow>;
+      const pnlByJob = new Map<string, PnlRow>();
+      for (const row of (pnlData ?? []) as PnlRow[]) pnlByJob.set(row.job_id, row);
 
-      const merged: JobListRow[] = ((jobsData ?? []) as any[]).map((j) => ({
+      const merged: JobListRow[] = ((jobsData ?? []) as JobListRow[]).map((j) => ({
         ...j,
         ...(pnlByJob.get(j.id) ?? {}),
       }));

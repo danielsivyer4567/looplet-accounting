@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
       .is('deleted_at', null);
     if (orgsErr) return json({ ok: false, error: orgsErr.message }, 500);
 
-    const summary: Array<{ org: string; emitted: number; errors: string[] }> = [];
+    const summary: { org: string; emitted: number; errors: string[] }[] = [];
 
     for (const org of orgs ?? []) {
       const orgId = org.id as string;
@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
           body: msg,
           link: null,
           resource_id: null,
-        }).catch(() => {});
+        }).catch(() => undefined);
       }
 
       summary.push({ org: orgId, emitted, errors });
@@ -253,7 +253,13 @@ async function checkBasDue(admin: SupabaseAdmin, orgId: string, errors: string[]
     const in14 = new Date();
     in14.setDate(today.getDate() + 14);
 
-    const upcoming = (data ?? []).filter((row: any) => {
+    interface BasRow {
+      fy_start_year: number;
+      quarter_num: number;
+      due_date: string | null;
+      net_gst_cents: number | null;
+    }
+    const upcoming = ((data ?? []) as BasRow[]).filter((row) => {
       if (!row.due_date) return false;
       const d = new Date(row.due_date);
       return d >= today && d <= in14;
@@ -292,7 +298,14 @@ async function checkConnectionsExpiring(admin: SupabaseAdmin, orgId: string, err
       .neq('provider', 'manual');
     if (error) throw error;
 
-    const stale = (data ?? []).filter((c: any) => {
+    interface ConnRow {
+      id: string;
+      institution_name: string | null;
+      last_synced_at: string | null;
+      status: string | null;
+      provider: string | null;
+    }
+    const stale = ((data ?? []) as ConnRow[]).filter((c) => {
       if (c.last_synced_at == null) return true; // never synced
       return new Date(c.last_synced_at).toISOString() < cutoff;
     });

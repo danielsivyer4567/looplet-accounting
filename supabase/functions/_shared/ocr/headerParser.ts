@@ -33,7 +33,7 @@ const ABN_RE = /\b(?:ABN[:\s]*)?(\d{2}\s?\d{3}\s?\d{3}\s?\d{3})\b/i;
 const INVOICE_NO_RE =
   /\b(?:tax\s+invoice|invoice|inv)\s*(?:no\.?|number|#)?[:\s]*([A-Z0-9][A-Z0-9-]{2,19})\b/i;
 const DATE_RE_GLOBAL =
-  /\b(\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}|\d{4}-\d{2}-\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{2,4})\b/gi;
+  /\b(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d{4}-\d{2}-\d{2}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{2,4})\b/gi;
 const JOB_REF_RE =
   /\b(?:job\s*(?:no\.?|number|#|ref)?[:\s]*|jb[-\s]?|quote\s*(?:no\.?|#)?[:\s]*|qu[-\s]?)([A-Z0-9-]{2,12})\b/i;
 
@@ -65,7 +65,7 @@ function normaliseDate(raw: string): string | null {
   if (iso) return raw;
 
   // DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY (AU convention)
-  const dmy = raw.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);
+  const dmy = raw.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})$/);
   if (dmy) {
     const d = (dmy[1] ?? '').padStart(2, '0');
     const m = (dmy[2] ?? '').padStart(2, '0');

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { AllocationSplitButton } from '@/components/AllocationSplitButton';
@@ -133,7 +133,7 @@ export function SubscriptionDetailPage() {
     setSaving(true);
     setError(null);
     // Mutually-exclusive personal/business — guard at save time.
-    let isPersonal = !!draft.is_personal;
+    const isPersonal = !!draft.is_personal;
     let isBusiness = !!draft.is_business;
     if (isPersonal && isBusiness) isBusiness = false;
     const payload: Partial<Subscription> = {
@@ -185,7 +185,7 @@ export function SubscriptionDetailPage() {
   // Monthly bars (last 8 months) — built off the filtered txns.
   const monthlyBars = useMemo(() => {
     const now = new Date();
-    const buckets: Array<{ label: string; value: number }> = [];
+    const buckets: { label: string; value: number }[] = [];
     for (let i = 7; i >= 0; i -= 1) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const next = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
@@ -351,7 +351,7 @@ export function SubscriptionDetailPage() {
 // ---------------------------------------------------------------------------
 // Inline-SVG bar chart — same colour vocabulary as Suppliers HorizontalBarChart.
 // ---------------------------------------------------------------------------
-function MonthlyBars({ bars }: { bars: Array<{ label: string; value: number }> }) {
+function MonthlyBars({ bars }: { bars: { label: string; value: number }[] }) {
   const BAR_W = 40;
   const GAP = 14;
   const HEIGHT = 120;

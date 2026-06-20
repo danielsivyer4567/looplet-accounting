@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
-import { useOrg } from '@/contexts/OrgContext';
+import { useAuth } from '@/hooks/useAuth';
+import { useOrg } from '@/hooks/useOrg';
 
 // ---------------------------------------------------------------------------
 // Types

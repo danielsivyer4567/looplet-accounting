@@ -29,6 +29,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { callXeroWithRetry, xeroFetch, XeroApiError } from '../_shared/xero/auth.ts';
+import { requireEnv } from '../_shared/env.ts';
 
 const MAX_ATTEMPTS = 3;
 const DEFAULT_ACCOUNT_CODE = Deno.env.get('XERO_DEFAULT_ACCOUNT_CODE') ?? '500';
@@ -81,9 +82,9 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) return json({ ok: false, error: 'Unauthorized' }, 401);
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  const supabaseUrl = requireEnv('SUPABASE_URL');
+  const serviceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
+  const anonKey = requireEnv('SUPABASE_ANON_KEY');
 
   const admin = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -243,7 +244,7 @@ Deno.serve(async (req) => {
     const idempotencyKey = crypto.randomUUID();
 
     try {
-      const data = await callXeroWithRetry<{ Invoices: Array<{ InvoiceID?: string }> }>(
+      const data = await callXeroWithRetry<{ Invoices: { InvoiceID?: string }[] }>(
         admin,
         organization_id,
         (ctx) =>
@@ -334,7 +335,7 @@ async function resolveOrCreateContact(
 
   // 2. Search Xero by name
   const where = `Name="${name.replace(/"/g, '\\"')}"`;
-  const found = await callXeroWithRetry<{ Contacts: Array<{ ContactID?: string }> }>(
+  const found = await callXeroWithRetry<{ Contacts: { ContactID?: string }[] }>(
     admin,
     organizationId,
     (ctx) =>
@@ -355,7 +356,7 @@ async function resolveOrCreateContact(
   }
 
   // 3. Create new Xero contact
-  const created = await callXeroWithRetry<{ Contacts: Array<{ ContactID?: string }> }>(
+  const created = await callXeroWithRetry<{ Contacts: { ContactID?: string }[] }>(
     admin,
     organizationId,
     (ctx) =>

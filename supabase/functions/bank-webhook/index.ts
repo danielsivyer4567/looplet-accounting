@@ -24,7 +24,7 @@ interface BasiqWebhookPayload {
     userId?: string;
     connectionId?: string;
     accountId?: string;
-  } | Record<string, any>;
+  } | Record<string, unknown>;
   // Different Basiq event types use different shapes; we fall back to scanning
 }
 
@@ -54,10 +54,13 @@ Deno.serve(async (req) => {
     // 2. Parse payload
     const payload = (await req.json()) as BasiqWebhookPayload;
     const type = payload?.type ?? 'unknown';
-    const data = (payload?.data ?? {}) as Record<string, any>;
+    const data = (payload?.data ?? {}) as Record<string, unknown>;
+    const connection = data.connection as { id?: string } | undefined;
     const connectionId =
-      data.connectionId ?? data.connection?.id ?? data.id ?? null;
-    const userId = data.userId ?? data.user?.id ?? null;
+      (data.connectionId as string | undefined) ??
+      connection?.id ??
+      (data.id as string | undefined) ??
+      null;
 
     // 3. Find the matching bank_connection
     const { data: conn } = await admin
