@@ -7,6 +7,11 @@ export function DashboardPage() {
   const { currentOrg } = useOrg();
   const { pnl, loading, error } = useRealtimePnl();
 
+  // Current Australian financial year (1 Jul – 30 Jun), e.g. "2025–26".
+  const fyNow = new Date();
+  const fyStart = fyNow.getMonth() >= 6 ? fyNow.getFullYear() : fyNow.getFullYear() - 1;
+  const fyLabel = `${fyStart}–${String(fyStart + 1).slice(2)}`;
+
   if (!currentOrg) {
     return (
       <section>
@@ -55,7 +60,7 @@ export function DashboardPage() {
   return (
     <section>
       <h1>{currentOrg.name}</h1>
-      <p style={{ color: '#888', fontSize: 14 }}>Across your whole business — all invoices and bills to date.</p>
+      <p style={{ color: '#888', fontSize: 14 }}>This financial year ({fyLabel}) — whole business, all invoices and bills.</p>
 
       <div
         style={{
@@ -69,7 +74,7 @@ export function DashboardPage() {
         <div
           style={{ fontSize: 12, color: '#86c7a3', textTransform: 'uppercase', letterSpacing: 1 }}
         >
-          What's really yours (to date)
+          What's really yours (FY {fyLabel})
         </div>
         <div style={{ fontSize: 48, fontWeight: 700, marginTop: '0.5rem' }}>
           {formatMoney(data.really_yours_cents)}
