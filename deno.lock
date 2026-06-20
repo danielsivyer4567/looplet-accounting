@@ -1,0 +1,39 @@
+{
+  "version": "5",
+  "redirects": {
+    "https://esm.sh/@supabase/supabase-js@2": "https://esm.sh/@supabase/supabase-js@2.90.1"
+  },
+  "remote": {
+    "https://esm.sh/@supabase/supabase-js@2.90.1": "fcf5e194d637ff365df76d1806e7c2f239905c4b08e83e5d95690a2b22e21a1d"
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:@eslint/js@^9.13.0",
+        "npm:@supabase/supabase-js@^2.45.4",
+        "npm:@testing-library/jest-dom@^6.9.1",
+        "npm:@testing-library/react@^16.3.2",
+        "npm:@testing-library/user-event@^14.6.1",
+        "npm:@types/react-dom@^18.3.1",
+        "npm:@types/react@^18.3.12",
+        "npm:@vitejs/plugin-react@^4.3.3",
+        "npm:@vitest/ui@^2.1.4",
+        "npm:eslint-plugin-react-hooks@5",
+        "npm:eslint-plugin-react-refresh@~0.4.14",
+        "npm:eslint@^9.13.0",
+        "npm:globals@^15.11.0",
+        "npm:jsdom@^29.1.1",
+        "npm:pdfjs-dist@^4.10.38",
+        "npm:prettier@^3.3.3",
+        "npm:react-dom@^18.3.1",
+        "npm:react-router-dom@^6.27.0",
+        "npm:react@^18.3.1",
+        "npm:supabase@^1.207.9",
+        "npm:typescript-eslint@^8.11.0",
+        "npm:typescript@^5.6.3",
+        "npm:vite@^5.4.10",
+        "npm:vitest@^2.1.4"
+      ]
+    }
+  }
+}

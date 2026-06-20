@@ -236,7 +236,7 @@ export function NotificationsPage() {
       )}
 
       <p style={{ marginTop: 24, fontSize: 12, color: '#666' }}>
-        Notifications are generated nightly. <Link to="/settings" style={{ color: '#86c7a3' }}>Settings</Link> to manage email digests (coming soon).
+        Notifications are generated nightly from your bills, invoices, and bank activity.
       </p>
     </section>
   );

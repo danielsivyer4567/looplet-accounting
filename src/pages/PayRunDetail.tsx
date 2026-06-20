@@ -151,10 +151,6 @@ export function PayRunDetailPage() {
     URL.revokeObjectURL(url);
   };
 
-  const sendPayslips = async () => {
-    alert('Send payslips: not yet implemented. Future: SES/Resend per-employee email of the payslip PDF.');
-  };
-
   if (!currentOrg) return null;
   if (loading) return <section><h1>Pay run</h1><p style={{ color: '#888' }}>Loading…</p></section>;
   if (!run) return (
@@ -193,7 +189,6 @@ export function PayRunDetailPage() {
           <button onClick={exportStp} disabled={busy === 'stp'} style={btnGhost}>
             {busy === 'stp' ? 'Exporting…' : 'Export STP'}
           </button>
-          <button onClick={sendPayslips} style={btnGhost}>Send payslips</button>
           {canCancel && <button onClick={cancel} disabled={busy === 'cancel'} style={btnGhostRed}>
             {busy === 'cancel' ? 'Cancelling…' : 'Cancel'}
           </button>}
