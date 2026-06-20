@@ -1,4 +1,4 @@
-// Edge function: api-gateway  (SCAFFOLD — see AUDIT.md §5, B5)
+// Edge function: api-gateway  (EPIC F — F1, finished)
 // Exchanges an external API key for a short-lived org-scoped Supabase JWT so
 // machine callers can use PostgREST (/rest/v1) with RLS doing enforcement.
 //
@@ -6,17 +6,16 @@
 //   supabase/config.toml -> [functions.api-gateway] verify_jwt = false
 //   secret SUPABASE_JWT_SECRET (the project JWT secret, HS256)
 //
-// NOTE (must finish before relying on the read path): the minted token has no
-// auth.uid(), so RLS policies that resolve the org via organization_memberships
-// (get_accessible_org_ids()) will see no membership. Choose ONE before shipping:
-//   (a) provision a per-org "integration" auth user + membership row and mint the
-//       token with that user's `sub`; OR
-//   (b) extend the org-scoping RLS helper to also honour an `organization_id`
-//       JWT claim (carried below) for service/integration tokens.
-// The `ingest` write path does NOT depend on this — it uses service-role + the
-// key's pinned organization_id and already enforces tenancy correctly.
+// RLS WIRING (resolved): the minted token has no auth.uid(), so it carries an
+// `organization_id` claim instead. Migration 0069 extends get_accessible_org_ids()
+// to honour that claim for integration tokens (option (b) from the original
+// scaffold NOTE), so every existing org-scoped RLS policy enforces tenancy for
+// these tokens without any per-policy change. The claim is only ever minted here
+// AFTER a valid API key is authenticated, and is pinned to that key's org — a
+// caller cannot forge it without the project JWT secret.
 import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
-import { authenticateApiKey } from "../_shared/apiKeys.ts";
+import { authenticateApiKey, enforceRateLimit, logApiRequest, serviceClient } from "../_shared/apiKeys.ts";
+import { corsHeaders, preflight } from "../_shared/cors.ts";
 
 const JWT_SECRET = Deno.env.get("SUPABASE_JWT_SECRET")!;
 const TTL_SECONDS = 15 * 60;
@@ -31,15 +30,46 @@ async function signingKey(): Promise<CryptoKey> {
   );
 }
 
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "content-type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
-  if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
+  const pre = preflight(req);
+  if (pre) return pre;
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   const ctx = await authenticateApiKey(req.headers.get("authorization"));
   if (!ctx) {
-    return new Response(JSON.stringify({ error: "invalid_api_key" }), {
+    // No key context → cannot attribute to an org; log anonymously.
+    await logApiRequest(serviceClient(), {
+      organizationId: null,
+      apiKeyId: null,
+      keyPrefix: null,
+      endpoint: "api-gateway",
+      method: req.method,
       status: 401,
-      headers: { "content-type": "application/json" },
     });
+    return json({ error: "invalid_api_key" }, 401);
+  }
+
+  const db = serviceClient();
+
+  // Per-key fixed-window rate limit (F3). Over-ceiling → 429.
+  const allowed = await enforceRateLimit(db, ctx.keyId);
+  if (!allowed) {
+    await logApiRequest(db, {
+      organizationId: ctx.organizationId,
+      apiKeyId: ctx.keyId,
+      keyPrefix: ctx.keyPrefix,
+      endpoint: "api-gateway",
+      method: req.method,
+      status: 429,
+    });
+    return json({ error: "rate_limited" }, 429);
   }
 
   const token = await create(
@@ -47,15 +77,26 @@ Deno.serve(async (req) => {
     {
       role: "authenticated",
       aud: "authenticated",
-      organization_id: ctx.organizationId, // see NOTE above re: RLS wiring
+      organization_id: ctx.organizationId, // honoured by get_accessible_org_ids() — see 0069
       scopes: ctx.scopes,
       exp: getNumericDate(TTL_SECONDS),
     },
     await signingKey(),
   );
 
-  return new Response(
-    JSON.stringify({ access_token: token, token_type: "Bearer", expires_in: TTL_SECONDS, organization_id: ctx.organizationId }),
-    { headers: { "content-type": "application/json" } },
-  );
+  await logApiRequest(db, {
+    organizationId: ctx.organizationId,
+    apiKeyId: ctx.keyId,
+    keyPrefix: ctx.keyPrefix,
+    endpoint: "api-gateway",
+    method: req.method,
+    status: 200,
+  });
+
+  return json({
+    access_token: token,
+    token_type: "Bearer",
+    expires_in: TTL_SECONDS,
+    organization_id: ctx.organizationId,
+  });
 });

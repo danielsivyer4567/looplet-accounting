@@ -10,6 +10,7 @@ export interface ApiKeyContext {
   organizationId: string;
   scopes: string[];
   keyId: string;
+  keyPrefix: string;
 }
 
 const enc = new TextEncoder();
@@ -61,9 +62,47 @@ export async function authenticateApiKey(authHeader: string | null): Promise<Api
 
   // best-effort usage touch; ignore failures
   await db.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", data.id);
-  return { organizationId: data.organization_id, scopes: data.scopes ?? [], keyId: data.id };
+  return { organizationId: data.organization_id, scopes: data.scopes ?? [], keyId: data.id, keyPrefix: prefix };
 }
 
 export function hasScope(ctx: ApiKeyContext, scope: string): boolean {
   return ctx.scopes.includes(scope) || ctx.scopes.includes("admin:keys");
+}
+
+/**
+ * Per-key fixed-window rate limit (migration 0068). Returns true if the call is
+ * allowed (and the counter was incremented), false if the key is over its
+ * ceiling. Fails OPEN on RPC error so a logging/DB hiccup never bricks the API.
+ */
+export async function enforceRateLimit(db: SupabaseClient, keyId: string): Promise<boolean> {
+  const { data, error } = await db.rpc("api_key_rate_limit", { p_key_id: keyId, p_window_seconds: 60 });
+  if (error) return true; // fail open
+  return data === true;
+}
+
+export interface ApiRequestLogEntry {
+  organizationId: string | null;
+  apiKeyId: string | null;
+  keyPrefix: string | null;
+  endpoint: string;
+  method?: string | null;
+  ingestType?: string | null;
+  status: number;
+}
+
+/** Best-effort insert into api_request_log (migration 0068). Never throws. */
+export async function logApiRequest(db: SupabaseClient, e: ApiRequestLogEntry): Promise<void> {
+  try {
+    await db.from("api_request_log").insert({
+      organization_id: e.organizationId,
+      api_key_id: e.apiKeyId,
+      key_prefix: e.keyPrefix,
+      endpoint: e.endpoint,
+      method: e.method ?? null,
+      ingest_type: e.ingestType ?? null,
+      status: e.status,
+    });
+  } catch {
+    // logging must never affect the response
+  }
 }
