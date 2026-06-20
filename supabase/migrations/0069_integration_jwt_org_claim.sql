@@ -13,9 +13,15 @@
 -- forge it without the project JWT secret. Human sessions never carry this claim,
 -- so their behaviour is unchanged.
 
+-- Both helpers below are pinned to a fixed search_path and schema-qualify every
+-- reference (tables, auth.uid()) so a SECURITY DEFINER function can never be
+-- hijacked by a caller-controlled search_path. (Matches the 0060/0068 hardening
+-- pattern.) Behaviour is otherwise identical to the prior definitions.
 create or replace function public.integration_org_id() returns uuid
 language sql
 stable
+security definer
+set search_path = pg_catalog, public
 as $$
   -- The org claim from an integration token, or NULL for human/anon sessions.
   -- Defensive: bad/missing claims must yield NULL, never error.
@@ -28,7 +34,12 @@ as $$
          )::uuid;
 $$;
 
-create or replace function public.get_accessible_org_ids() returns setof uuid as $$
+create or replace function public.get_accessible_org_ids() returns setof uuid
+language plpgsql
+security definer
+stable
+set search_path = pg_catalog, public
+as $$
 declare
   v_user_id     uuid := auth.uid();
   v_integration uuid := public.integration_org_id();
@@ -47,20 +58,20 @@ begin
   -- Direct memberships
   return query
     select m.organization_id
-      from organization_memberships m
+      from public.organization_memberships m
      where m.user_id = v_user_id;
 
   -- Sub-accounts of agencies the user admins
   return query
     select sa.id
-      from organizations sa
-      join organizations agency
+      from public.organizations sa
+      join public.organizations agency
         on sa.parent_organization_id = agency.id
-      join organization_memberships m
+      join public.organization_memberships m
         on m.organization_id = agency.id
      where agency.organization_type = 'agency'
        and sa.organization_type    = 'sub_account'
        and m.user_id                = v_user_id
        and m.role in ('owner', 'admin');
 end;
-$$ language plpgsql security definer stable;
+$$;

@@ -7,8 +7,16 @@ connector API has two surfaces:
 - **Ingest** — push bills, bank transactions, and invoices in (`/functions/v1/ingest`).
 
 Everything is **organization-scoped**: a key belongs to exactly one organization,
-and Row-Level Security (RLS) enforces that boundary on every read and write. The
-raw service-role key is never used by integrations.
+and Row-Level Security (RLS) enforces that **tenant** boundary on every read and
+write — a key can never see or touch another organization's data. The raw
+service-role key is never used by integrations.
+
+> **Important — read scope is not granular.** Any valid key can **read your whole
+> organization** over the Read API (PostgREST), regardless of its `scopes`. Read
+> scopes (e.g. `read:financials`) are advisory today; they do **not** narrow what
+> a key can read within its org. **Write** authority *is* enforced per type
+> (`write:bills` / `write:bank` / `write:invoices`) by the ingest endpoint. Treat
+> issuing any key as granting full-org read, and grant write scopes minimally.
 
 Base URL: `https://dxoikltymmknxqpkpyhi.supabase.co`
 
@@ -48,7 +56,7 @@ Authorization: Bearer llp_ab12cd34.0f1e2d3c...
 
 | Scope             | Allows                                  |
 |-------------------|-----------------------------------------|
-| `read:financials` | Read API (PostgREST), reporting views   |
+| `read:financials` | Advisory only — any key already has full-org read via PostgREST |
 | `write:bills`     | `POST /ingest` with `type=bill`         |
 | `write:bank`      | `POST /ingest` with `type=bank_transaction` |
 | `write:invoices`  | `POST /ingest` with `type=invoice`      |
@@ -87,7 +95,9 @@ curl -s -X POST \
 The JWT carries `role=authenticated` and an `organization_id` claim. The
 `get_accessible_org_ids()` RLS helper honours that claim, so every existing
 org-scoped policy automatically restricts your reads to your organization — no
-extra filtering required, and no way to read another tenant's data.
+extra filtering required, and no way to read another tenant's data. Note this
+restricts reads to *your org*, not to a subset of it: the token can read the
+whole org regardless of the key's read scopes (see the note at the top).
 
 ### Step 2 — query PostgREST
 

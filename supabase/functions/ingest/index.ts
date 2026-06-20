@@ -10,14 +10,34 @@
 //   - bank_transactions are deduped on (bank_account_id, external_id) and fed to
 //     the intake-routing engine, exactly like bank-sync.
 //
+// SCOPE ENFORCEMENT (write path):
+//   Every write is gated by the key's scopes BEFORE any DB mutation: a `bill`
+//   push requires `write:bills`, `bank_transaction` requires `write:bank`,
+//   `invoice` requires `write:invoices` (see SCOPE_FOR + hasScope below). A key
+//   that lacks the scope is rejected 403 and never touches the table. This is
+//   the authoritative write-side enforcement: the gateway-minted PostgREST JWT
+//   intentionally does NOT carry per-table write authority derived from scopes,
+//   so writes must come through THIS function to be scope-checked.
+//
+// NOTE (read path): the api-gateway mints a `role=authenticated` org-scoped JWT
+//   for PostgREST. RLS scopes it to the key's single org, but it grants
+//   FULL-ORG READ to ANY valid key regardless of the key's scopes — read scopes
+//   are not currently enforced at the PostgREST layer. Treat any issued key as
+//   able to read all of its org's data over /rest/v1. Do not issue keys to
+//   parties who should not see the whole org; write authority is the scoped,
+//   enforced boundary. (Tracked for a future RLS read-scope claim.)
+//
 // REQUIRES: supabase/config.toml -> [functions.ingest] verify_jwt = false
 import {
+  allowAnonRequest,
   authenticateApiKey,
+  clientIp,
   enforceRateLimit,
   hasScope,
   logApiRequest,
   serviceClient,
   sha256Hex,
+  shouldLogAnon,
 } from "../_shared/apiKeys.ts";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
 import { routeBill } from "../_shared/bills/router.ts";
@@ -41,16 +61,27 @@ Deno.serve(async (req) => {
   if (pre) return pre;
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
+  // Cheap pre-auth throttle (F4): bucket by IP BEFORE any DB work so anonymous /
+  // bad-key floods cannot each cost a serviceClient + key lookup + log insert.
+  const ip = clientIp(req);
+  if (!allowAnonRequest(ip)) {
+    return json({ error: "rate_limited" }, 429);
+  }
+
   const ctx = await authenticateApiKey(req.headers.get("authorization"));
-  const db = serviceClient();
 
   if (!ctx) {
-    await logApiRequest(db, {
-      organizationId: null, apiKeyId: null, keyPrefix: null,
-      endpoint: "ingest", method: req.method, status: 401,
-    });
+    // Cap anonymous 401 logging so bad keys can't flood the table.
+    if (shouldLogAnon(ip)) {
+      await logApiRequest(serviceClient(), {
+        organizationId: null, apiKeyId: null, keyPrefix: null,
+        endpoint: "ingest", method: req.method, status: 401,
+      });
+    }
     return json({ error: "invalid_api_key" }, 401);
   }
+
+  const db = serviceClient();
 
   // Per-key rate limit (shared with the gateway's ceiling).
   if (!(await enforceRateLimit(db, ctx.keyId))) {
@@ -94,11 +125,26 @@ Deno.serve(async (req) => {
     await log(db, ctx, type, result.status);
     return json(result.body, result.status);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    // ValidationError carries a caller-safe message (e.g. "customer_id is
+    // required"); anything else (raw DB/Postgres errors) is logged server-side
+    // and returned as a generic message so we never disclose schema internals.
     await log(db, ctx, type, 400);
-    return json({ error: msg }, 400);
+    if (err instanceof ValidationError) {
+      return json({ error: err.message }, 400);
+    }
+    console.error("[ingest] write failed", {
+      type,
+      organizationId: orgId,
+      keyPrefix: ctx.keyPrefix,
+      detail: err instanceof Error ? err.message : String(err),
+    });
+    return json({ error: "ingest_failed" }, 400);
   }
 });
+
+// Caller-safe validation error: its message IS returned to the client. Raw DB
+// errors are thrown as plain Error and never surfaced (see catch above).
+class ValidationError extends Error {}
 
 function log(db: SupabaseClient, ctx: { organizationId: string; keyId: string; keyPrefix: string }, type: string | null, status: number) {
   return logApiRequest(db, {
@@ -120,10 +166,24 @@ const BILL_FIELDS = [
   "currency_code", "job_reference_raw", "notes", "raw_extracted",
 ] as const;
 
+// Build a stable, canonical dedupe hash from ONLY the whitelisted, persisted
+// fields (sorted keys, undefined/null dropped) plus the org. This is immune to
+// key order, whitespace, and any non-persisted junk a caller includes in the
+// payload — two semantically-identical pushes always collide.
+async function canonicalContentHash(orgId: string, payload: Record<string, unknown>): Promise<string> {
+  const canon: Record<string, unknown> = {};
+  for (const f of BILL_FIELDS) {
+    if (payload[f] !== undefined && payload[f] !== null) canon[f] = payload[f];
+  }
+  const sortedKeys = Object.keys(canon).sort();
+  const stable = sortedKeys.map((k) => [k, canon[k]] as const);
+  return await sha256Hex(JSON.stringify({ o: orgId, f: stable }));
+}
+
 async function ingestBill(db: SupabaseClient, orgId: string, payload: Record<string, unknown>) {
-  // Dedupe key: stable hash of the org + the caller-supplied bill content.
-  // Mirrors bills-extract's content_sha256 cache so a re-push is a no-op.
-  const contentSha256 = await sha256Hex(JSON.stringify({ o: orgId, p: payload }));
+  // Dedupe key: stable hash of the org + the canonicalized whitelisted bill
+  // fields. Mirrors bills-extract's content_sha256 cache so a re-push is a no-op.
+  const contentSha256 = await canonicalContentHash(orgId, payload);
 
   // Re-push? Return the existing row (idempotent).
   const { data: existing } = await db
@@ -192,7 +252,7 @@ async function ingestBankTransaction(db: SupabaseClient, orgId: string, payload:
   const bankAccountId = payload.bank_account_id as string | undefined;
   const externalId = payload.external_id as string | undefined;
   if (!bankAccountId || !externalId) {
-    throw new Error("bank_account_id and external_id are required");
+    throw new ValidationError("bank_account_id and external_id are required");
   }
 
   // The bank account must belong to the key's org (tenant pin).
@@ -202,7 +262,7 @@ async function ingestBankTransaction(db: SupabaseClient, orgId: string, payload:
     .eq("id", bankAccountId)
     .eq("organization_id", orgId)
     .maybeSingle();
-  if (!acct) throw new Error("bank_account not found for this organization");
+  if (!acct) throw new ValidationError("bank_account not found for this organization");
 
   const row: Record<string, unknown> = {
     organization_id: orgId,
@@ -227,18 +287,22 @@ async function ingestBankTransaction(db: SupabaseClient, orgId: string, payload:
   return { status: 201, body: { ok: true, id: txn.id, type: "bank_transaction" } };
 }
 
+// NOTE: `status` is deliberately NOT writable from the API — invoices always
+// start at the DB default ('draft'), exactly like bills force 'received'. A
+// caller must not be able to mint an invoice already 'paid'/'void'. Status
+// transitions go through the authenticated app/RPCs, not raw ingest.
 const INVOICE_FIELDS = [
   "customer_id", "job_id", "issue_date", "due_date", "terms_days",
   "subtotal_ex_gst_cents", "gst_cents", "total_inc_gst_cents", "currency_code",
-  "notes", "status",
+  "notes",
 ] as const;
 
 async function ingestInvoice(db: SupabaseClient, orgId: string, payload: Record<string, unknown>) {
   const invoiceNumber = payload.invoice_number as string | undefined;
   const customerId = payload.customer_id as string | undefined;
-  if (!invoiceNumber) throw new Error("invoice_number is required");
-  if (!customerId) throw new Error("customer_id is required");
-  if (!payload.due_date) throw new Error("due_date is required");
+  if (!invoiceNumber) throw new ValidationError("invoice_number is required");
+  if (!customerId) throw new ValidationError("customer_id is required");
+  if (!payload.due_date) throw new ValidationError("due_date is required");
 
   // Customer must belong to the key's org.
   const { data: cust } = await db
@@ -247,7 +311,7 @@ async function ingestInvoice(db: SupabaseClient, orgId: string, payload: Record<
     .eq("id", customerId)
     .eq("organization_id", orgId)
     .maybeSingle();
-  if (!cust) throw new Error("customer not found for this organization");
+  if (!cust) throw new ValidationError("customer not found for this organization");
 
   // Dedupe on UNIQUE(org, invoice_number): re-push returns the existing row.
   const { data: existing } = await db

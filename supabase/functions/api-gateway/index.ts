@@ -14,7 +14,7 @@
 // AFTER a valid API key is authenticated, and is pinned to that key's org — a
 // caller cannot forge it without the project JWT secret.
 import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
-import { authenticateApiKey, enforceRateLimit, logApiRequest, serviceClient } from "../_shared/apiKeys.ts";
+import { allowAnonRequest, authenticateApiKey, clientIp, enforceRateLimit, logApiRequest, serviceClient, shouldLogAnon } from "../_shared/apiKeys.ts";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
 
 const JWT_SECRET = Deno.env.get("SUPABASE_JWT_SECRET")!;
@@ -42,17 +42,28 @@ Deno.serve(async (req) => {
   if (pre) return pre;
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
+  // Cheap pre-auth throttle (F4): bucket by IP BEFORE any DB work so a flood of
+  // anonymous/bad-key requests cannot each cost a serviceClient + key lookup +
+  // log insert. Over-ceiling anonymous traffic is dropped here, in-memory.
+  const ip = clientIp(req);
+  if (!allowAnonRequest(ip)) {
+    return json({ error: "rate_limited" }, 429);
+  }
+
   const ctx = await authenticateApiKey(req.headers.get("authorization"));
   if (!ctx) {
-    // No key context → cannot attribute to an org; log anonymously.
-    await logApiRequest(serviceClient(), {
-      organizationId: null,
-      apiKeyId: null,
-      keyPrefix: null,
-      endpoint: "api-gateway",
-      method: req.method,
-      status: 401,
-    });
+    // No key context → cannot attribute to an org. Cap anonymous 401 logging:
+    // only log a small sample per IP-window so bad keys can't flood the table.
+    if (shouldLogAnon(ip)) {
+      await logApiRequest(serviceClient(), {
+        organizationId: null,
+        apiKeyId: null,
+        keyPrefix: null,
+        endpoint: "api-gateway",
+        method: req.method,
+        status: 401,
+      });
+    }
     return json({ error: "invalid_api_key" }, 401);
   }
 
@@ -72,6 +83,14 @@ Deno.serve(async (req) => {
     return json({ error: "rate_limited" }, 429);
   }
 
+  // SCOPE NOTE: the minted token is role=authenticated and org-scoped via the
+  // `organization_id` claim (RLS in 0069). The key's `scopes` ride along as an
+  // informational claim, but PostgREST/RLS does NOT currently gate reads or
+  // writes by them — over /rest/v1 this token can READ the whole org regardless
+  // of scope. WRITE authority is enforced separately and authoritatively in the
+  // `ingest` function (per-type write:* scope check before any mutation). So:
+  // issuing ANY key grants full-org read; only scoped writes are restricted.
+  // (Future: an RLS read-scope claim could narrow this.)
   const token = await create(
     { alg: "HS256", typ: "JWT" },
     {
