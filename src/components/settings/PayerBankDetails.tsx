@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 
 interface PayerSettings {
   payer_bsb?: string;
@@ -73,9 +73,9 @@ export function PayerBankDetails() {
 
     const newSettings = {
       ...existing,
-      payer_bsb:     draft.payer_bsb!.trim(),
-      payer_account: draft.payer_account!.trim(),
-      payer_name:    draft.payer_name!.trim(),
+      payer_bsb:     draft.payer_bsb?.trim() ?? '',
+      payer_account: draft.payer_account?.trim() ?? '',
+      payer_name:    draft.payer_name?.trim() ?? '',
       payer_apca_id: draft.payer_apca_id?.trim() || '000000',
     };
 

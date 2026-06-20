@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { BankCsvImport } from './BankCsvImport';
 import { BankStatementImport } from './BankStatementImport';
 

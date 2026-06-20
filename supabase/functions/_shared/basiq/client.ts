@@ -77,9 +77,21 @@ async function basiqFetch<T = unknown>(
   return (await resp.json()) as T;
 }
 
+/** Minimal subset of the Supabase client surface used by this module. */
+interface SupabaseQueryBuilder
+  extends PromiseLike<{ data: unknown; error: unknown }> {
+  select(columns: string): SupabaseQueryBuilder;
+  update(values: Record<string, unknown>): SupabaseQueryBuilder;
+  eq(column: string, value: unknown): SupabaseQueryBuilder;
+  maybeSingle(): Promise<{ data: { basiq_user_id?: string; name?: string } | null }>;
+}
+interface SupabaseLike {
+  from(table: string): SupabaseQueryBuilder;
+}
+
 /** Get or create the Basiq user for an org. Persists basiq_user_id back to organizations. */
 export async function getOrCreateBasiqUser(
-  admin: any,
+  admin: SupabaseLike,
   organizationId: string,
   email: string,
   mobile?: string,
@@ -158,7 +170,13 @@ export async function getConnection(
   basiqUserId: string,
   connectionId: string,
 ): Promise<BasiqConnection> {
-  const conn = await basiqFetch<any>(
+  const conn = await basiqFetch<{
+    id: string;
+    status: string;
+    institution?: { id: string; name?: string; shortName?: string };
+    lastUsed?: string;
+    expiryDate?: string;
+  }>(
     `/users/${basiqUserId}/connections/${connectionId}`,
   );
   return {

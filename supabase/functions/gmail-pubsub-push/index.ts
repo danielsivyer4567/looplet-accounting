@@ -30,7 +30,8 @@
  * Deployed with --no-verify-jwt because Pub/Sub does not send a Supabase JWT.
  */
 
-import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import { loadAndRefreshGmail } from '../_shared/gmail/auth.ts';
 
@@ -139,7 +140,7 @@ async function processNotification(
   admin: SupabaseClient,
   supabaseUrl: string,
   serviceKey: string,
-  integ: any,
+  integ: IntegRow,
   notif: GmailNotification,
 ): Promise<void> {
   try {
@@ -164,7 +165,7 @@ async function processNotification(
     }
 
     const hist = (await histResp.json()) as {
-      history?: Array<{ messagesAdded?: Array<{ message: { id: string } }> }>;
+      history?: { messagesAdded?: { message: { id: string } }[] }[];
       historyId?: string;
     };
 
@@ -201,8 +202,24 @@ async function processNotification(
 }
 
 interface IngestResult {
-  bills: Array<{ bill_id: string; filename: string }>;
-  rejected: Array<{ message_id: string; reason: string }>;
+  bills: { bill_id: string; filename: string }[];
+  rejected: { message_id: string; reason: string }[];
+}
+
+interface IntegRow {
+  id: string;
+  organization_id: string;
+  last_history_id?: string | null;
+  allowlist?: string[] | null;
+}
+
+interface IntakeRuleMatch {
+  rule_id?: string | null;
+  is_personal?: boolean | null;
+  skip_ocr?: boolean | null;
+  category_code?: string | null;
+  supplier_id?: string | null;
+  job_id?: string | null;
 }
 
 async function ingestMessage(
@@ -210,7 +227,7 @@ async function ingestMessage(
   supabaseUrl: string,
   serviceKey: string,
   accessToken: string,
-  integ: any,
+  integ: IntegRow,
   messageId: string,
 ): Promise<IngestResult> {
   const result: IngestResult = { bills: [], rejected: [] };
@@ -257,7 +274,7 @@ async function ingestMessage(
     p_sender_email: fromAddress,
     p_subject: subject,
   });
-  const rule = (ruleRows as any[])?.[0];
+  const rule = (ruleRows as IntakeRuleMatch[] | null)?.[0];
 
   if (rule?.is_personal) {
     result.rejected.push({ message_id: messageId, reason: `intake_rule says personal — skipped` });
@@ -286,8 +303,10 @@ async function ingestMessage(
   }
 
   for (const part of attachments) {
+    const attachmentId = part.body?.attachmentId;
+    if (!attachmentId) continue;
     const attResp = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${part.body!.attachmentId}`,
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } },
     );
     if (!attResp.ok) {
@@ -348,7 +367,7 @@ async function ingestMessage(
 
     // Record rule hit for analytics.
     if (rule?.rule_id) {
-      admin.rpc('record_intake_rule_hit', { p_rule_id: rule.rule_id }).then(() => {});
+      admin.rpc('record_intake_rule_hit', { p_rule_id: rule.rule_id }).then(() => undefined);
     }
 
     // Skip OCR entirely if rule says we already know the answer.
@@ -380,7 +399,7 @@ interface GmailPart {
   partId?: string;
   filename?: string;
   mimeType?: string;
-  headers?: Array<{ name: string; value: string }>;
+  headers?: { name: string; value: string }[];
   body?: { attachmentId?: string; size?: number; data?: string };
   parts?: GmailPart[];
 }
@@ -391,7 +410,7 @@ function flattenParts(payload: GmailPart): GmailPart[] {
   return out;
 }
 
-function headersToMap(headers: Array<{ name: string; value: string }>): Record<string, string> {
+function headersToMap(headers: { name: string; value: string }[]): Record<string, string> {
   const out: Record<string, string> = {};
   for (const h of headers) out[h.name.toLowerCase()] = h.value;
   return out;

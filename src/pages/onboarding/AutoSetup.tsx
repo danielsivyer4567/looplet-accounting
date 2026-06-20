@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { useGmailIntegrations } from '@/hooks/useGmailIntegrations';
 import { useStagedEntities } from '@/hooks/onboarding/useStagedEntities';
 import { DetectedInsights } from '@/components/onboarding/DetectedInsights';
@@ -42,13 +42,13 @@ export function AutoSetupPage() {
       if (!session) throw new Error('Not signed in');
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gmail-mine`;
 
-      type Resp = {
+      interface Resp {
         ok: boolean;
         error?: string;
         stats: { fetched: number; entities_upserted: number; attachments_seen: number; errors: number };
         next_page_token: string | null;
         folder: string;
-      };
+      }
 
       const totals = { fetched: 0, entities_upserted: 0, attachments_seen: 0, errors: 0 };
       let pages = 0;
@@ -105,7 +105,7 @@ export function AutoSetupPage() {
       if (!session) throw new Error('Not signed in');
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gmail-classify-ai`;
 
-      let totals = { processed: 0, classified: 0, unchanged: 0, errors: 0 };
+      const totals = { processed: 0, classified: 0, unchanged: 0, errors: 0 };
       let pass = 0;
       let remaining = -1;
 

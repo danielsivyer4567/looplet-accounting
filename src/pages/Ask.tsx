@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 
 interface AskResponse {
   ok: boolean;
@@ -316,8 +316,9 @@ export function AskPage() {
 }
 
 function DataTable({ rows }: { rows: Record<string, unknown>[] }) {
-  if (rows.length === 0) return null;
-  const cols = Object.keys(rows[0]!);
+  const firstRow = rows[0];
+  if (!firstRow) return null;
+  const cols = Object.keys(firstRow);
   return (
     <table style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
       <thead>
@@ -380,8 +381,8 @@ function renderAnswerWithCitations(text: string, citations: string[]): React.Rea
   const parts = text.split(/(\[\d+\])/g);
   return parts.map((part, i) => {
     const m = /^\[(\d+)\]$/.exec(part);
-    if (m) {
-      const n = parseInt(m[1]!, 10);
+    if (m?.[1]) {
+      const n = parseInt(m[1], 10);
       const url = citations[n - 1];
       if (url) {
         return (

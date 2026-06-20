@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import { AllocationSplitButton } from '@/components/AllocationSplitButton';
@@ -97,12 +97,12 @@ export function ReconciliationPage() {
     if (billCandRes.error) { setError(billCandRes.error.message); setLoading(false); return; }
 
     const candidatesByTxn = new Map<string, MatchCandidate[]>();
-    for (const c of (billCandRes.data ?? []) as Array<BillMatchCandidate & { bank_transaction_id: string }>) {
+    for (const c of (billCandRes.data ?? []) as (BillMatchCandidate & { bank_transaction_id: string })[]) {
       const list = candidatesByTxn.get(c.bank_transaction_id) ?? [];
       list.push({ ...c, kind: 'bill' });
       candidatesByTxn.set(c.bank_transaction_id, list);
     }
-    for (const c of (invoiceCandRes.data ?? []) as Array<InvoiceMatchCandidate & { bank_transaction_id: string }>) {
+    for (const c of (invoiceCandRes.data ?? []) as (InvoiceMatchCandidate & { bank_transaction_id: string })[]) {
       const list = candidatesByTxn.get(c.bank_transaction_id) ?? [];
       list.push({ ...c, kind: 'invoice' });
       candidatesByTxn.set(c.bank_transaction_id, list);
@@ -183,7 +183,7 @@ export function ReconciliationPage() {
     }
   };
 
-  const undoMatch = async (txnId: string, _billId: string | null, _invoiceId: string | null) => {
+  const undoMatch = async (txnId: string) => {
     if (!confirm('Undo this match?')) return;
     setBusyId(txnId);
     try {
@@ -301,7 +301,7 @@ export function ReconciliationPage() {
                           )}
                         </td>
                         <td style={tdRight}>
-                          <button onClick={() => void undoMatch(m.id, m.matched_bill_id, m.matched_invoice_id)} disabled={busyId === m.id} style={ghostBtn}>
+                          <button onClick={() => void undoMatch(m.id)} disabled={busyId === m.id} style={ghostBtn}>
                             undo
                           </button>
                         </td>

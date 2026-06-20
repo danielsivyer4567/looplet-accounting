@@ -3,3 +3,12 @@
 # Kept minimal for CLI v1 compatibility — link/deploy only need project_id.
 
 project_id = "dxoikltymmknxqpkpyhi"
+
+# Connector API (EPIC F). These functions authenticate via external API keys
+# (Authorization: Bearer llp_<prefix>.<secret>), NOT a Supabase JWT, so the
+# platform JWT gate must be off — they validate the presented key themselves.
+[functions.api-gateway]
+verify_jwt = false
+
+[functions.ingest]
+verify_jwt = false

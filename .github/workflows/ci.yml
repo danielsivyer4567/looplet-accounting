@@ -66,9 +66,9 @@ jobs:
       - name: Run tenant-isolation suite
         run: npm run test:tenant-isolation
         env:
+          # In CI, a missing/rotated secret here makes the suite FAIL HARD
+          # (not silently skip) — see tests/tenant-isolation.test.ts.
+          CI: 'true'
           VITE_SUPABASE_URL: ${{ vars.TEST_SUPABASE_URL || 'https://dxoikltymmknxqpkpyhi.supabase.co' }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
-          TEST_USER_A_EMAIL: ${{ secrets.TEST_USER_A_EMAIL }}
-          TEST_USER_A_PASSWORD: ${{ secrets.TEST_USER_A_PASSWORD }}
-          TEST_USER_B_EMAIL: ${{ secrets.TEST_USER_B_EMAIL }}
-          TEST_USER_B_PASSWORD: ${{ secrets.TEST_USER_B_PASSWORD }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

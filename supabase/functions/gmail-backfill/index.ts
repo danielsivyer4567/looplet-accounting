@@ -19,7 +19,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { loadAndRefreshGmail } from '../_shared/gmail/auth.ts';
-import { ingestGmailMessage, GmailIntegrationRow } from '../_shared/gmail/ingest.ts';
+import type { GmailIntegrationRow } from '../_shared/gmail/ingest.ts';
+import { ingestGmailMessage } from '../_shared/gmail/ingest.ts';
 
 interface RequestBody {
   integration_id: string;
@@ -101,7 +102,7 @@ Deno.serve(async (req) => {
     }
 
     const list = (await listResp.json()) as {
-      messages?: Array<{ id: string; threadId: string }>;
+      messages?: { id: string; threadId: string }[];
       nextPageToken?: string;
       resultSizeEstimate?: number;
     };

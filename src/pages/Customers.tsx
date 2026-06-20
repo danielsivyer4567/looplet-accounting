@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { useCustomers } from '@/hooks/useCustomers';
 import type { BillingAddress } from '@/hooks/useCustomers';
 import { supabase } from '@/lib/supabase';

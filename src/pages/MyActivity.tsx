@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useOrg } from '@/hooks/useOrg';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Session {
   id: string;
