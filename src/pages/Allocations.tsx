@@ -235,7 +235,6 @@ export function AllocationsPage() {
       });
       if (!res.ok) {
         const body = await res.text();
-         
         alert(`Attach failed: ${body}`);
         return;
       }

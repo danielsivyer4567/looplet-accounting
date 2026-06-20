@@ -38,13 +38,26 @@ const ANON_KEY =
 const SERVICE_ROLE_KEY = process.env['SUPABASE_SERVICE_ROLE_KEY'] ?? '';
 
 const HAS_ENV = Boolean(SUPABASE_URL && ANON_KEY && SERVICE_ROLE_KEY);
+const IS_CI = Boolean(process.env['CI']);
 const SKIP_REASON =
   'tenant-isolation requires VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY + ' +
   'SUPABASE_SERVICE_ROLE_KEY in env (real cross-tenant RLS assertions need a ' +
   'live Supabase). Set them to run this deploy gate.';
 
+// HARD GATE: in CI the env MUST be present. A missing/rotated secret previously
+// caused a silent skip → the deploy blocker passed green while testing nothing.
+// Failing at module load turns that into a RED gate, which is the whole point.
+if (IS_CI && !HAS_ENV) {
+  throw new Error(
+    `[tenant-isolation] FATAL: this deploy-blocker gate is running in CI but its ` +
+      `required env is missing, so it cannot assert cross-tenant isolation. This is ` +
+      `a hard failure (a silent skip would let a P0 leak ship). ${SKIP_REASON}`,
+  );
+}
+
 // vitest's `it.skipIf` keeps the test body type-checked while skipping at runtime
 // when env is absent. When env IS present, every assertion below runs for real.
+// (In CI, the throw above guarantees HAS_ENV is true, so nothing is ever skipped.)
 const itLive = it.skipIf(!HAS_ENV);
 
 // Unique suffix so repeated runs (and parallel CI) never collide.
@@ -251,20 +264,61 @@ describe('tenant isolation (cross-org RLS — DEPLOY BLOCKER)', () => {
     }
   }, 60_000);
 
+  // Teardown order MUST respect FK dependencies. invoices.customer_id and
+  // jobs.customer_id reference customers with ON DELETE RESTRICT, so children
+  // (invoices, jobs, bills, bank_transactions) must be deleted BEFORE customers.
+  // Deleting in KEY_TABLES order (customers first) would silently fail the
+  // customer delete → org delete fail → orphaned test data accrues forever.
+  const TEARDOWN_ORDER = [
+    'invoices',
+    'jobs',
+    'bills',
+    'bank_transactions',
+    'customers',
+  ] as const;
+
   afterAll(async () => {
     if (!HAS_ENV || !admin) return;
-    // Delete the orgs (rows cascade where FKs are ON DELETE CASCADE; the rest
-    // are best-effort) then the auth users.
+    // Collect failures and surface them at the end (don't let one bad delete
+    // abort the rest of teardown and leak even more rows).
+    const failures: string[] = [];
+
     for (const t of [tenantA, tenantB]) {
       if (!t) continue;
-      // Remove seeded rows explicitly first (RESTRICT FKs block org delete otherwise).
-      for (const table of KEY_TABLES) {
+      // Remove seeded rows explicitly first (RESTRICT FKs block org delete
+      // otherwise), in reverse-dependency order. Check .error on every delete.
+      for (const table of TEARDOWN_ORDER) {
         const id = t.rowIds[table];
-        if (id) await admin.from(table).delete().eq('id', id);
+        if (!id) continue;
+        const del = await admin.from(table).delete().eq('id', id);
+        if (del.error) {
+          failures.push(`delete ${table} id=${id}: ${del.error.message}`);
+        }
       }
-      await admin.from('organization_memberships').delete().eq('organization_id', t.orgId);
-      await admin.from('organizations').delete().eq('id', t.orgId);
-      await admin.auth.admin.deleteUser(t.userId);
+      const memDel = await admin
+        .from('organization_memberships')
+        .delete()
+        .eq('organization_id', t.orgId);
+      if (memDel.error) {
+        failures.push(
+          `delete organization_memberships org=${t.orgId}: ${memDel.error.message}`,
+        );
+      }
+      const orgDel = await admin.from('organizations').delete().eq('id', t.orgId);
+      if (orgDel.error) {
+        failures.push(`delete organizations id=${t.orgId}: ${orgDel.error.message}`);
+      }
+      const userDel = await admin.auth.admin.deleteUser(t.userId);
+      if (userDel.error) {
+        failures.push(`deleteUser id=${t.userId}: ${userDel.error.message}`);
+      }
+    }
+
+    if (failures.length > 0) {
+      throw new Error(
+        `[tenant-isolation] teardown failed (orphaned test data may remain):\n` +
+          failures.map((f) => `  - ${f}`).join('\n'),
+      );
     }
   }, 60_000);
 

@@ -285,7 +285,6 @@ export function AuditLogPage() {
 
       setLoading(false);
     },
-     
     [currentOrg, page, filterActor, filterResource, filterDateFrom, filterDateTo],
   );
 
