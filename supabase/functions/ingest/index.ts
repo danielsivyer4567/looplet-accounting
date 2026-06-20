@@ -61,16 +61,18 @@ Deno.serve(async (req) => {
   if (pre) return pre;
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
-  // Cheap pre-auth throttle (F4): bucket by IP BEFORE any DB work so anonymous /
-  // bad-key floods cannot each cost a serviceClient + key lookup + log insert.
   const ip = clientIp(req);
-  if (!allowAnonRequest(ip)) {
-    return json({ error: "rate_limited" }, 429);
-  }
-
   const ctx = await authenticateApiKey(req.headers.get("authorization"));
 
   if (!ctx) {
+    // Throttle UNauthenticated traffic only (F4). authenticateApiKey does no DB
+    // work for a missing/malformed header and at most one indexed lookup for a
+    // well-formed-but-invalid key, so this caps anon/bad-key floods without ever
+    // 429-ing a legitimate connector — authenticated keys are governed solely by
+    // the per-key DB limiter below.
+    if (!allowAnonRequest(ip)) {
+      return json({ error: "rate_limited" }, 429);
+    }
     // Cap anonymous 401 logging so bad keys can't flood the table.
     if (shouldLogAnon(ip)) {
       await logApiRequest(serviceClient(), {
