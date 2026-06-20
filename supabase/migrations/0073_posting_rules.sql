@@ -18,17 +18,21 @@
 -- ----------------------------------------------------------------------------
 -- post_journal_entry: validate balance, flip draft -> posted.
 --
--- SECURITY DEFINER + SET search_path = '' (empty) per the hardened convention:
--- all object references inside are fully schema-qualified. REVOKE FROM PUBLIC,
--- GRANT EXECUTE to authenticated. Org access is still enforced because the
--- function only operates on an entry the caller can see (the RLS check is
--- re-applied explicitly below since SECURITY DEFINER bypasses RLS).
+-- SECURITY DEFINER + SET search_path = public (the repo convention used by
+-- 0043/0054). All object references here are still fully schema-qualified, but
+-- the search_path must include public so the call to get_accessible_org_ids()
+-- (defined in 0001 WITHOUT its own search_path, using unqualified table names)
+-- can resolve organization_memberships / organizations. Under search_path = ''
+-- that helper throws, so posting would always fail. REVOKE FROM PUBLIC, GRANT
+-- EXECUTE to authenticated. Org access is still enforced because the function
+-- only operates on an entry the caller can see (the RLS check is re-applied
+-- explicitly below since SECURITY DEFINER bypasses RLS).
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.post_journal_entry(p_entry_id uuid)
 RETURNS public.journal_entries
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = ''
+SET search_path = public
 AS $$
 DECLARE
   v_entry   public.journal_entries;
@@ -77,6 +81,34 @@ BEGIN
       p_entry_id, v_debits, v_credits;
   END IF;
 
+  -- Every referenced account must belong to the SAME org as the entry and be
+  -- active. The same-org tie is also enforced at write time by a trigger (0075)
+  -- but is re-asserted here so posting fails loudly rather than silently leaking
+  -- a foreign-org account into v_trial_balance, and so inactive accounts cannot
+  -- receive new postings.
+  IF EXISTS (
+    SELECT 1
+      FROM public.journal_lines jl
+      JOIN public.chart_of_accounts coa ON coa.id = jl.account_id
+     WHERE jl.journal_entry_id = p_entry_id
+       AND coa.organization_id <> v_entry.organization_id
+  ) THEN
+    RAISE EXCEPTION
+      'journal entry % references an account belonging to a different organization',
+      p_entry_id;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+      FROM public.journal_lines jl
+      JOIN public.chart_of_accounts coa ON coa.id = jl.account_id
+     WHERE jl.journal_entry_id = p_entry_id
+       AND coa.is_active = false
+  ) THEN
+    RAISE EXCEPTION
+      'journal entry % references an inactive account', p_entry_id;
+  END IF;
+
   UPDATE public.journal_entries
      SET status = 'posted',
          posted_at = now()
@@ -91,7 +123,7 @@ REVOKE ALL ON FUNCTION public.post_journal_entry(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.post_journal_entry(uuid) TO authenticated;
 
 COMMENT ON FUNCTION public.post_journal_entry(uuid) IS
-  'Validates that a journal entry balances (SUM debits = SUM credits, >=1 line) and flips its status draft -> posted, stamping posted_at. Raises on unbalanced/empty/already-posted/void entries. SECURITY DEFINER with empty search_path; re-checks org access via get_accessible_org_ids().';
+  'Validates that a journal entry balances (SUM debits = SUM credits, >=1 line), that every referenced account is same-org and active, and flips its status draft -> posted, stamping posted_at. Raises on unbalanced/empty/already-posted/void entries or foreign-org/inactive accounts. SECURITY DEFINER with search_path=public; re-checks org access via get_accessible_org_ids().';
 
 -- ----------------------------------------------------------------------------
 -- seed_default_chart_of_accounts: per-org AU trades-business COA template.
@@ -101,11 +133,15 @@ COMMENT ON FUNCTION public.post_journal_entry(uuid) IS
 -- / income / expenses). This is a starting point an operator can rename or
 -- extend; it is NOT prescriptive accounting advice.
 -- ----------------------------------------------------------------------------
+-- SECURITY DEFINER + SET search_path = public (repo convention, 0043/0054).
+-- public must be on the path so the get_accessible_org_ids() call (defined in
+-- 0001 without its own search_path, with unqualified table names) can resolve;
+-- under search_path = '' the seed would always fail the authorization check.
 CREATE OR REPLACE FUNCTION public.seed_default_chart_of_accounts(p_org_id uuid)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = ''
+SET search_path = public
 AS $$
 BEGIN
   -- Caller must have access to the target org.

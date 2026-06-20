@@ -17,7 +17,8 @@ a single source of truth: **posted journal entries**.
 | `0071` | `chart_of_accounts` table + `account_type` enum | Per-org list of accounts. `account_type ∈ {asset, liability, equity, income, expense}`. Self-FK `parent_account_id` for hierarchy. Unique `(organization_id, code)`. |
 | `0072` | `journal_entries` + `journal_lines` tables | A `journal_entry` is one balanced transaction; its `journal_lines` debit/credit accounts. Each line touches exactly one side (`journal_lines_one_side` check). `status ∈ {draft, posted, void}`. `source_type`/`source_id` soft-link back to the originating invoice/bill/payment. |
 | `0073` | `post_journal_entry(uuid)` fn + `seed_default_chart_of_accounts(uuid)` fn | Posting validates debits = credits and flips `draft → posted`. The seed function populates a default AU trades-business COA per org (idempotent). |
-| `0074` | `v_trial_balance` view | Per `(organization_id, account)`: `SUM(debit)`, `SUM(credit)`, and `net = debit − credit` over **posted** entries only. |
+| `0074` | `v_trial_balance` view | Per `(organization_id, account)`: `SUM(debit)`, `SUM(credit)`, and `net = debit − credit` over **posted** entries only. Lines are aggregated per account first, then `LEFT JOIN`ed onto the chart of accounts (no account×entry cartesian). |
+| `0075` | GL integrity triggers | Posted entries are immutable (only `posted → void` allowed; no delete; lines frozen once the parent is posted/void). Each `journal_line.account_id` must be in the **same org** as its parent entry. |
 
 ## The model
 
@@ -94,9 +95,25 @@ breaks during the transition.
   org-scoping helper). `journal_lines` inherit scope through their parent
   `journal_entries` row.
 - `post_journal_entry` and `seed_default_chart_of_accounts` are
-  `SECURITY DEFINER` with `SET search_path = ''` and fully schema-qualified
-  references; both `REVOKE ALL ... FROM PUBLIC` and `GRANT EXECUTE ... TO
+  `SECURITY DEFINER` with `SET search_path = public` (the repo convention used by
+  `0043`/`0054`). Their own references are fully schema-qualified, but `public`
+  must be on the search path because they call `get_accessible_org_ids()`, which
+  is defined in `0001` without its own `search_path` and uses unqualified table
+  names — under `search_path = ''` that helper raises, so posting/seeding would
+  always fail. Both `REVOKE ALL ... FROM PUBLIC` and `GRANT EXECUTE ... TO
   authenticated`, and both re-check org access explicitly (since DEFINER
   bypasses RLS).
 - `v_trial_balance` uses `security_invoker = on`, so underlying-table RLS scopes
   results to the querying user's orgs.
+- **Posted entries are immutable** (`0075`). RLS grants UPDATE/DELETE, but BEFORE
+  triggers freeze any entry once `status = 'posted'`: the only permitted change is
+  the status transition `posted → void` (every other column preserved), posted
+  entries cannot be deleted, and their `journal_lines` cannot be inserted,
+  updated, or deleted. Mistakes are corrected with a **reversing entry**, never by
+  editing history.
+- **Same-org line accounts** (`0075`). A `journal_line.account_id` must reference a
+  `chart_of_accounts` row in the same org as the line's parent `journal_entry`,
+  enforced by a BEFORE INSERT/UPDATE trigger. Without this, a user with access to
+  two orgs could point a line at another org's account and leak the amount into
+  that org's `v_trial_balance`. `post_journal_entry` re-checks the same-org and
+  `is_active` conditions for every line at post time as a second line of defence.

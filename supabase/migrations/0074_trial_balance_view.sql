@@ -24,6 +24,17 @@
 -- the view org-scoped without re-implementing get_accessible_org_ids() here.
 -- ============================================================================
 
+-- Aggregate FIRST, then attach the chart of accounts. The inner `postings`
+-- subquery sums journal_lines that belong to a POSTED entry, grouped by
+-- account_id — one row per account that has any posted activity. We LEFT JOIN
+-- that pre-aggregated set onto chart_of_accounts so every account still appears
+-- (accounts with no posted lines come through as zero rows via COALESCE).
+--
+-- This deliberately avoids joining chart_of_accounts to journal_entries before
+-- the line join: doing so produces a cartesian product (every account paired
+-- with every posted entry in the org) that SUM() then silently multiplies,
+-- inflating the totals. Aggregating the lines up front keeps each line counted
+-- exactly once.
 CREATE OR REPLACE VIEW public.v_trial_balance
 WITH (security_invoker = on) AS
 SELECT
@@ -32,27 +43,22 @@ SELECT
   coa.code                                         AS account_code,
   coa.name                                         AS account_name,
   coa.account_type                                 AS account_type,
-  COALESCE(SUM(jl.debit_cents), 0)::bigint         AS total_debit_cents,
-  COALESCE(SUM(jl.credit_cents), 0)::bigint        AS total_credit_cents,
-  (COALESCE(SUM(jl.debit_cents), 0)
-   - COALESCE(SUM(jl.credit_cents), 0))::bigint    AS net_cents
+  COALESCE(postings.total_debit_cents, 0)::bigint  AS total_debit_cents,
+  COALESCE(postings.total_credit_cents, 0)::bigint AS total_credit_cents,
+  (COALESCE(postings.total_debit_cents, 0)
+   - COALESCE(postings.total_credit_cents, 0))::bigint AS net_cents
 FROM public.chart_of_accounts coa
--- LEFT JOIN to lines that belong to a POSTED entry. Folding the posted check
--- into the join (rather than a WHERE filter) keeps every account in the result
--- as a zero row even when it has only draft/void lines or no lines at all, so
--- the full chart of accounts is always visible in the trial balance.
-LEFT JOIN public.journal_entries je
-       ON je.organization_id = coa.organization_id
-      AND je.status = 'posted'
-LEFT JOIN public.journal_lines jl
-       ON jl.journal_entry_id = je.id
-      AND jl.account_id = coa.id
-GROUP BY
-  coa.organization_id,
-  coa.id,
-  coa.code,
-  coa.name,
-  coa.account_type;
+LEFT JOIN (
+  SELECT
+    jl.account_id                  AS account_id,
+    SUM(jl.debit_cents)            AS total_debit_cents,
+    SUM(jl.credit_cents)           AS total_credit_cents
+  FROM public.journal_lines jl
+  JOIN public.journal_entries je
+    ON je.id = jl.journal_entry_id
+   AND je.status = 'posted'
+  GROUP BY jl.account_id
+) postings ON postings.account_id = coa.id;
 
 COMMENT ON VIEW public.v_trial_balance IS
   'Trial balance per (organization, account) over POSTED journal entries only. total_debit_cents / total_credit_cents and net_cents = debits - credits (debit-positive). Accounts with no postings appear as zero rows. Foundation for GL-derived P&L (income/expense accounts) and Balance Sheet (asset/liability/equity accounts) — replaces the GST-inclusive invoice-based approximations in 0041/0047. security_invoker=on so underlying-table RLS scopes results to the caller''s orgs.';
