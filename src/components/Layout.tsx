@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { useOrg } from '@/contexts/OrgContext';
+import { useAuth } from '@/hooks/useAuth';
+import { useOrg } from '@/hooks/useOrg';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useAccountantHeartbeat } from '@/hooks/useAccountantHeartbeat';
 import { OrgSelector } from './OrgSelector';

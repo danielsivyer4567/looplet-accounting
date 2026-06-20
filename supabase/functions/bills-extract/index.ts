@@ -19,16 +19,28 @@
  * Output: { ok: true, extracted, cache_hit, method: 'cache'|'text'|'vision', provider? }
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { extractBillData } from '../_shared/ocr/index.ts';
 import { extractTextFromPdf } from '../_shared/ocr/textExtract.ts';
 import { parseBillHeaders } from '../_shared/ocr/headerParser.ts';
-import type { ExtractedBill } from '../_shared/ocr/prompt.ts';
+import type { DocumentKind, ExtractedBill } from '../_shared/ocr/prompt.ts';
+import { NON_FINANCIAL_KINDS } from '../_shared/ocr/prompt.ts';
 import { routeBill, type RouterResult } from '../_shared/bills/router.ts';
 
 interface RequestBody {
   bill_id: string;
+  // force: skip the SHA-256 dedup cache and re-run real OCR. Used by the
+  // repair backfill so a bill can't copy a failed duplicate's null values.
+  force?: boolean;
+}
+
+interface DocMetadata {
+  candidate_supplier?: string | null;
+  author?: string | null;
+  candidate_invoice_number?: string | null;
+  taken_at?: string | null;
+  created_at?: string | null;
 }
 
 const TEXT_CONFIDENCE_THRESHOLD = 0.8;
@@ -67,7 +79,7 @@ Deno.serve(async (req) => {
       } catch { /* fall through to user-jwt path */ }
     }
 
-    let dbClient: any;
+    let dbClient: SupabaseClient;
     if (isServiceRole) {
       dbClient = admin;
     } else {
@@ -106,7 +118,7 @@ Deno.serve(async (req) => {
     // Extract structural metadata (PDF info dict / EXIF / XMP) — free signal
     // before any OCR. Will be merged into raw_extracted and used to pre-fill
     // supplier_name / invoice_number / invoice_date if OCR misses them.
-    let docMetadata: any = null;
+    let docMetadata: DocMetadata | null = null;
     try {
       const { extractDocumentMetadata } = await import('../_shared/ocr/metadata.ts');
       docMetadata = await extractDocumentMetadata(bytes, bill.mime_type);
@@ -120,16 +132,19 @@ Deno.serve(async (req) => {
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
 
-    const { data: cacheRow } = await admin
+    // Only reuse a duplicate that actually captured a total — never copy a
+    // failed (null-amount) extraction. `force` skips the cache entirely.
+    const { data: cacheRow } = body.force ? { data: null } : await admin
       .from('bills')
       .select(
-        'supplier_name_raw, supplier_abn, invoice_number, invoice_date, due_date, total_inc_gst_cents, gst_cents, subtotal_ex_gst_cents, currency_code, job_reference_raw, notes, raw_extracted, ocr_provider, ocr_confidence',
+        'supplier_name_raw, supplier_abn, invoice_number, invoice_date, due_date, total_inc_gst_cents, gst_cents, subtotal_ex_gst_cents, gst_estimated, currency_code, job_reference_raw, document_kind, is_probable_bill, notes, raw_extracted, ocr_provider, ocr_confidence',
       )
       .eq('organization_id', bill.organization_id)
       .eq('content_sha256', contentSha256)
       .neq('id', bill.id)
       .is('deleted_at', null)
       .not('raw_extracted', 'is', null)
+      .not('total_inc_gst_cents', 'is', null)
       .limit(1)
       .maybeSingle();
 
@@ -219,15 +234,96 @@ Deno.serve(async (req) => {
   }
 });
 
+/**
+ * Capture GST even when the supplier didn't itemise it.
+ *   - GST read off the document → use it verbatim (estimated=false).
+ *   - total + subtotal both present → GST = total − subtotal (estimated=true).
+ *   - total only → AU standard rate: GST = round(total / 11), subtotal = total − GST.
+ *   - no total → leave null (nothing to derive from).
+ * Estimated GST is flagged so the BAS gate / human review can correct the
+ * GST-free exceptions (fresh food, some services, overseas) before lodgement.
+ */
+export function deriveGstCents(
+  totalCents: number | null,
+  gstCents: number | null,
+  subtotalCents: number | null,
+): { gstCents: number | null; subtotalCents: number | null; estimated: boolean } {
+  if (gstCents != null) {
+    return {
+      gstCents,
+      subtotalCents: subtotalCents ?? (totalCents != null ? totalCents - gstCents : null),
+      estimated: false,
+    };
+  }
+  if (totalCents == null) {
+    return { gstCents: null, subtotalCents, estimated: false };
+  }
+  if (subtotalCents != null && totalCents > subtotalCents) {
+    return { gstCents: totalCents - subtotalCents, subtotalCents, estimated: true };
+  }
+  if (subtotalCents != null) {
+    // Document supplied a subtotal that equals (or exceeds) the total → the
+    // supply carries NO GST (GST-free: fresh food, bank fees, overseas, rent).
+    // Do NOT apply the 1/11 rule here — that would invent phantom GST and
+    // over-claim input tax credits.
+    return { gstCents: 0, subtotalCents, estimated: false };
+  }
+  // Total only, no subtotal to contradict it → assume a standard-rated taxable
+  // supply: GST = 1/11 of the GST-inclusive total.
+  const derivedGst = Math.round(totalCents / 11);
+  return { gstCents: derivedGst, subtotalCents: totalCents - derivedGst, estimated: true };
+}
+
+/**
+ * Decide whether an extracted document is a probable bill (belongs on the
+ * active bills/BAS surface) or noise to keep out of sight.
+ *
+ * Noise = a genuinely non-financial document_kind (logo/photo/ui_screenshot/
+ * other) — the mis-filed images (supplier logos, "Pay Now" buttons, photos of
+ * finished fences, email-signature images) the OCR already recognises as "not a
+ * financial document".
+ *
+ * IMPORTANT: we deliberately DO NOT hide a row just because the extraction was
+ * low-confidence with no total/supplier. A real-but-unreadable invoice (a
+ * skewed photo, an encrypted/corrupt PDF that fell through to the manual-entry
+ * stub) looks exactly like that — low confidence, null total, null supplier,
+ * document_kind='invoice' — and dropping it would silently remove a real bill
+ * from the active list AND from BAS. Such rows stay is_probable_bill=true so
+ * they surface as needs-review rather than vanish; the human review pass (or a
+ * later re-extract) fills the amounts. Only a non-financial document_kind ever
+ * sets is_probable_bill=false.
+ *
+ * Nothing is deleted: is_probable_bill=false just defaults the row out of the
+ * active list and out of BAS scope; it can still be shown via the toggle.
+ */
+export function classifyBill(extracted: {
+  document_kind?: DocumentKind | string | null;
+  confidence?: ExtractedBill['confidence'];
+  total_inc_gst?: number | null;
+  supplier_name?: string | null;
+}): { documentKind: DocumentKind; isProbableBill: boolean } {
+  const documentKind: DocumentKind =
+    NON_FINANCIAL_KINDS.has(extracted.document_kind as DocumentKind) ||
+    ['invoice', 'quote', 'receipt', 'statement', 'order'].includes(
+      extracted.document_kind as string,
+    )
+      ? (extracted.document_kind as DocumentKind)
+      : 'invoice';
+
+  // Exclude ONLY genuinely non-financial documents. A low-confidence empty
+  // extraction of a real invoice must remain visible (needs-review), not hidden.
+  const isProbableBill = !NON_FINANCIAL_KINDS.has(documentKind);
+
+  return { documentKind, isProbableBill };
+}
+
 async function persistExtraction(
-  // deno-lint-ignore no-explicit-any
-  admin: any,
+  admin: SupabaseClient,
   billId: string,
   extracted: ExtractedBill,
   contentSha256: string,
   provider: string,
-  // deno-lint-ignore no-explicit-any
-  docMetadata?: any,
+  docMetadata?: DocMetadata | null,
 ): Promise<void> {
   // Backfill empty OCR fields from metadata if metadata has them
   const filledSupplier = extracted.supplier_name || docMetadata?.candidate_supplier || docMetadata?.author || null;
@@ -236,7 +332,24 @@ async function persistExtraction(
     || (docMetadata?.taken_at ? docMetadata.taken_at.slice(0, 10) : null)
     || (docMetadata?.created_at ? docMetadata.created_at.slice(0, 10) : null);
 
-  await admin
+  // Derive GST so the books (and BAS) fill even when the document only shows a
+  // total. AU standard-rated supplies are 1/11 of the GST-inclusive total.
+  const { gstCents, subtotalCents, estimated } = deriveGstCents(
+    extracted.total_inc_gst != null ? Math.round(extracted.total_inc_gst * 100) : null,
+    extracted.gst_amount != null ? Math.round(extracted.gst_amount * 100) : null,
+    extracted.subtotal_ex_gst != null ? Math.round(extracted.subtotal_ex_gst * 100) : null,
+  );
+
+  // Classify the document so non-invoices (logos, photos of finished fences,
+  // "Pay Now" UI screenshots) are kept off the active bills list and out of BAS.
+  const { documentKind, isProbableBill } = classifyBill({
+    document_kind: extracted.document_kind,
+    confidence: extracted.confidence,
+    total_inc_gst: extracted.total_inc_gst,
+    supplier_name: filledSupplier,
+  });
+
+  const { error: updateErr } = await admin
     .from('bills')
     .update({
       content_sha256: contentSha256,
@@ -247,11 +360,13 @@ async function persistExtraction(
       due_date: extracted.due_date,
       total_inc_gst_cents:
         extracted.total_inc_gst != null ? Math.round(extracted.total_inc_gst * 100) : null,
-      gst_cents: extracted.gst_amount != null ? Math.round(extracted.gst_amount * 100) : null,
-      subtotal_ex_gst_cents:
-        extracted.subtotal_ex_gst != null ? Math.round(extracted.subtotal_ex_gst * 100) : null,
+      gst_cents: gstCents,
+      subtotal_ex_gst_cents: subtotalCents,
+      gst_estimated: estimated,
       currency_code: extracted.currency || 'AUD',
       job_reference_raw: extracted.job_reference,
+      document_kind: documentKind,
+      is_probable_bill: isProbableBill,
       notes: extracted.notes || null,
       raw_extracted: docMetadata
         ? { ...extracted, _document_metadata: docMetadata }
@@ -262,11 +377,15 @@ async function persistExtraction(
       updated_at: new Date().toISOString(),
     })
     .eq('id', billId);
+  // Surface the failure instead of silently returning ok — a swallowed error
+  // here is how the books stayed empty (e.g. a stale PostgREST schema cache).
+  if (updateErr) {
+    throw new Error(`Failed to persist extraction for bill ${billId}: ${updateErr.message}`);
+  }
 }
 
 async function runRouting(
-  // deno-lint-ignore no-explicit-any
-  admin: any,
+  admin: SupabaseClient,
   billId: string,
   organizationId: string,
   source: { job_reference_raw?: string | null; confidence?: ExtractedBill['confidence'] },

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 
 interface Finding {
   id: string;
@@ -58,6 +58,13 @@ export function ScanPage() {
 
   useEffect(() => void refresh(), [refresh]);
 
+  // Group by severity — kept above the early return so the hook order is stable
+  const grouped = useMemo(() => {
+    const map: Record<string, Finding[]> = { critical: [], warning: [], info: [] };
+    for (const f of findings) (map[f.severity] ??= []).push(f);
+    return map;
+  }, [findings]);
+
   if (!currentOrg) return null;
 
   const runScan = async () => {
@@ -81,13 +88,6 @@ export function ScanPage() {
     if (e) { setError(e.message); return; }
     await refresh();
   };
-
-  // Group by severity
-  const grouped = useMemo(() => {
-    const map: Record<string, Finding[]> = { critical: [], warning: [], info: [] };
-    for (const f of findings) (map[f.severity] ??= []).push(f);
-    return map;
-  }, [findings]);
 
   const totalOpen = findings.filter((f) => !f.resolved_at && !f.is_muted).length;
 

@@ -202,8 +202,9 @@ export function classifyEntity(input: ClassifyInput): ClassifyResult {
   const senderName = (input.sender_name ?? '').trim();
 
   // 1. Known trade supplier — strongest signal
-  if (KNOWN_TRADE_SUPPLIERS[domain]) {
-    const m = KNOWN_TRADE_SUPPLIERS[domain]!;
+  const tradeSupplier = KNOWN_TRADE_SUPPLIERS[domain];
+  if (tradeSupplier) {
+    const m = tradeSupplier;
     return {
       kind: 'supplier',
       category: m.category,
@@ -215,8 +216,9 @@ export function classifyEntity(input: ClassifyInput): ClassifyResult {
   }
 
   // 2. Internal admin / government
-  if (INTERNAL_ADMIN[domain]) {
-    const m = INTERNAL_ADMIN[domain]!;
+  const internalAdmin = INTERNAL_ADMIN[domain];
+  if (internalAdmin) {
+    const m = internalAdmin;
     return {
       kind: 'internal_admin',
       category: m.category,
@@ -227,22 +229,24 @@ export function classifyEntity(input: ClassifyInput): ClassifyResult {
   }
 
   // 3. Business SaaS subscription
-  if (BUSINESS_SAAS[domain]) {
+  const businessSaas = BUSINESS_SAAS[domain];
+  if (businessSaas) {
     return {
       kind: 'subscription',
       category: 'subscriptions_saas',
-      display_name: BUSINESS_SAAS[domain]!,
+      display_name: businessSaas,
       confidence: 0.95,
       reason: `Domain ${domain} is a known business SaaS provider`,
     };
   }
 
   // 4. Personal / consumer brand
-  if (PERSONAL_BRANDS[domain]) {
+  const personalBrand = PERSONAL_BRANDS[domain];
+  if (personalBrand) {
     return {
       kind: 'personal',
       category: 'personal_expense',
-      display_name: PERSONAL_BRANDS[domain]!,
+      display_name: personalBrand,
       confidence: 0.9,
       reason: `Domain ${domain} is a consumer brand — predicted personal`,
     };
@@ -336,7 +340,7 @@ function pickFirstHit(text: string, keywords: string[]): string {
 export function extractAbn(text: string): string | null {
   if (!text) return null;
   const m = text.match(/\bABN[\s:]*(\d{2}\s?\d{3}\s?\d{3}\s?\d{3})\b/i);
-  return m ? m[1]!.replace(/\s+/g, '') : null;
+  return m && m[1] ? m[1].replace(/\s+/g, '') : null;
 }
 
 /** Extract a total amount in cents from common phrasings. Conservative; null if ambiguous. */
@@ -348,8 +352,8 @@ export function extractTotalCents(text: string): number | null {
   ];
   for (const re of patterns) {
     const m = text.match(re);
-    if (m) {
-      const num = parseFloat(m[1]!.replace(/,/g, ''));
+    if (m && m[1]) {
+      const num = parseFloat(m[1].replace(/,/g, ''));
       if (Number.isFinite(num) && num > 0) return Math.round(num * 100);
     }
   }

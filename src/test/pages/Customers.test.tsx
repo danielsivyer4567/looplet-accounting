@@ -28,8 +28,8 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-// OrgContext: provide a stable current org
-vi.mock('@/contexts/OrgContext', () => ({
+// OrgContext: provide a stable current org (hook lives in @/hooks/useOrg)
+vi.mock('@/hooks/useOrg', () => ({
   useOrg: () => ({
     organizations: [{ id: 'org-1', name: 'AFGC Plumbing', organization_type: 'standard' }],
     currentOrg: { id: 'org-1', name: 'AFGC Plumbing', organization_type: 'standard' },

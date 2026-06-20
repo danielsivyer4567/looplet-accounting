@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useInvoices } from '@/hooks/useInvoices';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { SkeletonCard, SkeletonTable } from '@/components/Skeleton';
 

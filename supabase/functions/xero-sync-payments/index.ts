@@ -28,6 +28,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { requireEnv } from '../_shared/env.ts';
 import { callXeroWithRetry, xeroFetch } from '../_shared/xero/auth.ts';
 
 interface XeroPayment {
@@ -72,9 +73,9 @@ Deno.serve(async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  const supabaseUrl = requireEnv('SUPABASE_URL');
+  const serviceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
+  const anonKey = requireEnv('SUPABASE_ANON_KEY');
 
   const admin = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },

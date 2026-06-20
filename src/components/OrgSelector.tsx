@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 
 export function OrgSelector() {
   const { organizations, currentOrg, setCurrentOrg, createOrganization, loading } = useOrg();

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { downloadCsv } from '@/lib/csv';
 import { SkeletonTable } from '@/components/Skeleton';
@@ -148,7 +148,7 @@ export function CashFlowPage() {
                     <td style={{ ...tdRight, color: '#86c7a3' }}>{r.inflow > 0 ? formatMoney(r.inflow) : '—'}</td>
                     <td style={{ ...tdRight, color: '#e9a3a3' }}>{r.outflow > 0 ? formatMoney(-r.outflow) : '—'}</td>
                     <td style={{ ...tdRight, color: r.net >= 0 ? '#86c7a3' : '#e9a3a3', fontWeight: 600 }}>{formatMoney(r.net)}</td>
-                    <td style={{ ...tdRight, color: (r as any).running >= 0 ? '#aaa' : '#e9a3a3' }}>{formatMoney((r as any).running)}</td>
+                    <td style={{ ...tdRight, color: (r as AggRow & { running: number }).running >= 0 ? '#aaa' : '#e9a3a3' }}>{formatMoney((r as AggRow & { running: number }).running)}</td>
                     <td style={td}>
                       <div style={{ display: 'flex', alignItems: 'center', height: 16 }}>
                         <div style={{ width: inWidth, height: 8, background: '#2da565', marginRight: 2 }} />

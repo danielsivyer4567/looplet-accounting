@@ -69,7 +69,8 @@
  * depth: still verifies the target row's organization_id matches the request.
  */
 
-import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 
 type Target = 'bill' | 'bank_transaction';
@@ -352,7 +353,9 @@ async function applyRuleToBill(
 
   // Strip applied_intake_rule_id + updated_at from the returned fields_set so
   // the caller sees just the user-visible fills.
-  const { applied_intake_rule_id: _ar, updated_at: _ua, ...userVisible } = update;
+  const userVisible = { ...update };
+  delete userVisible.applied_intake_rule_id;
+  delete userVisible.updated_at;
   return userVisible;
 }
 
@@ -466,11 +469,13 @@ async function applyRuleToBankTxn(
     };
     if (update.is_personal === true) minimal.is_personal = true;
     await admin.from('bank_transactions').update(minimal).eq('id', txn.id);
-    const { applied_intake_rule_id: _ar, ...userVisible } = minimal;
-    return userVisible;
+    const minimalVisible = { ...minimal };
+    delete minimalVisible.applied_intake_rule_id;
+    return minimalVisible;
   }
 
-  const { applied_intake_rule_id: _ar, ...userVisible } = update;
+  const userVisible = { ...update };
+  delete userVisible.applied_intake_rule_id;
   return userVisible;
 }
 
@@ -608,7 +613,7 @@ function safeRegexTest(pattern: string, input: string): boolean {
  * Either bound may be omitted: ":50000" = ≤ $500.00, "10000:" = ≥ $100.00.
  */
 function amountInRange(spec: string, value: number): boolean {
-  const m = spec.match(/^\s*(-?\d+)?\s*[:\-]\s*(-?\d+)?\s*$/);
+  const m = spec.match(/^\s*(-?\d+)?\s*[:-]\s*(-?\d+)?\s*$/);
   if (!m) return false;
   const min = m[1] !== undefined && m[1] !== '' ? parseInt(m[1], 10) : Number.NEGATIVE_INFINITY;
   const max = m[2] !== undefined && m[2] !== '' ? parseInt(m[2], 10) : Number.POSITIVE_INFINITY;
