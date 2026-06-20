@@ -281,7 +281,7 @@ async function persistExtraction(
     extracted.subtotal_ex_gst != null ? Math.round(extracted.subtotal_ex_gst * 100) : null,
   );
 
-  await admin
+  const { error: updateErr } = await admin
     .from('bills')
     .update({
       content_sha256: contentSha256,
@@ -307,6 +307,11 @@ async function persistExtraction(
       updated_at: new Date().toISOString(),
     })
     .eq('id', billId);
+  // Surface the failure instead of silently returning ok — a swallowed error
+  // here is how the books stayed empty (e.g. a stale PostgREST schema cache).
+  if (updateErr) {
+    throw new Error(`Failed to persist extraction for bill ${billId}: ${updateErr.message}`);
+  }
 }
 
 async function runRouting(

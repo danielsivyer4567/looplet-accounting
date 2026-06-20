@@ -77,13 +77,15 @@ Deno.serve(async (req) => {
       return count ?? 0;
     };
 
-    // Pull queue
+    // Pull queue. Repair cycles least-recently-touched first (updated_at) so a
+    // cluster of genuinely-unreadable bills at the front can't starve the rest;
+    // received drains oldest-first.
     let queueQ = admin
       .from('bills')
       .select('id, original_filename')
       .eq('organization_id', body.organization_id)
       .is('deleted_at', null)
-      .order('created_at', { ascending: true })
+      .order(mode === 'repair' ? 'updated_at' : 'created_at', { ascending: true })
       .limit(max);
     queueQ = mode === 'repair'
       ? queueQ.neq('status', 'void').or('total_inc_gst_cents.is.null,gst_cents.is.null')
