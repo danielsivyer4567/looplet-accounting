@@ -57,8 +57,10 @@ export async function encryptToken(plaintext: string): Promise<string> {
 export async function decryptToken(encoded: string): Promise<string> {
   const key = await getKey();
   const buf = base64ToBytes(encoded);
-  const iv = buf.subarray(0, 12);
-  const ct = buf.subarray(12);
+  // .slice() (not .subarray()) so iv/ct are backed by their own ArrayBuffer,
+  // satisfying the BufferSource type the WebCrypto lib expects under deno check.
+  const iv = buf.slice(0, 12);
+  const ct = buf.slice(12);
   const pt = await crypto.subtle.decrypt({ name: ALGO, iv }, key, ct);
   return new TextDecoder().decode(pt);
 }
