@@ -94,7 +94,7 @@ export function DashboardPage() {
         <Card label="Cost — overhead share" value={-data.cost_overhead_cents} />
         <Card label="Gross profit" value={data.gross_profit_cents} positive />
         <Card label="GST set-aside" value={-data.gst_set_aside_cents} hint="Quarter total" />
-        <Card label="Tax set-aside (est.)" value={-data.tax_set_aside_cents} hint="ADR 0003" />
+        <Card label="Tax set-aside (est.)" value={-data.tax_set_aside_cents} hint="Annual est." />
       </div>
 
       <p style={{ color: '#666', fontSize: 12, marginTop: '1.5rem' }}>
