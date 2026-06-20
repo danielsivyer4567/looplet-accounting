@@ -1,0 +1,159 @@
+# Migration Gap Audit & Remote-Schema Reconciliation
+
+**Date:** 2026-06-20
+**Project ref:** `dxoikltymmknxqpkpyhi`
+**Branch:** `chore-migration-reconciliation`
+**Author:** automated reconciliation pass
+
+## Problem
+
+The repo's `supabase/migrations/` folder is missing several migration files that
+correspond to objects which exist in the **live** database. A fresh
+`supabase db reset` would therefore **not** reproduce the live schema: multiple
+later migrations `ALTER` / FK-reference / index tables that no migration ever
+`CREATE`s, and several edge functions / frontend pages query tables, views and
+RPCs that have no `CREATE` statement anywhere in the repo.
+
+## Part A — Gap Audit (repo-only, authoritative)
+
+### A.1 Missing migration NUMBERS (gaps in the sequence)
+
+Existing files jump: `0001–0004`, then `0028`, `0030–0036`, `0039–0054`.
+
+Gap slots (no file present): **0005–0027, 0029, 0037, 0038.**
+
+Backfill files were placed in: `0005–0013`, `0029`, `0038`. (Slot `0037` was
+initially used for a deferred FK but removed — see B.3/B.4: existing migration
+`0030` already adds that FK.)
+
+### A.2 Objects REFERENCED/USED but NOT created by any migration
+
+Determined by scanning `supabase/migrations/*.sql` (created objects),
+`supabase/functions/**/*.ts` (`.from('X')`, `.rpc('Y')`), and `src/**/*.{ts,tsx}`
+(frontend `.from()` / `.rpc()`), then diffing.
+
+#### Tables (no `CREATE TABLE` in any migration)
+
+| Object | Evidence of use | Smoking gun |
+| --- | --- | --- |
+| `intake_categories` | `gmail-classify-ai`, `staged-entities-enrich-sonar`, `src/hooks/useIntakeCategories.ts` | FK-referenced by `0049` (`intake_categories(code)`) |
+| `intake_known_senders` | `lookup_known_sender()` function body | required by RPC used in `gmail-mine` |
+| `intake_rules` | `intake-routing-apply`, `gmail-pubsub-push`, `xero-push-*`, `src/pages/onboarding/Triage.tsx` | indexed by `0036`; FK target of `bank_transactions.applied_intake_rule_id` (`0036`) |
+| `bank_connections` | `bank-exchange`, `bank-sync*`, `bank-csv-import`, `notifications-cron`, `src/components/settings/BankConnect.tsx` | — |
+| `bank_accounts` | `bank-exchange`, `bank-sync`, `bank-csv-import`, `src/pages/reports/CashFlow.tsx` | — |
+| `bank_transactions` | `bank-sync`, `bank-csv-import`, `intake-routing-apply`, `subscriptions-detect`, `src/pages/Reconciliation.tsx`, `SubscriptionDetail.tsx` | `ALTER`ed by `0030`, `0031`, `0036`; indexed by `0043` — table never created |
+| `subscriptions` | `subscriptions-detect`, `notifications-cron`, `src/pages/Subscriptions*.tsx` | referenced by `0047` `split_resource_type` enum + `v_subscription_effective_allocations` |
+| `staged_entities` | `gmail-classify-ai`, `gmail-mine`, `staged-entities-enrich-sonar`, `src/hooks/onboarding/useStagedEntities.ts` | `ALTER`ed by `0049` (adds `sonar_*`) — table never created |
+| `gmail_integrations` | all `gmail-*` functions, `src/hooks/useGmailIntegrations.ts` | — |
+| `debts` | `src/pages/Debts.tsx`, `DebtDetail.tsx` | — |
+| `debt_payments` | `src/pages/Debts.tsx`, `DebtDetail.tsx` | — |
+
+#### Views (no `CREATE VIEW` in any migration)
+
+| Object | Evidence of use | Smoking gun |
+| --- | --- | --- |
+| `v_bank_match_candidates` | `src/pages/Reconciliation.tsx` (`.from('v_bank_match_candidates')`) | `0035` header comment calls itself a "mirror of v_bank_match_candidates" — the mirrored view is absent |
+| `v_customer_pnl` | `src/pages/CustomerDetail.tsx` (`.from('v_customer_pnl')`) | `0030` comment: *"v_customer_pnl: see migration body in DB"* — explicit admission the DDL lives only in the live DB |
+
+#### Functions / RPCs (no `CREATE FUNCTION` in any migration)
+
+| Object | Evidence of use |
+| --- | --- |
+| `lookup_known_sender(text)` | `gmail-mine` `.rpc('lookup_known_sender')` |
+| `match_intake_rule(uuid,text,text,text)` | `gmail-pubsub-push`, `intake-routing-apply` |
+| `record_intake_rule_hit(uuid)` | `gmail-pubsub-push`, `intake-routing-apply` |
+| `onboarding_progress(uuid)` | `src/hooks/onboarding/useStagedEntities.ts` |
+| `business_profile_signals(uuid)` | `src/hooks/useBusinessSignals.ts` |
+
+#### Enum types implied by the above (no `CREATE TYPE` in any migration)
+
+`bank_provider`, `bank_connection_status`, `bank_account_type`,
+`subscription_cadence`, `subscription_status`, `staged_entity_kind`,
+`staged_entity_status`, `debt_kind`.
+
+### A.3 Objects that LOOK missing but are NOT
+
+- `v_bank_invoice_match_candidates` — created by `0035` (present).
+- `invoices`, `invoice_line_items`, `invoice_payments` — created by `0030`.
+- `intake_categories` is FK-referenced by `0049` but **not** created there; it is in the missing set above.
+- `src/lib/database.types.ts` named in the task brief **does not exist** in this repo (only `src/lib/{csv,money,supabase}.ts`). Frontend was scanned directly instead.
+
+## Part B — Reconstruction
+
+### B.1 `supabase db dump` — BLOCKED (needs DB password)
+
+```
+supabase link --project-ref dxoikltymmknxqpkpyhi      # SUCCEEDED (access token)
+supabase db dump --linked --schema public -f /tmp/remote.sql   # FAILED
+```
+
+Error (verbatim):
+
+```
+Dumping schemas from remote database...
+pg_dump: error: connection to server at "aws-1-ap-south-1.pooler.supabase.com"
+(3.111.225.200), port 5432 failed: FATAL:  password authentication failed for user "postgres"
+error running container: exit 1
+```
+
+`db dump` runs `pg_dump` inside a Docker container and needs the **database
+password**, not just the CLI access token — exactly the failure mode the brief
+anticipated. **Needs DB password to complete via the CLI path.**
+
+### B.2 Reconstruction COMPLETED via read-only MCP path
+
+The authenticated Supabase **MCP** connection (`list_tables`, `execute_sql`) does
+*not* need the DB password and is **read-only**. Exact DDL for every missing object
+was extracted from the live DB using `information_schema`, `pg_constraint`,
+`pg_indexes`, `pg_views`, `pg_get_constraintdef()` and `pg_get_functiondef()`.
+**No DDL was applied and nothing was deployed** — only `SELECT`s were run.
+
+### B.3 Backfill migration files created
+
+All use `CREATE ... IF NOT EXISTS` / `CREATE OR REPLACE` / `DO $$ ... EXCEPTION
+WHEN duplicate_object`, so they are idempotent and safe to apply on the live DB.
+RLS is enabled and policies recreated to match live (`get_accessible_org_ids()`
+pattern). Existing migration files were **not** modified or reordered.
+
+| File | Objects |
+| --- | --- |
+| `0005_intake_taxonomy_backfill.sql` | enums `staged_entity_kind`, `staged_entity_status`; tables `intake_categories`, `intake_known_senders` (+RLS) |
+| `0006_intake_rules_backfill.sql` | table `intake_rules` (+indexes, +RLS) |
+| `0007_bank_connections_accounts_backfill.sql` | enums `bank_provider`, `bank_connection_status`, `bank_account_type`; tables `bank_connections`, `bank_accounts` (+RLS) |
+| `0008_bank_transactions_backfill.sql` | table `bank_transactions` (+indexes, +RLS); invoices-FK deferred to 0037 |
+| `0009_gmail_integrations_backfill.sql` | table `gmail_integrations` (+RLS) |
+| `0010_staged_entities_backfill.sql` | table `staged_entities` incl. `sonar_*` cols (+RLS) |
+| `0011_subscriptions_backfill.sql` | enums `subscription_cadence`, `subscription_status`; table `subscriptions` (+RLS) |
+| `0012_debts_backfill.sql` | enum `debt_kind`; tables `debts`, `debt_payments` (+RLS) |
+| `0013_intake_functions_backfill.sql` | `lookup_known_sender`, `match_intake_rule`, `record_intake_rule_hit` |
+| `0029_onboarding_and_signal_functions_backfill.sql` | `onboarding_progress`, `business_profile_signals` |
+| `0038_match_and_customer_pnl_views_backfill.sql` | views `v_bank_match_candidates`, `v_customer_pnl` |
+
+The deferred FK `bank_transactions.matched_invoice_id -> invoices(id)` does **not**
+need its own backfill: the existing migration `0030` already adds it (guarded
+`ADD CONSTRAINT bank_transactions_matched_invoice_fkey`), and now runs against the
+`bank_transactions` table created in `0008`.
+
+### B.4 Ordering notes (why these slot numbers)
+
+- `bank_transactions` (0008) FK to `invoices` is **not declared in 0008** because
+  `invoices` is created later (0030). The existing migration 0030 already adds that
+  FK (`bank_transactions_matched_invoice_fkey`) in a guarded block; since 0008 < 0030,
+  the table exists by the time 0030's `ADD CONSTRAINT` runs. No extra backfill needed.
+- The two views (0038) depend on `invoices` (0030, incl. `amount_paid_cents` /
+  `balance_due_cents`) and on `bank_transactions`/`bills`, so they are placed after 0030.
+- `subscriptions` (0011) is created before 0047 which references it.
+- Later `ALTER ... ADD COLUMN IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS`
+  statements in 0030/0031/0036/0043/0049 no-op because the columns/indexes already
+  exist from the backfills.
+
+### B.5 Caveats / not covered
+
+- **GRANTs and table ownership** were not extracted (only RLS policies). If strict
+  privilege parity is required, extract `information_schema.role_table_grants`.
+- **Data rows** are not backfilled — `intake_categories` and `intake_known_senders`
+  are reference/seed tables in the live DB; seed data is out of scope for schema
+  reconciliation and was not captured.
+- These files reproduce the live **shape**; they have not been applied or validated
+  against a clean `supabase db reset` (no local DB / no DB password available here).
+  Recommend running `supabase db reset` against a shadow DB before merging.
