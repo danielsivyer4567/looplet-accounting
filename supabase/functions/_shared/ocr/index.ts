@@ -57,7 +57,9 @@ export async function extractBillData(
         const result = await extractBillDataMiniMax(pages, 'image/png');
         return { ...result, provider };
       }
-      ocrBytes = pages[pages.length - 1]!;
+      const lastPage = pages[pages.length - 1];
+      if (!lastPage) throw new Error('no pages rendered');
+      ocrBytes = lastPage;
       ocrMime = 'image/png';
     } catch (err) {
       // Corrupt/encrypted PDF or rasterizer failure → graceful manual-entry stub.

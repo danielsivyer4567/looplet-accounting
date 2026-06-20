@@ -85,7 +85,7 @@ export async function extractBillDataMiniMax(
     const c = bodyText.charCodeAt(k);
     safe += c < 32 ? ' ' : bodyText[k];
   }
-  const body = JSON.parse(safe) as { choices?: Array<{ message?: { content?: string } }> };
+  const body = JSON.parse(safe) as { choices?: { message?: { content?: string } }[] };
   const rawText = body.choices?.[0]?.message?.content ?? '';
   if (!rawText) throw new Error('MiniMax returned empty response');
 

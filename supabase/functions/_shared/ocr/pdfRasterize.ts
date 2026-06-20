@@ -12,7 +12,7 @@
  * invoices put supplier/total/GST on page 1; bump maxPages if needed.
  */
 
-// @ts-ignore -- npm: import resolution varies by Deno tooling (no node_modules)
+// @ts-expect-error -- npm: import lacks TS resolution in Deno editor tooling (no node_modules)
 import * as mupdf from 'npm:mupdf@1.27.0';
 
 export interface RasterizeOptions {

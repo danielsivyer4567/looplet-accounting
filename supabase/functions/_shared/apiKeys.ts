@@ -5,6 +5,7 @@
 // Only the SHA-256 hash of the secret is stored; lookup is by the public prefix,
 // then a constant-time compare of the hash. Org + scopes ride on the key row.
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireEnv } from "./env.ts";
 
 export interface ApiKeyContext {
   organizationId: string;
@@ -29,8 +30,8 @@ function timingSafeEqual(a: string, b: string): boolean {
 
 export function serviceClient(): SupabaseClient {
   return createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    requireEnv("SUPABASE_URL"),
+    requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
     { auth: { persistSession: false } },
   );
 }

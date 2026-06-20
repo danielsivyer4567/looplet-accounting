@@ -209,7 +209,7 @@ Deno.serve(async (req) => {
       matched_bills: 0,
       matched_invoices: 0,
       skipped_ambiguous: 0,
-      errors: [] as Array<{ bank_transaction_id: string; error: string }>,
+      errors: [] as { bank_transaction_id: string; error: string }[],
     };
 
     for (const [txnId, candidates] of byTxn) {
@@ -226,7 +226,8 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const winner = strong[0]!;
+      const winner = strong[0];
+      if (!winner) continue;
       // match_confidence is stored on bank_transactions and surfaced in the UI;
       // raw view scores can exceed 1.0 (AP max 1.2, AR max 1.5), so clamp to
       // [0, 1] before persisting.

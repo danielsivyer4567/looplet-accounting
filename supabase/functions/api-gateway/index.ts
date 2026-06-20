@@ -16,8 +16,9 @@
 import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
 import { allowAnonRequest, authenticateApiKey, clientIp, enforceRateLimit, logApiRequest, serviceClient, shouldLogAnon } from "../_shared/apiKeys.ts";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
+import { requireEnv } from "../_shared/env.ts";
 
-const JWT_SECRET = Deno.env.get("SUPABASE_JWT_SECRET")!;
+const JWT_SECRET = requireEnv("SUPABASE_JWT_SECRET");
 const TTL_SECONDS = 15 * 60;
 
 async function signingKey(): Promise<CryptoKey> {
