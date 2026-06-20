@@ -48,7 +48,10 @@ export async function extractBillDataMiniMax(
     },
     body: JSON.stringify({
       model,
-      max_tokens: 4096,
+      // MiniMax-M3 is a reasoning model — it spends output tokens on a
+      // <think>…</think> block before the answer, so the budget must cover
+      // both the reasoning and the JSON or the JSON gets truncated away.
+      max_tokens: 16000,
       temperature: 0,
       messages: [
         {
@@ -68,7 +71,15 @@ export async function extractBillDataMiniMax(
   }
 
   const body = await res.json();
-  const text = body.choices?.[0]?.message?.content ?? '';
-  if (!text) throw new Error('MiniMax returned empty response');
-  return { data: parseExtractedJson(text), raw: text };
+  const rawText = body.choices?.[0]?.message?.content ?? '';
+  if (!rawText) throw new Error('MiniMax returned empty response');
+
+  // Strip the model's <think>…</think> reasoning before locating the JSON.
+  // A response that still begins with <think> after stripping means the
+  // reasoning was truncated (no closing tag) — surface that as an error.
+  const text = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  if (/^<think>/i.test(text) || !text.includes('{')) {
+    throw new Error('MiniMax response truncated before JSON (reasoning overran token budget)');
+  }
+  return { data: parseExtractedJson(text), raw: rawText };
 }
