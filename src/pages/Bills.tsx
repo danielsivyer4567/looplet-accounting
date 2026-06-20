@@ -6,6 +6,7 @@ import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import { XeroStatusPill } from '@/components/XeroStatusPill';
 import { supabase } from '@/lib/supabase';
+import { DocumentPreviewModal } from '@/components/DocumentPreviewModal';
 
 const statusColors: Record<BillListRow['status'], string> = {
   received: '#888',
@@ -29,6 +30,7 @@ export function BillsPage() {
   const [showNonBills, setShowNonBills] = useState(false);
   const { bills, loading, error, refresh } = useBills(filter ?? undefined, 100, showNonBills);
   const [repushingId, setRepushingId] = useState<string | null>(null);
+  const [previewBill, setPreviewBill] = useState<BillListRow | null>(null);
 
   const handleRepush = async (bill: BillListRow) => {
     if (!currentOrg) return;
@@ -149,6 +151,7 @@ export function BillsPage() {
                 <th style={thRight}>Total</th>
                 <th style={th}>Status</th>
                 <th style={th}>Xero</th>
+                <th style={th}>Doc</th>
               </tr>
             </thead>
             <tbody>
@@ -213,12 +216,30 @@ export function BillsPage() {
                       repushBusy={repushingId === b.id}
                     />
                   </td>
+                  <td style={td} onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => setPreviewBill(b)}
+                      title="View source document"
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid #2a2a2a',
+                        borderRadius: 4,
+                        color: '#86c7a3',
+                        cursor: 'pointer',
+                        padding: '0.2rem 0.5rem',
+                        fontSize: 13,
+                      }}
+                    >
+                      &#128065; View
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+      <DocumentPreviewModal bill={previewBill} onClose={() => setPreviewBill(null)} />
     </section>
   );
 }

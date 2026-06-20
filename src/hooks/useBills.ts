@@ -18,6 +18,9 @@ export interface BillListRow {
   // the generated types yet, so they're optional and queried defensively.
   document_kind?: string | null;
   is_probable_bill?: boolean | null;
+  storage_key?: string | null;
+  mime_type?: string | null;
+  original_filename?: string | null;
   attached_job?: { id: string; job_number: string } | null;
 }
 
@@ -49,7 +52,7 @@ export function useBills(
     let q = supabase
       .from('bills')
       .select(
-        'id, status, source, supplier_name_raw, invoice_number, invoice_date, total_inc_gst_cents, job_reference_raw, ocr_provider, xero_status, created_at, document_kind, is_probable_bill, attached_job:jobs!job_id(id, job_number)',
+        'id, status, source, supplier_name_raw, invoice_number, invoice_date, total_inc_gst_cents, job_reference_raw, ocr_provider, xero_status, created_at, document_kind, is_probable_bill, storage_key, mime_type, original_filename, attached_job:jobs!job_id(id, job_number)',
       )
       .eq('organization_id', currentOrg.id)
       .is('deleted_at', null)
