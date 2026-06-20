@@ -22,7 +22,8 @@ Existing files jump: `0001–0004`, then `0028`, `0030–0036`, `0039–0054`.
 
 Gap slots (no file present): **0005–0027, 0029, 0037, 0038.**
 
-Backfill files were placed in: `0005–0013`, `0029`, `0038`. (Slot `0037` was
+Backfill files were placed in: `0005–0013`, `0029`, `0038`. Reference-data seed
+files were added in the free slots `0014`/`0015` (see B.3). (Slot `0037` was
 initially used for a deferred FK but removed — see B.3/B.4: existing migration
 `0030` already adds that FK.)
 
@@ -103,10 +104,20 @@ anticipated. **Needs DB password to complete via the CLI path.**
 ### B.2 Reconstruction COMPLETED via read-only MCP path
 
 The authenticated Supabase **MCP** connection (`list_tables`, `execute_sql`) does
-*not* need the DB password and is **read-only**. Exact DDL for every missing object
+*not* need the DB password and is **read-only**. DDL for every missing object
 was extracted from the live DB using `information_schema`, `pg_constraint`,
 `pg_indexes`, `pg_views`, `pg_get_constraintdef()` and `pg_get_functiondef()`.
 **No DDL was applied and nothing was deployed** — only `SELECT`s were run.
+
+> **On "verbatim".** Earlier notes (and a few migration headers) call these
+> reconstructions "verbatim". That is imprecise: `pg_views` /
+> `pg_get_functiondef()` return the *reparsed and normalized* server-side
+> representation (re-qualified identifiers, re-cast literals, canonicalized
+> whitespace), not the original source text. The backfills are therefore
+> **semantically equivalent** to the live objects rather than byte-for-byte
+> copies. View `security` settings (e.g. `security_invoker = on`) live in
+> `pg_class.reloptions`, *not* in the `pg_views` body, and must be re-applied
+> explicitly in the `CREATE VIEW` — see B.6.
 
 ### B.3 Backfill migration files created
 
@@ -127,7 +138,9 @@ pattern). Existing migration files were **not** modified or reordered.
 | `0012_debts_backfill.sql` | enum `debt_kind`; tables `debts`, `debt_payments` (+RLS) |
 | `0013_intake_functions_backfill.sql` | `lookup_known_sender`, `match_intake_rule`, `record_intake_rule_hit` |
 | `0029_onboarding_and_signal_functions_backfill.sql` | `onboarding_progress`, `business_profile_signals` |
-| `0038_match_and_customer_pnl_views_backfill.sql` | views `v_bank_match_candidates`, `v_customer_pnl` |
+| `0038_match_and_customer_pnl_views_backfill.sql` | views `v_bank_match_candidates`, `v_customer_pnl` (both `WITH (security_invoker = on)` — see B.6) |
+| `0014_intake_categories_seed.sql` | seed data: all 24 `intake_categories` rows (`INSERT ... ON CONFLICT (code) DO NOTHING`) |
+| `0015_intake_known_senders_seed.sql` | seed data: all 723 `intake_known_senders` rows (`INSERT ... ON CONFLICT (domain, COALESCE(sender_pattern,'')) DO NOTHING`) |
 
 The deferred FK `bank_transactions.matched_invoice_id -> invoices(id)` does **not**
 need its own backfill: the existing migration `0030` already adds it (guarded
@@ -147,13 +160,29 @@ need its own backfill: the existing migration `0030` already adds it (guarded
   statements in 0030/0031/0036/0043/0049 no-op because the columns/indexes already
   exist from the backfills.
 
+### B.6 View security (`security_invoker`)
+
+`v_bank_match_candidates` and `v_customer_pnl` are both org-scoped (they expose
+`organization_id` and join org-scoped base tables whose RLS does the tenant
+filtering). The live DB has `security_invoker = on` on both
+(`SELECT relname, reloptions FROM pg_class ...` → `{security_invoker=on}`,
+verified 2026-06-20). This option is stored in `pg_class.reloptions` and is **not**
+part of the `pg_views` body, so the initial reconstruction silently dropped it —
+the views would have run as the definer (owner), bypassing RLS and leaking rows
+across organizations. `0038` now declares `WITH (security_invoker = on)` on both
+`CREATE OR REPLACE VIEW` statements, matching live and the 0055 security work.
+
 ### B.5 Caveats / not covered
 
 - **GRANTs and table ownership** were not extracted (only RLS policies). If strict
   privilege parity is required, extract `information_schema.role_table_grants`.
-- **Data rows** are not backfilled — `intake_categories` and `intake_known_senders`
-  are reference/seed tables in the live DB; seed data is out of scope for schema
-  reconciliation and was not captured.
+- **Reference / seed data IS now backfilled.** `intake_categories` (24 rows) and
+  `intake_known_senders` (723 rows) are global reference tables (`source='manual'`
+  for all senders) consumed by `lookup_known_sender()` and the classifier — an empty
+  table on a fresh `db reset` would break intake routing. Seeded idempotently in
+  `0014` / `0015` (`INSERT ... ON CONFLICT DO NOTHING`). Both sets are seeded in full
+  (not a subset). Snapshot taken 2026-06-20; new live rows added after that date are
+  not reflected until the seed files are regenerated.
 - These files reproduce the live **shape**; they have not been applied or validated
   against a clean `supabase db reset` (no local DB / no DB password available here).
   Recommend running `supabase db reset` against a shadow DB before merging.

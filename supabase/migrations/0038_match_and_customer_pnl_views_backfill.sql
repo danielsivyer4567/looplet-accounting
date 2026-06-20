@@ -3,11 +3,17 @@
 -- RECONSTRUCTION NOTE: Both exist in the LIVE DB but had no repo migration. v_customer_pnl
 -- is even referenced by a comment in 0030 ("v_customer_pnl: see migration body in DB").
 -- v_bank_match_candidates is queried by the Reconciliation page; v_customer_pnl by the
--- CustomerDetail page. Reconstructed verbatim from live via pg_views (read-only MCP,
--- 2026-06-20). Placed after 0030 (invoices) and the bank_transactions backfill (0008).
--- CREATE OR REPLACE VIEW = safe. See docs/MIGRATION_GAP_AUDIT.md.
+-- CustomerDetail page. Reconstructed from live via pg_views (read-only MCP, 2026-06-20);
+-- pg_views reparses/normalizes the definition, so this is semantically equivalent rather
+-- than a byte-for-byte copy. Placed after 0030 (invoices) and the bank_transactions
+-- backfill (0008). CREATE OR REPLACE VIEW = safe. See docs/MIGRATION_GAP_AUDIT.md.
+--
+-- security_invoker = on is REQUIRED: both views are org-scoped and the live DB has it set
+-- (verified via pg_class.reloptions, 2026-06-20). Without it the views run as the (owner)
+-- definer and bypass RLS, leaking rows across organizations. Matches the 0055 security work.
 
-CREATE OR REPLACE VIEW public.v_bank_match_candidates AS
+CREATE OR REPLACE VIEW public.v_bank_match_candidates
+  WITH (security_invoker = on) AS
  SELECT bt.id AS bank_transaction_id,
     bt.organization_id,
     (bt.posted_at)::date AS bt_date,
@@ -34,7 +40,8 @@ CREATE OR REPLACE VIEW public.v_bank_match_candidates AS
      LEFT JOIN suppliers s ON ((s.id = b.supplier_id)))
   WHERE ((bt.matched_bill_id IS NULL) AND (bt.matched_invoice_id IS NULL) AND (bt.amount_cents < 0) AND (abs((abs(bt.amount_cents) - b.total_inc_gst_cents)) <= 50) AND (abs(((bt.posted_at)::date - b.invoice_date)) <= 14));
 
-CREATE OR REPLACE VIEW public.v_customer_pnl AS
+CREATE OR REPLACE VIEW public.v_customer_pnl
+  WITH (security_invoker = on) AS
  SELECT c.id AS customer_id,
     c.organization_id,
     c.name AS customer_name,

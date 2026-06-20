@@ -3,8 +3,9 @@
 -- RECONSTRUCTION NOTE: These objects exist in the LIVE database (project ref
 -- dxoikltymmknxqpkpyhi) but had no CREATE statement in any repo migration. They are
 -- reconstructed verbatim from the live schema via the Supabase MCP (read-only) on
--- 2026-06-20. Several later migrations (0036, 0044, 0047, 0049) ALTER / FK-reference
--- these objects, so they MUST exist before those run. This file is idempotent
+-- 2026-06-20. Several later migrations (0006, 0008, 0010, 0011, 0049) FK-reference
+-- intake_categories(code), and 0013 builds functions on top of these tables, so they
+-- MUST exist before those run. This file is idempotent
 -- (IF NOT EXISTS / DO-block guards) and safe to apply on the live DB.
 --
 -- See docs/MIGRATION_GAP_AUDIT.md for the full gap analysis.
@@ -46,7 +47,7 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ---------------------------------------------------------------------------
 -- intake_known_senders — global directory of known email senders/brands.
--- Required by function public.lookup_known_sender (backfilled in 0007).
+-- Required by function public.lookup_known_sender (backfilled in 0013).
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.intake_known_senders (
   id             uuid NOT NULL DEFAULT gen_random_uuid(),
