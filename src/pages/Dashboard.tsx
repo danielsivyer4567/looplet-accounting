@@ -55,7 +55,7 @@ export function DashboardPage() {
   return (
     <section>
       <h1>{currentOrg.name}</h1>
-      <p style={{ color: '#888', fontSize: 14 }}>YTD across all jobs in this organisation.</p>
+      <p style={{ color: '#888', fontSize: 14 }}>Across your whole business — all invoices and bills to date.</p>
 
       <div
         style={{
@@ -69,7 +69,7 @@ export function DashboardPage() {
         <div
           style={{ fontSize: 12, color: '#86c7a3', textTransform: 'uppercase', letterSpacing: 1 }}
         >
-          What's really yours (YTD)
+          What's really yours (to date)
         </div>
         <div style={{ fontSize: 48, fontWeight: 700, marginTop: '0.5rem' }}>
           {formatMoney(data.really_yours_cents)}
