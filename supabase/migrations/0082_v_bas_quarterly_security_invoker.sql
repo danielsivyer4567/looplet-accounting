@@ -1,0 +1,11 @@
+-- 0082: Restore security_invoker on v_bas_quarterly.
+--
+-- D's 0080 rebuilt v_bas_quarterly with CREATE OR REPLACE VIEW but did not
+-- restate WITH (security_invoker = on), so Postgres reset it to the default
+-- (SECURITY DEFINER). A definer view over bills/invoices bypasses the caller's
+-- RLS — any authenticated user could read other organizations' BAS figures by
+-- querying the view with a different organization_id. Every other tenant view
+-- (v_bas_gst_coverage, v_trial_balance, v_balance_sheet, v_bill_effective_
+-- allocations, …) is security_invoker=on; this brings v_bas_quarterly back in
+-- line so the underlying-table RLS scopes it per tenant.
+ALTER VIEW public.v_bas_quarterly SET (security_invoker = on);
