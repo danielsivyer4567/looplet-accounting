@@ -28,7 +28,7 @@ function toBase64(bytes: Uint8Array): string {
 }
 
 export async function extractBillDataMiniMax(
-  imageBytes: Uint8Array,
+  imageBytes: Uint8Array | Uint8Array[],
   mimeType: string,
 ): Promise<{ data: ExtractedBill; raw: string }> {
   const apiKey = Deno.env.get('MINIMAX_API_KEY');
@@ -38,7 +38,14 @@ export async function extractBillDataMiniMax(
   const baseUrl = Deno.env.get('MINIMAX_BASE_URL') ?? 'https://api.minimax.io/v1';
 
   const mediaType = mimeType.startsWith('image/') ? mimeType : 'image/png';
-  const dataUrl = `data:${mediaType};base64,${toBase64(imageBytes)}`;
+  // Accept multiple images (multi-page PDFs → one PNG per page). Supplier
+  // identity is usually on page 1, totals/GST on the last page, so all pages
+  // go into the single request.
+  const pages = Array.isArray(imageBytes) ? imageBytes : [imageBytes];
+  const imageBlocks = pages.map((p) => ({
+    type: 'image_url',
+    image_url: { url: `data:${mediaType};base64,${toBase64(p)}` },
+  }));
 
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
@@ -56,10 +63,7 @@ export async function extractBillDataMiniMax(
       messages: [
         {
           role: 'user',
-          content: [
-            { type: 'text', text: EXTRACT_PROMPT },
-            { type: 'image_url', image_url: { url: dataUrl } },
-          ],
+          content: [{ type: 'text', text: EXTRACT_PROMPT }, ...imageBlocks],
         },
       ],
     }),

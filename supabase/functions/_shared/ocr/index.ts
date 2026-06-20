@@ -47,9 +47,17 @@ export async function extractBillData(
   if (mimeType === 'application/pdf' && !PDF_CAPABLE.has(provider)) {
     try {
       const { rasterizePdfToPng } = await import('./pdfRasterize.ts');
-      const pages = await rasterizePdfToPng(imageBytes, { maxPages: 1, dpi: 200 });
+      // Render up to 5 pages: supplier is usually on page 1, totals/GST on the
+      // last page of a multi-page invoice.
+      const pages = await rasterizePdfToPng(imageBytes, { maxPages: 5, dpi: 200 });
       if (pages.length === 0 || !pages[0]) throw new Error('no pages rendered');
-      ocrBytes = pages[0];
+      // MiniMax takes all pages in one request; single-image providers get the
+      // last page (most likely to carry the totals).
+      if (provider === 'minimax') {
+        const result = await extractBillDataMiniMax(pages, 'image/png');
+        return { ...result, provider };
+      }
+      ocrBytes = pages[pages.length - 1]!;
       ocrMime = 'image/png';
     } catch (err) {
       // Corrupt/encrypted PDF or rasterizer failure → graceful manual-entry stub.
