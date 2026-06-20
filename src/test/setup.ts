@@ -14,29 +14,37 @@ import { vi } from 'vitest';
 // ---------------------------------------------------------------------------
 // jsdom does not implement matchMedia. Any component/hook that calls
 // window.matchMedia() would throw without this stub.
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),   // deprecated but some libs use it
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
+//
+// This setup file is shared by ALL test files, including the Node-environment
+// integration tests under tests/ (e.g. tenant-isolation), where there is no
+// `window`. Guard the browser-only stubs so the file is a no-op in Node.
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),   // deprecated but some libs use it
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
 
 // ---------------------------------------------------------------------------
 // ResizeObserver stub
 // ---------------------------------------------------------------------------
 // jsdom does not implement ResizeObserver.
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  global.ResizeObserver = vi.fn().mockImplementation(() => ({
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    disconnect: vi.fn(),
+  }));
+}
 
 // ---------------------------------------------------------------------------
 // Suppress noisy console.error from React (e.g. act() warnings) in tests.

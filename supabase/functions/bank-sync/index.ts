@@ -12,7 +12,8 @@
  * Designed to be safe for cron invocation (service-role auth tolerated).
  */
 
-import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import {
   getAccountsForConnection,
@@ -61,7 +62,8 @@ Deno.serve(async (req) => {
 
     // Caller must own org (RLS) unless service-role
     if (!isServiceRole) {
-      const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+      if (!anonKey) return json({ ok: false, error: 'SUPABASE_ANON_KEY not set' }, 500);
       const userClient = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
       });
@@ -98,7 +100,7 @@ Deno.serve(async (req) => {
     const days = Math.max(7, Math.min(730, body.days ?? 90));
     const fromDate = new Date(Date.now() - days * 86400 * 1000).toISOString().slice(0, 10);
 
-    const results: any[] = [];
+    const results: Record<string, unknown>[] = [];
     const allInsertedTxnIds: string[] = [];
     for (const c of connections) {
       try {
@@ -106,7 +108,7 @@ Deno.serve(async (req) => {
           admin,
           body.organization_id,
           orgRow.basiq_user_id as string,
-          c as any,
+          c as { id: string; external_item_id: string; last_synced_at: string | null },
           fromDate,
         );
         results.push({ bank_connection_id: c.id, ...stats });
@@ -194,7 +196,9 @@ async function syncOne(
     .select('id, external_id')
     .eq('bank_connection_id', conn.id);
   const acctMap = new Map<string, string>();
-  for (const r of (ourAccounts ?? []) as any[]) acctMap.set(r.external_id, r.id);
+  for (const r of (ourAccounts ?? []) as { id: string; external_id: string }[]) {
+    acctMap.set(r.external_id, r.id);
+  }
 
   // 3. Pull transactions (incremental: from last_synced_at, else fromDate)
   const since = conn.last_synced_at

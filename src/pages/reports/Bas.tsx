@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { downloadCsv } from '@/lib/csv';
 import { SkeletonTable } from '@/components/Skeleton';
@@ -21,25 +21,51 @@ interface BasRow {
   bill_count: number;
 }
 
+// v_bas_gst_coverage — not in generated types yet, queried via cast below.
+interface CoverageRow {
+  organization_id: string;
+  fy_start_year: number;
+  quarter_num: number;
+  bills_in_scope: number;
+  bills_complete: number;
+  bills_gst_estimated: number;
+  coverage_pct: number;
+  gst_ready: boolean;
+}
+
 const QUARTER_NAMES = ['', 'Q1 (Jul-Sep)', 'Q2 (Oct-Dec)', 'Q3 (Jan-Mar)', 'Q4 (Apr-Jun)'];
+
+const coverageKey = (fy: number, q: number) => `${fy}-${q}`;
 
 export function BasReportPage() {
   const { currentOrg } = useOrg();
   const [rows, setRows] = useState<BasRow[]>([]);
+  const [coverage, setCoverage] = useState<Map<string, CoverageRow>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
     setLoading(true);
-    const { data, error: e } = await supabase
-      .from('v_bas_quarterly')
-      .select('*')
-      .eq('organization_id', currentOrg.id)
-      .order('fy_start_year', { ascending: false })
-      .order('quarter_num', { ascending: false });
-    if (e) setError(e.message);
-    setRows((data ?? []) as BasRow[]);
+    const [bas, cov] = await Promise.all([
+      supabase
+        .from('v_bas_quarterly')
+        .select('*')
+        .eq('organization_id', currentOrg.id)
+        .order('fy_start_year', { ascending: false })
+        .order('quarter_num', { ascending: false }),
+      // View absent from generated types — relation cast to `never`, result
+      // shape set via .returns<T>(). RLS (security_invoker) already scopes to
+      // the caller's orgs; we filter to the current org client-side below.
+      supabase
+        .from('v_bas_gst_coverage' as never)
+        .select('*')
+        .returns<CoverageRow[]>(),
+    ]);
+    if (bas.error) setError(bas.error.message);
+    setRows((bas.data ?? []) as BasRow[]);
+    const covRows = (cov.data ?? []).filter((c) => c.organization_id === currentOrg.id);
+    setCoverage(new Map(covRows.map((c) => [coverageKey(c.fy_start_year, c.quarter_num), c])));
     setLoading(false);
   }, [currentOrg]);
 
@@ -54,7 +80,23 @@ export function BasReportPage() {
   const totalSales = rows.reduce((a, r) => a + r.sales_ex_gst_cents, 0);
   const totalPurchases = rows.reduce((a, r) => a + r.purchases_ex_gst_cents, 0);
 
+  // BAS readiness gate: quarters whose bills are below 95% amount+GST coverage
+  // produce understated GST-paid figures — flag them before lodgement.
+  const provisional = rows.filter((r) => {
+    const c = coverage.get(coverageKey(r.fy_start_year, r.quarter_num));
+    return c && c.bills_in_scope > 0 && !c.gst_ready;
+  });
+
   const handleExport = () => {
+    if (provisional.length > 0) {
+      const labels = provisional
+        .map((r) => `${r.fy_start_year}-${(r.fy_start_year + 1).toString().slice(2)} ${QUARTER_NAMES[r.quarter_num]}`)
+        .join(', ');
+      const proceed = window.confirm(
+        `GST data is incomplete for: ${labels}.\n\nThe GST-paid figures for these quarters are provisional and likely understated. Finish OCR / review before lodging.\n\nExport anyway?`,
+      );
+      if (!proceed) return;
+    }
     const last = rows[0];
     if (!last) return;
     const today = new Date();
@@ -93,6 +135,16 @@ export function BasReportPage() {
         Personal-flagged bills are excluded. Due 28 days after each quarter end.
       </p>
 
+      {!loading && provisional.length > 0 && (
+        <div style={{ marginTop: 16, padding: 12, background: '#2a1f0e', border: '1px solid #6b5320', borderRadius: 4, color: '#e9c46a', fontSize: 13 }}>
+          <strong>GST data incomplete.</strong> {provisional.length} quarter{provisional.length > 1 ? 's are' : ' is'} below 95% bill coverage,
+          so the GST-paid (purchases) figures are provisional and likely understated. Finish OCR /
+          review on{' '}
+          <Link to="/bills" style={{ color: '#e9c46a', textDecoration: 'underline' }}>Bills</Link>{' '}
+          before lodging.
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, maxWidth: 900, marginTop: 16 }}>
         <Kpi label="Net GST (lifetime)" value={formatMoney(totalNet)} colour={totalNet > 0 ? '#e9a3a3' : '#86c7a3'} sub={totalNet > 0 ? 'owed to ATO' : 'refundable'} />
         <Kpi label="Total sales ex GST" value={formatMoney(totalSales)} colour="#86c7a3" />
@@ -123,6 +175,7 @@ export function BasReportPage() {
                 <th style={thRight}>GST collected</th>
                 <th style={thRight}>GST paid</th>
                 <th style={thRight}>Net GST</th>
+                <th style={thRight}>Bill coverage</th>
               </tr>
             </thead>
             <tbody>
@@ -142,6 +195,7 @@ export function BasReportPage() {
                   <td style={{ ...tdRight, color: r.net_gst_cents > 0 ? '#e9a3a3' : '#86c7a3', fontWeight: 600 }}>
                     {formatMoney(r.net_gst_cents)}
                   </td>
+                  <td style={tdRight}>{renderCoverage(coverage.get(coverageKey(r.fy_start_year, r.quarter_num)))}</td>
                 </tr>
               ))}
             </tbody>
@@ -152,6 +206,16 @@ export function BasReportPage() {
         Future: PAYG withholding rollup, ATO BAS file export, in-product e-lodgement (requires Standard Business Reporting), historical comparison charts.
       </p>
     </section>
+  );
+}
+
+function renderCoverage(c: CoverageRow | undefined) {
+  if (!c || c.bills_in_scope === 0) return <span style={{ color: '#555', fontSize: 11 }}>—</span>;
+  const colour = c.gst_ready ? '#86c7a3' : '#e9c46a';
+  return (
+    <span style={{ color: colour, fontSize: 12 }} title={`${c.bills_complete}/${c.bills_in_scope} bills with amount+GST${c.bills_gst_estimated > 0 ? ` · ${c.bills_gst_estimated} GST estimated` : ''}`}>
+      {c.gst_ready ? '✓ ' : '⚠ '}{c.coverage_pct}%
+    </span>
   );
 }
 

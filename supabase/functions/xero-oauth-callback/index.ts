@@ -112,12 +112,12 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'Failed to fetch Xero connections' }, 502);
     }
 
-    const connections = (await connResp.json()) as Array<{
+    const connections = (await connResp.json()) as {
       id: string;
       tenantId: string;
       tenantName: string;
       tenantType?: string;
-    }>;
+    }[];
 
     if (!connections.length) {
       return json(
@@ -127,7 +127,13 @@ Deno.serve(async (req) => {
     }
 
     // v1: auto-select the first tenant. Multi-tenant pick is v1.5.
-    const picked = connections[0]!;
+    const picked = connections[0];
+    if (!picked) {
+      return json(
+        { ok: false, error: 'No Xero organisations found on this account.' },
+        400,
+      );
+    }
 
     const expiresAt = new Date(Date.now() + (tokenData.expires_in ?? 1800) * 1000).toISOString();
     const accessEnc = await encryptToken(tokenData.access_token);

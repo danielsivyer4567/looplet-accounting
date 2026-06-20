@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 
 type Format = 'commbank' | 'nab' | 'westpac' | 'anz' | 'generic';
 type AccountType = 'checking' | 'savings' | 'credit_card' | 'loan' | 'investment' | 'other';

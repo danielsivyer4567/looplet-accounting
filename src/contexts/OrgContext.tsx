@@ -1,23 +1,10 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from './AuthContext';
+import { useAuth } from '@/hooks/useAuth';
+import { OrgContext } from './org-context';
+import type { Organization } from './org-context';
 
-export interface Organization {
-  id: string;
-  name: string;
-  organization_type: 'standard' | 'agency' | 'sub_account';
-}
-
-interface OrgContextValue {
-  organizations: Organization[];
-  currentOrg: Organization | null;
-  loading: boolean;
-  setCurrentOrg: (org: Organization) => void;
-  createOrganization: (name: string) => Promise<{ error: Error | null }>;
-  refresh: () => Promise<void>;
-}
-
-const OrgContext = createContext<OrgContextValue | undefined>(undefined);
+export type { Organization } from './org-context';
 
 const LS_CURRENT_ORG = 'looplet:current-org-id';
 
@@ -100,10 +87,4 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
       {children}
     </OrgContext.Provider>
   );
-}
-
-export function useOrg(): OrgContextValue {
-  const ctx = useContext(OrgContext);
-  if (!ctx) throw new Error('useOrg must be used within OrgProvider');
-  return ctx;
 }

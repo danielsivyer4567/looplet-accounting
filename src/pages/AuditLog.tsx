@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { downloadCsv } from '@/lib/csv';
 
 // ---------------------------------------------------------------------------
@@ -285,7 +285,6 @@ export function AuditLogPage() {
 
       setLoading(false);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [currentOrg, page, filterActor, filterResource, filterDateFrom, filterDateTo],
   );
 

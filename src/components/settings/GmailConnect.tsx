@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { useGmailIntegrations } from '@/hooks/useGmailIntegrations';
 
 export function GmailConnect() {
@@ -55,7 +55,7 @@ export function GmailConnect() {
       if (!session) throw new Error('Not signed in');
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gmail-backfill`;
 
-      type BackfillResp = {
+      interface BackfillResp {
         ok: boolean;
         error?: string;
         stats: {
@@ -66,7 +66,7 @@ export function GmailConnect() {
           errors: number;
         };
         next_page_token: string | null;
-      };
+      }
 
       let pageToken: string | null | undefined = undefined;
       const totals = { fetched: 0, bills_created: 0, duplicates_skipped: 0, rejected: 0, errors: 0 };

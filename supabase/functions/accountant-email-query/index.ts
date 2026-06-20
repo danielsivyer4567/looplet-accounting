@@ -107,10 +107,14 @@ Deno.serve(async (req) => {
     const intent = await parseIntent(email.subject, email.text, groqKey);
 
     // Pick org: explicit hint match, else first
+    const firstMembership = memberships[0];
+    if (!firstMembership) {
+      return json({ ok: true, status: 'no_accountant_role' });
+    }
     const targetOrg = memberships.find((m) =>
       intent.organization_hint &&
       String((m.organizations as { name?: string } | null)?.name ?? '').toLowerCase().includes(intent.organization_hint.toLowerCase())
-    ) ?? memberships[0]!;
+    ) ?? firstMembership;
 
     // Fetch activity for that range
     const { data: activity } = await admin
@@ -188,7 +192,7 @@ async function parseInbound(req: Request): Promise<ParsedEmail> {
 function extractEmailAddress(s: string): string {
   // "Name <email@x.com>" or "email@x.com"
   const m = /<([^>]+)>/.exec(s);
-  return (m ? m[1]! : s).trim();
+  return (m && m[1] ? m[1] : s).trim();
 }
 
 async function parseIntent(subject: string, body: string, groqKey: string): Promise<QueryIntent> {
@@ -326,7 +330,8 @@ async function sendReply(resendKey: string, to: string, subject: string, html: s
 }
 
 function esc(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+  const map: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  return s.replace(/[&<>"']/g, (c) => map[c] ?? c);
 }
 
 function json(body: unknown, status = 200): Response {

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { useAllocationQueue, type QueueBill } from '@/hooks/useAllocationQueue';
 import { useJobs } from '@/hooks/useJobs';
+import type { JobListRow } from '@/hooks/useJobs';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
 import { SkeletonLine } from '@/components/Skeleton';
@@ -234,7 +235,6 @@ export function AllocationsPage() {
       });
       if (!res.ok) {
         const body = await res.text();
-        // eslint-disable-next-line no-alert
         alert(`Attach failed: ${body}`);
         return;
       }
@@ -375,7 +375,7 @@ function BillCard({
 }: {
   bill: QueueBill;
   busy: boolean;
-  jobs: import('@/hooks/useJobs').JobListRow[];
+  jobs: JobListRow[];
   isPreviewing: boolean;
   onConfirm: (jobId: string) => void;
   onReject: () => void;
