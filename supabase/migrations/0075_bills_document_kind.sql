@@ -9,10 +9,14 @@
 --
 -- This adds two columns, persisted by bills-extract's persistExtraction:
 --   document_kind     — what the model thinks the document is (enum-as-text)
---   is_probable_bill  — false for non-financial kinds (logo/photo/ui_screenshot/
---                       other) OR a low-confidence empty extraction (no total
---                       AND no supplier). Defaults true so existing rows and
---                       any uncertain extraction stay visible until reviewed.
+--   is_probable_bill  — false ONLY for genuinely non-financial kinds
+--                       (logo/photo/ui_screenshot/other). A low-confidence
+--                       empty extraction of a real invoice (e.g. a skewed photo
+--                       or a corrupt PDF that fell through to manual entry) is
+--                       NOT hidden — it stays true as needs-review so a real
+--                       bill never silently drops off the list / out of BAS.
+--                       Defaults true so existing rows and any uncertain
+--                       extraction stay visible until reviewed.
 --
 -- Nothing is deleted. is_probable_bill=false simply defaults a row out of the
 -- active bills list (0076 also takes it out of BAS scope); a "Show non-invoices"
@@ -40,7 +44,7 @@ ALTER TABLE public.bills
 COMMENT ON COLUMN public.bills.document_kind IS
   'What the OCR classifier thinks this document is: invoice|quote|receipt|statement|order (financial) or logo|photo|ui_screenshot|other (noise). NULL = ingested before classification.';
 COMMENT ON COLUMN public.bills.is_probable_bill IS
-  'false when document_kind is non-financial (logo/photo/ui_screenshot/other) OR a low-confidence extraction with no total and no supplier. Such rows are hidden from the active bills list and excluded from BAS scope; nothing is deleted.';
+  'false ONLY when document_kind is genuinely non-financial (logo/photo/ui_screenshot/other). A low-confidence empty extraction of a real invoice stays true (needs-review) so a real-but-unreadable bill is never hidden. False rows are kept off the active bills list and out of BAS scope; nothing is deleted.';
 
 -- Partial index for the default list query, which filters is_probable_bill=true.
 CREATE INDEX IF NOT EXISTS bills_probable_idx

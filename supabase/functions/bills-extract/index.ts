@@ -261,10 +261,20 @@ export function deriveGstCents(
  * Decide whether an extracted document is a probable bill (belongs on the
  * active bills/BAS surface) or noise to keep out of sight.
  *
- * Noise = a non-financial document_kind (logo/photo/ui_screenshot/other),
- * OR an extraction the model flagged 'low' with no total AND no supplier — the
- * shape of the mis-filed images (supplier logos, "Pay Now" buttons, photos of
- * finished fences) the OCR already recognises as "not a financial document".
+ * Noise = a genuinely non-financial document_kind (logo/photo/ui_screenshot/
+ * other) — the mis-filed images (supplier logos, "Pay Now" buttons, photos of
+ * finished fences, email-signature images) the OCR already recognises as "not a
+ * financial document".
+ *
+ * IMPORTANT: we deliberately DO NOT hide a row just because the extraction was
+ * low-confidence with no total/supplier. A real-but-unreadable invoice (a
+ * skewed photo, an encrypted/corrupt PDF that fell through to the manual-entry
+ * stub) looks exactly like that — low confidence, null total, null supplier,
+ * document_kind='invoice' — and dropping it would silently remove a real bill
+ * from the active list AND from BAS. Such rows stay is_probable_bill=true so
+ * they surface as needs-review rather than vanish; the human review pass (or a
+ * later re-extract) fills the amounts. Only a non-financial document_kind ever
+ * sets is_probable_bill=false.
  *
  * Nothing is deleted: is_probable_bill=false just defaults the row out of the
  * active list and out of BAS scope; it can still be shown via the toggle.
@@ -283,13 +293,11 @@ export function classifyBill(extracted: {
       ? (extracted.document_kind as DocumentKind)
       : 'invoice';
 
-  const nonFinancialKind = NON_FINANCIAL_KINDS.has(documentKind);
-  const lowAndEmpty =
-    extracted.confidence === 'low' &&
-    extracted.total_inc_gst == null &&
-    !extracted.supplier_name;
+  // Exclude ONLY genuinely non-financial documents. A low-confidence empty
+  // extraction of a real invoice must remain visible (needs-review), not hidden.
+  const isProbableBill = !NON_FINANCIAL_KINDS.has(documentKind);
 
-  return { documentKind, isProbableBill: !(nonFinancialKind || lowAndEmpty) };
+  return { documentKind, isProbableBill };
 }
 
 async function persistExtraction(
