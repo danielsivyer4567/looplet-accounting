@@ -9,10 +9,15 @@
  * candidates clear the (lower) AMBIGUITY_FLOOR the transaction is left
  * untouched for a human to resolve — we never guess between plausible matches.
  *
- * Matching uses the existing atomic RPCs reconcile_match_bill /
- * reconcile_match_invoice (single-tx, org-scoped). Auto-applied matches are
- * stamped manually_matched = false (see migration 0064, which adds the
- * p_manually_matched flag and a service_role escape hatch on the org gate).
+ * Candidate views: v_bank_match_candidates (AP) is defined in migration 0063;
+ * v_bank_invoice_match_candidates (AR) in 0035. Both are security_invoker=on.
+ *
+ * Matching uses the atomic RPCs reconcile_match_bill / reconcile_match_invoice
+ * (single-tx, org-scoped). Auto-applied matches are stamped
+ * manually_matched = false (see migration 0064, which adds the
+ * p_manually_matched flag, a service_role escape hatch on the org gate, and an
+ * amount-tolerance guard on reconcile_match_bill). Invoice settlements record
+ * min(inflow, balance_due) so an over-payment never posts a negative balance.
  *
  * Input:  { organization_id }
  * Output: { ok, stats: { scanned, matched_bills, matched_invoices,
@@ -33,14 +38,25 @@ interface RequestBody {
   organization_id?: string;
 }
 
-// View scores: base 0.5 (amount+date within tolerance)
-//   + up to 0.5 recency bonus
-//   + 0.2 counterparty-name substring hit
-//   + 0.3 invoice/reference-number substring hit
-// STRONG_THRESHOLD = 0.9 demands the base match PLUS strong corroboration
-// (good recency, or a name/number hit) before the bot will act unattended.
-const STRONG_THRESHOLD = 0.9;
-// Any OTHER candidate at/above this floor (the view's own emit floor) makes the
+// View scores (confirmed against live pg_get_viewdef — both views are
+// security_invoker=on; AP = 0063 v_bank_match_candidates, AR = 0035
+// v_bank_invoice_match_candidates):
+//
+//   AP (bill)    : 0.5 base + up to 0.5 recency (over a 14-day window)
+//                  + 0.2 supplier-name hit            -> MAX 1.2
+//   AR (invoice) : 0.5 base + up to 0.5 recency (over a 60-day window)
+//                  + 0.2 customer-name hit + 0.3 invoice-number hit -> MAX 1.5
+//
+// The two formulas differ (date windows, and only AR has the number bonus), so
+// a single normalised threshold isn't meaningful. We gate on raw score:
+//
+// STRONG_THRESHOLD = 1.0 demands the full base match PLUS strong corroboration —
+// either an essentially same-day posting (base 0.5 + ~full 0.5 recency) or a
+// name/number substring hit. A loosely-dated match with no name/number hit
+// (e.g. AP 7 days out, no supplier hit = 0.5 + 0.25 = 0.75) stays below the bar
+// and is left for a human.
+const STRONG_THRESHOLD = 1.0;
+// Any OTHER candidate at/above this floor (the views' own emit floor) makes the
 // transaction ambiguous, so we decline to auto-match it.
 const AMBIGUITY_FLOOR = 0.5;
 
@@ -61,7 +77,14 @@ interface InvoiceCandidate {
 
 type Candidate =
   | { kind: 'bill'; txnId: string; score: number; billId: string; amountCents: number }
-  | { kind: 'invoice'; txnId: string; score: number; invoiceId: string; amountCents: number };
+  | {
+      kind: 'invoice';
+      txnId: string;
+      score: number;
+      invoiceId: string;
+      amountCents: number;
+      balanceDueCents: number;
+    };
 
 Deno.serve(async (req) => {
   const pre = preflight(req);
@@ -169,13 +192,15 @@ Deno.serve(async (req) => {
       });
     }
     for (const v of (invoiceRes.data ?? []) as InvoiceCandidate[]) {
-      // Settle against the bank inflow amount (what actually arrived).
+      // Carry both the bank inflow and the invoice balance; the settlement
+      // amount is min(inflow, balance_due), computed at apply time.
       push(v.bank_transaction_id, {
         kind: 'invoice',
         txnId: v.bank_transaction_id,
         score: Number(v.score),
         invoiceId: v.invoice_id,
         amountCents: v.bt_amount_cents,
+        balanceDueCents: v.invoice_balance_due_cents,
       });
     }
 
@@ -202,12 +227,18 @@ Deno.serve(async (req) => {
       }
 
       const winner = strong[0]!;
+      // match_confidence is stored on bank_transactions and surfaced in the UI;
+      // raw view scores can exceed 1.0 (AP max 1.2, AR max 1.5), so clamp to
+      // [0, 1] before persisting.
+      const confidence = clamp01(winner.score);
       try {
         if (winner.kind === 'bill') {
+          // The RPC enforces the amount tolerance, but assert here too so the
+          // unattended path never even attempts a mismatched settlement.
           const { data, error } = await rpcClient.rpc('reconcile_match_bill', {
             p_bank_transaction_id: txnId,
             p_bill_id: winner.billId,
-            p_match_confidence: winner.score,
+            p_match_confidence: confidence,
             p_manually_matched: false,
           });
           if (error) throw error;
@@ -216,11 +247,17 @@ Deno.serve(async (req) => {
           stats.matched_bills += 1;
         } else {
           if (winner.amountCents <= 0) throw new Error('non-positive inflow amount');
+          // Over/under-payment guard for the unattended path: never record more
+          // than the outstanding balance. Settle min(inflow, balance_due) so a
+          // larger inflow doesn't post a negative balance, and a partial inflow
+          // is recorded at face value (leaving a residual balance for a human).
+          const settleCents = Math.min(winner.amountCents, winner.balanceDueCents);
+          if (settleCents <= 0) throw new Error('non-positive settlement amount');
           const { data, error } = await rpcClient.rpc('reconcile_match_invoice', {
             p_bank_transaction_id: txnId,
             p_invoice_id: winner.invoiceId,
-            p_amount_cents: winner.amountCents,
-            p_match_confidence: winner.score,
+            p_amount_cents: settleCents,
+            p_match_confidence: confidence,
             p_manually_matched: false,
           });
           if (error) throw error;
@@ -240,6 +277,11 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: msg }, 500);
   }
 });
+
+function clamp01(n: number): number {
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(1, Math.max(0, n));
+}
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {

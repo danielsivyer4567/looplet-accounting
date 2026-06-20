@@ -18,8 +18,15 @@
 --      it has already org-scoped itself. User-JWT callers are unchanged: they
 --      still must own the org.
 --
--- These are CREATE OR REPLACE with the same name + an appended DEFAULTed
--- parameter, so the existing 2-/3-arg call sites resolve to the same function.
+-- IMPORTANT: appending a DEFAULTed parameter to a SECURITY DEFINER function does
+-- NOT replace the 0043 function — it creates an OVERLOAD. The old 3-/4-arg
+-- versions (hard-coded manually_matched = true, no service_role bypass) would
+-- linger, and an all-defaults call would fail with "function is not unique".
+-- We therefore DROP the exact 0043 signatures first, then CREATE the new ones.
+-- reconcile_match_bill also gains an amount-tolerance guard (see below).
+
+DROP FUNCTION IF EXISTS public.reconcile_match_bill(uuid, uuid, numeric);
+DROP FUNCTION IF EXISTS public.reconcile_match_invoice(uuid, uuid, bigint, numeric);
 
 CREATE OR REPLACE FUNCTION public.reconcile_match_bill(
   p_bank_transaction_id uuid,
@@ -31,10 +38,16 @@ RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_org_txn uuid;
   v_org_bill uuid;
+  v_txn_amount_cents bigint;
+  v_bill_amount_cents bigint;
   v_is_service boolean := (auth.role() = 'service_role');
+  -- $0.50 tolerance — same window the candidate views use to emit a match.
+  c_tolerance_cents constant bigint := 50;
 BEGIN
-  SELECT organization_id INTO v_org_txn FROM bank_transactions WHERE id = p_bank_transaction_id;
-  SELECT organization_id INTO v_org_bill FROM bills WHERE id = p_bill_id;
+  SELECT organization_id, amount_cents INTO v_org_txn, v_txn_amount_cents
+    FROM bank_transactions WHERE id = p_bank_transaction_id;
+  SELECT organization_id, total_inc_gst_cents INTO v_org_bill, v_bill_amount_cents
+    FROM bills WHERE id = p_bill_id;
 
   IF v_org_txn IS NULL OR v_org_bill IS NULL THEN
     RETURN jsonb_build_object('ok', false, 'error', 'transaction or bill not found');
@@ -44,6 +57,21 @@ BEGIN
   END IF;
   IF NOT v_is_service AND v_org_txn NOT IN (SELECT public.get_accessible_org_ids()) THEN
     RETURN jsonb_build_object('ok', false, 'error', 'forbidden');
+  END IF;
+
+  -- Amount guard: never mark a bill paid unless the bank outflow matches the
+  -- bill total within tolerance. Bank debits are stored negative, so compare on
+  -- absolute value. (Applies to every caller, human and bot.)
+  IF v_bill_amount_cents IS NULL THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'bill has no amount');
+  END IF;
+  IF abs(abs(v_txn_amount_cents) - v_bill_amount_cents) > c_tolerance_cents THEN
+    RETURN jsonb_build_object(
+      'ok', false,
+      'error', 'amount mismatch',
+      'txn_amount_cents', v_txn_amount_cents,
+      'bill_amount_cents', v_bill_amount_cents
+    );
   END IF;
 
   UPDATE bank_transactions
@@ -108,6 +136,6 @@ BEGIN
 END $$;
 
 -- service_role already bypasses GRANTs, but keep the authenticated grants so the
--- user-driven Reconciliation page continues to call the 4-arg signatures.
+-- user-driven Reconciliation page continues to call the new signatures.
 GRANT EXECUTE ON FUNCTION public.reconcile_match_bill(uuid, uuid, numeric, boolean) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.reconcile_match_invoice(uuid, uuid, bigint, numeric, boolean) TO authenticated;
