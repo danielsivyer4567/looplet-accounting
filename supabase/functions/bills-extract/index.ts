@@ -19,7 +19,7 @@
  * Output: { ok: true, extracted, cache_hit, method: 'cache'|'text'|'vision', provider? }
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { extractBillData } from '../_shared/ocr/index.ts';
 import { extractTextFromPdf } from '../_shared/ocr/textExtract.ts';
@@ -33,6 +33,14 @@ interface RequestBody {
   // force: skip the SHA-256 dedup cache and re-run real OCR. Used by the
   // repair backfill so a bill can't copy a failed duplicate's null values.
   force?: boolean;
+}
+
+interface DocMetadata {
+  candidate_supplier?: string | null;
+  author?: string | null;
+  candidate_invoice_number?: string | null;
+  taken_at?: string | null;
+  created_at?: string | null;
 }
 
 const TEXT_CONFIDENCE_THRESHOLD = 0.8;
@@ -71,7 +79,7 @@ Deno.serve(async (req) => {
       } catch { /* fall through to user-jwt path */ }
     }
 
-    let dbClient: any;
+    let dbClient: SupabaseClient;
     if (isServiceRole) {
       dbClient = admin;
     } else {
@@ -110,7 +118,7 @@ Deno.serve(async (req) => {
     // Extract structural metadata (PDF info dict / EXIF / XMP) — free signal
     // before any OCR. Will be merged into raw_extracted and used to pre-fill
     // supplier_name / invoice_number / invoice_date if OCR misses them.
-    let docMetadata: any = null;
+    let docMetadata: DocMetadata | null = null;
     try {
       const { extractDocumentMetadata } = await import('../_shared/ocr/metadata.ts');
       docMetadata = await extractDocumentMetadata(bytes, bill.mime_type);
@@ -253,6 +261,15 @@ export function deriveGstCents(
   if (subtotalCents != null && totalCents > subtotalCents) {
     return { gstCents: totalCents - subtotalCents, subtotalCents, estimated: true };
   }
+  if (subtotalCents != null) {
+    // Document supplied a subtotal that equals (or exceeds) the total → the
+    // supply carries NO GST (GST-free: fresh food, bank fees, overseas, rent).
+    // Do NOT apply the 1/11 rule here — that would invent phantom GST and
+    // over-claim input tax credits.
+    return { gstCents: 0, subtotalCents, estimated: false };
+  }
+  // Total only, no subtotal to contradict it → assume a standard-rated taxable
+  // supply: GST = 1/11 of the GST-inclusive total.
   const derivedGst = Math.round(totalCents / 11);
   return { gstCents: derivedGst, subtotalCents: totalCents - derivedGst, estimated: true };
 }
@@ -301,14 +318,12 @@ export function classifyBill(extracted: {
 }
 
 async function persistExtraction(
-  // deno-lint-ignore no-explicit-any
-  admin: any,
+  admin: SupabaseClient,
   billId: string,
   extracted: ExtractedBill,
   contentSha256: string,
   provider: string,
-  // deno-lint-ignore no-explicit-any
-  docMetadata?: any,
+  docMetadata?: DocMetadata | null,
 ): Promise<void> {
   // Backfill empty OCR fields from metadata if metadata has them
   const filledSupplier = extracted.supplier_name || docMetadata?.candidate_supplier || docMetadata?.author || null;
@@ -370,8 +385,7 @@ async function persistExtraction(
 }
 
 async function runRouting(
-  // deno-lint-ignore no-explicit-any
-  admin: any,
+  admin: SupabaseClient,
   billId: string,
   organizationId: string,
   source: { job_reference_raw?: string | null; confidence?: ExtractedBill['confidence'] },

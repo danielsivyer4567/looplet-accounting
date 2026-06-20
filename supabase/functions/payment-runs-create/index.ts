@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
   // 8. Build and insert payment_run_items
   // --------------------------------------------------------------------------
   let totalCents = 0;
-  const items: Array<{
+  const items: {
     payment_run_id: string;
     organization_id: string;
     bill_id: string;
@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
     payee_account_number: string;
     payee_account_name: string;
     reference: string | null;
-  }> = [];
+  }[] = [];
 
   for (const b of bills) {
     const bAny = b as Record<string, unknown>;

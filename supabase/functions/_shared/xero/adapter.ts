@@ -20,7 +20,7 @@ interface BillForPush {
   currency_code: string;
   supplier_name_raw: string | null;
   job_reference_raw: string | null;
-  line_items?: Array<{
+  line_items?: {
     description: string;
     quantity: number;
     unit_price_cents: number;
@@ -28,7 +28,7 @@ interface BillForPush {
     gst_cents: number;
     account_code: string | null;
     category: string | null;
-  }>;
+  }[];
 }
 
 interface PushArgs {
@@ -126,7 +126,7 @@ async function pushBillReal(args: PushArgs): Promise<PushResult> {
 
   // 3. POST to Xero with idempotency-key
   const idempotencyKey = crypto.randomUUID();
-  const data = await callXeroWithRetry<{ Invoices: Array<{ InvoiceID?: string }> }>(
+  const data = await callXeroWithRetry<{ Invoices: { InvoiceID?: string }[] }>(
     admin,
     organizationId,
     (ctx) =>
@@ -165,7 +165,7 @@ async function resolveOrCreateContact(
 ): Promise<string> {
   // Look up existing
   const where = `Name="${name.replace(/"/g, '\\"')}"`;
-  const found = await callXeroWithRetry<{ Contacts: Array<{ ContactID?: string }> }>(
+  const found = await callXeroWithRetry<{ Contacts: { ContactID?: string }[] }>(
     admin,
     organizationId,
     (ctx) =>
@@ -179,7 +179,7 @@ async function resolveOrCreateContact(
   if (existing?.ContactID) return existing.ContactID;
 
   // Create
-  const created = await callXeroWithRetry<{ Contacts: Array<{ ContactID?: string }> }>(
+  const created = await callXeroWithRetry<{ Contacts: { ContactID?: string }[] }>(
     admin,
     organizationId,
     (ctx) =>

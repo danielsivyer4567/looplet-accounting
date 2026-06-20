@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 
 type AccountType = 'checking' | 'savings' | 'credit_card' | 'loan' | 'investment' | 'other';
 
@@ -21,6 +21,22 @@ interface ImportResult {
 }
 
 const PDFJS_VERSION = '4.7.76';
+
+// Minimal structural types for the bits of pdfjs-dist we use (the package's
+// own types are not bundled and we load it dynamically via import()).
+interface PdfPageViewport { width: number; height: number }
+interface PdfPage {
+  getViewport(opts: { scale: number }): PdfPageViewport;
+  render(opts: { canvasContext: CanvasRenderingContext2D; viewport: PdfPageViewport }): { promise: Promise<void> };
+}
+interface PdfDocument {
+  numPages: number;
+  getPage(pageNumber: number): Promise<PdfPage>;
+}
+interface PdfjsModule {
+  GlobalWorkerOptions: { workerSrc: string };
+  getDocument(opts: { data: Uint8Array }): { promise: Promise<PdfDocument> };
+}
 
 export function BankStatementImport({ onImported }: { onImported?: () => void }) {
   const { currentOrg } = useOrg();
@@ -56,7 +72,7 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
       const parseErrors: string[] = [];
 
       // First pass: count total pages so we can show "X / Y" progress
-      const docs: Array<{ doc: any; name: string }> = [];
+      const docs: { doc: PdfDocument; name: string }[] = [];
       for (const f of files) {
         const buf = await f.arrayBuffer();
         const doc = await pdfjs.getDocument({ data: new Uint8Array(buf) }).promise;
@@ -76,9 +92,12 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
           const canvas = document.createElement('canvas');
           canvas.width = viewport.width;
           canvas.height = viewport.height;
-          const ctx = canvas.getContext('2d')!;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) throw new Error('Could not get 2D canvas context for PDF rendering');
           await page.render({ canvasContext: ctx, viewport }).promise;
-          const blob: Blob = await new Promise((resolve) => canvas.toBlob((b) => resolve(b!), 'image/png'));
+          const blob: Blob = await new Promise((resolve, reject) =>
+            canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('canvas.toBlob returned null'))), 'image/png'),
+          );
           const base64 = await blobToBase64(blob);
 
           try {
@@ -242,10 +261,10 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
 }
 
 // Lazy-load pdfjs once and configure worker via CDN to avoid bundling it
-let pdfjsCache: any = null;
-async function loadPdfjs(): Promise<any> {
+let pdfjsCache: PdfjsModule | null = null;
+async function loadPdfjs(): Promise<PdfjsModule> {
   if (pdfjsCache) return pdfjsCache;
-  const mod = await import('pdfjs-dist');
+  const mod = (await import('pdfjs-dist')) as unknown as PdfjsModule;
   // Vite-friendly worker URL via unpkg CDN to avoid bundler config
   mod.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.mjs`;
   pdfjsCache = mod;

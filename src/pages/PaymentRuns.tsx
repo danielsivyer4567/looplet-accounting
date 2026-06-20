@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { usePaymentRuns, type PaymentRunRow } from '@/hooks/usePaymentRuns';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';

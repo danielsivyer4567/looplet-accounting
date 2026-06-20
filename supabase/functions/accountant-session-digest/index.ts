@@ -57,7 +57,8 @@ Deno.serve(async (req) => {
     if (!authHeader || !body.organization_id) {
       return json({ ok: false, error: 'organization_id + auth required for on-demand log' }, 400);
     }
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    if (!anonKey) return json({ ok: false, error: 'SUPABASE_ANON_KEY not set' }, 500);
     const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
     const { data: u } = await userClient.auth.getUser();
     if (!u?.user) return json({ ok: false, error: 'Unauthorized' }, 401);
@@ -273,7 +274,8 @@ function renderDigestHtml(session: Record<string, unknown>, activity: ActivityRo
 }
 
 function esc(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+  const map: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  return s.replace(/[&<>"']/g, (c) => map[c] ?? c);
 }
 
 function json(body: unknown, status = 200): Response {

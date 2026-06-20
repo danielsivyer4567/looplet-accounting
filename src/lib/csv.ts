@@ -4,7 +4,7 @@
  * or newlines are wrapped in double-quotes with internal quotes escaped as "".
  * Triggers a browser download via a temporary <a download> element.
  */
-export function downloadCsv(filename: string, rows: Array<Record<string, unknown>>): void {
+export function downloadCsv(filename: string, rows: Record<string, unknown>[]): void {
   const first = rows[0];
   if (!first) return;
 

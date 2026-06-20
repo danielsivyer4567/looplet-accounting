@@ -8,7 +8,8 @@
  * `bills.intake_metadata->>'gmail_message_id'` index from migration 0006.
  */
 
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { requireEnv } from '../env.ts';
 
 const ACCEPTED_MIME = new Set([
   'application/pdf',
@@ -28,8 +29,8 @@ export interface GmailIntegrationRow {
 }
 
 export interface IngestStats {
-  bills: Array<{ bill_id: string; filename: string; gmail_message_id: string }>;
-  rejected: Array<{ message_id: string; reason: string }>;
+  bills: { bill_id: string; filename: string; gmail_message_id: string }[];
+  rejected: { message_id: string; reason: string }[];
   duplicates: number;
 }
 
@@ -111,8 +112,10 @@ export async function ingestGmailMessage(
   }
 
   for (const part of attachments) {
+    const attachmentId = part.body?.attachmentId;
+    if (!attachmentId) continue;
     const attResp = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${part.body!.attachmentId}`,
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } },
     );
     if (!attResp.ok) {
@@ -177,8 +180,8 @@ export async function ingestGmailMessage(
     }
 
     // Fire bills-extract (no await — backfill needs to keep moving)
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = requireEnv('SUPABASE_URL');
+    const serviceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
     fetch(`${supabaseUrl}/functions/v1/bills-extract`, {
       method: 'POST',
       headers: {
@@ -202,7 +205,7 @@ interface GmailPart {
   partId?: string;
   filename?: string;
   mimeType?: string;
-  headers?: Array<{ name: string; value: string }>;
+  headers?: { name: string; value: string }[];
   body?: { attachmentId?: string; size?: number; data?: string };
   parts?: GmailPart[];
 }
@@ -213,7 +216,7 @@ function flattenParts(payload: GmailPart): GmailPart[] {
   return out;
 }
 
-function headersToMap(headers: Array<{ name: string; value: string }>): Record<string, string> {
+function headersToMap(headers: { name: string; value: string }[]): Record<string, string> {
   const out: Record<string, string> = {};
   for (const h of headers) out[h.name.toLowerCase()] = h.value;
   return out;
@@ -221,7 +224,7 @@ function headersToMap(headers: Array<{ name: string; value: string }>): Record<s
 
 function extractEmail(fromHeader: string): string {
   const m = fromHeader.match(/<([^>]+)>/);
-  return (m ? m[1]! : fromHeader).trim().toLowerCase();
+  return (m && m[1] ? m[1] : fromHeader).trim().toLowerCase();
 }
 
 function base64UrlDecode(s: string): Uint8Array {

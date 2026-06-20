@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { useJobs } from '@/hooks/useJobs';
 import type { JobStatus } from '@/hooks/useJobs';
 import { supabase } from '@/lib/supabase';

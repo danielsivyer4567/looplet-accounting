@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { ArchiveButton } from '@/components/ArchiveButton';
@@ -168,7 +168,7 @@ export function CustomerDetailPage() {
         <Kpi label="Invoices" value={String(pnl?.invoice_count ?? 0)} colour="#aaa" />
         <Kpi label="Total invoiced" value={formatMoney(pnl?.total_invoiced_cents ?? 0)} colour="#86c7a3" />
         <Kpi label="Paid" value={formatMoney(pnl?.total_paid_cents ?? 0)} colour="#86c7a3" />
-        <Kpi label="Outstanding" value={formatMoney(pnl?.balance_owing_cents ?? 0)} colour={(pnl?.balance_owing_cents ?? 0) > 0 ? '#d2c886' : '#888'} sub={(pnl?.overdue_cents ?? 0) > 0 ? `${formatMoney(pnl!.overdue_cents)} overdue` : undefined} />
+        <Kpi label="Outstanding" value={formatMoney(pnl?.balance_owing_cents ?? 0)} colour={(pnl?.balance_owing_cents ?? 0) > 0 ? '#d2c886' : '#888'} sub={(pnl?.overdue_cents ?? 0) > 0 ? `${formatMoney(pnl?.overdue_cents ?? 0)} overdue` : undefined} />
       </div>
 
       <h2 style={h2}>Jobs ({jobs.length})</h2>

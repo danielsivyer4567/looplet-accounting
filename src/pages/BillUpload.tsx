@@ -1,6 +1,6 @@
 import { useRef, useState, type DragEvent, type ChangeEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { useBillUpload, type UploadResult } from '@/hooks/useBillUpload';
 
 export function BillUploadPage() {

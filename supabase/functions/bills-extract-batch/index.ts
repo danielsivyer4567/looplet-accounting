@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       : queueQ.eq('status', 'received');
     const { data: queue } = await queueQ;
 
-    const stats = { processed: 0, succeeded: 0, failed: 0, errors: [] as Array<{ bill_id: string; error: string }> };
+    const stats = { processed: 0, succeeded: 0, failed: 0, errors: [] as { bill_id: string; error: string }[] };
     if (!queue || queue.length === 0) {
       return json({ ok: true, stats, remaining: await remainingCount(), mode });
     }
@@ -100,7 +100,8 @@ Deno.serve(async (req) => {
     const billsExtractUrl = `${supabaseUrl}/functions/v1/bills-extract`;
 
     for (let i = 0; i < queue.length; i++) {
-      const bill = queue[i]!;
+      const bill = queue[i];
+      if (!bill) continue;
       stats.processed += 1;
       try {
         const r = await fetch(billsExtractUrl, {

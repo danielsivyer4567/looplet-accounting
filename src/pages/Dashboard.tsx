@@ -1,4 +1,4 @@
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { useRealtimePnl } from '@/hooks/useRealtimePnl';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
 import { SkeletonCard } from '@/components/Skeleton';

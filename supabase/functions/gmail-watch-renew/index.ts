@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     if (error) return json({ ok: false, error: error.message }, 500);
 
     const renewed: string[] = [];
-    const failed: Array<{ id: string; error: string }> = [];
+    const failed: { id: string; error: string }[] = [];
 
     for (const row of rows ?? []) {
       try {

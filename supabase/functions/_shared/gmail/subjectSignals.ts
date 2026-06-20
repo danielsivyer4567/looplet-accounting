@@ -88,7 +88,7 @@ export function extractSupplierFromSubject(subject: string): string | null {
 
   // Pattern 5: "<Company> - Invoice|Receipt|..."
   m = s.match(
-    /^([A-Z][A-Za-z0-9 .'&,\-]{2,79})\s*[-–—]\s*(?:Tax\s+Invoice|Invoice|Receipt|Statement|Quote|Bill|Order)/,
+    /^([A-Z][A-Za-z0-9 .'&,-]{2,79})\s*[-–—]\s*(?:Tax\s+Invoice|Invoice|Receipt|Statement|Quote|Bill|Order)/,
   );
   if (m && m[1]) return cleanCompany(m[1]);
 
@@ -108,7 +108,7 @@ export function extractSupplierFromSubject(subject: string): string | null {
 export function extractDocNumber(subject: string): string | null {
   const s = subject ?? '';
   const m = s.match(/(?:Invoice|INV|Bill|Receipt|Quote|Order|PO|REF)[\s:#]*(\d{2,12})/i);
-  return m ? m[1]! : null;
+  return m && m[1] ? m[1] : null;
 }
 
 /**

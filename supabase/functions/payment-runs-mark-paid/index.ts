@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: 'Payment run has no items' }, 422);
   }
 
-  const billIds = (items as Array<Record<string, unknown>>).map((r) => r['bill_id'] as string);
+  const billIds = (items as Record<string, unknown>[]).map((r) => r['bill_id'] as string);
 
   // Update bills: paid_at = pay_date, status = 'paid'
   const { error: billsErr, count } = await admin
