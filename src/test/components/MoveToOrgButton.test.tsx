@@ -26,7 +26,7 @@ let _mockOrganizations: Organization[] = [
   { id: 'org-c', name: 'Gamma Roofing', organization_type: 'standard' },
 ];
 
-vi.mock('@/contexts/OrgContext', () => ({
+vi.mock('@/hooks/useOrg', () => ({
   useOrg: () => ({
     organizations: _mockOrganizations,
     currentOrg: _mockOrganizations[0] ?? null,
@@ -48,14 +48,14 @@ const DEFAULT_PROPS = {
   fkColumnsToNull: ['supplier_id', 'job_id', 'suggested_job_id'],
 };
 
-type ButtonProps = {
+interface ButtonProps {
   table?: typeof DEFAULT_PROPS['table'];
   rowId?: string;
   currentOrgId?: string;
   fkColumnsToNull?: string[];
   onMoved?: (newOrgId: string) => void;
   label?: string;
-};
+}
 
 function renderButton(props: ButtonProps = {}) {
   return render(<MoveToOrgButton {...DEFAULT_PROPS} {...props} />);

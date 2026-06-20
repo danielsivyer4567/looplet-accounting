@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
     let upserted = 0;
     let updated = 0;
     let skipped = 0;
-    const candidates: Array<{ key: string; merchant: string; reason: string }> = [];
+    const candidates: { key: string; merchant: string; reason: string }[] = [];
 
     for (const [key, list] of groups) {
       if (list.length < 3) { skipped += 1; continue; }

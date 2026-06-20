@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const ALLOWED_MIME = new Set([

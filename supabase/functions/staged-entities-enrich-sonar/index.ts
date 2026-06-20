@@ -250,7 +250,7 @@ Output JSON ONLY, in this exact shape:
 
   return (results as SonarResult[]).map((r, idx) => ({
     i: r.i ?? idx,
-    id: r.id ?? rows[idx]!.id,
+    id: r.id ?? rows[idx]?.id ?? '',
     is_real_business: Boolean(r.is_real_business),
     summary: String(r.summary ?? ''),
     kind: String(r.kind ?? 'unknown'),

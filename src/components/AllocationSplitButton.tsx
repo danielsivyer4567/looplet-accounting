@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 
 /**
  * AllocationSplitButton — sibling to MoveToOrgButton, but instead of moving
@@ -75,7 +75,7 @@ export function AllocationSplitButton({ resourceType, resourceId, hostOrgId, lab
       notes: (r.notes as string | null) ?? null,
     }));
     setSplits(rows);
-    setOriginalIds(new Set(rows.map((r) => r.id!).filter(Boolean)));
+    setOriginalIds(new Set(rows.map((r) => r.id).filter((id): id is string => id !== null)));
   }, [resourceType, resourceId]);
 
   useEffect(() => {
@@ -152,12 +152,12 @@ export function AllocationSplitButton({ resourceType, resourceId, hostOrgId, lab
         if (insErr) throw insErr;
       }
 
-      const updates = splits.filter((s) => s.id !== null);
+      const updates = splits.filter((s): s is SplitRow & { id: string } => s.id !== null);
       for (const u of updates) {
         const { error: updErr } = await supabase
           .from('allocation_splits')
           .update({ percentage: u.percentage, notes: u.notes })
-          .eq('id', u.id!);
+          .eq('id', u.id);
         if (updErr) throw updErr;
       }
 

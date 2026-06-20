@@ -6,7 +6,7 @@ import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { AllocationSplitButton } from '@/components/AllocationSplitButton';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 
 // ---------------------------------------------------------------------------
 // Draft shape for the edit form. Money fields are stored as dollar strings
@@ -516,7 +516,9 @@ export function BillDetailPage() {
             </div>
           ) : (
             <>
-              {bill.suggested_job && (
+              {bill.suggested_job && (() => {
+                const suggestedJob = bill.suggested_job;
+                return (
                 <div
                   style={{
                     padding: '0.75rem',
@@ -530,11 +532,11 @@ export function BillDetailPage() {
                     Suggested ({Math.round((bill.suggested_match_score ?? 0) * 100)}% match):
                   </div>
                   <div style={{ marginBottom: '0.5rem' }}>
-                    <code style={{ color: '#86c7a3' }}>{bill.suggested_job.job_number}</code>{' '}
-                    <span style={{ color: '#aaa' }}>{bill.suggested_job.name}</span>
+                    <code style={{ color: '#86c7a3' }}>{suggestedJob.job_number}</code>{' '}
+                    <span style={{ color: '#aaa' }}>{suggestedJob.name}</span>
                   </div>
                   <button
-                    onClick={() => attachToJob(bill.suggested_job!.id)}
+                    onClick={() => attachToJob(suggestedJob.id)}
                     disabled={busy}
                     style={{
                       padding: '0.4rem 0.75rem',
@@ -549,7 +551,8 @@ export function BillDetailPage() {
                     {busy ? 'Attaching…' : 'Attach to suggested job'}
                   </button>
                 </div>
-              )}
+                );
+              })()}
 
               <div style={{ marginBottom: '0.5rem' }}>
                 <JobPicker onPick={(job) => attachToJob(job.id)} busy={busy} />
@@ -586,13 +589,13 @@ export function BillDetailPage() {
  */
 function EffectiveAllocations({ billId }: { billId: string }) {
   const { organizations } = useOrg();
-  const [rows, setRows] = useState<Array<{
+  const [rows, setRows] = useState<{
     organization_id: string;
     is_host: boolean;
     percentage: number;
     effective_total_inc_gst_cents: number;
     effective_gst_cents: number;
-  }> | null>(null);
+  }[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { AllocationSplitButton } from '@/components/AllocationSplitButton';
@@ -58,6 +58,22 @@ export function SubscriptionsPage() {
 
   useEffect(() => void refresh(), [refresh]);
 
+  // Group by merchant_name (lowercased + trimmed) so duplicates collapse.
+  // Kept above the early return so the hook order is stable across renders.
+  const grouped = useMemo(() => {
+    const m = new Map<string, { name: string; rows: Subscription[] }>();
+    for (const s of subs) {
+      const key = s.merchant_name.trim().toLowerCase();
+      let entry = m.get(key);
+      if (!entry) {
+        entry = { name: s.merchant_name, rows: [] };
+        m.set(key, entry);
+      }
+      entry.rows.push(s);
+    }
+    return Array.from(m.values());
+  }, [subs]);
+
   if (!currentOrg) return null;
 
   const monthlyEquivalent = (s: Subscription): number => {
@@ -68,17 +84,6 @@ export function SubscriptionsPage() {
     if (s.cadence === 'quarterly') return Math.round(s.amount_cents / 3);
     return s.amount_cents;
   };
-
-  // Group by merchant_name (lowercased + trimmed) so duplicates collapse
-  const grouped = useMemo(() => {
-    const m = new Map<string, { name: string; rows: Subscription[] }>();
-    for (const s of subs) {
-      const key = s.merchant_name.trim().toLowerCase();
-      if (!m.has(key)) m.set(key, { name: s.merchant_name, rows: [] });
-      m.get(key)!.rows.push(s);
-    }
-    return Array.from(m.values());
-  }, [subs]);
 
   const totalMonthly = subs.filter((s) => s.status !== 'cancelled' && s.status !== 'dismissed').reduce((a, s) => a + monthlyEquivalent(s), 0);
   const businessOnly = subs.filter((s) => s.is_business && !s.is_personal && s.status !== 'dismissed').reduce((a, s) => a + monthlyEquivalent(s) * 12, 0);
@@ -205,7 +210,8 @@ export function SubscriptionsPage() {
                   const isOpen = expanded.has(groupKey);
 
                   if (!isGroup) {
-                    const s = g.rows[0]!;
+                    const s = g.rows[0];
+                    if (!s) return null;
                     return (
                       <SubRow
                         key={s.id}
