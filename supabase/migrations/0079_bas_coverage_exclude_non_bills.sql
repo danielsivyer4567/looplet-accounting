@@ -1,4 +1,4 @@
--- 0076: Exclude classified non-invoices from BAS GST coverage scope.
+-- 0079: Exclude classified non-invoices from BAS GST coverage scope.
 --
 -- Part of EPIC D (intake classifier). 0075 added bills.is_probable_bill; the
 -- mis-filed noise (logos, photos of finished fences, "Pay Now" screenshots)

@@ -1,4 +1,4 @@
--- 0077: Exclude classified non-invoices from the BAS quarterly figures.
+-- 0080: Exclude classified non-invoices from the BAS quarterly figures.
 --
 -- Part of EPIC D (intake classifier). Companion to 0076: where 0076 dropped
 -- non-bills from the GST *coverage* view, this drops them from v_bas_quarterly

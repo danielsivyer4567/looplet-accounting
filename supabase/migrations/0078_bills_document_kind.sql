@@ -1,4 +1,4 @@
--- 0075: Classify ingested documents; keep non-invoices off the active surface.
+-- 0078: Classify ingested documents; keep non-invoices off the active surface.
 --
 -- Part of EPIC D (intake classifier). Verified from live data: ~217 of 247
 -- rows in `bills` are NOT invoices — they're supplier logos, "Pay Now" UI
