@@ -102,6 +102,15 @@ export function parseExtractedJson(raw: string): ExtractedBill {
   if (firstBrace >= 0 && lastBrace > firstBrace) {
     text = text.slice(firstBrace, lastBrace + 1);
   }
+  // Models sometimes emit raw control characters (literal newlines/tabs) inside
+  // string values — invalid JSON. Replace control chars with spaces before
+  // parsing; structural whitespace between tokens is unaffected.
+  let _clean = '';
+  for (let _k = 0; _k < text.length; _k++) {
+    const _c = text.charCodeAt(_k);
+    _clean += _c < 32 ? ' ' : text[_k];
+  }
+  text = _clean;
   const parsed = JSON.parse(text) as ExtractedBill;
   // Defensive defaults
   parsed.line_items ??= [];
