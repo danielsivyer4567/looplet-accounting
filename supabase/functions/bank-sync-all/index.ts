@@ -40,15 +40,13 @@ Deno.serve(async (req) => {
     const urlSecret = url.searchParams.get('secret');
     const authHeader = req.headers.get('Authorization') ?? '';
     const bearer = authHeader.replace(/^Bearer\s+/i, '').trim();
-    let isServiceRole = bearer === serviceKey;
-    if (!isServiceRole && bearer) {
-      try {
-        const payloadB64 = (bearer.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/');
-        const payload = JSON.parse(atob(payloadB64 + '='.repeat((4 - payloadB64.length % 4) % 4)));
-        isServiceRole = payload?.role === 'service_role';
-      } catch { /* fall through */ }
-    }
-    if (!isServiceRole && urlSecret !== cronSecret) {
+    // Exact service-role key OR ?secret= — both constant-time. The previous
+    // "base64-decode the JWT and trust its role claim" path was forgeable
+    // (any token whose UNVERIFIED payload said role=service_role passed). Removed.
+    // See AUDIT.md §3d.
+    const isServiceRole = safeEqual(bearer, serviceKey);
+    const secretOk = safeEqual(urlSecret ?? '', cronSecret);
+    if (!isServiceRole && !secretOk) {
       return json({ ok: false, error: 'forbidden' }, 403);
     }
 
@@ -91,6 +89,14 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: msg }, 500);
   }
 });
+
+/** Constant-time string compare; false on length mismatch. */
+function safeEqual(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  let out = 0;
+  for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return out === 0;
+}
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
