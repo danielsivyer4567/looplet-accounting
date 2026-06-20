@@ -5,14 +5,18 @@
 -- the figures were incomplete. This adds a per-quarter coverage view + a
 -- readiness gate so BAS isn't surfaced/lodged off thin data.
 --
--- "In scope" mirrors exactly the bills that feed v_bas_quarterly.bills_per_q:
---   not deleted, not personal, invoice_date present. A quarter is "ready" when
---   >= 95% of its in-scope bills carry both a total and GST.
+-- IMPORTANT: "in scope" must match exactly the rows that feed
+-- v_bas_quarterly.bills_per_q, which (since migration 0047) is built from
+-- v_bill_effective_allocations (so split / cross-org bills attribute GST to
+-- the correct org). Counting raw bills grouped by the host org would diverge
+-- from the figures this gate certifies. Completeness is derived from the
+-- underlying bill's amount/GST. A quarter is "ready" when >= 95% of its
+-- in-scope allocations carry both a total and GST.
 
 CREATE OR REPLACE VIEW public.v_bas_gst_coverage
 WITH (security_invoker = on) AS
 SELECT
-  b.organization_id,
+  bea.organization_id,
   q.fy_start_year,
   q.quarter_num,
   count(*)                                                              AS bills_in_scope,
@@ -28,20 +32,20 @@ SELECT
     ) / NULLIF(count(*), 0),
     1
   )                                                                    AS coverage_pct,
-  -- ready when >= 95% of in-scope bills are complete (amount + GST)
   count(*) FILTER (
     WHERE b.total_inc_gst_cents IS NOT NULL AND b.gst_cents IS NOT NULL
   ) >= ceil(0.95 * count(*))                                           AS gst_ready
-FROM public.bills b
-CROSS JOIN LATERAL au_bas_quarter(b.invoice_date)
-  q(fy_start_year, quarter_num, quarter_start, quarter_end, due_date)
+FROM public.v_bill_effective_allocations bea
+  JOIN public.bills b ON b.id = bea.bill_id
+  CROSS JOIN LATERAL au_bas_quarter(b.invoice_date)
+    q(fy_start_year, quarter_num, quarter_start, quarter_end, due_date)
 WHERE b.deleted_at IS NULL
   AND b.is_personal = false
   AND b.invoice_date IS NOT NULL
-GROUP BY b.organization_id, q.fy_start_year, q.quarter_num;
+GROUP BY bea.organization_id, q.fy_start_year, q.quarter_num;
 
 COMMENT ON VIEW public.v_bas_gst_coverage IS
-  'Per-quarter GST data completeness for BAS. gst_ready = >=95% of in-scope bills carry amount+GST. Gate BAS surfacing/lodgement on this.';
+  'Per-quarter GST data completeness for BAS, over the same effective-allocation scope as v_bas_quarterly. gst_ready = >=95% of in-scope allocations carry amount+GST. bills_gst_estimated counts derived (1/11) GST to review before lodgement.';
 
 REVOKE ALL ON public.v_bas_gst_coverage FROM anon;
 GRANT SELECT ON public.v_bas_gst_coverage TO authenticated;

@@ -252,6 +252,15 @@ export function deriveGstCents(
   if (subtotalCents != null && totalCents > subtotalCents) {
     return { gstCents: totalCents - subtotalCents, subtotalCents, estimated: true };
   }
+  if (subtotalCents != null) {
+    // Document supplied a subtotal that equals (or exceeds) the total → the
+    // supply carries NO GST (GST-free: fresh food, bank fees, overseas, rent).
+    // Do NOT apply the 1/11 rule here — that would invent phantom GST and
+    // over-claim input tax credits.
+    return { gstCents: 0, subtotalCents, estimated: false };
+  }
+  // Total only, no subtotal to contradict it → assume a standard-rated taxable
+  // supply: GST = 1/11 of the GST-inclusive total.
   const derivedGst = Math.round(totalCents / 11);
   return { gstCents: derivedGst, subtotalCents: totalCents - derivedGst, estimated: true };
 }
