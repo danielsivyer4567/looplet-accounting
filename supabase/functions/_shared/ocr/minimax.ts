@@ -74,7 +74,21 @@ export async function extractBillDataMiniMax(
     throw new Error(`MiniMax API ${res.status}: ${errText.slice(0, 300)}`);
   }
 
-  const body = await res.json();
+  // MiniMax-M3 can emit raw (unescaped) control characters inside the response
+  // content string, which breaks the envelope JSON itself — so parse the body
+  // text defensively, stripping control chars only if the direct parse fails.
+  const bodyText = await res.text();
+  let body: { choices?: Array<{ message?: { content?: string } }> };
+  try {
+    body = JSON.parse(bodyText);
+  } catch {
+    let clean = '';
+    for (let k = 0; k < bodyText.length; k++) {
+      const c = bodyText.charCodeAt(k);
+      clean += c < 32 ? ' ' : bodyText[k];
+    }
+    body = JSON.parse(clean);
+  }
   const rawText = body.choices?.[0]?.message?.content ?? '';
   if (!rawText) throw new Error('MiniMax returned empty response');
 
