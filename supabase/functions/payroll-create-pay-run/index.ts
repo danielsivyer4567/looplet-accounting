@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
 
   // ---- For each employee, build a payslip -----------------------------------
   let totalGross = 0, totalTax = 0, totalSuper = 0, totalNet = 0;
-  const slipResults: Array<{ employee_id: string; slip_id?: string; error?: string }> = [];
+  const slipResults: { employee_id: string; slip_id?: string; error?: string }[] = [];
 
   for (const emp of employees) {
     try {

@@ -28,7 +28,7 @@ async function getKey(): Promise<CryptoKey> {
 
 function bytesToBase64(bytes: Uint8Array): string {
   let s = '';
-  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i] ?? 0);
+  for (const byte of bytes) s += String.fromCharCode(byte);
   return btoa(s);
 }
 

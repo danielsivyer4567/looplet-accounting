@@ -41,7 +41,7 @@ interface RequestBody {
 interface BasiqJobStep {
   title: string;
   status: string;   // "pending" | "processing" | "success" | "failed"
-  result?: Array<{ type: string; url: string }>;
+  result?: { type: string; url: string }[];
 }
 
 interface BasiqJob {
@@ -74,9 +74,6 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'Server config missing' }, 500);
     }
 
-    const admin = createClient(supabaseUrl, serviceKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });

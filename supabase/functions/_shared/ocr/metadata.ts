@@ -17,7 +17,7 @@
  * before sending the file to Groq/Claude — saving cost and improving accuracy.
  */
 
-import { extractText, getDocumentProxy } from 'https://esm.sh/unpdf@0.11.0';
+import { getDocumentProxy } from 'https://esm.sh/unpdf@0.11.0';
 
 export interface DocumentMetadata {
   source_type: 'pdf' | 'image' | 'unknown';
@@ -71,7 +71,7 @@ async function extractPdfMetadata(bytes: Uint8Array): Promise<DocumentMetadata> 
   try {
     const doc = await getDocumentProxy(bytes);
     const meta = await doc.getMetadata();
-    const info = (meta.info ?? {}) as Record<string, any>;
+    const info = (meta.info ?? {}) as Record<string, unknown>;
 
     if (info.Title) out.title = String(info.Title).trim();
     if (info.Author) out.author = String(info.Author).trim();
@@ -123,7 +123,7 @@ async function extractImageMetadata(
     const data = (await exifr.parse(bytes, {
       tiff: true, exif: true, gps: true, xmp: true, iptc: true,
       icc: false, jfif: false,
-    })) as Record<string, any> | null;
+    })) as Record<string, unknown> | null;
 
     if (data) {
       if (data.ImageDescription) out.description = String(data.ImageDescription);
@@ -131,9 +131,9 @@ async function extractImageMetadata(
       if (data.Software) out.software_creator = String(data.Software);
       if (data.Make) out.camera_make = String(data.Make);
       if (data.Model) out.camera_model = String(data.Model);
-      if (data.DateTimeOriginal) out.taken_at = new Date(data.DateTimeOriginal).toISOString();
-      if (data.CreateDate) out.created_at = new Date(data.CreateDate).toISOString();
-      if (data.ModifyDate) out.modified_at = new Date(data.ModifyDate).toISOString();
+      if (data.DateTimeOriginal) out.taken_at = new Date(String(data.DateTimeOriginal)).toISOString();
+      if (data.CreateDate) out.created_at = new Date(String(data.CreateDate)).toISOString();
+      if (data.ModifyDate) out.modified_at = new Date(String(data.ModifyDate)).toISOString();
       if (typeof data.latitude === 'number') out.gps_latitude = data.latitude;
       if (typeof data.longitude === 'number') out.gps_longitude = data.longitude;
       if (data.title) out.title = String(data.title);

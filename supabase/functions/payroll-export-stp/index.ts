@@ -108,10 +108,10 @@ Deno.serve(async (req) => {
     .eq('pay_run_id', run_id);
   if (slipsErr) return json({ ok: false, error: slipsErr.message }, 500);
 
-  type EmpJoin = {
+  interface EmpJoin {
     id: string; full_name: string; email: string | null;
     wage_components: Record<string, unknown> | null;
-  };
+  }
 
   const stp = {
     schema: 'stp_phase2_v1',

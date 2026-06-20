@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
 
     // Insert transactions, dedupe by hash(date|amount|description)
     let imported = 0;
-    let duplicates = 0;
+    const duplicates = 0;
     let insertErrors = 0;
     const importedTxnIds: string[] = [];
     for (const r of rows.parsed) {
@@ -335,7 +335,7 @@ function parseDmyDate(input: string): string {
   if (!input) throw new Error('empty date');
   const s = input.trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2}|\d{4})$/);
+  const m = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2}|\d{4})$/);
   if (!m) throw new Error(`bad date "${s}"`);
   const [, dd, mm, yyRaw] = m;
   const yy = yyRaw.length === 2 ? `20${yyRaw}` : yyRaw;
@@ -348,7 +348,7 @@ function parseAmountCents(input: string): number {
   const raw = input.trim();
   if (!raw) return 0;
   const negParens = /^\(.*\)$/.test(raw);
-  const cleaned = raw.replace(/[\$,\(\)\s]/g, '');
+  const cleaned = raw.replace(/[$,()\s]/g, '');
   const n = parseFloat(cleaned);
   if (!Number.isFinite(n)) throw new Error(`bad amount "${input}"`);
   return Math.round(n * 100) * (negParens ? -1 : 1);

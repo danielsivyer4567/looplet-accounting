@@ -27,8 +27,19 @@ interface IntegrationRow {
  * Returns a valid (refreshed if needed) access token. Persists the rotated
  * access token + expiry back to the row.
  */
+interface GmailQueryBuilder
+  extends PromiseLike<{ data: unknown; error: { message?: string } | null }> {
+  select(columns: string): GmailQueryBuilder;
+  update(values: Record<string, unknown>): GmailQueryBuilder;
+  eq(column: string, value: unknown): GmailQueryBuilder;
+  single(): Promise<{ data: unknown; error: { message?: string } | null }>;
+}
+interface SupabaseLike {
+  from(table: string): GmailQueryBuilder;
+}
+
 export async function loadAndRefreshGmail(
-  admin: any,
+  admin: SupabaseLike,
   integrationId: string,
 ): Promise<GmailTokens> {
   const { data, error } = await admin

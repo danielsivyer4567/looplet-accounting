@@ -247,16 +247,18 @@ Output a JSON array, one object per [N] entity, in the same order. Schema:
 
   // Extract JSON array — model may wrap in {"results":[...]} or return bare array
   const parsed = JSON.parse(content);
-  const arr: any[] = Array.isArray(parsed)
+  const parsedObj = parsed as Record<string, unknown>;
+  const arr: unknown[] = Array.isArray(parsed)
     ? parsed
-    : Array.isArray(parsed.results)
-      ? parsed.results
-      : Array.isArray(parsed.classifications)
-        ? parsed.classifications
-        : Object.values(parsed).find((v) => Array.isArray(v)) as any[] ?? [];
+    : Array.isArray(parsedObj.results)
+      ? parsedObj.results
+      : Array.isArray(parsedObj.classifications)
+        ? parsedObj.classifications
+        : (Object.values(parsedObj).find((v) => Array.isArray(v)) as unknown[] | undefined) ?? [];
 
   const updates: BatchUpdate[] = [];
-  for (const item of arr) {
+  for (const raw of arr) {
+    const item = raw as Record<string, unknown>;
     if (!item?.id || typeof item.kind !== 'string' || typeof item.category !== 'string') continue;
     const conf = typeof item.confidence === 'number' ? item.confidence : 0.5;
     updates.push({

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 
 interface WageComponents {
@@ -486,7 +486,7 @@ function LeaveBalancesPanel({ orgId, employeeId, balances, onChange }: {
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const types: Array<LeaveBalance['leave_type']> = ['annual', 'sick', 'long_service'];
+  const types: LeaveBalance['leave_type'][] = ['annual', 'sick', 'long_service'];
 
   const upsert = async (
     leave_type: LeaveBalance['leave_type'],

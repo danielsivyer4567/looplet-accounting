@@ -126,7 +126,7 @@ function normaliseDate(input: string): string | null {
   if (!input) return null;
   const s = input.trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2}|\d{4})$/);
+  const dmy = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2}|\d{4})$/);
   if (dmy) {
     const yy = dmy[3].length === 2 ? `20${dmy[3]}` : dmy[3];
     return `${yy}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;

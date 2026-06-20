@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { useOrg } from '@/contexts/OrgContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useOrg } from '@/hooks/useOrg';
+import { useAuth } from '@/hooks/useAuth';
 
 /**
  * useAccountantHeartbeat — calls the accountant_session_heartbeat RPC on

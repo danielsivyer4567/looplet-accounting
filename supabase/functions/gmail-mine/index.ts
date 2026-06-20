@@ -17,7 +17,8 @@
  * Each call processes up to 100 messages; returns next_page_token for resumption.
  */
 
-import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { loadAndRefreshGmail } from '../_shared/gmail/auth.ts';
 import {
@@ -48,13 +49,21 @@ interface IntegRow {
 }
 
 interface MessageHeader { name: string; value: string; }
+interface MessagePartBody { data?: string; size?: number; attachmentId?: string; }
+interface MessagePart {
+  mimeType?: string;
+  filename?: string;
+  headers?: MessageHeader[];
+  body?: MessagePartBody;
+  parts?: MessagePart[];
+}
 interface MessageMeta {
   id: string;
   threadId: string;
   internalDate?: string;
   labelIds?: string[];
   snippet?: string;
-  payload?: { headers?: MessageHeader[]; mimeType?: string; parts?: any[]; body?: any };
+  payload?: { headers?: MessageHeader[]; mimeType?: string; parts?: MessagePart[]; body?: MessagePartBody };
   sizeEstimate?: number;
 }
 
@@ -123,7 +132,7 @@ Deno.serve(async (req) => {
     }
 
     const list = (await listResp.json()) as {
-      messages?: Array<{ id: string; threadId: string }>;
+      messages?: { id: string; threadId: string }[];
       nextPageToken?: string;
     };
 
@@ -184,8 +193,17 @@ async function lookupKnownSenderViaRpc(
 ): Promise<ClassificationResult | null> {
   if (!email) return null;
   const { data, error } = await admin.rpc('lookup_known_sender', { p_email: email });
-  if (error || !data || (data as any[]).length === 0) return null;
-  const row = (data as any[])[0];
+  interface KnownSenderRow {
+    kind?: ClassificationResult['kind'];
+    category_code?: string | null;
+    brand_name?: string | null;
+    confidence?: number | null;
+    arm?: string | null;
+    is_marketing?: boolean | null;
+  }
+  const rows = data as KnownSenderRow[] | null;
+  if (error || !rows || rows.length === 0) return null;
+  const row = rows[0];
   return {
     kind: row.kind ?? 'unknown',
     category: row.category_code ?? null,
@@ -220,7 +238,6 @@ async function processMessage(
   stats: { attachments_seen: number },
 ) {
   // Use format=metadata + headers we care about; cheap (no attachment bytes).
-  const wanted = ['From', 'To', 'Subject', 'Date'];
   const url = new URL(
     `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}`,
   );
@@ -451,7 +468,7 @@ async function upsertCluster(
 function parseAddressHeader(h: string): { email: string; name?: string } {
   // "Name <email@x>" | "<email@x>" | "email@x"
   const m = h.match(/^\s*"?([^"<]*)"?\s*<([^>]+)>\s*$/);
-  if (m) return { name: (m[1] ?? '').trim() || undefined, email: m[2]!.trim().toLowerCase() };
+  if (m && m[2]) return { name: (m[1] ?? '').trim() || undefined, email: m[2].trim().toLowerCase() };
   return { email: h.trim().toLowerCase() };
 }
 
@@ -466,21 +483,21 @@ function canonicalize(domain: string, email: string): string {
   return FREE.has(domain) ? `email:${email}` : `domain:${domain}`;
 }
 
-function countAttachments(payload: any): number {
+function countAttachments(payload: MessagePart | undefined): number {
   if (!payload) return 0;
   let n = 0;
-  const stack = [payload];
+  const stack: MessagePart[] = [payload];
   while (stack.length) {
     const p = stack.pop();
     if (p?.body?.attachmentId) n += 1;
-    if (Array.isArray(p?.parts)) stack.push(...p.parts);
+    if (p && Array.isArray(p.parts)) stack.push(...p.parts);
   }
   return n;
 }
 
-function extractBodyText(payload: any, maxLen: number): string {
+function extractBodyText(payload: MessagePart | undefined, maxLen: number): string {
   if (!payload) return '';
-  const stack = [payload];
+  const stack: MessagePart[] = [payload];
   let out = '';
   while (stack.length && out.length < maxLen) {
     const p = stack.pop();
@@ -524,14 +541,14 @@ function mergeArrays(a: string[] | undefined, b: string[]): string[] {
 
 function pickEarlier(a: string | undefined, b: Date | undefined): string | null {
   if (!a && !b) return null;
-  if (!a) return b!.toISOString();
+  if (!a) return b ? b.toISOString() : null;
   if (!b) return a;
   return new Date(a) < b ? a : b.toISOString();
 }
 
 function pickLater(a: string | undefined, b: Date | undefined): string | null {
   if (!a && !b) return null;
-  if (!a) return b!.toISOString();
+  if (!a) return b ? b.toISOString() : null;
   if (!b) return a;
   return new Date(a) > b ? a : b.toISOString();
 }
