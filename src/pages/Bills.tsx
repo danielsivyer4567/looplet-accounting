@@ -26,7 +26,8 @@ const filters: { label: string; value: BillListRow['status'] | null }[] = [
 export function BillsPage() {
   const { currentOrg } = useOrg();
   const [filter, setFilter] = useState<BillListRow['status'] | null>(null);
-  const { bills, loading, error, refresh } = useBills(filter ?? undefined);
+  const [showNonBills, setShowNonBills] = useState(false);
+  const { bills, loading, error, refresh } = useBills(filter ?? undefined, 100, showNonBills);
   const [repushingId, setRepushingId] = useState<string | null>(null);
 
   const handleRepush = async (bill: BillListRow) => {
@@ -80,24 +81,54 @@ export function BillsPage() {
         </Link>
       </div>
 
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', marginTop: '1rem' }}>
-        {filters.map((f) => (
-          <button
-            key={f.label}
-            onClick={() => setFilter(f.value)}
-            style={{
-              padding: '0.4rem 0.75rem',
-              background: filter === f.value ? '#2a2a2a' : 'transparent',
-              color: filter === f.value ? '#fff' : '#888',
-              border: '1px solid #2a2a2a',
-              borderRadius: 4,
-              cursor: 'pointer',
-              fontSize: 13,
-            }}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div
+        style={{
+          display: 'flex',
+          gap: '0.5rem',
+          marginBottom: '1.5rem',
+          marginTop: '1rem',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          {filters.map((f) => (
+            <button
+              key={f.label}
+              onClick={() => setFilter(f.value)}
+              style={{
+                padding: '0.4rem 0.75rem',
+                background: filter === f.value ? '#2a2a2a' : 'transparent',
+                color: filter === f.value ? '#fff' : '#888',
+                border: '1px solid #2a2a2a',
+                borderRadius: 4,
+                cursor: 'pointer',
+                fontSize: 13,
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            fontSize: 13,
+            color: '#888',
+            cursor: 'pointer',
+          }}
+          title="Show documents the intake classifier flagged as non-invoices (logos, photos, screenshots)"
+        >
+          <input
+            type="checkbox"
+            checked={showNonBills}
+            onChange={(e) => setShowNonBills(e.target.checked)}
+          />
+          Show non-invoices
+        </label>
       </div>
 
       {loading ? (
@@ -132,6 +163,23 @@ export function BillsPage() {
                     <Link to={`/bills/${b.id}`} style={{ color: '#fff', textDecoration: 'none' }}>
                       {b.supplier_name_raw ?? <span style={{ color: '#666' }}>—</span>}
                     </Link>
+                    {b.is_probable_bill === false && (
+                      <span
+                        style={{
+                          marginLeft: '0.5rem',
+                          padding: '0.1rem 0.4rem',
+                          fontSize: 10,
+                          borderRadius: 3,
+                          background: '#3a2a2a',
+                          color: '#d99',
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.5,
+                        }}
+                        title="Classified by intake as not an invoice"
+                      >
+                        {b.document_kind ?? 'non-invoice'}
+                      </span>
+                    )}
                   </td>
                   <td style={td}>
                     <code style={{ color: '#888' }}>{b.invoice_number ?? '—'}</code>

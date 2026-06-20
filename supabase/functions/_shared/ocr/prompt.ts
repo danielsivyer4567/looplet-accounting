@@ -25,6 +25,21 @@ EXTRACTION RULES:
    - "high" — clean printed invoice, all key fields readable
    - "medium" — image is OK but some fields hard to read
    - "low" — image is unclear OR document doesn't look like an invoice/quote/statement at all
+9. DOCUMENT_KIND: Classify what this document actually is. One of:
+   - "invoice"  — a tax invoice / bill from a supplier (the common case)
+   - "quote"    — a quote / estimate (not yet a payable bill)
+   - "receipt"  — a receipt for a payment already made
+   - "statement"— a supplier statement of account (list of prior invoices)
+   - "order"    — a purchase order / sales order / order confirmation
+   - "logo"     — a brand logo / letterhead image only, no financial content
+   - "photo"    — a photograph that is NOT a financial document (e.g. a photo of a
+                  completed fence, a job site, a product, a person)
+   - "ui_screenshot" — a screenshot of an app/email UI that is NOT itself an invoice
+                  (e.g. a "Pay Now" button, an app icon, a navigation bar, an inbox)
+   - "other"    — anything else that isn't a financial document
+   Only "invoice", "quote", "receipt", "statement" and "order" are real financial
+   documents. If the image is purely a logo, a photo, or a UI chrome screenshot,
+   set document_kind accordingly and return confidence "low" with null amounts.
 
 WHAT TO RETURN AS LOW CONFIDENCE WITH NULLS:
 - Pure logos with no text below (e.g. "oxworks-logo.png")
@@ -54,9 +69,48 @@ Return ONLY a valid JSON object with this exact shape — no prose, no markdown 
     {"description": "string", "quantity": number, "unit_price": number, "total": number}
   ],
   "job_reference": "string or null — full address or job code if shown",
+  "document_kind": "invoice" | "quote" | "receipt" | "statement" | "order" | "logo" | "photo" | "ui_screenshot" | "other",
   "confidence": "high" | "medium" | "low",
   "notes": "string — anything unusual or unclear; e.g. 'photo skewed', 'partial crop', 'screenshot of quote in Xero', 'document type: delivery docket'"
 }`;
+
+/**
+ * What kind of document the model thinks this is. Only the first five
+ * (invoice/quote/receipt/statement/order) are real financial documents that
+ * belong on the bills/BAS surface. logo/photo/ui_screenshot/other are the
+ * mis-filed noise (supplier logos, "Pay Now" buttons, photos of finished
+ * fences, email-signature images) that pollute the bills list.
+ */
+export type DocumentKind =
+  | 'invoice'
+  | 'quote'
+  | 'receipt'
+  | 'statement'
+  | 'order'
+  | 'logo'
+  | 'photo'
+  | 'ui_screenshot'
+  | 'other';
+
+/** The kinds that are NOT a payable/recordable financial document. */
+export const NON_FINANCIAL_KINDS: ReadonlySet<DocumentKind> = new Set<DocumentKind>([
+  'logo',
+  'photo',
+  'ui_screenshot',
+  'other',
+]);
+
+const VALID_DOCUMENT_KINDS: ReadonlySet<string> = new Set<DocumentKind>([
+  'invoice',
+  'quote',
+  'receipt',
+  'statement',
+  'order',
+  'logo',
+  'photo',
+  'ui_screenshot',
+  'other',
+]);
 
 export interface ExtractedBill {
   supplier_name: string | null;
@@ -75,6 +129,7 @@ export interface ExtractedBill {
     total: number;
   }[];
   job_reference: string | null;
+  document_kind: DocumentKind;
   confidence: 'high' | 'medium' | 'low';
   notes: string;
   // Internal: which path produced this. Set by bills-extract; not from the model.
@@ -117,6 +172,13 @@ export function parseExtractedJson(raw: string): ExtractedBill {
   parsed.currency ??= 'AUD';
   parsed.confidence ??= 'medium';
   parsed.notes ??= '';
+  // document_kind: normalise to a known value. Missing/unknown → 'invoice', the
+  // legacy assumption (everything was treated as a bill). The is_probable_bill
+  // gate in persistExtraction still catches low-confidence empty extractions, so
+  // a defaulted 'invoice' won't smuggle pure noise onto the active surface.
+  parsed.document_kind = VALID_DOCUMENT_KINDS.has(parsed.document_kind as string)
+    ? parsed.document_kind
+    : 'invoice';
   return parsed;
 }
 
