@@ -33,13 +33,22 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ ok: false, error: 'POST only' }, 405);
 
   try {
-    // 1. Verify URL token
+    // 1. Verify URL token — FAIL CLOSED. This function is deployed
+    // --no-verify-jwt (Basiq sends no Supabase auth), so the shared secret is
+    // the ONLY gate. If it isn't configured we must reject, not wave traffic
+    // through: an unset token previously skipped verification entirely, leaving
+    // a fully-unauthenticated endpoint that could flip connection state / kick
+    // service-role syncs for any org.
     const expectedToken = Deno.env.get('BASIQ_WEBHOOK_VERIFY_TOKEN');
-    if (expectedToken) {
-      const url = new URL(req.url);
-      if (url.searchParams.get('token') !== expectedToken) {
-        return json({ ok: false, error: 'Invalid webhook verification token' }, 401);
-      }
+    if (!expectedToken) {
+      return json(
+        { ok: false, error: 'Server misconfigured: BASIQ_WEBHOOK_VERIFY_TOKEN not set' },
+        500,
+      );
+    }
+    const url = new URL(req.url);
+    if (url.searchParams.get('token') !== expectedToken) {
+      return json({ ok: false, error: 'Invalid webhook verification token' }, 401);
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');

@@ -27,9 +27,26 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const topicName = Deno.env.get('GMAIL_PUBSUB_TOPIC');
+    const cronSecret = Deno.env.get('GMAIL_WATCH_RENEW_CRON_SECRET');
 
-    if (!supabaseUrl || !serviceKey || !topicName) {
-      return json({ ok: false, error: 'Server config missing' }, 500);
+    if (!supabaseUrl || !serviceKey || !topicName || !cronSecret) {
+      return json(
+        { ok: false, error: 'Server config missing (need GMAIL_WATCH_RENEW_CRON_SECRET)' },
+        500,
+      );
+    }
+
+    // SECURITY: deployed --no-verify-jwt for pg_cron. Gate on a URL-query secret
+    // OR the service-role bearer (both constant-time); anything else = 403.
+    // Previously this had NO auth gate at all — any anonymous POST swept every
+    // tenant's active Gmail integrations and called Google's API on their behalf,
+    // overwriting watch state across orgs. Mirrors bank-sync-all / notifications-cron.
+    const url = new URL(req.url);
+    const urlSecret = url.searchParams.get('secret');
+    const authHeader = req.headers.get('Authorization') ?? '';
+    const bearer = authHeader.replace(/^Bearer\s+/i, '').trim();
+    if (!safeEqual(bearer, serviceKey) && !safeEqual(urlSecret ?? '', cronSecret)) {
+      return json({ ok: false, error: 'forbidden' }, 403);
     }
 
     const admin = createClient(supabaseUrl, serviceKey, {
@@ -87,6 +104,14 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: msg }, 500);
   }
 });
+
+/** Constant-time string compare; false on length mismatch. */
+function safeEqual(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  let out = 0;
+  for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return out === 0;
+}
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {

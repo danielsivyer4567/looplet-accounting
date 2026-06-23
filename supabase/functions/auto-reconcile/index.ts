@@ -100,26 +100,25 @@ Deno.serve(async (req) => {
     }
 
     // --- Auth gate: service-role bearer OR ?secret= OR user JWT --------------
+    // SECURITY: the previous "base64-decode the bearer and trust its UNSIGNED
+    // role claim" path was forgeable — this function is deployed --no-verify-jwt,
+    // so an attacker-minted token (payload {"role":"service_role"}) reached the
+    // handler and got the admin/cron path. Removed. Service-role is now ONLY an
+    // exact constant-time match against the real key; the cron secret is
+    // likewise constant-time and unavailable when unset (fail closed). A forged
+    // token falls through to the user-JWT path below, where PostgREST verifies
+    // the signature against the project secret and rejects it. See AUDIT.md §3d
+    // (same fix already applied to bank-sync-all / notifications-cron).
     const url = new URL(req.url);
     const urlSecret = url.searchParams.get('secret');
     const authHeader = req.headers.get('Authorization') ?? '';
     const bearer = authHeader.replace(/^Bearer\s+/i, '').trim();
 
-    let isServiceRole = bearer === serviceKey;
-    if (!isServiceRole && bearer) {
-      try {
-        const payloadB64 = (bearer.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/');
-        const payload = JSON.parse(
-          atob(payloadB64 + '='.repeat((4 - (payloadB64.length % 4)) % 4)),
-        );
-        isServiceRole = payload?.role === 'service_role';
-      } catch {
-        /* not a service-role JWT — treat as a normal user JWT below */
-      }
-    }
-    const cronAuthorized = isServiceRole || (!!cronSecret && urlSecret === cronSecret);
+    const isServiceRole = safeEqual(bearer, serviceKey);
+    const secretOk = !!cronSecret && safeEqual(urlSecret ?? '', cronSecret);
+    const cronAuthorized = isServiceRole || secretOk;
 
-    // A user JWT (non-service-role bearer) gets the RLS path; cron uses admin.
+    // A user JWT (any non-service-role bearer) gets the RLS path; cron uses admin.
     const hasUserJwt = !!bearer && !isServiceRole;
     if (!cronAuthorized && !hasUserJwt) {
       return json({ ok: false, error: 'Unauthorized' }, 401);
@@ -282,6 +281,14 @@ Deno.serve(async (req) => {
 function clamp01(n: number): number {
   if (!Number.isFinite(n)) return 0;
   return Math.min(1, Math.max(0, n));
+}
+
+/** Constant-time string compare; false on length mismatch. */
+function safeEqual(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  let out = 0;
+  for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return out === 0;
 }
 
 function json(body: unknown, status = 200): Response {
