@@ -19,7 +19,7 @@ interface Org {
 }
 
 export function OrgProfileForm() {
-  const { currentOrg, refreshOrgs } = useOrg() as { currentOrg: Org | null; refreshOrgs?: () => void };
+  const { currentOrg, refresh } = useOrg();
   const [org, setOrg] = useState<Org | null>(null);
   const [draft, setDraft] = useState<{ name: string; abn: string; settings: OrgSettings }>({
     name: '', abn: '', settings: {},
@@ -63,7 +63,7 @@ export function OrgProfileForm() {
     setBusy(false);
     if (error) { setErr(error.message); return; }
     setMsg('Saved.');
-    refreshOrgs?.();
+    void refresh();
     setTimeout(() => setMsg(null), 2000);
   };
 

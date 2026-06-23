@@ -12,6 +12,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { useAuth } from '@/hooks/useAuth';
 import { formatMoney } from '@/lib/money';
 
 interface PayRun {
@@ -56,6 +57,7 @@ interface PaySlip {
 export function PayRunDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { currentOrg } = useOrg();
+  const { user } = useAuth();
   const [run, setRun] = useState<PayRun | null>(null);
   const [slips, setSlips] = useState<PaySlip[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +66,7 @@ export function PayRunDetailPage() {
   const [role, setRole] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    if (!currentOrg || !id) return;
+    if (!currentOrg || !id || !user) return;
     setLoading(true);
     setError(null);
     const [runRes, slipsRes, memRes] = await Promise.all([
@@ -73,15 +75,20 @@ export function PayRunDetailPage() {
         .select('*, employee:employees(full_name, email)')
         .eq('pay_run_id', id)
         .order('created_at'),
+      // Scope to THIS user's membership. Without the user_id filter, an org with
+      // 2+ members matches multiple rows and .maybeSingle() errors, silently
+      // dropping the caller's role and hiding every pay-run action org-wide.
       supabase.from('organization_memberships').select('role_enum')
-        .eq('organization_id', currentOrg.id).maybeSingle(),
+        .eq('organization_id', currentOrg.id)
+        .eq('user_id', user.id)
+        .maybeSingle(),
     ]);
     if (runRes.error) { setError(runRes.error.message); setLoading(false); return; }
     setRun(runRes.data as PayRun | null);
     setSlips((slipsRes.data ?? []) as unknown as PaySlip[]);
     setRole((memRes.data?.role_enum as string | null) ?? null);
     setLoading(false);
-  }, [currentOrg, id]);
+  }, [currentOrg, id, user]);
 
   useEffect(() => void refresh(), [refresh]);
 

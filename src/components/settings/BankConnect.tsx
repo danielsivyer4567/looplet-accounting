@@ -88,7 +88,8 @@ export function BankConnect() {
       <h2 style={{ fontSize: 18, marginBottom: '0.5rem' }}>Bank accounts</h2>
       <p style={{ color: '#888', fontSize: 13, marginBottom: '1rem', maxWidth: 720 }}>
         Connect your business bank accounts via Basiq (CommBank, NAB, Westpac, ANZ + 100s of others).
-        Transactions sync automatically every 6 hours and auto-reconcile against your bills + invoices.
+        Transactions are imported and matched against your bills + invoices, ready for you to review
+        and reconcile on the Reconciliation page.
       </p>
 
       {loading ? (
