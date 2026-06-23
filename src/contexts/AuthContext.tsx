@@ -31,7 +31,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    // When the project requires email confirmation, signUp returns no session
+    // (the user must click the emailed link first). When confirmation is off,
+    // a live session comes back and the user is already signed in.
+    return { error, needsEmailConfirmation: !error && !data.session };
+  };
+
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/login`,
+    });
     return { error };
   };
 
@@ -40,7 +50,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider
+      value={{ user, session, loading, signIn, signUp, resetPassword, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );

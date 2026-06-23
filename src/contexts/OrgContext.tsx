@@ -58,22 +58,16 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
 
   const createOrganization = async (name: string) => {
     if (!user) return { error: new Error('Not signed in') };
-    // Insert org + membership in two calls (atomic via Supabase pg fn would be cleaner;
-    // edge fn `create-organization` is the Phase 1.5 hardening target).
-    const { data: orgRow, error: orgErr } = await supabase
-      .from('organizations')
-      .insert({ name, organization_type: 'standard', created_by: user.id })
+    // Org + owner-membership are created atomically by a SECURITY DEFINER RPC
+    // (migration 0085). A brand-new user has no membership yet, so the prior
+    // two client inserts hit the admin-gated memberships_insert RLS and the
+    // membership was rejected — leaving an orphaned org and a locked-out user.
+    // The RPC bypasses that bootstrap deadlock and sets role + role_enum.
+    const { data: orgRow, error: rpcErr } = await supabase
+      .rpc('create_organization_with_owner', { p_name: name })
       .select('id, name, organization_type')
       .single();
-    if (orgErr || !orgRow) return { error: orgErr ?? new Error('No row returned') };
-
-    const { error: memErr } = await supabase.from('organization_memberships').insert({
-      user_id: user.id,
-      organization_id: orgRow.id,
-      role: 'owner',
-      is_default: true,
-    });
-    if (memErr) return { error: memErr };
+    if (rpcErr || !orgRow) return { error: rpcErr ?? new Error('No row returned') };
 
     await refresh();
     setCurrentOrg(orgRow as Organization);

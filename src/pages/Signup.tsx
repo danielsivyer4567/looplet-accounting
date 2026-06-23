@@ -15,23 +15,31 @@ export function SignupPage() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const { error } = await signUp(email, password);
+    const { error, needsEmailConfirmation } = await signUp(email, password);
     setBusy(false);
     if (error) {
       setError(error.message);
       return;
     }
-    // After email confirmation flow, user lands back via callback.
-    // For dev with confirm-email off, navigate straight to dashboard.
-    setDone(true);
-    setTimeout(() => navigate('/'), 1500);
+    if (needsEmailConfirmation) {
+      // Project requires email confirmation: no session yet. Tell the user to
+      // confirm — do NOT navigate into the app (they aren't signed in).
+      setDone(true);
+      return;
+    }
+    // Confirmation off: signUp returned a live session, so we're signed in.
+    // Go straight to the app, where the org-bootstrap flow kicks in.
+    navigate('/');
   };
 
   if (done) {
     return (
       <div style={{ maxWidth: 400, margin: '4rem auto', padding: '2rem' }}>
         <h2>Account created</h2>
-        <p>Check your email to confirm. Then sign in.</p>
+        <p>Check your email to confirm your address, then sign in.</p>
+        <p>
+          <Link to="/login">Back to sign in</Link>
+        </p>
       </div>
     );
   }
