@@ -67,9 +67,16 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return new Response('POST only', { status: 405 });
 
-  // 1. Light token gate (Pub/Sub subscription URL includes ?token=...)
+  // 1. Token gate (Pub/Sub subscription URL includes ?token=...) — FAIL CLOSED.
+  // This function is deployed --no-verify-jwt (Pub/Sub sends no Supabase JWT),
+  // so the shared secret is the ONLY gate. An unset token previously skipped
+  // verification entirely, leaving a fully-unauthenticated endpoint that could
+  // be driven with attacker-chosen emailAddress/historyId. Require it.
   const expectedToken = Deno.env.get('GMAIL_PUSH_VERIFY_TOKEN');
-  if (expectedToken) {
+  if (!expectedToken) {
+    return new Response('Server misconfigured: GMAIL_PUSH_VERIFY_TOKEN not set', { status: 500 });
+  }
+  {
     const url = new URL(req.url);
     const got = url.searchParams.get('token');
     if (got !== expectedToken) {
