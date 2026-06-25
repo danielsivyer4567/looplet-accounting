@@ -13,8 +13,15 @@
  * Cost per question: ~$0.0004 (Groq tiny + occasional Sonar).
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { embedTexts } from '../_shared/ocr/openai.ts';
+import {
+  buildCitations,
+  renderRetrievedLaw,
+  type LegalCitation,
+  type LegalMatchRow,
+} from '../_shared/legal/citations.ts';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const SONAR_URL = 'https://api.perplexity.ai/chat/completions';
@@ -27,6 +34,7 @@ type Route = 'data' | 'knowledge' | 'hybrid';
 interface RequestBody {
   organization_id: string;
   question: string;
+  response_rule?: string;
 }
 
 const SCHEMA_HINT = `Schema reference (PostgreSQL, all tables have organization_id uuid):
@@ -71,7 +79,7 @@ Deno.serve(async (req) => {
     if (!body.organization_id) return json({ ok: false, error: 'organization_id required' }, 400);
     if (!body.question || body.question.trim().length === 0) return json({ ok: false, error: 'question required' }, 400);
 
-    const userClient = createClient(supabaseUrl, anonKey, {
+    const userClient: SupabaseClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
@@ -95,25 +103,42 @@ Deno.serve(async (req) => {
       sqlError = sqlResult.error;
     }
 
-    // 3. SONAR AGENT (knowledge + hybrid) — kicked off in parallel below would be ideal,
-    // but for clarity we run sequentially. Sonar takes 2-4s typically.
-    if ((route === 'knowledge' || route === 'hybrid') && sonarKey) {
-      const sonarResult = await askSonar(body.question, businessContext, sonarKey);
-      sonarText = sonarResult.text;
-      sonarCitations = sonarResult.citations;
+    // 3. KNOWLEDGE GROUNDING (knowledge + hybrid) — Sonar (web-grounded research)
+    // and the cited legal corpus are INDEPENDENT, so run them concurrently to keep
+    // the user-facing latency down (Sonar alone is 2-4s). Corpus retrieval is
+    // best-effort: its failures degrade to citations:[] + the Sonar-cited answer.
+    let citations: LegalCitation[] = [];
+    let retrievedLaw = '';
+    if (route === 'knowledge' || route === 'hybrid') {
+      const [sonarResult, corpus] = await Promise.all([
+        sonarKey ? askSonar(body.question, businessContext, sonarKey) : Promise.resolve(null),
+        retrieveLegalCorpus(body.question, userClient),
+      ]);
+      if (sonarResult) {
+        sonarText = sonarResult.text;
+        sonarCitations = sonarResult.citations;
+      }
+      citations = corpus.citations;
+      retrievedLaw = corpus.retrievedLaw;
     }
 
     // 4. SYNTHESIZE
-    const answer = await synthesize(body.question, dataRows, sonarText, sqlError, route, businessContext, groqKey);
+    const answer = await synthesize(body.question, dataRows, sonarText, sqlError, route, businessContext, retrievedLaw, groqKey);
+
+    // 5. PROGRESSIVE EXPLAINER — author an ordered, node-by-node walkthrough of
+    // the answer (or none). The UI owns the reveal; this only emits the breakdown.
+    const visual = await designVisual(body.question, answer, groqKey);
 
     return json({
       ok: true,
       route,
       answer,
+      visual,
       sql: sqlUsed,
       sql_error: sqlError,
       data_rows: dataRows.slice(0, 50), // cap to keep response small
       data_row_count: dataRows.length,
+      citations, // cited AU-law corpus chunks ([n] markers in `answer` resolve to these)
       sonar_citations: sonarCitations,
       business_context: businessContext,
     });
@@ -124,9 +149,13 @@ Deno.serve(async (req) => {
 });
 
 async function loadBusinessContext(
-  client: ReturnType<typeof createClient>,
+  client: SupabaseClient,
   orgId: string,
 ): Promise<string> {
+  // Tax-calendar window: recent overdue (last 30 days) through upcoming (next 90 days).
+  const calFrom = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+  const calTo = new Date(Date.now() + 90 * 864e5).toISOString().slice(0, 10);
+
   // Run all the context queries in parallel for speed
   const [
     profileR,
@@ -139,6 +168,7 @@ async function loadBusinessContext(
     recentR,
     pnlR,
     basR,
+    taxCalR,
   ] = await Promise.all([
     client.from('v_business_context').select('*').eq('organization_id', orgId).maybeSingle(),
     // Top 5 suppliers by spend (lifetime — could refine to YTD)
@@ -218,6 +248,17 @@ async function loadBusinessContext(
               ORDER BY fy_start_year DESC, quarter_num DESC LIMIT 1`,
       p_max_rows: 1,
     }),
+    // Tax calendar — personalized obligations (BAS, super, TPAR, FBT, income tax, EOFY,
+    // WorkCover) gated by the org's registrations, with correct AU due dates.
+    // Degrades gracefully (empty block) if the 0089 migration isn't deployed yet.
+    client
+      .from('v_tax_calendar')
+      .select('title, category, due_date, stage, days_until_due')
+      .eq('organization_id', orgId)
+      .gte('due_date', calFrom)
+      .lte('due_date', calTo)
+      .order('due_date', { ascending: true })
+      .limit(12),
   ]);
 
   const data = profileR.data as Record<string, unknown> | null;
@@ -284,6 +325,23 @@ async function loadBusinessContext(
     parts.push('=== MOST RECENT BAS QUARTER ===');
     parts.push(`FY${bas.fy_start_year}-Q${bas.quarter_num} (${bas.quarter_start} to ${bas.quarter_end}, due ${bas.due_date})`);
     parts.push(`  Sales inc GST: ${fmt(bas.sales_inc_gst_cents)}, GST collected: ${fmt(bas.gst_collected_cents)}, GST paid: ${fmt(bas.gst_paid_cents)}, NET GST owed: ${fmt(bas.net_gst_owed_cents)}`);
+  }
+
+  // TAX CALENDAR — time-aware obligations so the bot can be proactive about deadlines.
+  const taxCal = (taxCalR.data as Record<string, unknown>[] | null) ?? [];
+  if (taxCal.length > 0) {
+    parts.push('');
+    parts.push(`=== TAX CALENDAR (today ${new Date().toISOString().slice(0, 10)}; recent + next 90 days) ===`);
+    taxCal.forEach((o) => {
+      const days = Number(o.days_until_due);
+      const when =
+        o.stage === 'overdue'
+          ? `OVERDUE by ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'}`
+          : days === 0
+            ? 'DUE TODAY'
+            : `in ${days} day${days === 1 ? '' : 's'}`;
+      parts.push(`- ${o.title} — due ${o.due_date} (${when})`);
+    });
   }
 
   // AP / AR
@@ -382,7 +440,7 @@ Output JSON ONLY: {"route": "data" | "knowledge" | "hybrid"}`;
 async function runSqlAgent(
   question: string,
   orgId: string,
-  client: ReturnType<typeof createClient>,
+  client: SupabaseClient,
   groqKey: string,
 ): Promise<{ sql: string | null; rows: unknown[]; error: string | null }> {
   const system = `You are a SQL generator for a Postgres database. Given a user question and the schema below, generate a single SELECT (or WITH...SELECT) query.
@@ -489,6 +547,32 @@ RULES:
   return { text, citations };
 }
 
+// LEGAL-CORPUS RETRIEVAL — embed the question and pull the top-k currently-in-force
+// sections from the cited corpus (match_legal_corpus, B.01; p_fy defaults to NULL =
+// current FY). These become the authoritative [n] citations the synthesizer grounds
+// on. Best-effort: no OPENAI_API_KEY / RPC or corpus not deployed / embed error all
+// degrade to {citations:[], retrievedLaw:''} so the answer never fails over grounding.
+async function retrieveLegalCorpus(
+  question: string,
+  client: SupabaseClient,
+): Promise<{ citations: LegalCitation[]; retrievedLaw: string }> {
+  const empty = { citations: [] as LegalCitation[], retrievedLaw: '' };
+  if (!Deno.env.get('OPENAI_API_KEY')) return empty;
+  try {
+    const [qVec] = await embedTexts([question]);
+    if (!qVec) return empty;
+    const { data: matchRows, error: matchErr } = await client.rpc('match_legal_corpus', {
+      p_query_embedding: vectorLiteral(qVec),
+      p_top_k: 6,
+    });
+    if (matchErr || !Array.isArray(matchRows) || matchRows.length === 0) return empty;
+    const citations = buildCitations(matchRows as LegalMatchRow[]);
+    return { citations, retrievedLaw: renderRetrievedLaw(citations) };
+  } catch {
+    return empty; // best-effort grounding; never fail the answer over it
+  }
+}
+
 async function synthesize(
   question: string,
   dataRows: unknown[],
@@ -496,6 +580,7 @@ async function synthesize(
   sqlError: string | null,
   route: Route,
   businessContext: string,
+  retrievedLaw: string,
   groqKey: string,
 ): Promise<string> {
   const dataBlock = dataRows.length > 0
@@ -510,24 +595,38 @@ async function synthesize(
     ? `Sonar (web-grounded AU-tax/law research with citations):\n${sonarText}`
     : '';
 
+  // When the legal corpus returned sections, THEY are the authoritative [n]
+  // citations (verbatim, click-to-the-line) and the mandatory-citation guard
+  // applies; otherwise fall back to the pre-existing Sonar [n] behaviour.
+  const hasCorpus = retrievedLaw.length > 0;
+  const citationPolicy = hasCorpus
+    ? `CITATION POLICY — a RETRIEVED AU LAW block (verbatim corpus sections) is provided:
+- Ground every legal claim in that block and tag it with the matching [n] marker — those become clickable citations to the exact text of the law. Use each [n] EXACTLY as given; never renumber or invent markers.
+- MANDATORY-CITATION GUARD: if you state any legal rule, section, ruling, or rate that is NOT supported by an item in the RETRIEVED AU LAW block, you MUST append "(model assertion — verify)" to that claim. Never present an uncited legal claim as settled law.
+- The Sonar block (if any) is supplementary web context only — do NOT attach [n] markers to it; fold any useful fact in plainly.`
+    : `CITATION POLICY:
+- Use the exact citation marker [n] from the Sonar source — DO NOT renumber or invent markers.
+- NEVER invent section numbers, ATO IDs, or rulings. Only cite what's in the Sonar block.
+- If Sonar didn't return a clear citation, say "I couldn't find a specific ruling for this exact case — general principle is...".`;
+
   const system = `You are a paralegal-grade assistant for an Australian trades-business owner. Synthesize a single law-backed answer.
 
 OUTPUT FORMAT:
 - **Bold the direct answer** in the first sentence (yes / no / it depends).
-- Then state the rule with the ATO ruling / ITAA section / GST Act section / Fair Work Act section that backs it. Use the exact citation marker [n] from the Sonar source — DO NOT renumber or invent markers.
+- Then state the rule with the ATO ruling / ITAA section / GST Act section / Fair Work Act section that backs it.
 - List 1-3 conditions/caveats as bullet points if applicable.
 - If the user provided data, weave the actual numbers in.
+- If the TAX CALENDAR in the profile shows an obligation that is OVERDUE or due soon AND it's relevant to the question (or the user asks "what's due / what should I do now"), surface it with its exact due date. Don't force unrelated deadlines into every answer.
 - Format money as AUD with $ and thousand separators. Cents stored as bigint → divide by 100.
 - Australian dates (DD MMM YYYY).
+- HARD DEFAULT TRANSPARENCY RULE: every answer must read top-down: direct decision first, then books/data checked, then law/evidence checked, then next action. The UI always renders a mind map beside the written answer, so keep this order stable.
 
-CRITICAL:
-- NEVER invent section numbers, ATO IDs, or rulings. Only use what's in the Sonar block.
-- NEVER renumber citations. Sonar gives them as [1], [2], etc. — KEEP those exact markers.
+${citationPolicy}
+
 - NEVER say "consult your accountant" as the whole answer. Give the rule first.
-- If Sonar didn't return a clear citation, say "I couldn't find a specific ruling for this exact case — general principle is..."
 - No "Hello!" / "As an AI..." / "I'd be happy to..." preamble. Get straight to the answer.`;
 
-  const user = `User's business profile:\n${businessContext}\n\nQuestion: ${question}\n\n${dataBlock}\n\n${sonarBlock}\n\nSynthesize an answer tailored to THIS user's profile. Use their actual entity type, GST status, vehicle %, etc. when stating which rules apply.`;
+  const user = `User's business profile:\n${businessContext}\n\nQuestion: ${question}\n\n${dataBlock}\n\n${sonarBlock}\n\n${retrievedLaw}\n\nSynthesize an answer tailored to THIS user's profile. Use their actual entity type, GST status, vehicle %, etc. when stating which rules apply.`;
 
   const resp = await fetch(GROQ_URL, {
     method: 'POST',
@@ -544,9 +643,107 @@ CRITICAL:
   return data?.choices?.[0]?.message?.content ?? 'No answer generated.';
 }
 
+// ---------------------------------------------------------------------------
+// PROGRESSIVE EXPLAINER — the authoring layer. Emits an ordered, node-by-node
+// breakdown the front-end reveals one step at a time. Always falls back to none.
+// The model never animates anything; the reveal lives entirely in the renderer.
+// ---------------------------------------------------------------------------
+
+interface ExplainerNode { id: string; num?: string; title: string; tag?: string; caption?: string }
+interface ExplainerEdge { from: string; to: string; label?: string }
+interface Explainer { title?: string; intro?: string; nodes?: ExplainerNode[]; edges?: ExplainerEdge[]; none?: boolean }
+
+function asLabel(v: unknown, max = 80): string {
+  return typeof v === 'string' ? v.replace(/\[\d+\]/g, '').trim().slice(0, max) : '';
+}
+
+function sanitizeExplainer(raw: unknown): Explainer {
+  const p = (raw ?? {}) as Record<string, unknown>;
+  if (!Array.isArray(p.nodes)) return { none: true };
+
+  const nodes: ExplainerNode[] = (p.nodes as Record<string, unknown>[])
+    .slice(0, 6)
+    .map((n, i) => {
+      const node: ExplainerNode = {
+        id: String(n?.id ?? `n${i}`),
+        num: n?.num ? asLabel(n.num, 4) : String(i + 1).padStart(2, '0'),
+        title: asLabel(n?.title, 42),
+      };
+      if (n?.tag) node.tag = asLabel(n.tag, 36);
+      if (n?.caption) node.caption = asLabel(n.caption, 200);
+      return node;
+    })
+    .filter((n) => n.title);
+
+  if (nodes.length < 2) return { none: true };
+
+  const ids = new Set(nodes.map((n) => n.id));
+  const edges: ExplainerEdge[] = Array.isArray(p.edges)
+    ? (p.edges as Record<string, unknown>[])
+        .map((e) => {
+          const edge: ExplainerEdge = { from: String(e?.from ?? ''), to: String(e?.to ?? '') };
+          if (e?.label) edge.label = asLabel(e.label, 16);
+          return edge;
+        })
+        .filter((e) => ids.has(e.from) && ids.has(e.to))
+        .slice(0, 24)
+    : [];
+
+  const out: Explainer = { nodes, edges };
+  if (p.title) out.title = asLabel(p.title, 48);
+  if (p.intro) out.intro = asLabel(p.intro, 160);
+  return out;
+}
+
+async function designVisual(question: string, answer: string, groqKey: string): Promise<Explainer> {
+  const system = `You produce PROGRESSIVE EXPLAINERS for an Australian small-business accounting assistant: an ordered breakdown of the concept in the answer that a renderer reveals one node at a time. You do not write paragraphs and you do not draw anything. You emit ONE JSON object matching the schema below and nothing else.
+
+FIRST — DETECT: only build an explainer when the answer has a shape worth walking through — a process, an eligibility / decision chain, or a concept that breaks into parts. If the answer is a flat fact (a single number, a one-line yes/no, a short definition), return {"none": true} and nothing else.
+
+Authoring rules:
+1. Decompose, don't dump. 3-6 nodes. One idea per node. If a node would need more than two sentences of caption, it is two nodes.
+2. Order is an argument. Sequence the nodes so each only makes sense once the previous has landed. Node 2 builds on node 1. This ordering is what turns a reveal into a walkthrough.
+3. title <=5 words, tag <=5 words, caption 1-2 sentences. Sentence case everywhere. No title case, no all-caps, no emoji.
+4. The caption is narration, not a definition — the line a guide would say as this node appears (why it follows the last one, what it does).
+5. Only branch when the concept branches. Default to a linear chain (omit "edges"). Add "edges" with from/to/optional label only for real decisions, forks, or loops.
+6. Never put citation markers like [1] in any field. Use Australian terms, money, and dates.
+
+Schema (output ONLY this object, no prose, no markdown fences):
+{"title":"2-5 words, sentence case","intro":"one sentence framing the whole thing","nodes":[{"id":"slug","num":"01","title":"<=5 words","tag":"<=5 words","caption":"1-2 sentence narration"}],"edges":[{"from":"id","to":"id","label":"<=3 words, optional"}]}
+
+If a visual does not help, return {"none": true}.`;
+
+  const user = `Question: ${question}\n\nAnswer given:\n${answer}\n\nBuild the progressive explainer for this answer (or {"none": true}).`;
+
+  try {
+    const resp = await fetch(GROQ_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+        temperature: 0.2,
+        max_tokens: 700,
+        response_format: { type: 'json_object' },
+      }),
+    });
+    if (!resp.ok) return { none: true };
+    const data = await resp.json();
+    const parsed = JSON.parse(data?.choices?.[0]?.message?.content ?? '{}');
+    return sanitizeExplainer(parsed);
+  } catch {
+    return { none: true };
+  }
+}
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+/** A query embedding as the pgvector text literal match_legal_corpus casts to vector(1536). */
+function vectorLiteral(v: number[]): string {
+  return `[${v.join(',')}]`;
 }
