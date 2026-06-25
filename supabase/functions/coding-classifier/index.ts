@@ -98,6 +98,14 @@ interface Bill {
 
 interface RequestBody {
   bill_id?: string;
+  // Human review decision (SC-1.D.02). Absent → the automatic classify path.
+  //   accept   → post using the suggestion's already-proposed codes.
+  //   override → post using the human-corrected account_code/tax_code below.
+  // Either way the human is the posting gate, so the >= AUTO_POST_THRESHOLD
+  // confidence bar does not apply.
+  decision?: "accept" | "override";
+  account_code?: string;
+  tax_code?: string | null;
 }
 
 interface Classification {
@@ -379,12 +387,17 @@ async function mintOrgToken(orgId: string): Promise<string | null> {
   );
 }
 
-async function autoPost(
+// Posts the bill's expense journal. allowEstimatedGst is the human-review escape
+// hatch: the auto path refuses gst_estimated bills (the GST split is unreliable),
+// but a human reviewing the bill in the queue is the gate and may clear them — the
+// net+gst==total reconciliation guard in buildLines still protects journal balance.
+async function postBillJournal(
   admin: SupabaseClient,
   supabaseUrl: string,
   anonKey: string,
   bill: Bill,
   expenseCode: string,
+  allowEstimatedGst = false,
 ): Promise<PostResult> {
   // Idempotency: a posted journal already linked to this bill → done, never re-post.
   const { data: existingEntry, error: exErr } = await admin
@@ -397,7 +410,9 @@ async function autoPost(
   if (exErr) return { posted: false, journalEntryId: null, reason: `check existing journal: ${exErr.message}` };
   if (existingEntry) return { posted: true, journalEntryId: existingEntry.id as string, reason: "already_posted" };
 
-  if (bill.gst_estimated) return { posted: false, journalEntryId: null, reason: "gst_estimated; needs human review" };
+  if (bill.gst_estimated && !allowEstimatedGst) {
+    return { posted: false, journalEntryId: null, reason: "gst_estimated; needs human review" };
+  }
 
   const accounts = await resolveAccounts(admin, bill.organization_id, [
     expenseCode,
@@ -452,6 +467,102 @@ async function autoPost(
   return { posted: true, journalEntryId: entryId, reason: null };
 }
 
+interface DecisionRow {
+  id: string;
+  account_code: string | null;
+  tax_code: string | null;
+  rationale: Record<string, unknown>;
+}
+
+// Human review decision (SC-1.D.02): the reviewer accepts the proposed codes or
+// overrides them, and we post the journal NOW regardless of confidence. The human
+// is the gate (no approvals/Tier-2 here — coding is Tier-0/Tier-1), so we force the
+// post via postBillJournal(allowEstimatedGst=true) and flip the suggestion to the
+// terminal 'accepted'/'overridden' state so it leaves coding_review_queue. Posting
+// stays idempotent (a journal already linked to the bill is reused, never doubled).
+async function handleDecision(
+  admin: SupabaseClient,
+  supabaseUrl: string,
+  anonKey: string,
+  bill: Bill,
+  decision: "accept" | "override",
+  body: RequestBody,
+  jwt: string,
+): Promise<Response> {
+  // Load the suggestion the human reviewed and resolve who decided in parallel — the
+  // auth round-trip is non-essential provenance, so don't serialize it ahead of the
+  // posting work.
+  const [{ data: existing, error: selErr }, { data: userData }] = await Promise.all([
+    admin
+      .from("coding_suggestions")
+      .select("id, account_code, tax_code, rationale")
+      .eq("bill_id", bill.id)
+      .is("deleted_at", null)
+      .maybeSingle(),
+    admin.auth.getUser(jwt),
+  ]);
+  if (selErr) return json({ ok: false, error: `load suggestion: ${selErr.message}` }, 500);
+  if (!existing) return json({ ok: false, error: "no coding suggestion for this bill" }, 404);
+  const row = existing as DecisionRow;
+  const decidedBy = userData?.user?.id ?? null;
+
+  // Resolve the codes to post with: override takes them from the request, accept
+  // reuses the suggestion's proposal. Either way an account is required to post.
+  const accountCode = (decision === "override" ? body.account_code : row.account_code)?.trim() || null;
+  if (!accountCode) {
+    return json(
+      {
+        ok: false,
+        error:
+          decision === "override"
+            ? "account_code required for override"
+            : "suggestion has no proposed account to accept — override instead",
+      },
+      400,
+    );
+  }
+  const taxCode = decision === "override" ? body.tax_code?.trim() || null : row.tax_code;
+
+  const result = await postBillJournal(admin, supabaseUrl, anonKey, bill, accountCode, true);
+  if (!result.posted) {
+    // Could not post (bad/inactive account, amounts don't reconcile, secret unset).
+    // Leave the row in the queue and record why so the reviewer can fix the bill.
+    await admin
+      .from("coding_suggestions")
+      .update({ rationale: { ...row.rationale, decision_skipped: { decision, reason: result.reason } } })
+      .eq("id", row.id);
+    // 200 + ok:false (not 4xx): the caller's hook surfaces the reason verbatim only
+    // on the 2xx path; a non-2xx collapses to a generic message and the reviewer
+    // never sees WHY (e.g. "GST account 1200 not active for org").
+    return json({ ok: false, error: result.reason ?? "could not post journal", suggestion_id: row.id });
+  }
+
+  const newStatus = decision === "override" ? "overridden" : "accepted";
+  const { error: updErr } = await admin
+    .from("coding_suggestions")
+    .update({
+      status: newStatus,
+      account_code: accountCode,
+      tax_code: taxCode,
+      rationale: {
+        ...row.rationale,
+        decision: { type: decision, journal_entry_id: result.journalEntryId, decided_by: decidedBy },
+      },
+    })
+    .eq("id", row.id);
+  if (updErr) return json({ ok: false, error: `update suggestion: ${updErr.message}` }, 500);
+
+  return json({
+    ok: true,
+    bill_id: bill.id,
+    suggestion_id: row.id,
+    status: newStatus,
+    account_code: accountCode,
+    tax_code: taxCode,
+    journal_entry_id: result.journalEntryId,
+  });
+}
+
 Deno.serve(async (req: Request) => {
   const pre = preflight(req);
   if (pre) return pre;
@@ -483,6 +594,15 @@ Deno.serve(async (req: Request) => {
     if (!bill) return json({ ok: false, error: "bill not found" }, 404);
     const typedBill = bill as Bill;
 
+    // Human review decision (SC-1.D.02) short-circuits the classify path: accept or
+    // override the proposed codes and post now. The reviewer (for provenance) is
+    // resolved inside handleDecision — service-role writes leave audit_log's
+    // auth.uid() null, so provenance lives in the suggestion's rationale.
+    if (body.decision === "accept" || body.decision === "override") {
+      const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+      return await handleDecision(admin, supabaseUrl, anonKey, typedBill, body.decision, body, jwt);
+    }
+
     // Independent queries — the org-scoped active rules and the global category map.
     const [rulesRes, catRes] = await Promise.all([
       admin
@@ -511,7 +631,7 @@ Deno.serve(async (req: Request) => {
     let journalEntryId: string | null = null;
 
     if (classification.confidence >= AUTO_POST_THRESHOLD && classification.accountCode) {
-      const result = await autoPost(admin, supabaseUrl, anonKey, typedBill, classification.accountCode);
+      const result = await postBillJournal(admin, supabaseUrl, anonKey, typedBill, classification.accountCode);
       if (result.posted) {
         status = "auto_posted";
         journalEntryId = result.journalEntryId;
