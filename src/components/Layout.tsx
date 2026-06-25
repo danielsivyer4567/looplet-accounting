@@ -36,7 +36,8 @@ import {
   Menu,
   LayoutGrid,
   CalendarClock,
-  ListChecks
+  ListChecks,
+  Boxes
 } from 'lucide-react';
 
 const navItems = [
@@ -51,6 +52,7 @@ const navItems = [
   { to: '/allocations', label: 'Allocations', icon: GitCommit },
   { to: '/coding-review', label: 'Coding', icon: ListChecks },
   { to: '/reconciliation', label: 'Reconcile', icon: Scale },
+  { to: '/fixed-assets', label: 'Assets', icon: Boxes },
   { to: '/jobs', label: 'Jobs', icon: Briefcase },
   { to: '/customers', label: 'Customers', icon: Users },
   { to: '/suppliers', label: 'Suppliers', icon: Truck },

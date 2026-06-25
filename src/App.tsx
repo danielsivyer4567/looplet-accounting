@@ -48,6 +48,7 @@ import { PayRunDetailPage } from '@/pages/PayRunDetail';
 import { AskPage } from '@/pages/Ask';
 import { ScanPage } from '@/pages/Scan';
 import { ReceiptHubPage } from '@/pages/ReceiptHub';
+import { FixedAssetsPage } from '@/pages/FixedAssets';
 import { MyActivityPage } from '@/pages/MyActivity';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -99,6 +100,7 @@ export function App() {
             <Route path="suppliers/:id" element={<SupplierDetailPage />} />
             <Route path="employees" element={<EmployeesPage />} />
             <Route path="employees/:id" element={<EmployeeDetailPage />} />
+            <Route path="fixed-assets" element={<FixedAssetsPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="settings/team" element={<TeamPage />} />
             <Route path="settings/audit-log" element={<AuditLogPage />} />
