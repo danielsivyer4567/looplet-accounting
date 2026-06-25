@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { useBooksHealth } from '@/hooks/useBooksHealth';
+import { usePeriodClose, type CloseResult } from '@/hooks/usePeriodClose';
 import { formatMoney } from '@/lib/money';
 import {
   Activity,
@@ -12,6 +13,7 @@ import {
   ChevronRight,
   FileText,
   Info,
+  Lock,
   ShieldAlert
 } from 'lucide-react';
 
@@ -68,6 +70,8 @@ export function QualityPage() {
       </div>
 
       <BooksHealthHeader />
+
+      <PeriodCloseSection />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
         <KpiCard
@@ -271,6 +275,162 @@ function BooksHealthHeader() {
         <HealthMetric label="Open Periods" value={components ? String(components.open_period_count) : '—'} warn={(components?.open_period_count ?? 0) > 0} />
         <HealthMetric label="Coverage" value={components ? `${components.coverage_pct.toFixed(1)}%` : '—'} warn={(components?.coverage_pct ?? 100) < 80} />
       </div>
+    </div>
+  );
+}
+
+// YYYY-MM for the month `monthsBack` before the current one (0 = this month).
+function monthValue(monthsBack: number): string {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+const humanizeCheck = (name: string) =>
+  name.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+
+const REFUSAL_TEXT: Record<NonNullable<CloseResult['reason']>, string> = {
+  books_health_blocking: 'Books health is below the threshold — resolve the issues above before closing.',
+  preflight_failed: 'Some pre-flight checks didn’t pass — clear the blockers above and try again.',
+  month_end_journal_failed: 'Month-end depreciation could not be posted. Check the depreciation schedules.',
+};
+
+// Accent colour + icon for each close outcome (data-driven so a new status is one row).
+const CLOSE_STATUS_STYLE: Record<CloseResult['status'], { color: string; Icon: typeof CheckCircle2 }> = {
+  closed: { color: 'var(--accent-success)', Icon: CheckCircle2 },
+  already_locked: { color: 'var(--accent-primary)', Icon: Info },
+  refused: { color: 'var(--accent-warning)', Icon: AlertTriangle },
+};
+
+// Period-close checklist inside the Books-Health workspace (SC-1.K.02): shows
+// the month's pre-flight checks (SC-1.J.01), highlights any blockers, and a
+// Close button that posts month-end journals + locks the period (SC-1.J.02)
+// once every check passes. Books-health blocking is a separate close-time gate
+// surfaced via the result — the score itself lives in the header above.
+function PeriodCloseSection() {
+  // Default to the previous (completed) month — the typical close target. The
+  // hook treats the period as any day in the month, so we append -01.
+  const [month, setMonth] = useState(() => monthValue(1));
+  const { period, checks, blockers, canClose, close, closing, loading, error } =
+    usePeriodClose(`${month}-01`);
+  const [result, setResult] = useState<CloseResult | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const monthLabel = new Date(`${period}T00:00:00`).toLocaleDateString('en-AU', {
+    month: 'long',
+    year: 'numeric',
+  });
+  const locked = result?.status === 'closed' || result?.status === 'already_locked';
+
+  const resetOutcome = () => {
+    setResult(null);
+    setActionError(null);
+  };
+
+  const handleClose = async () => {
+    resetOutcome();
+    try {
+      setResult(await close());
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handleMonthChange = (value: string) => {
+    resetOutcome();
+    setMonth(value);
+  };
+
+  return (
+    <div className="card-gradient" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ padding: '0.6rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)' }}>
+            <Lock className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
+          </div>
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+              Period Close
+            </div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-title)', fontFamily: 'var(--font-title)' }}>
+              {monthLabel}
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <input
+            type="month"
+            className="form-input"
+            value={month}
+            max={monthValue(0)}
+            onChange={(e) => handleMonthChange(e.target.value)}
+            style={{ padding: '0.4rem 0.6rem' }}
+          />
+          <button
+            className="btn btn-primary"
+            onClick={() => void handleClose()}
+            disabled={!canClose || closing || locked}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <Lock className="w-4 h-4" />
+            {locked ? 'Locked' : closing ? 'Closing…' : 'Close period'}
+          </button>
+        </div>
+      </div>
+
+      {error ? (
+        <span className="badge badge-danger">Failed to load checks: {error}</span>
+      ) : loading ? (
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>Running pre-flight checks…</p>
+      ) : checks.length === 0 ? (
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>No pre-flight checks available for this period.</p>
+      ) : (
+        <>
+          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: blockers.length > 0 ? 'var(--accent-warning)' : 'var(--accent-success)' }}>
+            {blockers.length > 0
+              ? `${blockers.length} of ${checks.length} checks need attention before this period can close`
+              : `All ${checks.length} checks passed — ready to close`}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.6rem' }}>
+            {checks.map((c) => (
+              <div key={c.check_name} className="card" style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', padding: '0.7rem 0.9rem' }}>
+                {c.passed ? (
+                  <CheckCircle2 className="w-5 h-5" style={{ color: 'var(--accent-success)', flexShrink: 0 }} />
+                ) : (
+                  <AlertTriangle className="w-5 h-5" style={{ color: 'var(--accent-warning)', flexShrink: 0 }} />
+                )}
+                <div>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-title)' }}>{humanizeCheck(c.check_name)}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
+                    {c.detail?.message ?? (c.passed ? 'Passed' : 'Needs attention')}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {actionError && <span className="badge badge-danger">Close failed: {actionError}</span>}
+      {result && <CloseResultPanel result={result} monthLabel={monthLabel} />}
+    </div>
+  );
+}
+
+function CloseResultPanel({ result, monthLabel }: { result: CloseResult; monthLabel: string }) {
+  const { color, Icon } = CLOSE_STATUS_STYLE[result.status];
+  const text =
+    result.message ??
+    (result.status === 'closed'
+      ? `${monthLabel} has been closed and locked.`
+      : result.status === 'already_locked'
+        ? `${monthLabel} is already locked.`
+        : (result.reason && REFUSAL_TEXT[result.reason]) || 'The period could not be closed.');
+
+  return (
+    <div className="card" style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.9rem 1.1rem', borderLeft: `4px solid ${color}` }}>
+      <Icon className="w-5 h-5" style={{ color, flexShrink: 0, marginTop: '0.1rem' }} />
+      <div style={{ fontSize: '0.9rem', color: 'var(--text-body)' }}>{text}</div>
     </div>
   );
 }
