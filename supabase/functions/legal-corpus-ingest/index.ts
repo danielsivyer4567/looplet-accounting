@@ -1,23 +1,18 @@
 // Edge function: legal-corpus-ingest  (SC-LC.C.02)
 //
 // Ingest one AU tax instrument into the versioned RAG corpus. Given the raw text
-// of an instrument, it section-chunks via the shared parser (SC-LC.C.01), embeds
-// each chunk (OpenAI text-embedding-3-small, 1536 dims), and upserts into
-// legal_corpus (SC-LC.A.01) with append-only effective-date versioning:
-//   - a section not seen before          -> INSERT a new live version
-//   - a section whose text is UNCHANGED   -> no-op (idempotent; keyed on content_hash)
-//   - a section whose text CHANGED, same  -> REPLACE the current version in place
-//     effective_from
-//   - a section whose text CHANGED, at a  -> close the prior version (set its
-//     LATER effective_from               -> effective_to) + INSERT the new version
-// Old versions are never overwritten/deleted — an old-FY citation must keep
-// resolving (match_legal_corpus FY-scopes on [effective_from, effective_to), B.01).
+// of an instrument, it section-chunks via the shared parser (SC-LC.C.01) and
+// upserts into legal_corpus (SC-LC.A.01) through the SHARED versioned-upsert core
+// (_shared/legal/upsert.ts) — the same append-only version-bump logic the sync
+// (SC-LC.E.03) reuses, so there is one copy:
+//   new section → INSERT; unchanged → no-op (content_hash); changed same-date →
+//   REPLACE in place; changed later-date → close prior + INSERT new version.
+// Old versions are never overwritten (match_legal_corpus FY-scopes on the range).
 //
 // AUTH: this writes GLOBAL reference data (the law is the same for every tenant),
 // so it is operator/back-end only — NO user-JWT path. Accepts a service-role
 // bearer OR ?secret=<LEGAL_INGEST_SECRET> (both constant-time compared); anything
-// else fails CLOSED with 401. Writes use the service-role admin client (legal_corpus
-// has no write policy by design — backend-written, RLS bypassed by service_role).
+// else fails CLOSED with 401. Writes use the service-role admin client.
 //
 // Request body:
 //   { doc_ref: string,         // the instrument, e.g. 'ITAA 1997' (required)
@@ -38,9 +33,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
 import { requireEnv } from "../_shared/env.ts";
-import { sha256Hex } from "../_shared/apiKeys.ts";
-import { chunkLegalText, type LegalChunk } from "../_shared/legal/chunk.ts";
-import { embedTexts, EMBEDDING_MODEL } from "../_shared/ocr/openai.ts";
+import { chunkLegalText } from "../_shared/legal/chunk.ts";
+import { upsertVersionedChunks } from "../_shared/legal/upsert.ts";
 
 interface RequestBody {
   doc_ref?: string;
@@ -48,25 +42,6 @@ interface RequestBody {
   effective_from?: string;
   source?: string;
   citation_url?: string;
-}
-
-// The current live version of a section (effective_to IS NULL), as loaded to
-// decide insert vs. replace vs. version for each incoming chunk.
-interface CurrentVersion {
-  id: string;
-  section_ref: string;
-  content_hash: string;
-  effective_from: string;
-}
-
-type Action = "insert" | "replace" | "version" | "unchanged" | "backdated";
-
-interface Plan {
-  chunk: LegalChunk;
-  hash: string;
-  action: Action;
-  cur: CurrentVersion | null;
-  emb: string | null;
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -84,11 +59,6 @@ function safeEqual(a: string, b: string): boolean {
   let out = 0;
   for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return out === 0;
-}
-
-/** A JS number[] as the pgvector text literal PostgREST casts into vector(1536). */
-function vectorLiteral(v: number[]): string {
-  return `[${v.join(",")}]`;
 }
 
 Deno.serve(async (req: Request) => {
@@ -122,118 +92,26 @@ Deno.serve(async (req: Request) => {
     }
 
     const chunks = chunkLegalText(rawText, { doc_ref });
-    const stats = {
-      chunks: chunks.length,
-      inserted: 0,
-      replaced: 0,
-      versioned: 0,
-      unchanged: 0,
-      skipped_backdated: 0,
-    };
-    if (chunks.length === 0) return json({ ok: true, doc_ref, effective_from, stats });
+    if (chunks.length === 0) {
+      return json({
+        ok: true,
+        doc_ref,
+        effective_from,
+        stats: { chunks: 0, inserted: 0, replaced: 0, versioned: 0, unchanged: 0, skipped_backdated: 0 },
+      });
+    }
 
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    // Current live version of every section of this instrument, keyed by pinpoint.
-    const { data: liveRows, error: liveErr } = await admin
-      .from("legal_corpus")
-      .select("id, section_ref, content_hash, effective_from")
-      .eq("doc_ref", doc_ref)
-      .is("effective_to", null)
-      .is("deleted_at", null);
-    if (liveErr) return json({ ok: false, error: `load current versions: ${liveErr.message}` }, 500);
-    const current = new Map<string, CurrentVersion>();
-    for (const r of (liveRows ?? []) as CurrentVersion[]) current.set(r.section_ref, r);
-
-    // Hash all chunk texts up front (independent work → in parallel), then
-    // classify each against the current live version. Date strings are
-    // 'YYYY-MM-DD' so a lexical compare is a chronological compare.
-    const hashes = await Promise.all(chunks.map((c) => sha256Hex(c.text)));
-    const plans: Plan[] = chunks.map((chunk, i) => {
-      const hash = hashes[i] ?? "";
-      const cur = current.get(chunk.section_ref) ?? null;
-      let action: Action;
-      if (!cur) action = "insert";
-      else if (cur.content_hash === hash) action = "unchanged";
-      else if (effective_from === cur.effective_from) action = "replace";
-      else if (effective_from > cur.effective_from) action = "version";
-      else action = "backdated"; // older than what's live — skip, don't corrupt the timeline
-      return { chunk, hash, action, cur, emb: null };
+    const { stats } = await upsertVersionedChunks(admin, {
+      doc_ref,
+      source,
+      citation_url,
+      effective_from,
+      chunks,
     });
-
-    // Embed ONLY the chunks that will be written (skip no-ops), in one batched call.
-    const toWrite = plans.filter(
-      (p) => p.action === "insert" || p.action === "replace" || p.action === "version",
-    );
-    const vectors = await embedTexts(toWrite.map((p) => p.chunk.text));
-    toWrite.forEach((p, i) => {
-      const v = vectors[i];
-      if (!v) throw new Error(`missing embedding for ${p.chunk.section_ref}`);
-      p.emb = vectorLiteral(v);
-    });
-
-    for (const p of plans) {
-      if (p.action === "unchanged") {
-        stats.unchanged += 1;
-        continue;
-      }
-      if (p.action === "backdated") {
-        stats.skipped_backdated += 1;
-        continue;
-      }
-      // The mutable content of a version — the single source of truth shared by
-      // INSERT (a fresh row) and REPLACE (update in place). Identity columns
-      // (source/doc_ref/section_ref) + the effective dates are added per branch.
-      const content = {
-        heading: p.chunk.heading || null,
-        text: p.chunk.text,
-        embedding: p.emb,
-        embedding_model: EMBEDDING_MODEL,
-        content_hash: p.hash,
-        citation_url,
-        citation_anchor: p.chunk.section_ref,
-      };
-      const newRow = {
-        source,
-        doc_ref,
-        section_ref: p.chunk.section_ref,
-        ...content,
-        effective_from,
-        effective_to: null,
-      };
-
-      if (p.action === "insert") {
-        const { error } = await admin.from("legal_corpus").insert(newRow);
-        if (error) return json({ ok: false, error: `insert ${p.chunk.section_ref}: ${error.message}` }, 500);
-        stats.inserted += 1;
-        continue;
-      }
-
-      // replace / version both need the current row id.
-      const cur = p.cur;
-      if (!cur) continue; // unreachable: replace/version are only set when cur exists
-
-      if (p.action === "replace") {
-        const { error } = await admin.from("legal_corpus").update(content).eq("id", cur.id);
-        if (error) return json({ ok: false, error: `replace ${p.chunk.section_ref}: ${error.message}` }, 500);
-        stats.replaced += 1;
-        continue;
-      }
-
-      // version: close the prior version, then insert the new one. The new row's
-      // effective_from differs from the (still deleted_at-null) old row, so the
-      // partial-unique (doc_ref, section_ref, effective_from) is not violated.
-      const { error: closeErr } = await admin
-        .from("legal_corpus")
-        .update({ effective_to: effective_from })
-        .eq("id", cur.id);
-      if (closeErr) return json({ ok: false, error: `close prior ${p.chunk.section_ref}: ${closeErr.message}` }, 500);
-      const { error: insErr } = await admin.from("legal_corpus").insert(newRow);
-      if (insErr) return json({ ok: false, error: `new version ${p.chunk.section_ref}: ${insErr.message}` }, 500);
-      stats.versioned += 1;
-    }
 
     return json({ ok: true, doc_ref, effective_from, stats });
   } catch (err) {
