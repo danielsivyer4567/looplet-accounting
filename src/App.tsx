@@ -41,6 +41,7 @@ import { XeroCallbackPage } from '@/pages/XeroCallback';
 import { AutoSetupPage } from '@/pages/onboarding/AutoSetup';
 import { TriagePage } from '@/pages/onboarding/Triage';
 import { PaymentRunsPage } from '@/pages/PaymentRuns';
+import { ApprovalsPage } from '@/pages/Approvals';
 import { NewPaymentRunPage } from '@/pages/NewPaymentRun';
 import { PaymentRunDetailPage } from '@/pages/PaymentRunDetail';
 import { PayrollPage } from '@/pages/Payroll';
@@ -78,6 +79,7 @@ export function App() {
             <Route path="bills/:id" element={<BillDetailPage />} />
             <Route path="allocations" element={<AllocationsPage />} />
             <Route path="coding-review" element={<CodingReviewPage />} />
+            <Route path="approvals" element={<ApprovalsPage />} />
             <Route path="reconciliation" element={<ReconciliationPage />} />
             <Route path="jobs" element={<JobsPage />} />
             <Route path="jobs/:id" element={<JobDetailPage />} />
