@@ -131,9 +131,12 @@ CREATE TRIGGER trg_depreciation_schedules_audit
 -- -- RLS (writable org-scoped convention: SELECT/INSERT/UPDATE; soft-delete) -----
 -- A fixed-asset register is user-managed (manual entry, confirm/reject, edits) as
 -- well as machine-proposed, so unlike 0092 it is NOT read-only: authenticated org
--- members get SELECT/INSERT/UPDATE scoped to get_accessible_org_ids(). DEFINER RPCs
--- (propose_capitalisation, SC-1.F.02) run as service_role and bypass RLS. No hard
--- DELETE policy — removal is soft via deleted_at (matches bills).
+-- members get SELECT/INSERT/UPDATE scoped to get_accessible_org_ids(). The write
+-- RPC propose_capitalisation (SC-1.F.02, in 0094) is SECURITY INVOKER and writes
+-- through these very policies (an authenticated member only touches their own org;
+-- a service_role backend bypasses RLS via rolbypassrls) — see 0094 for why INVOKER
+-- was chosen over a DEFINER variant. No hard DELETE policy — removal is soft via
+-- deleted_at (matches bills).
 ALTER TABLE public.fixed_assets ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS fixed_assets_select ON public.fixed_assets;
