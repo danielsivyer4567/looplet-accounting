@@ -1,0 +1,63 @@
+-- 0112: pg_cron schedule for legal-corpus-sync (SC-LC.E.04 — legal-RAG auto-updater).
+--
+-- TRACKED FOR LATER — DO NOT RUN AS-IS (mirrors 0065_auto_reconcile_cron). This
+-- file documents the intended schedule but is intentionally INERT: the
+-- cron.schedule() call is commented out because
+--   (a) legal-corpus-sync must be deployed first;
+--   (b) it needs real <PROJECT_REF> / <LEGAL_SYNC_SECRET> values; and
+--   (c) — CRITICAL — the sync's FRL/ATO fetch adapter is still a STUB (SC-LC.E.03
+--       flag): enabling this cron before real HTML→text + compilation-date
+--       extraction lands would re-ingest raw markup and corrupt the corpus on
+--       every run.
+-- Registering it live is a deliberate, separate deploy step.
+--
+-- Auth gate (mirrors depreciation-run / auto-reconcile): the function accepts a
+-- service-role bearer OR ?secret=<LEGAL_SYNC_SECRET>; config.toml sets
+-- [functions.legal-corpus-sync] verify_jwt=false so pg_cron can drive it.
+--
+-- ONE daily sweep covers BOTH cadences: legal-corpus-sync handles ONE source per
+-- POST, so the cron body posts only the DUE sources (last_checked_at +
+-- check_frequency <= now()). With the E.01 seed (acts check_frequency '7 days',
+-- ATO '1 day') a daily run re-syncs ATO daily and each Act weekly — the
+-- per-source check_frequency interval IS the cadence; no second schedule needed.
+--
+-- Before enabling (the deliberate deploy step):
+--   1. Build the real FRL/ATO fetchers in legal-corpus-sync (E.03 stub → live).
+--   2. supabase functions deploy legal-corpus-sync --no-verify-jwt
+--   3. supabase secrets set LEGAL_SYNC_SECRET=<random-32-char-string>
+--   4. Replace <PROJECT_REF> + <LEGAL_SYNC_SECRET> below and run the
+--      cron.schedule() statement once (uncommented).
+--
+-- Runs 04:00 daily (server tz), staggered off notifications-cron (02:30),
+-- xero-sync (03:00) and auto-reconcile (03:15).
+
+-- ----------------------------------------------------------------------------
+-- ⚠ DO NOT uncomment until legal-corpus-sync has REAL FRL/ATO fetchers (E.03
+-- shipped a STUB), is deployed (--no-verify-jwt), and LEGAL_SYNC_SECRET is set —
+-- otherwise the daily run re-ingests raw markup and corrupts the corpus.
+-- SELECT cron.schedule(
+--   'legal-corpus-sync-daily',
+--   '0 4 * * *',  -- 04:00 every day; the due-filter gives acts weekly + ATO daily
+--   $cron$
+--     SELECT net.http_post(
+--       url := 'https://<PROJECT_REF>.supabase.co/functions/v1/legal-corpus-sync'
+--              || '?secret=<LEGAL_SYNC_SECRET>',
+--       headers := jsonb_build_object('Content-Type', 'application/json'),
+--       body := jsonb_build_object('source_id', s.id)
+--     )
+--     FROM public.legal_sources s
+--     WHERE s.is_active
+--       AND s.deleted_at IS NULL
+--       AND (s.last_checked_at IS NULL OR s.last_checked_at + s.check_frequency <= now());
+--   $cron$
+-- );
+-- ----------------------------------------------------------------------------
+
+-- To inspect:
+--   SELECT * FROM cron.job WHERE jobname = 'legal-corpus-sync-daily';
+--   SELECT * FROM cron.job_run_details
+--    WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'legal-corpus-sync-daily')
+--    ORDER BY start_time DESC LIMIT 10;
+--
+-- To unschedule:
+--   SELECT cron.unschedule('legal-corpus-sync-daily');
