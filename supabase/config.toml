@@ -12,3 +12,15 @@ verify_jwt = false
 
 [functions.ingest]
 verify_jwt = false
+
+[functions.receipt-webhook]
+verify_jwt = false
+
+[functions.receipt-sync-dispatch]
+verify_jwt = false
+
+# Cron-driven functions (EPIC C2 / Phase 1.G). pg_cron drives these via
+# net.http_post and authenticates with the service-role bearer or a ?secret=
+# cron secret that the function checks itself, so the platform JWT gate is off.
+[functions.depreciation-run]
+verify_jwt = false
