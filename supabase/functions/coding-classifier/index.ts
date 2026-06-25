@@ -581,8 +581,24 @@ Deno.serve(async (req: Request) => {
     const body = (await req.json().catch(() => ({}))) as RequestBody;
     if (!body.bill_id) return json({ ok: false, error: "bill_id required" }, 400);
 
-    // Load the bill; the org is derived from it, never trusted from the caller.
-    const { data: bill, error: billErr } = await admin
+    // AUTHORIZATION (cross-tenant guard): load the bill through a CALLER-SCOPED client
+    // (anon key + the caller's own Authorization), so RLS on `bills`
+    // (organization_id IN get_accessible_org_ids()) decides visibility. An
+    // authenticated user only sees bills in orgs they belong to → a bill in another
+    // tenant returns no row (404). This closes the IDOR where any logged-in user could
+    // code/force-post into another org's ledger just by knowing a bill_id. A trusted
+    // backend caller presenting the service-role bearer still bypasses RLS exactly as
+    // before — the role travels in the JWT, so no key comparison is needed. The org is
+    // still derived from the bill (never trusted from the caller); all subsequent
+    // reads/writes stay on the service-role `admin` client, safe because access is now
+    // proven. (This fn isn't in config.toml, so verify_jwt defaults to true — but that
+    // only proves the JWT is a valid user, NOT org membership, so this RLS-scoped load
+    // is the actual tenant gate.)
+    const caller = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: bill, error: billErr } = await caller
       .from("bills")
       .select(
         "id, organization_id, status, supplier_name_raw, invoice_number, invoice_date, original_filename, total_inc_gst_cents, gst_cents, subtotal_ex_gst_cents, gst_estimated, intake_metadata",
@@ -591,7 +607,7 @@ Deno.serve(async (req: Request) => {
       .is("deleted_at", null)
       .maybeSingle();
     if (billErr) return json({ ok: false, error: billErr.message }, 500);
-    if (!bill) return json({ ok: false, error: "bill not found" }, 404);
+    if (!bill) return json({ ok: false, error: "bill not found or not accessible" }, 404);
     const typedBill = bill as Bill;
 
     // Human review decision (SC-1.D.02) short-circuits the classify path: accept or
