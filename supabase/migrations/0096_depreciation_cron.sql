@@ -1,0 +1,63 @@
+-- 0096: pg_cron schedule for the depreciation-run edge function (ledger SC-1.G.03).
+--
+-- TRACKED FOR LATER — INTENTIONALLY INERT. This file documents the intended
+-- monthly schedule but is a no-op as committed: the cron.schedule() call is
+-- commented out because it requires (a) the depreciation-run function to be
+-- deployed first (SC-1.G.02; deploy is deferred while migrations 0090-0097 are
+-- repo-only — see SC-1.G.02 ledger notes) and (b) a real
+-- <DEPRECIATION_RUN_CRON_SECRET> value. Registering it live is a deliberate,
+-- separate step (the DONE-human of this slice). Convention follows
+-- 0065_auto_reconcile_cron.sql.
+--
+-- Auth gate (depreciation-run/index.ts): the function accepts a service-role
+-- bearer OR ?secret=<DEPRECIATION_RUN_CRON_SECRET>, both constant-time compared,
+-- and is deployed verify_jwt=false (config.toml [functions.depreciation-run]) so
+-- pg_cron can drive it. The ?secret= form below mirrors the live notifications-cron
+-- / xero-sync-* jobs (which embed the secret in the URL); a service-role-bearer
+-- form (like accountant-digest-cron, pulling vault.decrypted_secrets) is the
+-- alternative if you prefer not to put the secret in cron.job.command.
+--
+-- ONE all-orgs POST, no body: unlike auto-reconcile (which needs a per-org body),
+-- depreciation-run with no body sweeps EVERY org's active schedules itself (the
+-- service-role admin client reads across orgs and mints a per-org token to post)
+-- and defaults `period` to the last day of the PREVIOUS calendar month — i.e. it
+-- posts the month that just closed. So a single monthly POST is sufficient; no SQL
+-- loop over organizations is needed.
+--
+-- Cadence: 04:00 on the 3rd of every month. Monthly (depreciation is a month-end
+-- accrual); the 3rd gives the just-closed month a few days to settle, and 04:00 is
+-- clear of the daily cron windows (latest live edge-fn cron is 03:30 xero-payments;
+-- 02:30 notifications, 03:00 xero-accounts). Live grounding (dxoikltymmknxqpkpyhi):
+-- pg_cron 1.6.4 + pg_net 0.19.5 are installed and no depreciation* job exists yet.
+--
+-- Before enabling:
+--   1. supabase functions deploy depreciation-run   (verify_jwt=false; config.toml)
+--   2. supabase secrets set DEPRECIATION_RUN_CRON_SECRET=<random-32-char-string>
+--      (and CONNECTOR_JWT_SECRET must already be set — api-gateway needs it too)
+--   3. Replace <DEPRECIATION_RUN_CRON_SECRET> below and run the cron.schedule()
+--      statement once (uncommented). The project ref dxoikltymmknxqpkpyhi is the
+--      live project (matches every live cron.job URL); change it for another env.
+
+-- ----------------------------------------------------------------------------
+-- SELECT cron.schedule(
+--   'depreciation-run-monthly',
+--   '0 4 3 * *',  -- 04:00 on the 3rd of every month (server tz)
+--   $cron$
+--     SELECT net.http_post(
+--       url := 'https://dxoikltymmknxqpkpyhi.supabase.co/functions/v1/depreciation-run'
+--              || '?secret=<DEPRECIATION_RUN_CRON_SECRET>',
+--       headers := jsonb_build_object('Content-Type', 'application/json'),
+--       body := '{}'::jsonb
+--     );
+--   $cron$
+-- );
+-- ----------------------------------------------------------------------------
+
+-- To inspect:
+--   SELECT * FROM cron.job WHERE jobname = 'depreciation-run-monthly';
+--   SELECT * FROM cron.job_run_details
+--    WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'depreciation-run-monthly')
+--    ORDER BY start_time DESC LIMIT 10;
+--
+-- To unschedule:
+--   SELECT cron.unschedule('depreciation-run-monthly');
