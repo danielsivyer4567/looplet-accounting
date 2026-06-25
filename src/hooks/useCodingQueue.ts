@@ -70,11 +70,11 @@ export function useCodingQueue() {
   // backend-written), then refresh so a resolved row leaves the queue. Throws on
   // transport or edge-fn error so the caller can surface it.
   //
-  // FORWARD CONTRACT: coding-classifier today honors only `bill_id` and posts
-  // automatically at confidence >= 0.9; it does NOT yet apply the `decision` /
-  // corrected-code fields below. Human accept/override only truly post once the
-  // edge fn gains a decision mode (tracked in the ledger as the SC-1.D follow-up).
-  // The fields are sent now so the hook/UI contract is stable when it lands.
+  // DECISION MODE (landed in SC-1.D.02): coding-classifier applies the `decision:
+  // 'accept' | 'override'` + corrected account_code/tax_code fields below and
+  // force-posts the bill's journal regardless of the 0.9 auto-threshold (the human
+  // is the posting gate). `accept` reuses the suggestion's proposed codes; `override`
+  // posts the human-corrected ones. The resolved row then leaves coding_review_queue.
   const decide = useCallback(
     async (suggestion: CodingSuggestion, body: Record<string, unknown>) => {
       const { data, error: fnErr } = await supabase.functions.invoke('coding-classifier', {
