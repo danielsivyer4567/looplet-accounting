@@ -5,14 +5,10 @@ import { useOrg } from '@/hooks/useOrg';
 import { usePaymentRunDetail, type PaymentRunRow, type PaymentRunItem } from '@/hooks/usePaymentRuns';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
-
-const STATUS_COLORS: Record<PaymentRunRow['status'], string> = {
-  draft:     '#888',
-  approved:  '#d2c886',
-  exported:  '#86c7a3',
-  paid:      '#7799d6',
-  cancelled: '#555',
-};
+import { 
+  ChevronLeft, Layers, Calendar, Wallet, 
+  CheckCircle, Download, Edit3, Save, X, Eye, AlertTriangle 
+} from 'lucide-react';
 
 export function PaymentRunDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -24,16 +20,31 @@ export function PaymentRunDetailPage() {
 
   if (!currentOrg) {
     return (
-      <section>
+      <section className="animated-fade-in">
         <h1>Payment Run</h1>
-        <p style={{ color: '#888' }}>Pick an organisation.</p>
+        <p style={{ color: 'var(--text-muted)' }}>Pick an organisation.</p>
       </section>
     );
   }
 
-  if (loading) return <SkeletonTable rows={6} cols={5} />;
-  if (error) return <p style={{ color: 'salmon' }}>Error: {error}</p>;
-  if (!run) return <p style={{ color: '#888' }}>Payment run not found.</p>;
+  if (loading) return <SkeletonTable rows={6} cols={6} />;
+  if (error) {
+    return (
+      <div className="badge badge-danger" style={{ display: 'block', padding: '1rem', textTransform: 'none' }}>
+        Error loading payment run: {error}
+      </div>
+    );
+  }
+  if (!run) {
+    return (
+      <section className="animated-fade-in" style={{ padding: '2rem 0', textAlign: 'center' }}>
+        <h2>Payment run not found</h2>
+        <Link to="/payment-runs" className="btn btn-secondary" style={{ marginTop: '1rem' }}>
+          <ChevronLeft size={16} /> Back to payment runs
+        </Link>
+      </section>
+    );
+  }
 
   const callFn = async (fnName: string, body: Record<string, unknown>) => {
     setActionBusy(true);
@@ -82,7 +93,6 @@ export function PaymentRunDetailPage() {
     });
     if (!result) return;
 
-    // Trigger browser download
     const content = result['content'] as string;
     const filename = result['filename'] as string;
     const blob = new Blob([content], { type: 'text/plain' });
@@ -105,96 +115,135 @@ export function PaymentRunDetailPage() {
   };
 
   return (
-    <section>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '0.5rem' }}>
-        <Link to="/payment-runs" style={{ color: '#666', fontSize: 13, textDecoration: 'none' }}>
-          &larr; Payment runs
-        </Link>
-      </div>
+    <section className="animated-fade-in">
+      {/* Back button */}
+      <Link 
+        to="/payment-runs" 
+        style={{ 
+          color: 'var(--text-muted)', 
+          fontSize: '0.825rem', 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.25rem',
+          marginBottom: '1rem'
+        }}
+      >
+        <ChevronLeft size={14} />
+        <span>Payment runs</span>
+      </Link>
 
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+      {/* Header Info */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
         <div>
-          <h1 style={{ marginBottom: 4 }}>Payment Run — {run.pay_date}</h1>
-          <div style={{ display: 'flex', gap: 16, fontSize: 13, color: '#888', flexWrap: 'wrap' }}>
-            <span>
-              <StatusPill status={run.status} />
+          <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Layers size={24} style={{ color: 'var(--accent-primary)' }} />
+            Payment Run — {run.pay_date}
+          </h1>
+          <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.25rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+              <Calendar size={12} />
+              Pay Date: <strong style={{ color: 'var(--text-title)' }}>{run.pay_date}</strong>
             </span>
+            <span>•</span>
+            <Pill status={run.status} />
+            <span>•</span>
             <span>{run.bill_count} bills</span>
-            <span style={{ color: '#ccc', fontWeight: 600 }}>{formatMoney(run.total_cents)} total</span>
+            <span>•</span>
+            <span style={{ color: 'var(--text-title)', fontWeight: 600 }}>{formatMoney(run.total_cents)} total</span>
             {run.aba_file_generated_at && (
-              <span>
-                ABA exported{' '}
-                {new Date(run.aba_file_generated_at).toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' })}
-              </span>
+              <>
+                <span>•</span>
+                <span>ABA Exported: {new Date(run.aba_file_generated_at).toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' })}</span>
+              </>
             )}
           </div>
           {run.notes && (
-            <p style={{ fontSize: 12, color: '#888', marginTop: 6 }}>{run.notes}</p>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.5rem', marginBottom: 0 }}>{run.notes}</p>
+          )}
+        </div>
+
+        {/* Action buttons */}
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {run.status === 'draft' && (
+            <button
+              onClick={() => void handleApprove()}
+              disabled={actionBusy}
+              className="btn btn-primary"
+            >
+              <CheckCircle size={16} />
+              <span>{actionBusy ? 'Working…' : 'Approve'}</span>
+            </button>
+          )}
+
+          {(run.status === 'draft' || run.status === 'approved') && (
+            <button
+              onClick={() => void handleDownloadAba()}
+              disabled={actionBusy}
+              className="btn btn-success"
+            >
+              <Download size={16} />
+              <span>{actionBusy ? 'Generating…' : 'Download ABA file'}</span>
+            </button>
+          )}
+
+          {run.status === 'exported' && (
+            <button
+              onClick={() => void handleDownloadAba()}
+              disabled={actionBusy}
+              className="btn btn-success"
+            >
+              <Download size={16} />
+              <span>{actionBusy ? 'Generating…' : 'Re-download ABA file'}</span>
+            </button>
+          )}
+
+          {(run.status === 'approved' || run.status === 'exported') && (
+            <button
+              onClick={() => void handleMarkPaid()}
+              disabled={actionBusy}
+              className="btn btn-secondary"
+              style={{ color: 'var(--text-success)', borderColor: 'var(--accent-success)' }}
+            >
+              <Wallet size={16} />
+              <span>{actionBusy ? 'Working…' : 'Mark as paid'}</span>
+            </button>
           )}
         </div>
       </div>
 
-      {/* Action buttons */}
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-        {run.status === 'draft' && (
-          <button
-            onClick={() => void handleApprove()}
-            disabled={actionBusy}
-            style={btnSecondary}
-          >
-            {actionBusy ? 'Working…' : 'Approve'}
-          </button>
-        )}
-
-        {(run.status === 'draft' || run.status === 'approved') && (
-          <button
-            onClick={() => void handleDownloadAba()}
-            disabled={actionBusy}
-            style={btnPrim}
-          >
-            {actionBusy ? 'Generating…' : 'Download ABA file'}
-          </button>
-        )}
-
-        {run.status === 'exported' && (
-          <button
-            onClick={() => void handleDownloadAba()}
-            disabled={actionBusy}
-            style={{ ...btnPrim, background: '#1c3a5a', borderColor: '#4a90d9' }}
-          >
-            {actionBusy ? 'Generating…' : 'Re-download ABA file'}
-          </button>
-        )}
-
-        {(run.status === 'approved' || run.status === 'exported') && (
-          <button
-            onClick={() => void handleMarkPaid()}
-            disabled={actionBusy}
-            style={{ ...btnSecondary, borderColor: '#7799d6', color: '#7799d6' }}
-          >
-            {actionBusy ? 'Working…' : 'Mark as paid'}
-          </button>
-        )}
-      </div>
-
-      {actionMsg && <p style={{ color: '#86c7a3', fontSize: 13, marginBottom: 12 }}>{actionMsg}</p>}
-      {actionErr && <p style={{ color: 'salmon', fontSize: 13, marginBottom: 12 }}>{actionErr}</p>}
+      {actionMsg && <div className="badge badge-success" style={{ display: 'block', padding: '0.75rem', marginBottom: '1rem', textTransform: 'none' }}>{actionMsg}</div>}
+      {actionErr && <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', marginBottom: '1rem', textTransform: 'none' }}>{actionErr}</div>}
 
       {/* Items table */}
+      <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+        <Wallet size={16} style={{ color: 'var(--text-muted)' }} />
+        Payment items
+      </h2>
+
       {items.length === 0 ? (
-        <p style={{ color: '#888' }}>No items in this payment run.</p>
+        <div style={{ padding: '3rem 1.5rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+          No items in this payment run.
+        </div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="table-premium-container">
+          <table className="table-premium">
             <thead>
-              <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-                <th style={th}>Payee name</th>
-                <th style={th}>BSB</th>
-                <th style={th}>Account</th>
-                <th style={th}>Reference</th>
-                <th style={thRight}>Amount</th>
-                <th style={th}>Bill</th>
+              <tr>
+                <th>Payee name</th>
+                <th>BSB</th>
+                <th>Account</th>
+                <th>Reference</th>
+                <th style={{ textAlign: 'right' }}>Amount</th>
+                <th style={{ width: '120px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -203,12 +252,12 @@ export function PaymentRunDetailPage() {
               ))}
             </tbody>
             <tfoot>
-              <tr style={{ borderTop: '1px solid #2a2a2a' }}>
-                <td colSpan={4} style={{ ...td, color: '#888', fontStyle: 'italic' }}>Total</td>
-                <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>
+              <tr style={{ background: 'var(--bg-hover)', fontWeight: 700 }}>
+                <td colSpan={4} style={{ color: 'var(--text-title)', fontStyle: 'italic', padding: '1rem' }}>Total</td>
+                <td style={{ textAlign: 'right', color: 'var(--text-title)', padding: '1rem' }}>
                   {formatMoney(items.reduce((s, i) => s + i.amount_cents, 0))}
                 </td>
-                <td style={td} />
+                <td style={{ padding: '1rem' }} />
               </tr>
             </tfoot>
           </table>
@@ -217,10 +266,6 @@ export function PaymentRunDetailPage() {
     </section>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Per-row component with inline edit for payee fields
-// ---------------------------------------------------------------------------
 
 function PaymentItemRow({
   item,
@@ -262,172 +307,123 @@ function PaymentItemRow({
 
   if (editing) {
     return (
-      <tr style={{ background: '#111', borderBottom: '1px solid #2a2a2a' }}>
-        <td style={td} colSpan={5}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <label style={{ fontSize: 11, color: '#888' }}>
-              <div>Payee name (max 32)</div>
+      <tr style={{ background: 'var(--bg-hover)' }}>
+        <td colSpan={5} style={{ padding: '1rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <span className="form-label" style={{ fontSize: '0.725rem' }}>Payee name (max 32)</span>
               <input
                 value={draft.payee_account_name}
                 onChange={(e) => setDraft((d) => ({ ...d, payee_account_name: e.target.value.slice(0, 32) }))}
-                style={{ ...inp, width: 200 }}
+                className="form-input"
+                style={{ width: '200px', padding: '0.4rem 0.625rem' }}
               />
-            </label>
-            <label style={{ fontSize: 11, color: '#888' }}>
-              <div>BSB (NNN-NNN)</div>
+            </div>
+            
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <span className="form-label" style={{ fontSize: '0.725rem' }}>BSB (NNN-NNN)</span>
               <input
                 value={draft.payee_bsb}
                 onChange={(e) => setDraft((d) => ({ ...d, payee_bsb: e.target.value }))}
                 placeholder="062-001"
-                style={{ ...inp, width: 90 }}
+                className="form-input"
+                style={{ width: '100px', padding: '0.4rem 0.625rem' }}
               />
-            </label>
-            <label style={{ fontSize: 11, color: '#888' }}>
-              <div>Account number</div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <span className="form-label" style={{ fontSize: '0.725rem' }}>Account number</span>
               <input
                 value={draft.payee_account_number}
                 onChange={(e) => setDraft((d) => ({ ...d, payee_account_number: e.target.value }))}
-                style={{ ...inp, width: 120 }}
+                className="form-input"
+                style={{ width: '140px', padding: '0.4rem 0.625rem' }}
               />
-            </label>
-            <button onClick={() => void save()} disabled={saving} style={btnPrim}>
-              {saving ? 'Saving…' : 'Save'}
-            </button>
-            <button onClick={() => setEditing(false)} style={btnGhost}>Cancel</button>
-            {saveErr && <span style={{ color: 'salmon', fontSize: 11 }}>{saveErr}</span>}
+            </div>
+            
+            <div style={{ display: 'flex', gap: '0.25rem' }}>
+              <button onClick={() => void save()} disabled={saving} className="btn btn-primary" style={{ padding: '0.45rem 0.75rem', fontSize: '0.825rem' }}>
+                <Save size={14} />
+              </button>
+              <button onClick={() => setEditing(false)} className="btn btn-secondary" style={{ padding: '0.45rem 0.75rem', fontSize: '0.825rem' }}>
+                <X size={14} />
+              </button>
+            </div>
+            {saveErr && <span className="badge badge-danger" style={{ padding: '0.45rem 0.75rem', textTransform: 'none' }}>{saveErr}</span>}
           </div>
         </td>
-        <td style={td} />
+        <td style={{ padding: '1rem' }} />
       </tr>
     );
   }
 
   return (
-    <tr style={{ borderBottom: '1px solid #1a1a1a' }}>
-      <td style={td}>
-        {item.payee_account_name || <span style={{ color: '#555' }}>—</span>}
+    <tr>
+      <td style={{ fontWeight: 600 }}>
+        {item.payee_account_name || <span style={{ color: 'var(--text-muted)' }}>—</span>}
       </td>
-      <td style={td}>
+      <td>
         {item.payee_bsb ? (
           item.payee_bsb
         ) : (
-          <span style={{ color: '#f4a261' }}>
+          <span style={{ color: 'var(--text-warning)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+            <AlertTriangle size={12} />
             {canEdit ? (
-              <button onClick={() => setEditing(true)} style={warnBtn}>⚠ add BSB</button>
-            ) : '⚠ missing'}
+              <button onClick={() => setEditing(true)} style={{ background: 'none', border: 'none', color: 'var(--text-warning)', padding: 0, textDecoration: 'underline', cursor: 'pointer', fontSize: '0.875rem' }}>
+                add BSB
+              </button>
+            ) : 'missing'}
           </span>
         )}
       </td>
-      <td style={td}>
+      <td>
         {item.payee_account_number ? (
           maskAccount(item.payee_account_number)
         ) : (
-          <span style={{ color: '#f4a261' }}>
+          <span style={{ color: 'var(--text-warning)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+            <AlertTriangle size={12} />
             {canEdit ? (
-              <button onClick={() => setEditing(true)} style={warnBtn}>⚠ add account</button>
-            ) : '⚠ missing'}
+              <button onClick={() => setEditing(true)} style={{ background: 'none', border: 'none', color: 'var(--text-warning)', padding: 0, textDecoration: 'underline', cursor: 'pointer', fontSize: '0.875rem' }}>
+                add account
+              </button>
+            ) : 'missing'}
           </span>
         )}
       </td>
-      <td style={td}>{item.reference ?? <span style={{ color: '#555' }}>—</span>}</td>
-      <td style={{ ...td, textAlign: 'right' }}>{formatMoney(item.amount_cents)}</td>
-      <td style={td}>
-        <Link
-          to={`/bills/${item.bill_id}`}
-          style={{ color: '#86c7a3', fontSize: 12, textDecoration: 'none' }}
-        >
-          view
-        </Link>
-        {canEdit && !missingBsb && !missingAccount && (
-          <button
-            onClick={() => setEditing(true)}
-            style={{ ...btnGhost, marginLeft: 8, fontSize: 11 }}
-          >
-            edit
-          </button>
-        )}
+      <td>{item.reference ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
+      <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(item.amount_cents)}</td>
+      <td>
+        <div style={{ display: 'inline-flex', gap: '0.25rem', alignItems: 'center' }}>
+          <Link to={`/bills/${item.bill_id}`} className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>
+            <Eye size={12} />
+            <span style={{ marginLeft: '0.25rem' }}>View</span>
+          </Link>
+          {canEdit && !missingBsb && !missingAccount && (
+            <button
+              onClick={() => setEditing(true)}
+              className="btn btn-secondary"
+              style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+            >
+              <Edit3 size={12} />
+            </button>
+          )}
+        </div>
       </td>
     </tr>
   );
 }
 
-function StatusPill({ status }: { status: PaymentRunRow['status'] }) {
-  return (
-    <span
-      style={{
-        fontSize: 11,
-        padding: '2px 6px',
-        borderRadius: 3,
-        background: STATUS_COLORS[status] + '33',
-        color: STATUS_COLORS[status],
-        fontWeight: 600,
-        textTransform: 'uppercase',
-      }}
-    >
-      {status}
-    </span>
-  );
+function Pill({ status }: { status: PaymentRunRow['status'] }) {
+  let badgeClass = 'badge-neutral';
+  if (status === 'paid' || status === 'exported') badgeClass = 'badge-success';
+  else if (status === 'approved') badgeClass = 'badge-info';
+  else if (status === 'draft') badgeClass = 'badge-warning';
+  else if (status === 'cancelled') badgeClass = 'badge-danger';
+  
+  return <span className={`badge ${badgeClass}`}>{status}</span>;
 }
 
 function maskAccount(acct: string): string {
   if (acct.length <= 4) return acct;
   return '****' + acct.slice(-4);
 }
-
-const th: React.CSSProperties = {
-  textAlign: 'left',
-  padding: '0.5rem 0.75rem',
-  fontSize: 11,
-  color: '#666',
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-};
-const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
-const td: React.CSSProperties = { padding: '0.6rem 0.75rem', fontSize: 13, color: '#ccc' };
-const inp: React.CSSProperties = {
-  padding: '5px 8px',
-  background: '#000',
-  color: '#ddd',
-  border: '1px solid #333',
-  borderRadius: 3,
-  fontSize: 12,
-};
-const btnPrim: React.CSSProperties = {
-  padding: '0.4rem 0.8rem',
-  background: '#1c5135',
-  color: '#fff',
-  border: '1px solid #2da565',
-  borderRadius: 4,
-  fontSize: 12,
-  fontWeight: 600,
-  cursor: 'pointer',
-};
-const btnSecondary: React.CSSProperties = {
-  padding: '0.4rem 0.8rem',
-  background: 'transparent',
-  color: '#aaa',
-  border: '1px solid #444',
-  borderRadius: 4,
-  fontSize: 12,
-  fontWeight: 600,
-  cursor: 'pointer',
-};
-const btnGhost: React.CSSProperties = {
-  padding: '0.3rem 0.6rem',
-  background: 'transparent',
-  color: '#666',
-  border: '1px solid #333',
-  borderRadius: 4,
-  fontSize: 12,
-  cursor: 'pointer',
-};
-const warnBtn: React.CSSProperties = {
-  background: 'transparent',
-  border: 'none',
-  color: '#f4a261',
-  fontSize: 12,
-  cursor: 'pointer',
-  padding: 0,
-  textDecoration: 'underline',
-};

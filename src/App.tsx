@@ -10,6 +10,7 @@ import { BillsPage } from '@/pages/Bills';
 import { BillUploadPage } from '@/pages/BillUpload';
 import { BillDetailPage } from '@/pages/BillDetail';
 import { AllocationsPage } from '@/pages/Allocations';
+import { CodingReviewPage } from '@/pages/CodingReview';
 import { ReconciliationPage } from '@/pages/Reconciliation';
 import { JobsPage } from '@/pages/Jobs';
 import { JobDetailPage } from '@/pages/JobDetail';
@@ -40,13 +41,17 @@ import { XeroCallbackPage } from '@/pages/XeroCallback';
 import { AutoSetupPage } from '@/pages/onboarding/AutoSetup';
 import { TriagePage } from '@/pages/onboarding/Triage';
 import { PaymentRunsPage } from '@/pages/PaymentRuns';
+import { ApprovalsPage } from '@/pages/Approvals';
 import { NewPaymentRunPage } from '@/pages/NewPaymentRun';
 import { PaymentRunDetailPage } from '@/pages/PaymentRunDetail';
 import { PayrollPage } from '@/pages/Payroll';
 import { PayRunDetailPage } from '@/pages/PayRunDetail';
 import { AskPage } from '@/pages/Ask';
 import { ScanPage } from '@/pages/Scan';
+import { ReceiptHubPage } from '@/pages/ReceiptHub';
+import { FixedAssetsPage } from '@/pages/FixedAssets';
 import { MyActivityPage } from '@/pages/MyActivity';
+import { LegalHorizonPage } from '@/pages/LegalHorizon';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -74,6 +79,8 @@ export function App() {
             <Route path="bills/upload" element={<BillUploadPage />} />
             <Route path="bills/:id" element={<BillDetailPage />} />
             <Route path="allocations" element={<AllocationsPage />} />
+            <Route path="coding-review" element={<CodingReviewPage />} />
+            <Route path="approvals" element={<ApprovalsPage />} />
             <Route path="reconciliation" element={<ReconciliationPage />} />
             <Route path="jobs" element={<JobsPage />} />
             <Route path="jobs/:id" element={<JobDetailPage />} />
@@ -96,6 +103,7 @@ export function App() {
             <Route path="suppliers/:id" element={<SupplierDetailPage />} />
             <Route path="employees" element={<EmployeesPage />} />
             <Route path="employees/:id" element={<EmployeeDetailPage />} />
+            <Route path="fixed-assets" element={<FixedAssetsPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="settings/team" element={<TeamPage />} />
             <Route path="settings/audit-log" element={<AuditLogPage />} />
@@ -111,7 +119,9 @@ export function App() {
             <Route path="onboarding" element={<AutoSetupPage />} />
             <Route path="onboarding/triage" element={<TriagePage />} />
             <Route path="ask" element={<AskPage />} />
+            <Route path="legal-horizon" element={<LegalHorizonPage />} />
             <Route path="scan" element={<ScanPage />} />
+            <Route path="receipt-hub" element={<ReceiptHubPage />} />
             <Route path="my-activity" element={<MyActivityPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

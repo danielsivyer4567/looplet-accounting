@@ -3,10 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { downloadCsv } from '@/lib/csv';
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+import { ChevronLeft, Download, User, Calendar, Search, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 
 interface AuditRow {
   id: string;
@@ -25,39 +22,21 @@ interface AuditRow {
   occurred_at: string;
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const inputStyle: React.CSSProperties = {
-  background: '#1a1a1a',
-  border: '1px solid #333',
-  borderRadius: 4,
-  color: '#eee',
-  padding: '0.35rem 0.6rem',
-  fontSize: 12,
-};
-
-const selectStyle: React.CSSProperties = {
-  ...inputStyle,
-  cursor: 'pointer',
-};
-
-function operationColor(op: string): string {
+function operationBadgeClass(op: string): string {
   switch (op?.toUpperCase()) {
     case 'INSERT':
-      return '#86c7a3';
+      return 'badge-success';
     case 'UPDATE':
     case 'ROLE_CHANGE':
-      return '#d2c886';
+      return 'badge-warning';
     case 'DELETE':
     case 'VOID':
-      return '#c88';
+      return 'badge-danger';
     case 'INVITE':
     case 'ACCEPT':
-      return '#7799d6';
+      return 'badge-info';
     default:
-      return '#888';
+      return 'badge-neutral';
   }
 }
 
@@ -71,43 +50,42 @@ function formatTimestamp(ts: string): string {
 
 function JsonDiff({ changes }: { changes: Record<string, [unknown, unknown]> }) {
   return (
-    <table
-      style={{
-        fontSize: 11,
-        borderCollapse: 'collapse',
-        width: '100%',
-        marginTop: '0.5rem',
-      }}
-    >
-      <thead>
-        <tr style={{ color: '#555' }}>
-          <th style={{ textAlign: 'left', padding: '0.2rem 0.4rem' }}>Field</th>
-          <th style={{ textAlign: 'left', padding: '0.2rem 0.4rem', color: '#c88' }}>Before</th>
-          <th style={{ textAlign: 'left', padding: '0.2rem 0.4rem', color: '#86c7a3' }}>After</th>
-        </tr>
-      </thead>
-      <tbody>
-        {Object.entries(changes).map(([col, [old, next]]) => (
-          <tr key={col} style={{ borderTop: '1px solid #222' }}>
-            <td style={{ padding: '0.2rem 0.4rem', color: '#888', fontFamily: 'monospace' }}>
-              {col}
-            </td>
-            <td style={{ padding: '0.2rem 0.4rem', color: '#c88', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-              {JSON.stringify(old)}
-            </td>
-            <td style={{ padding: '0.2rem 0.4rem', color: '#86c7a3', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-              {JSON.stringify(next)}
-            </td>
+    <div style={{ overflowX: 'auto', width: '100%' }}>
+      <table
+        style={{
+          fontSize: '0.75rem',
+          borderCollapse: 'collapse',
+          width: '100%',
+          marginTop: '0.5rem',
+          color: 'var(--text-body)'
+        }}
+      >
+        <thead>
+          <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
+            <th style={{ textAlign: 'left', padding: '0.4rem 0.5rem' }}>Field</th>
+            <th style={{ textAlign: 'left', padding: '0.4rem 0.5rem', color: 'var(--text-danger)' }}>Before</th>
+            <th style={{ textAlign: 'left', padding: '0.4rem 0.5rem', color: 'var(--text-success)' }}>After</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {Object.entries(changes).map(([col, [old, next]]) => (
+            <tr key={col} style={{ borderBottom: '1px dashed var(--border-subtle)' }}>
+              <td style={{ padding: '0.4rem 0.5rem', color: 'var(--text-title)', fontFamily: 'var(--font-mono, monospace)' }}>
+                {col}
+              </td>
+              <td style={{ padding: '0.4rem 0.5rem', color: 'var(--text-danger)', fontFamily: 'var(--font-mono, monospace)', wordBreak: 'break-all' }}>
+                {old === null ? <span style={{ fontStyle: 'italic', opacity: 0.5 }}>null</span> : JSON.stringify(old)}
+              </td>
+              <td style={{ padding: '0.4rem 0.5rem', color: 'var(--text-success)', fontFamily: 'var(--font-mono, monospace)', wordBreak: 'break-all' }}>
+                {next === null ? <span style={{ fontStyle: 'italic', opacity: 0.5 }}>null</span> : JSON.stringify(next)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Row component
-// ---------------------------------------------------------------------------
 
 function AuditRowItem({ row }: { row: AuditRow }) {
   const [expanded, setExpanded] = useState(false);
@@ -118,8 +96,8 @@ function AuditRowItem({ row }: { row: AuditRow }) {
   return (
     <div
       style={{
-        borderBottom: '1px solid #1e1e1e',
-        padding: '0.75rem 0',
+        borderBottom: '1px solid var(--border-subtle)',
+        padding: '0.875rem 0',
       }}
     >
       <div
@@ -133,55 +111,47 @@ function AuditRowItem({ row }: { row: AuditRow }) {
         onClick={() => row.changes && setExpanded((x) => !x)}
       >
         {/* Operation badge */}
-        <span
-          style={{
-            fontFamily: 'monospace',
-            fontSize: 11,
-            color: operationColor(op),
-            background: '#1e1e1e',
-            padding: '0.15rem 0.4rem',
-            borderRadius: 3,
-            minWidth: 60,
-            textAlign: 'center',
-          }}
-        >
+        <span className={`badge ${operationBadgeClass(op)}`} style={{ minWidth: '70px', textAlign: 'center', justifyContent: 'center' }}>
           {op}
         </span>
 
-        {/* Resource */}
-        <span style={{ fontSize: 12, color: '#aaa', fontFamily: 'monospace' }}>
+        {/* Resource details */}
+        <span style={{ fontSize: '0.825rem', color: 'var(--text-title)', fontFamily: 'var(--font-mono, monospace)' }}>
           {resourceType}
           {resourceId ? (
-            <span style={{ color: '#555' }}>#{resourceId.slice(0, 8)}</span>
+            <span style={{ color: 'var(--text-muted)', marginLeft: '0.25rem' }}>#{resourceId.slice(0, 8)}</span>
           ) : null}
         </span>
 
         {/* Actor */}
-        <span style={{ fontSize: 12, color: '#666', marginLeft: 'auto' }}>
+        <span style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+          <User size={12} />
           {row.actor_email ?? (row.actor_user_id ? row.actor_user_id.slice(0, 8) + '…' : 'system')}
         </span>
 
         {/* Timestamp */}
-        <span style={{ fontSize: 11, color: '#555' }}>
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+          <Calendar size={12} />
           {formatTimestamp(row.occurred_at)}
         </span>
 
         {/* Expand indicator */}
         {row.changes && (
-          <span style={{ color: '#555', fontSize: 11 }}>
-            {expanded ? '▲' : '▼'} {Object.keys(row.changes).length} field(s) changed
+          <span className="badge badge-neutral" style={{ fontSize: '0.725rem', textTransform: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+            <span>{Object.keys(row.changes).length} field(s)</span>
+            {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </span>
         )}
       </div>
 
       {expanded && row.changes && (
         <div
+          className="card"
           style={{
-            marginTop: '0.5rem',
-            background: '#111',
-            border: '1px solid #222',
-            borderRadius: 4,
-            padding: '0.5rem',
+            marginTop: '0.75rem',
+            background: 'var(--bg-hover)',
+            borderColor: 'var(--border-subtle)',
+            padding: '1rem',
           }}
         >
           <JsonDiff changes={row.changes as Record<string, [unknown, unknown]>} />
@@ -190,10 +160,6 @@ function AuditRowItem({ row }: { row: AuditRow }) {
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Main page
-// ---------------------------------------------------------------------------
 
 const PAGE_SIZE = 50;
 
@@ -205,13 +171,11 @@ export function AuditLogPage() {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
 
-  // Filters
   const [filterActor, setFilterActor] = useState('');
   const [filterResource, setFilterResource] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
 
-  // Available filter values derived from loaded rows
   const [actorOptions, setActorOptions] = useState<string[]>([]);
   const [resourceOptions, setResourceOptions] = useState<string[]>([]);
 
@@ -243,7 +207,6 @@ export function AuditLogPage() {
         query = query.gte('occurred_at', new Date(filterDateFrom).toISOString());
       }
       if (filterDateTo) {
-        // Include the whole "to" day
         const to = new Date(filterDateTo);
         to.setDate(to.getDate() + 1);
         query = query.lt('occurred_at', to.toISOString());
@@ -267,7 +230,6 @@ export function AuditLogPage() {
         setRows((prev) => [...prev, ...visible]);
       }
 
-      // Build filter option sets from all loaded rows
       if (reset || currentPage === 0) {
         const actors = Array.from(
           new Set(
@@ -288,7 +250,6 @@ export function AuditLogPage() {
     [currentOrg, page, filterActor, filterResource, filterDateFrom, filterDateTo],
   );
 
-  // Initial load + re-load when org changes
   useEffect(() => {
     void load(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -310,15 +271,31 @@ export function AuditLogPage() {
 
   if (!currentOrg) {
     return (
-      <section>
+      <section className="animated-fade-in">
         <h1>Audit Log</h1>
-        <p style={{ color: '#888' }}>Select an organisation first.</p>
+        <p style={{ color: 'var(--text-muted)' }}>Select an organisation first.</p>
       </section>
     );
   }
 
   return (
-    <section>
+    <section className="animated-fade-in" style={{ maxWidth: '950px' }}>
+      {/* Back button link */}
+      <Link 
+        to="/settings" 
+        style={{ 
+          color: 'var(--text-muted)', 
+          fontSize: '0.825rem', 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.25rem',
+          marginBottom: '1rem'
+        }}
+      >
+        <ChevronLeft size={14} />
+        <span>Settings</span>
+      </Link>
+
       <div
         style={{
           display: 'flex',
@@ -329,43 +306,37 @@ export function AuditLogPage() {
           gap: '0.75rem',
         }}
       >
-        <h1 style={{ margin: 0 }}>Audit Log</h1>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <Link to="/settings/team" style={{ color: '#86c7a3', fontSize: 13 }}>
-            &larr; Team
-          </Link>
-          <button
-            onClick={handleExport}
-            disabled={rows.length === 0}
-            style={{
-              padding: '0.35rem 0.9rem',
-              borderRadius: 4,
-              fontSize: 13,
-              cursor: rows.length > 0 ? 'pointer' : 'not-allowed',
-              border: '1px solid #444',
-              background: 'transparent',
-              color: rows.length > 0 ? '#aaa' : '#555',
-            }}
-          >
-            Export CSV
-          </button>
-        </div>
+        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Search size={24} style={{ color: 'var(--accent-primary)' }} />
+          Audit Log
+        </h1>
+        <button
+          onClick={handleExport}
+          disabled={rows.length === 0}
+          className="btn btn-secondary"
+        >
+          <Download size={14} />
+          <span>Export CSV</span>
+        </button>
       </div>
 
-      {/* Filters */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '0.75rem',
-          flexWrap: 'wrap',
-          marginBottom: '1.25rem',
+      {/* Filters Toolbar Card */}
+      <div 
+        className="card" 
+        style={{ 
+          display: 'flex', 
+          gap: '0.75rem', 
+          flexWrap: 'wrap', 
+          marginBottom: '1.5rem',
           alignItems: 'center',
+          padding: '1rem'
         }}
       >
         <select
           value={filterActor}
           onChange={(e) => setFilterActor(e.target.value)}
-          style={selectStyle}
+          className="form-select"
+          style={{ width: 'auto', padding: '0.45rem 1.75rem 0.45rem 0.75rem', fontSize: '0.825rem' }}
         >
           <option value="">All actors</option>
           {actorOptions.map((a) => (
@@ -378,7 +349,8 @@ export function AuditLogPage() {
         <select
           value={filterResource}
           onChange={(e) => setFilterResource(e.target.value)}
-          style={selectStyle}
+          className="form-select"
+          style={{ width: 'auto', padding: '0.45rem 1.75rem 0.45rem 0.75rem', fontSize: '0.825rem' }}
         >
           <option value="">All resources</option>
           {resourceOptions.map((r) => (
@@ -392,14 +364,17 @@ export function AuditLogPage() {
           type="date"
           value={filterDateFrom}
           onChange={(e) => setFilterDateFrom(e.target.value)}
-          style={inputStyle}
+          className="form-input"
+          style={{ width: '140px', padding: '0.45rem 0.75rem', fontSize: '0.825rem' }}
           title="From date"
         />
+        
         <input
           type="date"
           value={filterDateTo}
           onChange={(e) => setFilterDateTo(e.target.value)}
-          style={inputStyle}
+          className="form-input"
+          style={{ width: '140px', padding: '0.45rem 0.75rem', fontSize: '0.825rem' }}
           title="To date"
         />
 
@@ -411,14 +386,8 @@ export function AuditLogPage() {
               setFilterDateFrom('');
               setFilterDateTo('');
             }}
-            style={{
-              fontSize: 12,
-              color: '#888',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '0.35rem 0.4rem',
-            }}
+            className="btn btn-ghost"
+            style={{ padding: '0.45rem 0.75rem', fontSize: '0.825rem' }}
           >
             Clear filters
           </button>
@@ -426,22 +395,25 @@ export function AuditLogPage() {
       </div>
 
       {error && (
-        <p style={{ color: '#c88', fontSize: 13, marginBottom: '1rem' }}>{error}</p>
+        <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', marginBottom: '1rem', textTransform: 'none' }}>
+          {error}
+        </div>
       )}
 
       {loading && rows.length === 0 ? (
-        <p style={{ color: '#888', fontSize: 13 }}>Loading audit events…</p>
+        <p style={{ color: 'var(--text-muted)' }}>Loading audit events…</p>
       ) : rows.length === 0 ? (
-        <p style={{ color: '#555', fontSize: 13 }}>
+        <div style={{ padding: '3rem 1.5rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
           No audit events found for the current filters.
-        </p>
+        </div>
       ) : (
         <>
-          <div style={{ fontSize: 12, color: '#555', marginBottom: '0.75rem' }}>
-            Showing {rows.length} events. Click any UPDATE row to expand field-level diff.
+          <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <AlertCircle size={14} />
+            <span>Showing {rows.length} events. Click any UPDATE row to expand field-level diff.</span>
           </div>
 
-          <div>
+          <div className="card" style={{ padding: '0 1.25rem' }}>
             {rows.map((row) => (
               <AuditRowItem key={row.id} row={row} />
             ))}
@@ -455,15 +427,8 @@ export function AuditLogPage() {
                   setPage((p) => p + 1);
                   void load();
                 }}
-                style={{
-                  padding: '0.5rem 1.5rem',
-                  borderRadius: 4,
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  border: '1px solid #444',
-                  background: 'transparent',
-                  color: '#aaa',
-                }}
+                className="btn btn-secondary"
+                style={{ padding: '0.625rem 1.5rem' }}
               >
                 {loading ? 'Loading…' : 'Load more'}
               </button>

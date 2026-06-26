@@ -5,14 +5,10 @@ import { useJobs } from '@/hooks/useJobs';
 import type { JobStatus } from '@/hooks/useJobs';
 import { supabase } from '@/lib/supabase';
 import { SkeletonTable } from '@/components/Skeleton';
-
-const statusColors: Record<JobStatus, string> = {
-  draft: '#888',
-  active: '#86c7a3',
-  paused: '#d2c886',
-  completed: '#7799d6',
-  cancelled: '#555',
-};
+import { formatMoney, formatMoneyCompact } from '@/lib/money';
+import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
+import { AnimatedNumber } from '@/components/AnimatedNumber';
+import { Briefcase, Plus, FileSpreadsheet, X, Activity, type LucideIcon } from 'lucide-react';
 
 function getBillCount(val: [{ count: number }] | []): number {
   if (val.length === 0) return 0;
@@ -20,35 +16,6 @@ function getBillCount(val: [{ count: number }] | []): number {
   if (!row) return 0;
   return row.count;
 }
-
-// ---------------------------------------------------------------------------
-// Stat card
-// ---------------------------------------------------------------------------
-
-function StatCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div
-      style={{
-        padding: '1rem 1.5rem',
-        background: '#1a1a1a',
-        border: '1px solid #2a2a2a',
-        borderRadius: 6,
-        minWidth: 160,
-      }}
-    >
-      <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-        {label}
-      </div>
-      <div style={{ fontSize: 28, fontWeight: 700, color: '#86c7a3', marginTop: '0.3rem' }}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
 
 export function JobsPage() {
   const { currentOrg } = useOrg();
@@ -58,63 +25,199 @@ export function JobsPage() {
 
   if (!currentOrg) {
     return (
-      <section>
+      <section className="animated-fade-in">
         <h1>Jobs</h1>
-        <p style={{ color: '#888' }}>Pick an organisation to see jobs.</p>
+        <p style={{ color: 'var(--text-muted)' }}>Pick an organisation to see jobs.</p>
       </section>
     );
   }
 
   const activeCount = jobs.filter((j) => j.status === 'active').length;
-  const totalAttachedBills = jobs.reduce((sum, j) => sum + getBillCount(j.attached_bills), 0);
+
+  // Job financial aggregates
+  const totalRevenue = jobs.reduce((sum, j) => sum + (j.revenue_inc_gst_cents ?? 0), 0);
+  const totalCost = jobs.reduce((sum, j) => sum + (j.total_cost_cents ?? 0), 0);
+  const totalProfit = jobs.reduce((sum, j) => sum + (j.gross_profit_cents ?? 0), 0);
+
+  // Job Profitability Mix
+  const profitMixItems = jobs
+    .filter((j) => j.revenue_inc_gst_cents || j.total_cost_cents)
+    .map((j) => {
+      const profit = j.gross_profit_cents ?? 0;
+      return {
+        label: `${j.job_number} — ${j.name}`,
+        value: profit,
+        displayValue: formatMoneyCompact(profit),
+        tone: profit >= 0 ? ('success' as const) : ('danger' as const),
+      };
+    })
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+
+  // Chronological trends for Jobs
+  let runningRevenueCents = 0;
+  let runningCostCents = 0;
+  let runningProfitCents = 0;
+
+  const jobsChronological = jobs
+    .slice()
+    .sort((a, b) => a.created_at.localeCompare(b.created_at));
+
+  const cumulativeProfitTrend = jobsChronological.length
+    ? jobsChronological.map((j) => {
+        runningProfitCents += j.gross_profit_cents ?? 0;
+        return {
+          label: new Date(j.created_at).toLocaleDateString('en-AU', { day: '2-digit', month: 'short' }),
+          value: runningProfitCents,
+        };
+      })
+    : [{ label: 'No jobs', value: 0 }];
+
+  const cumulativeRevenueTrend = jobsChronological.map((j) => {
+    runningRevenueCents += j.revenue_inc_gst_cents ?? 0;
+    return {
+      label: new Date(j.created_at).toLocaleDateString('en-AU', { day: '2-digit', month: 'short' }),
+      value: runningRevenueCents,
+    };
+  });
+
+  const cumulativeCostTrend = jobsChronological.map((j) => {
+    runningCostCents += j.total_cost_cents ?? 0;
+    return {
+      label: new Date(j.created_at).toLocaleDateString('en-AU', { day: '2-digit', month: 'short' }),
+      value: runningCostCents,
+    };
+  });
 
   return (
-    <section>
+    <section className="animated-fade-in">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1rem' }}>
-        <h1 style={{ margin: 0 }}>Jobs</h1>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
+        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Briefcase size={24} style={{ color: 'var(--accent-primary)' }} />
+          Jobs
+        </h1>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           {!loading && (
-            <span style={{ color: '#888', fontSize: 13 }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
               {jobs.length} job{jobs.length !== 1 ? 's' : ''}
             </span>
           )}
-          <button onClick={() => setShowCreate(true)} style={primaryBtn}>+ New job</button>
+          <button onClick={() => setShowCreate(true)} className="btn btn-primary">
+            <Plus size={16} />
+            <span>New job</span>
+          </button>
         </div>
       </div>
 
       {showCreate && (
-        <CreateJobForm
-          onClose={() => setShowCreate(false)}
-          onCreated={(id) => { setShowCreate(false); void refresh(); navigate(`/jobs/${id}`); }}
-        />
+        <div className="card" style={{ marginBottom: '1.5rem', border: '1px solid var(--accent-primary)', position: 'relative' }}>
+          <button 
+            onClick={() => setShowCreate(false)} 
+            style={{ 
+              position: 'absolute', 
+              right: '1rem', 
+              top: '1rem', 
+              background: 'none', 
+              border: 'none', 
+              color: 'var(--text-muted)', 
+              cursor: 'pointer' 
+            }}
+          >
+            <X size={20} />
+          </button>
+          <CreateJobForm
+            onClose={() => setShowCreate(false)}
+            onCreated={(id) => { setShowCreate(false); void refresh(); navigate(`/jobs/${id}`); }}
+          />
+        </div>
       )}
 
       {/* Stat cards */}
       {!loading && !error && (
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.75rem', flexWrap: 'wrap' }}>
-          <StatCard label="Active jobs" value={activeCount} />
-          <StatCard label="Total bills attached" value={totalAttachedBills} />
-        </div>
+        <>
+          <div 
+            style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+              gap: '1rem',
+              marginBottom: '1.5rem'
+            }}
+          >
+            <KpiCard label="Active Jobs" value={activeCount} type="success" icon={Briefcase} />
+            <KpiCard label="Total Revenue" value={totalRevenue} formatter={formatMoney} type="info" icon={FileSpreadsheet} />
+            <KpiCard label="Total Job Cost" value={totalCost} formatter={formatMoney} type="neutral" icon={FileSpreadsheet} />
+            <KpiCard label="Gross Margin" value={totalProfit} formatter={formatMoney} type={totalProfit >= 0 ? 'success' : 'danger'} icon={FileSpreadsheet} />
+          </div>
+
+          {/* Charts Section */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '1rem',
+              marginBottom: '2rem',
+            }}
+          >
+            <InsightPanel title="Margin pulse" eyebrow="Cumulative job margins">
+              <InsightAreaChart
+                title="Total Profit"
+                items={cumulativeProfitTrend}
+                tone={totalProfit >= 0 ? 'success' : 'danger'}
+                series={[
+                  { label: 'Revenue', items: cumulativeRevenueTrend, tone: 'info' },
+                  { label: 'Costs', items: cumulativeCostTrend, tone: 'neutral' },
+                ]}
+                markerLabel="Gross margin"
+                formatValue={formatMoneyCompact}
+              />
+            </InsightPanel>
+            <InsightPanel title="Profitability mix" eyebrow="Top performing jobs">
+              {profitMixItems.length === 0 ? (
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '1rem 0' }}>
+                  No job profitability mix to display.
+                </div>
+              ) : (
+                <InsightBarList
+                  items={profitMixItems}
+                  formatValue={formatMoneyCompact}
+                />
+              )}
+            </InsightPanel>
+          </div>
+        </>
       )}
 
       {loading ? (
         <SkeletonTable rows={5} cols={6} />
       ) : error ? (
-        <p style={{ color: 'salmon' }}>Failed to load: {error}</p>
+        <div className="badge badge-danger" style={{ display: 'block', padding: '1rem', textTransform: 'none' }}>
+          Failed to load: {error}
+        </div>
       ) : jobs.length === 0 ? (
-        <p style={{ color: '#888' }}>No jobs yet for {currentOrg.name}.</p>
+        <div style={{ padding: '3rem 1.5rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+          No jobs yet for {currentOrg.name}.
+        </div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="table-premium-container">
+          <table className="table-premium">
             <thead>
-              <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-                <th style={th}>Job #</th>
-                <th style={th}>Name</th>
-                <th style={th}>Status</th>
-                <th style={thRight}>Bills attached</th>
-                <th style={thRight}>Bills suggested</th>
-                <th style={th}>Created</th>
+              <tr>
+                <th>Job #</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Bills attached</th>
+                <th style={{ textAlign: 'right' }}>Bills suggested</th>
+                <th>Created</th>
               </tr>
             </thead>
             <tbody>
@@ -129,48 +232,29 @@ export function JobsPage() {
                 return (
                   <tr
                     key={j.id}
-                    style={{ borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
+                    style={{ cursor: 'pointer' }}
                     onClick={() => void navigate(`/jobs/${j.id}`)}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLTableRowElement).style.background = '#202020';
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLTableRowElement).style.background = '';
-                    }}
                   >
-                    <td style={td}>
-                      <code style={{ color: '#888', fontSize: 12 }}>{j.job_number}</code>
+                    <td>
+                      <code>{j.job_number}</code>
                     </td>
-                    <td style={{ ...td, fontWeight: 500 }}>{j.name}</td>
-                    <td style={td}>
-                      <span
-                        style={{
-                          padding: '0.15rem 0.5rem',
-                          fontSize: 11,
-                          borderRadius: 3,
-                          background: '#222',
-                          color: statusColors[j.status],
-                          textTransform: 'uppercase',
-                        }}
-                      >
-                        {j.status}
-                      </span>
-                    </td>
-                    <td style={tdRight}>
+                    <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{j.name}</td>
+                    <td><Pill status={j.status} /></td>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>
                       {attached > 0 ? (
-                        <span style={{ color: '#86c7a3', fontWeight: 600 }}>{attached}</span>
+                        <span style={{ color: 'var(--text-success)' }}>{attached}</span>
                       ) : (
-                        <span style={{ color: '#444' }}>0</span>
+                        <span style={{ color: 'var(--text-muted)' }}>0</span>
                       )}
                     </td>
-                    <td style={tdRight}>
+                    <td style={{ textAlign: 'right' }}>
                       {suggested > 0 ? (
-                        <span style={{ color: '#d2c886' }}>{suggested}</span>
+                        <span style={{ color: 'var(--text-warning)' }}>{suggested}</span>
                       ) : (
-                        <span style={{ color: '#444' }}>0</span>
+                        <span style={{ color: 'var(--text-muted)' }}>0</span>
                       )}
                     </td>
-                    <td style={{ ...td, color: '#666', fontSize: 13 }}>{created}</td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>{created}</td>
                   </tr>
                 );
               })}
@@ -206,7 +290,6 @@ function CreateJobForm({ onClose, onCreated }: { onClose: () => void; onCreated:
         supabase.from('jobs').select('job_number').eq('organization_id', currentOrg.id).order('job_number', { ascending: false }).limit(1).maybeSingle(),
       ]);
       setCustomers((custs ?? []) as CustomerOption[]);
-      // Auto-suggest next JNNNN — find highest existing then +1
       const last = maxRow?.job_number ?? '';
       const m = last.match(/^J(\d+)$/);
       const next = m ? parseInt(m[1], 10) + 1 : 1;
@@ -239,63 +322,114 @@ function CreateJobForm({ onClose, onCreated }: { onClose: () => void; onCreated:
   };
 
   return (
-    <div style={card}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <h3 style={{ fontSize: 14, margin: 0 }}>New job</h3>
-        <button onClick={onClose} style={closeBtn}>×</button>
-      </div>
-      <div style={grid2}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.5rem' }}>
+      <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <Plus size={18} style={{ color: 'var(--accent-primary)' }} />
+        Create New Job
+      </h3>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
         <Field label="Job number *">
-          <input value={jobNumber} onChange={(e) => setJobNumber(e.target.value)} style={inp} />
+          <input value={jobNumber} onChange={(e) => setJobNumber(e.target.value)} className="form-input" />
         </Field>
         <Field label="Name / address *">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. 1 Schablon Close, Ormeau Hills" style={inp} />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. 1 Schablon Close, Ormeau Hills" className="form-input" />
         </Field>
       </div>
+
       <Field label="Customer">
-        <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} style={inp}>
+        <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="form-select">
           <option value="">— no customer (link later) —</option>
           {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </Field>
+
       <Field label="Description">
-        <textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} style={inp} />
+        <textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} className="form-textarea" />
       </Field>
-      <div style={grid3}>
-        <Field label="Budget (AUD)"><input type="number" step="0.01" value={budget} onChange={(e) => setBudget(parseFloat(e.target.value) || 0)} style={inp} /></Field>
-        <Field label="Start date"><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={inp} /></Field>
-        <Field label="End date (est.)"><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={inp} /></Field>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+        <Field label="Budget (AUD)">
+          <input type="number" step="0.01" value={budget} onChange={(e) => setBudget(parseFloat(e.target.value) || 0)} className="form-input" />
+        </Field>
+        <Field label="Start date">
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="form-input" />
+        </Field>
+        <Field label="End date (est.)">
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="form-input" />
+        </Field>
       </div>
-      <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-        <button onClick={submit} disabled={busy || !name.trim() || !jobNumber.trim()} style={primaryBtn}>{busy ? 'Creating…' : 'Create job'}</button>
-        <button onClick={onClose} disabled={busy} style={ghostBtn}>Cancel</button>
+
+      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+        <button onClick={submit} disabled={busy || !name.trim() || !jobNumber.trim()} className="btn btn-primary" style={{ padding: '0.625rem 1.25rem' }}>
+          <Activity size={14} />
+          <span>{busy ? 'Creating…' : 'Create job'}</span>
+        </button>
+        <button onClick={onClose} disabled={busy} className="btn btn-secondary" style={{ padding: '0.625rem 1.25rem' }}>
+          <span>Cancel</span>
+        </button>
       </div>
-      {err && <p style={{ color: 'salmon', fontSize: 12, marginTop: 8 }}>{err}</p>}
+      {err && <div className="badge badge-danger" style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}>{err}</div>}
     </div>
   );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label style={{ display: 'block', fontSize: 11, color: '#888', marginTop: 8 }}><div style={{ marginBottom: 3 }}>{label}</div>{children}</label>;
+  return (
+    <div className="form-group" style={{ marginBottom: 0 }}>
+      <span className="form-label" style={{ fontSize: '0.725rem' }}>{label}</span>
+      <div style={{ marginTop: '0.25rem' }}>{children}</div>
+    </div>
+  );
 }
 
-const card: React.CSSProperties = { marginBottom: 16, padding: 16, background: '#0e0e0e', border: '1px solid #2a2a2a', borderRadius: 6, maxWidth: 720 };
-const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 };
-const grid3: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 };
-const inp: React.CSSProperties = { width: '100%', padding: '6px 8px', background: '#000', color: '#ddd', border: '1px solid #333', borderRadius: 3, fontSize: 12 };
-const primaryBtn: React.CSSProperties = { padding: '0.5rem 1rem', background: '#1c4868', color: '#fff', border: '1px solid #5096d8', borderRadius: 4, fontSize: 13, fontWeight: 600, cursor: 'pointer' };
-const ghostBtn: React.CSSProperties = { padding: '0.5rem 1rem', background: 'transparent', color: '#aaa', border: '1px solid #333', borderRadius: 4, fontSize: 12, cursor: 'pointer' };
-const closeBtn: React.CSSProperties = { background: 'transparent', color: '#888', border: 'none', fontSize: 18, cursor: 'pointer', padding: 0 };
+function KpiCard({ 
+  label, 
+  value, 
+  type,
+  icon: Icon,
+  sub,
+  formatter,
+}: { 
+  label: string; 
+  value: number; 
+  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral'; 
+  icon: LucideIcon;
+  sub?: string;
+  formatter?: (val: number) => string;
+}) {
+  return (
+    <div 
+      className="card"
+      style={{ 
+        padding: '1.25rem',
+        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
+        position: 'relative'
+      }}
+    >
+      <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+        {label}
+      </div>
+      <div style={{ marginTop: '0.35rem', fontSize: '1.5rem', color: 'var(--text-title)', fontWeight: 800, fontFamily: 'var(--font-title)' }}>
+        <AnimatedNumber value={value} formatter={formatter} />
+      </div>
+      {sub ? (
+        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>{sub}</div>
+      ) : (
+        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
+      )}
+      <div style={{ position: 'absolute', right: '1rem', bottom: '1rem', color: `var(--accent-${type === 'neutral' ? 'primary' : type})`, opacity: 0.7 }}>
+        <Icon size={18} />
+      </div>
+    </div>
+  );
+}
 
-const th: React.CSSProperties = {
-  padding: '0.5rem 0.75rem',
-  textAlign: 'left',
-  fontSize: 12,
-  color: '#888',
-  textTransform: 'uppercase',
-  letterSpacing: 0.5,
-  fontWeight: 500,
-};
-const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
-const td: React.CSSProperties = { padding: '0.65rem 0.75rem' };
-const tdRight: React.CSSProperties = { ...td, textAlign: 'right' };
+function Pill({ status }: { status: string }) {
+  let badgeClass = 'badge-neutral';
+  if (status === 'active' || status === 'completed') badgeClass = 'badge-success';
+  else if (status === 'paused') badgeClass = 'badge-warning';
+  else if (status === 'cancelled' || status === 'archived') badgeClass = 'badge-danger';
+  
+  return <span className={`badge ${badgeClass}`}>{status.replace('_', ' ')}</span>;
+}

@@ -67,6 +67,35 @@ Deno.serve(async (req) => {
     { p_run_id: run_id },
   );
   if (rpcErr) {
+    // Tier-2 gate: the RPC (SC-2.D.01) raises 'approval required ...' when there's no
+    // live approval. Record a pending Tier-2 request bound to this run's exact slip set
+    // (the canonical pay_run_approval_payload, hashed in Postgres so it matches the RPC's
+    // own check) so an admin can approve it, then surface 403 with the approval id.
+    // request_approval needs auth.uid(), so it goes through userClient.
+    if (/approval required/i.test(rpcErr.message)) {
+      // The org lookup and the canonical payload are independent — fetch in parallel.
+      const [{ data: orgRow }, { data: payload }] = await Promise.all([
+        admin.from('pay_runs').select('organization_id').eq('id', run_id).maybeSingle(),
+        admin.rpc('pay_run_approval_payload', { p_run_id: run_id }),
+      ]);
+      const orgId = (orgRow as { organization_id?: string } | null)?.organization_id;
+      if (!orgId || !payload) {
+        return json({ ok: false, error: `${rpcErr.message} (could not record the approval request)` }, 403);
+      }
+      const { data: approvalId, error: reqErr } = await userClient.rpc('request_approval', {
+        p_org: orgId,
+        p_resource_type: 'pay_run',
+        p_resource_id: run_id,
+        p_risk_tier: 'tier2_approve',
+        p_payload: payload,
+      });
+      if (reqErr) {
+        // Refusal stands (fail-closed); distinguish "couldn't record" so it's debuggable.
+        console.error('request_approval failed', reqErr);
+        return json({ ok: false, error: `${rpcErr.message} (the approval request could not be recorded: ${reqErr.message})` }, 403);
+      }
+      return json({ ok: false, error: rpcErr.message, approval_id: (approvalId as string | null) ?? null }, 403);
+    }
     const status = /only owner/i.test(rpcErr.message) ? 403
                  : /not found/i.test(rpcErr.message)  ? 404
                  : 400;

@@ -5,6 +5,7 @@ import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { ArchiveButton } from '@/components/ArchiveButton';
+import { ChevronLeft, Plus, Edit3, Save, Users, Briefcase, FileSpreadsheet, DollarSign, Wallet, type LucideIcon } from 'lucide-react';
 
 interface Customer {
   id: string;
@@ -109,24 +110,75 @@ export function CustomerDetailPage() {
   };
 
   if (!currentOrg) return null;
-  if (loading) return <section><h1>Customer</h1><p style={{ color: '#888' }}>Loading…</p></section>;
-  if (!customer) return (
-    <section>
-      <h1>Customer not found</h1>
-      <Link to="/customers" style={{ color: '#86c7a3' }}>&larr; Back to customers</Link>
-    </section>
-  );
+  if (loading) return <section><p style={{ color: 'var(--text-muted)' }}>Loading customer details…</p></section>;
+  if (!customer) {
+    return (
+      <section className="animated-fade-in" style={{ padding: '2rem 0', textAlign: 'center' }}>
+        <h2>Customer not found</h2>
+        <Link to="/customers" className="btn btn-secondary" style={{ marginTop: '1rem' }}>
+          <ChevronLeft size={16} /> Back to customers
+        </Link>
+      </section>
+    );
+  }
 
   return (
-    <section>
-      <Link to="/customers" style={{ color: '#86c7a3', fontSize: 13 }}>&larr; All customers</Link>
+    <section className="animated-fade-in">
+      {/* Back button */}
+      <Link 
+        to="/customers" 
+        style={{ 
+          color: 'var(--text-muted)', 
+          fontSize: '0.825rem', 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.25rem',
+          marginBottom: '1rem'
+        }}
+      >
+        <ChevronLeft size={14} />
+        <span>All customers</span>
+      </Link>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '0.5rem' }}>
-        <h1 style={{ margin: 0 }}>{customer.name}</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => navigate(`/invoices/new?customer_id=${customer.id}`)} style={btnPrim}>+ Raise invoice</button>
-          <MoveToOrgButton table="customers" rowId={customer.id} currentOrgId={currentOrg.id} onMoved={() => { window.location.href = '/customers'; }} />
-          {!editing && <button onClick={startEdit} style={btnGhost}>✎ Edit</button>}
+      {/* Header section */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
+        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Users size={24} style={{ color: 'var(--accent-primary)' }} />
+          {customer.name}
+        </h1>
+        
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button 
+            onClick={() => navigate(`/invoices/new?customer_id=${customer.id}`)} 
+            className="btn btn-primary"
+          >
+            <Plus size={16} />
+            <span>Raise invoice</span>
+          </button>
+          
+          <MoveToOrgButton 
+            table="customers" 
+            rowId={customer.id} 
+            currentOrgId={currentOrg.id} 
+            onMoved={() => { window.location.href = '/customers'; }} 
+          />
+          
+          {!editing && (
+            <button onClick={startEdit} className="btn btn-secondary">
+              <Edit3 size={14} />
+              <span>Edit</span>
+            </button>
+          )}
+          
           <ArchiveButton
             table="customers"
             rowId={customer.id}
@@ -139,118 +191,232 @@ export function CustomerDetailPage() {
         </div>
       </div>
 
+      {/* Contact Info Detail card */}
       {editing ? (
-        <div style={card}>
-          <div style={grid2}>
-            <Field label="Name"><input value={draft.name ?? ''} onChange={(e) => setDraft({ ...draft, name: e.target.value })} style={inp} /></Field>
-            <Field label="ABN"><input value={draft.abn ?? ''} onChange={(e) => setDraft({ ...draft, abn: e.target.value })} style={inp} /></Field>
+        <div className="card" style={{ marginBottom: '1.5rem', maxWidth: '720px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+              <Field label="Name">
+                <input value={draft.name ?? ''} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className="form-input" />
+              </Field>
+              <Field label="ABN">
+                <input value={draft.abn ?? ''} onChange={(e) => setDraft({ ...draft, abn: e.target.value })} className="form-input" />
+              </Field>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+              <Field label="Email">
+                <input type="email" value={draft.email ?? ''} onChange={(e) => setDraft({ ...draft, email: e.target.value })} className="form-input" />
+              </Field>
+              <Field label="Phone">
+                <input type="tel" value={draft.phone ?? ''} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} className="form-input" />
+              </Field>
+            </div>
+            
+            <Field label="Notes">
+              <textarea rows={3} value={draft.notes ?? ''} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} className="form-textarea" />
+            </Field>
+            
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <button onClick={save} disabled={saving} className="btn btn-primary" style={{ padding: '0.625rem 1.25rem' }}>
+                <Save size={14} />
+                <span>{saving ? 'Saving…' : 'Save'}</span>
+              </button>
+              <button onClick={() => setEditing(false)} disabled={saving} className="btn btn-secondary" style={{ padding: '0.625rem 1.25rem' }}>
+                <span>Cancel</span>
+              </button>
+            </div>
+            {error && <div className="badge badge-danger" style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}>{error}</div>}
           </div>
-          <div style={grid2}>
-            <Field label="Email"><input value={draft.email ?? ''} onChange={(e) => setDraft({ ...draft, email: e.target.value })} style={inp} /></Field>
-            <Field label="Phone"><input value={draft.phone ?? ''} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} style={inp} /></Field>
-          </div>
-          <Field label="Notes"><textarea rows={2} value={draft.notes ?? ''} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} style={inp} /></Field>
-          <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-            <button onClick={save} disabled={saving} style={btnPrim}>{saving ? 'Saving…' : 'Save'}</button>
-            <button onClick={() => setEditing(false)} disabled={saving} style={btnGhost}>Cancel</button>
-          </div>
-          {error && <p style={{ color: 'salmon', fontSize: 12, marginTop: 8 }}>{error}</p>}
         </div>
       ) : (
-        <div style={{ ...card, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        <div className="card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
           <Stat label="ABN" value={customer.abn ?? '—'} />
           <Stat label="Email" value={customer.email ?? '—'} />
           <Stat label="Phone" value={customer.phone ?? '—'} />
+          {customer.notes && (
+            <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem', marginTop: '0.25rem' }}>
+              <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '0.25rem' }}>Notes</div>
+              <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-body)', lineHeight: '1.5' }}>{customer.notes}</p>
+            </div>
+          )}
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 16, maxWidth: 1100 }}>
-        <Kpi label="Invoices" value={String(pnl?.invoice_count ?? 0)} colour="#aaa" />
-        <Kpi label="Total invoiced" value={formatMoney(pnl?.total_invoiced_cents ?? 0)} colour="#86c7a3" />
-        <Kpi label="Paid" value={formatMoney(pnl?.total_paid_cents ?? 0)} colour="#86c7a3" />
-        <Kpi label="Outstanding" value={formatMoney(pnl?.balance_owing_cents ?? 0)} colour={(pnl?.balance_owing_cents ?? 0) > 0 ? '#d2c886' : '#888'} sub={(pnl?.overdue_cents ?? 0) > 0 ? `${formatMoney(pnl?.overdue_cents ?? 0)} overdue` : undefined} />
+      {/* KPI Cards */}
+      <div 
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+          gap: '1rem',
+          marginBottom: '2.5rem'
+        }}
+      >
+        <Kpi label="Total Invoices" value={String(pnl?.invoice_count ?? 0)} type="info" icon={FileSpreadsheet} />
+        <Kpi label="Total Invoiced" value={formatMoney(pnl?.total_invoiced_cents ?? 0)} type="neutral" icon={DollarSign} />
+        <Kpi label="Amount Paid" value={formatMoney(pnl?.total_paid_cents ?? 0)} type="success" icon={Wallet} />
+        <Kpi 
+          label="Outstanding Balance" 
+          value={formatMoney(pnl?.balance_owing_cents ?? 0)} 
+          type={(pnl?.balance_owing_cents ?? 0) > 0 ? 'warning' : 'neutral'} 
+          icon={DollarSign}
+          sub={(pnl?.overdue_cents ?? 0) > 0 ? `${formatMoney(pnl?.overdue_cents ?? 0)} overdue` : undefined} 
+        />
       </div>
 
-      <h2 style={h2}>Jobs ({jobs.length})</h2>
+      {/* Jobs Grid */}
+      <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+        <Briefcase size={16} style={{ color: 'var(--text-muted)' }} />
+        Jobs ({jobs.length})
+      </h2>
       {jobs.length === 0 ? (
-        <p style={{ color: '#888', fontSize: 13 }}>No jobs for this customer yet.</p>
+        <div style={{ padding: '2rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '2.5rem' }}>
+          No jobs associated with this customer yet.
+        </div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead><tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-            <th style={th}>Job #</th><th style={th}>Name</th><th style={th}>Status</th><th style={th}>Start</th><th style={th}>End</th><th style={thRight}>Budget</th>
-          </tr></thead>
-          <tbody>
-            {jobs.map((j) => (
-              <tr key={j.id} style={{ borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }} onClick={() => navigate(`/jobs/${j.id}`)}>
-                <td style={td}><code style={{ color: '#aaa' }}>{j.job_number}</code></td>
-                <td style={td}>{j.name}</td>
-                <td style={td}><Pill status={j.status} /></td>
-                <td style={td}>{j.start_date ?? '—'}</td>
-                <td style={td}>{j.end_date ?? '—'}</td>
-                <td style={tdRight}>{j.budget_cents != null ? formatMoney(j.budget_cents) : '—'}</td>
+        <div className="table-premium-container" style={{ marginBottom: '2.5rem' }}>
+          <table className="table-premium">
+            <thead>
+              <tr>
+                <th>Job #</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th style={{ textAlign: 'right' }}>Budget</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {jobs.map((j) => (
+                <tr key={j.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/jobs/${j.id}`)}>
+                  <td><code>{j.job_number}</code></td>
+                  <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{j.name}</td>
+                  <td><Pill status={j.status} /></td>
+                  <td>{j.start_date ?? '—'}</td>
+                  <td>{j.end_date ?? '—'}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{j.budget_cents != null ? formatMoney(j.budget_cents) : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      <h2 style={h2}>Invoices ({invoices.length})</h2>
+      {/* Invoices List */}
+      <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+        <FileSpreadsheet size={16} style={{ color: 'var(--text-muted)' }} />
+        Invoices ({invoices.length})
+      </h2>
       {invoices.length === 0 ? (
-        <p style={{ color: '#888', fontSize: 13 }}>No invoices for this customer yet.</p>
+        <div style={{ padding: '2rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+          No invoices raised for this customer yet.
+        </div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead><tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-            <th style={th}>#</th><th style={th}>Issued</th><th style={th}>Due</th><th style={th}>Status</th><th style={thRight}>Total</th><th style={thRight}>Balance</th>
-          </tr></thead>
-          <tbody>
-            {invoices.map((inv) => (
-              <tr key={inv.id} style={{ borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }} onClick={() => navigate(`/invoices/${inv.id}`)}>
-                <td style={td}><code style={{ color: '#aaa' }}>{inv.invoice_number}</code></td>
-                <td style={td}>{inv.issue_date}</td>
-                <td style={td}>{inv.due_date}</td>
-                <td style={td}><Pill status={inv.status} /></td>
-                <td style={tdRight}>{formatMoney(inv.total_inc_gst_cents)}</td>
-                <td style={{ ...tdRight, color: inv.balance_due_cents > 0 ? '#d2c886' : '#86c7a3' }}>{formatMoney(inv.balance_due_cents)}</td>
+        <div className="table-premium-container">
+          <table className="table-premium">
+            <thead>
+              <tr>
+                <th>Invoice #</th>
+                <th>Issued</th>
+                <th>Due</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Total</th>
+                <th style={{ textAlign: 'right' }}>Balance</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {invoices.map((inv) => (
+                <tr key={inv.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/invoices/${inv.id}`)}>
+                  <td><code>{inv.invoice_number}</code></td>
+                  <td>{inv.issue_date}</td>
+                  <td>{inv.due_date}</td>
+                  <td><Pill status={inv.status} /></td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(inv.total_inc_gst_cents)}</td>
+                  <td style={{ 
+                    textAlign: 'right', 
+                    fontWeight: 700, 
+                    color: inv.balance_due_cents > 0 ? 'var(--text-warning)' : 'var(--text-success)' 
+                  }}>
+                    {formatMoney(inv.balance_due_cents)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label style={{ display: 'block', fontSize: 11, color: '#888', marginTop: 6 }}><div style={{ marginBottom: 3 }}>{label}</div>{children}</label>;
-}
-function Stat({ label, value }: { label: string; value: string }) {
-  return <div><div style={{ fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div><div style={{ marginTop: 3, color: '#ddd', fontSize: 13 }}>{value}</div></div>;
-}
-function Kpi({ label, value, colour, sub }: { label: string; value: string; colour: string; sub?: string | undefined }) {
   return (
-    <div style={{ padding: 12, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 6 }}>
-      <div style={{ fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ marginTop: 4, fontSize: 18, color: colour, fontWeight: 600 }}>{value}</div>
-      {sub && <div style={{ marginTop: 3, fontSize: 11, color: '#888' }}>{sub}</div>}
+    <div className="form-group" style={{ marginBottom: 0 }}>
+      <span className="form-label" style={{ fontSize: '0.725rem' }}>{label}</span>
+      <div style={{ marginTop: '0.25rem' }}>{children}</div>
     </div>
   );
 }
-function Pill({ status }: { status: string }) {
-  const c = status === 'paid' || status === 'completed' || status === 'active' ? '#86c7a3'
-    : status === 'sent' ? '#5096d8'
-    : status === 'partially_paid' || status === 'quoted' ? '#d2c886'
-    : status === 'overdue' ? '#e9a3a3'
-    : status === 'void' || status === 'cancelled' ? '#666' : '#888';
-  return <span style={{ padding: '0.15rem 0.5rem', fontSize: 11, borderRadius: 3, background: '#222', color: c, textTransform: 'uppercase' }}>{status}</span>;
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+        {label}
+      </div>
+      <div style={{ marginTop: '0.25rem', color: 'var(--text-title)', fontSize: '0.9rem', fontWeight: 600 }}>
+        {value}
+      </div>
+    </div>
+  );
 }
 
-const card: React.CSSProperties = { marginTop: 12, padding: 16, background: '#0e0e0e', border: '1px solid #2a2a2a', borderRadius: 6, maxWidth: 1100 };
-const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 };
-const inp: React.CSSProperties = { width: '100%', padding: '6px 8px', background: '#000', color: '#ddd', border: '1px solid #333', borderRadius: 3, fontSize: 12 };
-const h2: React.CSSProperties = { fontSize: 14, marginTop: 24, marginBottom: 8 };
-const th: React.CSSProperties = { padding: '0.4rem 0.5rem', textAlign: 'left', fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 };
-const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
-const td: React.CSSProperties = { padding: '0.5rem' };
-const tdRight: React.CSSProperties = { ...td, textAlign: 'right' };
-const btnPrim: React.CSSProperties = { padding: '0.4rem 1rem', background: '#1c4868', color: '#fff', border: '1px solid #5096d8', borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: 'pointer' };
-const btnGhost: React.CSSProperties = { padding: '0.4rem 1rem', background: 'transparent', color: '#aaa', border: '1px solid #333', borderRadius: 4, fontSize: 12, cursor: 'pointer' };
+function Kpi({ 
+  label, 
+  value, 
+  type,
+  icon: Icon,
+  sub 
+}: {
+  label: string;
+  value: string;
+  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
+  icon: LucideIcon;
+  sub?: string | undefined;
+}) {
+  return (
+    <div 
+      className="card"
+      style={{ 
+        padding: '1.25rem',
+        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
+        position: 'relative'
+      }}
+    >
+      <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+        {label}
+      </div>
+      <div style={{ marginTop: '0.35rem', fontSize: '1.5rem', color: 'var(--text-title)', fontWeight: 800, fontFamily: 'var(--font-title)' }}>
+        {value}
+      </div>
+      {sub ? (
+        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>{sub}</div>
+      ) : (
+        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
+      )}
+      <div style={{ position: 'absolute', right: '1rem', bottom: '1rem', color: `var(--accent-${type === 'neutral' ? 'primary' : type})`, opacity: 0.7 }}>
+        <Icon size={18} />
+      </div>
+    </div>
+  );
+}
+
+function Pill({ status }: { status: string }) {
+  let badgeClass = 'badge-neutral';
+  if (status === 'paid' || status === 'completed' || status === 'active') badgeClass = 'badge-success';
+  else if (status === 'sent') badgeClass = 'badge-info';
+  else if (status === 'partially_paid' || status === 'quoted') badgeClass = 'badge-warning';
+  else if (status === 'overdue') badgeClass = 'badge-danger';
+  
+  return <span className={`badge ${badgeClass}`}>{status.replace('_', ' ')}</span>;
+}

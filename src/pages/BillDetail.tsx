@@ -7,11 +7,19 @@ import { AllocationSplitButton } from '@/components/AllocationSplitButton';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
 import { useOrg } from '@/hooks/useOrg';
+import { 
+  ChevronLeft, 
+  Edit3, 
+  Save, 
+  X, 
+  RefreshCw, 
+  FileText, 
+  Briefcase, 
+  FolderOpen,
+  AlertTriangle,
+  Star
+} from 'lucide-react';
 
-// ---------------------------------------------------------------------------
-// Draft shape for the edit form. Money fields are stored as dollar strings
-// so the user types "$123.45" naturally; we convert to cents on save.
-// ---------------------------------------------------------------------------
 interface BillDraft {
   supplier_name_raw: string;
   supplier_abn: string;
@@ -42,7 +50,6 @@ function billToDraft(bill: Bill): BillDraft {
   };
 }
 
-/** Parse a dollar string to cents integer (null if blank / not a number). */
 function parseDollarsToCents(s: string): number | null {
   const trimmed = s.trim().replace(/^\$/, '');
   if (trimmed === '') return null;
@@ -51,12 +58,6 @@ function parseDollarsToCents(s: string): number | null {
   return Math.round(n * 100);
 }
 
-/**
- * AU GST auto-compute rules:
- * 1. total given, gst blank  → gst = round(total / 11)
- * 2. subtotal + gst given, total blank → total = subtotal + gst
- * Returns updated cents values (null = leave as-is / blank).
- */
 function autoComputeGst(draft: BillDraft): {
   total: number | null;
   gst: number | null;
@@ -70,7 +71,6 @@ function autoComputeGst(draft: BillDraft): {
   let resolvedGst = gst;
   let resolvedSubtotal = subtotal;
 
-  // Rule 1: total given, gst blank
   if (total != null && gst == null) {
     resolvedGst = Math.round(total / 11);
     if (subtotal == null) {
@@ -78,7 +78,6 @@ function autoComputeGst(draft: BillDraft): {
     }
   }
 
-  // Rule 2: subtotal + gst given, total blank
   if (subtotal != null && gst != null && total == null) {
     resolvedTotal = subtotal + gst;
   }
@@ -93,7 +92,6 @@ export function BillDetailPage() {
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Edit-mode state
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<BillDraft | null>(null);
   const [saving, setSaving] = useState(false);
@@ -105,13 +103,22 @@ export function BillDetailPage() {
     }
   }, [bill]);
 
-  if (loading) return <p style={{ color: '#888' }}>Loading bill…</p>;
+  if (loading) {
+    return (
+      <section className="animated-fade-in">
+        <p style={{ color: 'var(--text-muted)' }}>Loading bill details…</p>
+      </section>
+    );
+  }
   if (error || !bill) {
     return (
-      <section>
-        <h1>Bill not found</h1>
-        <p style={{ color: 'salmon' }}>{error ?? 'No bill with that id.'}</p>
-        <Link to="/bills">← back to bills</Link>
+      <section className="animated-fade-in" style={{ padding: '2rem 0', textAlign: 'center' }}>
+        <AlertTriangle size={48} style={{ color: 'var(--accent-danger)', marginBottom: '1rem' }} />
+        <h2>Bill not found</h2>
+        <p style={{ color: 'var(--text-muted)' }}>{error ?? 'No bill with that ID.'}</p>
+        <Link to="/bills" className="btn btn-secondary" style={{ marginTop: '1rem' }}>
+          <ChevronLeft size={16} /> Back to bills
+        </Link>
       </section>
     );
   }
@@ -176,9 +183,7 @@ export function BillDetailPage() {
     setBusy(true);
     setActionError(null);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('No session');
 
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bills-attach`;
@@ -206,9 +211,7 @@ export function BillDetailPage() {
     setBusy(true);
     setActionError(null);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('No session');
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bills-extract`;
       const res = await fetch(url, {
@@ -230,30 +233,60 @@ export function BillDetailPage() {
   };
 
   return (
-    <section>
-      <Link to="/bills" style={{ color: '#888', fontSize: 13 }}>
-        ← back to bills
+    <section className="animated-fade-in">
+      {/* Top back navigation */}
+      <Link 
+        to="/bills" 
+        style={{ 
+          color: 'var(--text-muted)', 
+          fontSize: '0.825rem', 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.25rem',
+          marginBottom: '1rem'
+        }}
+      >
+        <ChevronLeft size={14} />
+        <span>Back to bills</span>
       </Link>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '0.5rem' }}>
-        <h1 style={{ margin: 0 }}>
-          {bill.supplier_name_raw ?? <span style={{ color: '#888' }}>Bill {bill.id.slice(0, 8)}</span>}
+
+      {/* Header controls bar */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '0.5rem',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
+        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <FileText size={24} style={{ color: 'var(--accent-primary)' }} />
+          {bill.supplier_name_raw ?? <span style={{ color: 'var(--text-muted)' }}>Bill {bill.id.slice(0, 8)}</span>}
         </h1>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
           {savedFlash && (
-            <span style={{ fontSize: 12, color: '#86c7a3', fontWeight: 600 }}>✓ Saved</span>
+            <span className="badge badge-success" style={{ padding: '0.4rem 0.75rem', textTransform: 'none' }}>✓ Saved</span>
           )}
+          
           <PersonalToggle bill={bill} onChange={() => void refresh()} />
+          
           {!editing && (
-            <button onClick={startEdit} style={editBtnStyle}>
-              ✎ Edit
+            <button onClick={startEdit} className="btn btn-secondary">
+              <Edit3 size={14} />
+              <span>Edit Details</span>
             </button>
           )}
+          
           <AllocationSplitButton
             resourceType="bill"
             resourceId={bill.id}
             hostOrgId={bill.organization_id}
             onSaved={() => void refresh()}
           />
+          
           <MoveToOrgButton
             table="bills"
             rowId={bill.id}
@@ -263,27 +296,37 @@ export function BillDetailPage() {
           />
         </div>
       </div>
+
       <StatusBar bill={bill} />
 
       {actionError && (
-        <div style={{ padding: '0.75rem', background: '#3d1818', color: '#e9a3a3', borderRadius: 4, marginBottom: '1rem' }}>
+        <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', marginBottom: '1.5rem', textTransform: 'none' }}>
           {actionError}
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-        {/* Left: file preview */}
+      {/* Two Column Split View */}
+      <div 
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', 
+          gap: '1.5rem',
+          alignItems: 'start'
+        }}
+      >
+        {/* Left Side: Document Preview Pane */}
         <div>
-          <h3 style={{ fontSize: 14, color: '#aaa', marginBottom: '0.5rem' }}>Original document</h3>
+          <h3 style={{ fontSize: '0.875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+            Original Document
+          </h3>
           <div
+            className="card"
             style={{
-              background: '#0a0a0a',
-              border: '1px solid #2a2a2a',
-              borderRadius: 4,
-              minHeight: 600,
-              maxHeight: '85vh',
-              overflow: 'auto',
               padding: '0.5rem',
+              height: '75vh',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column'
             }}
           >
             {fileUrl ? (
@@ -291,302 +334,291 @@ export function BillDetailPage() {
                 <iframe
                   src={fileUrl}
                   title={bill.original_filename}
-                  style={{ width: '100%', height: '80vh', border: 'none' }}
+                  style={{ width: '100%', height: '100%', border: 'none', borderRadius: 'var(--radius-sm)' }}
                 />
               ) : bill.mime_type.startsWith('image/') ? (
-                <a href={fileUrl} target="_blank" rel="noreferrer">
-                  <img
-                    src={fileUrl}
-                    alt={bill.original_filename}
-                    style={{ width: '100%', height: 'auto', display: 'block' }}
-                  />
-                </a>
+                <div style={{ height: '100%', overflow: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  <a href={fileUrl} target="_blank" rel="noreferrer" style={{ width: '100%' }}>
+                    <img
+                      src={fileUrl}
+                      alt={bill.original_filename}
+                      style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 'var(--radius-sm)' }}
+                    />
+                  </a>
+                </div>
               ) : (
-                <p style={{ color: '#888', padding: '1rem' }}>
+                <p style={{ color: 'var(--text-muted)', padding: '1rem', textAlign: 'center' }}>
                   Preview not supported for {bill.mime_type}.{' '}
-                  <a href={fileUrl} target="_blank" rel="noreferrer" style={{ color: '#86c7a3' }}>
-                    Download
+                  <a href={fileUrl} target="_blank" rel="noreferrer" style={{ fontWeight: 600 }}>
+                    Download file
                   </a>
                 </p>
               )
             ) : (
-              <p style={{ color: '#888', padding: '1rem' }}>Loading preview…</p>
+              <p style={{ color: 'var(--text-muted)', padding: '1.5rem', textAlign: 'center' }}>Loading preview…</p>
             )}
           </div>
         </div>
 
-        {/* Right: extracted data + actions */}
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <h3 style={{ fontSize: 14, color: '#aaa', margin: 0 }}>Extracted</h3>
-            {editing && (
-              <div style={{ display: 'flex', gap: 8 }}>
+        {/* Right Side: Data Fields & Actions */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <h3 style={{ fontSize: '0.875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+                Extracted Data
+              </h3>
+              {editing && (
+                <div style={{ display: 'flex', gap: '0.35rem' }}>
+                  <button onClick={() => void saveBill()} disabled={saving} className="btn btn-primary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}>
+                    <Save size={12} />
+                    <span>{saving ? 'Saving…' : 'Save'}</span>
+                  </button>
+                  <button onClick={cancelEdit} disabled={saving} className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}>
+                    <X size={12} />
+                    <span>Cancel</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
+              {editing && draft ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <EditField label="Supplier">
+                    <input
+                      value={draft.supplier_name_raw}
+                      onChange={(e) => setField('supplier_name_raw', e.target.value)}
+                      className="form-input"
+                      placeholder="Supplier name"
+                    />
+                  </EditField>
+                  <EditField label="ABN">
+                    <input
+                      value={draft.supplier_abn}
+                      onChange={(e) => setField('supplier_abn', e.target.value)}
+                      className="form-input"
+                      style={{ fontFamily: 'ui-monospace, monospace' }}
+                      placeholder="XX XXX XXX XXX"
+                    />
+                  </EditField>
+                  <EditField label="Invoice #">
+                    <input
+                      value={draft.invoice_number}
+                      onChange={(e) => setField('invoice_number', e.target.value)}
+                      className="form-input"
+                      style={{ fontFamily: 'ui-monospace, monospace' }}
+                      placeholder="INV-001"
+                    />
+                  </EditField>
+                  <EditField label="Invoice Date">
+                    <input
+                      type="date"
+                      value={draft.invoice_date}
+                      onChange={(e) => setField('invoice_date', e.target.value)}
+                      className="form-input"
+                    />
+                  </EditField>
+                  <EditField label="Due Date">
+                    <input
+                      type="date"
+                      value={draft.due_date}
+                      onChange={(e) => setField('due_date', e.target.value)}
+                      className="form-input"
+                    />
+                  </EditField>
+                  <EditField label="Total inc GST" hint="Auto-computes GST = total ÷ 11 if GST left blank">
+                    <input
+                      value={draft.total_inc_gst_dollars}
+                      onChange={(e) => setField('total_inc_gst_dollars', e.target.value)}
+                      className="form-input"
+                      style={{ fontWeight: 600 }}
+                      placeholder="0.00"
+                    />
+                  </EditField>
+                  <EditField label="GST Share">
+                    <input
+                      value={draft.gst_dollars}
+                      onChange={(e) => setField('gst_dollars', e.target.value)}
+                      className="form-input"
+                      placeholder="0.00"
+                    />
+                  </EditField>
+                  <EditField label="Subtotal ex GST">
+                    <input
+                      value={draft.subtotal_ex_gst_dollars}
+                      onChange={(e) => setField('subtotal_ex_gst_dollars', e.target.value)}
+                      className="form-input"
+                      placeholder="0.00"
+                    />
+                  </EditField>
+                  <EditField label="Job Reference">
+                    <input
+                      value={draft.job_reference_raw}
+                      onChange={(e) => setField('job_reference_raw', e.target.value)}
+                      className="form-input"
+                      style={{ fontFamily: 'ui-monospace, monospace' }}
+                      placeholder="e.g. JOB-042"
+                    />
+                  </EditField>
+                  <EditField label="Internal Notes">
+                    <textarea
+                      value={draft.notes}
+                      onChange={(e) => setField('notes', e.target.value)}
+                      className="form-textarea"
+                      style={{ minHeight: '60px' }}
+                      placeholder="Internal notes…"
+                    />
+                  </EditField>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <Field label="Supplier" value={bill.supplier_name_raw} />
+                  <Field label="ABN" value={bill.supplier_abn} mono />
+                  <Field label="Invoice #" value={bill.invoice_number} mono />
+                  <Field label="Date" value={bill.invoice_date} />
+                  <Field label="Due" value={bill.due_date} />
+                  <Field
+                    label="Total inc GST"
+                    value={bill.total_inc_gst_cents != null ? formatMoney(bill.total_inc_gst_cents) : null}
+                    highlight
+                  />
+                  <Field label="GST" value={bill.gst_cents != null ? formatMoney(bill.gst_cents) : null} />
+                  <Field
+                    label="Subtotal ex GST"
+                    value={bill.subtotal_ex_gst_cents != null ? formatMoney(bill.subtotal_ex_gst_cents) : null}
+                  />
+                  <Field label="Job Reference" value={bill.job_reference_raw} mono />
+                  {bill.notes && <Field label="Notes" value={bill.notes} />}
+                  <Field
+                    label="OCR Intake Info"
+                    value={
+                      bill.ocr_provider
+                        ? `${bill.raw_extracted?._extraction_method ?? '?'} via ${bill.ocr_provider} (confidence: ${Math.round((bill.ocr_confidence ?? 0) * 100)}%)`
+                        : null
+                    }
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Line items section */}
+          {bill.line_items.length > 0 && (
+            <div>
+              <h3 style={{ fontSize: '0.875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                Line Items
+              </h3>
+              <div className="table-premium-container">
+                <table className="table-premium">
+                  <thead>
+                    <tr>
+                      <th>Description</th>
+                      <th style={{ textAlign: 'right', width: '60px' }}>Qty</th>
+                      <th style={{ textAlign: 'right', width: '100px' }}>Unit</th>
+                      <th style={{ textAlign: 'right', width: '100px' }}>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bill.line_items.map((li) => (
+                      <tr key={li.id}>
+                        <td>{li.description}</td>
+                        <td style={{ textAlign: 'right' }}>{li.quantity}</td>
+                        <td style={{ textAlign: 'right' }}>{formatMoney(li.unit_price_cents)}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(li.total_cents)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Splits allocations */}
+          <EffectiveAllocations billId={bill.id} />
+
+          {/* Job attachment panel */}
+          <div>
+            <h3 style={{ fontSize: '0.875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <Briefcase size={14} />
+              {bill.status === 'attached' || bill.status === 'paid' ? 'Attached Job' : 'Attach to a Job'}
+            </h3>
+
+            {bill.status === 'attached' || bill.status === 'paid' ? (
+              <div 
+                className="card"
+                style={{
+                  borderLeft: '4px solid var(--accent-success)',
+                  padding: '1rem 1.25rem'
+                }}
+              >
+                <div style={{ fontWeight: 700, color: 'var(--text-title)' }}>
+                  <code style={{ color: 'var(--text-success)', fontSize: '0.875rem', marginRight: '0.5rem' }}>
+                    {bill.attached_job?.job_number ?? bill.job_id?.slice(0, 8)}
+                  </code>{' '}
+                  <span>{bill.attached_job?.name}</span>
+                </div>
+                {bill.xero_invoice_id && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                    Xero ID: <code>{bill.xero_invoice_id}</code> · Sync: {bill.xero_status}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {bill.suggested_job && (() => {
+                  const suggestedJob = bill.suggested_job;
+                  return (
+                    <div 
+                      className="card"
+                      style={{
+                        padding: '1rem',
+                        borderLeft: '4px solid var(--accent-primary)',
+                      }}
+                    >
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                        Suggested Match ({Math.round((bill.suggested_match_score ?? 0) * 100)}% confidence):
+                      </div>
+                      <div style={{ marginBottom: '0.75rem', fontWeight: 600 }}>
+                        <code style={{ color: 'var(--accent-primary)', marginRight: '0.5rem' }}>{suggestedJob.job_number}</code>
+                        <span style={{ color: 'var(--text-title)' }}>{suggestedJob.name}</span>
+                      </div>
+                      <button
+                        onClick={() => attachToJob(suggestedJob.id)}
+                        disabled={busy}
+                        className="btn btn-primary"
+                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                      >
+                        Attach to suggested job
+                      </button>
+                    </div>
+                  );
+                })()}
+
+                <div className="card" style={{ padding: '1rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                    Search Job List
+                  </div>
+                  <JobPicker onPick={(job) => attachToJob(job.id)} busy={busy} />
+                </div>
+
                 <button
-                  onClick={() => void saveBill()}
-                  disabled={saving}
-                  style={primaryBtnStyle}
+                  onClick={reocr}
+                  disabled={busy}
+                  className="btn btn-secondary"
+                  style={{ alignSelf: 'flex-start' }}
                 >
-                  {saving ? 'Saving…' : 'Save'}
-                </button>
-                <button
-                  onClick={cancelEdit}
-                  disabled={saving}
-                  style={ghostBtnStyle}
-                >
-                  Cancel
+                  <RefreshCw size={12} />
+                  <span>Re-run intake parsing</span>
                 </button>
               </div>
             )}
           </div>
-
-          {editing && draft ? (
-            <>
-              <EditField label="Supplier">
-                <input
-                  value={draft.supplier_name_raw}
-                  onChange={(e) => setField('supplier_name_raw', e.target.value)}
-                  style={inpStyle}
-                  placeholder="Supplier name"
-                />
-              </EditField>
-              <EditField label="ABN">
-                <input
-                  value={draft.supplier_abn}
-                  onChange={(e) => setField('supplier_abn', e.target.value)}
-                  style={{ ...inpStyle, fontFamily: 'ui-monospace, monospace' }}
-                  placeholder="XX XXX XXX XXX"
-                />
-              </EditField>
-              <EditField label="Invoice #">
-                <input
-                  value={draft.invoice_number}
-                  onChange={(e) => setField('invoice_number', e.target.value)}
-                  style={{ ...inpStyle, fontFamily: 'ui-monospace, monospace' }}
-                  placeholder="INV-001"
-                />
-              </EditField>
-              <EditField label="Date">
-                <input
-                  type="date"
-                  value={draft.invoice_date}
-                  onChange={(e) => setField('invoice_date', e.target.value)}
-                  style={inpStyle}
-                />
-              </EditField>
-              <EditField label="Due">
-                <input
-                  type="date"
-                  value={draft.due_date}
-                  onChange={(e) => setField('due_date', e.target.value)}
-                  style={inpStyle}
-                />
-              </EditField>
-              <EditField label="Total inc GST" hint="Auto-computes GST = total ÷ 11 if GST left blank">
-                <input
-                  value={draft.total_inc_gst_dollars}
-                  onChange={(e) => setField('total_inc_gst_dollars', e.target.value)}
-                  style={{ ...inpStyle, fontWeight: 600 }}
-                  placeholder="0.00"
-                />
-              </EditField>
-              <EditField label="GST">
-                <input
-                  value={draft.gst_dollars}
-                  onChange={(e) => setField('gst_dollars', e.target.value)}
-                  style={inpStyle}
-                  placeholder="0.00"
-                />
-              </EditField>
-              <EditField label="Subtotal ex GST">
-                <input
-                  value={draft.subtotal_ex_gst_dollars}
-                  onChange={(e) => setField('subtotal_ex_gst_dollars', e.target.value)}
-                  style={inpStyle}
-                  placeholder="0.00"
-                />
-              </EditField>
-              <EditField label="Job ref">
-                <input
-                  value={draft.job_reference_raw}
-                  onChange={(e) => setField('job_reference_raw', e.target.value)}
-                  style={{ ...inpStyle, fontFamily: 'ui-monospace, monospace' }}
-                  placeholder="e.g. JOB-042"
-                />
-              </EditField>
-              <EditField label="Notes">
-                <textarea
-                  value={draft.notes}
-                  onChange={(e) => setField('notes', e.target.value)}
-                  style={{ ...inpStyle, height: 72, resize: 'vertical', lineHeight: '1.4' }}
-                  placeholder="Internal notes…"
-                />
-              </EditField>
-            </>
-          ) : (
-            <>
-              <Field label="Supplier" value={bill.supplier_name_raw} />
-              <Field label="ABN" value={bill.supplier_abn} mono />
-              <Field label="Invoice #" value={bill.invoice_number} mono />
-              <Field label="Date" value={bill.invoice_date} />
-              <Field label="Due" value={bill.due_date} />
-              <Field
-                label="Total inc GST"
-                value={bill.total_inc_gst_cents != null ? formatMoney(bill.total_inc_gst_cents) : null}
-                highlight
-              />
-              <Field label="GST" value={bill.gst_cents != null ? formatMoney(bill.gst_cents) : null} />
-              <Field
-                label="Subtotal ex GST"
-                value={bill.subtotal_ex_gst_cents != null ? formatMoney(bill.subtotal_ex_gst_cents) : null}
-              />
-              <Field label="Job ref" value={bill.job_reference_raw} mono />
-              {bill.notes && <Field label="Notes" value={bill.notes} />}
-            </>
-          )}
-
-          <Field
-            label="OCR"
-            value={
-              bill.ocr_provider
-                ? `${bill.raw_extracted?._extraction_method ?? '?'} via ${bill.ocr_provider} (${bill.ocr_confidence ?? '?'})`
-                : null
-            }
-          />
-
-          {bill.line_items.length > 0 && (
-            <>
-              <h3 style={{ fontSize: 14, color: '#aaa', marginTop: '1.5rem', marginBottom: '0.5rem' }}>
-                Line items
-              </h3>
-              <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid #2a2a2a', color: '#888' }}>
-                    <th style={{ textAlign: 'left', padding: '0.4rem' }}>Description</th>
-                    <th style={{ textAlign: 'right', padding: '0.4rem' }}>Qty</th>
-                    <th style={{ textAlign: 'right', padding: '0.4rem' }}>Unit</th>
-                    <th style={{ textAlign: 'right', padding: '0.4rem' }}>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bill.line_items.map((li) => (
-                    <tr key={li.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                      <td style={{ padding: '0.4rem' }}>{li.description}</td>
-                      <td style={{ textAlign: 'right', padding: '0.4rem' }}>{li.quantity}</td>
-                      <td style={{ textAlign: 'right', padding: '0.4rem' }}>
-                        {formatMoney(li.unit_price_cents)}
-                      </td>
-                      <td style={{ textAlign: 'right', padding: '0.4rem', fontWeight: 600 }}>
-                        {formatMoney(li.total_cents)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
-          )}
-
-          {/* Effective per-org allocation (shown only when splits exist) */}
-          <EffectiveAllocations billId={bill.id} />
-
-          {/* Attach UI */}
-          <h3 style={{ fontSize: 14, color: '#aaa', marginTop: '1.5rem', marginBottom: '0.5rem' }}>
-            {bill.status === 'attached' || bill.status === 'paid' ? 'Attached job' : 'Attach to a job'}
-          </h3>
-
-          {bill.status === 'attached' || bill.status === 'paid' ? (
-            <div
-              style={{
-                padding: '0.75rem',
-                background: '#0d2f1f',
-                border: '1px solid #1c5135',
-                borderRadius: 4,
-              }}
-            >
-              <div style={{ fontWeight: 600 }}>
-                <code style={{ color: '#86c7a3' }}>
-                  {bill.attached_job?.job_number ?? bill.job_id?.slice(0, 8)}
-                </code>{' '}
-                <span style={{ color: '#aaa', fontWeight: 400 }}>{bill.attached_job?.name}</span>
-              </div>
-              {bill.xero_invoice_id && (
-                <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
-                  Xero: <code>{bill.xero_invoice_id}</code> · status {bill.xero_status}
-                </div>
-              )}
-            </div>
-          ) : (
-            <>
-              {bill.suggested_job && (() => {
-                const suggestedJob = bill.suggested_job;
-                return (
-                <div
-                  style={{
-                    padding: '0.75rem',
-                    background: '#1a1a1a',
-                    border: '1px solid #2a2a2a',
-                    borderRadius: 4,
-                    marginBottom: '0.75rem',
-                  }}
-                >
-                  <div style={{ fontSize: 12, color: '#aaa', marginBottom: '0.5rem' }}>
-                    Suggested ({Math.round((bill.suggested_match_score ?? 0) * 100)}% match):
-                  </div>
-                  <div style={{ marginBottom: '0.5rem' }}>
-                    <code style={{ color: '#86c7a3' }}>{suggestedJob.job_number}</code>{' '}
-                    <span style={{ color: '#aaa' }}>{suggestedJob.name}</span>
-                  </div>
-                  <button
-                    onClick={() => attachToJob(suggestedJob.id)}
-                    disabled={busy}
-                    style={{
-                      padding: '0.4rem 0.75rem',
-                      background: '#1c5135',
-                      color: '#fff',
-                      border: '1px solid #2da565',
-                      borderRadius: 4,
-                      cursor: busy ? 'wait' : 'pointer',
-                      fontSize: 13,
-                    }}
-                  >
-                    {busy ? 'Attaching…' : 'Attach to suggested job'}
-                  </button>
-                </div>
-                );
-              })()}
-
-              <div style={{ marginBottom: '0.5rem' }}>
-                <JobPicker onPick={(job) => attachToJob(job.id)} busy={busy} />
-              </div>
-
-              <button
-                onClick={reocr}
-                disabled={busy}
-                style={{
-                  padding: '0.4rem 0.75rem',
-                  background: 'transparent',
-                  color: '#aaa',
-                  border: '1px solid #444',
-                  borderRadius: 4,
-                  cursor: busy ? 'wait' : 'pointer',
-                  fontSize: 12,
-                  marginTop: '0.75rem',
-                }}
-              >
-                Re-run extraction
-              </button>
-            </>
-          )}
         </div>
       </div>
     </section>
   );
 }
 
-/**
- * Effective per-org allocation table — surfaces the split math so the user
- * can see, e.g., "Business A gets $66 of this $120 bill, Business B gets $54."
- * Renders nothing when there are no splits (only a single host row).
- */
 function EffectiveAllocations({ billId }: { billId: string }) {
   const { organizations } = useOrg();
   const [rows, setRows] = useState<{
@@ -622,48 +654,51 @@ function EffectiveAllocations({ billId }: { billId: string }) {
     return () => { cancelled = true; };
   }, [billId]);
 
-  if (!rows || rows.length <= 1) return null; // only host row → no splits → hide
+  if (!rows || rows.length <= 1) return null;
 
   return (
-    <>
-      <h3 style={{ fontSize: 14, color: '#aaa', marginTop: '1.5rem', marginBottom: '0.5rem' }}>
-        Effective allocation
+    <div>
+      <h3 style={{ fontSize: '0.875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+        <FolderOpen size={14} />
+        Effective allocations
       </h3>
-      <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid #2a2a2a', color: '#888' }}>
-            <th style={{ textAlign: 'left', padding: '0.4rem' }}>Business</th>
-            <th style={{ textAlign: 'right', padding: '0.4rem' }}>Share</th>
-            <th style={{ textAlign: 'right', padding: '0.4rem' }}>Effective inc GST</th>
-            <th style={{ textAlign: 'right', padding: '0.4rem' }}>Effective GST</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => {
-            const orgName = organizations.find((o) => o.id === r.organization_id)?.name
-              ?? r.organization_id.slice(0, 8);
-            return (
-              <tr key={r.organization_id} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                <td style={{ padding: '0.4rem' }}>
-                  {r.is_host && <span style={{ color: '#86c7a3', marginRight: 4 }}>★</span>}
-                  {orgName}
-                  {r.is_host && <span style={{ color: '#666', fontSize: 11 }}> (host)</span>}
-                </td>
-                <td style={{ textAlign: 'right', padding: '0.4rem', fontFamily: 'ui-monospace, monospace' }}>
-                  {r.percentage.toFixed(2)}%
-                </td>
-                <td style={{ textAlign: 'right', padding: '0.4rem', fontWeight: 600 }}>
-                  {formatMoney(r.effective_total_inc_gst_cents)}
-                </td>
-                <td style={{ textAlign: 'right', padding: '0.4rem' }}>
-                  {formatMoney(r.effective_gst_cents)}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </>
+      <div className="table-premium-container">
+        <table className="table-premium">
+          <thead>
+            <tr>
+              <th>Business</th>
+              <th style={{ textAlign: 'right', width: '80px' }}>Share</th>
+              <th style={{ textAlign: 'right' }}>Effective inc GST</th>
+              <th style={{ textAlign: 'right' }}>Effective GST</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => {
+              const orgName = organizations.find((o) => o.id === r.organization_id)?.name
+                ?? r.organization_id.slice(0, 8);
+              return (
+                <tr key={r.organization_id}>
+                  <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>
+                    {r.is_host && <span style={{ color: 'var(--accent-success)', marginRight: 4 }}>★</span>}
+                    {orgName}
+                    {r.is_host && <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 'normal' }}> (host)</span>}
+                  </td>
+                  <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>
+                    {r.percentage.toFixed(2)}%
+                  </td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                    {formatMoney(r.effective_total_inc_gst_cents)}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    {formatMoney(r.effective_gst_cents)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
@@ -679,87 +714,40 @@ function PersonalToggle({ bill, onChange }: { bill: Bill; onChange: () => void }
     <button
       onClick={toggle}
       disabled={busy}
+      className="btn"
       style={{
-        padding: '0.3rem 0.75rem',
-        background: bill.is_personal ? '#3d2818' : 'transparent',
-        color: bill.is_personal ? '#f0c47a' : '#aaa',
-        border: '1px solid ' + (bill.is_personal ? '#d28d4a' : '#333'),
-        borderRadius: 3,
-        fontSize: 12,
-        cursor: busy ? 'wait' : 'pointer',
+        background: bill.is_personal ? 'var(--bg-warning-subtle)' : 'transparent',
+        color: bill.is_personal ? 'var(--text-warning)' : 'var(--text-muted)',
+        border: '1px solid ' + (bill.is_personal ? 'var(--accent-warning)' : 'var(--border-subtle)'),
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.25rem'
       }}
       title="Tag as a personal (non-business) expense — excluded from P&L, BAS, and tax set-aside."
     >
-      {bill.is_personal ? '★ Personal' : 'Mark personal'}
+      <Star size={14} fill={bill.is_personal ? 'currentColor' : 'none'} />
+      <span>{bill.is_personal ? 'Personal Expense' : 'Mark Personal'}</span>
     </button>
   );
 }
 
 function StatusBar({ bill }: { bill: Bill }) {
-  const colour =
-    bill.status === 'attached' || bill.status === 'paid'
-      ? '#86c7a3'
-      : bill.status === 'verified'
-        ? '#d2c886'
-        : '#888';
+  let badgeClass = 'badge-neutral';
+  if (bill.status === 'attached') badgeClass = 'badge-success';
+  else if (bill.status === 'paid') badgeClass = 'badge-info';
+  else if (bill.status === 'verified') badgeClass = 'badge-warning';
+
   return (
-    <div style={{ fontSize: 13, color: '#888', marginBottom: '1.5rem' }}>
-      <span style={{ color: colour, fontWeight: 600, textTransform: 'uppercase' }}>
-        {bill.status}
-      </span>{' '}
-      · uploaded {new Date(bill.created_at).toLocaleString()} · {bill.original_filename}
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.825rem', color: 'var(--text-muted)', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      <span className={`badge ${badgeClass}`}>{bill.status}</span>
+      <span>·</span>
+      <span>Uploaded: {new Date(bill.created_at).toLocaleString('en-AU')}</span>
+      <span>·</span>
+      <span>File: <code>{bill.original_filename}</code></span>
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Shared style constants (mirrors SupplierDetail pattern)
-// ---------------------------------------------------------------------------
-const editBtnStyle: React.CSSProperties = {
-  padding: '0.3rem 0.75rem',
-  background: 'transparent',
-  color: '#aaa',
-  border: '1px solid #333',
-  borderRadius: 3,
-  fontSize: 12,
-  cursor: 'pointer',
-};
-
-const primaryBtnStyle: React.CSSProperties = {
-  padding: '0.4rem 1rem',
-  background: '#1c4868',
-  color: '#fff',
-  border: '1px solid #5096d8',
-  borderRadius: 4,
-  fontSize: 12,
-  fontWeight: 600,
-  cursor: 'pointer',
-};
-
-const ghostBtnStyle: React.CSSProperties = {
-  padding: '0.4rem 1rem',
-  background: 'transparent',
-  color: '#aaa',
-  border: '1px solid #333',
-  borderRadius: 4,
-  fontSize: 12,
-  cursor: 'pointer',
-};
-
-const inpStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '5px 8px',
-  background: '#000',
-  color: '#ddd',
-  border: '1px solid #333',
-  borderRadius: 3,
-  fontSize: 12,
-  boxSizing: 'border-box',
-};
-
-// ---------------------------------------------------------------------------
-// EditField — label + arbitrary input child, same row layout as Field
-// ---------------------------------------------------------------------------
 function EditField({
   label,
   hint,
@@ -770,11 +758,11 @@ function EditField({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', padding: '0.35rem 0', borderBottom: '1px solid #1a1a1a', gap: 8 }}>
-      <div style={{ fontSize: 12, color: '#888', width: 130, flexShrink: 0, paddingTop: 6 }}>
-        {label}
+    <div style={{ display: 'flex', alignItems: 'flex-start', padding: '0.35rem 0', borderBottom: '1px solid var(--border-subtle)', gap: 12 }}>
+      <div style={{ width: 130, flexShrink: 0, paddingTop: 6 }}>
+        <span className="form-label" style={{ fontSize: '0.725rem' }}>{label}</span>
         {hint && (
-          <div style={{ fontSize: 10, color: '#555', marginTop: 2, lineHeight: 1.3 }}>{hint}</div>
+          <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.3 }}>{hint}</div>
         )}
       </div>
       <div style={{ flex: 1 }}>{children}</div>
@@ -782,9 +770,6 @@ function EditField({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Field — read-only display row
-// ---------------------------------------------------------------------------
 function Field({
   label,
   value,
@@ -797,18 +782,18 @@ function Field({
   highlight?: boolean;
 }) {
   return (
-    <div style={{ display: 'flex', padding: '0.4rem 0', borderBottom: '1px solid #1a1a1a' }}>
-      <div style={{ fontSize: 12, color: '#888', width: 130 }}>{label}</div>
-      <div
-        style={{
-          fontSize: highlight ? 16 : 13,
-          fontWeight: highlight ? 600 : 400,
-          fontFamily: mono ? 'ui-monospace, monospace' : undefined,
-          color: value ? '#fff' : '#666',
+    <div style={{ display: 'flex', padding: '0.5rem 0', borderBottom: '1px solid var(--border-subtle)', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <span style={{ fontSize: '0.825rem', color: 'var(--text-muted)', fontWeight: 500 }}>{label}</span>
+      <span 
+        style={{ 
+          fontSize: '0.875rem', 
+          fontWeight: highlight || mono ? 700 : 500, 
+          color: highlight ? 'var(--text-warning)' : 'var(--text-title)',
+          fontFamily: mono ? 'ui-monospace, monospace' : 'inherit'
         }}
       >
         {value ?? '—'}
-      </div>
+      </span>
     </div>
   );
 }

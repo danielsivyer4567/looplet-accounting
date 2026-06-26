@@ -5,6 +5,7 @@ import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { ArchiveButton } from '@/components/ArchiveButton';
+import { ChevronLeft, Plus, Edit3, Save, Building2, DollarSign, Wallet, FileSpreadsheet, type LucideIcon } from 'lucide-react';
 
 interface Supplier {
   id: string;
@@ -102,13 +103,17 @@ export function SupplierDetailPage() {
   };
 
   if (!currentOrg) return null;
-  if (loading) return <section><h1>Supplier</h1><p style={{ color: '#888' }}>Loading…</p></section>;
-  if (!supplier) return (
-    <section>
-      <h1>Supplier not found</h1>
-      <Link to="/suppliers" style={{ color: '#86c7a3' }}>&larr; Back to suppliers</Link>
-    </section>
-  );
+  if (loading) return <section><p style={{ color: 'var(--text-muted)' }}>Loading supplier details…</p></section>;
+  if (!supplier) {
+    return (
+      <section className="animated-fade-in" style={{ padding: '2rem 0', textAlign: 'center' }}>
+        <h2>Supplier not found</h2>
+        <Link to="/suppliers" className="btn btn-secondary" style={{ marginTop: '1rem' }}>
+          <ChevronLeft size={16} /> Back to suppliers
+        </Link>
+      </section>
+    );
+  }
 
   // Stats
   const totalSpend = bills.reduce((acc, b) => acc + (b.total_inc_gst_cents ?? 0), 0);
@@ -117,99 +122,188 @@ export function SupplierDetailPage() {
   const billsAttached = bills.filter((b) => b.job_id).length;
 
   return (
-    <section>
-      <Link to="/suppliers" style={{ color: '#86c7a3', fontSize: 13 }}>&larr; All suppliers</Link>
+    <section className="animated-fade-in">
+      {/* Back button */}
+      <Link 
+        to="/suppliers" 
+        style={{ 
+          color: 'var(--text-muted)', 
+          fontSize: '0.825rem', 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.25rem',
+          marginBottom: '1rem'
+        }}
+      >
+        <ChevronLeft size={14} />
+        <span>All suppliers</span>
+      </Link>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '0.5rem' }}>
-        <h1 style={{ margin: 0 }}>{supplier.name}</h1>
-        {!editing && (
-          <span style={{ display: 'inline-flex', gap: 8 }}>
-            <button onClick={startEdit} style={editBtn}>✎ Edit</button>
-            <MoveToOrgButton table="suppliers" rowId={supplier.id} currentOrgId={currentOrg.id} onMoved={() => { window.location.href = '/suppliers'; }} />
-            <ArchiveButton
-              table="suppliers"
-              rowId={supplier.id}
-              isArchived={!!supplier.deleted_at}
-              onChange={(nowArchived) => {
-                if (nowArchived) { window.location.href = '/suppliers'; }
-                else { void refresh(); }
-              }}
-            />
-          </span>
-        )}
+      {/* Header section */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
+        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Building2 size={24} style={{ color: 'var(--accent-primary)' }} />
+          {supplier.name}
+        </h1>
+        
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button 
+            onClick={() => navigate(`/bills/new?supplier_id=${supplier.id}`)} 
+            className="btn btn-primary"
+          >
+            <Plus size={16} />
+            <span>New bill</span>
+          </button>
+          
+          <MoveToOrgButton 
+            table="suppliers" 
+            rowId={supplier.id} 
+            currentOrgId={currentOrg.id} 
+            onMoved={() => { window.location.href = '/suppliers'; }} 
+          />
+          
+          {!editing && (
+            <button onClick={startEdit} className="btn btn-secondary">
+              <Edit3 size={14} />
+              <span>Edit</span>
+            </button>
+          )}
+          
+          <ArchiveButton
+            table="suppliers"
+            rowId={supplier.id}
+            isArchived={!!supplier.deleted_at}
+            onChange={(nowArchived) => {
+              if (nowArchived) { window.location.href = '/suppliers'; }
+              else { void refresh(); }
+            }}
+          />
+        </div>
       </div>
 
+      {/* Edit Form / Detail Card */}
       {editing ? (
-        <div style={card}>
-          <div style={grid2}>
-            <Field label="Name"><input value={draft.name ?? ''} onChange={(e) => setDraft({ ...draft, name: e.target.value })} style={inp} /></Field>
-            <Field label="ABN"><input value={draft.abn ?? ''} onChange={(e) => setDraft({ ...draft, abn: e.target.value })} style={inp} /></Field>
+        <div className="card" style={{ marginBottom: '1.5rem', maxWidth: '720px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+              <Field label="Name">
+                <input value={draft.name ?? ''} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className="form-input" />
+              </Field>
+              <Field label="ABN">
+                <input value={draft.abn ?? ''} onChange={(e) => setDraft({ ...draft, abn: e.target.value })} className="form-input" />
+              </Field>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+              <Field label="Email">
+                <input type="email" value={draft.email ?? ''} onChange={(e) => setDraft({ ...draft, email: e.target.value })} className="form-input" />
+              </Field>
+              <Field label="Phone">
+                <input type="tel" value={draft.contact_phone ?? ''} onChange={(e) => setDraft({ ...draft, contact_phone: e.target.value })} className="form-input" />
+              </Field>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+              <Field label="Default Account Code (Xero)">
+                <input value={draft.default_account_code ?? ''} onChange={(e) => setDraft({ ...draft, default_account_code: e.target.value })} placeholder="e.g. 310" className="form-input" />
+              </Field>
+              <Field label="Payment Terms (days)">
+                <input type="number" value={draft.payment_terms_days ?? 30} onChange={(e) => setDraft({ ...draft, payment_terms_days: Number(e.target.value) })} className="form-input" />
+              </Field>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <button onClick={save} disabled={saving} className="btn btn-primary" style={{ padding: '0.625rem 1.25rem' }}>
+                <Save size={14} />
+                <span>{saving ? 'Saving…' : 'Save'}</span>
+              </button>
+              <button onClick={() => setEditing(false)} disabled={saving} className="btn btn-secondary" style={{ padding: '0.625rem 1.25rem' }}>
+                <span>Cancel</span>
+              </button>
+            </div>
+            {error && <div className="badge badge-danger" style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}>{error}</div>}
           </div>
-          <div style={grid2}>
-            <Field label="Email"><input value={draft.email ?? ''} onChange={(e) => setDraft({ ...draft, email: e.target.value })} style={inp} /></Field>
-            <Field label="Phone"><input value={draft.contact_phone ?? ''} onChange={(e) => setDraft({ ...draft, contact_phone: e.target.value })} style={inp} /></Field>
-          </div>
-          <div style={grid2}>
-            <Field label="Default account code (Xero)"><input value={draft.default_account_code ?? ''} onChange={(e) => setDraft({ ...draft, default_account_code: e.target.value })} placeholder="e.g. 310" style={inp} /></Field>
-            <Field label="Payment terms (days)"><input type="number" value={draft.payment_terms_days ?? 30} onChange={(e) => setDraft({ ...draft, payment_terms_days: Number(e.target.value) })} style={inp} /></Field>
-          </div>
-          <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-            <button onClick={() => void save()} disabled={saving} style={primaryBtn}>{saving ? 'Saving…' : 'Save'}</button>
-            <button onClick={() => setEditing(false)} disabled={saving} style={ghostBtn}>Cancel</button>
-          </div>
-          {error && <p style={{ color: 'salmon', fontSize: 12, marginTop: 8 }}>{error}</p>}
         </div>
       ) : (
-        <div style={{ ...card, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        <div className="card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
           <Stat label="ABN" value={supplier.abn ?? '—'} />
           <Stat label="Email" value={supplier.email ?? '—'} />
           <Stat label="Phone" value={supplier.contact_phone ?? '—'} />
-          <Stat label="Default account code" value={supplier.default_account_code ?? '—'} mono />
-          <Stat label="Payment terms" value={`${supplier.payment_terms_days} days`} />
+          <Stat label="Default Account Code" value={supplier.default_account_code ?? '—'} mono />
+          <Stat label="Payment Terms" value={`${supplier.payment_terms_days} days`} />
           <Stat label="Created" value={new Date(supplier.created_at).toLocaleDateString()} />
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 16 }}>
-        <KpiCard label="Total spend" value={formatMoney(totalSpend)} colour="#86c7a3" />
-        <KpiCard label="Balance owing" value={formatMoney(balanceOwing)} colour={balanceOwing > 0 ? '#e9a3a3' : '#888'} sub={`${unpaid.length} unpaid`} />
-        <KpiCard label="Bills" value={String(bills.length)} colour="#aaa" sub={`${billsAttached} attached to jobs`} />
+      {/* KPI Cards */}
+      <div 
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+          gap: '1rem',
+          marginBottom: '2.5rem'
+        }}
+      >
+        <Kpi label="Total Spend" value={formatMoney(totalSpend)} type="neutral" icon={Wallet} />
+        <Kpi 
+          label="Balance Owing" 
+          value={formatMoney(balanceOwing)} 
+          type={balanceOwing > 0 ? 'danger' : 'neutral'} 
+          icon={DollarSign}
+          sub={`${unpaid.length} unpaid`}
+        />
+        <Kpi label="Bills Received" value={String(bills.length)} type="info" icon={FileSpreadsheet} sub={`${billsAttached} attached to jobs`} />
       </div>
 
-      <h2 style={{ fontSize: 14, marginTop: 24, marginBottom: 8 }}>Bills from this supplier</h2>
+      {/* Bills table */}
+      <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+        <FileSpreadsheet size={16} style={{ color: 'var(--text-muted)' }} />
+        Bills from this supplier
+      </h2>
       {bills.length === 0 ? (
-        <p style={{ color: '#888', fontSize: 13 }}>No bills yet from this supplier.</p>
+        <div style={{ padding: '2rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+          No bills yet from this supplier.
+        </div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-              <th style={th}>Invoice #</th>
-              <th style={th}>Date</th>
-              <th style={th}>Due</th>
-              <th style={th}>Status</th>
-              <th style={th}>Job</th>
-              <th style={thRight}>Total inc GST</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bills.map((b) => (
-              <tr
-                key={b.id}
-                style={{ borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
-                onClick={() => navigate(`/bills/${b.id}`)}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = '#202020'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = ''; }}
-              >
-                <td style={td}><code style={{ color: '#aaa', fontSize: 12 }}>{b.invoice_number ?? '—'}</code></td>
-                <td style={td}>{b.invoice_date ?? '—'}</td>
-                <td style={td}>{b.due_date ?? '—'}</td>
-                <td style={td}><StatusPill status={b.status} /></td>
-                <td style={td}>{b.job_id ? <span style={{ color: '#86c7a3', fontSize: 11 }}>✓ attached</span> : <span style={{ color: '#666', fontSize: 11 }}>—</span>}</td>
-                <td style={tdRight}>{b.total_inc_gst_cents != null ? formatMoney(b.total_inc_gst_cents) : <span style={{ color: '#444' }}>—</span>}</td>
+        <div className="table-premium-container">
+          <table className="table-premium">
+            <thead>
+              <tr>
+                <th>Invoice #</th>
+                <th>Date</th>
+                <th>Due</th>
+                <th>Status</th>
+                <th>Job</th>
+                <th style={{ textAlign: 'right' }}>Total inc GST</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {bills.map((b) => (
+                <tr
+                  key={b.id}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => navigate(`/bills/${b.id}`)}
+                >
+                  <td><code>{b.invoice_number ?? '—'}</code></td>
+                  <td>{b.invoice_date ?? '—'}</td>
+                  <td>{b.due_date ?? '—'}</td>
+                  <td><Pill status={b.status} /></td>
+                  <td>{b.job_id ? <span className="badge badge-success">Attached</span> : <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>—</span>}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{b.total_inc_gst_cents != null ? formatMoney(b.total_inc_gst_cents) : <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );
@@ -217,69 +311,78 @@ export function SupplierDetailPage() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label style={{ display: 'block', fontSize: 11, color: '#888', marginTop: 6 }}>
-      <div style={{ marginBottom: 3 }}>{label}</div>
-      {children}
-    </label>
+    <div className="form-group" style={{ marginBottom: 0 }}>
+      <span className="form-label" style={{ fontSize: '0.725rem' }}>{label}</span>
+      <div style={{ marginTop: '0.25rem' }}>{children}</div>
+    </div>
   );
 }
 
 function Stat({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <div style={{ fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ marginTop: 3, color: '#ddd', fontSize: 13, fontFamily: mono ? 'monospace' : 'inherit' }}>{value}</div>
+      <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+        {label}
+      </div>
+      <div style={{ 
+        marginTop: '0.25rem', 
+        color: 'var(--text-title)', 
+        fontSize: '0.9rem', 
+        fontWeight: 600,
+        fontFamily: mono ? 'var(--font-mono, monospace)' : 'inherit'
+      }}>
+        {value}
+      </div>
     </div>
   );
 }
 
-function KpiCard({ label, value, colour, sub }: { label: string; value: string; colour: string; sub?: string }) {
+function Kpi({ 
+  label, 
+  value, 
+  type,
+  icon: Icon,
+  sub 
+}: { 
+  label: string; 
+  value: string; 
+  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral'; 
+  icon: LucideIcon;
+  sub?: string;
+}) {
   return (
-    <div style={{ padding: 16, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 6 }}>
-      <div style={{ fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ marginTop: 6, fontSize: 22, color: colour, fontWeight: 600 }}>{value}</div>
-      {sub && <div style={{ marginTop: 4, fontSize: 11, color: '#888' }}>{sub}</div>}
+    <div 
+      className="card"
+      style={{ 
+        padding: '1.25rem',
+        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
+        position: 'relative'
+      }}
+    >
+      <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+        {label}
+      </div>
+      <div style={{ marginTop: '0.35rem', fontSize: '1.5rem', color: 'var(--text-title)', fontWeight: 800, fontFamily: 'var(--font-title)' }}>
+        {value}
+      </div>
+      {sub ? (
+        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>{sub}</div>
+      ) : (
+        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
+      )}
+      <div style={{ position: 'absolute', right: '1rem', bottom: '1rem', color: `var(--accent-${type === 'neutral' ? 'primary' : type})`, opacity: 0.7 }}>
+        <Icon size={18} />
+      </div>
     </div>
   );
 }
 
-function StatusPill({ status }: { status: string }) {
-  const colour = status === 'paid' ? '#86c7a3'
-    : status === 'attached' ? '#5096d8'
-    : status === 'verified' ? '#d2c886'
-    : status === 'void' ? '#666'
-    : '#888';
-  return (
-    <span style={{ padding: '0.15rem 0.5rem', fontSize: 11, borderRadius: 3, background: '#222', color: colour, textTransform: 'uppercase' }}>{status}</span>
-  );
+function Pill({ status }: { status: string }) {
+  let badgeClass = 'badge-neutral';
+  if (status === 'paid' || status === 'completed' || status === 'active' || status === 'verified') badgeClass = 'badge-success';
+  else if (status === 'attached' || status === 'sent') badgeClass = 'badge-info';
+  else if (status === 'partially_paid' || status === 'draft') badgeClass = 'badge-warning';
+  else if (status === 'void' || status === 'overdue') badgeClass = 'badge-danger';
+  
+  return <span className={`badge ${badgeClass}`}>{status.replace('_', ' ')}</span>;
 }
-
-const card: React.CSSProperties = {
-  marginTop: 12, padding: 16,
-  background: '#0e0e0e', border: '1px solid #2a2a2a', borderRadius: 6, maxWidth: 920,
-};
-const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 };
-const inp: React.CSSProperties = {
-  width: '100%', padding: '6px 8px',
-  background: '#000', color: '#ddd', border: '1px solid #333', borderRadius: 3, fontSize: 12,
-};
-const editBtn: React.CSSProperties = {
-  padding: '0.3rem 0.75rem',
-  background: 'transparent', color: '#aaa',
-  border: '1px solid #333', borderRadius: 3, fontSize: 12, cursor: 'pointer',
-};
-const primaryBtn: React.CSSProperties = {
-  padding: '0.4rem 1rem', background: '#1c4868', color: '#fff',
-  border: '1px solid #5096d8', borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-};
-const ghostBtn: React.CSSProperties = {
-  padding: '0.4rem 1rem', background: 'transparent', color: '#aaa',
-  border: '1px solid #333', borderRadius: 4, fontSize: 12, cursor: 'pointer',
-};
-const th: React.CSSProperties = {
-  padding: '0.4rem 0.5rem', textAlign: 'left',
-  fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500,
-};
-const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
-const td: React.CSSProperties = { padding: '0.5rem' };
-const tdRight: React.CSSProperties = { ...td, textAlign: 'right' };

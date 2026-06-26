@@ -6,6 +6,18 @@ import { formatMoney } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { AllocationSplitButton } from '@/components/AllocationSplitButton';
 import { SkeletonCard, SkeletonTable } from '@/components/Skeleton';
+import {
+  RefreshCw,
+  Info,
+  ChevronDown,
+  ChevronRight,
+  Check,
+  X,
+  Briefcase,
+  User,
+  Calendar,
+  LayoutGrid
+} from 'lucide-react';
 
 interface Subscription {
   id: string;
@@ -58,8 +70,6 @@ export function SubscriptionsPage() {
 
   useEffect(() => void refresh(), [refresh]);
 
-  // Group by merchant_name (lowercased + trimmed) so duplicates collapse.
-  // Kept above the early return so the hook order is stable across renders.
   const grouped = useMemo(() => {
     const m = new Map<string, { name: string; rows: Subscription[] }>();
     for (const s of subs) {
@@ -137,70 +147,105 @@ export function SubscriptionsPage() {
   };
 
   return (
-    <section>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-        <h1 style={{ margin: 0 }}>Subscriptions</h1>
-        <button onClick={detect} disabled={detecting} style={{ padding: '0.4rem 1rem', background: '#1c4868', color: '#fff', border: '1px solid #5096d8', borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: detecting ? 'wait' : 'pointer' }}>
-          {detecting ? 'Detecting…' : '↻ Re-detect from bank feed'}
-        </button>
-      </div>
-      <p style={{ color: '#888', fontSize: 13 }}>
-        Recurring payments detected from bank transactions and email senders.
-        Tag each as business or personal so they roll up correctly in your P&L.
-        Multiple variants of the same merchant (different sender domains) are grouped — click to expand.
-      </p>
-      {detectMsg && <p style={{ marginTop: 4, fontSize: 12, color: detectMsg.startsWith('Detection error') ? 'salmon' : '#86c7a3' }}>{detectMsg}</p>}
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, maxWidth: 1100, marginTop: 16 }}>
-        <Kpi label="Active subscriptions" value={String(subs.filter((s) => s.status !== 'cancelled' && s.status !== 'dismissed').length)} colour="#aaa" />
-        <Kpi label="Monthly total" value={formatMoney(totalMonthly)} colour="#d2c886" sub="all active" />
-        <Kpi label="Annual: business" value={formatMoney(businessOnly)} colour="#86c7a3" sub="deductible" />
-        <Kpi label="Annual: personal" value={formatMoney(personalOnly)} colour="#f0c47a" sub="non-deductible" />
+    <section className="animated-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '0.5rem' }}>
+          <h1 style={{ margin: 0 }}>Subscriptions</h1>
+          <button className="btn btn-primary" onClick={detect} disabled={detecting}>
+            <RefreshCw className={`w-4 h-4 ${detecting ? 'animate-spin' : ''}`} />
+            {detecting ? 'Detecting…' : 'Sync Subscription Feeds'}
+          </button>
+        </div>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.925rem', maxWidth: '600px', margin: 0 }}>
+          Recurring payments auto-detected from bank transactions and email receipts. Categorise each as business or personal to roll them into your reports.
+        </p>
       </div>
 
-      <div style={{ marginTop: 20, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        {STATUS_FILTERS.map((s) => (
-          <button key={s} onClick={() => setFilter(s)} style={{
-            padding: '0.3rem 0.75rem',
-            background: filter === s ? '#1c4868' : 'transparent',
-            color: filter === s ? '#fff' : '#aaa',
-            border: '1px solid ' + (filter === s ? '#5096d8' : '#333'),
-            borderRadius: 3, fontSize: 12, cursor: 'pointer',
-          }}>{s}</button>
-        ))}
+      {detectMsg && (
+        <div className={`badge ${detectMsg.startsWith('Detection error') ? 'badge-danger' : 'badge-success'}`} style={{ display: 'block', padding: '0.625rem 1rem', textTransform: 'none', width: 'fit-content' }}>
+          {detectMsg}
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+        <KpiCard
+          label="Active Subscriptions"
+          value={String(subs.filter((s) => s.status !== 'cancelled' && s.status !== 'dismissed').length)}
+          accentColor="var(--accent-info)"
+          icon={<LayoutGrid className="w-5 h-5" style={{ color: 'var(--accent-info)' }} />}
+        />
+        <KpiCard
+          label="Monthly Run Rate"
+          value={formatMoney(totalMonthly)}
+          accentColor="var(--accent-warning)"
+          icon={<Calendar className="w-5 h-5" style={{ color: 'var(--accent-warning)' }} />}
+          sub="consolidated monthly total"
+        />
+        <KpiCard
+          label="Annual Business Spend"
+          value={formatMoney(businessOnly)}
+          accentColor="var(--accent-success)"
+          icon={<Briefcase className="w-5 h-5" style={{ color: 'var(--accent-success)' }} />}
+          sub="tax deductible items"
+        />
+        <KpiCard
+          label="Annual Personal Spend"
+          value={formatMoney(personalOnly)}
+          accentColor="var(--text-muted)"
+          icon={<User className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />}
+          sub="non-deductible items"
+        />
       </div>
 
-      {error && <p style={{ color: 'salmon', marginTop: 8, fontSize: 12 }}>{error}</p>}
+      <div>
+        <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+          {STATUS_FILTERS.map((s) => (
+            <button
+              key={s}
+              onClick={() => setFilter(s)}
+              className={`btn ${filter === s ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ padding: '0.375rem 0.75rem', textTransform: 'capitalize', fontSize: '0.8rem' }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
 
-      {loading ? (
-        <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, maxWidth: 1100, marginTop: 16 }}>
-            {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+        {error && (
+          <div className="badge badge-danger" style={{ display: 'block', padding: '0.5rem 1rem', textTransform: 'none', marginBottom: '1rem' }}>
+            {error}
           </div>
-          <div style={{ marginTop: 20 }}>
+        )}
+
+        {loading ? (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+              {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+            </div>
             <SkeletonTable rows={6} cols={10} />
-          </div>
-        </>
-      ) :
-        subs.length === 0 ? (
-          <div style={{ marginTop: 24, padding: 16, background: '#0e0e0e', border: '1px dashed #2a2a2a', borderRadius: 4, color: '#888', fontSize: 13 }}>
-            No subscriptions detected yet. Run Auto Setup to scan your email, or sync your bank feed.
+          </>
+        ) : subs.length === 0 ? (
+          <div className="card" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+            <Calendar className="w-12 h-12 text-muted" style={{ margin: '0 auto 1rem', opacity: 0.4 }} />
+            <p style={{ margin: 0, fontSize: '0.925rem' }}>
+              No subscriptions detected matching the status filter. Run a scan or sync your bank feeds to detect payments.
+            </p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 16 }}>
+          <div className="table-premium-container">
+            <table className="table-premium">
               <thead>
-                <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-                  <th style={{ ...th, width: 24 }}></th>
-                  <th style={th}>Merchant</th>
-                  <th style={th}>Cadence</th>
-                  <th style={thRight}>Amount</th>
-                  <th style={thRight}>Monthly</th>
-                  <th style={thRight}>Annual</th>
-                  <th style={th}>Status</th>
-                  <th style={th}>Tag</th>
-                  <th style={th}>Confidence</th>
-                  <th style={th}>Actions</th>
+                <tr>
+                  <th style={{ width: '40px' }}></th>
+                  <th>Merchant / Vendor</th>
+                  <th>Cadence</th>
+                  <th style={{ textAlign: 'right' }}>Amount</th>
+                  <th style={{ textAlign: 'right' }}>Monthly Eq.</th>
+                  <th style={{ textAlign: 'right' }}>Annual Eq.</th>
+                  <th>Status</th>
+                  <th>Classification</th>
+                  <th>Confidence</th>
+                  <th style={{ width: '220px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -226,33 +271,39 @@ export function SubscriptionsPage() {
                     );
                   }
 
-                  // Grouped header
                   const groupMonthly = g.rows.reduce((a, s) => a + monthlyEquivalent(s), 0);
                   const groupAnnual = groupMonthly * 12;
                   const distinctStatuses = new Set(g.rows.map((s) => s.status));
                   return (
-                    <>
+                    <g key={`group-wrapper:${groupKey}`}>
                       <tr
-                        key={`g:${groupKey}`}
-                        style={{ borderBottom: '1px solid #2a2a2a', background: '#141414', cursor: 'pointer' }}
+                        style={{ borderBottom: '1px solid var(--border-subtle)', backgroundColor: 'var(--bg-hover)', cursor: 'pointer' }}
                         onClick={() => toggleExpanded(groupKey)}
                       >
-                        <td style={{ ...td, color: '#888', fontFamily: 'monospace' }}>{isOpen ? '▾' : '▸'}</td>
-                        <td style={td}>
-                          <strong style={{ color: '#e3e3e3' }}>{g.name}</strong>
-                          <span style={{ marginLeft: 6, fontSize: 11, color: '#888' }}>({g.rows.length} variants)</span>
+                        <td style={{ textAlign: 'center' }}>
+                          {isOpen ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronRight className="w-4 h-4 text-muted" />}
                         </td>
-                        <td style={td}>—</td>
-                        <td style={tdRight}>—</td>
-                        <td style={tdRight}>{formatMoney(groupMonthly)}</td>
-                        <td style={tdRight}>{formatMoney(groupAnnual)}</td>
-                        <td style={td}>
-                          {Array.from(distinctStatuses).map((s) => <Pill key={s} status={s} />)}
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, color: 'var(--text-title)' }}>
+                            {g.name}
+                            <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)', backgroundColor: 'var(--bg-card)', padding: '0.1rem 0.4rem', borderRadius: 'var(--radius-sm)' }}>
+                              {g.rows.length} variants
+                            </span>
+                          </div>
                         </td>
-                        <td style={td}></td>
-                        <td style={td}></td>
-                        <td style={td} onClick={(e) => e.stopPropagation()}>
-                          <span style={{ fontSize: 11, color: '#666' }}>click to expand</span>
+                        <td style={{ color: 'var(--text-muted)' }}>—</td>
+                        <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
+                        <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-title)' }}>{formatMoney(groupMonthly)}</td>
+                        <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{formatMoney(groupAnnual)}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '0.25rem' }}>
+                            {Array.from(distinctStatuses).map((s) => <StatusPill key={s} status={s} />)}
+                          </div>
+                        </td>
+                        <td></td>
+                        <td></td>
+                        <td onClick={(e) => e.stopPropagation()}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Click to view details</span>
                         </td>
                       </tr>
                       {isOpen && g.rows.map((s) => (
@@ -267,16 +318,33 @@ export function SubscriptionsPage() {
                           refresh={refresh}
                         />
                       ))}
-                    </>
+                    </g>
                   );
                 })}
               </tbody>
             </table>
           </div>
         )}
-      <p style={{ marginTop: 32, padding: 10, background: '#0e0e0e', border: '1px dashed #2a2a2a', borderRadius: 4, fontSize: 12, color: '#666' }}>
-        Future: alerts for unexpected charges (price increase, double-charge), cancellation tracking, vendor links to manage subscription, ROI per subscription against the job/customer it powers.
-      </p>
+      </div>
+
+      <div
+        className="glass-panel"
+        style={{
+          padding: '1rem 1.25rem',
+          display: 'flex',
+          gap: '0.75rem',
+          alignItems: 'flex-start',
+          fontSize: '0.825rem',
+          color: 'var(--text-muted)',
+          borderStyle: 'dashed'
+        }}
+      >
+        <Info className="w-5 h-5 text-accent-primary" style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--accent-primary)' }} />
+        <div>
+          <strong style={{ color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>Future Features:</strong>
+          Double-charge and price hike alerts, visual subscription comparison charts, direct cancel links, and project/job allocation tracking.
+        </div>
+      </div>
     </section>
   );
 }
@@ -297,64 +365,102 @@ function SubRow({
     ? s.merchant_canonical_key.replace(/^domain:/, '@').replace(/^email:/, '')
     : '—';
   return (
-    <tr style={{ borderBottom: '1px solid #1a1a1a', opacity: s.status === 'dismissed' ? 0.5 : 1 }}>
-      <td style={td}></td>
-      <td style={{ ...td, paddingLeft: indent ? 28 : undefined }}>
-        <a
-          onClick={(e) => { e.preventDefault(); navigate(`/subscriptions/${s.id}`); }}
-          href={`/subscriptions/${s.id}`}
-          style={{ color: '#86c7a3', textDecoration: 'none', cursor: 'pointer' }}
-        >
-          {indent ? <span style={{ color: '#666' }}>↳ </span> : null}
-          <strong>{s.merchant_name}</strong>
-        </a>
-        <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>{sourceHint}</div>
+    <tr style={{ opacity: s.status === 'dismissed' ? 0.6 : 1 }}>
+      <td></td>
+      <td style={{ paddingLeft: indent ? '2rem' : undefined }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {indent && <span style={{ color: 'var(--text-muted)', userSelect: 'none' }}>↳</span>}
+          <a
+            onClick={(e) => { e.preventDefault(); navigate(`/subscriptions/${s.id}`); }}
+            href={`/subscriptions/${s.id}`}
+            style={{ fontWeight: 600, color: 'var(--accent-primary)', textDecoration: 'none' }}
+          >
+            {s.merchant_name}
+          </a>
+        </div>
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem', paddingLeft: indent ? '1rem' : undefined }}>{sourceHint}</div>
       </td>
-      <td style={td}>{s.cadence}</td>
-      <td style={tdRight}>{s.amount_cents > 0 ? formatMoney(s.amount_cents) : '—'}</td>
-      <td style={tdRight}>{monthly > 0 ? formatMoney(monthly) : '—'}</td>
-      <td style={tdRight}>{annual > 0 ? formatMoney(annual) : '—'}</td>
-      <td style={td}><Pill status={s.status} /></td>
-      <td style={td}>
-        <div style={{ display: 'flex', gap: 4 }}>
+      <td style={{ textTransform: 'capitalize' }}>{s.cadence}</td>
+      <td style={{ textAlign: 'right', fontWeight: 500, color: 'var(--text-title)' }}>{s.amount_cents > 0 ? formatMoney(s.amount_cents) : '—'}</td>
+      <td style={{ textAlign: 'right' }}>{monthly > 0 ? formatMoney(monthly) : '—'}</td>
+      <td style={{ textAlign: 'right' }}>{annual > 0 ? formatMoney(annual) : '—'}</td>
+      <td><StatusPill status={s.status} /></td>
+      <td>
+        <div style={{ display: 'flex', gap: '0.25rem' }}>
           <button
             onClick={() => setFlag(s.id, { is_business: !s.is_business, is_personal: false } as Partial<Subscription>)}
-            style={tagBtn(s.is_business && !s.is_personal, '#86c7a3')}
-          >Biz</button>
+            className="btn"
+            style={{
+              padding: '0.2rem 0.5rem',
+              fontSize: '0.7rem',
+              backgroundColor: s.is_business && !s.is_personal ? 'var(--bg-success-subtle)' : 'var(--bg-hover)',
+              color: s.is_business && !s.is_personal ? 'var(--text-success)' : 'var(--text-muted)',
+              border: `1px solid ${s.is_business && !s.is_personal ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-subtle)'}`
+            }}
+          >
+            Biz
+          </button>
           <button
             onClick={() => setFlag(s.id, { is_personal: !s.is_personal, is_business: false } as Partial<Subscription>)}
-            style={tagBtn(s.is_personal, '#f0c47a')}
-          >Personal</button>
+            className="btn"
+            style={{
+              padding: '0.2rem 0.5rem',
+              fontSize: '0.7rem',
+              backgroundColor: s.is_personal ? 'var(--bg-warning-subtle)' : 'var(--bg-hover)',
+              color: s.is_personal ? 'var(--text-warning)' : 'var(--text-muted)',
+              border: `1px solid ${s.is_personal ? 'rgba(245, 158, 11, 0.2)' : 'var(--border-subtle)'}`
+            }}
+          >
+            Personal
+          </button>
         </div>
       </td>
-      <td style={td}>{s.confidence != null ? `${(s.confidence * 100).toFixed(0)}%` : '—'}</td>
-      <td style={td}>
-        <div style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap' }}>
+      <td>
+        {s.confidence != null ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{(s.confidence * 100).toFixed(0)}%</span>
+            <div style={{ width: '40px', height: '4px', backgroundColor: 'var(--border-subtle)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{ width: `${s.confidence * 100}%`, height: '100%', backgroundColor: s.confidence > 0.8 ? 'var(--accent-success)' : s.confidence > 0.5 ? 'var(--accent-warning)' : 'var(--accent-danger)' }}></div>
+            </div>
+          </div>
+        ) : '—'}
+      </td>
+      <td>
+        <div style={{ display: 'inline-flex', gap: '0.25rem', flexWrap: 'wrap' }}>
           {s.status !== 'confirmed' && (
             <button
               onClick={() => void setStatus(s.id, 'confirmed')}
-              style={{ ...actionBtn, background: '#0d2f1f', color: '#86c7a3', border: '1px solid #1c5135' }}
-              title="Confirm this is a real subscription"
-            >✓ Keep</button>
+              className="btn btn-secondary"
+              style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', color: 'var(--text-success)' }}
+              title="Confirm this subscription"
+            >
+              <Check className="w-3 h-3" />
+            </button>
           )}
           {s.status !== 'dismissed' && (
             <button
               onClick={() => void setStatus(s.id, 'dismissed')}
-              style={{ ...actionBtn, background: '#3d1818', color: '#e9a3a3', border: '1px solid #5d2828' }}
-              title="Dismiss — not a real subscription / wrong / duplicate"
-            >✕ Dismiss</button>
+              className="btn btn-secondary"
+              style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', color: 'var(--text-danger)' }}
+              title="Dismiss"
+            >
+              <X className="w-3 h-3" />
+            </button>
           )}
           {s.status === 'dismissed' && (
             <button
               onClick={() => void setStatus(s.id, 'candidate')}
-              style={{ ...actionBtn, background: 'transparent', color: '#888', border: '1px solid #333' }}
-            >↺ Restore</button>
+              className="btn btn-secondary"
+              style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}
+            >
+              Restore
+            </button>
           )}
           <AllocationSplitButton
             resourceType="subscription"
             resourceId={s.id}
             hostOrgId={s.organization_id}
-            label="⊟ Split"
+            label="Split"
             onSaved={() => refresh()}
           />
           <MoveToOrgButton
@@ -362,7 +468,7 @@ function SubRow({
             rowId={s.id}
             currentOrgId={s.organization_id}
             fkColumnsToNull={['supplier_id']}
-            label="⇄ Move"
+            label="Move"
             onMoved={() => refresh()}
           />
         </div>
@@ -371,40 +477,38 @@ function SubRow({
   );
 }
 
-function Kpi({ label, value, colour, sub }: { label: string; value: string; colour: string; sub?: string | undefined }) {
+function KpiCard({ label, value, icon, accentColor, sub }: { label: string; value: string; icon: React.ReactNode; accentColor: string; sub?: string }) {
   return (
-    <div style={{ padding: 12, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 6 }}>
-      <div style={{ fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ marginTop: 4, fontSize: 18, color: colour, fontWeight: 600 }}>{value}</div>
-      {sub && <div style={{ marginTop: 3, fontSize: 11, color: '#888' }}>{sub}</div>}
+    <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderLeft: `4px solid ${accentColor}` }}>
+      <div>
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: '0.35rem' }}>
+          {label}
+        </div>
+        <div style={{ fontSize: '1.65rem', color: 'var(--text-title)', fontWeight: 700, fontFamily: 'var(--font-title)' }}>
+          {value}
+        </div>
+        {sub && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{sub}</div>}
+      </div>
+      <div style={{ padding: '0.5rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)' }}>
+        {icon}
+      </div>
     </div>
   );
 }
-function Pill({ status }: { status: string }) {
-  const c = status === 'confirmed' ? '#86c7a3'
-    : status === 'candidate' ? '#5096d8'
-    : status === 'cancelled' ? '#666'
-    : status === 'dismissed' ? '#d2c886' : '#888';
-  return <span style={{ padding: '0.15rem 0.5rem', fontSize: 11, borderRadius: 3, background: '#222', color: c, textTransform: 'uppercase', marginRight: 4 }}>{status}</span>;
-}
-function tagBtn(active: boolean, colour: string): React.CSSProperties {
-  return {
-    padding: '0.15rem 0.5rem',
-    background: active ? '#222' : 'transparent',
-    color: active ? colour : '#666',
-    border: '1px solid ' + (active ? colour : '#333'),
-    borderRadius: 3, fontSize: 10, cursor: 'pointer', fontWeight: active ? 600 : 400,
-  };
-}
 
-const th: React.CSSProperties = { padding: '0.4rem 0.5rem', textAlign: 'left', fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 };
-const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
-const td: React.CSSProperties = { padding: '0.5rem' };
-const tdRight: React.CSSProperties = { ...td, textAlign: 'right' };
-const actionBtn: React.CSSProperties = {
-  padding: '0.15rem 0.5rem',
-  borderRadius: 3,
-  fontSize: 10,
-  cursor: 'pointer',
-  fontWeight: 500,
-};
+function StatusPill({ status }: { status: string }) {
+  switch (status) {
+    case 'confirmed':
+      return <span className="badge badge-success">Confirmed</span>;
+    case 'candidate':
+    case 'detected':
+      return <span className="badge badge-info">Candidate</span>;
+    case 'cancelled':
+      return <span className="badge badge-neutral">Cancelled</span>;
+    case 'dismissed':
+    case 'paused':
+      return <span className="badge badge-warning">Dismissed</span>;
+    default:
+      return <span className="badge badge-neutral">{status}</span>;
+  }
+}

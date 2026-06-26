@@ -354,6 +354,67 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: 'Payment run has no items' }, 422);
   }
 
+  // ---- Tier-2 approval gate -------------------------------------------------
+  // Bind the approval to EXACTLY the item set being paid: build a deterministic
+  // payload (sorted by item id; per-field order is irrelevant — Postgres jsonb
+  // normalises keys) and let Postgres hash it via the jsonb overload of
+  // is_action_approved, so we never depend on Deno JSON.stringify matching
+  // Postgres jsonb::text. Editing the run after approval changes the hash, which
+  // silently invalidates the stale approval (the approve-then-mutate guard).
+  const approvalPayload = {
+    payment_run_id,
+    items: (items as Record<string, unknown>[])
+      .map((it) => ({
+        id: it['id'] as string,
+        amount_cents: it['amount_cents'] as number,
+        payee_bsb: (it['payee_bsb'] as string) ?? '',
+        payee_account_number: (it['payee_account_number'] as string) ?? '',
+        payee_account_name: (it['payee_account_name'] as string) ?? '',
+        reference: (it['reference'] as string) ?? '',
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id)),
+  };
+
+  const { data: approved, error: approvedErr } = await admin.rpc('is_action_approved', {
+    p_org: organization_id,
+    p_resource_type: 'payment_run',
+    p_resource_id: payment_run_id,
+    p_payload: approvalPayload,
+  });
+  if (approvedErr) {
+    return json({ ok: false, error: `Approval check failed: ${approvedErr.message}` }, 500);
+  }
+
+  if (!approved) {
+    // No matching Tier-2 approval yet. Record a pending request bound to this exact
+    // payload (idempotent) so an admin can approve it, then refuse. request_approval
+    // needs a user context (auth.uid()), so it goes through userClient, not admin.
+    const { data: approvalId, error: reqErr } = await userClient.rpc('request_approval', {
+      p_org: organization_id,
+      p_resource_type: 'payment_run',
+      p_resource_id: payment_run_id,
+      p_risk_tier: 'tier2_approve',
+      p_payload: approvalPayload,
+    });
+    if (reqErr) {
+      // The refusal still stands (fail-closed), but distinguish "couldn't record the
+      // request" from "pending approval" so the cause is debuggable, not a silent null.
+      console.error('request_approval failed', reqErr);
+      return json(
+        { ok: false, error: `Approval required, but the approval request could not be recorded: ${reqErr.message}` },
+        403,
+      );
+    }
+    return json(
+      {
+        ok: false,
+        error: 'Approval required before exporting this payment run.',
+        approval_id: approvalId ?? null,
+      },
+      403,
+    );
+  }
+
   // Build ABA content
   const payDate = runRow['pay_date'] as string;
   const lines: string[] = [];

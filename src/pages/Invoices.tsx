@@ -2,8 +2,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useOrg } from '@/hooks/useOrg';
-import { formatMoney } from '@/lib/money';
+import { formatMoney, formatMoneyCompact } from '@/lib/money';
 import { SkeletonCard, SkeletonTable } from '@/components/Skeleton';
+import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
+import { AnimatedNumber } from '@/components/AnimatedNumber';
+import { FileText, Plus, DollarSign, Wallet, Clock, type LucideIcon } from 'lucide-react';
 
 const STATUS_FILTERS = ['all', 'draft', 'sent', 'partially_paid', 'paid', 'overdue', 'void'] as const;
 type Filter = typeof STATUS_FILTERS[number];
@@ -14,101 +17,278 @@ export function InvoicesPage() {
   const { invoices, loading, error } = useInvoices(filter === 'all' ? undefined : { status: filter });
   const navigate = useNavigate();
 
-  if (!currentOrg) return <section><h1>Invoices</h1><p style={{ color: '#888' }}>Pick an organisation.</p></section>;
+  if (!currentOrg) {
+    return (
+      <section className="animated-fade-in">
+        <h1>Invoices</h1>
+        <p style={{ color: 'var(--text-muted)' }}>Pick an organisation to see invoices.</p>
+      </section>
+    );
+  }
 
   // Aggregate KPIs over the *full* (unfiltered) result
   const totalInvoiced = invoices.reduce((a, i) => a + (i.total_inc_gst_cents ?? 0), 0);
   const totalPaid = invoices.reduce((a, i) => a + (i.amount_paid_cents ?? 0), 0);
   const totalOwing = invoices.reduce((a, i) => a + (i.balance_due_cents ?? 0), 0);
   const overdueCount = invoices.filter((i) => i.status === 'overdue').length;
+  const statusItems = STATUS_FILTERS
+    .filter((status) => status !== 'all')
+    .map((status) => ({
+      label: status.replace('_', ' '),
+      value: invoices.filter((invoice) => invoice.status === status).length,
+      displayValue: `${invoices.filter((invoice) => invoice.status === status).length} invoices`,
+      tone:
+        status === 'paid'
+          ? 'success'
+          : status === 'overdue'
+            ? 'danger'
+            : status === 'partially_paid'
+              ? 'warning'
+              : status === 'sent'
+                ? 'info'
+                : 'neutral',
+    } as const));
+  const receivableItems = [
+    { label: 'Total invoiced', value: totalInvoiced, displayValue: formatMoneyCompact(totalInvoiced), tone: 'info' as const },
+    { label: 'Collected', value: totalPaid, displayValue: formatMoneyCompact(totalPaid), tone: 'success' as const },
+    {
+      label: 'Still owing',
+      value: totalOwing,
+      displayValue: formatMoneyCompact(totalOwing),
+      tone: totalOwing > 0 ? 'warning' as const : 'success' as const,
+    },
+  ];
+  let runningReceivableCents = 0;
+  let runningInvoicedCents = 0;
+  let runningPaidCents = 0;
+  const invoiceTrendSource = invoices.slice().sort((a, b) => a.issue_date.localeCompare(b.issue_date));
+  const receivableTrendItems = invoices.length
+    ? invoiceTrendSource.map((invoice) => {
+          runningReceivableCents += invoice.balance_due_cents ?? 0;
+          return {
+            label: new Date(invoice.issue_date).toLocaleDateString('en-AU', { day: '2-digit', month: 'short' }),
+            value: runningReceivableCents,
+          };
+        })
+    : [{ label: 'No invoices', value: 0 }];
+  const invoicedTrendItems = invoiceTrendSource.map((invoice) => {
+    runningInvoicedCents += invoice.total_inc_gst_cents ?? 0;
+    return {
+      label: new Date(invoice.issue_date).toLocaleDateString('en-AU', { day: '2-digit', month: 'short' }),
+      value: runningInvoicedCents,
+    };
+  });
+  const paidTrendItems = invoiceTrendSource.map((invoice) => {
+    runningPaidCents += invoice.amount_paid_cents ?? 0;
+    return {
+      label: new Date(invoice.issue_date).toLocaleDateString('en-AU', { day: '2-digit', month: 'short' }),
+      value: runningPaidCents,
+    };
+  });
 
   return (
-    <section>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+    <section className="animated-fade-in">
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
         <h1 style={{ margin: 0 }}>Invoices</h1>
-        <button onClick={() => navigate('/invoices/new')} style={primaryBtn}>+ Raise invoice</button>
+        <button onClick={() => navigate('/invoices/new')} className="btn btn-primary">
+          <Plus size={16} />
+          <span>Raise invoice</span>
+        </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, maxWidth: 1100 }}>
-        <Kpi label="Total invoiced" value={formatMoney(totalInvoiced)} colour="#86c7a3" />
-        <Kpi label="Total paid" value={formatMoney(totalPaid)} colour="#86c7a3" sub={`${invoices.length} invoices`} />
-        <Kpi label="Outstanding" value={formatMoney(totalOwing)} colour={totalOwing > 0 ? '#d2c886' : '#888'} />
-        <Kpi label="Overdue" value={overdueCount > 0 ? `${overdueCount}` : '0'} colour={overdueCount > 0 ? '#e9a3a3' : '#888'} sub={overdueCount > 0 ? 'needs chasing' : 'all good'} />
+      {/* KPIs Section */}
+      <div 
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+          gap: '1rem',
+          marginBottom: '1.5rem'
+        }}
+      >
+        <Kpi 
+          label="Total invoiced" 
+          value={totalInvoiced} 
+          type="info" 
+          icon={FileText} 
+          formatter={formatMoney}
+        />
+        <Kpi 
+          label="Total paid" 
+          value={totalPaid} 
+          type="success" 
+          icon={Wallet} 
+          sub={`${invoices.length} invoices`} 
+          formatter={formatMoney}
+        />
+        <Kpi 
+          label="Outstanding" 
+          value={totalOwing} 
+          type={totalOwing > 0 ? 'warning' : 'neutral'} 
+          icon={DollarSign} 
+          formatter={formatMoney}
+        />
+        <Kpi 
+          label="Overdue" 
+          value={overdueCount} 
+          type={overdueCount > 0 ? 'danger' : 'neutral'} 
+          icon={Clock} 
+          sub={overdueCount > 0 ? 'Needs chasing' : 'All good'} 
+        />
       </div>
 
-      <div style={{ marginTop: 20, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '1rem',
+          marginBottom: '1.5rem',
+        }}
+      >
+        <InsightPanel title="Receivable pulse" eyebrow="Cash conversion">
+          <InsightAreaChart
+            title="Open AR drift"
+            items={receivableTrendItems}
+            tone={totalOwing > 0 ? 'warning' : 'success'}
+            series={[
+              { label: 'Invoiced', items: invoicedTrendItems, tone: 'info' },
+              { label: 'Collected', items: paidTrendItems, tone: 'success' },
+            ]}
+            markerLabel="Visible"
+            formatValue={formatMoneyCompact}
+          />
+        </InsightPanel>
+        <InsightPanel title="Invoice shape" eyebrow="Visible AR">
+          <InsightBarList
+            items={[...receivableItems, ...statusItems.filter((item) => item.value > 0)]}
+            formatValue={formatMoneyCompact}
+          />
+        </InsightPanel>
+      </div>
+
+      {/* Filter Buttons Segment */}
+      <div 
+        style={{ 
+          marginBottom: '1.5rem', 
+          display: 'flex', 
+          gap: '0.35rem', 
+          flexWrap: 'wrap',
+          background: 'var(--bg-panel)',
+          padding: '0.35rem',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-subtle)',
+          width: 'fit-content'
+        }}
+      >
         {STATUS_FILTERS.map((s) => (
           <button
             key={s}
             onClick={() => setFilter(s)}
+            className="btn"
             style={{
-              padding: '0.3rem 0.75rem',
-              background: filter === s ? '#1c4868' : 'transparent',
-              color: filter === s ? '#fff' : '#aaa',
-              border: '1px solid ' + (filter === s ? '#5096d8' : '#333'),
-              borderRadius: 3, fontSize: 12, cursor: 'pointer',
+              padding: '0.35rem 0.75rem',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              textTransform: 'capitalize',
+              borderRadius: 'var(--radius-sm)',
+              background: filter === s ? 'var(--accent-primary)' : 'transparent',
+              color: filter === s ? 'var(--text-on-accent)' : 'var(--text-muted)',
+              border: 'none',
+              boxShadow: filter === s ? 'var(--shadow-sm)' : 'none'
             }}
           >
-            {s}
+            {s.replace('_', ' ')}
           </button>
         ))}
       </div>
 
       {loading ? (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, maxWidth: 1100, marginTop: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginTop: '1.5rem' }}>
             {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
-          <div style={{ marginTop: 16 }}>
+          <div style={{ marginTop: '1.5rem' }}>
             <SkeletonTable rows={6} cols={9} />
           </div>
         </>
       ) : error ? (
-        <p style={{ color: 'salmon', marginTop: 16 }}>{error}</p>
+        <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}>{error}</div>
       ) : invoices.length === 0 ? (
-        <div style={{ marginTop: 24, padding: 16, background: '#0e0e0e', border: '1px dashed #2a2a2a', borderRadius: 4, color: '#888', fontSize: 13 }}>
-          No invoices yet. Raise one to start tracking AR.
+        <div 
+          style={{ 
+            padding: '2.5rem', 
+            background: 'var(--bg-card)', 
+            border: '1px dashed var(--border-subtle)', 
+            borderRadius: 'var(--radius-md)', 
+            color: 'var(--text-muted)', 
+            textAlign: 'center',
+            fontSize: '0.9rem' 
+          }}
+        >
+          No invoices yet. Raise one to start tracking Accounts Receivable.
         </div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 16 }}>
+        <div className="table-premium-container">
+          <table className="table-premium">
             <thead>
-              <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-                <th style={th}>#</th>
-                <th style={th}>Customer</th>
-                <th style={th}>Job</th>
-                <th style={th}>Issued</th>
-                <th style={th}>Due</th>
-                <th style={th}>Status</th>
-                <th style={thRight}>Total</th>
-                <th style={thRight}>Paid</th>
-                <th style={thRight}>Balance</th>
+              <tr>
+                <th>Invoice #</th>
+                <th>Customer</th>
+                <th>Job</th>
+                <th>Issued</th>
+                <th>Due</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Total</th>
+                <th style={{ textAlign: 'right' }}>Paid</th>
+                <th style={{ textAlign: 'right' }}>Balance</th>
               </tr>
             </thead>
             <tbody>
               {invoices.map((inv) => (
                 <tr
                   key={inv.id}
-                  style={{ borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
+                  style={{ cursor: 'pointer' }}
                   onClick={() => navigate(`/invoices/${inv.id}`)}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = '#202020'; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = ''; }}
                 >
-                  <td style={td}><code style={{ color: '#aaa', fontSize: 12 }}>{inv.invoice_number}</code></td>
-                  <td style={td}>{inv.customer?.name ?? <span style={{ color: '#444' }}>—</span>}</td>
-                  <td style={td}>
-                    {inv.job ? (
-                      <Link to={`/jobs/${inv.job.id}`} onClick={(e) => e.stopPropagation()} style={{ color: '#86c7a3', fontSize: 12 }}>
-                        {inv.job.job_number}
-                      </Link>
-                    ) : <span style={{ color: '#444' }}>—</span>}
+                  <td>
+                    <code style={{ fontSize: '0.775rem' }}>{inv.invoice_number}</code>
                   </td>
-                  <td style={td}>{inv.issue_date}</td>
-                  <td style={td}>{inv.due_date}</td>
-                  <td style={td}><StatusPill status={inv.status} /></td>
-                  <td style={tdRight}>{formatMoney(inv.total_inc_gst_cents)}</td>
-                  <td style={tdRight}>{formatMoney(inv.amount_paid_cents)}</td>
-                  <td style={{ ...tdRight, color: inv.balance_due_cents > 0 ? '#d2c886' : '#86c7a3' }}>{formatMoney(inv.balance_due_cents)}</td>
+                  <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>
+                    {inv.customer?.name ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                  </td>
+                  <td>
+                    {inv.job ? (
+                      <Link 
+                        to={`/jobs/${inv.job.id}`} 
+                        onClick={(e) => e.stopPropagation()} 
+                        style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                      >
+                        <code>{inv.job.job_number}</code>
+                      </Link>
+                    ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                  </td>
+                  <td>{inv.issue_date}</td>
+                  <td>{inv.due_date}</td>
+                  <td>
+                    <StatusPill status={inv.status} />
+                  </td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(inv.total_inc_gst_cents)}</td>
+                  <td style={{ textAlign: 'right', color: 'var(--text-success)' }}>{formatMoney(inv.amount_paid_cents)}</td>
+                  <td style={{ 
+                    textAlign: 'right', 
+                    fontWeight: 700,
+                    color: inv.balance_due_cents > 0 ? 'var(--text-warning)' : 'var(--text-success)' 
+                  }}>
+                    {formatMoney(inv.balance_due_cents)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -119,28 +299,54 @@ export function InvoicesPage() {
   );
 }
 
-function Kpi({ label, value, colour, sub }: { label: string; value: string; colour: string; sub?: string }) {
+function Kpi({ 
+  label, 
+  value, 
+  type,
+  icon: Icon,
+  sub,
+  formatter = (v: number) => v.toLocaleString()
+}: { 
+  label: string; 
+  value: number; 
+  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral'; 
+  icon: LucideIcon;
+  sub?: string;
+  formatter?: (val: number) => string;
+}) {
   return (
-    <div style={{ padding: 12, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 6 }}>
-      <div style={{ fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ marginTop: 4, fontSize: 18, color: colour, fontWeight: 600 }}>{value}</div>
-      {sub && <div style={{ marginTop: 3, fontSize: 11, color: '#888' }}>{sub}</div>}
+    <div 
+      className="card"
+      style={{ 
+        padding: '1.25rem',
+        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
+        position: 'relative'
+      }}
+    >
+      <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+        {label}
+      </div>
+      <div style={{ marginTop: '0.35rem', fontSize: '1.5rem', color: 'var(--text-title)', fontWeight: 800, fontFamily: 'var(--font-title)' }}>
+        <AnimatedNumber value={value} formatter={formatter} />
+      </div>
+      {sub ? (
+        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>{sub}</div>
+      ) : (
+        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
+      )}
+      <div style={{ position: 'absolute', right: '1rem', bottom: '1rem', color: `var(--accent-${type === 'neutral' ? 'primary' : type})`, opacity: 0.7 }}>
+        <Icon size={18} />
+      </div>
     </div>
   );
 }
 
 function StatusPill({ status }: { status: string }) {
-  const c = status === 'paid' ? '#86c7a3'
-    : status === 'sent' ? '#5096d8'
-    : status === 'partially_paid' ? '#d2c886'
-    : status === 'overdue' ? '#e9a3a3'
-    : status === 'void' ? '#666'
-    : '#888';
-  return <span style={{ padding: '0.15rem 0.5rem', fontSize: 11, borderRadius: 3, background: '#222', color: c, textTransform: 'uppercase' }}>{status}</span>;
+  let badgeClass = 'badge-neutral';
+  if (status === 'paid') badgeClass = 'badge-success';
+  else if (status === 'sent') badgeClass = 'badge-info';
+  else if (status === 'partially_paid') badgeClass = 'badge-warning';
+  else if (status === 'overdue') badgeClass = 'badge-danger';
+  
+  return <span className={`badge ${badgeClass}`}>{status.replace('_', ' ')}</span>;
 }
-
-const primaryBtn: React.CSSProperties = { padding: '0.5rem 1rem', background: '#1c4868', color: '#fff', border: '1px solid #5096d8', borderRadius: 4, fontSize: 13, fontWeight: 600, cursor: 'pointer' };
-const th: React.CSSProperties = { padding: '0.4rem 0.5rem', textAlign: 'left', fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 };
-const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
-const td: React.CSSProperties = { padding: '0.5rem' };
-const tdRight: React.CSSProperties = { ...td, textAlign: 'right' };

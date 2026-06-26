@@ -46,3 +46,6 @@ coverage/
 
 # Generated types (regenerate via npm run supabase:types)
 src/lib/database.types.ts
+
+# Claude Code scratch (ledgers, check markers — transient work-tracking)
+.claude/scratch/

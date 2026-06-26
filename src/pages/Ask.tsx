@@ -1,6 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { TopDownMindMap, type MindMapBranch } from '@/components/InsightCharts';
+import { DiagramView, type DiagramSpec } from '@/components/DiagramView';
+import { CitedAnswer, type LegalCitation } from '@/components/Citations';
+import { Sparkles, ArrowRight, Terminal, HelpCircle, Code, GitBranch, Eraser } from 'lucide-react';
 
 interface AskResponse {
   ok: boolean;
@@ -10,8 +15,10 @@ interface AskResponse {
   sql_error?: string | null;
   data_rows?: Record<string, unknown>[];
   data_row_count?: number;
+  citations?: LegalCitation[];
   sonar_citations?: string[];
   business_context?: string;
+  visual?: DiagramSpec;
   error?: string;
 }
 
@@ -25,22 +32,27 @@ const SUGGESTED_QUESTIONS = [
   'Can I claim my new ute under instant asset write-off?',
   'Are tools under $300 immediately deductible or do I depreciate?',
   'Do I need to charge GST on a $50 deposit before work starts?',
+  'What tax deadlines are coming up and what should I do now?',
   'When does my next BAS need to be lodged?',
   'Is FBT payable on a ute used 80% for work, 20% personal?',
   'What records do I need to keep for ATO substantiation on fuel?',
-  'Can I claim home-office deductions as a tradie working out of a ute?',
-  'What\'s the super guarantee rate I owe my subbies vs employees?',
-  'Show me my P&L year-to-date',
+  'Show me my P&L YTD',
   'Top 5 suppliers by spend YTD',
 ];
 
+const TRANSPARENT_ANSWER_RULE =
+  'Always return a written answer that can be mirrored as a top-down mind map: question, books/data checked, law/evidence checked, and final decision.';
+
 export function AskPage() {
   const { currentOrg } = useOrg();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [question, setQuestion] = useState('');
   const [busy, setBusy] = useState(false);
   const [history, setHistory] = useState<ChatTurn[]>([]);
   const [showSql, setShowSql] = useState<Set<number>>(new Set());
   const [showCtx, setShowCtx] = useState<Set<number>>(new Set());
+  const [showMap, setShowMap] = useState<Set<number>>(new Set());
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -48,10 +60,8 @@ export function AskPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [history]);
 
-  if (!currentOrg) return <p style={{ color: '#888' }}>Pick an organisation first.</p>;
-
   const ask = async (q: string) => {
-    if (!q.trim() || busy) return;
+    if (!q.trim() || busy || !currentOrg) return;
     setBusy(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -60,7 +70,11 @@ export function AskPage() {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ organization_id: currentOrg.id, question: q }),
+        body: JSON.stringify({
+          organization_id: currentOrg.id,
+          question: q,
+          response_rule: TRANSPARENT_ANSWER_RULE,
+        }),
       });
       const body = (await res.json()) as AskResponse;
       setHistory((h) => [...h, { question: q, response: body, ts: Date.now() }]);
@@ -73,9 +87,27 @@ export function AskPage() {
       }]);
     } finally {
       setBusy(false);
-      inputRef.current?.focus();
+      setTimeout(() => inputRef.current?.focus(), 50);
     }
   };
+
+  // A timeline obligation tapped in the right rail routes here with a prompt to run.
+  useEffect(() => {
+    const incoming = (location.state as { askPrompt?: string } | null)?.askPrompt;
+    if (incoming && currentOrg) {
+      void ask(incoming);
+      navigate(location.pathname, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
+
+  if (!currentOrg) {
+    return (
+      <section className="animated-fade-in" style={{ padding: '2rem 1.5rem', textAlign: 'center', maxWidth: '600px', margin: '4rem auto' }}>
+        <p style={{ color: 'var(--text-muted)' }}>Pick an organisation in the sidebar to ask questions.</p>
+      </section>
+    );
+  }
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -102,109 +134,207 @@ export function AskPage() {
     });
   };
 
-  return (
-    <section style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <h1 style={{ margin: 0, marginBottom: 4 }}>Ask</h1>
-        <p style={{ color: '#888', fontSize: 13, marginTop: 0 }}>
-          Ask anything about your books or AU-tax rules. Backed by your live data + Perplexity Sonar for citations.
-        </p>
+  const toggleMap = (idx: number) => {
+    setShowMap((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
 
+  // Wipe the conversation and return to the suggested-questions view.
+  const clearChat = () => {
+    setHistory([]);
+    setShowSql(new Set());
+    setShowCtx(new Set());
+    setShowMap(new Set());
+    setQuestion('');
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  return (
+    <section className="animated-fade-in" style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 120px)', position: 'relative' }}>
+      <style>{`
+        .suggestion-card {
+          padding: 0.75rem 1rem;
+          background: var(--bg-card);
+          border: 1px solid var(--border-subtle);
+          color: var(--text-body);
+          border-radius: var(--radius-md);
+          font-size: 0.825rem;
+          cursor: pointer;
+          transition: var(--transition-smooth);
+          text-align: left;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.5rem;
+        }
+        .suggestion-card:hover {
+          border-color: var(--accent-primary);
+          background: var(--bg-hover);
+          transform: translateY(-1px);
+        }
+      `}</style>
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingBottom: '100px' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+            <Sparkles size={24} style={{ color: 'var(--accent-primary)' }} />
+            Ask AI
+          </h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+            Ask anything about your books or Australian tax regulations. Powered by live accounting records + citation search.
+          </p>
+        </div>
+
+        {/* Suggestion Grid */}
         {history.length === 0 && (
-          <div style={{ marginTop: 24 }}>
-            <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
-              Try one of these
+          <div style={{ marginTop: '2rem', animation: 'fadeIn 0.4s ease' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.075em', marginBottom: '1rem' }}>
+              Suggested Inquiries
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem' }}>
               {SUGGESTED_QUESTIONS.map((sq) => (
                 <button
                   key={sq}
                   onClick={() => void ask(sq)}
                   disabled={busy}
-                  style={{
-                    padding: '0.4rem 0.7rem',
-                    background: '#0e1820',
-                    color: '#9ab0c0',
-                    border: '1px solid #1f3a52',
-                    borderRadius: 4,
-                    fontSize: 12,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                  }}
+                  className="suggestion-card"
                 >
-                  {sq}
+                  <span>{sq}</span>
+                  <ArrowRight size={14} style={{ opacity: 0.6, flexShrink: 0 }} />
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Conversation Area */}
+        <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {history.map((turn, idx) => {
             const r = turn.response;
             const sqlOpen = showSql.has(idx);
+            const ctxOpen = showCtx.has(idx);
+            const mapOpen = showMap.has(idx);
+            const mindMapBranches = buildMindMap(turn);
+            const hasVisual = r.ok && r.visual != null && !r.visual.none && (r.visual.nodes?.length ?? 0) >= 2;
             return (
-              <div key={turn.ts} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {/* Question bubble */}
-                <div style={{
-                  alignSelf: 'flex-end',
-                  maxWidth: '80%',
-                  padding: '0.6rem 0.9rem',
-                  background: '#1c4868',
-                  color: '#fff',
-                  borderRadius: 8,
-                  fontSize: 13,
-                  lineHeight: 1.4,
-                }}>
+              <div key={turn.ts} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                
+                {/* User Bubble */}
+                <div 
+                  style={{
+                    alignSelf: 'flex-end',
+                    maxWidth: '80%',
+                    padding: '0.75rem 1.25rem',
+                    background: 'linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%)',
+                    color: '#fff',
+                    borderRadius: 'var(--radius-md) var(--radius-md) 0 var(--radius-md)',
+                    fontSize: '0.9rem',
+                    lineHeight: '1.45',
+                    boxShadow: 'var(--shadow-sm)',
+                    animation: 'fadeIn 0.25s ease'
+                  }}
+                >
                   {turn.question}
                 </div>
 
-                {/* Answer card */}
-                <div style={{
-                  alignSelf: 'flex-start',
-                  maxWidth: '92%',
-                  padding: '0.9rem 1rem',
-                  background: '#1a1a1a',
-                  border: '1px solid #2a2a2a',
-                  borderRadius: 8,
-                  fontSize: 13,
-                  lineHeight: 1.5,
-                  color: '#e3e3e3',
-                  width: '100%',
-                }}>
+                {/* Assistant Card */}
+                <div 
+                  className="card"
+                  style={{
+                    alignSelf: 'flex-start',
+                    width: '100%',
+                    maxWidth: '100%',
+                    padding: '1.5rem',
+                    fontSize: '0.9rem',
+                    lineHeight: '1.6',
+                    animation: 'fadeIn 0.3s ease',
+                    boxShadow: 'var(--shadow-sm)'
+                  }}
+                >
                   {!r.ok && (
-                    <div style={{ color: 'salmon', fontSize: 12 }}>Error: {r.error ?? 'unknown'}</div>
+                    <div className="badge badge-danger" style={{ display: 'flex', padding: '0.75rem', justifyContent: 'center' }}>
+                      Error: {r.error ?? 'Unknown error occurred'}
+                    </div>
                   )}
 
                   {r.ok && (
                     <>
-                      <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-                        <Pill text={`route: ${r.route}`} colour="#9ab0c0" bg="#0e1820" />
+                      {/* Meta badges */}
+                      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                        <span className="badge badge-neutral" style={{ textTransform: 'capitalize' }}>
+                          route: {r.route}
+                        </span>
                         {r.data_row_count != null && r.data_row_count > 0 && (
-                          <Pill text={`${r.data_row_count} rows`} colour="#86c7a3" bg="#0d2f1f" />
+                          <span className="badge badge-success">
+                            {r.data_row_count} database rows
+                          </span>
+                        )}
+                        {r.citations && r.citations.length > 0 && (
+                          <span className="badge badge-success">
+                            {r.citations.length} cited section{r.citations.length === 1 ? '' : 's'}
+                          </span>
                         )}
                         {r.sonar_citations && r.sonar_citations.length > 0 && (
-                          <Pill text={`✦ ${r.sonar_citations.length} sources`} colour="#7fb6e8" bg="#0e1820" />
+                          <span className="badge badge-info">
+                            {r.sonar_citations.length} tax sources
+                          </span>
                         )}
                       </div>
 
-                      <div style={{ whiteSpace: 'pre-wrap' }}>{renderAnswerWithCitations(r.answer ?? '', r.sonar_citations ?? [])}</div>
+                      {/* Styled answer — inline [n] markers resolve to the cited legal
+                          corpus (NotebookLM click-to-line panel) or, when no corpus was
+                          retrieved, to the Sonar source URLs (pre-corpus behaviour). */}
+                      <CitedAnswer
+                        answer={r.answer ?? ''}
+                        citations={r.citations ?? []}
+                        sonarCitations={r.sonar_citations ?? []}
+                      />
 
-                      {/* Data table preview */}
+                      {/* Progressive explainer — an ordered, node-by-node walkthrough the bot
+                          authors only when the answer has a shape worth walking through. It
+                          blends into the card: just text + faint connectors, revealed step by step. */}
+                      {hasVisual && r.visual && (
+                        <div style={{ marginTop: '1.25rem' }}>
+                          <DiagramView spec={r.visual} />
+                        </div>
+                      )}
+
+                      {/* Reasoning map — the "show my work" transparency view, collapsed by default. */}
+                      <div style={{ marginTop: '0.85rem' }}>
+                        <button
+                          onClick={() => toggleMap(idx)}
+                          className="btn btn-secondary"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                          title="How this answer was assembled: question → books → rules → decision"
+                        >
+                          <GitBranch size={12} />
+                          {mapOpen ? 'Hide reasoning map' : 'Show reasoning map'}
+                        </button>
+                        {mapOpen && <TopDownMindMap root="Transparent answer path" branches={mindMapBranches} />}
+                      </div>
+
+                      {/* SQL Database Output Table */}
                       {r.data_rows && r.data_rows.length > 0 && (
-                        <div style={{ marginTop: 12, overflowX: 'auto' }}>
+                        <div style={{ marginTop: '1.25rem' }} className="table-premium-container">
                           <DataTable rows={r.data_rows} />
                         </div>
                       )}
 
-                      {/* Sonar citations */}
+                      {/* Sonar citations block */}
                       {r.sonar_citations && r.sonar_citations.length > 0 && (
-                        <div style={{ marginTop: 12, fontSize: 11, color: '#666' }}>
-                          <div style={{ marginBottom: 4, color: '#7fb6e8' }}>✦ Sources</div>
+                        <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' }}>
+                          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-info)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                            Sources & Citations
+                          </div>
                           {r.sonar_citations.map((url, i) => (
-                            <div key={i} style={{ marginBottom: 2 }}>
-                              <span style={{ color: '#7fb6e8', marginRight: 4 }}>[{i + 1}]</span>
-                              <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: '#5096d8', textDecoration: 'none', wordBreak: 'break-all' }}>
+                            <div key={i} style={{ display: 'flex', gap: '0.5rem', fontSize: '0.8rem', marginBottom: '0.35rem', alignItems: 'baseline' }}>
+                              <span style={{ color: 'var(--accent-info)', fontWeight: 'bold' }}>[{i + 1}]</span>
+                              <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', wordBreak: 'break-all' }}>
                                 {url}
                               </a>
                             </div>
@@ -212,38 +342,47 @@ export function AskPage() {
                         </div>
                       )}
 
-                      {/* Transparency: SQL + business context */}
+                      {/* Transparency and Debugging logs */}
                       {(r.sql || r.sql_error || r.business_context) && (
-                        <div style={{ marginTop: 12, fontSize: 11, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                             {(r.sql || r.sql_error) && (
                               <button
                                 onClick={() => toggleSql(idx)}
-                                style={transparencyBtnStyle}
+                                className="btn btn-secondary"
+                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                               >
-                                {sqlOpen ? '− hide SQL' : '+ show SQL'}
+                                <Code size={12} />
+                                {sqlOpen ? 'Hide SQL Query' : 'View SQL Query'}
                               </button>
                             )}
                             {r.business_context && (
                               <button
                                 onClick={() => toggleCtx(idx)}
-                                style={transparencyBtnStyle}
-                                title="What the bot read about your business before answering"
+                                className="btn btn-secondary"
+                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                title="What the agent knew about your business"
                               >
-                                {showCtx.has(idx) ? '− hide your profile' : '✦ show what I knew about your business'}
+                                <Terminal size={12} />
+                                {ctxOpen ? 'Hide Context Profile' : 'Show Context Profile'}
                               </button>
                             )}
                           </div>
+                          
                           {sqlOpen && r.sql && (
-                            <pre style={preBlockStyle}>{r.sql}</pre>
+                            <pre style={{ margin: 0, padding: '0.75rem', background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontSize: '0.775rem', overflowX: 'auto', color: 'var(--text-title)', whiteSpace: 'pre-wrap' }}>
+                              <code>{r.sql}</code>
+                            </pre>
                           )}
+                          
                           {sqlOpen && r.sql_error && (
-                            <div style={{ color: 'salmon', fontSize: 11 }}>
-                              SQL error: {r.sql_error}
+                            <div className="badge badge-danger" style={{ display: 'block', padding: '0.5rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'none' }}>
+                              SQL compilation error: {r.sql_error}
                             </div>
                           )}
-                          {showCtx.has(idx) && r.business_context && (
-                            <pre style={{ ...preBlockStyle, background: '#0e1820', borderColor: '#1f3a52', color: '#9ab0c0' }}>
+                          
+                          {ctxOpen && r.business_context && (
+                            <pre style={{ margin: 0, padding: '0.75rem', background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontSize: '0.775rem', overflowX: 'auto', color: 'var(--text-muted)', whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>
                               {r.business_context}
                             </pre>
                           )}
@@ -257,62 +396,121 @@ export function AskPage() {
           })}
           <div ref={bottomRef} />
         </div>
+      </div>
 
-        {/* Input */}
-        <div style={{
-          position: 'sticky',
+      {/* Floating Bottom Input Bar */}
+      <div 
+        style={{
+          position: 'absolute',
           bottom: 0,
-          marginTop: 16,
-          padding: '12px 0',
-          background: '#0a0a0a',
-          borderTop: '1px solid #2a2a2a',
-        }}>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <textarea
-              ref={inputRef}
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder={busy ? 'Thinking…' : 'Ask anything about your books or AU tax rules…'}
-              disabled={busy}
-              rows={2}
-              style={{
-                flex: 1,
-                padding: '0.6rem 0.8rem',
-                background: '#1a1a1a',
-                color: '#fff',
-                border: '1px solid #2a2a2a',
-                borderRadius: 4,
-                fontSize: 13,
-                fontFamily: 'inherit',
-                resize: 'none',
-              }}
-            />
+          left: 0,
+          right: 0,
+          background: 'var(--bg-app)',
+          padding: '1rem 0 1.5rem 0',
+          borderTop: '1px solid var(--border-subtle)',
+          boxSizing: 'border-box'
+        }}
+      >
+        {history.length > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
             <button
-              onClick={() => void ask(question)}
-              disabled={busy || !question.trim()}
-              style={{
-                padding: '0 1.2rem',
-                background: '#1c4868',
-                color: '#fff',
-                border: '1px solid #5096d8',
-                borderRadius: 4,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: busy ? 'wait' : 'pointer',
-                opacity: !question.trim() ? 0.5 : 1,
-              }}
+              onClick={clearChat}
+              disabled={busy}
+              className="btn btn-secondary"
+              title="Clear the conversation and start over"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem', fontSize: '0.78rem' }}
             >
-              {busy ? '…' : 'Ask'}
+              <Eraser size={14} />
+              Clear chat
             </button>
           </div>
-          <div style={{ fontSize: 10, color: '#666', marginTop: 4 }}>
-            Enter to send · Shift+Enter for newline · Cost ~$0.0004 per question
-          </div>
+        )}
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch' }}>
+          <textarea
+            ref={inputRef}
+            className="form-input"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder={busy ? 'Processing request…' : 'Ask anything about your books or Australian tax regulations…'}
+            disabled={busy}
+            rows={2}
+            style={{
+              resize: 'none',
+              borderRadius: 'var(--radius-md)',
+              lineHeight: '1.4',
+              padding: '0.75rem 1rem'
+            }}
+          />
+          <button
+            onClick={() => void ask(question)}
+            disabled={busy || !question.trim()}
+            className="btn btn-primary"
+            style={{
+              padding: '0 1.5rem',
+              borderRadius: 'var(--radius-md)',
+              fontWeight: 600,
+              fontSize: '0.875rem'
+            }}
+          >
+            {busy ? '…' : 'Send'}
+          </button>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.675rem', color: 'var(--text-muted)', marginTop: '0.35rem', padding: '0 0.25rem' }}>
+          <span>Enter to send · Shift+Enter for newline</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
+            <HelpCircle size={10} /> Cost: ~$0.0004 per inquiry
+          </span>
         </div>
       </div>
     </section>
   );
+}
+
+function compactText(text: string, max = 120): string {
+  const cleaned = text.replace(/\s+/g, ' ').trim();
+  if (cleaned.length <= max) return cleaned;
+  return `${cleaned.slice(0, max - 1).trim()}…`;
+}
+
+function firstSentence(text: string): string {
+  const cleaned = text.replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+  const match = cleaned.match(/^(.+?[.!?])(\s|$)/);
+  return compactText(match?.[1] ?? cleaned, 140);
+}
+
+function buildMindMap(turn: ChatTurn): MindMapBranch[] {
+  const r = turn.response;
+  if (!r.ok) {
+    return [
+      { title: 'Question', detail: compactText(turn.question), tone: 'primary' },
+      { title: 'Path', detail: 'The request failed before evidence could be assembled.', tone: 'danger' },
+      { title: 'Action', detail: r.error ?? 'Retry after checking the connection and server logs.', tone: 'warning' },
+    ];
+  }
+
+  const needsData = r.route === 'data' || r.route === 'hybrid';
+  const needsKnowledge = r.route === 'knowledge' || r.route === 'hybrid';
+  return [
+    { title: 'Question', detail: compactText(turn.question), tone: 'primary' },
+    {
+      title: 'Books checked',
+      detail: needsData
+        ? r.sql_error
+          ? `Data query failed: ${compactText(r.sql_error, 90)}`
+          : `${r.data_row_count ?? 0} ledger row${(r.data_row_count ?? 0) === 1 ? '' : 's'} returned.`
+        : 'No ledger query needed for this answer.',
+      tone: r.sql_error ? 'danger' : needsData ? 'success' : 'neutral',
+    },
+    {
+      title: 'Rules checked',
+      detail: needsKnowledge
+        ? `${r.sonar_citations?.length ?? 0} cited tax source${(r.sonar_citations?.length ?? 0) === 1 ? '' : 's'} attached.`
+        : 'Answered from company records rather than external tax research.',
+      tone: needsKnowledge && (r.sonar_citations?.length ?? 0) === 0 ? 'warning' : 'info',
+    },
+    { title: 'Decision', detail: firstSentence(r.answer ?? 'No written answer returned.'), tone: 'success' },
+  ];
 }
 
 function DataTable({ rows }: { rows: Record<string, unknown>[] }) {
@@ -320,23 +518,19 @@ function DataTable({ rows }: { rows: Record<string, unknown>[] }) {
   if (!firstRow) return null;
   const cols = Object.keys(firstRow);
   return (
-    <table style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
+    <table className="table-premium">
       <thead>
-        <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
+        <tr>
           {cols.map((c) => (
-            <th key={c} style={{
-              padding: '0.3rem 0.5rem', textAlign: 'left', fontSize: 10,
-              color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500,
-              whiteSpace: 'nowrap',
-            }}>{c}</th>
+            <th key={c} style={{ fontSize: '0.7rem' }}>{c}</th>
           ))}
         </tr>
       </thead>
       <tbody>
         {rows.slice(0, 20).map((r, idx) => (
-          <tr key={idx} style={{ borderBottom: '1px solid #1a1a1a' }}>
+          <tr key={idx}>
             {cols.map((c) => (
-              <td key={c} style={{ padding: '0.3rem 0.5rem', fontSize: 11, color: '#ccc', whiteSpace: 'nowrap' }}>
+              <td key={c} style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                 {formatCell(r[c], c)}
               </td>
             ))}
@@ -357,89 +551,3 @@ function formatCell(v: unknown, col: string): string {
   return String(v);
 }
 
-function Pill({ text, colour, bg }: { text: string; colour: string; bg: string }) {
-  return (
-    <span style={{
-      padding: '0.15rem 0.5rem',
-      fontSize: 10,
-      borderRadius: 3,
-      background: bg,
-      color: colour,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-      fontWeight: 500,
-    }}>{text}</span>
-  );
-}
-
-// Renders the synthesized answer text with:
-//  - [n] markers → clickable superscript links to Sonar citation URLs
-//  - **bold** markdown → <strong>
-//  - bullet "- " line prefixes preserved
-function renderAnswerWithCitations(text: string, citations: string[]): React.ReactNode {
-  // Split on [n] preserving the markers
-  const parts = text.split(/(\[\d+\])/g);
-  return parts.map((part, i) => {
-    const m = /^\[(\d+)\]$/.exec(part);
-    if (m?.[1]) {
-      const n = parseInt(m[1], 10);
-      const url = citations[n - 1];
-      if (url) {
-        return (
-          <a
-            key={i}
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: '#7fb6e8',
-              fontSize: 10,
-              verticalAlign: 'super',
-              textDecoration: 'none',
-              padding: '1px 4px',
-              background: '#0e1820',
-              border: '1px solid #1f3a52',
-              borderRadius: 3,
-              marginLeft: 2,
-            }}
-            title={url}
-          >[{n}]</a>
-        );
-      }
-      return <sup key={i} style={{ color: '#666', fontSize: 10 }}>{part}</sup>;
-    }
-    // Render **bold** within this part
-    return <span key={i}>{renderBold(part)}</span>;
-  });
-}
-
-const transparencyBtnStyle: React.CSSProperties = {
-  background: 'transparent',
-  color: '#7fb6e8',
-  border: '1px solid #1f3a52',
-  borderRadius: 3,
-  padding: '0.15rem 0.5rem',
-  fontSize: 10,
-  cursor: 'pointer',
-};
-
-const preBlockStyle: React.CSSProperties = {
-  margin: 0,
-  padding: 8,
-  background: '#0a0a0a',
-  border: '1px solid #2a2a2a',
-  borderRadius: 3,
-  fontSize: 11,
-  color: '#aaa',
-  whiteSpace: 'pre-wrap',
-  wordBreak: 'break-word',
-};
-
-function renderBold(text: string): React.ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) => {
-    const m = /^\*\*([^*]+)\*\*$/.exec(part);
-    if (m) return <strong key={i} style={{ color: '#fff' }}>{m[1]}</strong>;
-    return <span key={i}>{part}</span>;
-  });
-}

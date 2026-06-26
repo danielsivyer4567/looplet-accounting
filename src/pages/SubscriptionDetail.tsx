@@ -1,10 +1,22 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { AllocationSplitButton } from '@/components/AllocationSplitButton';
+import {
+  ArrowLeft,
+  RefreshCw,
+  Edit2,
+  Info,
+  Calendar,
+  DollarSign,
+  Clock,
+  TrendingUp,
+  History,
+  CreditCard
+} from 'lucide-react';
 
 interface Subscription {
   id: string;
@@ -37,7 +49,6 @@ interface BankTxn {
 const STATUS_OPTIONS = ['detected', 'confirmed', 'cancelled', 'paused'];
 const CADENCE_OPTIONS = ['weekly', 'fortnightly', 'monthly', 'quarterly', 'yearly'];
 
-// Mirror of supabase/functions/subscriptions-detect/index.ts:173 canonicaliseDescription.
 function canonicaliseDescription(d: string): string {
   return d
     .toLowerCase()
@@ -61,6 +72,7 @@ function monthlyEquivalent(amount_cents: number, cadence: string): number {
 export function SubscriptionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { currentOrg } = useOrg();
+  const navigate = useNavigate();
   const [sub, setSub] = useState<Subscription | null>(null);
   const [txns, setTxns] = useState<BankTxn[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,7 +102,6 @@ export function SubscriptionDetailPage() {
     setSub(s);
 
     if (s && s.merchant_canonical_key) {
-      // Pull last 24 months of debit txns and filter by canonical key match.
       const cutoff = new Date();
       cutoff.setMonth(cutoff.getMonth() - 24);
       const txnRes = await supabase
@@ -132,7 +143,6 @@ export function SubscriptionDetailPage() {
     if (!sub) return;
     setSaving(true);
     setError(null);
-    // Mutually-exclusive personal/business — guard at save time.
     const isPersonal = !!draft.is_personal;
     let isBusiness = !!draft.is_business;
     if (isPersonal && isBusiness) isBusiness = false;
@@ -182,7 +192,6 @@ export function SubscriptionDetailPage() {
     }
   };
 
-  // Monthly bars (last 8 months) — built off the filtered txns.
   const monthlyBars = useMemo(() => {
     const now = new Date();
     const buckets: { label: string; value: number }[] = [];
@@ -204,158 +213,291 @@ export function SubscriptionDetailPage() {
   }, [txns]);
 
   if (!currentOrg) return null;
-  if (loading) return <section><h1>Subscription</h1><p style={{ color: '#888' }}>Loading…</p></section>;
-  if (!sub)
+  if (loading) {
     return (
-      <section>
-        <h1>Subscription not found</h1>
-        <Link to="/subscriptions" style={{ color: '#86c7a3' }}>&larr; Back to subscriptions</Link>
+      <section className="animated-fade-in" style={{ padding: '2rem 0' }}>
+        <p style={{ color: 'var(--text-muted)' }}>Loading subscription detail...</p>
       </section>
     );
+  }
+
+  if (!sub) {
+    return (
+      <section className="animated-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <h1>Subscription Not Found</h1>
+        <Link to="/subscriptions" className="btn btn-secondary" style={{ width: 'fit-content' }}>
+          <ArrowLeft className="w-4 h-4" /> Back to Subscriptions
+        </Link>
+      </section>
+    );
+  }
 
   const monthly = monthlyEquivalent(sub.amount_cents, sub.cadence);
   const annual = monthly * 12;
 
   return (
-    <section>
-      <Link to="/subscriptions" style={{ color: '#86c7a3', fontSize: 13 }}>&larr; All subscriptions</Link>
+    <section className="animated-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div>
+        <Link to="/subscriptions" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+          <ArrowLeft className="w-4 h-4" /> Back to all subscriptions
+        </Link>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '0.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-          <h1 style={{ margin: 0 }}>{sub.merchant_name}</h1>
-          <StatusPill status={sub.status} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <h1 style={{ margin: 0 }}>{sub.merchant_name}</h1>
+            <StatusPill status={sub.status} />
+          </div>
+
+          {!editing && (
+            <div style={{ display: 'inline-flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button className="btn btn-secondary" onClick={redetect} disabled={redetecting}>
+                <RefreshCw className={`w-4 h-4 ${redetecting ? 'animate-spin' : ''}`} />
+                {redetecting ? 'Detecting…' : 'Re-scan feed'}
+              </button>
+              <AllocationSplitButton
+                resourceType="subscription"
+                resourceId={sub.id}
+                hostOrgId={currentOrg.id}
+                onSaved={() => void refresh()}
+              />
+              <MoveToOrgButton
+                table="subscriptions"
+                rowId={sub.id}
+                currentOrgId={currentOrg.id}
+                fkColumnsToNull={['supplier_id']}
+                onMoved={() => navigate('/subscriptions')}
+              />
+              <button className="btn btn-secondary" onClick={startEdit}>
+                <Edit2 className="w-4 h-4" /> Edit Details
+              </button>
+            </div>
+          )}
         </div>
-        {!editing && (
-          <span style={{ display: 'inline-flex', gap: 8 }}>
-            <button onClick={redetect} disabled={redetecting} style={btnPrim} title="Re-run subscription detection across the org">
-              {redetecting ? 'Detecting…' : '↻ Re-detect'}
-            </button>
-            <AllocationSplitButton
-              resourceType="subscription"
-              resourceId={sub.id}
-              hostOrgId={currentOrg.id}
-              onSaved={() => void refresh()}
-            />
-            <MoveToOrgButton
-              table="subscriptions"
-              rowId={sub.id}
-              currentOrgId={currentOrg.id}
-              fkColumnsToNull={['supplier_id']}
-              onMoved={() => { window.location.href = '/subscriptions'; }}
-            />
-            <button onClick={startEdit} style={btnGhost}>✎ Edit</button>
-          </span>
-        )}
       </div>
+
       {redetectMsg && (
-        <p style={{ marginTop: 4, fontSize: 12, color: redetectMsg.startsWith('Detection error') ? 'salmon' : '#86c7a3' }}>
+        <div className={`badge ${redetectMsg.startsWith('Detection error') ? 'badge-danger' : 'badge-success'}`} style={{ display: 'block', padding: '0.625rem 1rem', textTransform: 'none', width: 'fit-content' }}>
           {redetectMsg}
-        </p>
+        </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 16, maxWidth: 1100 }}>
-        <KpiCard label="Amount" value={formatMoney(sub.amount_cents)} colour="#d2c886" sub={sub.cadence} />
-        <KpiCard label="Monthly equivalent" value={formatMoney(monthly)} colour="#5096d8" />
-        <KpiCard label="Annual equivalent" value={formatMoney(annual)} colour="#86c7a3" />
-        <KpiCard label="Next expected" value={sub.next_expected_at ?? '—'} colour="#aaa" />
-        <KpiCard label="Observed count" value={String(sub.observed_count)} colour="#aaa" sub="bank-txn matches" />
-        <KpiCard label="Total spent" value={formatMoney(sub.total_spent_cents)} colour="#e9a3a3" sub="lifetime to date" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+        <KpiCard
+          label="Recurring Amount"
+          value={formatMoney(sub.amount_cents)}
+          accentColor="var(--accent-warning)"
+          icon={<CreditCard className="w-5 h-5" style={{ color: 'var(--accent-warning)' }} />}
+          sub={sub.cadence}
+        />
+        <KpiCard
+          label="Monthly Run Rate"
+          value={formatMoney(monthly)}
+          accentColor="var(--accent-info)"
+          icon={<Calendar className="w-5 h-5" style={{ color: 'var(--accent-info)' }} />}
+        />
+        <KpiCard
+          label="Annual Cost Equivalent"
+          value={formatMoney(annual)}
+          accentColor="var(--accent-success)"
+          icon={<TrendingUp className="w-5 h-5" style={{ color: 'var(--accent-success)' }} />}
+        />
+        <KpiCard
+          label="Next Billing Cycle"
+          value={sub.next_expected_at ?? '—'}
+          accentColor="var(--text-muted)"
+          icon={<Clock className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />}
+        />
+        <KpiCard
+          label="Observed Count"
+          value={String(sub.observed_count)}
+          accentColor="var(--text-muted)"
+          icon={<History className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />}
+          sub="bank matches"
+        />
+        <KpiCard
+          label="Lifetime Spend to Date"
+          value={formatMoney(sub.total_spent_cents)}
+          accentColor="var(--accent-danger)"
+          icon={<DollarSign className="w-5 h-5" style={{ color: 'var(--accent-danger)' }} />}
+        />
       </div>
 
       {editing ? (
-        <div style={card}>
-          <div style={grid2}>
-            <Field label="Status">
-              <select value={String(draft.status ?? sub.status)} onChange={(e) => setDraft({ ...draft, status: e.target.value })} style={inp}>
-                {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </Field>
-            <Field label="Cadence override">
-              <select value={String(draft.cadence ?? sub.cadence)} onChange={(e) => setDraft({ ...draft, cadence: e.target.value })} style={inp}>
-                {CADENCE_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </Field>
-          </div>
-          <div style={grid2}>
-            <Field label="Tag (mutually exclusive)">
-              <div style={{ display: 'flex', gap: 4 }}>
+        <div className="card-gradient">
+          <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Edit2 className="w-5 h-5" /> Edit Subscription Settings
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Subscription Status</label>
+                <select
+                  className="form-select"
+                  value={String(draft.status ?? sub.status)}
+                  onChange={(e) => setDraft({ ...draft, status: e.target.value })}
+                >
+                  {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Cadence Override</label>
+                <select
+                  className="form-select"
+                  value={String(draft.cadence ?? sub.cadence)}
+                  onChange={(e) => setDraft({ ...draft, cadence: e.target.value })}
+                >
+                  {CADENCE_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Account Classification</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button
                   type="button"
                   onClick={() => setDraft({ ...draft, is_business: !draft.is_business, is_personal: false })}
-                  style={tagBtn(!!draft.is_business && !draft.is_personal, '#86c7a3')}
-                >Business</button>
+                  className="btn"
+                  style={{
+                    backgroundColor: draft.is_business && !draft.is_personal ? 'var(--bg-success-subtle)' : 'var(--bg-hover)',
+                    color: draft.is_business && !draft.is_personal ? 'var(--text-success)' : 'var(--text-muted)',
+                    border: `1px solid ${draft.is_business && !draft.is_personal ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-subtle)'}`
+                  }}
+                >
+                  Business (Deductible)
+                </button>
                 <button
                   type="button"
                   onClick={() => setDraft({ ...draft, is_personal: !draft.is_personal, is_business: false })}
-                  style={tagBtn(!!draft.is_personal, '#f0c47a')}
-                >Personal</button>
+                  className="btn"
+                  style={{
+                    backgroundColor: draft.is_personal ? 'var(--bg-warning-subtle)' : 'var(--bg-hover)',
+                    color: draft.is_personal ? 'var(--text-warning)' : 'var(--text-muted)',
+                    border: `1px solid ${draft.is_personal ? 'rgba(245, 158, 11, 0.2)' : 'var(--border-subtle)'}`
+                  }}
+                >
+                  Personal (Non-Deductible)
+                </button>
               </div>
-            </Field>
-            <div />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Notes</label>
+              <textarea
+                className="form-textarea"
+                rows={3}
+                value={String(draft.notes ?? '')}
+                onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button className="btn btn-primary" onClick={save} disabled={saving}>
+                {saving ? 'Saving Changes…' : 'Save Changes'}
+              </button>
+              <button className="btn btn-secondary" onClick={() => setEditing(false)} disabled={saving}>
+                Cancel
+              </button>
+            </div>
+            {error && (
+              <div className="badge badge-danger" style={{ display: 'block', padding: '0.5rem 1rem', textTransform: 'none' }}>
+                {error}
+              </div>
+            )}
           </div>
-          <Field label="Notes"><textarea rows={3} value={String(draft.notes ?? '')} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} style={inp} /></Field>
-          <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-            <button onClick={save} disabled={saving} style={btnPrim}>{saving ? 'Saving…' : 'Save'}</button>
-            <button onClick={() => setEditing(false)} disabled={saving} style={btnGhost}>Cancel</button>
-          </div>
-          {error && <p style={{ color: 'salmon', fontSize: 12, marginTop: 8 }}>{error}</p>}
         </div>
       ) : (
-        <div style={{ ...card, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-          <Stat label="Cadence" value={sub.cadence} />
-          <Stat label="Currency" value={sub.currency_code ?? 'AUD'} />
-          <Stat label="Confidence" value={sub.confidence != null ? `${(sub.confidence * 100).toFixed(0)}%` : '—'} />
-          <Stat label="First seen" value={sub.first_seen_at?.slice(0, 10) ?? '—'} />
-          <Stat label="Last seen" value={sub.last_seen_at?.slice(0, 10) ?? '—'} />
-          <Stat label="Tag" value={sub.is_business ? 'Business' : sub.is_personal ? 'Personal' : '—'} />
-          <Stat label="Canonical key" value={sub.merchant_canonical_key ?? '—'} mono />
-          <Stat label="Detection reason" value={sub.detection_reason ?? '—'} />
-          <Stat label="Notes" value={sub.notes ?? '—'} />
+        <div className="card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+          <StatField label="Billing Cadence" value={sub.cadence} style={{ textTransform: 'capitalize' }} />
+          <StatField label="Currency Setting" value={sub.currency_code ?? 'AUD'} />
+          <StatField label="Confidence Rating" value={sub.confidence != null ? `${(sub.confidence * 100).toFixed(0)}%` : '—'} />
+          <StatField label="Detection Origin" value={sub.detection_reason ?? 'Auto-scanned description match'} />
+          <StatField label="Classification" value={sub.is_business ? 'Business Account' : sub.is_personal ? 'Personal Account' : 'Unclassified'} />
+          <StatField label="Canonical Merchant Key" value={sub.merchant_canonical_key ?? '—'} mono />
+          <StatField label="First Billing Match" value={sub.first_seen_at?.slice(0, 10) ?? '—'} />
+          <StatField label="Last Billing Match" value={sub.last_seen_at?.slice(0, 10) ?? '—'} />
+          <div style={{ gridColumn: '1 / -1' }}>
+            <StatField label="Notes / Memo" value={sub.notes ?? 'No internal notes recorded.'} />
+          </div>
         </div>
       )}
 
-      <h2 style={h2}>History — last 8 months</h2>
-      {monthlyBars.every((b) => b.value === 0) ? (
-        <p style={{ color: '#888', fontSize: 13 }}>No matching transactions in the last 8 months.</p>
-      ) : (
-        <MonthlyBars bars={monthlyBars} />
-      )}
+      <div>
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Monthly History (Last 8 Months)</h2>
+        {monthlyBars.every((b) => b.value === 0) ? (
+          <div className="card" style={{ padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+            No matching transactions were observed in the last 8 months.
+          </div>
+        ) : (
+          <div className="card" style={{ display: 'flex', justifyContent: 'center', padding: '2rem 1.5rem', overflowX: 'auto' }}>
+            <MonthlyBars bars={monthlyBars} />
+          </div>
+        )}
+      </div>
 
-      <h2 style={h2}>Recent transactions (last 24 months)</h2>
-      {txns.length === 0 ? (
-        <p style={{ color: '#888', fontSize: 13 }}>No matching bank transactions found for canonical key <code style={{ color: '#aaa' }}>{sub.merchant_canonical_key ?? '—'}</code>.</p>
-      ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-              <th style={th}>Date</th>
-              <th style={th}>Description</th>
-              <th style={thRight}>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {txns.map((t) => (
-              <tr key={t.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                <td style={td}>{t.posted_at.slice(0, 10)}</td>
-                <td style={td}><code style={{ color: '#aaa', fontSize: 12 }}>{t.description}</code></td>
-                <td style={tdRight}>{formatMoney(Math.abs(t.amount_cents))}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <div>
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Matching Bank Transactions (Last 24 Months)</h2>
+        {txns.length === 0 ? (
+          <div className="card" style={{ padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+            No matching bank transactions found for canonical key <code style={{ color: 'var(--text-title)', fontSize: '0.85rem' }}>{sub.merchant_canonical_key ?? '—'}</code>.
+          </div>
+        ) : (
+          <div className="table-premium-container">
+            <table className="table-premium">
+              <thead>
+                <tr>
+                  <th>Posting Date</th>
+                  <th>Raw Statement Description</th>
+                  <th style={{ textAlign: 'right' }}>Debit Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {txns.map((t) => (
+                  <tr key={t.id}>
+                    <td>{t.posted_at.slice(0, 10)}</td>
+                    <td>
+                      <code style={{ fontSize: '0.8rem', color: 'var(--text-title)', backgroundColor: 'var(--bg-hover)', padding: '0.2rem 0.4rem', borderRadius: 'var(--radius-sm)' }}>
+                        {t.description}
+                      </code>
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-title)' }}>
+                      {formatMoney(Math.abs(t.amount_cents))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div
+        className="glass-panel"
+        style={{
+          padding: '1rem 1.25rem',
+          display: 'flex',
+          gap: '0.75rem',
+          alignItems: 'flex-start',
+          fontSize: '0.825rem',
+          color: 'var(--text-muted)',
+          borderStyle: 'dashed'
+        }}
+      >
+        <Info className="w-5 h-5 text-accent-primary" style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--accent-primary)' }} />
+        <div>
+          <strong style={{ color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>Subscription Optimization:</strong>
+          Looplet scans these historical transactions to verify pricing changes. We will warn you when a bill goes up or has double-accrued.
+        </div>
+      </div>
     </section>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Inline-SVG bar chart — same colour vocabulary as Suppliers HorizontalBarChart.
-// ---------------------------------------------------------------------------
 function MonthlyBars({ bars }: { bars: { label: string; value: number }[] }) {
-  const BAR_W = 40;
-  const GAP = 14;
-  const HEIGHT = 120;
-  const LABEL_H = 32;
+  const BAR_W = 48;
+  const GAP = 18;
+  const HEIGHT = 140;
+  const LABEL_H = 36;
   const max = Math.max(1, ...bars.map((b) => b.value));
   const totalW = bars.length * (BAR_W + GAP);
   return (
@@ -366,10 +508,14 @@ function MonthlyBars({ bars }: { bars: { label: string; value: number }[] }) {
         const y = HEIGHT - h;
         return (
           <g key={i}>
-            <rect x={x} y={0} width={BAR_W} height={HEIGHT} fill="#1a1a1a" rx={3} />
-            <rect x={x} y={y} width={BAR_W} height={h} fill="#2da565" rx={3} />
-            <text x={x + BAR_W / 2} y={HEIGHT + 14} textAnchor="middle" fill="#aaa" fontSize={11}>{b.label}</text>
-            <text x={x + BAR_W / 2} y={HEIGHT + 28} textAnchor="middle" fill="#86c7a3" fontSize={10} fontWeight={600}>
+            <rect x={x} y={0} width={BAR_W} height={HEIGHT} fill="var(--bg-hover)" rx={4} />
+            {b.value > 0 && (
+              <rect x={x} y={y} width={BAR_W} height={h} fill="var(--accent-primary)" rx={4} />
+            )}
+            <text x={x + BAR_W / 2} y={HEIGHT + 16} textAnchor="middle" fill="var(--text-muted)" fontSize={11}>
+              {b.label}
+            </text>
+            <text x={x + BAR_W / 2} y={HEIGHT + 30} textAnchor="middle" fill="var(--accent-primary)" fontSize={10} fontWeight={600}>
               {b.value > 0 ? formatMoneyCompact(b.value) : ''}
             </text>
           </g>
@@ -379,63 +525,49 @@ function MonthlyBars({ bars }: { bars: { label: string; value: number }[] }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Shared chrome — copied from CustomerDetail / SupplierDetail.
-// ---------------------------------------------------------------------------
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function StatField({ label, value, mono, style }: { label: string; value: string; mono?: boolean; style?: React.CSSProperties }) {
   return (
-    <label style={{ display: 'block', fontSize: 11, color: '#888', marginTop: 6 }}>
-      <div style={{ marginBottom: 3 }}>{label}</div>
-      {children}
-    </label>
-  );
-}
-
-function Stat({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div>
-      <div style={{ fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ marginTop: 3, color: '#ddd', fontSize: 13, fontFamily: mono ? 'monospace' : 'inherit' }}>{value}</div>
+    <div style={style}>
+      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: '0.25rem' }}>
+        {label}
+      </div>
+      <div style={{ color: 'var(--text-title)', fontSize: '0.95rem', fontWeight: 500, fontFamily: mono ? 'monospace' : 'inherit' }}>
+        {value}
+      </div>
     </div>
   );
 }
 
-function KpiCard({ label, value, colour, sub }: { label: string; value: string; colour: string; sub?: string }) {
+function KpiCard({ label, value, accentColor, icon, sub }: { label: string; value: string; accentColor: string; icon: React.ReactNode; sub?: string }) {
   return (
-    <div style={{ padding: 16, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 6 }}>
-      <div style={{ fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ marginTop: 6, fontSize: 22, color: colour, fontWeight: 600 }}>{value}</div>
-      {sub && <div style={{ marginTop: 4, fontSize: 11, color: '#888' }}>{sub}</div>}
+    <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderLeft: `4px solid ${accentColor}` }}>
+      <div>
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: '0.35rem' }}>
+          {label}
+        </div>
+        <div style={{ fontSize: '1.65rem', color: 'var(--text-title)', fontWeight: 700, fontFamily: 'var(--font-title)' }}>
+          {value}
+        </div>
+        {sub && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{sub}</div>}
+      </div>
+      <div style={{ padding: '0.5rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)' }}>
+        {icon}
+      </div>
     </div>
   );
 }
 
 function StatusPill({ status }: { status: string }) {
-  const c = status === 'confirmed' ? '#86c7a3'
-    : status === 'detected' ? '#5096d8'
-    : status === 'cancelled' ? '#666'
-    : status === 'paused' ? '#d2c886'
-    : '#888';
-  return <span style={{ padding: '0.15rem 0.5rem', fontSize: 11, borderRadius: 3, background: '#222', color: c, textTransform: 'uppercase' }}>{status}</span>;
+  switch (status) {
+    case 'confirmed':
+      return <span className="badge badge-success">Confirmed</span>;
+    case 'detected':
+      return <span className="badge badge-info">Detected</span>;
+    case 'cancelled':
+      return <span className="badge badge-neutral">Cancelled</span>;
+    case 'paused':
+      return <span className="badge badge-warning">Paused</span>;
+    default:
+      return <span className="badge badge-neutral">{status}</span>;
+  }
 }
-
-function tagBtn(active: boolean, colour: string): React.CSSProperties {
-  return {
-    padding: '0.3rem 0.75rem',
-    background: active ? '#222' : 'transparent',
-    color: active ? colour : '#666',
-    border: '1px solid ' + (active ? colour : '#333'),
-    borderRadius: 3, fontSize: 12, cursor: 'pointer', fontWeight: active ? 600 : 400,
-  };
-}
-
-const card: React.CSSProperties = { marginTop: 16, padding: 16, background: '#0e0e0e', border: '1px solid #2a2a2a', borderRadius: 6, maxWidth: 920 };
-const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 };
-const inp: React.CSSProperties = { width: '100%', padding: '6px 8px', background: '#000', color: '#ddd', border: '1px solid #333', borderRadius: 3, fontSize: 12 };
-const h2: React.CSSProperties = { fontSize: 14, marginTop: 24, marginBottom: 8 };
-const th: React.CSSProperties = { padding: '0.4rem 0.5rem', textAlign: 'left', fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 };
-const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
-const td: React.CSSProperties = { padding: '0.5rem' };
-const tdRight: React.CSSProperties = { ...td, textAlign: 'right' };
-const btnPrim: React.CSSProperties = { padding: '0.4rem 1rem', background: '#1c4868', color: '#fff', border: '1px solid #5096d8', borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: 'pointer' };
-const btnGhost: React.CSSProperties = { padding: '0.4rem 1rem', background: 'transparent', color: '#aaa', border: '1px solid #333', borderRadius: 4, fontSize: 12, cursor: 'pointer' };

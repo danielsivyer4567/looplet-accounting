@@ -115,7 +115,8 @@ describe('CustomersPage', () => {
     _mockCustomers = SAMPLE_CUSTOMERS;
     renderPage();
     // "2 customers" counter badge
-    expect(screen.getByText(/2 customers/i)).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText((content, element) => element?.tagName.toLowerCase() === 'span' && content === 'customers')).toBeInTheDocument();
   });
 
   it('renders a row per customer in the table', () => {

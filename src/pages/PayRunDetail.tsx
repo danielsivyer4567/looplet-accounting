@@ -1,19 +1,13 @@
-/**
- * PayRunDetail — single pay run with all payslips.
- *
- * Actions:
- *   - Approve (admin+):   draft -> approved
- *   - Finalise (owner):   approved/draft -> paid (via edge fn payroll-finalise-pay-run)
- *   - Export STP:         downloads the JSON returned by payroll-export-stp
- *   - Send payslips:      stubbed — future per-employee email
- */
-
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { useAuth } from '@/hooks/useAuth';
 import { formatMoney } from '@/lib/money';
+import { 
+  ChevronLeft, Layers, Calendar, DollarSign, Wallet, 
+  CheckCircle, Download, XCircle, Info, FileText, type LucideIcon
+} from 'lucide-react';
 
 interface PayRun {
   id: string;
@@ -75,9 +69,6 @@ export function PayRunDetailPage() {
         .select('*, employee:employees(full_name, email)')
         .eq('pay_run_id', id)
         .order('created_at'),
-      // Scope to THIS user's membership. Without the user_id filter, an org with
-      // 2+ members matches multiple rows and .maybeSingle() errors, silently
-      // dropping the caller's role and hiding every pay-run action org-wide.
       supabase.from('organization_memberships').select('role_enum')
         .eq('organization_id', currentOrg.id)
         .eq('user_id', user.id)
@@ -146,7 +137,6 @@ export function PayRunDetailPage() {
     if (e) { setError(e.message); return; }
     const payload = data as { ok?: boolean; stp?: unknown; error?: string };
     if (!payload?.ok) { setError(payload?.error ?? 'STP export failed'); return; }
-    // Trigger download
     const blob = new Blob([JSON.stringify(payload.stp, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -159,89 +149,204 @@ export function PayRunDetailPage() {
   };
 
   if (!currentOrg) return null;
-  if (loading) return <section><h1>Pay run</h1><p style={{ color: '#888' }}>Loading…</p></section>;
-  if (!run) return (
-    <section>
-      <h1>Pay run not found</h1>
-      <Link to="/payroll" style={{ color: '#86c7a3' }}>&larr; All pay runs</Link>
-    </section>
-  );
+  if (loading) return <section><p style={{ color: 'var(--text-muted)' }}>Loading pay run details…</p></section>;
+  if (!run) {
+    return (
+      <section className="animated-fade-in" style={{ padding: '2rem 0', textAlign: 'center' }}>
+        <h2>Pay run not found</h2>
+        <Link to="/payroll" className="btn btn-secondary" style={{ marginTop: '1rem' }}>
+          <ChevronLeft size={16} /> All pay runs
+        </Link>
+      </section>
+    );
+  }
 
   const canApprove = isAdmin && run.status === 'draft';
   const canFinalise = isOwner && (run.status === 'draft' || run.status === 'approved');
   const canCancel = isAdmin && run.status !== 'paid' && run.status !== 'cancelled';
 
-  return (
-    <section>
-      <Link to="/payroll" style={{ color: '#86c7a3', fontSize: 13 }}>&larr; All pay runs</Link>
+  // Stepper steps configuration
+  const steps = [
+    { label: 'Draft', active: true },
+    { label: 'Approved', active: run.status !== 'draft' && run.status !== 'cancelled' },
+    { label: 'Paid', active: run.status === 'paid' }
+  ];
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 8, gap: 12, flexWrap: 'wrap' }}>
+  return (
+    <section className="animated-fade-in">
+      {/* Back button */}
+      <Link 
+        to="/payroll" 
+        style={{ 
+          color: 'var(--text-muted)', 
+          fontSize: '0.825rem', 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.25rem',
+          marginBottom: '1rem'
+        }}
+      >
+        <ChevronLeft size={14} />
+        <span>All pay runs</span>
+      </Link>
+
+      {/* Stepper block */}
+      {run.status !== 'cancelled' && run.status !== 'reversed' ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+          {steps.map((step, idx) => (
+            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.35rem', 
+                  padding: '0.4rem 0.8rem', 
+                  borderRadius: 'var(--radius-full)', 
+                  fontSize: '0.825rem', 
+                  fontWeight: 600,
+                  background: step.active ? 'var(--bg-success-subtle)' : 'var(--bg-hover)',
+                  color: step.active ? 'var(--text-success)' : 'var(--text-muted)',
+                  border: step.active ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid var(--border-subtle)'
+                }}
+              >
+                <CheckCircle size={14} />
+                <span>{step.label}</span>
+              </div>
+              {idx < steps.length - 1 && (
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>&rarr;</span>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="badge badge-danger" style={{ display: 'inline-flex', gap: '0.35rem', padding: '0.5rem 1rem', marginBottom: '1.5rem', fontSize: '0.875rem', textTransform: 'uppercase' }}>
+          <XCircle size={14} />
+          <span>Pay Run {run.status}</span>
+        </div>
+      )}
+
+      {/* Header Info */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
         <div>
-          <h1 style={{ margin: 0 }}>Pay run · {run.period_start} → {run.period_end}</h1>
-          <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
-            Pay date <strong style={{ color: '#ddd' }}>{run.pay_date}</strong>
-            {' · status '}<StatusPill status={run.status} />
-            {run.approved_at && ` · approved ${new Date(run.approved_at).toLocaleDateString()}`}
-            {run.paid_at && ` · paid ${new Date(run.paid_at).toLocaleDateString()}`}
+          <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Layers size={24} style={{ color: 'var(--accent-primary)' }} />
+            Pay run · {run.period_start} → {run.period_end}
+          </h1>
+          <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.25rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+              <Calendar size={12} />
+              Pay Date: <strong style={{ color: 'var(--text-title)' }}>{run.pay_date}</strong>
+            </span>
+            <span>•</span>
+            <span className="badge badge-neutral">{run.status}</span>
+            {run.approved_at && (
+              <>
+                <span>•</span>
+                <span>Approved: {new Date(run.approved_at).toLocaleDateString()}</span>
+              </>
+            )}
+            {run.paid_at && (
+              <>
+                <span>•</span>
+                <span>Paid: {new Date(run.paid_at).toLocaleDateString()}</span>
+              </>
+            )}
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {canApprove && <button onClick={approve} disabled={busy === 'approve'} style={btnPrim}>
-            {busy === 'approve' ? 'Approving…' : 'Approve'}
-          </button>}
-          {canFinalise && <button onClick={finalise} disabled={busy === 'finalise'} style={btnAccent}>
-            {busy === 'finalise' ? 'Finalising…' : 'Finalise & pay'}
-          </button>}
-          <button onClick={exportStp} disabled={busy === 'stp'} style={btnGhost}>
-            {busy === 'stp' ? 'Exporting…' : 'Export STP'}
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {canApprove && (
+            <button onClick={approve} disabled={busy === 'approve'} className="btn btn-primary">
+              <CheckCircle size={16} />
+              <span>{busy === 'approve' ? 'Approving…' : 'Approve'}</span>
+            </button>
+          )}
+          {canFinalise && (
+            <button onClick={finalise} disabled={busy === 'finalise'} className="btn btn-success">
+              <Wallet size={16} />
+              <span>{busy === 'finalise' ? 'Finalising…' : 'Finalise & pay'}</span>
+            </button>
+          )}
+          <button onClick={exportStp} disabled={busy === 'stp'} className="btn btn-secondary">
+            <Download size={16} />
+            <span>{busy === 'stp' ? 'Exporting…' : 'Export STP'}</span>
           </button>
-          {canCancel && <button onClick={cancel} disabled={busy === 'cancel'} style={btnGhostRed}>
-            {busy === 'cancel' ? 'Cancelling…' : 'Cancel'}
-          </button>}
+          {canCancel && (
+            <button onClick={cancel} disabled={busy === 'cancel'} className="btn btn-secondary" style={{ color: 'var(--text-danger)', borderColor: 'var(--text-danger)' }}>
+              <XCircle size={16} />
+              <span>{busy === 'cancel' ? 'Cancelling…' : 'Cancel'}</span>
+            </button>
+          )}
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 16, maxWidth: 1100 }}>
-        <Kpi label="Total gross" value={formatMoney(Number(run.total_gross_cents))} colour="#aaa" />
-        <Kpi label="Total PAYG" value={formatMoney(Number(run.total_tax_cents))} colour="#e9a3a3" />
-        <Kpi label="Total super" value={formatMoney(Number(run.total_super_cents))} colour="#5096d8" />
-        <Kpi label="Total net" value={formatMoney(Number(run.total_net_cents))} colour="#86c7a3" />
+      {error && <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', marginBottom: '1rem', textTransform: 'none' }}>{error}</div>}
+
+      {/* KPI Cards */}
+      <div 
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+          gap: '1rem',
+          marginBottom: '2rem'
+        }}
+      >
+        <KpiCard label="Total Gross" value={formatMoney(Number(run.total_gross_cents))} type="neutral" icon={DollarSign} />
+        <KpiCard label="Total PAYG" value={formatMoney(Number(run.total_tax_cents))} type="danger" icon={DollarSign} />
+        <KpiCard label="Total Super" value={formatMoney(Number(run.total_super_cents))} type="info" icon={Wallet} />
+        <KpiCard label="Total Net" value={formatMoney(Number(run.total_net_cents))} type="success" icon={Wallet} />
       </div>
 
-      <h2 style={h2}>Payslips ({slips.length})</h2>
+      {/* Payslips table */}
+      <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+        <FileText size={16} style={{ color: 'var(--text-muted)' }} />
+        Payslips ({slips.length})
+      </h2>
       {slips.length === 0 ? (
-        <p style={{ color: '#888', fontSize: 13 }}>No payslips on this run.</p>
+        <div style={{ padding: '2rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+          No payslips on this run.
+        </div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead><tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-              <th style={th}>Employee</th>
-              <th style={thRight}>Ord h</th>
-              <th style={thRight}>OT h</th>
-              <th style={thRight}>Leave h</th>
-              <th style={thRight}>Gross</th>
-              <th style={thRight}>PAYG</th>
-              <th style={thRight}>Super</th>
-              <th style={thRight}>Net</th>
-              <th style={thRight}>YTD gross</th>
-            </tr></thead>
+        <div className="table-premium-container">
+          <table className="table-premium">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th style={{ textAlign: 'right' }}>Ord h</th>
+                <th style={{ textAlign: 'right' }}>OT h</th>
+                <th style={{ textAlign: 'right' }}>Leave h</th>
+                <th style={{ textAlign: 'right' }}>Gross</th>
+                <th style={{ textAlign: 'right' }}>PAYG</th>
+                <th style={{ textAlign: 'right' }}>Super</th>
+                <th style={{ textAlign: 'right' }}>Net</th>
+                <th style={{ textAlign: 'right' }}>YTD gross</th>
+              </tr>
+            </thead>
             <tbody>
               {slips.map((s) => (
-                <tr key={s.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                  <td style={td}>
-                    <Link to={`/employees/${s.employee_id}`} style={{ color: '#86c7a3', textDecoration: 'none' }}>
+                <tr key={s.id}>
+                  <td>
+                    <Link to={`/employees/${s.employee_id}`} style={{ fontWeight: 600 }}>
                       {s.employee?.full_name ?? s.employee_id}
                     </Link>
                   </td>
-                  <td style={tdRight}>{Number(s.hours_ordinary).toFixed(1)}</td>
-                  <td style={tdRight}>{Number(s.hours_overtime).toFixed(1)}</td>
-                  <td style={tdRight}>{Number(s.hours_leave).toFixed(1)}</td>
-                  <td style={tdRight}>{formatMoney(Number(s.gross_total_cents))}</td>
-                  <td style={tdRight}>{formatMoney(Number(s.payg_tax_cents))}</td>
-                  <td style={tdRight}>{formatMoney(Number(s.super_guarantee_cents))}</td>
-                  <td style={tdRight}><strong>{formatMoney(Number(s.net_pay_cents))}</strong></td>
-                  <td style={tdRight}>{formatMoney(Number(s.ytd_gross_cents))}</td>
+                  <td style={{ textAlign: 'right' }}>{Number(s.hours_ordinary).toFixed(1)}</td>
+                  <td style={{ textAlign: 'right' }}>{Number(s.hours_overtime).toFixed(1)}</td>
+                  <td style={{ textAlign: 'right' }}>{Number(s.hours_leave).toFixed(1)}</td>
+                  <td style={{ textAlign: 'right' }}>{formatMoney(Number(s.gross_total_cents))}</td>
+                  <td style={{ textAlign: 'right' }}>{formatMoney(Number(s.payg_tax_cents))}</td>
+                  <td style={{ textAlign: 'right' }}>{formatMoney(Number(s.super_guarantee_cents))}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(Number(s.net_pay_cents))}</td>
+                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{formatMoney(Number(s.ytd_gross_cents))}</td>
                 </tr>
               ))}
             </tbody>
@@ -249,43 +354,66 @@ export function PayRunDetailPage() {
         </div>
       )}
 
-      {error && <p style={{ color: 'salmon', fontSize: 12, marginTop: 12 }}>{error}</p>}
-
-      <p style={{ marginTop: 32, padding: 10, background: '#0e0e0e', border: '1px dashed #2a2a2a', borderRadius: 4, fontSize: 12, color: '#666' }}>
-        STP file is in Phase 2 JSON format ready for handoff to your registered tax/BAS agent.
-        Direct ATO lodgement requires SBR-gateway integration (out of scope).
-      </p>
+      {/* Single Touch Payroll Details Alert */}
+      <div 
+        className="card" 
+        style={{ 
+          marginTop: '2rem', 
+          background: 'var(--bg-hover)', 
+          border: '1px dashed var(--border-subtle)',
+          padding: '1.25rem',
+          display: 'flex',
+          gap: '0.75rem',
+          alignItems: 'flex-start'
+        }}
+      >
+        <Info size={16} style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }} />
+        <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+          <span style={{ fontWeight: 600, color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>ATO Single Touch Payroll (STP) Phase 2</span>
+          STP file is generated in Phase 2 JSON format ready for secure handoff to your registered tax/BAS agent. 
+          Direct ATO lodgement requires SBR-gateway infrastructure configured on your organization profile.
+        </div>
+      </div>
     </section>
   );
 }
 
-function StatusPill({ status }: { status: PayRun['status'] }) {
-  const colour: Record<PayRun['status'], string> = {
-    draft: '#888', approved: '#5096d8', paid: '#86c7a3', cancelled: '#666', reversed: '#e9a3a3',
-  };
+function KpiCard({ 
+  label, 
+  value, 
+  type,
+  icon: Icon,
+  sub 
+}: { 
+  label: string; 
+  value: string; 
+  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral'; 
+  icon: LucideIcon;
+  sub?: string;
+}) {
   return (
-    <span style={{
-      padding: '0.15rem 0.5rem', fontSize: 11, borderRadius: 3,
-      background: '#222', color: colour[status], textTransform: 'uppercase',
-    }}>{status}</span>
-  );
-}
-
-function Kpi({ label, value, colour }: { label: string; value: string; colour: string }) {
-  return (
-    <div style={{ padding: 16, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 6 }}>
-      <div style={{ fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ marginTop: 6, fontSize: 22, color: colour, fontWeight: 600 }}>{value}</div>
+    <div 
+      className="card"
+      style={{ 
+        padding: '1.25rem',
+        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
+        position: 'relative'
+      }}
+    >
+      <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+        {label}
+      </div>
+      <div style={{ marginTop: '0.35rem', fontSize: '1.5rem', color: 'var(--text-title)', fontWeight: 800, fontFamily: 'var(--font-title)' }}>
+        {value}
+      </div>
+      {sub ? (
+        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>{sub}</div>
+      ) : (
+        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
+      )}
+      <div style={{ position: 'absolute', right: '1rem', bottom: '1rem', color: `var(--accent-${type === 'neutral' ? 'primary' : type})`, opacity: 0.7 }}>
+        <Icon size={18} />
+      </div>
     </div>
   );
 }
-
-const h2: React.CSSProperties = { fontSize: 14, marginTop: 24, marginBottom: 8 };
-const th: React.CSSProperties = { padding: '0.4rem 0.5rem', textAlign: 'left', fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 };
-const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
-const td: React.CSSProperties = { padding: '0.5rem' };
-const tdRight: React.CSSProperties = { ...td, textAlign: 'right' };
-const btnPrim: React.CSSProperties = { padding: '0.4rem 1rem', background: '#1c4868', color: '#fff', border: '1px solid #5096d8', borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: 'pointer' };
-const btnAccent: React.CSSProperties = { padding: '0.4rem 1rem', background: '#1f5a3a', color: '#fff', border: '1px solid #86c7a3', borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: 'pointer' };
-const btnGhost: React.CSSProperties = { padding: '0.4rem 1rem', background: 'transparent', color: '#aaa', border: '1px solid #333', borderRadius: 4, fontSize: 12, cursor: 'pointer' };
-const btnGhostRed: React.CSSProperties = { padding: '0.4rem 1rem', background: 'transparent', color: '#e9a3a3', border: '1px solid #5a2a2a', borderRadius: 4, fontSize: 12, cursor: 'pointer' };

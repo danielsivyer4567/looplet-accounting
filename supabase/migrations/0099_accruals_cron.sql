@@ -1,0 +1,66 @@
+-- 0099: pg_cron schedule for the accruals-run edge function (ledger SC-1.I.03).
+--
+-- TRACKED FOR LATER — INTENTIONALLY INERT. This file documents the intended
+-- monthly schedule but is a no-op as committed: the cron.schedule() call is
+-- commented out because it requires (a) the accruals-run function to be deployed
+-- first (SC-1.I.03; deploy is deferred while migrations 0090-0098 are repo-only —
+-- see SC-1.I.01/1.I.02 ledger notes) and (b) a real <ACCRUALS_RUN_CRON_SECRET>
+-- value. Registering it live is a deliberate, separate step (the DONE-human of
+-- this slice). Convention follows 0096_depreciation_cron.sql / 0065_auto_reconcile_cron.sql.
+--
+-- Auth gate (accruals-run/index.ts): the function accepts a service-role bearer OR
+-- ?secret=<ACCRUALS_RUN_CRON_SECRET>, both constant-time compared, and is deployed
+-- verify_jwt=false (config.toml [functions.accruals-run]) so pg_cron can drive it.
+-- The ?secret= form below mirrors the live notifications-cron / xero-sync-* jobs
+-- (which embed the secret in the URL); a service-role-bearer form (like
+-- accountant-digest-cron, pulling vault.decrypted_secrets) is the alternative if
+-- you prefer not to put the secret in cron.job.command.
+--
+-- ONE all-orgs POST, no body: like depreciation-run, accruals-run with no body
+-- sweeps EVERY org itself (the service-role admin client detects recurring series
+-- across orgs and mints a per-org token to post). For each org it detects recurring
+-- bill series (detect_recurring_bills, SC-1.I.01) and accrues the most-recent bill
+-- of every series whose cadence spans more than one month (quarterly / semi-annual
+-- / yearly) via accrue_recurring_bill (SC-1.I.02). The accrual RPC is idempotent
+-- per (bill, period), so a single monthly POST is sufficient and re-firing is safe;
+-- no SQL loop over organizations is needed.
+--
+-- Cadence: 04:30 on the 3rd of every month. Monthly (accruals track recurring
+-- multi-month bills); the 3rd gives the just-closed month a few days to settle, and
+-- 04:30 is clear of the daily cron windows (latest live edge-fn cron is 03:30
+-- xero-payments) and runs immediately after depreciation-run (04:00 on the 3rd,
+-- 0096) so the two month-rollover jobs don't overlap. Live grounding
+-- (dxoikltymmknxqpkpyhi): pg_cron 1.6.4 + pg_net 0.19.5 are installed and no
+-- accrual* job exists yet.
+--
+-- Before enabling:
+--   1. supabase functions deploy accruals-run   (verify_jwt=false; config.toml)
+--   2. supabase secrets set ACCRUALS_RUN_CRON_SECRET=<random-32-char-string>
+--      (and CONNECTOR_JWT_SECRET must already be set — api-gateway needs it too)
+--   3. Replace <ACCRUALS_RUN_CRON_SECRET> below and run the cron.schedule()
+--      statement once (uncommented). The project ref dxoikltymmknxqpkpyhi is the
+--      live project (matches every live cron.job URL); change it for another env.
+
+-- ----------------------------------------------------------------------------
+-- SELECT cron.schedule(
+--   'accruals-run-monthly',
+--   '30 4 3 * *',  -- 04:30 on the 3rd of every month (server tz)
+--   $cron$
+--     SELECT net.http_post(
+--       url := 'https://dxoikltymmknxqpkpyhi.supabase.co/functions/v1/accruals-run'
+--              || '?secret=<ACCRUALS_RUN_CRON_SECRET>',
+--       headers := jsonb_build_object('Content-Type', 'application/json'),
+--       body := '{}'::jsonb
+--     );
+--   $cron$
+-- );
+-- ----------------------------------------------------------------------------
+
+-- To inspect:
+--   SELECT * FROM cron.job WHERE jobname = 'accruals-run-monthly';
+--   SELECT * FROM cron.job_run_details
+--    WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'accruals-run-monthly')
+--    ORDER BY start_time DESC LIMIT 10;
+--
+-- To unschedule:
+--   SELECT cron.unschedule('accruals-run-monthly');
