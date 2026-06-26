@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { useSuperBatch } from '@/hooks/useSuperBatch';
+import { markObligationStatus } from '@/hooks/useTaxCalendar';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
@@ -356,6 +357,7 @@ export function PayrollPage() {
 
 export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number }) {
   const { batch, loading, error, generate, send } = useSuperBatch(fy, quarter);
+  const { currentOrg } = useOrg();
   const [busy, setBusy] = useState<null | 'generate' | 'send'>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -383,10 +385,32 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
     setActionError(null);
     try {
       const r = await send();
-      if (r.sent) setMsg('Super batch sent.');
-      else if (r.already_sent) setMsg('Super batch already sent.');
-      else if (r.approval_id) setMsg('Approval requested - pending Tier-2 approval before this batch can send.');
-      else setActionError(r.error ?? 'Send was refused.');
+      if (r.sent || r.already_sent) {
+        // Write-back (SC-3.H.02): a sent batch means this quarter's super is paid.
+        // Flip the obligation via the generic obligation_status overlay (SC-3.E.02)
+        // so v_tax_calendar reports the super quarter as paid. PROVISIONAL, mirroring
+        // Bas.tsx: Phase 7 moves this write server-side (the edge fn flips the
+        // obligation when it marks the batch sent). Best-effort — a failed write-back
+        // must not present as a send failure (the send already succeeded).
+        let calNote = ' The tax calendar now shows this quarter paid.';
+        if (currentOrg) {
+          try {
+            await markObligationStatus({
+              organizationId: currentOrg.id,
+              obligationKey: 'super',
+              periodLabel: fyLabel,
+              status: 'paid',
+            });
+          } catch {
+            calNote = ' (Sent, but the tax-calendar status could not be updated.)';
+          }
+        }
+        setMsg((r.sent ? 'Super batch sent.' : 'Super batch already sent.') + calNote);
+      } else if (r.approval_id) {
+        setMsg('Approval requested - pending Tier-2 approval before this batch can send.');
+      } else {
+        setActionError(r.error ?? 'Send was refused.');
+      }
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e));
     } finally {

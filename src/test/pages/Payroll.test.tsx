@@ -18,6 +18,7 @@ const h = vi.hoisted(() => ({
   refresh: vi.fn(),
   generate: vi.fn(),
   send: vi.fn(),
+  markObligationStatus: vi.fn(),
 }));
 
 vi.mock('@/hooks/useSuperBatch', () => ({
@@ -29,6 +30,9 @@ vi.mock('@/hooks/useSuperBatch', () => ({
     generate: h.generate,
     send: h.send,
   }),
+}));
+vi.mock('@/hooks/useTaxCalendar', () => ({
+  markObligationStatus: (a: unknown) => h.markObligationStatus(a),
 }));
 vi.mock('@/hooks/useOrg', () => ({ useOrg: () => ({ currentOrg: { id: 'org-1', name: 'Test Org' } }) }));
 vi.mock('@/lib/supabase', () => import('@/test/mocks/supabase'));
@@ -55,6 +59,7 @@ beforeEach(() => {
   h.refresh = vi.fn();
   h.generate = vi.fn();
   h.send = vi.fn();
+  h.markObligationStatus = vi.fn();
 });
 
 const renderSection = () => render(<SuperBatchSection fy={2025} quarter={4} />);
@@ -81,6 +86,25 @@ describe('SuperBatchSection (SC-3.H.01)', () => {
     fireEvent.click(sendBtn);
     await waitFor(() => expect(h.send).toHaveBeenCalledTimes(1));
     expect(await screen.findByText(/Approval requested/)).toBeInTheDocument();
+    // A refused (pending) send must NOT flip the obligation — only a real send does.
+    expect(h.markObligationStatus).not.toHaveBeenCalled();
+  });
+
+  it('flips the super obligation to paid on a successful send (SC-3.H.02)', async () => {
+    h.batch = BATCH;
+    h.send = vi.fn().mockResolvedValue({ ok: true, sent: true });
+    h.markObligationStatus = vi.fn().mockResolvedValue(undefined);
+    renderSection();
+
+    fireEvent.click(screen.getByRole('button', { name: /Approve & send/i }));
+    await waitFor(() => expect(h.markObligationStatus).toHaveBeenCalledTimes(1));
+    expect(h.markObligationStatus).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      obligationKey: 'super',
+      periodLabel: 'Q4 FY2025-26',
+      status: 'paid',
+    });
+    expect(await screen.findByText(/quarter paid/)).toBeInTheDocument();
   });
 
   it('disables Approve & send for an already-sent batch', () => {

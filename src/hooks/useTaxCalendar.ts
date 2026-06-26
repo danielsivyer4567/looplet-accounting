@@ -56,6 +56,34 @@ export function buildObligationPrompt(o: TaxObligation, intent: ObligationIntent
 }
 
 /**
+ * Upserts a persisted obligation status (obligation_status, SC-3.E.02) — the generic
+ * lodge/pay write-back overlaid onto v_tax_calendar via COALESCE(os.status, stage).
+ * Reused across obligation keys: BAS marks 'lodged' (Bas.tsx), super marks 'paid'
+ * (SC-3.H.02), Phase 7 lodgements extend it. `periodLabel` MUST equal
+ * generate_tax_obligations' format 'Q{n} FY{gs}-{lpad((gs+1)%100,2)}' so it joins
+ * (the migration's check asserts that format hasn't drifted). deleted_at:null so a
+ * re-mark un-soft-deletes via the (org, key, period_label) upsert arbiter.
+ */
+export async function markObligationStatus(args: {
+  organizationId: string;
+  obligationKey: string;
+  periodLabel: string;
+  status: ObligationStatusValue;
+}): Promise<void> {
+  const { error } = await supabase.from('obligation_status' as never).upsert(
+    {
+      organization_id: args.organizationId,
+      obligation_key: args.obligationKey,
+      period_label: args.periodLabel,
+      status: args.status,
+      deleted_at: null,
+    } as never,
+    { onConflict: 'organization_id,obligation_key,period_label' },
+  );
+  if (error) throw new Error(error.message);
+}
+
+/**
  * Reads the per-org tax calendar (v_tax_calendar) — personalized obligations with
  * correct AU due dates, ordered soonest-first.
  */
