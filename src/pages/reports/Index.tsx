@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FileSpreadsheet, Layers, TrendingUp, Coins, Calendar } from 'lucide-react';
+import { FileSpreadsheet, Layers, TrendingUp, Coins, Calendar, Archive } from 'lucide-react';
 
 const REPORTS = [
   {
@@ -33,6 +33,14 @@ const REPORTS = [
       'Assets (bank balances, AR), liabilities (AP, debts), equity. Approximate rollup based on bills/invoices.',
     status: 'live',
     icon: Coins,
+  },
+  {
+    to: '/reports/eofy',
+    title: 'EOFY Pack',
+    description:
+      'End-of-financial-year true-up and statutory pack: P&L, balance sheet, changes in equity, cash flow and notes, bundled to PDF + data for the annual return.',
+    status: 'live',
+    icon: Archive,
   },
   {
     to: null,
