@@ -2,11 +2,24 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { useSuperBatch } from '@/hooks/useSuperBatch';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
-import { Plus, DollarSign, Wallet, FileText, Layers, X, Info, type LucideIcon } from 'lucide-react';
+import {
+  Plus,
+  DollarSign,
+  Wallet,
+  FileText,
+  Layers,
+  X,
+  Info,
+  Send,
+  CheckCircle2,
+  Loader2,
+  type LucideIcon,
+} from 'lucide-react';
 
 interface PayRun {
   id: string;
@@ -132,6 +145,9 @@ export function PayrollPage() {
       value: runningSuperCents,
     };
   });
+
+  // Current AU FY quarter for the super-batch section.
+  const { fyStart: superFyStart, quarter: superQuarter } = currentAuFyQuarter();
 
   return (
     <section className="animated-fade-in">
@@ -333,7 +349,150 @@ export function PayrollPage() {
           </table>
         </div>
       )}
+      <SuperBatchSection fy={superFyStart} quarter={superQuarter} />
     </section>
+  );
+}
+
+export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number }) {
+  const { batch, loading, error, generate, send } = useSuperBatch(fy, quarter);
+  const [busy, setBusy] = useState<null | 'generate' | 'send'>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const fyLabel = `Q${quarter} FY${fy}-${String((fy + 1) % 100).padStart(2, '0')}`;
+  const isSent = batch !== null && (batch.status === 'sent' || batch.status === 'confirmed');
+
+  const handleGenerate = async (): Promise<void> => {
+    setBusy('generate');
+    setMsg(null);
+    setActionError(null);
+    try {
+      await generate();
+      setMsg('Draft batch generated.');
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleSend = async (): Promise<void> => {
+    setBusy('send');
+    setMsg(null);
+    setActionError(null);
+    try {
+      const r = await send();
+      if (r.sent) setMsg('Super batch sent.');
+      else if (r.already_sent) setMsg('Super batch already sent.');
+      else if (r.approval_id) setMsg('Approval requested - pending Tier-2 approval before this batch can send.');
+      else setActionError(r.error ?? 'Send was refused.');
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="card" style={{ padding: '1.5rem', marginTop: '2rem' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          marginBottom: '0.25rem',
+        }}
+      >
+        <h2
+          style={{ fontSize: '1.25rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+        >
+          <Wallet size={16} style={{ color: 'var(--text-muted)' }} />
+          Super batch - {fyLabel}
+        </h2>
+        <button className="btn btn-secondary" onClick={handleGenerate} disabled={busy !== null}>
+          {busy === 'generate' ? <Loader2 size={14} /> : <Plus size={14} />}
+          <span>{batch ? 'Regenerate' : 'Generate batch'}</span>
+        </button>
+      </div>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 1rem' }}>
+        Quarterly super guarantee per employee from finalised pay runs. Sending is gated behind a
+        Tier-2 approval.
+      </p>
+
+      {loading ? (
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading batch...</div>
+      ) : error ? (
+        <div
+          className="badge badge-warning"
+          style={{ display: 'block', textTransform: 'none', padding: '0.75rem' }}
+        >
+          Super batch unavailable: {error}. (Apply migration 0124 + deploy super-batch-send.)
+        </div>
+      ) : !batch ? (
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+          No batch for this quarter yet. Click <strong>Generate batch</strong> to build one from
+          finalised pay runs.
+        </div>
+      ) : (
+        <>
+          <div className="table-premium-container">
+            <table className="table-premium">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th style={{ textAlign: 'right' }}>Super guarantee</th>
+                </tr>
+              </thead>
+              <tbody>
+                {batch.lines.map((l) => (
+                  <tr key={l.id}>
+                    <td>{l.employee_name}</td>
+                    <td style={{ textAlign: 'right' }}>{formatMoney(l.super_cents)}</td>
+                  </tr>
+                ))}
+                <tr style={{ fontWeight: 700 }}>
+                  <td>
+                    Total ({batch.line_count} {batch.line_count === 1 ? 'employee' : 'employees'})
+                  </td>
+                  <td style={{ textAlign: 'right' }}>{formatMoney(batch.total_super_cents)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginTop: '1rem' }}
+          >
+            <span
+              className={`badge ${isSent ? 'badge-success' : 'badge-warning'}`}
+              style={{ textTransform: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+            >
+              {isSent ? <CheckCircle2 size={13} /> : null}
+              {batch.status}
+            </span>
+            <button
+              className="btn btn-primary"
+              onClick={handleSend}
+              disabled={busy !== null || isSent || batch.line_count === 0}
+              title={isSent ? 'Already sent' : 'Open a Tier-2 approval and send'}
+            >
+              {busy === 'send' ? <Loader2 size={14} /> : <Send size={14} />}
+              <span>Approve &amp; send</span>
+            </button>
+          </div>
+          {msg && (
+            <p style={{ color: 'var(--text-success)', fontSize: '0.8rem', marginTop: '0.75rem' }}>{msg}</p>
+          )}
+          {actionError && (
+            <p style={{ color: 'var(--text-danger)', fontSize: '0.8rem', marginTop: '0.75rem' }}>
+              {actionError}
+            </p>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 
@@ -580,6 +739,17 @@ function fyStart(): string {
   const now = new Date();
   const y = now.getMonth() + 1 >= 7 ? now.getFullYear() : now.getFullYear() - 1;
   return `${y}-07-01`;
+}
+
+/** Current AU FY quarter (FY starts 1 Jul). getMonth() is 0-based, so Jul = 6. */
+function currentAuFyQuarter(): { fyStart: number; quarter: number } {
+  const now = new Date();
+  const m = now.getMonth(); // 0 = Jan … 11 = Dec
+  const fyMonth = (m + 6) % 12; // 0 = Jul … 11 = Jun
+  return {
+    fyStart: m >= 6 ? now.getFullYear() : now.getFullYear() - 1,
+    quarter: Math.floor(fyMonth / 3) + 1,
+  };
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
