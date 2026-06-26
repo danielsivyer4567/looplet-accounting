@@ -65,15 +65,22 @@ export function MyActivityPage() {
   if (!currentOrg || !user) return null;
 
   const sendMyLog = async (sinceDays: number) => {
-    setSending(true); setMsg(null); setErr(null);
+    setSending(true);
+    setMsg(null);
+    setErr(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in');
       const since = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000).toISOString();
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/accountant-session-digest`;
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ organization_id: currentOrg.id, since }),
       });
       const body = await res.json();
@@ -92,17 +99,27 @@ export function MyActivityPage() {
         <ActivityIcon size={24} style={{ color: 'var(--accent-primary)' }} />
         My Activity
       </h1>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
-        Auto-tracked accountant activity. Digest emails are sent to your registered address on session closure (after 30 minutes of idle time). You can also send a digest email on demand below.
+      <p
+        style={{
+          color: 'var(--text-muted)',
+          fontSize: '0.875rem',
+          marginTop: '0.25rem',
+          marginBottom: '1.5rem',
+          lineHeight: '1.5',
+        }}
+      >
+        Auto-tracked accountant activity. Digest emails are sent to your registered address on
+        session closure (after 30 minutes of idle time). You can also send a digest email on demand
+        below.
       </p>
 
       {/* Button panel */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          gap: '0.5rem', 
-          marginBottom: '1.5rem', 
-          flexWrap: 'wrap'
+      <div
+        style={{
+          display: 'flex',
+          gap: '0.5rem',
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
         }}
       >
         <button onClick={() => void sendMyLog(1)} disabled={sending} className="btn btn-primary">
@@ -117,20 +134,63 @@ export function MyActivityPage() {
         </button>
       </div>
 
-      {msg && <div className="badge badge-success" style={{ display: 'block', padding: '0.75rem', marginBottom: '1.5rem', textTransform: 'none' }}>{msg}</div>}
-      {err && <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', marginBottom: '1.5rem', textTransform: 'none' }}>{err}</div>}
+      {msg && (
+        <div
+          className="badge badge-success"
+          style={{
+            display: 'block',
+            padding: '0.75rem',
+            marginBottom: '1.5rem',
+            textTransform: 'none',
+          }}
+        >
+          {msg}
+        </div>
+      )}
+      {err && (
+        <div
+          className="badge badge-danger"
+          style={{
+            display: 'block',
+            padding: '0.75rem',
+            marginBottom: '1.5rem',
+            textTransform: 'none',
+          }}
+        >
+          {err}
+        </div>
+      )}
 
       {/* Recent Sessions */}
-      <h2 style={{ fontSize: '1.25rem', marginTop: '2rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+      <h2
+        style={{
+          fontSize: '1.25rem',
+          marginTop: '2rem',
+          marginBottom: '0.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.35rem',
+        }}
+      >
         <Clock size={16} style={{ color: 'var(--text-muted)' }} />
         Recent Sessions
       </h2>
-      
+
       {loading ? (
         <p style={{ color: 'var(--text-muted)' }}>Loading sessions…</p>
       ) : sessions.length === 0 ? (
-        <div style={{ padding: '2rem 1.5rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
-          No sessions yet. Sessions auto-create on your first pageview while logged in as an accountant.
+        <div
+          style={{
+            padding: '2rem 1.5rem',
+            background: 'var(--bg-card)',
+            border: '1px dashed var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+          }}
+        >
+          No sessions yet. Sessions auto-create on your first pageview while logged in as an
+          accountant.
         </div>
       ) : (
         <div className="table-premium-container" style={{ marginBottom: '2rem' }}>
@@ -150,10 +210,14 @@ export function MyActivityPage() {
               {sessions.map((s) => {
                 const dur = s.total_seconds
                   ? `${Math.floor(s.total_seconds / 3600)}h ${Math.floor((s.total_seconds % 3600) / 60)}m`
-                  : s.ended_at ? '—' : 'open';
+                  : s.ended_at
+                    ? '—'
+                    : 'open';
                 return (
                   <tr key={s.id}>
-                    <td style={{ fontWeight: 600 }}>{new Date(s.started_at).toLocaleString('en-AU')}</td>
+                    <td style={{ fontWeight: 600 }}>
+                      {new Date(s.started_at).toLocaleString('en-AU')}
+                    </td>
                     <td>
                       {s.ended_at ? (
                         new Date(s.ended_at).toLocaleString('en-AU')
@@ -166,8 +230,10 @@ export function MyActivityPage() {
                     <td style={{ textAlign: 'right' }}>{s.action_count}</td>
                     <td>{s.end_reason ?? '—'}</td>
                     <td>
-                      <span className={`badge ${s.digest_sent_at ? 'badge-success' : (s.ended_at ? 'badge-warning' : 'badge-neutral')}`}>
-                        {s.digest_sent_at ? 'sent' : (s.ended_at ? 'pending' : '—')}
+                      <span
+                        className={`badge ${s.digest_sent_at ? 'badge-success' : s.ended_at ? 'badge-warning' : 'badge-neutral'}`}
+                      >
+                        {s.digest_sent_at ? 'sent' : s.ended_at ? 'pending' : '—'}
                       </span>
                     </td>
                   </tr>
@@ -179,13 +245,31 @@ export function MyActivityPage() {
       )}
 
       {/* Recent Activity Log */}
-      <h2 style={{ fontSize: '1.25rem', marginTop: '2rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+      <h2
+        style={{
+          fontSize: '1.25rem',
+          marginTop: '2rem',
+          marginBottom: '0.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.35rem',
+        }}
+      >
         <Layers size={16} style={{ color: 'var(--text-muted)' }} />
         Recent Activity (last 50)
       </h2>
-      
+
       {recent.length === 0 ? (
-        <div style={{ padding: '2rem 1.5rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <div
+          style={{
+            padding: '2rem 1.5rem',
+            background: 'var(--bg-card)',
+            border: '1px dashed var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+          }}
+        >
           None yet.
         </div>
       ) : (
@@ -203,9 +287,13 @@ export function MyActivityPage() {
               {recent.map((a) => (
                 <tr key={a.id}>
                   <td>{new Date(a.occurred_at).toLocaleTimeString('en-AU')}</td>
-                  <td><code style={{ fontSize: '0.75rem' }}>{a.event_type}</code></td>
+                  <td>
+                    <code style={{ fontSize: '0.75rem' }}>{a.event_type}</code>
+                  </td>
                   <td>{a.description ?? a.path ?? '—'}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{a.duration_ms ? `${(a.duration_ms / 1000).toFixed(1)}s` : '—'}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                    {a.duration_ms ? `${(a.duration_ms / 1000).toFixed(1)}s` : '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -214,22 +302,35 @@ export function MyActivityPage() {
       )}
 
       {/* Info callout */}
-      <div 
-        className="card" 
-        style={{ 
-          marginTop: '2.5rem', 
-          background: 'var(--bg-hover)', 
+      <div
+        className="card"
+        style={{
+          marginTop: '2.5rem',
+          background: 'var(--bg-hover)',
           border: '1px dashed var(--border-subtle)',
           padding: '1.25rem',
           display: 'flex',
           gap: '0.75rem',
-          alignItems: 'flex-start'
+          alignItems: 'flex-start',
         }}
       >
-        <Info size={16} style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }} />
+        <Info
+          size={16}
+          style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }}
+        />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-          <span style={{ fontWeight: 600, color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>Activity Logging</span>
-          Activity is tracked locally to enable audits and reviews of actions performed by external advisors. Logs are encrypted and accessible only by org administrators.
+          <span
+            style={{
+              fontWeight: 600,
+              color: 'var(--text-title)',
+              display: 'block',
+              marginBottom: '0.25rem',
+            }}
+          >
+            Activity Logging
+          </span>
+          Activity is tracked locally to enable audits and reviews of actions performed by external
+          advisors. Logs are encrypted and accessible only by org administrators.
         </div>
       </div>
     </section>

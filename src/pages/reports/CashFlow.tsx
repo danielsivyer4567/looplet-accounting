@@ -5,7 +5,15 @@ import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { downloadCsv } from '@/lib/csv';
 import { SkeletonTable } from '@/components/Skeleton';
-import { ChevronLeft, Download, TrendingUp, DollarSign, Wallet, Info, type LucideIcon } from 'lucide-react';
+import {
+  ChevronLeft,
+  Download,
+  TrendingUp,
+  DollarSign,
+  Wallet,
+  Info,
+  type LucideIcon,
+} from 'lucide-react';
 
 interface FlowRow {
   week_start: string;
@@ -44,19 +52,28 @@ export function CashFlowPage() {
         .is('deleted_at', null),
     ]);
 
-    const opening = ((bankRes.data ?? []) as { current_balance_cents: number | null }[])
-      .reduce((sum, acct) => sum + (acct.current_balance_cents ?? 0), 0);
+    const opening = ((bankRes.data ?? []) as { current_balance_cents: number | null }[]).reduce(
+      (sum, acct) => sum + (acct.current_balance_cents ?? 0),
+      0,
+    );
     setOpeningBalance(opening);
 
     const agg = new Map<string, AggRow>();
     for (const r of (flowRes.data ?? []) as FlowRow[]) {
-      const cur = agg.get(r.week_start) ?? { week_start: r.week_start, inflow: 0, outflow: 0, net: 0 };
+      const cur = agg.get(r.week_start) ?? {
+        week_start: r.week_start,
+        inflow: 0,
+        outflow: 0,
+        net: 0,
+      };
       if (r.source_type === 'invoice') cur.inflow += r.amount_cents;
       else cur.outflow += Math.abs(r.amount_cents);
       cur.net = cur.inflow - cur.outflow;
       agg.set(r.week_start, cur);
     }
-    const sorted = Array.from(agg.values()).sort((a, b) => a.week_start.localeCompare(b.week_start));
+    const sorted = Array.from(agg.values()).sort((a, b) =>
+      a.week_start.localeCompare(b.week_start),
+    );
 
     let running = opening;
     const withRunning = sorted.map((r) => {
@@ -73,7 +90,10 @@ export function CashFlowPage() {
 
   const totalIn = rows.reduce((a, r) => a + r.inflow, 0);
   const totalOut = rows.reduce((a, r) => a + r.outflow, 0);
-  const finalRunning = rows.length > 0 ? (rows[rows.length - 1] as AggRow & { running: number }).running : openingBalance;
+  const finalRunning =
+    rows.length > 0
+      ? (rows[rows.length - 1] as AggRow & { running: number }).running
+      : openingBalance;
   const max = Math.max(...rows.map((r) => Math.max(r.inflow, r.outflow)), 1);
 
   const handleExport = () => {
@@ -88,7 +108,9 @@ export function CashFlowPage() {
       'Inflow (AUD)': (r.inflow / 100).toFixed(2),
       'Outflow (AUD)': (r.outflow / 100).toFixed(2),
       'Net (AUD)': (r.net / 100).toFixed(2),
-      'Running balance (AUD)': ((r as unknown as Record<string, unknown>).running as number / 100).toFixed(2),
+      'Running balance (AUD)': (
+        ((r as unknown as Record<string, unknown>).running as number) / 100
+      ).toFixed(2),
     }));
     downloadCsv(filename, exportRows);
   };
@@ -96,32 +118,36 @@ export function CashFlowPage() {
   return (
     <section className="animated-fade-in">
       {/* Navigation & Export Action */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: '1rem',
           flexWrap: 'wrap',
-          gap: '1rem'
+          gap: '1rem',
         }}
       >
-        <Link 
-          to="/reports" 
-          style={{ 
-            color: 'var(--text-muted)', 
-            fontSize: '0.825rem', 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: '0.25rem'
+        <Link
+          to="/reports"
+          style={{
+            color: 'var(--text-muted)',
+            fontSize: '0.825rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.25rem',
           }}
         >
           <ChevronLeft size={14} />
           <span>Reports</span>
         </Link>
-        
+
         {rows.length > 0 && (
-          <button onClick={handleExport} className="btn btn-secondary" aria-label="Export cash flow data as CSV">
+          <button
+            onClick={handleExport}
+            className="btn btn-secondary"
+            aria-label="Export cash flow data as CSV"
+          >
             <Download size={14} />
             <span>Export CSV</span>
           </button>
@@ -129,29 +155,68 @@ export function CashFlowPage() {
       </div>
 
       <h1 style={{ margin: 0 }}>Cash Flow Forecast</h1>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem', marginBottom: '1.5rem', maxWidth: '800px', lineHeight: '1.5' }}>
-        Weekly buckets of unpaid invoices (expected receipts) and unpaid bills (expected payments). Personal-flagged bills are excluded.
+      <p
+        style={{
+          color: 'var(--text-muted)',
+          fontSize: '0.875rem',
+          marginTop: '0.25rem',
+          marginBottom: '1.5rem',
+          maxWidth: '800px',
+          lineHeight: '1.5',
+        }}
+      >
+        Weekly buckets of unpaid invoices (expected receipts) and unpaid bills (expected payments).
+        Personal-flagged bills are excluded.
       </p>
 
       {/* KPI Cards */}
-      <div 
-        style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: '1rem',
-          marginBottom: '2rem'
+          marginBottom: '2rem',
         }}
       >
-        <KpiCard label="Opening Balance" value={formatMoney(openingBalance)} type="neutral" icon={DollarSign} />
-        <KpiCard label="Expected Receipts" value={formatMoney(totalIn)} type="success" icon={Wallet} />
-        <KpiCard label="Expected Payments" value={formatMoney(totalOut)} type="danger" icon={DollarSign} />
-        <KpiCard label="Projected Closing" value={formatMoney(finalRunning)} type={finalRunning >= 0 ? 'success' : 'danger'} icon={TrendingUp} />
+        <KpiCard
+          label="Opening Balance"
+          value={formatMoney(openingBalance)}
+          type="neutral"
+          icon={DollarSign}
+        />
+        <KpiCard
+          label="Expected Receipts"
+          value={formatMoney(totalIn)}
+          type="success"
+          icon={Wallet}
+        />
+        <KpiCard
+          label="Expected Payments"
+          value={formatMoney(totalOut)}
+          type="danger"
+          icon={DollarSign}
+        />
+        <KpiCard
+          label="Projected Closing"
+          value={formatMoney(finalRunning)}
+          type={finalRunning >= 0 ? 'success' : 'danger'}
+          icon={TrendingUp}
+        />
       </div>
 
       {loading ? (
         <SkeletonTable rows={6} cols={6} />
       ) : rows.length === 0 ? (
-        <div style={{ padding: '3rem 1.5rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <div
+          style={{
+            padding: '3rem 1.5rem',
+            background: 'var(--bg-card)',
+            border: '1px dashed var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+          }}
+        >
           Nothing committed yet. Issue invoices and bills (with due dates) to populate the forecast.
         </div>
       ) : (
@@ -175,29 +240,68 @@ export function CashFlowPage() {
                 return (
                   <tr key={r.week_start}>
                     <td style={{ fontWeight: 600 }}>{r.week_start}</td>
-                    <td style={{ textAlign: 'right', color: 'var(--text-success)' }}>{r.inflow > 0 ? formatMoney(r.inflow) : '—'}</td>
-                    <td style={{ textAlign: 'right', color: 'var(--text-danger)' }}>{r.outflow > 0 ? formatMoney(-r.outflow) : '—'}</td>
-                    <td style={{ 
-                      textAlign: 'right', 
-                      fontWeight: 700, 
-                      color: r.net >= 0 ? 'var(--text-success)' : 'var(--text-danger)' 
-                    }}>
+                    <td style={{ textAlign: 'right', color: 'var(--text-success)' }}>
+                      {r.inflow > 0 ? formatMoney(r.inflow) : '—'}
+                    </td>
+                    <td style={{ textAlign: 'right', color: 'var(--text-danger)' }}>
+                      {r.outflow > 0 ? formatMoney(-r.outflow) : '—'}
+                    </td>
+                    <td
+                      style={{
+                        textAlign: 'right',
+                        fontWeight: 700,
+                        color: r.net >= 0 ? 'var(--text-success)' : 'var(--text-danger)',
+                      }}
+                    >
                       {formatMoney(r.net)}
                     </td>
-                    <td style={{ 
-                      textAlign: 'right', 
-                      fontWeight: 600,
-                      color: rRunning >= 0 ? 'var(--text-title)' : 'var(--text-danger)' 
-                    }}>
+                    <td
+                      style={{
+                        textAlign: 'right',
+                        fontWeight: 600,
+                        color: rRunning >= 0 ? 'var(--text-title)' : 'var(--text-danger)',
+                      }}
+                    >
                       {formatMoney(rRunning)}
                     </td>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', height: '14px', background: 'var(--bg-hover)', borderRadius: 'var(--radius-full)', overflow: 'hidden', padding: '2px', width: '120px' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          height: '14px',
+                          background: 'var(--bg-hover)',
+                          borderRadius: 'var(--radius-full)',
+                          overflow: 'hidden',
+                          padding: '2px',
+                          width: '120px',
+                        }}
+                      >
                         {r.inflow > 0 && (
-                          <div style={{ width: `${Math.max(inWidth, 5)}%`, height: '100%', background: 'var(--accent-success)', borderRadius: r.outflow > 0 ? 'var(--radius-full) 0 0 var(--radius-full)' : 'var(--radius-full)' }} />
+                          <div
+                            style={{
+                              width: `${Math.max(inWidth, 5)}%`,
+                              height: '100%',
+                              background: 'var(--accent-success)',
+                              borderRadius:
+                                r.outflow > 0
+                                  ? 'var(--radius-full) 0 0 var(--radius-full)'
+                                  : 'var(--radius-full)',
+                            }}
+                          />
                         )}
                         {r.outflow > 0 && (
-                          <div style={{ width: `${Math.max(outWidth, 5)}%`, height: '100%', background: 'var(--accent-danger)', borderRadius: r.inflow > 0 ? '0 var(--radius-full) var(--radius-full) 0' : 'var(--radius-full)' }} />
+                          <div
+                            style={{
+                              width: `${Math.max(outWidth, 5)}%`,
+                              height: '100%',
+                              background: 'var(--accent-danger)',
+                              borderRadius:
+                                r.inflow > 0
+                                  ? '0 var(--radius-full) var(--radius-full) 0'
+                                  : 'var(--radius-full)',
+                            }}
+                          />
                         )}
                       </div>
                     </td>
@@ -210,62 +314,101 @@ export function CashFlowPage() {
       )}
 
       {/* Info Disclaimer */}
-      <div 
-        className="card" 
-        style={{ 
-          marginTop: '2.5rem', 
-          background: 'var(--bg-hover)', 
+      <div
+        className="card"
+        style={{
+          marginTop: '2.5rem',
+          background: 'var(--bg-hover)',
           border: '1px dashed var(--border-subtle)',
           padding: '1.25rem',
           display: 'flex',
           gap: '0.75rem',
-          alignItems: 'flex-start'
+          alignItems: 'flex-start',
         }}
       >
-        <Info size={16} style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }} />
+        <Info
+          size={16}
+          style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }}
+        />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-          <span style={{ fontWeight: 600, color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>Cash Flow Details</span>
-          Future forecasts will factor in historical payment behavior profiles (e.g. average days late per customer) and allow hypothetical what-if scenario planning.
+          <span
+            style={{
+              fontWeight: 600,
+              color: 'var(--text-title)',
+              display: 'block',
+              marginBottom: '0.25rem',
+            }}
+          >
+            Cash Flow Details
+          </span>
+          Future forecasts will factor in historical payment behavior profiles (e.g. average days
+          late per customer) and allow hypothetical what-if scenario planning.
         </div>
       </div>
     </section>
   );
 }
 
-function KpiCard({ 
-  label, 
-  value, 
+function KpiCard({
+  label,
+  value,
   type,
   icon: Icon,
-  sub 
-}: { 
-  label: string; 
-  value: string; 
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral'; 
+  sub,
+}: {
+  label: string;
+  value: string;
+  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
   icon: LucideIcon;
   sub?: string;
 }) {
   return (
-    <div 
+    <div
       className="card"
-      style={{ 
+      style={{
         padding: '1.25rem',
         borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative'
+        position: 'relative',
       }}
     >
-      <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+      <div
+        style={{
+          fontSize: '0.675rem',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          fontWeight: 700,
+        }}
+      >
         {label}
       </div>
-      <div style={{ marginTop: '0.35rem', fontSize: '1.5rem', color: 'var(--text-title)', fontWeight: 800, fontFamily: 'var(--font-title)' }}>
+      <div
+        style={{
+          marginTop: '0.35rem',
+          fontSize: '1.5rem',
+          color: 'var(--text-title)',
+          fontWeight: 800,
+          fontFamily: 'var(--font-title)',
+        }}
+      >
         {value}
       </div>
       {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>{sub}</div>
+        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+          {sub}
+        </div>
       ) : (
         <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
       )}
-      <div style={{ position: 'absolute', right: '1rem', bottom: '1rem', color: `var(--accent-${type === 'neutral' ? 'primary' : type})`, opacity: 0.7 }}>
+      <div
+        style={{
+          position: 'absolute',
+          right: '1rem',
+          bottom: '1rem',
+          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
+          opacity: 0.7,
+        }}
+      >
         <Icon size={18} />
       </div>
     </div>

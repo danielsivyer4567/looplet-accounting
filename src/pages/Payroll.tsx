@@ -38,10 +38,14 @@ export function PayrollPage() {
     if (!currentOrg) return;
     setLoading(true);
     const [runsRes, empRes] = await Promise.all([
-      supabase.from('pay_runs').select('*')
+      supabase
+        .from('pay_runs')
+        .select('*')
         .eq('organization_id', currentOrg.id)
         .order('period_start', { ascending: false }),
-      supabase.from('employees').select('id, full_name, is_active')
+      supabase
+        .from('employees')
+        .select('id, full_name, is_active')
         .eq('organization_id', currentOrg.id)
         .is('deleted_at', null)
         .order('full_name'),
@@ -57,12 +61,15 @@ export function PayrollPage() {
 
   const ytdTotals = runs
     .filter((r) => r.status === 'paid' && r.pay_date >= fyStart())
-    .reduce((acc, r) => ({
-      gross: acc.gross + Number(r.total_gross_cents),
-      tax:   acc.tax + Number(r.total_tax_cents),
-      sup:   acc.sup + Number(r.total_super_cents),
-      net:   acc.net + Number(r.total_net_cents),
-    }), { gross: 0, tax: 0, sup: 0, net: 0 });
+    .reduce(
+      (acc, r) => ({
+        gross: acc.gross + Number(r.total_gross_cents),
+        tax: acc.tax + Number(r.total_tax_cents),
+        sup: acc.sup + Number(r.total_super_cents),
+        net: acc.net + Number(r.total_net_cents),
+      }),
+      { gross: 0, tax: 0, sup: 0, net: 0 },
+    );
 
   // Wage Component Breakdown (Top 3 allocations)
   const paidRuns = runs.filter((r) => r.status === 'paid');
@@ -70,9 +77,24 @@ export function PayrollPage() {
   const sumTax = paidRuns.reduce((a, r) => a + Number(r.total_tax_cents), 0);
   const sumSuper = paidRuns.reduce((a, r) => a + Number(r.total_super_cents), 0);
   const payrollSplitItems = [
-    { label: 'Net Wages Paid', value: sumNet, displayValue: formatMoneyCompact(sumNet), tone: 'success' as const },
-    { label: 'PAYG Tax Withheld', value: sumTax, displayValue: formatMoneyCompact(sumTax), tone: 'warning' as const },
-    { label: 'Superannuation Guarantee', value: sumSuper, displayValue: formatMoneyCompact(sumSuper), tone: 'info' as const },
+    {
+      label: 'Net Wages Paid',
+      value: sumNet,
+      displayValue: formatMoneyCompact(sumNet),
+      tone: 'success' as const,
+    },
+    {
+      label: 'PAYG Tax Withheld',
+      value: sumTax,
+      displayValue: formatMoneyCompact(sumTax),
+      tone: 'warning' as const,
+    },
+    {
+      label: 'Superannuation Guarantee',
+      value: sumSuper,
+      displayValue: formatMoneyCompact(sumSuper),
+      tone: 'info' as const,
+    },
   ];
 
   // Wage Trend (chronological paid runs)
@@ -80,15 +102,16 @@ export function PayrollPage() {
   let runningGrossCents = 0;
   let runningSuperCents = 0;
 
-  const runsChronological = paidRuns
-    .slice()
-    .sort((a, b) => a.pay_date.localeCompare(b.pay_date));
+  const runsChronological = paidRuns.slice().sort((a, b) => a.pay_date.localeCompare(b.pay_date));
 
   const netWagesTrend = runsChronological.length
     ? runsChronological.map((r) => {
         runningNetCents += Number(r.total_net_cents);
         return {
-          label: new Date(r.pay_date).toLocaleDateString('en-AU', { day: '2-digit', month: 'short' }),
+          label: new Date(r.pay_date).toLocaleDateString('en-AU', {
+            day: '2-digit',
+            month: 'short',
+          }),
           value: runningNetCents,
         };
       })
@@ -112,14 +135,14 @@ export function PayrollPage() {
 
   return (
     <section className="animated-fade-in">
-      <div 
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: '1.5rem',
           flexWrap: 'wrap',
-          gap: '1rem'
+          gap: '1rem',
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -127,9 +150,9 @@ export function PayrollPage() {
           Payroll
         </h1>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <button 
-            onClick={() => setShowCreate(true)} 
-            disabled={employees.filter((e) => e.is_active).length === 0} 
+          <button
+            onClick={() => setShowCreate(true)}
+            disabled={employees.filter((e) => e.is_active).length === 0}
             className="btn btn-primary"
           >
             <Plus size={16} />
@@ -139,18 +162,42 @@ export function PayrollPage() {
       </div>
 
       {/* YTD Stats */}
-      <div 
-        style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: '1rem',
-          marginBottom: '1.5rem'
+          marginBottom: '1.5rem',
         }}
       >
-        <KpiCard label="YTD Gross Paid" value={ytdTotals.gross} formatter={formatMoney} type="neutral" icon={DollarSign} />
-        <KpiCard label="YTD PAYG Withheld" value={ytdTotals.tax} formatter={formatMoney} type="danger" icon={DollarSign} />
-        <KpiCard label="YTD Super Guarantee" value={ytdTotals.sup} formatter={formatMoney} type="info" icon={Wallet} />
-        <KpiCard label="YTD Net Paid" value={ytdTotals.net} formatter={formatMoney} type="success" icon={Wallet} />
+        <KpiCard
+          label="YTD Gross Paid"
+          value={ytdTotals.gross}
+          formatter={formatMoney}
+          type="neutral"
+          icon={DollarSign}
+        />
+        <KpiCard
+          label="YTD PAYG Withheld"
+          value={ytdTotals.tax}
+          formatter={formatMoney}
+          type="danger"
+          icon={DollarSign}
+        />
+        <KpiCard
+          label="YTD Super Guarantee"
+          value={ytdTotals.sup}
+          formatter={formatMoney}
+          type="info"
+          icon={Wallet}
+        />
+        <KpiCard
+          label="YTD Net Paid"
+          value={ytdTotals.net}
+          formatter={formatMoney}
+          type="success"
+          icon={Wallet}
+        />
       </div>
 
       {/* Charts Section */}
@@ -181,26 +228,30 @@ export function PayrollPage() {
               No wage allocations to display.
             </div>
           ) : (
-            <InsightBarList
-              items={payrollSplitItems}
-              formatValue={formatMoneyCompact}
-            />
+            <InsightBarList items={payrollSplitItems} formatValue={formatMoneyCompact} />
           )}
         </InsightPanel>
       </div>
 
       {showCreate && (
-        <div className="card" style={{ marginBottom: '1.5rem', border: '1px solid var(--accent-primary)', position: 'relative' }}>
-          <button 
-            onClick={() => setShowCreate(false)} 
-            style={{ 
-              position: 'absolute', 
-              right: '1rem', 
-              top: '1rem', 
-              background: 'none', 
-              border: 'none', 
-              color: 'var(--text-muted)', 
-              cursor: 'pointer' 
+        <div
+          className="card"
+          style={{
+            marginBottom: '1.5rem',
+            border: '1px solid var(--accent-primary)',
+            position: 'relative',
+          }}
+        >
+          <button
+            onClick={() => setShowCreate(false)}
+            style={{
+              position: 'absolute',
+              right: '1rem',
+              top: '1rem',
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
             }}
           >
             <X size={20} />
@@ -208,12 +259,23 @@ export function PayrollPage() {
           <CreatePayRunForm
             employees={employees.filter((e) => e.is_active)}
             onClose={() => setShowCreate(false)}
-            onCreated={() => { setShowCreate(false); void refresh(); }}
+            onCreated={() => {
+              setShowCreate(false);
+              void refresh();
+            }}
           />
         </div>
       )}
 
-      <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+      <h2
+        style={{
+          fontSize: '1.25rem',
+          marginBottom: '0.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.35rem',
+        }}
+      >
         <FileText size={16} style={{ color: 'var(--text-muted)' }} />
         Pay runs
       </h2>
@@ -221,7 +283,16 @@ export function PayrollPage() {
       {loading ? (
         <SkeletonTable rows={3} cols={7} />
       ) : runs.length === 0 ? (
-        <div style={{ padding: '3rem 1.5rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <div
+          style={{
+            padding: '3rem 1.5rem',
+            background: 'var(--bg-card)',
+            border: '1px dashed var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+          }}
+        >
           No pay runs yet. Approve some timesheets and click <strong>New pay run</strong> to start.
         </div>
       ) : (
@@ -247,11 +318,15 @@ export function PayrollPage() {
                     </Link>
                   </td>
                   <td>{r.pay_date}</td>
-                  <td><Pill status={r.status} /></td>
+                  <td>
+                    <Pill status={r.status} />
+                  </td>
                   <td style={{ textAlign: 'right' }}>{formatMoney(Number(r.total_gross_cents))}</td>
                   <td style={{ textAlign: 'right' }}>{formatMoney(Number(r.total_tax_cents))}</td>
                   <td style={{ textAlign: 'right' }}>{formatMoney(Number(r.total_super_cents))}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(Number(r.total_net_cents))}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                    {formatMoney(Number(r.total_net_cents))}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -262,7 +337,11 @@ export function PayrollPage() {
   );
 }
 
-function CreatePayRunForm({ employees, onClose, onCreated }: {
+function CreatePayRunForm({
+  employees,
+  onClose,
+  onCreated,
+}: {
   employees: Employee[];
   onClose: () => void;
   onCreated: () => void;
@@ -272,7 +351,7 @@ function CreatePayRunForm({ employees, onClose, onCreated }: {
   const today = new Date();
   const monday = new Date(today);
   const day = monday.getDay();
-  const diffToMon = (day === 0 ? -6 : 1 - day);
+  const diffToMon = day === 0 ? -6 : 1 - day;
   monday.setDate(today.getDate() + diffToMon - 7);
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
@@ -282,9 +361,7 @@ function CreatePayRunForm({ employees, onClose, onCreated }: {
   const [periodStart, setPeriodStart] = useState(monday.toISOString().slice(0, 10));
   const [periodEnd, setPeriodEnd] = useState(sunday.toISOString().slice(0, 10));
   const [payDateStr, setPayDateStr] = useState(payDate.toISOString().slice(0, 10));
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(
-    new Set(employees.map((e) => e.id)),
-  );
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(employees.map((e) => e.id)));
   const [claimsThreshold, setClaimsThreshold] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -312,7 +389,10 @@ function CreatePayRunForm({ employees, onClose, onCreated }: {
       },
     });
     setBusy(false);
-    if (error) { setErr(error.message); return; }
+    if (error) {
+      setErr(error.message);
+      return;
+    }
     if (!(data as { ok?: boolean })?.ok) {
       setErr((data as { error?: string })?.error ?? 'Failed to create pay run');
       return;
@@ -327,75 +407,171 @@ function CreatePayRunForm({ employees, onClose, onCreated }: {
         Create New Pay Run
       </h3>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '1rem',
+        }}
+      >
         <Field label="Frequency">
-          <select value={frequency} onChange={(e) => setFrequency(e.target.value as typeof frequency)} className="form-select">
+          <select
+            value={frequency}
+            onChange={(e) => setFrequency(e.target.value as typeof frequency)}
+            className="form-select"
+          >
             <option value="weekly">Weekly</option>
             <option value="fortnightly">Fortnightly</option>
             <option value="monthly">Monthly</option>
           </select>
         </Field>
         <Field label="Period start">
-          <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} className="form-input" />
+          <input
+            type="date"
+            value={periodStart}
+            onChange={(e) => setPeriodStart(e.target.value)}
+            className="form-input"
+          />
         </Field>
         <Field label="Period end">
-          <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} className="form-input" />
+          <input
+            type="date"
+            value={periodEnd}
+            onChange={(e) => setPeriodEnd(e.target.value)}
+            className="form-input"
+          />
         </Field>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '1rem',
+        }}
+      >
         <Field label="Pay date">
-          <input type="date" value={payDateStr} onChange={(e) => setPayDateStr(e.target.value)} className="form-input" />
+          <input
+            type="date"
+            value={payDateStr}
+            onChange={(e) => setPayDateStr(e.target.value)}
+            className="form-input"
+          />
         </Field>
         <Field label="Tax-free threshold">
-          <select value={claimsThreshold ? 'yes' : 'no'} onChange={(e) => setClaimsThreshold(e.target.value === 'yes')} className="form-select">
+          <select
+            value={claimsThreshold ? 'yes' : 'no'}
+            onChange={(e) => setClaimsThreshold(e.target.value === 'yes')}
+            className="form-select"
+          >
             <option value="yes">Claimed (Scale 2 — most employees)</option>
             <option value="no">Not claimed (Scale 1 — second job / non-resident)</option>
           </select>
         </Field>
       </div>
 
-      <h4 style={{ fontSize: '0.825rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '0.5rem', marginBottom: '0.25rem' }}>
+      <h4
+        style={{
+          fontSize: '0.825rem',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          marginTop: '0.5rem',
+          marginBottom: '0.25rem',
+        }}
+      >
         Employees ({selectedIds.size}/{employees.length})
       </h4>
-      <div style={{ maxHeight: '160px', overflowY: 'auto', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+      <div
+        style={{
+          maxHeight: '160px',
+          overflowY: 'auto',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '0.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.25rem',
+        }}
+      >
         {employees.length === 0 ? (
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', margin: '0.5rem 0' }}>No active employees.</p>
-        ) : employees.map((e) => (
-          <label key={e.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer', padding: '0.25rem 0' }}>
-            <input type="checkbox" checked={selectedIds.has(e.id)} onChange={() => toggle(e.id)} style={{ cursor: 'pointer' }} />
-            <span style={{ color: 'var(--text-body)' }}>{e.full_name}</span>
-          </label>
-        ))}
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', margin: '0.5rem 0' }}>
+            No active employees.
+          </p>
+        ) : (
+          employees.map((e) => (
+            <label
+              key={e.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+                padding: '0.25rem 0',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={selectedIds.has(e.id)}
+                onChange={() => toggle(e.id)}
+                style={{ cursor: 'pointer' }}
+              />
+              <span style={{ color: 'var(--text-body)' }}>{e.full_name}</span>
+            </label>
+          ))
+        )}
       </div>
 
-      <div 
-        style={{ 
-          background: 'var(--bg-hover)', 
-          padding: '0.75rem', 
-          borderRadius: 'var(--radius-sm)', 
-          fontSize: '0.75rem', 
+      <div
+        style={{
+          background: 'var(--bg-hover)',
+          padding: '0.75rem',
+          borderRadius: 'var(--radius-sm)',
+          fontSize: '0.75rem',
           color: 'var(--text-muted)',
           display: 'flex',
           gap: '0.5rem',
-          alignItems: 'flex-start'
+          alignItems: 'flex-start',
         }}
       >
-        <Info size={14} style={{ flexShrink: 0, marginTop: '2px', color: 'var(--accent-primary)' }} />
+        <Info
+          size={14}
+          style={{ flexShrink: 0, marginTop: '2px', color: 'var(--accent-primary)' }}
+        />
         <span>
-          The run will pull <strong>approved</strong> timesheets in [{periodStart} → {periodEnd}], split into ordinary / overtime / leave hours by <code>entry_type</code>, and compute PAYG + super.
+          The run will pull <strong>approved</strong> timesheets in [{periodStart} → {periodEnd}],
+          split into ordinary / overtime / leave hours by <code>entry_type</code>, and compute PAYG
+          + super.
         </span>
       </div>
 
       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-        <button onClick={submit} disabled={busy || selectedIds.size === 0} className="btn btn-primary" style={{ padding: '0.625rem 1.25rem' }}>
+        <button
+          onClick={submit}
+          disabled={busy || selectedIds.size === 0}
+          className="btn btn-primary"
+          style={{ padding: '0.625rem 1.25rem' }}
+        >
           <span>{busy ? 'Creating…' : 'Create draft pay run'}</span>
         </button>
-        <button onClick={onClose} disabled={busy} className="btn btn-secondary" style={{ padding: '0.625rem 1.25rem' }}>
+        <button
+          onClick={onClose}
+          disabled={busy}
+          className="btn btn-secondary"
+          style={{ padding: '0.625rem 1.25rem' }}
+        >
           <span>Cancel</span>
         </button>
       </div>
-      {err && <div className="badge badge-danger" style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}>{err}</div>}
+      {err && (
+        <div
+          className="badge badge-danger"
+          style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}
+        >
+          {err}
+        </div>
+      )}
     </div>
   );
 }
@@ -409,48 +585,76 @@ function fyStart(): string {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="form-group" style={{ marginBottom: 0 }}>
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>{label}</span>
+      <span className="form-label" style={{ fontSize: '0.725rem' }}>
+        {label}
+      </span>
       <div style={{ marginTop: '0.25rem' }}>{children}</div>
     </div>
   );
 }
 
-function KpiCard({ 
-  label, 
-  value, 
+function KpiCard({
+  label,
+  value,
   type,
   icon: Icon,
   sub,
   formatter,
-}: { 
-  label: string; 
-  value: number; 
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral'; 
+}: {
+  label: string;
+  value: number;
+  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
   icon: LucideIcon;
   sub?: string;
   formatter?: (val: number) => string;
 }) {
   return (
-    <div 
+    <div
       className="card"
-      style={{ 
+      style={{
         padding: '1.25rem',
         borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative'
+        position: 'relative',
       }}
     >
-      <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+      <div
+        style={{
+          fontSize: '0.675rem',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          fontWeight: 700,
+        }}
+      >
         {label}
       </div>
-      <div style={{ marginTop: '0.35rem', fontSize: '1.5rem', color: 'var(--text-title)', fontWeight: 800, fontFamily: 'var(--font-title)' }}>
+      <div
+        style={{
+          marginTop: '0.35rem',
+          fontSize: '1.5rem',
+          color: 'var(--text-title)',
+          fontWeight: 800,
+          fontFamily: 'var(--font-title)',
+        }}
+      >
         <AnimatedNumber value={value} formatter={formatter} />
       </div>
       {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>{sub}</div>
+        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+          {sub}
+        </div>
       ) : (
         <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
       )}
-      <div style={{ position: 'absolute', right: '1rem', bottom: '1rem', color: `var(--accent-${type === 'neutral' ? 'primary' : type})`, opacity: 0.7 }}>
+      <div
+        style={{
+          position: 'absolute',
+          right: '1rem',
+          bottom: '1rem',
+          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
+          opacity: 0.7,
+        }}
+      >
         <Icon size={18} />
       </div>
     </div>
@@ -463,6 +667,6 @@ function Pill({ status }: { status: PayRun['status'] }) {
   else if (status === 'approved') badgeClass = 'badge-info';
   else if (status === 'draft') badgeClass = 'badge-warning';
   else if (status === 'cancelled' || status === 'reversed') badgeClass = 'badge-danger';
-  
+
   return <span className={`badge ${badgeClass}`}>{status}</span>;
 }

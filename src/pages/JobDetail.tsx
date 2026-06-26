@@ -4,9 +4,22 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
-import { 
-  ChevronLeft, Briefcase, Calendar, User, DollarSign, Wallet, 
-  FileText, Edit3, Save, Plus, AlertTriangle, Unlink, Percent, TrendingUp, type LucideIcon
+import {
+  ChevronLeft,
+  Briefcase,
+  Calendar,
+  User,
+  DollarSign,
+  Wallet,
+  FileText,
+  Edit3,
+  Save,
+  Plus,
+  AlertTriangle,
+  Unlink,
+  Percent,
+  TrendingUp,
+  type LucideIcon,
 } from 'lucide-react';
 
 interface JobRow {
@@ -87,15 +100,32 @@ export function JobDetailPage() {
     if (!currentOrg || !id) return;
     setLoading(true);
     const [jobRes, pnlRes, billsRes, invoicesRes] = await Promise.all([
-      supabase.from('jobs').select('*').eq('id', id).eq('organization_id', currentOrg.id).maybeSingle(),
-      supabase.from('v_job_pnl').select('*').eq('job_id', id).eq('organization_id', currentOrg.id).maybeSingle(),
-      supabase.from('bills')
-        .select('id, invoice_number, invoice_date, total_inc_gst_cents, status, supplier_id, supplier_name_raw')
-        .eq('job_id', id).eq('organization_id', currentOrg.id).is('deleted_at', null)
+      supabase
+        .from('jobs')
+        .select('*')
+        .eq('id', id)
+        .eq('organization_id', currentOrg.id)
+        .maybeSingle(),
+      supabase
+        .from('v_job_pnl')
+        .select('*')
+        .eq('job_id', id)
+        .eq('organization_id', currentOrg.id)
+        .maybeSingle(),
+      supabase
+        .from('bills')
+        .select(
+          'id, invoice_number, invoice_date, total_inc_gst_cents, status, supplier_id, supplier_name_raw',
+        )
+        .eq('job_id', id)
+        .eq('organization_id', currentOrg.id)
+        .is('deleted_at', null)
         .order('invoice_date', { ascending: false, nullsFirst: false }),
-      supabase.from('invoices')
+      supabase
+        .from('invoices')
         .select('id, invoice_date, total_inc_gst_cents, status')
-        .eq('job_id', id).eq('organization_id', currentOrg.id)
+        .eq('job_id', id)
+        .eq('organization_id', currentOrg.id)
         .not('status', 'in', '(void)')
         .order('invoice_date', { ascending: true, nullsFirst: false }),
     ]);
@@ -146,7 +176,10 @@ export function JobDetailPage() {
     };
     const { error: saveErr } = await supabase.from('jobs').update(payload).eq('id', job.id);
     setSaving(false);
-    if (saveErr) { setError(saveErr.message); return; }
+    if (saveErr) {
+      setError(saveErr.message);
+      return;
+    }
     setEditing(false);
     void refresh();
   };
@@ -158,7 +191,12 @@ export function JobDetailPage() {
   };
 
   if (!currentOrg) return null;
-  if (loading) return <section><p style={{ color: 'var(--text-muted)' }}>Loading job details…</p></section>;
+  if (loading)
+    return (
+      <section>
+        <p style={{ color: 'var(--text-muted)' }}>Loading job details…</p>
+      </section>
+    );
   if (!job) {
     return (
       <section className="animated-fade-in" style={{ padding: '2rem 0', textAlign: 'center' }}>
@@ -185,15 +223,15 @@ export function JobDetailPage() {
   return (
     <section className="animated-fade-in">
       {/* Back link */}
-      <Link 
-        to="/jobs" 
-        style={{ 
-          color: 'var(--text-muted)', 
-          fontSize: '0.825rem', 
-          display: 'inline-flex', 
-          alignItems: 'center', 
+      <Link
+        to="/jobs"
+        style={{
+          color: 'var(--text-muted)',
+          fontSize: '0.825rem',
+          display: 'inline-flex',
+          alignItems: 'center',
           gap: '0.25rem',
-          marginBottom: '1rem'
+          marginBottom: '1rem',
         }}
       >
         <ChevronLeft size={14} />
@@ -201,43 +239,69 @@ export function JobDetailPage() {
       </Link>
 
       {/* Header section */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: '1.5rem',
           flexWrap: 'wrap',
-          gap: '1rem'
+          gap: '1rem',
         }}
       >
         <div>
-          <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <code style={{ color: 'var(--text-muted)', fontSize: '1.25rem' }}>{job.job_number}</code>
+          <h1
+            style={{
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              flexWrap: 'wrap',
+            }}
+          >
+            <code style={{ color: 'var(--text-muted)', fontSize: '1.25rem' }}>
+              {job.job_number}
+            </code>
             <span>{job.name}</span>
           </h1>
-          <div style={{ marginTop: '0.25rem', fontSize: '0.825rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              marginTop: '0.25rem',
+              fontSize: '0.825rem',
+              color: 'var(--text-muted)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              flexWrap: 'wrap',
+            }}
+          >
             <Pill status={job.status} />
             <span>•</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
               <Calendar size={12} />
-              {job.start_date ?? '—'}{job.end_date ? ` → ${job.end_date}` : ''}
+              {job.start_date ?? '—'}
+              {job.end_date ? ` → ${job.end_date}` : ''}
             </span>
             {customer && (
               <>
                 <span>•</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                   <User size={12} />
-                  <Link to={`/customers/${customer.id}`} style={{ fontWeight: 600 }}>{customer.name}</Link>
+                  <Link to={`/customers/${customer.id}`} style={{ fontWeight: 600 }}>
+                    {customer.name}
+                  </Link>
                 </span>
               </>
             )}
           </div>
         </div>
-        
+
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           {customer && (
-            <button onClick={() => navigate(`/invoices/new?job_id=${job.id}&customer_id=${customer.id}`)} className="btn btn-primary">
+            <button
+              onClick={() => navigate(`/invoices/new?job_id=${job.id}&customer_id=${customer.id}`)}
+              className="btn btn-primary"
+            >
               <Plus size={16} />
               <span>Raise Invoice</span>
             </button>
@@ -253,25 +317,27 @@ export function JobDetailPage() {
             rowId={job.id}
             currentOrgId={job.organization_id}
             fkColumnsToNull={['customer_id']}
-            onMoved={() => { window.location.href = '/jobs'; }}
+            onMoved={() => {
+              window.location.href = '/jobs';
+            }}
           />
         </div>
       </div>
 
       {/* Warning banner */}
       {(overBudget || lowMargin) && (
-        <div 
-          className="badge badge-warning" 
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.5rem', 
-            padding: '0.875rem 1rem', 
-            marginBottom: '1.5rem', 
-            textTransform: 'none', 
+        <div
+          className="badge badge-warning"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.875rem 1rem',
+            marginBottom: '1.5rem',
+            textTransform: 'none',
             fontSize: '0.875rem',
             width: '100%',
-            justifyContent: 'flex-start'
+            justifyContent: 'flex-start',
           }}
         >
           <AlertTriangle size={16} />
@@ -287,126 +353,270 @@ export function JobDetailPage() {
         <div className="card" style={{ marginBottom: '1.5rem', maxWidth: '850px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <Field label="Name *">
-              <input value={draft.name ?? ''} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className="form-input" />
+              <input
+                value={draft.name ?? ''}
+                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                className="form-input"
+              />
             </Field>
-            
+
             <Field label="Description">
-              <textarea value={draft.description ?? ''} onChange={(e) => setDraft({ ...draft, description: e.target.value })} rows={2} className="form-textarea" />
+              <textarea
+                value={draft.description ?? ''}
+                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                rows={2}
+                className="form-textarea"
+              />
             </Field>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '1rem',
+              }}
+            >
               <Field label="Status">
-                <select value={draft.status ?? job.status} onChange={(e) => setDraft({ ...draft, status: e.target.value })} className="form-select">
-                  {JOB_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                <select
+                  value={draft.status ?? job.status}
+                  onChange={(e) => setDraft({ ...draft, status: e.target.value })}
+                  className="form-select"
+                >
+                  {JOB_STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
                 </select>
               </Field>
-              
+
               <Field label="Budget (AUD)">
-                <input type="number" step="0.01"
+                <input
+                  type="number"
+                  step="0.01"
                   value={draft.budget_cents != null ? (draft.budget_cents / 100).toFixed(2) : ''}
-                  onChange={(e) => setDraft({ ...draft, budget_cents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null })}
-                  placeholder="e.g. 5000.00" className="form-input" />
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      budget_cents: e.target.value
+                        ? Math.round(parseFloat(e.target.value) * 100)
+                        : null,
+                    })
+                  }
+                  placeholder="e.g. 5000.00"
+                  className="form-input"
+                />
               </Field>
             </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '1rem',
+              }}
+            >
               <Field label="Start Date">
-                <input type="date" value={draft.start_date ?? ''} onChange={(e) => setDraft({ ...draft, start_date: e.target.value })} className="form-input" />
+                <input
+                  type="date"
+                  value={draft.start_date ?? ''}
+                  onChange={(e) => setDraft({ ...draft, start_date: e.target.value })}
+                  className="form-input"
+                />
               </Field>
               <Field label="End Date">
-                <input type="date" value={draft.end_date ?? ''} onChange={(e) => setDraft({ ...draft, end_date: e.target.value })} className="form-input" />
+                <input
+                  type="date"
+                  value={draft.end_date ?? ''}
+                  onChange={(e) => setDraft({ ...draft, end_date: e.target.value })}
+                  className="form-input"
+                />
               </Field>
             </div>
 
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-              <button onClick={save} disabled={saving} className="btn btn-primary" style={{ padding: '0.625rem 1.25rem' }}>
+              <button
+                onClick={save}
+                disabled={saving}
+                className="btn btn-primary"
+                style={{ padding: '0.625rem 1.25rem' }}
+              >
                 <Save size={14} />
                 <span>{saving ? 'Saving…' : 'Save'}</span>
               </button>
-              <button onClick={() => setEditing(false)} disabled={saving} className="btn btn-secondary" style={{ padding: '0.625rem 1.25rem' }}>
+              <button
+                onClick={() => setEditing(false)}
+                disabled={saving}
+                className="btn btn-secondary"
+                style={{ padding: '0.625rem 1.25rem' }}
+              >
                 <span>Cancel</span>
               </button>
             </div>
-            {error && <div className="badge badge-danger" style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}>{error}</div>}
+            {error && (
+              <div
+                className="badge badge-danger"
+                style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}
+              >
+                {error}
+              </div>
+            )}
           </div>
         </div>
       ) : job.description ? (
-        <p style={{ marginTop: '0.5rem', marginBottom: '1.5rem', color: 'var(--text-body)', fontSize: '0.95rem', lineHeight: '1.5', maxWidth: '800px' }}>
+        <p
+          style={{
+            marginTop: '0.5rem',
+            marginBottom: '1.5rem',
+            color: 'var(--text-body)',
+            fontSize: '0.95rem',
+            lineHeight: '1.5',
+            maxWidth: '800px',
+          }}
+        >
           {job.description}
         </p>
       ) : null}
 
       {/* KPI Cards */}
-      <div 
-        style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: '1rem',
-          marginBottom: '2rem'
+          marginBottom: '2rem',
         }}
       >
         <Kpi label="Revenue inc GST" value={formatMoney(revenue)} type="success" icon={Wallet} />
-        <Kpi label="Total Cost" value={formatMoney(totalCost)} type="danger" icon={DollarSign} sub={`bills ${formatMoney(pnl?.cost_bills_cents ?? 0)}`} />
-        <Kpi label="Gross Profit" value={formatMoney(grossProfit)} type={grossProfit > 0 ? 'success' : 'danger'} icon={TrendingUp} sub={margin != null ? `${margin.toFixed(1)}% margin` : '—'} />
-        <Kpi label="Budget" value={budget ? formatMoney(budget) : '—'} type="info" icon={Briefcase} sub={budgetPct != null ? `${budgetPct.toFixed(0)}% used` : 'no budget set'} />
+        <Kpi
+          label="Total Cost"
+          value={formatMoney(totalCost)}
+          type="danger"
+          icon={DollarSign}
+          sub={`bills ${formatMoney(pnl?.cost_bills_cents ?? 0)}`}
+        />
+        <Kpi
+          label="Gross Profit"
+          value={formatMoney(grossProfit)}
+          type={grossProfit > 0 ? 'success' : 'danger'}
+          icon={TrendingUp}
+          sub={margin != null ? `${margin.toFixed(1)}% margin` : '—'}
+        />
+        <Kpi
+          label="Budget"
+          value={budget ? formatMoney(budget) : '—'}
+          type="info"
+          icon={Briefcase}
+          sub={budgetPct != null ? `${budgetPct.toFixed(0)}% used` : 'no budget set'}
+        />
       </div>
 
       {/* Budget consumption progress bar */}
       {budget > 0 && (
         <div className="card" style={{ marginBottom: '2rem', padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.825rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: '0.825rem',
+              fontWeight: 600,
+              marginBottom: '0.5rem',
+            }}
+          >
             <span style={{ color: 'var(--text-body)' }}>Budget Consumption</span>
-            <span style={{ color: budgetPct && budgetPct >= 100 ? 'var(--text-danger)' : 'var(--accent-primary)' }}>
+            <span
+              style={{
+                color:
+                  budgetPct && budgetPct >= 100 ? 'var(--text-danger)' : 'var(--accent-primary)',
+              }}
+            >
               {budgetPct?.toFixed(1)}% ({formatMoney(totalCost)} of {formatMoney(budget)})
             </span>
           </div>
-          <div style={{ height: '8px', background: 'var(--bg-hover)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-            <div 
-              style={{ 
-                height: '100%', 
-                width: `${Math.min(budgetPct ?? 0, 100)}%`, 
-                background: budgetPct && budgetPct >= 100 ? 'var(--accent-danger)' : 'var(--accent-primary)',
+          <div
+            style={{
+              height: '8px',
+              background: 'var(--bg-hover)',
+              borderRadius: 'var(--radius-full)',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                height: '100%',
+                width: `${Math.min(budgetPct ?? 0, 100)}%`,
+                background:
+                  budgetPct && budgetPct >= 100 ? 'var(--accent-danger)' : 'var(--accent-primary)',
                 borderRadius: 'var(--radius-full)',
-                transition: 'width 0.4s ease'
-              }} 
+                transition: 'width 0.4s ease',
+              }}
             />
           </div>
         </div>
       )}
 
       {/* Margin Trend Chart */}
-      <div className="card" style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column' }}>
-        <MarginSparkline
-          bills={bills}
-          invoices={invoicesSpark}
-          jobStartDate={job.start_date}
-        />
+      <div
+        className="card"
+        style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column' }}
+      >
+        <MarginSparkline bills={bills} invoices={invoicesSpark} jobStartDate={job.start_date} />
       </div>
 
       {/* Cost Breakdown */}
       <div className="card" style={{ marginBottom: '2rem', maxWidth: '600px' }}>
-        <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+        <h3
+          style={{
+            fontSize: '1.1rem',
+            marginBottom: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+          }}
+        >
           <Percent size={16} style={{ color: 'var(--text-muted)' }} />
           Cost Breakdown
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <div style={breakdownRow}>
             <span>Bills (Supplier Invoices)</span>
-            <span style={{ fontWeight: 600, color: 'var(--text-danger)' }}>{formatMoney(pnl?.cost_bills_cents ?? 0)}</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-danger)' }}>
+              {formatMoney(pnl?.cost_bills_cents ?? 0)}
+            </span>
           </div>
           <div style={breakdownRow}>
             <span>Wages (Employee Labour)</span>
-            <span style={{ fontWeight: 600, color: 'var(--text-body)' }}>{formatMoney(pnl?.cost_wages_cents ?? 0)}</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-body)' }}>
+              {formatMoney(pnl?.cost_wages_cents ?? 0)}
+            </span>
           </div>
           <div style={breakdownRow}>
             <span>Overhead (Allocated)</span>
-            <span style={{ fontWeight: 600, color: 'var(--text-body)' }}>{formatMoney(pnl?.cost_overhead_cents ?? 0)}</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-body)' }}>
+              {formatMoney(pnl?.cost_overhead_cents ?? 0)}
+            </span>
           </div>
-          <div style={{ ...breakdownRow, borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem', marginTop: '0.5rem', fontWeight: 700, fontSize: '0.95rem' }}>
+          <div
+            style={{
+              ...breakdownRow,
+              borderTop: '1px solid var(--border-subtle)',
+              paddingTop: '0.75rem',
+              marginTop: '0.5rem',
+              fontWeight: 700,
+              fontSize: '0.95rem',
+            }}
+          >
             <span style={{ color: 'var(--text-title)' }}>Total cost</span>
             <span style={{ color: 'var(--text-title)' }}>{formatMoney(totalCost)}</span>
           </div>
-          <div style={{ ...breakdownRow, borderBottom: 'none', color: 'var(--text-muted)', fontSize: '0.825rem' }}>
+          <div
+            style={{
+              ...breakdownRow,
+              borderBottom: 'none',
+              color: 'var(--text-muted)',
+              fontSize: '0.825rem',
+            }}
+          >
             <span>GST input credit</span>
             <span>{formatMoney(pnl?.gst_input_credit_cents ?? 0)}</span>
           </div>
@@ -414,12 +624,31 @@ export function JobDetailPage() {
       </div>
 
       {/* Attached Bills */}
-      <h2 style={{ fontSize: '1.25rem', marginTop: '2rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+      <h2
+        style={{
+          fontSize: '1.25rem',
+          marginTop: '2rem',
+          marginBottom: '0.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.35rem',
+        }}
+      >
         <FileText size={16} style={{ color: 'var(--text-muted)' }} />
         Attached bills ({bills.length})
       </h2>
       {bills.length === 0 ? (
-        <div style={{ padding: '2rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+        <div
+          style={{
+            padding: '2rem',
+            background: 'var(--bg-card)',
+            border: '1px dashed var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+            fontSize: '0.875rem',
+          }}
+        >
           No bills attached yet.
         </div>
       ) : (
@@ -444,22 +673,43 @@ export function JobDetailPage() {
                 >
                   <td>
                     {b.supplier_id ? (
-                      <Link to={`/suppliers/${b.supplier_id}`} onClick={(e) => e.stopPropagation()} style={{ fontWeight: 600 }}>
+                      <Link
+                        to={`/suppliers/${b.supplier_id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ fontWeight: 600 }}
+                      >
                         {b.supplier_name_raw ?? '(linked)'}
                       </Link>
                     ) : (
-                      b.supplier_name_raw ?? <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      (b.supplier_name_raw ?? <span style={{ color: 'var(--text-muted)' }}>—</span>)
                     )}
                   </td>
-                  <td><code>{b.invoice_number ?? '—'}</code></td>
-                  <td>{b.invoice_date ?? '—'}</td>
-                  <td><Pill status={b.status} /></td>
-                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{b.total_inc_gst_cents != null ? formatMoney(b.total_inc_gst_cents) : <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
                   <td>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); void detachBill(b.id); }} 
+                    <code>{b.invoice_number ?? '—'}</code>
+                  </td>
+                  <td>{b.invoice_date ?? '—'}</td>
+                  <td>
+                    <Pill status={b.status} />
+                  </td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                    {b.total_inc_gst_cents != null ? (
+                      formatMoney(b.total_inc_gst_cents)
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)' }}>—</span>
+                    )}
+                  </td>
+                  <td>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void detachBill(b.id);
+                      }}
                       className="btn btn-secondary"
-                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-danger)' }}
+                      style={{
+                        padding: '0.25rem 0.5rem',
+                        fontSize: '0.75rem',
+                        color: 'var(--text-danger)',
+                      }}
                     >
                       <Unlink size={12} style={{ marginRight: '0.25rem' }} />
                       <span>Detach</span>
@@ -478,7 +728,7 @@ export function JobDetailPage() {
 function getMonday(d: Date): Date {
   const date = new Date(d);
   const day = date.getDay();
-  const diff = (day === 0 ? -6 : 1 - day);
+  const diff = day === 0 ? -6 : 1 - day;
   date.setDate(date.getDate() + diff);
   date.setHours(0, 0, 0, 0);
   return date;
@@ -561,20 +811,27 @@ function MarginSparkline({
     const hasAny = bills.length > 0 || invoices.length > 0;
     return (
       <div style={{ padding: '0.5rem' }}>
-        <h3 style={{ fontSize: '0.825rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+        <h3
+          style={{
+            fontSize: '0.825rem',
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            marginBottom: '0.5rem',
+          }}
+        >
           Margin Trend
         </h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
-          {hasAny ? 'Not enough data yet — need events in at least 2 different weeks.' : 'Not enough data yet.'}
+          {hasAny
+            ? 'Not enough data yet — need events in at least 2 different weeks.'
+            : 'Not enough data yet.'}
         </p>
       </div>
     );
   }
 
-  const maxVal = Math.max(
-    ...buckets.map((b) => Math.max(b.cumCost, b.cumRevenue)),
-    1,
-  );
+  const maxVal = Math.max(...buckets.map((b) => Math.max(b.cumCost, b.cumRevenue)), 1);
   const minMargin = Math.min(...buckets.map((b) => b.cumRevenue - b.cumCost));
   const maxMargin = Math.max(...buckets.map((b) => b.cumRevenue - b.cumCost));
 
@@ -596,10 +853,18 @@ function MarginSparkline({
 
   return (
     <div style={{ padding: '0.5rem', width: '100%', overflowX: 'auto' }}>
-      <h3 style={{ fontSize: '0.825rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>
+      <h3
+        style={{
+          fontSize: '0.825rem',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          marginBottom: '1rem',
+        }}
+      >
         Margin Trend (Weekly Cumulative)
       </h3>
-      
+
       <div style={{ minWidth: `${W}px` }}>
         <svg
           width="100%"
@@ -611,21 +876,58 @@ function MarginSparkline({
           style={{ display: 'block', overflow: 'visible' }}
         >
           {/* Zero baseline */}
-          <line x1={PAD.left} y1={zeroY} x2={W - PAD.right} y2={zeroY} stroke="var(--border-subtle)" strokeWidth={1.5} strokeDasharray="4,4" />
+          <line
+            x1={PAD.left}
+            y1={zeroY}
+            x2={W - PAD.right}
+            y2={zeroY}
+            stroke="var(--border-subtle)"
+            strokeWidth={1.5}
+            strokeDasharray="4,4"
+          />
 
           {/* Cumulative cost — red */}
-          <polyline points={costPts} fill="none" stroke="var(--accent-danger)" strokeWidth={2.5} strokeLinejoin="round" />
+          <polyline
+            points={costPts}
+            fill="none"
+            stroke="var(--accent-danger)"
+            strokeWidth={2.5}
+            strokeLinejoin="round"
+          />
           {/* Cumulative revenue — green */}
-          <polyline points={revPts} fill="none" stroke="var(--accent-success)" strokeWidth={2.5} strokeLinejoin="round" />
+          <polyline
+            points={revPts}
+            fill="none"
+            stroke="var(--accent-success)"
+            strokeWidth={2.5}
+            strokeLinejoin="round"
+          />
           {/* Margin (revenue - cost) — primary theme color */}
-          <polyline points={marginPts} fill="none" stroke="var(--accent-primary)" strokeWidth={1.5} strokeLinejoin="round" strokeDasharray="2,2" />
+          <polyline
+            points={marginPts}
+            fill="none"
+            stroke="var(--accent-primary)"
+            strokeWidth={1.5}
+            strokeLinejoin="round"
+            strokeDasharray="2,2"
+          />
 
           {/* Axis labels: first and last week */}
           <text x={PAD.left} y={H - 4} fontSize={9} fill="var(--text-muted)" fontWeight={600}>
             {buckets[0]?.weekStart.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
           </text>
-          <text x={W - PAD.right} y={H - 4} fontSize={9} fill="var(--text-muted)" fontWeight={600} textAnchor="end">
-            {buckets[buckets.length - 1]?.weekStart.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+          <text
+            x={W - PAD.right}
+            y={H - 4}
+            fontSize={9}
+            fill="var(--text-muted)"
+            fontWeight={600}
+            textAnchor="end"
+          >
+            {buckets[buckets.length - 1]?.weekStart.toLocaleDateString('en-AU', {
+              day: 'numeric',
+              month: 'short',
+            })}
           </text>
         </svg>
       </div>
@@ -641,16 +943,25 @@ function MarginSparkline({
 
 function Legend({ colour, label, dotted }: { colour: string; label: string; dotted?: boolean }) {
   return (
-    <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.825rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-      <span 
-        style={{ 
-          display: 'inline-block', 
-          width: '16px', 
-          height: '3px', 
-          background: dotted ? 'transparent' : colour, 
+    <span
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.35rem',
+        fontSize: '0.825rem',
+        color: 'var(--text-muted)',
+        fontWeight: 500,
+      }}
+    >
+      <span
+        style={{
+          display: 'inline-block',
+          width: '16px',
+          height: '3px',
+          background: dotted ? 'transparent' : colour,
           borderTop: dotted ? `3px dotted ${colour}` : 'none',
-          borderRadius: 'var(--radius-full)' 
-        }} 
+          borderRadius: 'var(--radius-full)',
+        }}
       />
       {label}
     </span>
@@ -660,46 +971,74 @@ function Legend({ colour, label, dotted }: { colour: string; label: string; dott
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="form-group" style={{ marginBottom: 0 }}>
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>{label}</span>
+      <span className="form-label" style={{ fontSize: '0.725rem' }}>
+        {label}
+      </span>
       <div style={{ marginTop: '0.25rem' }}>{children}</div>
     </div>
   );
 }
 
-function Kpi({ 
-  label, 
-  value, 
+function Kpi({
+  label,
+  value,
   type,
   icon: Icon,
-  sub 
-}: { 
-  label: string; 
-  value: string; 
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral'; 
+  sub,
+}: {
+  label: string;
+  value: string;
+  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
   icon: LucideIcon;
   sub?: string;
 }) {
   return (
-    <div 
+    <div
       className="card"
-      style={{ 
+      style={{
         padding: '1.25rem',
         borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative'
+        position: 'relative',
       }}
     >
-      <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+      <div
+        style={{
+          fontSize: '0.675rem',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          fontWeight: 700,
+        }}
+      >
         {label}
       </div>
-      <div style={{ marginTop: '0.35rem', fontSize: '1.5rem', color: 'var(--text-title)', fontWeight: 800, fontFamily: 'var(--font-title)' }}>
+      <div
+        style={{
+          marginTop: '0.35rem',
+          fontSize: '1.5rem',
+          color: 'var(--text-title)',
+          fontWeight: 800,
+          fontFamily: 'var(--font-title)',
+        }}
+      >
         {value}
       </div>
       {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>{sub}</div>
+        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+          {sub}
+        </div>
       ) : (
         <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
       )}
-      <div style={{ position: 'absolute', right: '1rem', bottom: '1rem', color: `var(--accent-${type === 'neutral' ? 'primary' : type})`, opacity: 0.7 }}>
+      <div
+        style={{
+          position: 'absolute',
+          right: '1rem',
+          bottom: '1rem',
+          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
+          opacity: 0.7,
+        }}
+      >
         <Icon size={18} />
       </div>
     </div>
@@ -709,18 +1048,19 @@ function Kpi({
 function Pill({ status }: { status: string }) {
   let badgeClass = 'badge-neutral';
   if (status === 'active' || status === 'completed') badgeClass = 'badge-success';
-  else if (status === 'paused' || status === 'on_hold' || status === 'quoted') badgeClass = 'badge-warning';
+  else if (status === 'paused' || status === 'on_hold' || status === 'quoted')
+    badgeClass = 'badge-warning';
   else if (status === 'cancelled' || status === 'archived') badgeClass = 'badge-danger';
-  
+
   return <span className={`badge ${badgeClass}`}>{status.replace('_', ' ')}</span>;
 }
 
-const breakdownRow: React.CSSProperties = { 
-  display: 'flex', 
-  justifyContent: 'space-between', 
-  padding: '0.625rem 0', 
-  fontSize: '0.875rem', 
-  color: 'var(--text-body)', 
-  borderBottom: '1px solid var(--border-subtle)', 
-  width: '100%' 
+const breakdownRow: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  padding: '0.625rem 0',
+  fontSize: '0.875rem',
+  color: 'var(--text-body)',
+  borderBottom: '1px solid var(--border-subtle)',
+  width: '100%',
 };

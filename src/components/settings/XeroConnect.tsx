@@ -27,7 +27,9 @@ export function XeroConnect() {
     setLoading(true);
     const { data } = await supabase
       .from('xero_integrations')
-      .select('id, xero_tenant_id, xero_tenant_name, is_enabled, status, last_synced_at, last_error, token_expires_at')
+      .select(
+        'id, xero_tenant_id, xero_tenant_name, is_enabled, status, last_synced_at, last_error, token_expires_at',
+      )
       .eq('organization_id', currentOrg.id)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -54,7 +56,9 @@ export function XeroConnect() {
     setError(null);
     setConnecting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in');
 
       const redirect_uri =
@@ -83,7 +87,12 @@ export function XeroConnect() {
 
   const handleDisconnect = async () => {
     if (!integration) return;
-    if (!confirm(`Disconnect Xero (${integration.xero_tenant_name})?\n\nAlready-synced bills and invoices keep their Xero IDs. You can reconnect at any time.`)) return;
+    if (
+      !confirm(
+        `Disconnect Xero (${integration.xero_tenant_name})?\n\nAlready-synced bills and invoices keep their Xero IDs. You can reconnect at any time.`,
+      )
+    )
+      return;
     await supabase
       .from('xero_integrations')
       .update({ is_enabled: false, status: 'disconnected' })
@@ -96,7 +105,9 @@ export function XeroConnect() {
     setSyncing(true);
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in');
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/xero-sync-accounts`;
       const res = await fetch(url, {
@@ -123,7 +134,9 @@ export function XeroConnect() {
     setSyncing(true);
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in');
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/xero-sync-payments`;
       const res = await fetch(url, {
@@ -149,24 +162,22 @@ export function XeroConnect() {
     <div style={{ marginTop: '2rem' }}>
       <h2 style={{ fontSize: 18, marginBottom: '0.5rem' }}>Xero</h2>
       <p style={{ color: '#888', fontSize: 13, marginBottom: '1rem', maxWidth: 720 }}>
-        Connect your Xero organisation to push bills as ACCPAY and invoices as ACCREC.
-        Payments recorded in Xero sync back nightly. Account codes and tax types are
-        mapped per supplier/customer via intake rules.
+        Connect your Xero organisation to push bills as ACCPAY and invoices as ACCREC. Payments
+        recorded in Xero sync back nightly. Account codes and tax types are mapped per
+        supplier/customer via intake rules.
       </p>
 
       {loading ? (
         <p style={{ color: '#888' }}>Loading…</p>
       ) : !integration || !integration.is_enabled ? (
-        <button
-          onClick={handleConnect}
-          disabled={connecting}
-          style={btnPrimXero}
-        >
+        <button onClick={handleConnect} disabled={connecting} style={btnPrimXero}>
           {connecting ? 'Redirecting to Xero…' : '+ Connect Xero'}
         </button>
       ) : (
         <div style={card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
+          >
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                 <span style={{ fontSize: 15, fontWeight: 600 }}>
@@ -193,13 +204,25 @@ export function XeroConnect() {
                 </span>
               </div>
               {integration.last_error && (
-                <div style={{ marginTop: 8, padding: '6px 10px', background: '#3d1818', borderRadius: 4, fontSize: 12, color: '#e9a3a3', maxWidth: 520 }}>
+                <div
+                  style={{
+                    marginTop: 8,
+                    padding: '6px 10px',
+                    background: '#3d1818',
+                    borderRadius: 4,
+                    fontSize: 12,
+                    color: '#e9a3a3',
+                    maxWidth: 520,
+                  }}
+                >
                   {integration.last_error}
                 </div>
               )}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}
+            >
               <button onClick={handleSyncAccounts} disabled={syncing} style={btnSmall}>
                 {syncing ? 'Syncing…' : 'Sync accounts'}
               </button>
@@ -214,9 +237,7 @@ export function XeroConnect() {
         </div>
       )}
 
-      {error && (
-        <p style={{ color: 'salmon', fontSize: 12, marginTop: '0.5rem' }}>{error}</p>
-      )}
+      {error && <p style={{ color: 'salmon', fontSize: 12, marginTop: '0.5rem' }}>{error}</p>}
       {successMessage && (
         <p style={{ color: '#86c7a3', fontSize: 12, marginTop: '0.5rem' }}>{successMessage}</p>
       )}
@@ -226,13 +247,17 @@ export function XeroConnect() {
 
 function StatusPill({ status }: { status: string }) {
   const colour =
-    status === 'active' ? '#86c7a3'
-    : status === 'expired' || status === 'error' ? '#e9a3a3'
-    : '#888';
+    status === 'active'
+      ? '#86c7a3'
+      : status === 'expired' || status === 'error'
+        ? '#e9a3a3'
+        : '#888';
   const bg =
-    status === 'active' ? '#0d2f1f'
-    : status === 'expired' || status === 'error' ? '#3d1818'
-    : '#2a2a2a';
+    status === 'active'
+      ? '#0d2f1f'
+      : status === 'expired' || status === 'error'
+        ? '#3d1818'
+        : '#2a2a2a';
   return (
     <span
       style={{

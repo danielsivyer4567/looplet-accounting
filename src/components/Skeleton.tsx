@@ -115,11 +115,7 @@ export function SkeletonTable({ rows = 5, cols = 5 }: SkeletonTableProps) {
         }}
       >
         {Array.from({ length: cols }).map((_, i) => (
-          <SkeletonLine
-            key={i}
-            width={colWidths[i % colWidths.length] ?? '100%'}
-            height={10}
-          />
+          <SkeletonLine key={i} width={colWidths[i % colWidths.length] ?? '100%'} height={10} />
         ))}
       </div>
       {/* Body rows */}
@@ -137,13 +133,7 @@ export function SkeletonTable({ rows = 5, cols = 5 }: SkeletonTableProps) {
           {Array.from({ length: cols }).map((_, colIdx) => {
             // Vary widths between rows so it looks natural
             const variance = (rowIdx * 7 + colIdx * 13) % 30;
-            return (
-              <SkeletonLine
-                key={colIdx}
-                width={`${50 + variance}%`}
-                height={13}
-              />
-            );
+            return <SkeletonLine key={colIdx} width={`${50 + variance}%`} height={13} />;
           })}
         </div>
       ))}

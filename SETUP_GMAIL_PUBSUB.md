@@ -84,12 +84,12 @@ This is the magic step — without it, Gmail can't publish to your topic and
 
 Paste these three values back to me in chat (or set them yourself):
 
-| Var | Where it came from | Sensitivity |
-|---|---|---|
-| `GMAIL_CLIENT_ID` | Step 4 OAuth client | low |
-| `GMAIL_CLIENT_SECRET` | Step 4 OAuth client | high — rotate if leaked |
-| `GMAIL_PUBSUB_TOPIC` | `projects/<your-gcp-project-id>/topics/gmail-watch` | low |
-| `GMAIL_PUSH_VERIFY_TOKEN` | Random string from step 6 URL | medium |
+| Var                       | Where it came from                                  | Sensitivity             |
+| ------------------------- | --------------------------------------------------- | ----------------------- |
+| `GMAIL_CLIENT_ID`         | Step 4 OAuth client                                 | low                     |
+| `GMAIL_CLIENT_SECRET`     | Step 4 OAuth client                                 | high — rotate if leaked |
+| `GMAIL_PUBSUB_TOPIC`      | `projects/<your-gcp-project-id>/topics/gmail-watch` | low                     |
+| `GMAIL_PUSH_VERIFY_TOKEN` | Random string from step 6 URL                       | medium                  |
 
 I'll run:
 
@@ -133,19 +133,19 @@ SELECT cron.schedule(
 
 ## Troubleshooting
 
-| Symptom | Likely cause |
-|---|---|
-| OAuth callback → `No refresh_token returned` | You authorised before with `prompt!=consent`. Revoke at https://myaccount.google.com/permissions and reconnect. |
-| `watch() failed (403)` in callback | Forgot step 5 — add `gmail-api-push@system.gserviceaccount.com` as Publisher on the topic. |
-| Pub/Sub keeps retrying | The push fn returned 5xx. Check function logs in Supabase dashboard. The fn is designed to return 200 even on app-level errors so Pub/Sub doesn't retry-storm. |
-| `Invalid push verification token` | URL `?token=` doesn't match `GMAIL_PUSH_VERIFY_TOKEN` Supabase secret. |
-| Bills appear but stay `received` | `bills-extract` failed. Check its function logs and your `GROQ_API_KEY` secret. |
+| Symptom                                      | Likely cause                                                                                                                                                   |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OAuth callback → `No refresh_token returned` | You authorised before with `prompt!=consent`. Revoke at https://myaccount.google.com/permissions and reconnect.                                                |
+| `watch() failed (403)` in callback           | Forgot step 5 — add `gmail-api-push@system.gserviceaccount.com` as Publisher on the topic.                                                                     |
+| Pub/Sub keeps retrying                       | The push fn returned 5xx. Check function logs in Supabase dashboard. The fn is designed to return 200 even on app-level errors so Pub/Sub doesn't retry-storm. |
+| `Invalid push verification token`            | URL `?token=` doesn't match `GMAIL_PUSH_VERIFY_TOKEN` Supabase secret.                                                                                         |
+| Bills appear but stay `received`             | `bills-extract` failed. Check its function logs and your `GROQ_API_KEY` secret.                                                                                |
 
 ---
 
 **Files this depends on:**
 
 - migrations: [0005_gmail_integrations.sql](supabase/migrations/) (applied to `dxoikltymmknxqpkpyhi`)
-- shared: [supabase/functions/_shared/gmail/auth.ts](supabase/functions/_shared/gmail/auth.ts)
+- shared: [supabase/functions/\_shared/gmail/auth.ts](supabase/functions/_shared/gmail/auth.ts)
 - functions: [gmail-oauth-start](supabase/functions/gmail-oauth-start/), [gmail-oauth-callback](supabase/functions/gmail-oauth-callback/), [gmail-pubsub-push](supabase/functions/gmail-pubsub-push/), [gmail-watch-renew](supabase/functions/gmail-watch-renew/)
 - UI: [src/components/settings/GmailConnect.tsx](src/components/settings/GmailConnect.tsx), [src/pages/GmailCallback.tsx](src/pages/GmailCallback.tsx)

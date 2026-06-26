@@ -59,7 +59,11 @@ function chartCoordinates(items: InsightDatum[], domainValues?: number[]) {
   const height = 168;
   const xPad = 14;
   const yPad = 20;
-  const values = domainValues?.length ? domainValues : items.length ? items.map((item) => item.value) : [0];
+  const values = domainValues?.length
+    ? domainValues
+    : items.length
+      ? items.map((item) => item.value)
+      : [0];
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || Math.max(Math.abs(max), 1);
@@ -125,7 +129,9 @@ export function InsightAreaChart({
   const primaryItems = items.filter((item) => Number.isFinite(item.value));
   const domainValues = [
     ...primaryItems.map((item) => item.value),
-    ...series.flatMap((lineSeries) => lineSeries.items.map((item) => item.value).filter(Number.isFinite)),
+    ...series.flatMap((lineSeries) =>
+      lineSeries.items.map((item) => item.value).filter(Number.isFinite),
+    ),
   ];
   const points = chartCoordinates(primaryItems, domainValues);
   const line = smoothPath(points);
@@ -139,7 +145,10 @@ export function InsightAreaChart({
   const secondarySeries = series
     .map((lineSeries) => ({
       ...lineSeries,
-      points: chartCoordinates(lineSeries.items.filter((item) => Number.isFinite(item.value)), domainValues),
+      points: chartCoordinates(
+        lineSeries.items.filter((item) => Number.isFinite(item.value)),
+        domainValues,
+      ),
       color: toneColor[lineSeries.tone ?? 'info'],
     }))
     .filter((lineSeries) => lineSeries.points.length > 1);
@@ -154,14 +163,15 @@ export function InsightAreaChart({
       <div className="insight-area-meta">
         <span>{title ?? 'Signal'}</span>
         <strong>
-          {last ? (
-            <AnimatedNumber value={last.value} formatter={formatValue} />
-          ) : (
-            formatValue(0)
-          )}
+          {last ? <AnimatedNumber value={last.value} formatter={formatValue} /> : formatValue(0)}
         </strong>
       </div>
-      <svg className="insight-area-svg" viewBox="0 0 420 168" preserveAspectRatio="none" aria-hidden="true">
+      <svg
+        className="insight-area-svg"
+        viewBox="0 0 420 168"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
         <defs>
           <linearGradient id={`${chartId}-line`} x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor={color} stopOpacity="0.34" />
@@ -193,23 +203,28 @@ export function InsightAreaChart({
           />
         ))}
         <path className="insight-area-glow" d={line} stroke={color} />
-        <path className="insight-area-line" d={line} stroke={`url(#${chartId}-line)`} pathLength={1} />
+        <path
+          className="insight-area-line"
+          d={line}
+          stroke={`url(#${chartId}-line)`}
+          pathLength={1}
+        />
         {last ? (
           <>
-            <circle 
-              className="insight-area-end-glow" 
-              cx={last.x} 
-              cy={last.y} 
-              r="13" 
-              fill={color} 
+            <circle
+              className="insight-area-end-glow"
+              cx={last.x}
+              cy={last.y}
+              r="13"
+              fill={color}
               style={{ '--end-x': last.x, '--end-y': last.y } as CSSProperties}
             />
-            <circle 
-              className="insight-area-end" 
-              cx={last.x} 
-              cy={last.y} 
-              r="4.5" 
-              fill={color} 
+            <circle
+              className="insight-area-end"
+              cx={last.x}
+              cy={last.y}
+              r="4.5"
+              fill={color}
               style={{ '--end-x': last.x, '--end-y': last.y } as CSSProperties}
             />
           </>
@@ -272,7 +287,11 @@ export function InsightDonutChart({
   return (
     <div className="insight-chart-grid">
       <div className="insight-donut-wrap">
-        <div className="insight-donut" role="img" aria-label={`${title ?? centerLabel ?? 'Insight'} donut chart`}>
+        <div
+          className="insight-donut"
+          role="img"
+          aria-label={`${title ?? centerLabel ?? 'Insight'} donut chart`}
+        >
           <svg className="insight-donut-svg" viewBox="0 0 200 200" aria-hidden="true">
             <defs>
               <filter id={`${chartId}-soft-shadow`} x="-20%" y="-20%" width="140%" height="140%">
@@ -297,9 +316,7 @@ export function InsightDonutChart({
           <div className="insight-donut-core">
             <span>{centerLabel ?? 'Total'}</span>
             <strong>
-              {centerValue ?? (
-                <AnimatedNumber value={total} formatter={formatValue} />
-              )}
+              {centerValue ?? <AnimatedNumber value={total} formatter={formatValue} />}
             </strong>
           </div>
         </div>
@@ -346,11 +363,13 @@ export function InsightBarList({
           <div
             key={item.label}
             className="insight-bar-row"
-            style={{ 
-              '--bar-color': toneColor[tone], 
-              '--bar-width': width,
-              '--bar-index': index
-            } as CSSProperties}
+            style={
+              {
+                '--bar-color': toneColor[tone],
+                '--bar-width': width,
+                '--bar-index': index,
+              } as CSSProperties
+            }
           >
             <div className="insight-bar-header">
               <span>
@@ -373,13 +392,7 @@ export function InsightBarList({
   );
 }
 
-export function TopDownMindMap({
-  root,
-  branches,
-}: {
-  root: string;
-  branches: MindMapBranch[];
-}) {
+export function TopDownMindMap({ root, branches }: { root: string; branches: MindMapBranch[] }) {
   return (
     <div className="mind-map" role="img" aria-label="Top-down explanation mind map">
       <div className="mind-map-root">
@@ -394,7 +407,9 @@ export function TopDownMindMap({
             <div
               key={branch.title}
               className="mind-map-node"
-              style={{ '--node-color': toneColor[tone], '--node-bg': subtleBg[tone] } as CSSProperties}
+              style={
+                { '--node-color': toneColor[tone], '--node-bg': subtleBg[tone] } as CSSProperties
+              }
             >
               <span className="mind-map-index">{String(index + 1).padStart(2, '0')}</span>
               <strong>{branch.title}</strong>

@@ -23,7 +23,11 @@ interface WageComponents {
   loaded_hourly_rate_cents?: number;
 }
 
-interface Job { id: string; job_number: string; name: string }
+interface Job {
+  id: string;
+  job_number: string;
+  name: string;
+}
 
 interface Timesheet {
   id: string;
@@ -57,11 +61,23 @@ export function EmployeesPage() {
     const sinceStr = since.toISOString().slice(0, 10);
 
     const [empRes, jobsRes, tsRes] = await Promise.all([
-      supabase.from('employees').select('*').eq('organization_id', currentOrg.id).is('deleted_at', null).order('full_name'),
-      supabase.from('jobs').select('id, job_number, name').eq('organization_id', currentOrg.id).is('deleted_at', null).order('job_number'),
-      supabase.from('timesheet_entries')
+      supabase
+        .from('employees')
+        .select('*')
+        .eq('organization_id', currentOrg.id)
+        .is('deleted_at', null)
+        .order('full_name'),
+      supabase
+        .from('jobs')
+        .select('id, job_number, name')
+        .eq('organization_id', currentOrg.id)
+        .is('deleted_at', null)
+        .order('job_number'),
+      supabase
+        .from('timesheet_entries')
         .select('*, employee:employees(full_name), job:jobs(job_number, name)')
-        .eq('organization_id', currentOrg.id).is('deleted_at', null)
+        .eq('organization_id', currentOrg.id)
+        .is('deleted_at', null)
         .gte('work_date', sinceStr)
         .order('work_date', { ascending: false }),
     ]);
@@ -89,14 +105,14 @@ export function EmployeesPage() {
   return (
     <section className="animated-fade-in">
       {/* Header section */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: '1.5rem',
           flexWrap: 'wrap',
-          gap: '1rem'
+          gap: '1rem',
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -104,18 +120,15 @@ export function EmployeesPage() {
           Employees
         </h1>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button 
-            onClick={() => setShowLogTime(true)} 
-            disabled={employees.length === 0} 
+          <button
+            onClick={() => setShowLogTime(true)}
+            disabled={employees.length === 0}
             className="btn btn-primary"
           >
             <Clock size={16} />
             <span>Log hours</span>
           </button>
-          <button 
-            onClick={() => setShowAddEmployee(true)} 
-            className="btn btn-secondary"
-          >
+          <button onClick={() => setShowAddEmployee(true)} className="btn btn-secondary">
             <Plus size={16} />
             <span>Add employee</span>
           </button>
@@ -123,24 +136,56 @@ export function EmployeesPage() {
       </div>
 
       {/* Wage cost / Hours KPIs */}
-      <div 
-        style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
           gap: '1rem',
-          marginBottom: '2rem'
+          marginBottom: '2rem',
         }}
       >
-        <Kpi label="Active employees" value={String(employees.filter((e) => e.is_active).length)} type="info" icon={Users} />
-        <Kpi label="Hours logged (30d)" value={hoursLast30.toFixed(1)} type="neutral" icon={Clock} />
-        <Kpi label="Loaded wage cost (30d)" value={formatMoney(totalLast30)} type="danger" icon={Wallet} sub="Loaded — incl. super/leave/workcover" />
+        <Kpi
+          label="Active employees"
+          value={String(employees.filter((e) => e.is_active).length)}
+          type="info"
+          icon={Users}
+        />
+        <Kpi
+          label="Hours logged (30d)"
+          value={hoursLast30.toFixed(1)}
+          type="neutral"
+          icon={Clock}
+        />
+        <Kpi
+          label="Loaded wage cost (30d)"
+          value={formatMoney(totalLast30)}
+          type="danger"
+          icon={Wallet}
+          sub="Loaded — incl. super/leave/workcover"
+        />
       </div>
 
       {showAddEmployee && (
-        <AddEmployeeForm onClose={() => setShowAddEmployee(false)} onAdded={() => { setShowAddEmployee(false); void refresh(); }} computeLoadedRate={computeLoadedRate} />
+        <AddEmployeeForm
+          onClose={() => setShowAddEmployee(false)}
+          onAdded={() => {
+            setShowAddEmployee(false);
+            void refresh();
+          }}
+          computeLoadedRate={computeLoadedRate}
+        />
       )}
       {showLogTime && (
-        <LogTimeForm employees={employees} jobs={jobs} computeLoadedRate={computeLoadedRate} onClose={() => setShowLogTime(false)} onLogged={() => { setShowLogTime(false); void refresh(); }} />
+        <LogTimeForm
+          employees={employees}
+          jobs={jobs}
+          computeLoadedRate={computeLoadedRate}
+          onClose={() => setShowLogTime(false)}
+          onLogged={() => {
+            setShowLogTime(false);
+            void refresh();
+          }}
+        />
       )}
 
       {/* Employees Directory List */}
@@ -148,16 +193,16 @@ export function EmployeesPage() {
       {loading ? (
         <SkeletonTable rows={4} cols={6} />
       ) : employees.length === 0 ? (
-        <div 
-          style={{ 
-            padding: '2.5rem', 
-            background: 'var(--bg-card)', 
-            border: '1px dashed var(--border-subtle)', 
-            borderRadius: 'var(--radius-md)', 
-            color: 'var(--text-muted)', 
+        <div
+          style={{
+            padding: '2.5rem',
+            background: 'var(--bg-card)',
+            border: '1px dashed var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--text-muted)',
             textAlign: 'center',
             fontSize: '0.9rem',
-            marginBottom: '2rem'
+            marginBottom: '2rem',
           }}
         >
           No employees added yet. Add staff to start tracking timesheets and job costs.
@@ -191,7 +236,13 @@ export function EmployeesPage() {
                     <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>
                       {w.base_hourly_rate != null ? `$${w.base_hourly_rate.toFixed(2)}/hr` : '—'}
                     </td>
-                    <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'ui-monospace, monospace' }}>
+                    <td
+                      style={{
+                        textAlign: 'right',
+                        fontWeight: 600,
+                        fontFamily: 'ui-monospace, monospace',
+                      }}
+                    >
                       {loaded > 0 ? `${formatMoney(loaded)}/hr` : '—'}
                     </td>
                     <td>
@@ -208,18 +259,20 @@ export function EmployeesPage() {
       )}
 
       {/* Recent Timesheets List */}
-      <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Recent timesheets (last 30 days)</h2>
+      <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>
+        Recent timesheets (last 30 days)
+      </h2>
       {timesheets.length === 0 ? (
-        <div 
-          style={{ 
-            padding: '2.5rem', 
-            background: 'var(--bg-card)', 
-            border: '1px dashed var(--border-subtle)', 
-            borderRadius: 'var(--radius-md)', 
-            color: 'var(--text-muted)', 
+        <div
+          style={{
+            padding: '2.5rem',
+            background: 'var(--bg-card)',
+            border: '1px dashed var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--text-muted)',
             textAlign: 'center',
             fontSize: '0.9rem',
-            marginBottom: '2rem'
+            marginBottom: '2rem',
           }}
         >
           No timesheet entries recorded in the last 30 days.
@@ -241,19 +294,35 @@ export function EmployeesPage() {
               {timesheets.map((t) => (
                 <tr key={t.id}>
                   <td style={{ whiteSpace: 'nowrap' }}>{t.work_date}</td>
-                  <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{t.employee?.full_name ?? '—'}</td>
+                  <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>
+                    {t.employee?.full_name ?? '—'}
+                  </td>
                   <td>
                     {t.job ? (
                       <Link to={`/jobs/${t.job_id}`} style={{ fontWeight: 600 }}>
-                        <code>{t.job.job_number}</code> · <span style={{ color: 'var(--text-muted)' }}>{t.job.name}</span>
+                        <code>{t.job.job_number}</code> ·{' '}
+                        <span style={{ color: 'var(--text-muted)' }}>{t.job.name}</span>
                       </Link>
                     ) : (
-                      <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>(unassigned)</span>
+                      <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        (unassigned)
+                      </span>
                     )}
                   </td>
-                  <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>{Number(t.hours).toFixed(2)}</td>
-                  <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>{formatMoney(t.loaded_hourly_rate_cents)}/hr</td>
-                  <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--accent-primary)', fontFamily: 'ui-monospace, monospace' }}>
+                  <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>
+                    {Number(t.hours).toFixed(2)}
+                  </td>
+                  <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>
+                    {formatMoney(t.loaded_hourly_rate_cents)}/hr
+                  </td>
+                  <td
+                    style={{
+                      textAlign: 'right',
+                      fontWeight: 600,
+                      color: 'var(--accent-primary)',
+                      fontFamily: 'ui-monospace, monospace',
+                    }}
+                  >
                     {formatMoney(t.total_cost_cents)}
                   </td>
                 </tr>
@@ -264,30 +333,32 @@ export function EmployeesPage() {
       )}
 
       {/* Info Footnote block */}
-      <div 
-        style={{ 
-          padding: '1rem 1.25rem', 
-          background: 'var(--bg-card)', 
-          border: '1px dashed var(--border-subtle)', 
-          borderRadius: 'var(--radius-md)', 
-          fontSize: '0.75rem', 
-          color: 'var(--text-muted)' 
+      <div
+        style={{
+          padding: '1rem 1.25rem',
+          background: 'var(--bg-card)',
+          border: '1px dashed var(--border-subtle)',
+          borderRadius: 'var(--radius-md)',
+          fontSize: '0.75rem',
+          color: 'var(--text-muted)',
         }}
       >
-        💡 <strong>Future payroll roadmap:</strong> Gross to net superannuation calculations, Single Touch Payroll (STP) export options, leaves records, and staff self-service timesheet logging.
+        💡 <strong>Future payroll roadmap:</strong> Gross to net superannuation calculations, Single
+        Touch Payroll (STP) export options, leaves records, and staff self-service timesheet
+        logging.
       </div>
     </section>
   );
 }
 
-function AddEmployeeForm({ 
-  onClose, 
-  onAdded, 
-  computeLoadedRate 
-}: { 
-  onClose: () => void; 
-  onAdded: () => void; 
-  computeLoadedRate: (w: WageComponents) => number 
+function AddEmployeeForm({
+  onClose,
+  onAdded,
+  computeLoadedRate,
+}: {
+  onClose: () => void;
+  onAdded: () => void;
+  computeLoadedRate: (w: WageComponents) => number;
 }) {
   const { currentOrg } = useOrg();
   const [fullName, setFullName] = useState('');
@@ -320,13 +391,26 @@ function AddEmployeeForm({
       wage_components: { ...wageComponents, loaded_hourly_rate_cents: loadedRate },
     });
     setBusy(false);
-    if (error) { setErr(error.message); return; }
+    if (error) {
+      setErr(error.message);
+      return;
+    }
     onAdded();
   };
 
   return (
-    <div className="card" style={{ marginBottom: '1.5rem', maxWidth: '720px', animation: 'fadeIn 0.25s ease' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+    <div
+      className="card"
+      style={{ marginBottom: '1.5rem', maxWidth: '720px', animation: 'fadeIn 0.25s ease' }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '1.25rem',
+        }}
+      >
         <h3 style={{ margin: 0, fontSize: '1.15rem' }}>Add Employee</h3>
         <button onClick={onClose} className="btn btn-ghost" style={{ padding: '0.2rem 0.4rem' }}>
           <X size={16} />
@@ -334,78 +418,155 @@ function AddEmployeeForm({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1rem',
+          }}
+        >
           <Field label="Full name *">
-            <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="John Doe" className="form-input" />
+            <input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="John Doe"
+              className="form-input"
+            />
           </Field>
           <Field label="Role">
-            <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Tradie / Apprentice / Foreman" className="form-input" />
+            <input
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              placeholder="Tradie / Apprentice / Foreman"
+              className="form-input"
+            />
           </Field>
         </div>
-        
+
         <Field label="Email address">
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="john@company.com" className="form-input" />
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="john@company.com"
+            className="form-input"
+          />
         </Field>
 
-        <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem', marginTop: '0.5rem' }}>
-          <span 
-            style={{ 
-              fontSize: '0.725rem', 
-              color: 'var(--text-muted)', 
-              textTransform: 'uppercase', 
-              letterSpacing: '0.05em', 
+        <div
+          style={{
+            borderTop: '1px solid var(--border-subtle)',
+            paddingTop: '1rem',
+            marginTop: '0.5rem',
+          }}
+        >
+          <span
+            style={{
+              fontSize: '0.725rem',
+              color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
               fontWeight: 700,
               display: 'flex',
               alignItems: 'center',
-              gap: '0.25rem'
+              gap: '0.25rem',
             }}
           >
             <Calculator size={12} />
             Wage settings & loaded multipliers
           </span>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.75rem', marginTop: '0.75rem' }}>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+              gap: '0.75rem',
+              marginTop: '0.75rem',
+            }}
+          >
             <Field label="Base Rate ($/hr)">
-              <input type="number" step="0.01" value={baseRate} onChange={(e) => setBaseRate(parseFloat(e.target.value) || 0)} className="form-input" style={{ textAlign: 'right' }} />
+              <input
+                type="number"
+                step="0.01"
+                value={baseRate}
+                onChange={(e) => setBaseRate(parseFloat(e.target.value) || 0)}
+                className="form-input"
+                style={{ textAlign: 'right' }}
+              />
             </Field>
             <Field label="Super (%)">
-              <input type="number" step="0.1" value={superPct} onChange={(e) => setSuperPct(parseFloat(e.target.value) || 0)} className="form-input" style={{ textAlign: 'right' }} />
+              <input
+                type="number"
+                step="0.1"
+                value={superPct}
+                onChange={(e) => setSuperPct(parseFloat(e.target.value) || 0)}
+                className="form-input"
+                style={{ textAlign: 'right' }}
+              />
             </Field>
             <Field label="Workcover (%)">
-              <input type="number" step="0.1" value={workcoverPct} onChange={(e) => setWorkcoverPct(parseFloat(e.target.value) || 0)} className="form-input" style={{ textAlign: 'right' }} />
+              <input
+                type="number"
+                step="0.1"
+                value={workcoverPct}
+                onChange={(e) => setWorkcoverPct(parseFloat(e.target.value) || 0)}
+                className="form-input"
+                style={{ textAlign: 'right' }}
+              />
             </Field>
             <Field label="Leave Loading (%)">
-              <input type="number" step="0.1" value={leavePct} onChange={(e) => setLeavePct(parseFloat(e.target.value) || 0)} className="form-input" style={{ textAlign: 'right' }} />
+              <input
+                type="number"
+                step="0.1"
+                value={leavePct}
+                onChange={(e) => setLeavePct(parseFloat(e.target.value) || 0)}
+                className="form-input"
+                style={{ textAlign: 'right' }}
+              />
             </Field>
           </div>
         </div>
 
-        <div 
-          style={{ 
-            background: 'var(--bg-success-subtle)', 
-            padding: '0.75rem 1rem', 
-            borderRadius: 'var(--radius-sm)', 
+        <div
+          style={{
+            background: 'var(--bg-success-subtle)',
+            padding: '0.75rem 1rem',
+            borderRadius: 'var(--radius-sm)',
             border: '1px solid rgba(16, 185, 129, 0.2)',
             fontSize: '0.85rem',
             color: 'var(--text-success)',
             marginTop: '0.5rem',
-            fontWeight: 500
+            fontWeight: 500,
           }}
         >
-          Loaded rate estimate: <strong>{formatMoney(loadedRate)}/hr</strong> (calculated loaded labor cost).
+          Loaded rate estimate: <strong>{formatMoney(loadedRate)}/hr</strong> (calculated loaded
+          labor cost).
         </div>
 
         {err && (
-          <div className="badge badge-danger" style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}>
+          <div
+            className="badge badge-danger"
+            style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}
+          >
             {err}
           </div>
         )}
 
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-          <button onClick={submit} disabled={busy || !fullName.trim()} className="btn btn-primary" style={{ padding: '0.625rem 1.25rem' }}>
+          <button
+            onClick={submit}
+            disabled={busy || !fullName.trim()}
+            className="btn btn-primary"
+            style={{ padding: '0.625rem 1.25rem' }}
+          >
             {busy ? 'Saving employee…' : 'Add employee'}
           </button>
-          <button onClick={onClose} disabled={busy} className="btn btn-secondary" style={{ padding: '0.625rem 1.25rem' }}>
+          <button
+            onClick={onClose}
+            disabled={busy}
+            className="btn btn-secondary"
+            style={{ padding: '0.625rem 1.25rem' }}
+          >
             Cancel
           </button>
         </div>
@@ -414,18 +575,18 @@ function AddEmployeeForm({
   );
 }
 
-function LogTimeForm({ 
-  employees, 
-  jobs, 
-  computeLoadedRate, 
-  onClose, 
-  onLogged 
-}: { 
-  employees: Employee[]; 
-  jobs: Job[]; 
-  computeLoadedRate: (w: WageComponents) => number; 
-  onClose: () => void; 
-  onLogged: () => void 
+function LogTimeForm({
+  employees,
+  jobs,
+  computeLoadedRate,
+  onClose,
+  onLogged,
+}: {
+  employees: Employee[];
+  jobs: Job[];
+  computeLoadedRate: (w: WageComponents) => number;
+  onClose: () => void;
+  onLogged: () => void;
 }) {
   const { currentOrg } = useOrg();
   const [employeeId, setEmployeeId] = useState(employees[0]?.id ?? '');
@@ -433,12 +594,16 @@ function LogTimeForm({
   const [workDate, setWorkDate] = useState(new Date().toISOString().slice(0, 10));
   const [hours, setHours] = useState(8);
   const [notes, setNotes] = useState('');
-  const [entryType, setEntryType] = useState<'ordinary' | 'overtime' | 'annual_leave' | 'sick_leave' | 'public_holiday'>('ordinary');
+  const [entryType, setEntryType] = useState<
+    'ordinary' | 'overtime' | 'annual_leave' | 'sick_leave' | 'public_holiday'
+  >('ordinary');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const employee = employees.find((e) => e.id === employeeId);
-  const loadedRate = employee?.wage_components?.loaded_hourly_rate_cents ?? (employee?.wage_components ? computeLoadedRate(employee.wage_components) : 0);
+  const loadedRate =
+    employee?.wage_components?.loaded_hourly_rate_cents ??
+    (employee?.wage_components ? computeLoadedRate(employee.wage_components) : 0);
   const totalCost = Math.round(hours * loadedRate);
 
   const submit = async () => {
@@ -456,13 +621,26 @@ function LogTimeForm({
       entry_type: entryType,
     });
     setBusy(false);
-    if (error) { setErr(error.message); return; }
+    if (error) {
+      setErr(error.message);
+      return;
+    }
     onLogged();
   };
 
   return (
-    <div className="card" style={{ marginBottom: '1.5rem', maxWidth: '720px', animation: 'fadeIn 0.25s ease' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+    <div
+      className="card"
+      style={{ marginBottom: '1.5rem', maxWidth: '720px', animation: 'fadeIn 0.25s ease' }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '1.25rem',
+        }}
+      >
         <h3 style={{ margin: 0, fontSize: '1.15rem' }}>Log Hours Work</h3>
         <button onClick={onClose} className="btn btn-ghost" style={{ padding: '0.2rem 0.4rem' }}>
           <X size={16} />
@@ -470,31 +648,75 @@ function LogTimeForm({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1rem',
+          }}
+        >
           <Field label="Employee *">
-            <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="form-select">
-              {employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+            <select
+              value={employeeId}
+              onChange={(e) => setEmployeeId(e.target.value)}
+              className="form-select"
+            >
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.full_name}
+                </option>
+              ))}
             </select>
           </Field>
           <Field label="Work Date">
-            <input type="date" value={workDate} onChange={(e) => setWorkDate(e.target.value)} className="form-input" />
+            <input
+              type="date"
+              value={workDate}
+              onChange={(e) => setWorkDate(e.target.value)}
+              className="form-input"
+            />
           </Field>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1rem',
+          }}
+        >
           <Field label="Job Assignment (optional)">
-            <select value={jobId} onChange={(e) => setJobId(e.target.value)} className="form-select">
+            <select
+              value={jobId}
+              onChange={(e) => setJobId(e.target.value)}
+              className="form-select"
+            >
               <option value="">— unassigned —</option>
-              {jobs.map((j) => <option key={j.id} value={j.id}>{j.job_number} · {j.name}</option>)}
+              {jobs.map((j) => (
+                <option key={j.id} value={j.id}>
+                  {j.job_number} · {j.name}
+                </option>
+              ))}
             </select>
           </Field>
           <Field label="Hours Worked">
-            <input type="number" step="0.25" value={hours} onChange={(e) => setHours(parseFloat(e.target.value) || 0)} className="form-input" style={{ textAlign: 'right' }} />
+            <input
+              type="number"
+              step="0.25"
+              value={hours}
+              onChange={(e) => setHours(parseFloat(e.target.value) || 0)}
+              className="form-input"
+              style={{ textAlign: 'right' }}
+            />
           </Field>
         </div>
 
         <Field label="Hourly multiplier type">
-          <select value={entryType} onChange={(e) => setEntryType(e.target.value as typeof entryType)} className="form-select">
+          <select
+            value={entryType}
+            onChange={(e) => setEntryType(e.target.value as typeof entryType)}
+            className="form-select"
+          >
             <option value="ordinary">Ordinary hours</option>
             <option value="overtime">Overtime hours</option>
             <option value="annual_leave">Annual leave</option>
@@ -504,35 +726,54 @@ function LogTimeForm({
         </Field>
 
         <Field label="Work Description / Notes">
-          <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Description of task worked on…" className="form-input" />
+          <input
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Description of task worked on…"
+            className="form-input"
+          />
         </Field>
 
-        <div 
-          style={{ 
-            background: 'var(--bg-success-subtle)', 
-            padding: '0.75rem 1rem', 
-            borderRadius: 'var(--radius-sm)', 
+        <div
+          style={{
+            background: 'var(--bg-success-subtle)',
+            padding: '0.75rem 1rem',
+            borderRadius: 'var(--radius-sm)',
             border: '1px solid rgba(16, 185, 129, 0.2)',
             fontSize: '0.85rem',
             color: 'var(--text-success)',
             marginTop: '0.5rem',
-            fontWeight: 500
+            fontWeight: 500,
           }}
         >
-          Loaded labor cost: <strong>{formatMoney(totalCost)}</strong> ({hours}h × {formatMoney(loadedRate)}/hr loaded rate)
+          Loaded labor cost: <strong>{formatMoney(totalCost)}</strong> ({hours}h ×{' '}
+          {formatMoney(loadedRate)}/hr loaded rate)
         </div>
 
         {err && (
-          <div className="badge badge-danger" style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}>
+          <div
+            className="badge badge-danger"
+            style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}
+          >
             {err}
           </div>
         )}
 
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-          <button onClick={submit} disabled={busy || !employeeId || hours <= 0} className="btn btn-primary" style={{ padding: '0.625rem 1.25rem' }}>
+          <button
+            onClick={submit}
+            disabled={busy || !employeeId || hours <= 0}
+            className="btn btn-primary"
+            style={{ padding: '0.625rem 1.25rem' }}
+          >
             {busy ? 'Logging entry…' : 'Log entry'}
           </button>
-          <button onClick={onClose} disabled={busy} className="btn btn-secondary" style={{ padding: '0.625rem 1.25rem' }}>
+          <button
+            onClick={onClose}
+            disabled={busy}
+            className="btn btn-secondary"
+            style={{ padding: '0.625rem 1.25rem' }}
+          >
             Cancel
           </button>
         </div>
@@ -544,46 +785,74 @@ function LogTimeForm({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="form-group" style={{ marginBottom: 0 }}>
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>{label}</span>
+      <span className="form-label" style={{ fontSize: '0.725rem' }}>
+        {label}
+      </span>
       <div style={{ marginTop: '0.25rem' }}>{children}</div>
     </div>
   );
 }
 
-function Kpi({ 
-  label, 
-  value, 
+function Kpi({
+  label,
+  value,
   type,
   icon: Icon,
-  sub 
-}: { 
-  label: string; 
-  value: string; 
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral'; 
+  sub,
+}: {
+  label: string;
+  value: string;
+  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
   icon: LucideIcon;
   sub?: string;
 }) {
   return (
-    <div 
+    <div
       className="card"
-      style={{ 
+      style={{
         padding: '1.25rem',
         borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative'
+        position: 'relative',
       }}
     >
-      <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+      <div
+        style={{
+          fontSize: '0.675rem',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          fontWeight: 700,
+        }}
+      >
         {label}
       </div>
-      <div style={{ marginTop: '0.35rem', fontSize: '1.5rem', color: 'var(--text-title)', fontWeight: 800, fontFamily: 'var(--font-title)' }}>
+      <div
+        style={{
+          marginTop: '0.35rem',
+          fontSize: '1.5rem',
+          color: 'var(--text-title)',
+          fontWeight: 800,
+          fontFamily: 'var(--font-title)',
+        }}
+      >
         {value}
       </div>
       {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>{sub}</div>
+        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+          {sub}
+        </div>
       ) : (
         <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
       )}
-      <div style={{ position: 'absolute', right: '1rem', bottom: '1rem', color: `var(--accent-${type === 'neutral' ? 'primary' : type})`, opacity: 0.7 }}>
+      <div
+        style={{
+          position: 'absolute',
+          right: '1rem',
+          bottom: '1rem',
+          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
+          opacity: 0.7,
+        }}
+      >
         <Icon size={18} />
       </div>
     </div>

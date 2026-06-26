@@ -8,12 +8,12 @@ this table to ensure quarter-bucketing logic stays consistent with ATO rules.
 
 The Australian financial year runs from **1 July** to **30 June**.
 
-| BAS Quarter | Label | Calendar months       | FY example (2024-25)           |
-|-------------|-------|-----------------------|--------------------------------|
-| Q1          | Jul–Sep | July, August, September | 1 Jul 2024 – 30 Sep 2024  |
+| BAS Quarter | Label   | Calendar months             | FY example (2024-25)     |
+| ----------- | ------- | --------------------------- | ------------------------ |
+| Q1          | Jul–Sep | July, August, September     | 1 Jul 2024 – 30 Sep 2024 |
 | Q2          | Oct–Dec | October, November, December | 1 Oct 2024 – 31 Dec 2024 |
-| Q3          | Jan–Mar | January, February, March | 1 Jan 2025 – 31 Mar 2025  |
-| Q4          | Apr–Jun | April, May, June     | 1 Apr 2025 – 30 Jun 2025       |
+| Q3          | Jan–Mar | January, February, March    | 1 Jan 2025 – 31 Mar 2025 |
+| Q4          | Apr–Jun | April, May, June            | 1 Apr 2025 – 30 Jun 2025 |
 
 ## SQL Quarter Expression
 
@@ -58,13 +58,13 @@ END AS fy_year
 
 ## Edge Cases for Future Tests
 
-| Scenario | Expected behaviour |
-|---|---|
-| Exactly midnight 1 Jul (UTC+10 AEST) | Quarter 1 — store timestamps in UTC, convert in AU tz before bucketing |
-| 30 Jun 23:59:59 UTC+10 | Quarter 4 (same FY) |
-| UTC timestamp for a Jun date that is Jul in AEST | Must convert `AT TIME ZONE 'Australia/Brisbane'` before bucketing |
-| Leap year 29 Feb | Quarter 3 (Jan-Mar) |
-| NULL invoice_date | CASE returns NULL — aggregate separately as "unclassified" |
+| Scenario                                         | Expected behaviour                                                     |
+| ------------------------------------------------ | ---------------------------------------------------------------------- |
+| Exactly midnight 1 Jul (UTC+10 AEST)             | Quarter 1 — store timestamps in UTC, convert in AU tz before bucketing |
+| 30 Jun 23:59:59 UTC+10                           | Quarter 4 (same FY)                                                    |
+| UTC timestamp for a Jun date that is Jul in AEST | Must convert `AT TIME ZONE 'Australia/Brisbane'` before bucketing      |
+| Leap year 29 Feb                                 | Quarter 3 (Jan-Mar)                                                    |
+| NULL invoice_date                                | CASE returns NULL — aggregate separately as "unclassified"             |
 
 ## Timezone Note
 

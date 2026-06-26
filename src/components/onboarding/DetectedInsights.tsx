@@ -8,17 +8,17 @@ import {
   type BusinessSignal,
 } from '@/hooks/useBusinessSignals';
 
-const SIGNAL_META: Record<SignalKind, { icon: string; title: string; }> = {
-  regulatory_presence:    { icon: '🏛️', title: 'Regulatory presence' },
-  active_jobs:            { icon: '🏗️', title: 'Active job sites' },
-  bank_accounts:          { icon: '🏦', title: 'Bank accounts' },
-  insurance:              { icon: '🛡️', title: 'Insurance policies' },
-  business_saas:          { icon: '💻', title: 'Business subscriptions' },
-  vehicle_fleet:          { icon: '🚙', title: 'Vehicle / fleet' },
+const SIGNAL_META: Record<SignalKind, { icon: string; title: string }> = {
+  regulatory_presence: { icon: '🏛️', title: 'Regulatory presence' },
+  active_jobs: { icon: '🏗️', title: 'Active job sites' },
+  bank_accounts: { icon: '🏦', title: 'Bank accounts' },
+  insurance: { icon: '🛡️', title: 'Insurance policies' },
+  business_saas: { icon: '💻', title: 'Business subscriptions' },
+  vehicle_fleet: { icon: '🚙', title: 'Vehicle / fleet' },
   regular_subcontractors: { icon: '👷', title: 'Regular subcontractors' },
-  recurring_utilities:    { icon: '⚡', title: 'Utilities' },
-  investment_property:    { icon: '🏠', title: 'Investment property' },
-  customer_base:          { icon: '👥', title: 'Customer base' },
+  recurring_utilities: { icon: '⚡', title: 'Utilities' },
+  investment_property: { icon: '🏠', title: 'Investment property' },
+  customer_base: { icon: '👥', title: 'Customer base' },
 };
 
 /**
@@ -38,7 +38,8 @@ export function DetectedInsights() {
   if (signals.length === 0) {
     return (
       <p style={{ color: '#888', fontSize: 13 }}>
-        Run Auto Setup mining first — once entities are staged we'll surface detected business-profile signals here.
+        Run Auto Setup mining first — once entities are staged we'll surface detected
+        business-profile signals here.
       </p>
     );
   }
@@ -77,8 +78,8 @@ export function DetectedInsights() {
     <div style={{ marginTop: 24 }}>
       <h2 style={{ fontSize: 16, marginBottom: 4 }}>Detected from your inbox</h2>
       <p style={{ color: '#888', fontSize: 12, marginBottom: 16, maxWidth: 720 }}>
-        We've read patterns in your last 6 months of email — these are educated guesses about your business.
-        Confirm to auto-set-up, or skip and we'll just leave it for you to do manually.
+        We've read patterns in your last 6 months of email — these are educated guesses about your
+        business. Confirm to auto-set-up, or skip and we'll just leave it for you to do manually.
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {signals.map((s) => {
@@ -95,7 +96,14 @@ export function DetectedInsights() {
                 opacity: decision ? 0.6 : 1,
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  gap: 12,
+                }}
+              >
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>
                     <span style={{ marginRight: 8 }}>{meta?.icon}</span>
@@ -116,9 +124,7 @@ export function DetectedInsights() {
                   <div style={{ color: '#aaa', fontSize: 12, marginTop: 4, lineHeight: 1.4 }}>
                     {s.evidence}
                   </div>
-                  <div style={{ color: '#fff', fontSize: 13, marginTop: 8 }}>
-                    {s.question}
-                  </div>
+                  <div style={{ color: '#fff', fontSize: 13, marginTop: 8 }}>{s.question}</div>
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {decision === 'confirmed' ? (

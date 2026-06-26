@@ -7,7 +7,11 @@ interface JobPickerProps {
   busy?: boolean;
 }
 
-export function JobPicker({ onPick, placeholder = 'Search jobs by number or name…', busy }: JobPickerProps) {
+export function JobPicker({
+  onPick,
+  placeholder = 'Search jobs by number or name…',
+  busy,
+}: JobPickerProps) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const { results, loading } = useJobSearch(query);
@@ -60,9 +64,7 @@ export function JobPicker({ onPick, placeholder = 'Search jobs by number or name
           }}
         >
           {loading && (
-            <div style={{ padding: '0.5rem 0.75rem', color: '#888', fontSize: 13 }}>
-              Searching…
-            </div>
+            <div style={{ padding: '0.5rem 0.75rem', color: '#888', fontSize: 13 }}>Searching…</div>
           )}
           {results.map((job) => (
             <button

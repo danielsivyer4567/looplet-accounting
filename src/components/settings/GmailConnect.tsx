@@ -17,7 +17,9 @@ export function GmailConnect() {
     setError(null);
     setConnecting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in');
 
       const redirect_uri = `${window.location.origin}/settings/gmail-callback`;
@@ -47,11 +49,18 @@ export function GmailConnect() {
   };
 
   const handleBackfill = async (id: string, gmail: string) => {
-    if (!confirm(`Scan last 6 months of ${gmail} for invoices? Each PDF/image attachment becomes a bill and runs OCR.`)) return;
+    if (
+      !confirm(
+        `Scan last 6 months of ${gmail} for invoices? Each PDF/image attachment becomes a bill and runs OCR.`,
+      )
+    )
+      return;
     setBackfilling(id);
     setBackfillStatus('Starting…');
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in');
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gmail-backfill`;
 
@@ -69,7 +78,13 @@ export function GmailConnect() {
       }
 
       let pageToken: string | null | undefined = undefined;
-      const totals = { fetched: 0, bills_created: 0, duplicates_skipped: 0, rejected: 0, errors: 0 };
+      const totals = {
+        fetched: 0,
+        bills_created: 0,
+        duplicates_skipped: 0,
+        rejected: 0,
+        errors: 0,
+      };
       let pages = 0;
 
       do {
@@ -110,9 +125,8 @@ export function GmailConnect() {
     <div style={{ marginTop: '2rem' }}>
       <h2 style={{ fontSize: 18, marginBottom: '0.5rem' }}>Gmail intake</h2>
       <p style={{ color: '#888', fontSize: 13, marginBottom: '1rem' }}>
-        Connect a mailbox so supplier invoices arrive automatically. We watch the INBOX
-        label only and pull PDF / image attachments. You can list specific senders
-        below to filter further.
+        Connect a mailbox so supplier invoices arrive automatically. We watch the INBOX label only
+        and pull PDF / image attachments. You can list specific senders below to filter further.
       </p>
 
       {loading ? (
@@ -211,9 +225,7 @@ export function GmailConnect() {
         </table>
       )}
 
-      {error && (
-        <p style={{ color: 'salmon', fontSize: 12, marginTop: '0.5rem' }}>{error}</p>
-      )}
+      {error && <p style={{ color: 'salmon', fontSize: 12, marginTop: '0.5rem' }}>{error}</p>}
       {backfillStatus && (
         <p style={{ color: '#86c7a3', fontSize: 12, marginTop: '0.5rem' }}>{backfillStatus}</p>
       )}

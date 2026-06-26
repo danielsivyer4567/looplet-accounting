@@ -26,11 +26,11 @@ export function AnimatedNumber({
     const step = (timestamp: number) => {
       if (!startTimestamp) startTimestamp = timestamp;
       const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      
+
       // Easing: easeOutQuad
       const easeProgress = progress * (2 - progress);
       const current = startValue + easeProgress * (endValue - startValue);
-      
+
       setDisplayValue(current);
 
       if (progress < 1) {

@@ -25,7 +25,7 @@ if (typeof window !== 'undefined') {
       matches: false,
       media: query,
       onchange: null,
-      addListener: vi.fn(),   // deprecated but some libs use it
+      addListener: vi.fn(), // deprecated but some libs use it
       removeListener: vi.fn(),
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),

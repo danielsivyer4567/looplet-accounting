@@ -115,7 +115,9 @@ function longestPathDepths(ids: string[], edges: ExplainerEdge[]): Map<string, n
 }
 
 function layoutExplainer(spec: DiagramSpec): Layout {
-  const nodes = (spec.nodes ?? []).filter((n) => n && typeof n.title === 'string' && n.title.trim()).slice(0, 6);
+  const nodes = (spec.nodes ?? [])
+    .filter((n) => n && typeof n.title === 'string' && n.title.trim())
+    .slice(0, 6);
   const ids = nodes.map((n) => n.id);
   const idSet = new Set(ids);
   const order = new Map(ids.map((id, i) => [id, i]));
@@ -147,9 +149,15 @@ function layoutExplainer(spec: DiagramSpec): Layout {
 
   const place = (n: ExplainerNode, x: number, y: number) => {
     const node: PNode = {
-      id: n.id, x, y, w: NODE_W, h: NODE_H,
+      id: n.id,
+      x,
+      y,
+      w: NODE_W,
+      h: NODE_H,
       num: n.num ?? String((order.get(n.id) ?? 0) + 1).padStart(2, '0'),
-      title: n.title, tag: n.tag, revealAt: order.get(n.id) ?? 0,
+      title: n.title,
+      tag: n.tag,
+      revealAt: order.get(n.id) ?? 0,
     };
     pos.set(n.id, node);
   };
@@ -194,7 +202,10 @@ function layoutExplainer(spec: DiagramSpec): Layout {
     });
   });
 
-  const narr: Narr[] = nodes.map((n) => ({ title: n.title, text: n.caption ?? n.tag ?? NARR_FALLBACK }));
+  const narr: Narr[] = nodes.map((n) => ({
+    title: n.title,
+    text: n.caption ?? n.tag ?? NARR_FALLBACK,
+  }));
   return { w, h, nodes: [...pos.values()], edges: pedges, narr };
 }
 
@@ -220,7 +231,9 @@ function Node({ n, shown, active }: { n: PNode; shown: boolean; active: boolean 
             fill: active
               ? 'color-mix(in srgb, var(--accent-primary) 18%, var(--bg-card))'
               : 'color-mix(in srgb, var(--bg-card), var(--text-title) 7%)',
-            stroke: active ? 'var(--accent-primary)' : 'color-mix(in srgb, var(--text-muted) 45%, transparent)',
+            stroke: active
+              ? 'var(--accent-primary)'
+              : 'color-mix(in srgb, var(--text-muted) 45%, transparent)',
             strokeWidth: active ? 2 : 1.25,
             transition: 'fill 0.6s ease, stroke 0.6s ease, filter 0.6s ease',
             filter: active
@@ -228,14 +241,31 @@ function Node({ n, shown, active }: { n: PNode; shown: boolean; active: boolean 
               : 'drop-shadow(0 5px 12px rgba(0, 0, 0, 0.3))',
           }}
         />
-        <text x={16} y={23} style={{ fill: 'var(--accent-primary)', fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px' }}>
+        <text
+          x={16}
+          y={23}
+          style={{
+            fill: 'var(--accent-primary)',
+            fontSize: '10px',
+            fontWeight: 700,
+            letterSpacing: '1.5px',
+          }}
+        >
           {n.num}
         </text>
-        <text x={16} y={43} style={{ fill: 'var(--text-title)', fontSize: '14.5px', fontWeight: 600 }}>
+        <text
+          x={16}
+          y={43}
+          style={{ fill: 'var(--text-title)', fontSize: '14.5px', fontWeight: 600 }}
+        >
           {clip(cap1(n.title), 24)}
         </text>
         {n.tag && (
-          <text x={16} y={57} style={{ fill: 'var(--text-muted)', fontSize: '10.5px', letterSpacing: '0.3px' }}>
+          <text
+            x={16}
+            y={57}
+            style={{ fill: 'var(--text-muted)', fontSize: '10.5px', letterSpacing: '0.3px' }}
+          >
             {clip(n.tag, 30)}
           </text>
         )}
@@ -246,7 +276,15 @@ function Node({ n, shown, active }: { n: PNode; shown: boolean; active: boolean 
 
 // --- main stepper ------------------------------------------------------------
 
-function Diagram({ layout, title, intro }: { layout: Layout; title?: string | undefined; intro?: string | undefined }) {
+function Diagram({
+  layout,
+  title,
+  intro,
+}: {
+  layout: Layout;
+  title?: string | undefined;
+  intro?: string | undefined;
+}) {
   const mk = useId().replace(/:/g, '');
   const total = layout.narr.length;
   const [step, setStep] = useState(0);
@@ -270,8 +308,23 @@ function Diagram({ layout, title, intro }: { layout: Layout; title?: string | un
     <div>
       {(title || intro) && (
         <div style={{ marginBottom: '1rem' }}>
-          {title && <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-title)' }}>{cap1(title)}</div>}
-          {intro && <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.15rem', lineHeight: 1.4 }}>{intro}</div>}
+          {title && (
+            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-title)' }}>
+              {cap1(title)}
+            </div>
+          )}
+          {intro && (
+            <div
+              style={{
+                fontSize: '0.78rem',
+                color: 'var(--text-muted)',
+                marginTop: '0.15rem',
+                lineHeight: 1.4,
+              }}
+            >
+              {intro}
+            </div>
+          )}
         </div>
       )}
 
@@ -279,12 +332,25 @@ function Diagram({ layout, title, intro }: { layout: Layout; title?: string | un
         viewBox={`0 0 ${layout.w} ${layout.h}`}
         width="100%"
         preserveAspectRatio="xMidYMid meet"
-        style={{ height: 'auto', maxWidth: layout.w, display: 'block', margin: '0 auto', overflow: 'visible' }}
+        style={{
+          height: 'auto',
+          maxWidth: layout.w,
+          display: 'block',
+          margin: '0 auto',
+          overflow: 'visible',
+        }}
         role="img"
         aria-label="Step-by-step explainer"
       >
         <defs>
-          <marker id={`${mk}-arrow`} markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+          <marker
+            id={`${mk}-arrow`}
+            markerWidth="8"
+            markerHeight="8"
+            refX="4"
+            refY="4"
+            orient="auto"
+          >
             <circle cx="4" cy="4" r="2.4" fill="var(--accent-primary)" />
           </marker>
         </defs>
@@ -308,8 +374,22 @@ function Diagram({ layout, title, intro }: { layout: Layout; title?: string | un
               />
               {e.label && shown && (
                 <g>
-                  <rect x={e.mx - (e.label.length * 5.4 + 10) / 2} y={e.my - 9} width={e.label.length * 5.4 + 10} height={17} rx={4} fill="var(--bg-card)" stroke="var(--border-subtle)" strokeWidth={1} />
-                  <text x={e.mx} y={e.my + 3} textAnchor="middle" style={{ fill: 'var(--text-muted)', fontSize: '10px', fontWeight: 600 }}>
+                  <rect
+                    x={e.mx - (e.label.length * 5.4 + 10) / 2}
+                    y={e.my - 9}
+                    width={e.label.length * 5.4 + 10}
+                    height={17}
+                    rx={4}
+                    fill="var(--bg-card)"
+                    stroke="var(--border-subtle)"
+                    strokeWidth={1}
+                  />
+                  <text
+                    x={e.mx}
+                    y={e.my + 3}
+                    textAnchor="middle"
+                    style={{ fill: 'var(--text-muted)', fontSize: '10px', fontWeight: 600 }}
+                  >
                     {e.label}
                   </text>
                 </g>
@@ -335,10 +415,27 @@ function Diagram({ layout, title, intro }: { layout: Layout; title?: string | un
           padding: '0.7rem 1rem',
         }}
       >
-        <div style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+        <div
+          style={{
+            fontSize: '0.65rem',
+            fontWeight: 700,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            color: 'var(--text-muted)',
+            marginBottom: '0.25rem',
+          }}
+        >
           Step {Math.min(step + 1, total)} / {total}
         </div>
-        <div key={step} style={{ fontSize: '0.82rem', lineHeight: 1.5, color: 'var(--text-body)', animation: 'dvFade 0.55s ease' }}>
+        <div
+          key={step}
+          style={{
+            fontSize: '0.82rem',
+            lineHeight: 1.5,
+            color: 'var(--text-body)',
+            animation: 'dvFade 0.55s ease',
+          }}
+        >
           <strong style={{ color: 'var(--text-title)' }}>{cap1(cur.title)}</strong>
           {cur.text ? ` — ${cur.text}` : ''}
         </div>
@@ -346,7 +443,15 @@ function Diagram({ layout, title, intro }: { layout: Layout; title?: string | un
       </div>
 
       {/* controls */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', marginTop: '0.75rem' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.75rem',
+          marginTop: '0.75rem',
+        }}
+      >
         <div style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
           {layout.narr.map((_, i) => (
             <button
@@ -360,7 +465,12 @@ function Diagram({ layout, title, intro }: { layout: Layout; title?: string | un
                 border: 0,
                 borderRadius: 99,
                 cursor: 'pointer',
-                background: i === step ? 'var(--accent-primary)' : i < step ? 'var(--text-muted)' : 'var(--border-subtle)',
+                background:
+                  i === step
+                    ? 'var(--accent-primary)'
+                    : i < step
+                      ? 'var(--text-muted)'
+                      : 'var(--border-subtle)',
                 transition: 'all 0.3s ease',
               }}
             />
@@ -377,7 +487,12 @@ function Diagram({ layout, title, intro }: { layout: Layout; title?: string | un
             <ChevronLeft size={15} />
           </button>
           {atEnd ? (
-            <button onClick={() => take(() => setStep(0))} className="btn btn-secondary" style={{ padding: '0.25rem 0.45rem', display: 'flex' }} aria-label="Replay">
+            <button
+              onClick={() => take(() => setStep(0))}
+              className="btn btn-secondary"
+              style={{ padding: '0.25rem 0.45rem', display: 'flex' }}
+              aria-label="Replay"
+            >
               <RotateCcw size={15} />
             </button>
           ) : (

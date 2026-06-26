@@ -30,12 +30,27 @@ interface BusinessProfile {
 
 const EMPTY_PROFILE: BusinessProfile = {
   organization_id: '',
-  entity_type: null, industry_code: null, industry_label: null, state_code: null,
-  is_gst_registered: false, gst_registered_since: null, bas_frequency: null, bas_paygw_included: false,
-  aggregated_turnover_bracket: null, estimated_annual_turnover_cents: null,
-  is_fbt_registered: false, is_paygi_registered: false, is_paygw_registered: false, is_workcover_registered: false,
-  employees_count: 0, subbies_count: 0, is_tpar_required: false,
-  vehicle_count: 0, primary_vehicle_business_use_pct: null, has_logbook: null, office_setup: null,
+  entity_type: null,
+  industry_code: null,
+  industry_label: null,
+  state_code: null,
+  is_gst_registered: false,
+  gst_registered_since: null,
+  bas_frequency: null,
+  bas_paygw_included: false,
+  aggregated_turnover_bracket: null,
+  estimated_annual_turnover_cents: null,
+  is_fbt_registered: false,
+  is_paygi_registered: false,
+  is_paygw_registered: false,
+  is_workcover_registered: false,
+  employees_count: 0,
+  subbies_count: 0,
+  is_tpar_required: false,
+  vehicle_count: 0,
+  primary_vehicle_business_use_pct: null,
+  has_logbook: null,
+  office_setup: null,
   notes: null,
 };
 
@@ -56,16 +71,22 @@ export function BusinessProfileForm() {
       .eq('organization_id', currentOrg.id)
       .maybeSingle();
     if (error) setErr(error.message);
-    setProfile(data ? (data as BusinessProfile) : { ...EMPTY_PROFILE, organization_id: currentOrg.id });
+    setProfile(
+      data ? (data as BusinessProfile) : { ...EMPTY_PROFILE, organization_id: currentOrg.id },
+    );
     setLoading(false);
   }, [currentOrg]);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   if (!currentOrg) return null;
 
   const save = async () => {
-    setSaving(true); setMsg(null); setErr(null);
+    setSaving(true);
+    setMsg(null);
+    setErr(null);
     const payload = { ...profile, organization_id: currentOrg.id };
     const { error } = await supabase
       .from('business_profile')
@@ -76,8 +97,12 @@ export function BusinessProfileForm() {
   };
 
   const autoDetect = async () => {
-    setSaving(true); setMsg(null); setErr(null);
-    const { data, error } = await supabase.rpc('business_profile_autodetect', { p_org_id: currentOrg.id });
+    setSaving(true);
+    setMsg(null);
+    setErr(null);
+    const { data, error } = await supabase.rpc('business_profile_autodetect', {
+      p_org_id: currentOrg.id,
+    });
     setSaving(false);
     if (error) {
       setErr(error.message);
@@ -89,11 +114,14 @@ export function BusinessProfileForm() {
       employees_count: (detected.employees_count as number) ?? p.employees_count,
       subbies_count: (detected.subbies_count as number) ?? p.subbies_count,
       is_gst_registered: (detected.is_gst_registered as boolean) ?? p.is_gst_registered,
-      estimated_annual_turnover_cents: (detected.estimated_annual_turnover_cents as number) ?? p.estimated_annual_turnover_cents,
-      aggregated_turnover_bracket: (detected.aggregated_turnover_bracket as string) ?? p.aggregated_turnover_bracket,
+      estimated_annual_turnover_cents:
+        (detected.estimated_annual_turnover_cents as number) ?? p.estimated_annual_turnover_cents,
+      aggregated_turnover_bracket:
+        (detected.aggregated_turnover_bracket as string) ?? p.aggregated_turnover_bracket,
       is_paygw_registered: (detected.is_paygw_registered as boolean) ?? p.is_paygw_registered,
       is_paygi_registered: (detected.is_paygi_registered as boolean) ?? p.is_paygi_registered,
-      is_workcover_registered: (detected.is_workcover_registered as boolean) ?? p.is_workcover_registered,
+      is_workcover_registered:
+        (detected.is_workcover_registered as boolean) ?? p.is_workcover_registered,
       is_tpar_required: (detected.is_tpar_required as boolean) ?? p.is_tpar_required,
       bas_frequency: (detected.bas_frequency as string) ?? p.bas_frequency,
       bas_paygw_included: (detected.bas_paygw_included as boolean) ?? p.bas_paygw_included,
@@ -111,14 +139,26 @@ export function BusinessProfileForm() {
     <div style={{ marginTop: '2rem' }}>
       <h2 style={{ fontSize: 18, marginBottom: 4 }}>Business profile</h2>
       <p style={{ color: '#888', fontSize: 13, marginBottom: 20, maxWidth: 720 }}>
-        The /ask bot reads this on every question to tailor its tax/legal answers to your specific situation.
-        E.g. instant-asset-write-off advice depends on whether you're a sole trader vs company and your turnover.
+        The /ask bot reads this on every question to tailor its tax/legal answers to your specific
+        situation. E.g. instant-asset-write-off advice depends on whether you're a sole trader vs
+        company and your turnover.
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(280px, 1fr))', gap: 16, maxWidth: 900 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, minmax(280px, 1fr))',
+          gap: 16,
+          maxWidth: 900,
+        }}
+      >
         <Section title="Entity">
           <Field label="Entity type">
-            <select value={profile.entity_type ?? ''} onChange={(e) => set('entity_type', e.target.value || null)} style={selectStyle}>
+            <select
+              value={profile.entity_type ?? ''}
+              onChange={(e) => set('entity_type', e.target.value || null)}
+              style={selectStyle}
+            >
               <option value="">— pick —</option>
               <option value="sole_trader">Sole trader</option>
               <option value="partnership">Partnership</option>
@@ -128,14 +168,23 @@ export function BusinessProfileForm() {
             </select>
           </Field>
           <Field label="State">
-            <select value={profile.state_code ?? ''} onChange={(e) => set('state_code', e.target.value || null)} style={selectStyle}>
+            <select
+              value={profile.state_code ?? ''}
+              onChange={(e) => set('state_code', e.target.value || null)}
+              style={selectStyle}
+            >
               <option value="">— pick —</option>
-              {['QLD', 'NSW', 'VIC', 'WA', 'SA', 'TAS', 'NT', 'ACT'].map((s) => <option key={s} value={s}>{s}</option>)}
+              {['QLD', 'NSW', 'VIC', 'WA', 'SA', 'TAS', 'NT', 'ACT'].map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
             </select>
           </Field>
           <Field label="Industry (label)">
             <input
-              type="text" value={profile.industry_label ?? ''}
+              type="text"
+              value={profile.industry_label ?? ''}
               onChange={(e) => set('industry_label', e.target.value || null)}
               placeholder="e.g. Fencing services"
               style={inputStyle}
@@ -143,7 +192,8 @@ export function BusinessProfileForm() {
           </Field>
           <Field label="ANZSIC code (optional)">
             <input
-              type="text" value={profile.industry_code ?? ''}
+              type="text"
+              value={profile.industry_code ?? ''}
               onChange={(e) => set('industry_code', e.target.value || null)}
               placeholder="e.g. 32990"
               style={inputStyle}
@@ -153,7 +203,11 @@ export function BusinessProfileForm() {
 
         <Section title="Turnover & SBE eligibility">
           <Field label="Aggregated turnover bracket">
-            <select value={profile.aggregated_turnover_bracket ?? ''} onChange={(e) => set('aggregated_turnover_bracket', e.target.value || null)} style={selectStyle}>
+            <select
+              value={profile.aggregated_turnover_bracket ?? ''}
+              onChange={(e) => set('aggregated_turnover_bracket', e.target.value || null)}
+              style={selectStyle}
+            >
               <option value="">— pick —</option>
               <option value="under_2m">Under $2M (small business entity)</option>
               <option value="under_10m">Under $10M (small business entity)</option>
@@ -164,9 +218,20 @@ export function BusinessProfileForm() {
           </Field>
           <Field label="Estimated annual turnover (AUD)">
             <input
-              type="number" min="0" step="1000"
-              value={profile.estimated_annual_turnover_cents != null ? profile.estimated_annual_turnover_cents / 100 : ''}
-              onChange={(e) => set('estimated_annual_turnover_cents', e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null)}
+              type="number"
+              min="0"
+              step="1000"
+              value={
+                profile.estimated_annual_turnover_cents != null
+                  ? profile.estimated_annual_turnover_cents / 100
+                  : ''
+              }
+              onChange={(e) =>
+                set(
+                  'estimated_annual_turnover_cents',
+                  e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null,
+                )
+              }
               placeholder="e.g. 850000"
               style={inputStyle}
             />
@@ -174,9 +239,18 @@ export function BusinessProfileForm() {
         </Section>
 
         <Section title="GST & BAS">
-          <Toggle label="GST registered" value={profile.is_gst_registered} onChange={(v) => set('is_gst_registered', v)} />
+          <Toggle
+            label="GST registered"
+            value={profile.is_gst_registered}
+            onChange={(v) => set('is_gst_registered', v)}
+          />
           <Field label="BAS frequency">
-            <select value={profile.bas_frequency ?? ''} onChange={(e) => set('bas_frequency', e.target.value || null)} style={selectStyle} disabled={!profile.is_gst_registered}>
+            <select
+              value={profile.bas_frequency ?? ''}
+              onChange={(e) => set('bas_frequency', e.target.value || null)}
+              style={selectStyle}
+              disabled={!profile.is_gst_registered}
+            >
               <option value="">— pick —</option>
               <option value="monthly">Monthly</option>
               <option value="quarterly">Quarterly</option>
@@ -184,42 +258,99 @@ export function BusinessProfileForm() {
               <option value="not_required">Not required</option>
             </select>
           </Field>
-          <Toggle label="BAS includes PAYG-W (you have employees on payroll)" value={profile.bas_paygw_included} onChange={(v) => set('bas_paygw_included', v)} />
+          <Toggle
+            label="BAS includes PAYG-W (you have employees on payroll)"
+            value={profile.bas_paygw_included}
+            onChange={(v) => set('bas_paygw_included', v)}
+          />
         </Section>
 
         <Section title="Tax registrations">
-          <Toggle label="FBT registered" value={profile.is_fbt_registered} onChange={(v) => set('is_fbt_registered', v)} />
-          <Toggle label="PAYG instalments (PAYG-I)" value={profile.is_paygi_registered} onChange={(v) => set('is_paygi_registered', v)} />
-          <Toggle label="PAYG withholding (PAYG-W)" value={profile.is_paygw_registered} onChange={(v) => set('is_paygw_registered', v)} />
-          <Toggle label="WorkCover registered" value={profile.is_workcover_registered} onChange={(v) => set('is_workcover_registered', v)} />
+          <Toggle
+            label="FBT registered"
+            value={profile.is_fbt_registered}
+            onChange={(v) => set('is_fbt_registered', v)}
+          />
+          <Toggle
+            label="PAYG instalments (PAYG-I)"
+            value={profile.is_paygi_registered}
+            onChange={(v) => set('is_paygi_registered', v)}
+          />
+          <Toggle
+            label="PAYG withholding (PAYG-W)"
+            value={profile.is_paygw_registered}
+            onChange={(v) => set('is_paygw_registered', v)}
+          />
+          <Toggle
+            label="WorkCover registered"
+            value={profile.is_workcover_registered}
+            onChange={(v) => set('is_workcover_registered', v)}
+          />
         </Section>
 
         <Section title="Workforce">
           <Field label="Employees">
-            <input type="number" min="0" value={profile.employees_count} onChange={(e) => set('employees_count', parseInt(e.target.value || '0', 10))} style={inputStyle} />
+            <input
+              type="number"
+              min="0"
+              value={profile.employees_count}
+              onChange={(e) => set('employees_count', parseInt(e.target.value || '0', 10))}
+              style={inputStyle}
+            />
           </Field>
           <Field label="Subbies (subcontractors)">
-            <input type="number" min="0" value={profile.subbies_count} onChange={(e) => set('subbies_count', parseInt(e.target.value || '0', 10))} style={inputStyle} />
+            <input
+              type="number"
+              min="0"
+              value={profile.subbies_count}
+              onChange={(e) => set('subbies_count', parseInt(e.target.value || '0', 10))}
+              style={inputStyle}
+            />
           </Field>
-          <Toggle label="TPAR required (you pay subbies — annual report)" value={profile.is_tpar_required} onChange={(v) => set('is_tpar_required', v)} />
+          <Toggle
+            label="TPAR required (you pay subbies — annual report)"
+            value={profile.is_tpar_required}
+            onChange={(v) => set('is_tpar_required', v)}
+          />
         </Section>
 
         <Section title="Vehicles & office">
           <Field label="Vehicles (utes / vans / cars used for business)">
-            <input type="number" min="0" value={profile.vehicle_count} onChange={(e) => set('vehicle_count', parseInt(e.target.value || '0', 10))} style={inputStyle} />
+            <input
+              type="number"
+              min="0"
+              value={profile.vehicle_count}
+              onChange={(e) => set('vehicle_count', parseInt(e.target.value || '0', 10))}
+              style={inputStyle}
+            />
           </Field>
           <Field label="Primary vehicle business-use %">
             <input
-              type="number" min="0" max="100"
+              type="number"
+              min="0"
+              max="100"
               value={profile.primary_vehicle_business_use_pct ?? ''}
-              onChange={(e) => set('primary_vehicle_business_use_pct', e.target.value ? parseInt(e.target.value, 10) : null)}
+              onChange={(e) =>
+                set(
+                  'primary_vehicle_business_use_pct',
+                  e.target.value ? parseInt(e.target.value, 10) : null,
+                )
+              }
               placeholder="e.g. 80"
               style={inputStyle}
             />
           </Field>
-          <Toggle label="Logbook kept (12-week or full FBT)" value={profile.has_logbook ?? false} onChange={(v) => set('has_logbook', v)} />
+          <Toggle
+            label="Logbook kept (12-week or full FBT)"
+            value={profile.has_logbook ?? false}
+            onChange={(v) => set('has_logbook', v)}
+          />
           <Field label="Office setup">
-            <select value={profile.office_setup ?? ''} onChange={(e) => set('office_setup', e.target.value || null)} style={selectStyle}>
+            <select
+              value={profile.office_setup ?? ''}
+              onChange={(e) => set('office_setup', e.target.value || null)}
+              style={selectStyle}
+            >
               <option value="">— pick —</option>
               <option value="home_office">Home office</option>
               <option value="commercial_premises">Commercial premises</option>
@@ -240,15 +371,20 @@ export function BusinessProfileForm() {
         </Section>
       </div>
 
-      <div style={{ marginTop: 20, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div
+        style={{ marginTop: 20, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}
+      >
         <button
           onClick={save}
           disabled={saving}
           style={{
             padding: '0.5rem 1.25rem',
-            background: '#1c4868', color: '#fff',
-            border: '1px solid #5096d8', borderRadius: 4,
-            fontSize: 13, fontWeight: 600,
+            background: '#1c4868',
+            color: '#fff',
+            border: '1px solid #5096d8',
+            borderRadius: 4,
+            fontSize: 13,
+            fontWeight: 600,
             cursor: saving ? 'wait' : 'pointer',
           }}
         >
@@ -259,8 +395,10 @@ export function BusinessProfileForm() {
           disabled={saving}
           style={{
             padding: '0.5rem 1rem',
-            background: 'transparent', color: '#7fb6e8',
-            border: '1px solid #1f3a52', borderRadius: 4,
+            background: 'transparent',
+            color: '#7fb6e8',
+            border: '1px solid #1f3a52',
+            borderRadius: 4,
             fontSize: 12,
             cursor: saving ? 'wait' : 'pointer',
           }}
@@ -275,10 +413,37 @@ export function BusinessProfileForm() {
   );
 }
 
-function Section({ title, children, full }: { title: string; children: React.ReactNode; full?: boolean }) {
+function Section({
+  title,
+  children,
+  full,
+}: {
+  title: string;
+  children: React.ReactNode;
+  full?: boolean;
+}) {
   return (
-    <div style={{ gridColumn: full ? '1 / -1' : undefined, padding: 12, background: '#0e0e0e', border: '1px solid #2a2a2a', borderRadius: 6 }}>
-      <div style={{ fontSize: 11, color: '#7fb6e8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, fontWeight: 600 }}>{title}</div>
+    <div
+      style={{
+        gridColumn: full ? '1 / -1' : undefined,
+        padding: 12,
+        background: '#0e0e0e',
+        border: '1px solid #2a2a2a',
+        borderRadius: 6,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 11,
+          color: '#7fb6e8',
+          textTransform: 'uppercase',
+          letterSpacing: 0.5,
+          marginBottom: 10,
+          fontWeight: 600,
+        }}
+      >
+        {title}
+      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{children}</div>
     </div>
   );
@@ -293,9 +458,26 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+function Toggle({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, color: '#ccc' }}>
+    <label
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        cursor: 'pointer',
+        fontSize: 12,
+        color: '#ccc',
+      }}
+    >
       <input type="checkbox" checked={value} onChange={(e) => onChange(e.target.checked)} />
       {label}
     </label>
@@ -303,8 +485,11 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
 }
 
 const inputStyle: React.CSSProperties = {
-  background: '#1a1a1a', color: '#fff',
-  border: '1px solid #2a2a2a', borderRadius: 3,
-  padding: '0.4rem 0.5rem', fontSize: 13,
+  background: '#1a1a1a',
+  color: '#fff',
+  border: '1px solid #2a2a2a',
+  borderRadius: 3,
+  padding: '0.4rem 0.5rem',
+  fontSize: 13,
 };
 const selectStyle: React.CSSProperties = { ...inputStyle };

@@ -2,12 +2,25 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
-import { usePaymentRunDetail, type PaymentRunRow, type PaymentRunItem } from '@/hooks/usePaymentRuns';
+import {
+  usePaymentRunDetail,
+  type PaymentRunRow,
+  type PaymentRunItem,
+} from '@/hooks/usePaymentRuns';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
-import { 
-  ChevronLeft, Layers, Calendar, Wallet, 
-  CheckCircle, Download, Edit3, Save, X, Eye, AlertTriangle 
+import {
+  ChevronLeft,
+  Layers,
+  Calendar,
+  Wallet,
+  CheckCircle,
+  Download,
+  Edit3,
+  Save,
+  X,
+  Eye,
+  AlertTriangle,
 } from 'lucide-react';
 
 export function PaymentRunDetailPage() {
@@ -30,7 +43,10 @@ export function PaymentRunDetailPage() {
   if (loading) return <SkeletonTable rows={6} cols={6} />;
   if (error) {
     return (
-      <div className="badge badge-danger" style={{ display: 'block', padding: '1rem', textTransform: 'none' }}>
+      <div
+        className="badge badge-danger"
+        style={{ display: 'block', padding: '1rem', textTransform: 'none' }}
+      >
         Error loading payment run: {error}
       </div>
     );
@@ -51,22 +67,25 @@ export function PaymentRunDetailPage() {
     setActionErr(null);
     setActionMsg(null);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { setActionErr('Not authenticated.'); setActionBusy(false); return; }
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) {
+      setActionErr('Not authenticated.');
+      setActionBusy(false);
+      return;
+    }
 
-    const resp = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${fnName}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify(body),
+    const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${fnName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
       },
-    );
-    const result = await resp.json() as Record<string, unknown>;
+      body: JSON.stringify(body),
+    });
+    const result = (await resp.json()) as Record<string, unknown>;
     setActionBusy(false);
 
     if (!result['ok']) {
@@ -81,7 +100,10 @@ export function PaymentRunDetailPage() {
       .from('payment_runs')
       .update({ status: 'approved', approved_at: new Date().toISOString() })
       .eq('id', run.id);
-    if (err) { setActionErr(err.message); return; }
+    if (err) {
+      setActionErr(err.message);
+      return;
+    }
     setActionMsg('Payment run approved.');
     void refresh();
   };
@@ -103,7 +125,9 @@ export function PaymentRunDetailPage() {
     a.click();
     URL.revokeObjectURL(url);
 
-    setActionMsg(`Downloaded ${filename} (${Math.round((result['aba_file_size_bytes'] as number | undefined ?? blob.size) / 1024 * 10) / 10} KB)`);
+    setActionMsg(
+      `Downloaded ${filename} (${Math.round((((result['aba_file_size_bytes'] as number | undefined) ?? blob.size) / 1024) * 10) / 10} KB)`,
+    );
     void refresh();
   };
 
@@ -117,15 +141,15 @@ export function PaymentRunDetailPage() {
   return (
     <section className="animated-fade-in">
       {/* Back button */}
-      <Link 
-        to="/payment-runs" 
-        style={{ 
-          color: 'var(--text-muted)', 
-          fontSize: '0.825rem', 
-          display: 'inline-flex', 
-          alignItems: 'center', 
+      <Link
+        to="/payment-runs"
+        style={{
+          color: 'var(--text-muted)',
+          fontSize: '0.825rem',
+          display: 'inline-flex',
+          alignItems: 'center',
           gap: '0.25rem',
-          marginBottom: '1rem'
+          marginBottom: '1rem',
         }}
       >
         <ChevronLeft size={14} />
@@ -133,14 +157,14 @@ export function PaymentRunDetailPage() {
       </Link>
 
       {/* Header Info */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: '1.5rem',
           flexWrap: 'wrap',
-          gap: '1rem'
+          gap: '1rem',
         }}
       >
         <div>
@@ -148,7 +172,17 @@ export function PaymentRunDetailPage() {
             <Layers size={24} style={{ color: 'var(--accent-primary)' }} />
             Payment Run — {run.pay_date}
           </h1>
-          <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.25rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '0.5rem',
+              fontSize: '0.825rem',
+              color: 'var(--text-muted)',
+              marginTop: '0.25rem',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+            }}
+          >
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
               <Calendar size={12} />
               Pay Date: <strong style={{ color: 'var(--text-title)' }}>{run.pay_date}</strong>
@@ -158,16 +192,33 @@ export function PaymentRunDetailPage() {
             <span>•</span>
             <span>{run.bill_count} bills</span>
             <span>•</span>
-            <span style={{ color: 'var(--text-title)', fontWeight: 600 }}>{formatMoney(run.total_cents)} total</span>
+            <span style={{ color: 'var(--text-title)', fontWeight: 600 }}>
+              {formatMoney(run.total_cents)} total
+            </span>
             {run.aba_file_generated_at && (
               <>
                 <span>•</span>
-                <span>ABA Exported: {new Date(run.aba_file_generated_at).toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                <span>
+                  ABA Exported:{' '}
+                  {new Date(run.aba_file_generated_at).toLocaleString('en-AU', {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                  })}
+                </span>
               </>
             )}
           </div>
           {run.notes && (
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.5rem', marginBottom: 0 }}>{run.notes}</p>
+            <p
+              style={{
+                fontSize: '0.875rem',
+                color: 'var(--text-muted)',
+                marginTop: '0.5rem',
+                marginBottom: 0,
+              }}
+            >
+              {run.notes}
+            </p>
           )}
         </div>
 
@@ -220,17 +271,58 @@ export function PaymentRunDetailPage() {
         </div>
       </div>
 
-      {actionMsg && <div className="badge badge-success" style={{ display: 'block', padding: '0.75rem', marginBottom: '1rem', textTransform: 'none' }}>{actionMsg}</div>}
-      {actionErr && <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', marginBottom: '1rem', textTransform: 'none' }}>{actionErr}</div>}
+      {actionMsg && (
+        <div
+          className="badge badge-success"
+          style={{
+            display: 'block',
+            padding: '0.75rem',
+            marginBottom: '1rem',
+            textTransform: 'none',
+          }}
+        >
+          {actionMsg}
+        </div>
+      )}
+      {actionErr && (
+        <div
+          className="badge badge-danger"
+          style={{
+            display: 'block',
+            padding: '0.75rem',
+            marginBottom: '1rem',
+            textTransform: 'none',
+          }}
+        >
+          {actionErr}
+        </div>
+      )}
 
       {/* Items table */}
-      <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+      <h2
+        style={{
+          fontSize: '1.25rem',
+          marginBottom: '0.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.35rem',
+        }}
+      >
         <Wallet size={16} style={{ color: 'var(--text-muted)' }} />
         Payment items
       </h2>
 
       {items.length === 0 ? (
-        <div style={{ padding: '3rem 1.5rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <div
+          style={{
+            padding: '3rem 1.5rem',
+            background: 'var(--bg-card)',
+            border: '1px dashed var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+          }}
+        >
           No items in this payment run.
         </div>
       ) : (
@@ -248,12 +340,22 @@ export function PaymentRunDetailPage() {
             </thead>
             <tbody>
               {items.map((item) => (
-                <PaymentItemRow key={item.id} item={item} runStatus={run.status} onSaved={() => void refresh()} />
+                <PaymentItemRow
+                  key={item.id}
+                  item={item}
+                  runStatus={run.status}
+                  onSaved={() => void refresh()}
+                />
               ))}
             </tbody>
             <tfoot>
               <tr style={{ background: 'var(--bg-hover)', fontWeight: 700 }}>
-                <td colSpan={4} style={{ color: 'var(--text-title)', fontStyle: 'italic', padding: '1rem' }}>Total</td>
+                <td
+                  colSpan={4}
+                  style={{ color: 'var(--text-title)', fontStyle: 'italic', padding: '1rem' }}
+                >
+                  Total
+                </td>
                 <td style={{ textAlign: 'right', color: 'var(--text-title)', padding: '1rem' }}>
                   {formatMoney(items.reduce((s, i) => s + i.amount_cents, 0))}
                 </td>
@@ -300,7 +402,10 @@ function PaymentItemRow({
       })
       .eq('id', item.id);
     setSaving(false);
-    if (error) { setSaveErr(error.message); return; }
+    if (error) {
+      setSaveErr(error.message);
+      return;
+    }
     setEditing(false);
     onSaved();
   };
@@ -309,19 +414,27 @@ function PaymentItemRow({
     return (
       <tr style={{ background: 'var(--bg-hover)' }}>
         <td colSpan={5} style={{ padding: '1rem' }}>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div
+            style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}
+          >
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <span className="form-label" style={{ fontSize: '0.725rem' }}>Payee name (max 32)</span>
+              <span className="form-label" style={{ fontSize: '0.725rem' }}>
+                Payee name (max 32)
+              </span>
               <input
                 value={draft.payee_account_name}
-                onChange={(e) => setDraft((d) => ({ ...d, payee_account_name: e.target.value.slice(0, 32) }))}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, payee_account_name: e.target.value.slice(0, 32) }))
+                }
                 className="form-input"
                 style={{ width: '200px', padding: '0.4rem 0.625rem' }}
               />
             </div>
-            
+
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <span className="form-label" style={{ fontSize: '0.725rem' }}>BSB (NNN-NNN)</span>
+              <span className="form-label" style={{ fontSize: '0.725rem' }}>
+                BSB (NNN-NNN)
+              </span>
               <input
                 value={draft.payee_bsb}
                 onChange={(e) => setDraft((d) => ({ ...d, payee_bsb: e.target.value }))}
@@ -332,7 +445,9 @@ function PaymentItemRow({
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <span className="form-label" style={{ fontSize: '0.725rem' }}>Account number</span>
+              <span className="form-label" style={{ fontSize: '0.725rem' }}>
+                Account number
+              </span>
               <input
                 value={draft.payee_account_number}
                 onChange={(e) => setDraft((d) => ({ ...d, payee_account_number: e.target.value }))}
@@ -340,16 +455,32 @@ function PaymentItemRow({
                 style={{ width: '140px', padding: '0.4rem 0.625rem' }}
               />
             </div>
-            
+
             <div style={{ display: 'flex', gap: '0.25rem' }}>
-              <button onClick={() => void save()} disabled={saving} className="btn btn-primary" style={{ padding: '0.45rem 0.75rem', fontSize: '0.825rem' }}>
+              <button
+                onClick={() => void save()}
+                disabled={saving}
+                className="btn btn-primary"
+                style={{ padding: '0.45rem 0.75rem', fontSize: '0.825rem' }}
+              >
                 <Save size={14} />
               </button>
-              <button onClick={() => setEditing(false)} className="btn btn-secondary" style={{ padding: '0.45rem 0.75rem', fontSize: '0.825rem' }}>
+              <button
+                onClick={() => setEditing(false)}
+                className="btn btn-secondary"
+                style={{ padding: '0.45rem 0.75rem', fontSize: '0.825rem' }}
+              >
                 <X size={14} />
               </button>
             </div>
-            {saveErr && <span className="badge badge-danger" style={{ padding: '0.45rem 0.75rem', textTransform: 'none' }}>{saveErr}</span>}
+            {saveErr && (
+              <span
+                className="badge badge-danger"
+                style={{ padding: '0.45rem 0.75rem', textTransform: 'none' }}
+              >
+                {saveErr}
+              </span>
+            )}
           </div>
         </td>
         <td style={{ padding: '1rem' }} />
@@ -366,13 +497,33 @@ function PaymentItemRow({
         {item.payee_bsb ? (
           item.payee_bsb
         ) : (
-          <span style={{ color: 'var(--text-warning)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+          <span
+            style={{
+              color: 'var(--text-warning)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+            }}
+          >
             <AlertTriangle size={12} />
             {canEdit ? (
-              <button onClick={() => setEditing(true)} style={{ background: 'none', border: 'none', color: 'var(--text-warning)', padding: 0, textDecoration: 'underline', cursor: 'pointer', fontSize: '0.875rem' }}>
+              <button
+                onClick={() => setEditing(true)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-warning)',
+                  padding: 0,
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                }}
+              >
                 add BSB
               </button>
-            ) : 'missing'}
+            ) : (
+              'missing'
+            )}
           </span>
         )}
       </td>
@@ -380,13 +531,33 @@ function PaymentItemRow({
         {item.payee_account_number ? (
           maskAccount(item.payee_account_number)
         ) : (
-          <span style={{ color: 'var(--text-warning)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+          <span
+            style={{
+              color: 'var(--text-warning)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+            }}
+          >
             <AlertTriangle size={12} />
             {canEdit ? (
-              <button onClick={() => setEditing(true)} style={{ background: 'none', border: 'none', color: 'var(--text-warning)', padding: 0, textDecoration: 'underline', cursor: 'pointer', fontSize: '0.875rem' }}>
+              <button
+                onClick={() => setEditing(true)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-warning)',
+                  padding: 0,
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                }}
+              >
                 add account
               </button>
-            ) : 'missing'}
+            ) : (
+              'missing'
+            )}
           </span>
         )}
       </td>
@@ -394,7 +565,11 @@ function PaymentItemRow({
       <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(item.amount_cents)}</td>
       <td>
         <div style={{ display: 'inline-flex', gap: '0.25rem', alignItems: 'center' }}>
-          <Link to={`/bills/${item.bill_id}`} className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>
+          <Link
+            to={`/bills/${item.bill_id}`}
+            className="btn btn-secondary"
+            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+          >
             <Eye size={12} />
             <span style={{ marginLeft: '0.25rem' }}>View</span>
           </Link>
@@ -419,7 +594,7 @@ function Pill({ status }: { status: PaymentRunRow['status'] }) {
   else if (status === 'approved') badgeClass = 'badge-info';
   else if (status === 'draft') badgeClass = 'badge-warning';
   else if (status === 'cancelled') badgeClass = 'badge-danger';
-  
+
   return <span className={`badge ${badgeClass}`}>{status}</span>;
 }
 

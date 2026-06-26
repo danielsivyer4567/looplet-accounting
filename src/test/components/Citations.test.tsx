@@ -80,7 +80,10 @@ describe('CitedAnswer', () => {
     // no NotebookLM cited-law panel without corpus citations
     expect(screen.queryByText(/Cited law/)).not.toBeInTheDocument();
     // [1] is a direct external link to the Sonar source (pre-corpus behaviour)
-    expect(screen.getByRole('link', { name: '1' })).toHaveAttribute('href', 'https://ato.gov.au/guidance');
+    expect(screen.getByRole('link', { name: '1' })).toHaveAttribute(
+      'href',
+      'https://ato.gov.au/guidance',
+    );
   });
 
   it('renders a plain data answer with no markers and no panel', () => {

@@ -34,7 +34,10 @@ function statusBadgeClass(status: FixedAsset['status']): string {
 // How an asset depreciates, derived from its live schedule (0093: one live schedule
 // per asset). Assets with no schedule are either instant-write-off / low-value-pool
 // (deliberately schedule-less per 0093) or not yet scheduled.
-function depreciationSummary(asset: FixedAsset, schedule: DepreciationSchedule | undefined): string {
+function depreciationSummary(
+  asset: FixedAsset,
+  schedule: DepreciationSchedule | undefined,
+): string {
   if (schedule) return `${methodLabel(schedule.method)} · ${schedule.effective_life_years} yr`;
   if (asset.instant_write_off) return 'Instant write-off';
   if (asset.pool_eligible) return 'Low-value pool';
@@ -83,7 +86,9 @@ export function FixedAssetsPage() {
     return (
       <section className="animated-fade-in">
         <h1>Fixed Assets</h1>
-        <p style={{ color: 'var(--text-muted)' }}>Pick an organisation to see its asset register.</p>
+        <p style={{ color: 'var(--text-muted)' }}>
+          Pick an organisation to see its asset register.
+        </p>
       </section>
     );
   }
@@ -103,7 +108,10 @@ export function FixedAssetsPage() {
     return (
       <section className="animated-fade-in">
         <h1>Fixed Assets</h1>
-        <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', textTransform: 'none', marginTop: '1rem' }}>
+        <div
+          className="badge badge-danger"
+          style={{ display: 'block', padding: '0.75rem', textTransform: 'none', marginTop: '1rem' }}
+        >
           Failed to load: {error}
         </div>
       </section>
@@ -113,9 +121,14 @@ export function FixedAssetsPage() {
   const totalCostBase = assets.reduce((sum, a) => sum + a.cost_base_cents, 0);
 
   return (
-    <section className="animated-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <section
+      className="animated-fade-in"
+      style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}
+    >
       <div>
-        <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+        <h1
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}
+        >
           <Boxes size={24} style={{ color: 'var(--accent-primary)' }} />
           Fixed Assets
         </h1>
@@ -131,10 +144,20 @@ export function FixedAssetsPage() {
           starts depreciation) or rejects (soft-delete). */}
       {proposals.length > 0 && (
         <div>
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.05rem', marginBottom: '0.75rem' }}>
+          <h2
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontSize: '1.05rem',
+              marginBottom: '0.75rem',
+            }}
+          >
             <Sparkles size={18} style={{ color: 'var(--accent-warning)' }} />
             Capitalisation proposals
-            <span className="badge badge-warning" style={{ fontSize: '9px' }}>{proposals.length}</span>
+            <span className="badge badge-warning" style={{ fontSize: '9px' }}>
+              {proposals.length}
+            </span>
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {proposals.map((p) => (
@@ -159,7 +182,10 @@ export function FixedAssetsPage() {
           <h2 style={{ fontSize: '1.05rem', marginBottom: '0.75rem' }}>Asset register</h2>
         )}
         {assets.length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+          <div
+            className="card"
+            style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}
+          >
             <Boxes size={40} style={{ margin: '0 auto 1rem', opacity: 0.4 }} />
             <p style={{ margin: 0 }}>No assets on the register yet.</p>
             <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem' }}>
@@ -186,15 +212,33 @@ export function FixedAssetsPage() {
                   return (
                     <Fragment key={a.id}>
                       <tr
-                        style={{ borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer' }}
+                        style={{
+                          borderBottom: '1px solid var(--border-subtle)',
+                          cursor: 'pointer',
+                        }}
                         onClick={() => toggle(a.id)}
                       >
                         <td style={{ textAlign: 'center' }}>
-                          {isOpen ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronRight className="w-4 h-4 text-muted" />}
+                          {isOpen ? (
+                            <ChevronDown className="w-4 h-4 text-muted" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-muted" />
+                          )}
                         </td>
                         <td>
-                          <div style={{ fontWeight: 600, color: 'var(--text-title)' }}>{a.name}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.15rem' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--text-title)' }}>
+                            {a.name}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '0.75rem',
+                              color: 'var(--text-muted)',
+                              display: 'flex',
+                              gap: '0.4rem',
+                              alignItems: 'center',
+                              marginTop: '0.15rem',
+                            }}
+                          >
                             {a.asset_account_code && <code>{a.asset_account_code}</code>}
                             {a.source_bill_id && (
                               <Link
@@ -208,10 +252,21 @@ export function FixedAssetsPage() {
                           </div>
                         </td>
                         <td style={{ color: 'var(--text-muted)' }}>{a.acquisition_date}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-title)' }}>{formatMoney(a.cost_base_cents)}</td>
+                        <td
+                          style={{
+                            textAlign: 'right',
+                            fontWeight: 600,
+                            color: 'var(--text-title)',
+                          }}
+                        >
+                          {formatMoney(a.cost_base_cents)}
+                        </td>
                         <td>{depreciationSummary(a, schedule)}</td>
                         <td>
-                          <span className={`badge ${statusBadgeClass(a.status)}`} style={{ fontSize: '9px', textTransform: 'capitalize' }}>
+                          <span
+                            className={`badge ${statusBadgeClass(a.status)}`}
+                            style={{ fontSize: '9px', textTransform: 'capitalize' }}
+                          >
                             {a.status}
                           </span>
                         </td>
@@ -237,7 +292,13 @@ export function FixedAssetsPage() {
 }
 
 // The per-asset depreciation schedule, shown when a register row is expanded.
-function ScheduleDetail({ asset, schedule }: { asset: FixedAsset; schedule: DepreciationSchedule | undefined }) {
+function ScheduleDetail({
+  asset,
+  schedule,
+}: {
+  asset: FixedAsset;
+  schedule: DepreciationSchedule | undefined;
+}) {
   if (!schedule) {
     return (
       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -251,15 +312,36 @@ function ScheduleDetail({ asset, schedule }: { asset: FixedAsset; schedule: Depr
   }
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.4rem',
+          fontSize: '0.75rem',
+          fontWeight: 700,
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+          marginBottom: '0.5rem',
+        }}
+      >
         <TrendingDown size={14} />
         Depreciation schedule
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem 1.5rem' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gap: '0.75rem 1.5rem',
+        }}
+      >
         <ScheduleField label="Method" value={methodLabel(schedule.method)} />
         <ScheduleField label="Effective life" value={`${schedule.effective_life_years} years`} />
         <ScheduleField label="Start date" value={schedule.start_date} />
-        <ScheduleField label="Opening cost base" value={formatMoney(schedule.opening_cost_base_cents)} />
+        <ScheduleField
+          label="Opening cost base"
+          value={formatMoney(schedule.opening_cost_base_cents)}
+        />
       </div>
     </div>
   );
@@ -269,7 +351,9 @@ function ScheduleField({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{label}</div>
-      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-title)' }}>{value}</div>
+      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-title)' }}>
+        {value}
+      </div>
     </div>
   );
 }
@@ -303,15 +387,31 @@ function ProposalCard({
       }}
     >
       <div style={{ flex: 1, minWidth: '300px' }}>
-        <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-title)' }}>{asset.name}</div>
-        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-          <span style={{ fontWeight: 600, color: 'var(--text-body)' }}>{formatMoney(asset.cost_base_cents)}</span>
+        <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-title)' }}>
+          {asset.name}
+        </div>
+        <div
+          style={{
+            fontSize: '0.8rem',
+            color: 'var(--text-muted)',
+            marginTop: '0.25rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '0.5rem',
+            alignItems: 'center',
+          }}
+        >
+          <span style={{ fontWeight: 600, color: 'var(--text-body)' }}>
+            {formatMoney(asset.cost_base_cents)}
+          </span>
           <span>·</span>
           <span>Acquired {asset.acquisition_date}</span>
           {asset.asset_account_code && (
             <>
               <span>·</span>
-              <code style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{asset.asset_account_code}</code>
+              <code style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
+                {asset.asset_account_code}
+              </code>
             </>
           )}
         </div>
@@ -320,12 +420,30 @@ function ProposalCard({
           {depreciationSummary(asset, schedule)}
         </div>
         {asset.source_bill_id && (
-          <Link to={`/bills/${asset.source_bill_id}`} style={{ display: 'inline-block', marginTop: '0.5rem', color: 'var(--accent-primary)', fontSize: '0.75rem', fontWeight: 600 }}>
+          <Link
+            to={`/bills/${asset.source_bill_id}`}
+            style={{
+              display: 'inline-block',
+              marginTop: '0.5rem',
+              color: 'var(--accent-primary)',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+            }}
+          >
             View source bill &rarr;
           </Link>
         )}
         {actionError && (
-          <div className="badge badge-danger" style={{ display: 'block', marginTop: '0.5rem', padding: '0.4rem 0.6rem', textTransform: 'none', fontSize: '0.75rem' }}>
+          <div
+            className="badge badge-danger"
+            style={{
+              display: 'block',
+              marginTop: '0.5rem',
+              padding: '0.4rem 0.6rem',
+              textTransform: 'none',
+              fontSize: '0.75rem',
+            }}
+          >
             {actionError}
           </div>
         )}
@@ -336,7 +454,13 @@ function ProposalCard({
           onClick={onConfirm}
           disabled={busy}
           className="btn btn-primary"
-          style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+          style={{
+            padding: '0.35rem 0.75rem',
+            fontSize: '0.75rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.25rem',
+          }}
         >
           <CheckCircle2 size={14} /> {busy ? 'Working…' : 'Confirm'}
         </button>
@@ -344,7 +468,13 @@ function ProposalCard({
           onClick={onReject}
           disabled={busy}
           className="btn btn-secondary"
-          style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+          style={{
+            padding: '0.35rem 0.75rem',
+            fontSize: '0.75rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.25rem',
+          }}
         >
           <X size={14} /> Reject
         </button>

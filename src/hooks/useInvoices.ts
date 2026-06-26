@@ -28,51 +28,56 @@ export function useInvoices(
   const [hasMore, setHasMore] = useState(false);
   const offsetRef = useRef(0);
 
-  const fetch = useCallback(async (reset = true) => {
-    if (!currentOrg) {
-      setInvoices([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    const from = reset ? 0 : offsetRef.current;
-    const to = from + pageSize - 1;
+  const fetch = useCallback(
+    async (reset = true) => {
+      if (!currentOrg) {
+        setInvoices([]);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      const from = reset ? 0 : offsetRef.current;
+      const to = from + pageSize - 1;
 
-    let query = supabase
-      .from('invoices')
-      .select(`
+      let query = supabase
+        .from('invoices')
+        .select(
+          `
         id, invoice_number, status, issue_date, due_date,
         total_inc_gst_cents, amount_paid_cents, balance_due_cents,
         customer_id, job_id,
         customer:customers!invoices_customer_id_fkey(id, name),
         job:jobs!invoices_job_id_fkey(id, job_number, name)
-      `)
-      .eq('organization_id', currentOrg.id)
-      .is('deleted_at', null)
-      .order('issue_date', { ascending: false })
-      .range(from, to);
+      `,
+        )
+        .eq('organization_id', currentOrg.id)
+        .is('deleted_at', null)
+        .order('issue_date', { ascending: false })
+        .range(from, to);
 
-    if (filter?.status) query = query.eq('status', filter.status);
-    if (filter?.customerId) query = query.eq('customer_id', filter.customerId);
-    if (filter?.jobId) query = query.eq('job_id', filter.jobId);
+      if (filter?.status) query = query.eq('status', filter.status);
+      if (filter?.customerId) query = query.eq('customer_id', filter.customerId);
+      if (filter?.jobId) query = query.eq('job_id', filter.jobId);
 
-    const { data, error: err } = await query;
-    if (err) {
-      setError(err.message);
-      if (reset) setInvoices([]);
-    } else {
-      const fetched = (data ?? []) as unknown as InvoiceListRow[];
-      if (reset) {
-        setInvoices(fetched);
+      const { data, error: err } = await query;
+      if (err) {
+        setError(err.message);
+        if (reset) setInvoices([]);
       } else {
-        setInvoices((prev) => [...prev, ...fetched]);
+        const fetched = (data ?? []) as unknown as InvoiceListRow[];
+        if (reset) {
+          setInvoices(fetched);
+        } else {
+          setInvoices((prev) => [...prev, ...fetched]);
+        }
+        offsetRef.current = from + fetched.length;
+        setHasMore(fetched.length === pageSize);
       }
-      offsetRef.current = from + fetched.length;
-      setHasMore(fetched.length === pageSize);
-    }
-    setLoading(false);
-  }, [currentOrg, filter?.status, filter?.customerId, filter?.jobId, pageSize]);
+      setLoading(false);
+    },
+    [currentOrg, filter?.status, filter?.customerId, filter?.jobId, pageSize],
+  );
 
   useEffect(() => {
     offsetRef.current = 0;
@@ -87,7 +92,10 @@ export function useInvoices(
     invoices,
     loading,
     error,
-    refresh: () => { offsetRef.current = 0; return fetch(true); },
+    refresh: () => {
+      offsetRef.current = 0;
+      return fetch(true);
+    },
     hasMore,
     loadMore,
   };

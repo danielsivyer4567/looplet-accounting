@@ -8,10 +8,7 @@ import {
   type EntityKind,
 } from '@/hooks/onboarding/useStagedEntities';
 import { useIntakeCategories } from '@/hooks/useIntakeCategories';
-import { 
-  ChevronLeft, 
-  Globe
-} from 'lucide-react';
+import { ChevronLeft, Globe } from 'lucide-react';
 
 export function TriagePage() {
   const { currentOrg } = useOrg();
@@ -28,7 +25,9 @@ export function TriagePage() {
     setSonarMsg(null);
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in');
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/staged-entities-enrich-sonar`;
       const res = await fetch(url, {
@@ -53,15 +52,18 @@ export function TriagePage() {
   };
 
   const sonarPendingCount = entities.filter(
-    (e) =>
-      (e.status === 'pending' || e.status === 'needs_review') &&
-      e.sonar_enriched_at == null,
+    (e) => (e.status === 'pending' || e.status === 'needs_review') && e.sonar_enriched_at == null,
   ).length;
 
   const groups = useMemo(() => {
     const out: Record<EntityKind, StagedEntity[]> = {
-      supplier: [], contractor: [], customer: [], subscription: [],
-      internal_admin: [], personal: [], unknown: [],
+      supplier: [],
+      contractor: [],
+      customer: [],
+      subscription: [],
+      internal_admin: [],
+      personal: [],
+      unknown: [],
     };
     for (const e of entities) (out[e.predicted_kind] ?? out.unknown).push(e);
     return out;
@@ -80,25 +82,34 @@ export function TriagePage() {
         e.confidence >= 0.8,
     );
     if (candidates.length === 0) return;
-    if (!confirm(
-      `Approve ${candidates.length} entities with ≥80% AI confidence using their predicted classifications?\n\n`
-      + `This will:\n`
-      + `  • Create supplier/customer records for the right kinds\n`
-      + `  • Insert intake_rules so future emails auto-route\n`
-      + `  • Mark these as approved\n\n`
-      + `You can still edit individually after.`,
-    )) return;
+    if (
+      !confirm(
+        `Approve ${candidates.length} entities with ≥80% AI confidence using their predicted classifications?\n\n` +
+          `This will:\n` +
+          `  • Create supplier/customer records for the right kinds\n` +
+          `  • Insert intake_rules so future emails auto-route\n` +
+          `  • Mark these as approved\n\n` +
+          `You can still edit individually after.`,
+      )
+    )
+      return;
     setBusy('bulk:high-conf');
     setError(null);
     let done = 0;
     try {
       for (const e of candidates) {
-        await updateOneInternal(e, { status: 'approved', user_kind: e.predicted_kind, user_category: e.predicted_category });
+        await updateOneInternal(e, {
+          status: 'approved',
+          user_kind: e.predicted_kind,
+          user_category: e.predicted_category,
+        });
         done += 1;
       }
       await refresh();
     } catch (err) {
-      setError(`Stopped at ${done}/${candidates.length}: ${err instanceof Error ? err.message : String(err)}`);
+      setError(
+        `Stopped at ${done}/${candidates.length}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       setBusy(null);
     }
@@ -122,10 +133,13 @@ export function TriagePage() {
         e.sonar_suggested_category != null,
     );
     if (candidates.length === 0) return;
-    if (!confirm(
-      `Approve ${candidates.length} entities using Sonar's fact-checked classifications (≥85% Sonar confidence)?\n\n`
-      + `These have web-grounded summaries + citations. Sonar's kind/category will be used instead of the heuristic prediction.`,
-    )) return;
+    if (
+      !confirm(
+        `Approve ${candidates.length} entities using Sonar's fact-checked classifications (≥85% Sonar confidence)?\n\n` +
+          `These have web-grounded summaries + citations. Sonar's kind/category will be used instead of the heuristic prediction.`,
+      )
+    )
+      return;
     setBusy('bulk:sonar-conf');
     setError(null);
     let done = 0;
@@ -143,7 +157,9 @@ export function TriagePage() {
       }
       await refresh();
     } catch (err) {
-      setError(`Stopped at ${done}/${candidates.length}: ${err instanceof Error ? err.message : String(err)}`);
+      setError(
+        `Stopped at ${done}/${candidates.length}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       setBusy(null);
     }
@@ -168,10 +184,13 @@ export function TriagePage() {
         e.predicted_kind === 'unknown',
     );
     if (junk.length === 0) return;
-    if (!confirm(
-      `Dismiss ${junk.length} low-confidence "unknown" entities (Groq <40% AND Sonar <40% or unenriched)?\n\n`
-      + `These are senders neither classifier could confidently identify — typically transactional noise (one-off receipts, marketing).`,
-    )) return;
+    if (
+      !confirm(
+        `Dismiss ${junk.length} low-confidence "unknown" entities (Groq <40% AND Sonar <40% or unenriched)?\n\n` +
+          `These are senders neither classifier could confidently identify — typically transactional noise (one-off receipts, marketing).`,
+      )
+    )
+      return;
     setBusy('bulk:junk');
     setError(null);
     let done = 0;
@@ -182,7 +201,9 @@ export function TriagePage() {
       }
       await refresh();
     } catch (err) {
-      setError(`Stopped at ${done}/${junk.length}: ${err instanceof Error ? err.message : String(err)}`);
+      setError(
+        `Stopped at ${done}/${junk.length}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       setBusy(null);
     }
@@ -197,15 +218,26 @@ export function TriagePage() {
   ).length;
 
   const bulkApproveGroup = async (kind: EntityKind) => {
-    const rows = (groups[kind] ?? []).filter((e) => e.status === 'pending' || e.status === 'needs_review');
+    const rows = (groups[kind] ?? []).filter(
+      (e) => e.status === 'pending' || e.status === 'needs_review',
+    );
     if (rows.length === 0) return;
-    if (!confirm(`Approve all ${rows.length} ${kindLabel(kind)} entities using their predicted categories? You can still edit individually after.`)) return;
+    if (
+      !confirm(
+        `Approve all ${rows.length} ${kindLabel(kind)} entities using their predicted categories? You can still edit individually after.`,
+      )
+    )
+      return;
     setBusy('bulk:' + kind);
     setError(null);
     try {
       for (const e of rows) {
         if (!e.predicted_category) continue;
-        await updateOneInternal(e, { status: 'approved', user_kind: e.predicted_kind, user_category: e.predicted_category });
+        await updateOneInternal(e, {
+          status: 'approved',
+          user_kind: e.predicted_kind,
+          user_category: e.predicted_category,
+        });
       }
       await refresh();
     } catch (err) {
@@ -216,9 +248,14 @@ export function TriagePage() {
   };
 
   const bulkDismissGroup = async (kind: EntityKind) => {
-    const rows = (groups[kind] ?? []).filter((e) => e.status === 'pending' || e.status === 'needs_review');
+    const rows = (groups[kind] ?? []).filter(
+      (e) => e.status === 'pending' || e.status === 'needs_review',
+    );
     if (rows.length === 0) return;
-    if (!confirm(`Dismiss all ${rows.length} ${kindLabel(kind)} entities? They won't become rules.`)) return;
+    if (
+      !confirm(`Dismiss all ${rows.length} ${kindLabel(kind)} entities? They won't become rules.`)
+    )
+      return;
     setBusy('bulk:' + kind);
     setError(null);
     try {
@@ -235,7 +272,11 @@ export function TriagePage() {
 
   const updateOneInternal = async (
     e: StagedEntity,
-    updates: { status: 'approved' | 'dismissed'; user_kind?: EntityKind; user_category?: string | null },
+    updates: {
+      status: 'approved' | 'dismissed';
+      user_kind?: EntityKind;
+      user_category?: string | null;
+    },
   ) => {
     const { error: ueErr } = await supabase
       .from('staged_entities')
@@ -249,13 +290,21 @@ export function TriagePage() {
     if (ueErr) throw ueErr;
 
     if (updates.status === 'approved') {
-      await onApprove(e, updates.user_kind ?? e.predicted_kind, updates.user_category ?? e.predicted_category);
+      await onApprove(
+        e,
+        updates.user_kind ?? e.predicted_kind,
+        updates.user_category ?? e.predicted_category,
+      );
     }
   };
 
   const updateOne = async (
     e: StagedEntity,
-    updates: { status: 'approved' | 'dismissed'; user_kind?: EntityKind; user_category?: string | null },
+    updates: {
+      status: 'approved' | 'dismissed';
+      user_kind?: EntityKind;
+      user_category?: string | null;
+    },
   ) => {
     setError(null);
     setBusy(e.id);
@@ -274,13 +323,18 @@ export function TriagePage() {
     const orgId = currentOrg.id;
     const matcher_value = e.canonical_key.startsWith('domain:')
       ? e.canonical_key.replace('domain:', '')
-      : e.primary_email ?? e.canonical_key.replace('email:', '');
+      : (e.primary_email ?? e.canonical_key.replace('email:', ''));
     const matcher_type = e.canonical_key.startsWith('domain:') ? 'sender_domain' : 'sender_address';
 
     let supplier_id: string | null = null;
     let customer_id: string | null = null;
 
-    if (kind === 'supplier' || kind === 'contractor' || kind === 'subscription' || kind === 'internal_admin') {
+    if (
+      kind === 'supplier' ||
+      kind === 'contractor' ||
+      kind === 'subscription' ||
+      kind === 'internal_admin'
+    ) {
       const { data: sup, error: supErr } = await supabase
         .from('suppliers')
         .upsert(
@@ -369,14 +423,27 @@ export function TriagePage() {
   return (
     <section className="animated-fade-in">
       {/* Header section */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
+          gap: '1rem',
+        }}
+      >
         <div>
           <h1 style={{ margin: 0 }}>Onboarding Triage</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
             Review, pre-categorise, and approve staged senders from your historical inbox messages.
           </p>
         </div>
-        <Link to="/onboarding" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+        <Link
+          to="/onboarding"
+          className="btn btn-secondary"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+        >
           <ChevronLeft size={14} />
           <span>Back to Auto Setup</span>
         </Link>
@@ -385,16 +452,40 @@ export function TriagePage() {
       {/* Progress tracking banner */}
       {progress && (
         <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.825rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 600 }}>
-            <span>{progress.approved_count + progress.dismissed_count} of {progress.total_entities} Reviewed · {remaining} Remaining</span>
-            {progress.is_complete && <span style={{ color: 'var(--text-success)' }}>✓ Onboarding complete</span>}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: '0.825rem',
+              color: 'var(--text-muted)',
+              marginBottom: '0.5rem',
+              fontWeight: 600,
+            }}
+          >
+            <span>
+              {progress.approved_count + progress.dismissed_count} of {progress.total_entities}{' '}
+              Reviewed · {remaining} Remaining
+            </span>
+            {progress.is_complete && (
+              <span style={{ color: 'var(--text-success)' }}>✓ Onboarding complete</span>
+            )}
           </div>
-          <div style={{ height: '8px', background: 'var(--bg-app)', borderRadius: 'var(--radius-full)', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
+          <div
+            style={{
+              height: '8px',
+              background: 'var(--bg-app)',
+              borderRadius: 'var(--radius-full)',
+              overflow: 'hidden',
+              border: '1px solid var(--border-subtle)',
+            }}
+          >
             <div
               style={{
                 width: `${progress.pct_complete}%`,
                 height: '100%',
-                background: progress.is_complete ? 'var(--accent-success)' : 'var(--accent-primary)',
+                background: progress.is_complete
+                  ? 'var(--accent-success)'
+                  : 'var(--accent-primary)',
                 transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
               }}
             />
@@ -403,13 +494,21 @@ export function TriagePage() {
       )}
 
       {error && (
-        <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', marginBottom: '1rem', textTransform: 'none' }}>
+        <div
+          className="badge badge-danger"
+          style={{
+            display: 'block',
+            padding: '0.75rem',
+            marginBottom: '1rem',
+            textTransform: 'none',
+          }}
+        >
           {error}
         </div>
       )}
 
       {/* Perplexity Sonar fact checking card */}
-      <div 
+      <div
         className="card"
         style={{
           borderLeft: '4px solid var(--accent-info)',
@@ -419,42 +518,71 @@ export function TriagePage() {
           gap: '1rem',
           flexWrap: 'wrap',
           marginBottom: '1rem',
-          padding: '1.25rem'
+          padding: '1.25rem',
         }}
       >
         <div style={{ flex: 1, minWidth: '320px' }}>
-          <div style={{ fontWeight: 700, color: 'var(--text-title)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          <div
+            style={{
+              fontWeight: 700,
+              color: 'var(--text-title)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+            }}
+          >
             <Globe size={16} style={{ color: 'var(--accent-info)' }} />
             <span>Fact-Check Senders with Perplexity AI</span>
           </div>
-          <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-            Performs real-time web searches to verify the products or business nature of unrecognized senders and suggests high-accuracy tax classification.
-            {sonarPendingCount > 0 && ` There are ${sonarPendingCount} senders remaining to be enriched.`}
+          <p
+            style={{
+              margin: '0.35rem 0 0 0',
+              fontSize: '0.8rem',
+              color: 'var(--text-muted)',
+              lineHeight: '1.4',
+            }}
+          >
+            Performs real-time web searches to verify the products or business nature of
+            unrecognized senders and suggests high-accuracy tax classification.
+            {sonarPendingCount > 0 &&
+              ` There are ${sonarPendingCount} senders remaining to be enriched.`}
           </p>
         </div>
         <button
           onClick={() => void enrichWithSonar()}
           disabled={busy === 'sonar' || sonarPendingCount === 0}
           className="btn btn-primary"
-          style={{ 
-            background: 'var(--accent-info)', 
+          style={{
+            background: 'var(--accent-info)',
             borderColor: 'var(--accent-info)',
-            padding: '0.5rem 1rem' 
+            padding: '0.5rem 1rem',
           }}
         >
-          {busy === 'sonar' ? 'Enriching senders…' : sonarPendingCount === 0 ? '✓ All Enriched' : `Enrich next ${Math.min(60, sonarPendingCount)}`}
+          {busy === 'sonar'
+            ? 'Enriching senders…'
+            : sonarPendingCount === 0
+              ? '✓ All Enriched'
+              : `Enrich next ${Math.min(60, sonarPendingCount)}`}
         </button>
       </div>
 
       {sonarMsg && (
-        <div className="badge badge-success" style={{ display: 'block', padding: '0.75rem', marginBottom: '1rem', textTransform: 'none' }}>
+        <div
+          className="badge badge-success"
+          style={{
+            display: 'block',
+            padding: '0.75rem',
+            marginBottom: '1rem',
+            textTransform: 'none',
+          }}
+        >
           {sonarMsg}
         </div>
       )}
 
       {/* Sonar Bulk approval banner */}
       {sonarHighConfCount > 0 && (
-        <div 
+        <div
           className="card"
           style={{
             borderLeft: '4px solid var(--accent-info)',
@@ -464,7 +592,7 @@ export function TriagePage() {
             gap: '1rem',
             flexWrap: 'wrap',
             marginBottom: '1rem',
-            padding: '1.25rem'
+            padding: '1.25rem',
           }}
         >
           <div>
@@ -472,7 +600,8 @@ export function TriagePage() {
               ✦ {sonarHighConfCount} Senders verified with high Sonar confidence
             </strong>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-              Approve all these fact-checked categories in one click, overriding default AI heuristic predictions.
+              Approve all these fact-checked categories in one click, overriding default AI
+              heuristic predictions.
             </div>
           </div>
           <button
@@ -480,14 +609,16 @@ export function TriagePage() {
             disabled={busy === 'bulk:sonar-conf'}
             className="btn btn-primary"
           >
-            {busy === 'bulk:sonar-conf' ? 'Approving…' : `Approve all ${sonarHighConfCount} Sonar picks`}
+            {busy === 'bulk:sonar-conf'
+              ? 'Approving…'
+              : `Approve all ${sonarHighConfCount} Sonar picks`}
           </button>
         </div>
       )}
 
       {/* Bulk Dismiss Noise banner */}
       {junkCount > 0 && (
-        <div 
+        <div
           className="card"
           style={{
             borderLeft: '4px solid var(--accent-warning)',
@@ -497,7 +628,7 @@ export function TriagePage() {
             gap: '1rem',
             flexWrap: 'wrap',
             marginBottom: '1rem',
-            padding: '1.25rem'
+            padding: '1.25rem',
           }}
         >
           <div>
@@ -505,7 +636,8 @@ export function TriagePage() {
               ⚠️ {junkCount} Low-confidence junk senders detected
             </strong>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-              These have less than 40% confidence and are likely newsletter, invoice notifications, or marketing noise.
+              These have less than 40% confidence and are likely newsletter, invoice notifications,
+              or marketing noise.
             </div>
           </div>
           <button
@@ -521,7 +653,7 @@ export function TriagePage() {
 
       {/* AI confidence bulk approval card */}
       {highConfCount > 0 && (
-        <div 
+        <div
           className="card"
           style={{
             borderLeft: '4px solid var(--accent-success)',
@@ -531,7 +663,7 @@ export function TriagePage() {
             gap: '1rem',
             flexWrap: 'wrap',
             marginBottom: '1.5rem',
-            padding: '1.25rem'
+            padding: '1.25rem',
           }}
         >
           <div>
@@ -539,7 +671,8 @@ export function TriagePage() {
               ✓ {highConfCount} Senders with ≥80% AI confidence predictions
             </strong>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-              Save time by bulk-approving all highly confident AI predictions into auto-intake rules.
+              Save time by bulk-approving all highly confident AI predictions into auto-intake
+              rules.
             </div>
           </div>
           <button
@@ -554,19 +687,29 @@ export function TriagePage() {
       )}
 
       {/* Triage Group Blocks */}
-      {(['supplier', 'contractor', 'subscription', 'internal_admin', 'customer', 'personal', 'unknown'] as EntityKind[]).map((k) => {
+      {(
+        [
+          'supplier',
+          'contractor',
+          'subscription',
+          'internal_admin',
+          'customer',
+          'personal',
+          'unknown',
+        ] as EntityKind[]
+      ).map((k) => {
         const rows = groups[k] ?? [];
         if (rows.length === 0) return null;
         return (
           <div key={k} style={{ marginBottom: '2.5rem', animation: 'fadeIn 0.3s ease' }}>
-            <div 
-              style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
                 marginBottom: '0.75rem',
                 flexWrap: 'wrap',
-                gap: '0.5rem'
+                gap: '0.5rem',
               }}
             >
               <h2 style={{ fontSize: '1.1rem', margin: 0 }}>
@@ -577,7 +720,11 @@ export function TriagePage() {
                   onClick={() => bulkApproveGroup(k)}
                   disabled={busy === 'bulk:' + k}
                   className="btn btn-secondary"
-                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', color: 'var(--text-success)' }}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    fontSize: '0.75rem',
+                    color: 'var(--text-success)',
+                  }}
                 >
                   ✓ Approve all {rows.length}
                 </button>
@@ -585,7 +732,11 @@ export function TriagePage() {
                   onClick={() => bulkDismissGroup(k)}
                   disabled={busy === 'bulk:' + k}
                   className="btn btn-secondary"
-                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', color: 'var(--text-danger)' }}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    fontSize: '0.75rem',
+                    color: 'var(--text-danger)',
+                  }}
                 >
                   ✕ Dismiss all
                 </button>
@@ -611,7 +762,13 @@ export function TriagePage() {
                       entity={e}
                       categories={categories}
                       busy={busy === e.id}
-                      onApprove={(kind, category) => updateOne(e, { status: 'approved', user_kind: kind, user_category: category })}
+                      onApprove={(kind, category) =>
+                        updateOne(e, {
+                          status: 'approved',
+                          user_kind: kind,
+                          user_category: category,
+                        })
+                      }
                       onDismiss={() => updateOne(e, { status: 'dismissed' })}
                     />
                   ))}
@@ -623,7 +780,16 @@ export function TriagePage() {
       })}
 
       {entities.length === 0 && (
-        <div style={{ padding: '3rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <div
+          style={{
+            padding: '3rem',
+            background: 'var(--bg-card)',
+            border: '1px dashed var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+          }}
+        >
           No staged senders found yet. Run mailbox mining first.
         </div>
       )}
@@ -632,7 +798,11 @@ export function TriagePage() {
 }
 
 function TriageRow({
-  entity, categories, busy, onApprove, onDismiss,
+  entity,
+  categories,
+  busy,
+  onApprove,
+  onDismiss,
 }: {
   entity: StagedEntity;
   categories: { code: string; label: string; xero_account_code: string | null }[];
@@ -659,11 +829,24 @@ function TriageRow({
     <tr style={{ opacity: isReviewed ? 0.65 : 1, transition: 'var(--transition-smooth)' }}>
       <td>
         <div style={{ fontWeight: 700, color: 'var(--text-title)' }}>{entity.display_name}</div>
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.15rem' }}>{entity.primary_email}</div>
-        {entity.abn && <div style={{ color: 'var(--text-success)', fontSize: '0.7rem', fontWeight: 600, marginTop: '0.15rem' }}>ABN: {entity.abn}</div>}
-        
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.15rem' }}>
+          {entity.primary_email}
+        </div>
+        {entity.abn && (
+          <div
+            style={{
+              color: 'var(--text-success)',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              marginTop: '0.15rem',
+            }}
+          >
+            ABN: {entity.abn}
+          </div>
+        )}
+
         {entity.sonar_summary && (
-          <div 
+          <div
             style={{
               marginTop: '0.5rem',
               padding: '0.5rem',
@@ -676,13 +859,19 @@ function TriageRow({
               lineHeight: '1.4',
             }}
           >
-            <span style={{ color: 'var(--accent-info)', fontWeight: 700 }}>✦ Sonar Search:</span> {entity.sonar_summary}
+            <span style={{ color: 'var(--accent-info)', fontWeight: 700 }}>✦ Sonar Search:</span>{' '}
+            {entity.sonar_summary}
             {entity.sonar_evidence_url && (
               <a
                 href={entity.sonar_evidence_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ marginLeft: 6, color: 'var(--accent-primary)', fontSize: '0.7rem', fontWeight: 600 }}
+                style={{
+                  marginLeft: 6,
+                  color: 'var(--accent-primary)',
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                }}
               >
                 Source ↗
               </a>
@@ -692,13 +881,28 @@ function TriageRow({
       </td>
       <td>
         {entity.sample_subjects.slice(0, 2).map((s, i) => (
-          <div key={i} style={{ color: 'var(--text-muted)', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '240px', marginBottom: '0.15rem' }}>
+          <div
+            key={i}
+            style={{
+              color: 'var(--text-muted)',
+              fontSize: '0.75rem',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: '240px',
+              marginBottom: '0.15rem',
+            }}
+          >
             {s}
           </div>
         ))}
       </td>
-      <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>{entity.message_count}</td>
-      <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>{entity.attachment_count}</td>
+      <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>
+        {entity.message_count}
+      </td>
+      <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>
+        {entity.attachment_count}
+      </td>
       <td>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <select
@@ -711,14 +915,16 @@ function TriageRow({
             <option value="">— select category —</option>
             {categories.map((c) => (
               <option key={c.code} value={c.code}>
-                {c.label}{c.xero_account_code ? ` (${c.xero_account_code})` : ''}
+                {c.label}
+                {c.xero_account_code ? ` (${c.xero_account_code})` : ''}
               </option>
             ))}
           </select>
           <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', paddingLeft: '0.25rem' }}>
-            Creates {kindActionLabel(derivedKind)} · {Math.round(entity.confidence * 100)}% confidence
+            Creates {kindActionLabel(derivedKind)} · {Math.round(entity.confidence * 100)}%
+            confidence
           </div>
-          
+
           {sonarDiffers && !isReviewed && (
             <button
               onClick={applySonar}
@@ -730,7 +936,7 @@ function TriageRow({
                 fontSize: '0.7rem',
                 color: 'var(--text-info)',
                 borderColor: 'var(--accent-info)',
-                alignSelf: 'flex-start'
+                alignSelf: 'flex-start',
               }}
               title={`Sonar suggests: ${entity.sonar_suggested_category ?? '?'} (${entity.sonar_confidence != null ? Math.round(entity.sonar_confidence * 100) : '?'}%)`}
             >
@@ -741,7 +947,10 @@ function TriageRow({
       </td>
       <td>
         {isReviewed ? (
-          <span className={`badge ${entity.status === 'approved' ? 'badge-success' : 'badge-neutral'}`} style={{ padding: '0.35rem 0.75rem', display: 'inline-flex' }}>
+          <span
+            className={`badge ${entity.status === 'approved' ? 'badge-success' : 'badge-neutral'}`}
+            style={{ padding: '0.35rem 0.75rem', display: 'inline-flex' }}
+          >
             {entity.status}
           </span>
         ) : (
@@ -750,15 +959,17 @@ function TriageRow({
               onClick={() => onApprove(derivedKind, category)}
               disabled={busy || !category}
               className="btn btn-primary"
-              style={{ 
-                padding: '0.35rem 0.75rem', 
-                fontSize: '0.75rem', 
-                flex: 1, 
+              style={{
+                padding: '0.35rem 0.75rem',
+                fontSize: '0.75rem',
+                flex: 1,
                 opacity: !category ? 0.5 : 1,
                 background: 'var(--accent-success)',
-                borderColor: 'var(--accent-success)'
+                borderColor: 'var(--accent-success)',
               }}
-              title={!category ? 'Pick a category first' : `Approve as ${kindActionLabel(derivedKind)}`}
+              title={
+                !category ? 'Pick a category first' : `Approve as ${kindActionLabel(derivedKind)}`
+              }
             >
               {busy ? '…' : 'Approve'}
             </button>
@@ -766,7 +977,12 @@ function TriageRow({
               onClick={onDismiss}
               disabled={busy}
               className="btn btn-secondary"
-              style={{ padding: '0.35rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-danger)', borderColor: 'var(--accent-danger)' }}
+              style={{
+                padding: '0.35rem 0.5rem',
+                fontSize: '0.75rem',
+                color: 'var(--text-danger)',
+                borderColor: 'var(--accent-danger)',
+              }}
             >
               ✕ Dismiss
             </button>
@@ -779,41 +995,62 @@ function TriageRow({
 
 function kindLabel(k: EntityKind): string {
   switch (k) {
-    case 'supplier': return 'Suppliers';
-    case 'contractor': return 'Contractors';
-    case 'customer': return 'Customers';
-    case 'subscription': return 'Subscriptions';
-    case 'internal_admin': return 'Government & Admin';
-    case 'personal': return 'Personal Expenses';
-    case 'unknown': return 'Needs Review';
+    case 'supplier':
+      return 'Suppliers';
+    case 'contractor':
+      return 'Contractors';
+    case 'customer':
+      return 'Customers';
+    case 'subscription':
+      return 'Subscriptions';
+    case 'internal_admin':
+      return 'Government & Admin';
+    case 'personal':
+      return 'Personal Expenses';
+    case 'unknown':
+      return 'Needs Review';
   }
 }
 
 function kindActionLabel(k: EntityKind): string {
   switch (k) {
-    case 'supplier': return 'Supplier';
-    case 'contractor': return 'Subcontractor';
-    case 'customer': return 'Customer';
-    case 'subscription': return 'Subscription';
-    case 'internal_admin': return 'Gov/Admin supplier';
-    case 'personal': return 'Personal rule';
-    case 'unknown': return 'Intake rule';
+    case 'supplier':
+      return 'Supplier';
+    case 'contractor':
+      return 'Subcontractor';
+    case 'customer':
+      return 'Customer';
+    case 'subscription':
+      return 'Subscription';
+    case 'internal_admin':
+      return 'Gov/Admin supplier';
+    case 'personal':
+      return 'Personal rule';
+    case 'unknown':
+      return 'Intake rule';
   }
 }
 
 function kindFromCategory(category: string | null): EntityKind | null {
   if (!category) return null;
   switch (category) {
-    case 'customer_payment': return 'customer';
-    case 'personal_expense': return 'personal';
+    case 'customer_payment':
+      return 'customer';
+    case 'personal_expense':
+      return 'personal';
     case 'subscriptions_saas':
-    case 'telephone_internet': return 'subscription';
-    case 'ato_bas_super': return 'internal_admin';
-    case 'subcontractor': return 'contractor';
+    case 'telephone_internet':
+      return 'subscription';
+    case 'ato_bas_super':
+      return 'internal_admin';
+    case 'subcontractor':
+      return 'contractor';
     case 'employee_wages':
     case 'bank_fees':
     case 'refunds':
-    case 'uncategorized': return 'unknown';
-    default: return 'supplier';
+    case 'uncategorized':
+      return 'unknown';
+    default:
+      return 'supplier';
   }
 }

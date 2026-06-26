@@ -36,7 +36,13 @@ interface SplitRow {
   notes: string | null;
 }
 
-export function AllocationSplitButton({ resourceType, resourceId, hostOrgId, label, onSaved }: Props) {
+export function AllocationSplitButton({
+  resourceType,
+  resourceId,
+  hostOrgId,
+  label,
+  onSaved,
+}: Props) {
   const { organizations } = useOrg();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -84,7 +90,10 @@ export function AllocationSplitButton({ resourceType, resourceId, hostOrgId, lab
 
   if (otherOrgs.length === 0) return null;
 
-  const totalSplit = splits.reduce((acc, s) => acc + (Number.isFinite(s.percentage) ? s.percentage : 0), 0);
+  const totalSplit = splits.reduce(
+    (acc, s) => acc + (Number.isFinite(s.percentage) ? s.percentage : 0),
+    0,
+  );
   const hostShare = Math.max(0, 100 - totalSplit);
   const overTotal = totalSplit > 100;
 
@@ -106,9 +115,7 @@ export function AllocationSplitButton({ resourceType, resourceId, hostOrgId, lab
 
   const updateNotes = (orgId: string, raw: string) => {
     setSplits((prev) =>
-      prev.map((s) =>
-        s.organization_id === orgId ? { ...s, notes: raw.trim() || null } : s,
-      ),
+      prev.map((s) => (s.organization_id === orgId ? { ...s, notes: raw.trim() || null } : s)),
     );
   };
 
@@ -234,7 +241,9 @@ export function AllocationSplitButton({ resourceType, resourceId, hostOrgId, lab
                   fontSize: 12,
                 }}
               >
-                <span style={{ color: '#86c7a3' }}>★ {hostOrgName} <span style={{ color: '#666' }}>(host)</span></span>
+                <span style={{ color: '#86c7a3' }}>
+                  ★ {hostOrgName} <span style={{ color: '#666' }}>(host)</span>
+                </span>
                 <span style={{ color: '#86c7a3', fontWeight: 600 }}>{hostShare.toFixed(2)}%</span>
               </div>
 
@@ -251,7 +260,14 @@ export function AllocationSplitButton({ resourceType, resourceId, hostOrgId, lab
                       borderBottom: '1px solid #1a1a1a',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 6,
+                      }}
+                    >
                       <span style={{ fontSize: 12, color: '#ddd' }}>
                         {org?.name ?? s.organization_id.slice(0, 8)}
                       </span>
@@ -393,9 +409,7 @@ export function AllocationSplitButton({ resourceType, resourceId, hostOrgId, lab
                   cancel
                 </button>
               </div>
-              {err && (
-                <p style={{ margin: '0.5rem 0 0', color: 'salmon', fontSize: 11 }}>{err}</p>
-              )}
+              {err && <p style={{ margin: '0.5rem 0 0', color: 'salmon', fontSize: 11 }}>{err}</p>}
             </>
           )}
         </div>

@@ -46,7 +46,9 @@ export function BankConnect() {
     if (!mobile) return;
     setConnecting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in');
       const redirect_uri = `${window.location.origin}/settings/bank-callback`;
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bank-link-token`;
@@ -69,7 +71,9 @@ export function BankConnect() {
   };
 
   const handleSync = async (id: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) return;
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bank-sync`;
     await fetch(url, {
@@ -87,9 +91,9 @@ export function BankConnect() {
     <div style={{ marginTop: '2rem' }}>
       <h2 style={{ fontSize: 18, marginBottom: '0.5rem' }}>Bank accounts</h2>
       <p style={{ color: '#888', fontSize: 13, marginBottom: '1rem', maxWidth: 720 }}>
-        Connect your business bank accounts via Basiq (CommBank, NAB, Westpac, ANZ + 100s of others).
-        Transactions are imported and matched against your bills + invoices, ready for you to review
-        and reconcile on the Reconciliation page.
+        Connect your business bank accounts via Basiq (CommBank, NAB, Westpac, ANZ + 100s of
+        others). Transactions are imported and matched against your bills + invoices, ready for you
+        to review and reconcile on the Reconciliation page.
       </p>
 
       {loading ? (
@@ -142,9 +146,7 @@ export function BankConnect() {
                       </div>
                     )}
                   </td>
-                  <td style={td}>
-                    {c.last_synced_at?.slice(0, 16).replace('T', ' ') ?? 'never'}
-                  </td>
+                  <td style={td}>{c.last_synced_at?.slice(0, 16).replace('T', ' ') ?? 'never'}</td>
                   <td style={td}>
                     {c.provider === 'basiq' ? (
                       <button onClick={() => handleSync(c.id)} style={smallBtn}>
@@ -188,7 +190,10 @@ export function BankConnect() {
         <p style={{ color: 'salmon', fontSize: 12, marginTop: '0.5rem' }}>
           {error}
           {error.includes('BASIQ_API_KEY') && (
-            <> — set up Basiq via <code>SETUP_BANK_FEEDS.md</code> first.</>
+            <>
+              {' '}
+              — set up Basiq via <code>SETUP_BANK_FEEDS.md</code> first.
+            </>
           )}
         </p>
       )}
@@ -197,19 +202,27 @@ export function BankConnect() {
 }
 
 function StatusPill({ status }: { status: BankConnectionRow['status'] }) {
-  const colour = status === 'active' ? '#86c7a3'
-    : status === 'expired' || status === 'revoked' ? '#e9a3a3'
-    : status === 'error' ? '#e9a3a3'
-    : '#888';
+  const colour =
+    status === 'active'
+      ? '#86c7a3'
+      : status === 'expired' || status === 'revoked'
+        ? '#e9a3a3'
+        : status === 'error'
+          ? '#e9a3a3'
+          : '#888';
   return (
-    <span style={{
-      padding: '0.15rem 0.5rem',
-      fontSize: 11,
-      borderRadius: 3,
-      background: '#222',
-      color: colour,
-      textTransform: 'uppercase',
-    }}>{status}</span>
+    <span
+      style={{
+        padding: '0.15rem 0.5rem',
+        fontSize: 11,
+        borderRadius: 3,
+        background: '#222',
+        color: colour,
+        textTransform: 'uppercase',
+      }}
+    >
+      {status}
+    </span>
   );
 }
 

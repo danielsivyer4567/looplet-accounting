@@ -51,7 +51,10 @@ export function OrgSelector() {
       setName('');
     };
     return (
-      <form onSubmit={onSubmit} style={{ background: '#1a1a1a', padding: '0.75rem', borderRadius: 6 }}>
+      <form
+        onSubmit={onSubmit}
+        style={{ background: '#1a1a1a', padding: '0.75rem', borderRadius: 6 }}
+      >
         <input
           type="text"
           placeholder="Business name"
@@ -69,7 +72,9 @@ export function OrgSelector() {
             marginBottom: '0.5rem',
           }}
         />
-        {error && <div style={{ color: 'salmon', fontSize: 12, marginBottom: '0.5rem' }}>{error}</div>}
+        {error && (
+          <div style={{ color: 'salmon', fontSize: 12, marginBottom: '0.5rem' }}>{error}</div>
+        )}
         <div style={{ display: 'flex', gap: '0.25rem' }}>
           <button type="submit" disabled={busy} style={{ flex: 1, padding: '0.4rem' }}>
             {busy ? 'Creating…' : 'Create'}

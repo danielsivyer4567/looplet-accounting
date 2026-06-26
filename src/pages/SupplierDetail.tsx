@@ -5,7 +5,17 @@ import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { ArchiveButton } from '@/components/ArchiveButton';
-import { ChevronLeft, Plus, Edit3, Save, Building2, DollarSign, Wallet, FileSpreadsheet, type LucideIcon } from 'lucide-react';
+import {
+  ChevronLeft,
+  Plus,
+  Edit3,
+  Save,
+  Building2,
+  DollarSign,
+  Wallet,
+  FileSpreadsheet,
+  type LucideIcon,
+} from 'lucide-react';
 
 interface Supplier {
   id: string;
@@ -48,7 +58,9 @@ export function SupplierDetailPage() {
     const [supRes, billRes] = await Promise.all([
       supabase
         .from('suppliers')
-        .select('id, name, abn, email, contact_phone, default_account_code, payment_terms_days, current_balance_owing_cents, created_at, deleted_at')
+        .select(
+          'id, name, abn, email, contact_phone, default_account_code, payment_terms_days, current_balance_owing_cents, created_at, deleted_at',
+        )
         .eq('id', id)
         .eq('organization_id', currentOrg.id)
         .maybeSingle(),
@@ -97,13 +109,21 @@ export function SupplierDetailPage() {
       .update(payload)
       .eq('id', supplier.id);
     setSaving(false);
-    if (saveErr) { setError(saveErr.message); return; }
+    if (saveErr) {
+      setError(saveErr.message);
+      return;
+    }
     setEditing(false);
     void refresh();
   };
 
   if (!currentOrg) return null;
-  if (loading) return <section><p style={{ color: 'var(--text-muted)' }}>Loading supplier details…</p></section>;
+  if (loading)
+    return (
+      <section>
+        <p style={{ color: 'var(--text-muted)' }}>Loading supplier details…</p>
+      </section>
+    );
   if (!supplier) {
     return (
       <section className="animated-fade-in" style={{ padding: '2rem 0', textAlign: 'center' }}>
@@ -124,15 +144,15 @@ export function SupplierDetailPage() {
   return (
     <section className="animated-fade-in">
       {/* Back button */}
-      <Link 
-        to="/suppliers" 
-        style={{ 
-          color: 'var(--text-muted)', 
-          fontSize: '0.825rem', 
-          display: 'inline-flex', 
-          alignItems: 'center', 
+      <Link
+        to="/suppliers"
+        style={{
+          color: 'var(--text-muted)',
+          fontSize: '0.825rem',
+          display: 'inline-flex',
+          alignItems: 'center',
           gap: '0.25rem',
-          marginBottom: '1rem'
+          marginBottom: '1rem',
         }}
       >
         <ChevronLeft size={14} />
@@ -140,51 +160,56 @@ export function SupplierDetailPage() {
       </Link>
 
       {/* Header section */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: '1.5rem',
           flexWrap: 'wrap',
-          gap: '1rem'
+          gap: '1rem',
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Building2 size={24} style={{ color: 'var(--accent-primary)' }} />
           {supplier.name}
         </h1>
-        
+
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button 
-            onClick={() => navigate(`/bills/new?supplier_id=${supplier.id}`)} 
+          <button
+            onClick={() => navigate(`/bills/new?supplier_id=${supplier.id}`)}
             className="btn btn-primary"
           >
             <Plus size={16} />
             <span>New bill</span>
           </button>
-          
-          <MoveToOrgButton 
-            table="suppliers" 
-            rowId={supplier.id} 
-            currentOrgId={currentOrg.id} 
-            onMoved={() => { window.location.href = '/suppliers'; }} 
+
+          <MoveToOrgButton
+            table="suppliers"
+            rowId={supplier.id}
+            currentOrgId={currentOrg.id}
+            onMoved={() => {
+              window.location.href = '/suppliers';
+            }}
           />
-          
+
           {!editing && (
             <button onClick={startEdit} className="btn btn-secondary">
               <Edit3 size={14} />
               <span>Edit</span>
             </button>
           )}
-          
+
           <ArchiveButton
             table="suppliers"
             rowId={supplier.id}
             isArchived={!!supplier.deleted_at}
             onChange={(nowArchived) => {
-              if (nowArchived) { window.location.href = '/suppliers'; }
-              else { void refresh(); }
+              if (nowArchived) {
+                window.location.href = '/suppliers';
+              } else {
+                void refresh();
+              }
             }}
           />
         </div>
@@ -194,47 +219,120 @@ export function SupplierDetailPage() {
       {editing ? (
         <div className="card" style={{ marginBottom: '1.5rem', maxWidth: '720px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '1rem',
+              }}
+            >
               <Field label="Name">
-                <input value={draft.name ?? ''} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className="form-input" />
+                <input
+                  value={draft.name ?? ''}
+                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                  className="form-input"
+                />
               </Field>
               <Field label="ABN">
-                <input value={draft.abn ?? ''} onChange={(e) => setDraft({ ...draft, abn: e.target.value })} className="form-input" />
-              </Field>
-            </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-              <Field label="Email">
-                <input type="email" value={draft.email ?? ''} onChange={(e) => setDraft({ ...draft, email: e.target.value })} className="form-input" />
-              </Field>
-              <Field label="Phone">
-                <input type="tel" value={draft.contact_phone ?? ''} onChange={(e) => setDraft({ ...draft, contact_phone: e.target.value })} className="form-input" />
+                <input
+                  value={draft.abn ?? ''}
+                  onChange={(e) => setDraft({ ...draft, abn: e.target.value })}
+                  className="form-input"
+                />
               </Field>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-              <Field label="Default Account Code (Xero)">
-                <input value={draft.default_account_code ?? ''} onChange={(e) => setDraft({ ...draft, default_account_code: e.target.value })} placeholder="e.g. 310" className="form-input" />
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '1rem',
+              }}
+            >
+              <Field label="Email">
+                <input
+                  type="email"
+                  value={draft.email ?? ''}
+                  onChange={(e) => setDraft({ ...draft, email: e.target.value })}
+                  className="form-input"
+                />
               </Field>
-              <Field label="Payment Terms (days)">
-                <input type="number" value={draft.payment_terms_days ?? 30} onChange={(e) => setDraft({ ...draft, payment_terms_days: Number(e.target.value) })} className="form-input" />
+              <Field label="Phone">
+                <input
+                  type="tel"
+                  value={draft.contact_phone ?? ''}
+                  onChange={(e) => setDraft({ ...draft, contact_phone: e.target.value })}
+                  className="form-input"
+                />
               </Field>
             </div>
-            
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '1rem',
+              }}
+            >
+              <Field label="Default Account Code (Xero)">
+                <input
+                  value={draft.default_account_code ?? ''}
+                  onChange={(e) => setDraft({ ...draft, default_account_code: e.target.value })}
+                  placeholder="e.g. 310"
+                  className="form-input"
+                />
+              </Field>
+              <Field label="Payment Terms (days)">
+                <input
+                  type="number"
+                  value={draft.payment_terms_days ?? 30}
+                  onChange={(e) =>
+                    setDraft({ ...draft, payment_terms_days: Number(e.target.value) })
+                  }
+                  className="form-input"
+                />
+              </Field>
+            </div>
+
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-              <button onClick={save} disabled={saving} className="btn btn-primary" style={{ padding: '0.625rem 1.25rem' }}>
+              <button
+                onClick={save}
+                disabled={saving}
+                className="btn btn-primary"
+                style={{ padding: '0.625rem 1.25rem' }}
+              >
                 <Save size={14} />
                 <span>{saving ? 'Saving…' : 'Save'}</span>
               </button>
-              <button onClick={() => setEditing(false)} disabled={saving} className="btn btn-secondary" style={{ padding: '0.625rem 1.25rem' }}>
+              <button
+                onClick={() => setEditing(false)}
+                disabled={saving}
+                className="btn btn-secondary"
+                style={{ padding: '0.625rem 1.25rem' }}
+              >
                 <span>Cancel</span>
               </button>
             </div>
-            {error && <div className="badge badge-danger" style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}>{error}</div>}
+            {error && (
+              <div
+                className="badge badge-danger"
+                style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}
+              >
+                {error}
+              </div>
+            )}
           </div>
         </div>
       ) : (
-        <div className="card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
+        <div
+          className="card"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '1.25rem',
+            marginBottom: '1.5rem',
+          }}
+        >
           <Stat label="ABN" value={supplier.abn ?? '—'} />
           <Stat label="Email" value={supplier.email ?? '—'} />
           <Stat label="Phone" value={supplier.contact_phone ?? '—'} />
@@ -245,32 +343,56 @@ export function SupplierDetailPage() {
       )}
 
       {/* KPI Cards */}
-      <div 
-        style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: '1rem',
-          marginBottom: '2.5rem'
+          marginBottom: '2.5rem',
         }}
       >
         <Kpi label="Total Spend" value={formatMoney(totalSpend)} type="neutral" icon={Wallet} />
-        <Kpi 
-          label="Balance Owing" 
-          value={formatMoney(balanceOwing)} 
-          type={balanceOwing > 0 ? 'danger' : 'neutral'} 
+        <Kpi
+          label="Balance Owing"
+          value={formatMoney(balanceOwing)}
+          type={balanceOwing > 0 ? 'danger' : 'neutral'}
           icon={DollarSign}
           sub={`${unpaid.length} unpaid`}
         />
-        <Kpi label="Bills Received" value={String(bills.length)} type="info" icon={FileSpreadsheet} sub={`${billsAttached} attached to jobs`} />
+        <Kpi
+          label="Bills Received"
+          value={String(bills.length)}
+          type="info"
+          icon={FileSpreadsheet}
+          sub={`${billsAttached} attached to jobs`}
+        />
       </div>
 
       {/* Bills table */}
-      <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+      <h2
+        style={{
+          fontSize: '1.25rem',
+          marginBottom: '0.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.35rem',
+        }}
+      >
         <FileSpreadsheet size={16} style={{ color: 'var(--text-muted)' }} />
         Bills from this supplier
       </h2>
       {bills.length === 0 ? (
-        <div style={{ padding: '2rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+        <div
+          style={{
+            padding: '2rem',
+            background: 'var(--bg-card)',
+            border: '1px dashed var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+            fontSize: '0.875rem',
+          }}
+        >
           No bills yet from this supplier.
         </div>
       ) : (
@@ -293,12 +415,28 @@ export function SupplierDetailPage() {
                   style={{ cursor: 'pointer' }}
                   onClick={() => navigate(`/bills/${b.id}`)}
                 >
-                  <td><code>{b.invoice_number ?? '—'}</code></td>
+                  <td>
+                    <code>{b.invoice_number ?? '—'}</code>
+                  </td>
                   <td>{b.invoice_date ?? '—'}</td>
                   <td>{b.due_date ?? '—'}</td>
-                  <td><Pill status={b.status} /></td>
-                  <td>{b.job_id ? <span className="badge badge-success">Attached</span> : <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>—</span>}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{b.total_inc_gst_cents != null ? formatMoney(b.total_inc_gst_cents) : <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
+                  <td>
+                    <Pill status={b.status} />
+                  </td>
+                  <td>
+                    {b.job_id ? (
+                      <span className="badge badge-success">Attached</span>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>—</span>
+                    )}
+                  </td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                    {b.total_inc_gst_cents != null ? (
+                      formatMoney(b.total_inc_gst_cents)
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)' }}>—</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -312,7 +450,9 @@ export function SupplierDetailPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="form-group" style={{ marginBottom: 0 }}>
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>{label}</span>
+      <span className="form-label" style={{ fontSize: '0.725rem' }}>
+        {label}
+      </span>
       <div style={{ marginTop: '0.25rem' }}>{children}</div>
     </div>
   );
@@ -321,56 +461,92 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Stat({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+      <div
+        style={{
+          fontSize: '0.675rem',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          fontWeight: 700,
+        }}
+      >
         {label}
       </div>
-      <div style={{ 
-        marginTop: '0.25rem', 
-        color: 'var(--text-title)', 
-        fontSize: '0.9rem', 
-        fontWeight: 600,
-        fontFamily: mono ? 'var(--font-mono, monospace)' : 'inherit'
-      }}>
+      <div
+        style={{
+          marginTop: '0.25rem',
+          color: 'var(--text-title)',
+          fontSize: '0.9rem',
+          fontWeight: 600,
+          fontFamily: mono ? 'var(--font-mono, monospace)' : 'inherit',
+        }}
+      >
         {value}
       </div>
     </div>
   );
 }
 
-function Kpi({ 
-  label, 
-  value, 
+function Kpi({
+  label,
+  value,
   type,
   icon: Icon,
-  sub 
-}: { 
-  label: string; 
-  value: string; 
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral'; 
+  sub,
+}: {
+  label: string;
+  value: string;
+  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
   icon: LucideIcon;
   sub?: string;
 }) {
   return (
-    <div 
+    <div
       className="card"
-      style={{ 
+      style={{
         padding: '1.25rem',
         borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative'
+        position: 'relative',
       }}
     >
-      <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+      <div
+        style={{
+          fontSize: '0.675rem',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          fontWeight: 700,
+        }}
+      >
         {label}
       </div>
-      <div style={{ marginTop: '0.35rem', fontSize: '1.5rem', color: 'var(--text-title)', fontWeight: 800, fontFamily: 'var(--font-title)' }}>
+      <div
+        style={{
+          marginTop: '0.35rem',
+          fontSize: '1.5rem',
+          color: 'var(--text-title)',
+          fontWeight: 800,
+          fontFamily: 'var(--font-title)',
+        }}
+      >
         {value}
       </div>
       {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>{sub}</div>
+        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+          {sub}
+        </div>
       ) : (
         <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
       )}
-      <div style={{ position: 'absolute', right: '1rem', bottom: '1rem', color: `var(--accent-${type === 'neutral' ? 'primary' : type})`, opacity: 0.7 }}>
+      <div
+        style={{
+          position: 'absolute',
+          right: '1rem',
+          bottom: '1rem',
+          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
+          opacity: 0.7,
+        }}
+      >
         <Icon size={18} />
       </div>
     </div>
@@ -379,10 +555,11 @@ function Kpi({
 
 function Pill({ status }: { status: string }) {
   let badgeClass = 'badge-neutral';
-  if (status === 'paid' || status === 'completed' || status === 'active' || status === 'verified') badgeClass = 'badge-success';
+  if (status === 'paid' || status === 'completed' || status === 'active' || status === 'verified')
+    badgeClass = 'badge-success';
   else if (status === 'attached' || status === 'sent') badgeClass = 'badge-info';
   else if (status === 'partially_paid' || status === 'draft') badgeClass = 'badge-warning';
   else if (status === 'void' || status === 'overdue') badgeClass = 'badge-danger';
-  
+
   return <span className={`badge ${badgeClass}`}>{status.replace('_', ' ')}</span>;
 }

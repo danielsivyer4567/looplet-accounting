@@ -15,7 +15,7 @@ import {
   Clock,
   TrendingUp,
   History,
-  CreditCard
+  CreditCard,
 } from 'lucide-react';
 
 interface Subscription {
@@ -168,7 +168,9 @@ export function SubscriptionDetailPage() {
     setRedetecting(true);
     setRedetectMsg(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in');
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/subscriptions-detect`,
@@ -183,7 +185,9 @@ export function SubscriptionDetailPage() {
       );
       const body = await res.json();
       if (!res.ok || !body.ok) throw new Error(body.error ?? `${res.status}`);
-      setRedetectMsg(`Scanned ${body.scanned_txns} txns · ${body.upserted} new + ${body.updated} updated`);
+      setRedetectMsg(
+        `Scanned ${body.scanned_txns} txns · ${body.upserted} new + ${body.updated} updated`,
+      );
       void refresh();
     } catch (e) {
       setRedetectMsg('Detection error: ' + (e instanceof Error ? e.message : String(e)));
@@ -223,7 +227,10 @@ export function SubscriptionDetailPage() {
 
   if (!sub) {
     return (
-      <section className="animated-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <section
+        className="animated-fade-in"
+        style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+      >
         <h1>Subscription Not Found</h1>
         <Link to="/subscriptions" className="btn btn-secondary" style={{ width: 'fit-content' }}>
           <ArrowLeft className="w-4 h-4" /> Back to Subscriptions
@@ -236,13 +243,34 @@ export function SubscriptionDetailPage() {
   const annual = monthly * 12;
 
   return (
-    <section className="animated-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <section
+      className="animated-fade-in"
+      style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}
+    >
       <div>
-        <Link to="/subscriptions" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+        <Link
+          to="/subscriptions"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.25rem',
+            fontSize: '0.875rem',
+            color: 'var(--text-muted)',
+            marginBottom: '1rem',
+          }}
+        >
           <ArrowLeft className="w-4 h-4" /> Back to all subscriptions
         </Link>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             <h1 style={{ margin: 0 }}>{sub.merchant_name}</h1>
             <StatusPill status={sub.status} />
@@ -276,12 +304,26 @@ export function SubscriptionDetailPage() {
       </div>
 
       {redetectMsg && (
-        <div className={`badge ${redetectMsg.startsWith('Detection error') ? 'badge-danger' : 'badge-success'}`} style={{ display: 'block', padding: '0.625rem 1rem', textTransform: 'none', width: 'fit-content' }}>
+        <div
+          className={`badge ${redetectMsg.startsWith('Detection error') ? 'badge-danger' : 'badge-success'}`}
+          style={{
+            display: 'block',
+            padding: '0.625rem 1rem',
+            textTransform: 'none',
+            width: 'fit-content',
+          }}
+        >
           {redetectMsg}
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '1rem',
+        }}
+      >
         <KpiCard
           label="Recurring Amount"
           value={formatMoney(sub.amount_cents)}
@@ -324,11 +366,25 @@ export function SubscriptionDetailPage() {
 
       {editing ? (
         <div className="card-gradient">
-          <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h3
+            style={{
+              marginTop: 0,
+              marginBottom: '1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+          >
             <Edit2 className="w-5 h-5" /> Edit Subscription Settings
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '1rem',
+              }}
+            >
               <div className="form-group">
                 <label className="form-label">Subscription Status</label>
                 <select
@@ -336,7 +392,11 @@ export function SubscriptionDetailPage() {
                   value={String(draft.status ?? sub.status)}
                   onChange={(e) => setDraft({ ...draft, status: e.target.value })}
                 >
-                  {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="form-group">
@@ -346,7 +406,11 @@ export function SubscriptionDetailPage() {
                   value={String(draft.cadence ?? sub.cadence)}
                   onChange={(e) => setDraft({ ...draft, cadence: e.target.value })}
                 >
-                  {CADENCE_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {CADENCE_OPTIONS.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -356,24 +420,36 @@ export function SubscriptionDetailPage() {
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button
                   type="button"
-                  onClick={() => setDraft({ ...draft, is_business: !draft.is_business, is_personal: false })}
+                  onClick={() =>
+                    setDraft({ ...draft, is_business: !draft.is_business, is_personal: false })
+                  }
                   className="btn"
                   style={{
-                    backgroundColor: draft.is_business && !draft.is_personal ? 'var(--bg-success-subtle)' : 'var(--bg-hover)',
-                    color: draft.is_business && !draft.is_personal ? 'var(--text-success)' : 'var(--text-muted)',
-                    border: `1px solid ${draft.is_business && !draft.is_personal ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-subtle)'}`
+                    backgroundColor:
+                      draft.is_business && !draft.is_personal
+                        ? 'var(--bg-success-subtle)'
+                        : 'var(--bg-hover)',
+                    color:
+                      draft.is_business && !draft.is_personal
+                        ? 'var(--text-success)'
+                        : 'var(--text-muted)',
+                    border: `1px solid ${draft.is_business && !draft.is_personal ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-subtle)'}`,
                   }}
                 >
                   Business (Deductible)
                 </button>
                 <button
                   type="button"
-                  onClick={() => setDraft({ ...draft, is_personal: !draft.is_personal, is_business: false })}
+                  onClick={() =>
+                    setDraft({ ...draft, is_personal: !draft.is_personal, is_business: false })
+                  }
                   className="btn"
                   style={{
-                    backgroundColor: draft.is_personal ? 'var(--bg-warning-subtle)' : 'var(--bg-hover)',
+                    backgroundColor: draft.is_personal
+                      ? 'var(--bg-warning-subtle)'
+                      : 'var(--bg-hover)',
                     color: draft.is_personal ? 'var(--text-warning)' : 'var(--text-muted)',
-                    border: `1px solid ${draft.is_personal ? 'rgba(245, 158, 11, 0.2)' : 'var(--border-subtle)'}`
+                    border: `1px solid ${draft.is_personal ? 'rgba(245, 158, 11, 0.2)' : 'var(--border-subtle)'}`,
                   }}
                 >
                   Personal (Non-Deductible)
@@ -395,25 +471,62 @@ export function SubscriptionDetailPage() {
               <button className="btn btn-primary" onClick={save} disabled={saving}>
                 {saving ? 'Saving Changes…' : 'Save Changes'}
               </button>
-              <button className="btn btn-secondary" onClick={() => setEditing(false)} disabled={saving}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setEditing(false)}
+                disabled={saving}
+              >
                 Cancel
               </button>
             </div>
             {error && (
-              <div className="badge badge-danger" style={{ display: 'block', padding: '0.5rem 1rem', textTransform: 'none' }}>
+              <div
+                className="badge badge-danger"
+                style={{ display: 'block', padding: '0.5rem 1rem', textTransform: 'none' }}
+              >
                 {error}
               </div>
             )}
           </div>
         </div>
       ) : (
-        <div className="card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-          <StatField label="Billing Cadence" value={sub.cadence} style={{ textTransform: 'capitalize' }} />
+        <div
+          className="card"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '1.5rem',
+          }}
+        >
+          <StatField
+            label="Billing Cadence"
+            value={sub.cadence}
+            style={{ textTransform: 'capitalize' }}
+          />
           <StatField label="Currency Setting" value={sub.currency_code ?? 'AUD'} />
-          <StatField label="Confidence Rating" value={sub.confidence != null ? `${(sub.confidence * 100).toFixed(0)}%` : '—'} />
-          <StatField label="Detection Origin" value={sub.detection_reason ?? 'Auto-scanned description match'} />
-          <StatField label="Classification" value={sub.is_business ? 'Business Account' : sub.is_personal ? 'Personal Account' : 'Unclassified'} />
-          <StatField label="Canonical Merchant Key" value={sub.merchant_canonical_key ?? '—'} mono />
+          <StatField
+            label="Confidence Rating"
+            value={sub.confidence != null ? `${(sub.confidence * 100).toFixed(0)}%` : '—'}
+          />
+          <StatField
+            label="Detection Origin"
+            value={sub.detection_reason ?? 'Auto-scanned description match'}
+          />
+          <StatField
+            label="Classification"
+            value={
+              sub.is_business
+                ? 'Business Account'
+                : sub.is_personal
+                  ? 'Personal Account'
+                  : 'Unclassified'
+            }
+          />
+          <StatField
+            label="Canonical Merchant Key"
+            value={sub.merchant_canonical_key ?? '—'}
+            mono
+          />
           <StatField label="First Billing Match" value={sub.first_seen_at?.slice(0, 10) ?? '—'} />
           <StatField label="Last Billing Match" value={sub.last_seen_at?.slice(0, 10) ?? '—'} />
           <div style={{ gridColumn: '1 / -1' }}>
@@ -423,23 +536,45 @@ export function SubscriptionDetailPage() {
       )}
 
       <div>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Monthly History (Last 8 Months)</h2>
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>
+          Monthly History (Last 8 Months)
+        </h2>
         {monthlyBars.every((b) => b.value === 0) ? (
-          <div className="card" style={{ padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+          <div
+            className="card"
+            style={{ padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}
+          >
             No matching transactions were observed in the last 8 months.
           </div>
         ) : (
-          <div className="card" style={{ display: 'flex', justifyContent: 'center', padding: '2rem 1.5rem', overflowX: 'auto' }}>
+          <div
+            className="card"
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              padding: '2rem 1.5rem',
+              overflowX: 'auto',
+            }}
+          >
             <MonthlyBars bars={monthlyBars} />
           </div>
         )}
       </div>
 
       <div>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Matching Bank Transactions (Last 24 Months)</h2>
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>
+          Matching Bank Transactions (Last 24 Months)
+        </h2>
         {txns.length === 0 ? (
-          <div className="card" style={{ padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-            No matching bank transactions found for canonical key <code style={{ color: 'var(--text-title)', fontSize: '0.85rem' }}>{sub.merchant_canonical_key ?? '—'}</code>.
+          <div
+            className="card"
+            style={{ padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}
+          >
+            No matching bank transactions found for canonical key{' '}
+            <code style={{ color: 'var(--text-title)', fontSize: '0.85rem' }}>
+              {sub.merchant_canonical_key ?? '—'}
+            </code>
+            .
           </div>
         ) : (
           <div className="table-premium-container">
@@ -456,7 +591,15 @@ export function SubscriptionDetailPage() {
                   <tr key={t.id}>
                     <td>{t.posted_at.slice(0, 10)}</td>
                     <td>
-                      <code style={{ fontSize: '0.8rem', color: 'var(--text-title)', backgroundColor: 'var(--bg-hover)', padding: '0.2rem 0.4rem', borderRadius: 'var(--radius-sm)' }}>
+                      <code
+                        style={{
+                          fontSize: '0.8rem',
+                          color: 'var(--text-title)',
+                          backgroundColor: 'var(--bg-hover)',
+                          padding: '0.2rem 0.4rem',
+                          borderRadius: 'var(--radius-sm)',
+                        }}
+                      >
                         {t.description}
                       </code>
                     </td>
@@ -480,13 +623,19 @@ export function SubscriptionDetailPage() {
           alignItems: 'flex-start',
           fontSize: '0.825rem',
           color: 'var(--text-muted)',
-          borderStyle: 'dashed'
+          borderStyle: 'dashed',
         }}
       >
-        <Info className="w-5 h-5 text-accent-primary" style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--accent-primary)' }} />
+        <Info
+          className="w-5 h-5 text-accent-primary"
+          style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--accent-primary)' }}
+        />
         <div>
-          <strong style={{ color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>Subscription Optimization:</strong>
-          Looplet scans these historical transactions to verify pricing changes. We will warn you when a bill goes up or has double-accrued.
+          <strong style={{ color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>
+            Subscription Optimization:
+          </strong>
+          Looplet scans these historical transactions to verify pricing changes. We will warn you
+          when a bill goes up or has double-accrued.
         </div>
       </div>
     </section>
@@ -501,7 +650,12 @@ function MonthlyBars({ bars }: { bars: { label: string; value: number }[] }) {
   const max = Math.max(1, ...bars.map((b) => b.value));
   const totalW = bars.length * (BAR_W + GAP);
   return (
-    <svg width={totalW} height={HEIGHT + LABEL_H} role="img" aria-label="Monthly subscription spend, last 8 months">
+    <svg
+      width={totalW}
+      height={HEIGHT + LABEL_H}
+      role="img"
+      aria-label="Monthly subscription spend, last 8 months"
+    >
       {bars.map((b, i) => {
         const x = i * (BAR_W + GAP);
         const h = max > 0 ? (b.value / max) * HEIGHT : 0;
@@ -512,10 +666,23 @@ function MonthlyBars({ bars }: { bars: { label: string; value: number }[] }) {
             {b.value > 0 && (
               <rect x={x} y={y} width={BAR_W} height={h} fill="var(--accent-primary)" rx={4} />
             )}
-            <text x={x + BAR_W / 2} y={HEIGHT + 16} textAnchor="middle" fill="var(--text-muted)" fontSize={11}>
+            <text
+              x={x + BAR_W / 2}
+              y={HEIGHT + 16}
+              textAnchor="middle"
+              fill="var(--text-muted)"
+              fontSize={11}
+            >
               {b.label}
             </text>
-            <text x={x + BAR_W / 2} y={HEIGHT + 30} textAnchor="middle" fill="var(--accent-primary)" fontSize={10} fontWeight={600}>
+            <text
+              x={x + BAR_W / 2}
+              y={HEIGHT + 30}
+              textAnchor="middle"
+              fill="var(--accent-primary)"
+              fontSize={10}
+              fontWeight={600}
+            >
               {b.value > 0 ? formatMoneyCompact(b.value) : ''}
             </text>
           </g>
@@ -525,32 +692,104 @@ function MonthlyBars({ bars }: { bars: { label: string; value: number }[] }) {
   );
 }
 
-function StatField({ label, value, mono, style }: { label: string; value: string; mono?: boolean; style?: React.CSSProperties }) {
+function StatField({
+  label,
+  value,
+  mono,
+  style,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  style?: React.CSSProperties;
+}) {
   return (
     <div style={style}>
-      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: '0.25rem' }}>
+      <div
+        style={{
+          fontSize: '0.75rem',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          fontWeight: 600,
+          marginBottom: '0.25rem',
+        }}
+      >
         {label}
       </div>
-      <div style={{ color: 'var(--text-title)', fontSize: '0.95rem', fontWeight: 500, fontFamily: mono ? 'monospace' : 'inherit' }}>
+      <div
+        style={{
+          color: 'var(--text-title)',
+          fontSize: '0.95rem',
+          fontWeight: 500,
+          fontFamily: mono ? 'monospace' : 'inherit',
+        }}
+      >
         {value}
       </div>
     </div>
   );
 }
 
-function KpiCard({ label, value, accentColor, icon, sub }: { label: string; value: string; accentColor: string; icon: React.ReactNode; sub?: string }) {
+function KpiCard({
+  label,
+  value,
+  accentColor,
+  icon,
+  sub,
+}: {
+  label: string;
+  value: string;
+  accentColor: string;
+  icon: React.ReactNode;
+  sub?: string;
+}) {
   return (
-    <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderLeft: `4px solid ${accentColor}` }}>
+    <div
+      className="card"
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        borderLeft: `4px solid ${accentColor}`,
+      }}
+    >
       <div>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: '0.35rem' }}>
+        <div
+          style={{
+            fontSize: '0.75rem',
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            fontWeight: 600,
+            marginBottom: '0.35rem',
+          }}
+        >
           {label}
         </div>
-        <div style={{ fontSize: '1.65rem', color: 'var(--text-title)', fontWeight: 700, fontFamily: 'var(--font-title)' }}>
+        <div
+          style={{
+            fontSize: '1.65rem',
+            color: 'var(--text-title)',
+            fontWeight: 700,
+            fontFamily: 'var(--font-title)',
+          }}
+        >
           {value}
         </div>
-        {sub && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{sub}</div>}
+        {sub && (
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+            {sub}
+          </div>
+        )}
       </div>
-      <div style={{ padding: '0.5rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)' }}>
+      <div
+        style={{
+          padding: '0.5rem',
+          background: 'var(--bg-hover)',
+          borderRadius: 'var(--radius-sm)',
+        }}
+      >
         {icon}
       </div>
     </div>

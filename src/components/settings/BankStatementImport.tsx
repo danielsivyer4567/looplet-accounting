@@ -24,10 +24,15 @@ const PDFJS_VERSION = '4.7.76';
 
 // Minimal structural types for the bits of pdfjs-dist we use (the package's
 // own types are not bundled and we load it dynamically via import()).
-interface PdfPageViewport { width: number; height: number }
+interface PdfPageViewport {
+  width: number;
+  height: number;
+}
 interface PdfPage {
   getViewport(opts: { scale: number }): PdfPageViewport;
-  render(opts: { canvasContext: CanvasRenderingContext2D; viewport: PdfPageViewport }): { promise: Promise<void> };
+  render(opts: { canvasContext: CanvasRenderingContext2D; viewport: PdfPageViewport }): {
+    promise: Promise<void>;
+  };
 }
 interface PdfDocument {
   numPages: number;
@@ -56,13 +61,18 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
   if (!currentOrg) return null;
 
   const handleImport = async () => {
-    if (files.length === 0) { setError('Pick one or more PDF statements first'); return; }
+    if (files.length === 0) {
+      setError('Pick one or more PDF statements first');
+      return;
+    }
     setError(null);
     setResult(null);
     setBusy(true);
     cancelRef.current = false;
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in');
 
       const pdfjs = await loadPdfjs();
@@ -96,14 +106,20 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
           if (!ctx) throw new Error('Could not get 2D canvas context for PDF rendering');
           await page.render({ canvasContext: ctx, viewport }).promise;
           const blob: Blob = await new Promise((resolve, reject) =>
-            canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('canvas.toBlob returned null'))), 'image/png'),
+            canvas.toBlob(
+              (b) => (b ? resolve(b) : reject(new Error('canvas.toBlob returned null'))),
+              'image/png',
+            ),
           );
           const base64 = await blobToBase64(blob);
 
           try {
             const r = await fetch(extractUrl, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${session.access_token}`,
+              },
               body: JSON.stringify({ image_base64: base64, mime_type: 'image/png' }),
             });
             const body = await r.json();
@@ -120,25 +136,32 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
       }
 
       if (allRows.length === 0) {
-        throw new Error(`Extracted 0 rows across ${pagesDone} pages. ${parseErrors[0] ?? 'No transactions found.'}`);
+        throw new Error(
+          `Extracted 0 rows across ${pagesDone} pages. ${parseErrors[0] ?? 'No transactions found.'}`,
+        );
       }
 
       // Convert extracted rows → synthetic generic CSV the existing import understands
       setProgress(`Importing ${allRows.length} transactions…`);
       const csvHeader = 'Date,Description,Amount,Balance';
-      const csvBody = allRows.map((r) => {
-        const date = r.posted_at; // YYYY-MM-DD; bank-csv-import accepts this
-        const desc = `"${r.description.replace(/"/g, '""')}"`;
-        const amt = (r.amount_cents / 100).toFixed(2);
-        const bal = r.balance_cents != null ? (r.balance_cents / 100).toFixed(2) : '';
-        return `${date},${desc},${amt},${bal}`;
-      }).join('\n');
+      const csvBody = allRows
+        .map((r) => {
+          const date = r.posted_at; // YYYY-MM-DD; bank-csv-import accepts this
+          const desc = `"${r.description.replace(/"/g, '""')}"`;
+          const amt = (r.amount_cents / 100).toFixed(2);
+          const bal = r.balance_cents != null ? (r.balance_cents / 100).toFixed(2) : '';
+          return `${date},${desc},${amt},${bal}`;
+        })
+        .join('\n');
       const csvText = `${csvHeader}\n${csvBody}`;
 
       const importUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bank-csv-import`;
       const importRes = await fetch(importUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           organization_id: currentOrg.id,
           institution_name: bank,
@@ -186,19 +209,30 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
     <div style={card}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <h3 style={{ fontSize: 14, margin: 0 }}>Import PDF bank statement</h3>
-        <button onClick={() => setOpen(false)} style={closeBtn}>×</button>
+        <button onClick={() => setOpen(false)} style={closeBtn}>
+          ×
+        </button>
       </div>
       <p style={{ fontSize: 12, color: '#888', marginTop: 6 }}>
-        Drop CommBank/NAB/Westpac/ANZ statement PDFs. Each page is rendered to an image and sent to vision-OCR; transactions are deduped against existing rows.
+        Drop CommBank/NAB/Westpac/ANZ statement PDFs. Each page is rendered to an image and sent to
+        vision-OCR; transactions are deduped against existing rows.
       </p>
 
       <div style={grid2}>
-        <Field label="Bank"><input value={bank} onChange={(e) => setBank(e.target.value)} style={inp} /></Field>
-        <Field label="Account name"><input value={accountName} onChange={(e) => setAccountName(e.target.value)} style={inp} /></Field>
+        <Field label="Bank">
+          <input value={bank} onChange={(e) => setBank(e.target.value)} style={inp} />
+        </Field>
+        <Field label="Account name">
+          <input value={accountName} onChange={(e) => setAccountName(e.target.value)} style={inp} />
+        </Field>
       </div>
       <div style={grid2}>
         <Field label="Account type">
-          <select value={accountType} onChange={(e) => setAccountType(e.target.value as AccountType)} style={inp}>
+          <select
+            value={accountType}
+            onChange={(e) => setAccountType(e.target.value as AccountType)}
+            style={inp}
+          >
             <option value="checking">Transaction (checking)</option>
             <option value="savings">Savings</option>
             <option value="credit_card">Credit card</option>
@@ -209,8 +243,19 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
         </Field>
         <Field label="BSB / last 4 (optional)">
           <div style={{ display: 'flex', gap: 6 }}>
-            <input value={bsb} onChange={(e) => setBsb(e.target.value)} placeholder="062-001" style={{ ...inp, flex: 1 }} />
-            <input value={last4} onChange={(e) => setLast4(e.target.value)} placeholder="1234" maxLength={4} style={{ ...inp, width: 80 }} />
+            <input
+              value={bsb}
+              onChange={(e) => setBsb(e.target.value)}
+              placeholder="062-001"
+              style={{ ...inp, flex: 1 }}
+            />
+            <input
+              value={last4}
+              onChange={(e) => setLast4(e.target.value)}
+              placeholder="1234"
+              maxLength={4}
+              style={{ ...inp, width: 80 }}
+            />
           </div>
         </Field>
       </div>
@@ -226,10 +271,17 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
       </Field>
 
       <button onClick={handleImport} disabled={busy || files.length === 0} style={primaryBtn}>
-        {busy ? 'Working…' : `Extract & import ${files.length ? `(${files.length} file${files.length === 1 ? '' : 's'})` : ''}`}
+        {busy
+          ? 'Working…'
+          : `Extract & import ${files.length ? `(${files.length} file${files.length === 1 ? '' : 's'})` : ''}`}
       </button>
       {busy && (
-        <button onClick={() => { cancelRef.current = true; }} style={{ ...ghostBtn, marginLeft: 8 }}>
+        <button
+          onClick={() => {
+            cancelRef.current = true;
+          }}
+          style={{ ...ghostBtn, marginLeft: 8 }}
+        >
           Cancel
         </button>
       )}
@@ -247,10 +299,13 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
           {result.parse_errors.length > 0 && (
             <details style={{ marginTop: 6 }}>
               <summary style={{ color: '#e9a3a3', cursor: 'pointer', fontSize: 11 }}>
-                {result.parse_errors.length} extraction issue{result.parse_errors.length === 1 ? '' : 's'}
+                {result.parse_errors.length} extraction issue
+                {result.parse_errors.length === 1 ? '' : 's'}
               </summary>
               <ul style={{ marginTop: 4, color: '#e9a3a3', fontSize: 11 }}>
-                {result.parse_errors.map((e, i) => <li key={i}>{e}</li>)}
+                {result.parse_errors.map((e, i) => (
+                  <li key={i}>{e}</li>
+                ))}
               </ul>
             </details>
           )}
@@ -294,38 +349,67 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const inp: React.CSSProperties = {
-  width: '100%', padding: '6px 8px',
-  background: '#000', color: '#ddd', border: '1px solid #333', borderRadius: 3, fontSize: 12,
+  width: '100%',
+  padding: '6px 8px',
+  background: '#000',
+  color: '#ddd',
+  border: '1px solid #333',
+  borderRadius: 3,
+  fontSize: 12,
 };
 const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 };
 const card: React.CSSProperties = {
-  marginTop: 16, padding: 16,
-  background: '#0e0e0e', border: '1px solid #2a2a2a', borderRadius: 4,
+  marginTop: 16,
+  padding: 16,
+  background: '#0e0e0e',
+  border: '1px solid #2a2a2a',
+  borderRadius: 4,
   maxWidth: 720,
 };
 const openBtn: React.CSSProperties = {
-  marginTop: 12, marginLeft: 8,
+  marginTop: 12,
+  marginLeft: 8,
   padding: '0.4rem 1rem',
-  background: 'transparent', color: '#bbb',
-  border: '1px solid #444', borderRadius: 3, fontSize: 12, cursor: 'pointer',
+  background: 'transparent',
+  color: '#bbb',
+  border: '1px solid #444',
+  borderRadius: 3,
+  fontSize: 12,
+  cursor: 'pointer',
 };
 const closeBtn: React.CSSProperties = {
-  background: 'transparent', color: '#888',
-  border: 'none', fontSize: 18, cursor: 'pointer', padding: 0,
+  background: 'transparent',
+  color: '#888',
+  border: 'none',
+  fontSize: 18,
+  cursor: 'pointer',
+  padding: 0,
 };
 const primaryBtn: React.CSSProperties = {
   marginTop: 12,
   padding: '0.5rem 1rem',
-  background: '#1c4868', color: '#fff',
-  border: '1px solid #5096d8', borderRadius: 4,
-  fontSize: 13, fontWeight: 600, cursor: 'pointer',
+  background: '#1c4868',
+  color: '#fff',
+  border: '1px solid #5096d8',
+  borderRadius: 4,
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: 'pointer',
 };
 const ghostBtn: React.CSSProperties = {
   padding: '0.5rem 0.75rem',
-  background: 'transparent', color: '#aaa',
-  border: '1px solid #333', borderRadius: 4, fontSize: 12, cursor: 'pointer',
+  background: 'transparent',
+  color: '#aaa',
+  border: '1px solid #333',
+  borderRadius: 4,
+  fontSize: 12,
+  cursor: 'pointer',
 };
 const successBox: React.CSSProperties = {
-  marginTop: 12, padding: 8,
-  background: '#0a1f12', border: '1px solid #2da565', borderRadius: 3, fontSize: 12,
+  marginTop: 12,
+  padding: 8,
+  background: '#0a1f12',
+  border: '1px solid #2da565',
+  borderRadius: 3,
+  fontSize: 12,
 };

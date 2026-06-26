@@ -5,10 +5,30 @@ import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { XeroStatusPill } from '@/components/XeroStatusPill';
-import { ChevronLeft, Save, X, Mail, CreditCard, Edit3, Trash2, Plus, AlertCircle, FileSpreadsheet } from 'lucide-react';
+import {
+  ChevronLeft,
+  Save,
+  X,
+  Mail,
+  CreditCard,
+  Edit3,
+  Trash2,
+  Plus,
+  AlertCircle,
+  FileSpreadsheet,
+} from 'lucide-react';
 
-interface Customer { id: string; name: string; email: string | null }
-interface Job { id: string; job_number: string; name: string; customer_id: string | null }
+interface Customer {
+  id: string;
+  name: string;
+  email: string | null;
+}
+interface Job {
+  id: string;
+  job_number: string;
+  name: string;
+  customer_id: string | null;
+}
 interface Invoice {
   id: string;
   invoice_number: string;
@@ -107,21 +127,42 @@ export function InvoiceDetailPage() {
     setError(null);
 
     const [custRes, jobsRes] = await Promise.all([
-      supabase.from('customers').select('id, name, email').eq('organization_id', currentOrg.id).is('deleted_at', null).order('name'),
-      supabase.from('jobs').select('id, job_number, name, customer_id').eq('organization_id', currentOrg.id).is('deleted_at', null).order('job_number'),
+      supabase
+        .from('customers')
+        .select('id, name, email')
+        .eq('organization_id', currentOrg.id)
+        .is('deleted_at', null)
+        .order('name'),
+      supabase
+        .from('jobs')
+        .select('id, job_number, name, customer_id')
+        .eq('organization_id', currentOrg.id)
+        .is('deleted_at', null)
+        .order('job_number'),
     ]);
     setCustomers((custRes.data ?? []) as Customer[]);
     setJobs((jobsRes.data ?? []) as Job[]);
 
     if (!isNew && id) {
       const [invRes, linesRes, paysRes] = await Promise.all([
-        supabase.from('invoices').select(`
+        supabase
+          .from('invoices')
+          .select(
+            `
           *,
           customer:customers!invoices_customer_id_fkey(id, name, email),
           job:jobs!invoices_job_id_fkey(id, job_number, name, customer_id)
-        `).eq('id', id).eq('organization_id', currentOrg.id).maybeSingle(),
+        `,
+          )
+          .eq('id', id)
+          .eq('organization_id', currentOrg.id)
+          .maybeSingle(),
         supabase.from('invoice_line_items').select('*').eq('invoice_id', id).order('line_number'),
-        supabase.from('invoice_payments').select('*').eq('invoice_id', id).order('paid_at', { ascending: false }),
+        supabase
+          .from('invoice_payments')
+          .select('*')
+          .eq('invoice_id', id)
+          .order('paid_at', { ascending: false }),
       ]);
       if (invRes.error) setError(invRes.error.message);
       const inv = (invRes.data as unknown as Invoice | null) ?? null;
@@ -157,7 +198,7 @@ export function InvoiceDetailPage() {
       let gst = 0;
       let inc = ex;
       if (next.gst_treatment === 'ex') {
-        gst = Math.round(ex * 0.10);
+        gst = Math.round(ex * 0.1);
         inc = ex + gst;
       } else if (next.gst_treatment === 'inc') {
         gst = Math.round(ex / 11);
@@ -176,7 +217,9 @@ export function InvoiceDetailPage() {
   };
 
   const removeLine = (idx: number) => {
-    setLines((prev) => prev.filter((_, i) => i !== idx).map((l, i) => ({ ...l, line_number: i + 1 })));
+    setLines((prev) =>
+      prev.filter((_, i) => i !== idx).map((l, i) => ({ ...l, line_number: i + 1 })),
+    );
   };
 
   const totals = lines.reduce(
@@ -190,8 +233,14 @@ export function InvoiceDetailPage() {
 
   const save = async () => {
     if (!currentOrg) return;
-    if (!customerId) { setError('Pick a customer'); return; }
-    if (lines.length === 0 || lines.every((l) => !l.description.trim())) { setError('Add at least one line item'); return; }
+    if (!customerId) {
+      setError('Pick a customer');
+      return;
+    }
+    if (lines.length === 0 || lines.every((l) => !l.description.trim())) {
+      setError('Add at least one line item');
+      return;
+    }
 
     setBusy(true);
     try {
@@ -207,27 +256,32 @@ export function InvoiceDetailPage() {
             due_date: dueDate,
             terms_days: termsDays,
             notes: notes || null,
-            invoice_number: '', 
+            invoice_number: '',
           })
           .select('id')
           .single();
         if (createErr) throw createErr;
         invId = created.id;
       } else if (invId) {
-        const { error: upErr } = await supabase.from('invoices').update({
-          customer_id: customerId,
-          job_id: jobId || null,
-          issue_date: issueDate,
-          due_date: dueDate,
-          terms_days: termsDays,
-          notes: notes || null,
-        }).eq('id', invId);
+        const { error: upErr } = await supabase
+          .from('invoices')
+          .update({
+            customer_id: customerId,
+            job_id: jobId || null,
+            issue_date: issueDate,
+            due_date: dueDate,
+            terms_days: termsDays,
+            notes: notes || null,
+          })
+          .eq('id', invId);
         if (upErr) throw upErr;
         await supabase.from('invoice_line_items').delete().eq('invoice_id', invId);
       }
 
       if (invId) {
-        const validLines = lines.filter((l) => l.description.trim() && l.line_total_inc_gst_cents > 0);
+        const validLines = lines.filter(
+          (l) => l.description.trim() && l.line_total_inc_gst_cents > 0,
+        );
         if (validLines.length > 0) {
           const { error: lineErr } = await supabase.from('invoice_line_items').insert(
             validLines.map((l, i) => ({
@@ -260,7 +314,10 @@ export function InvoiceDetailPage() {
   const markSent = async () => {
     if (!invoice || !currentOrg) return;
     setBusy(true);
-    await supabase.from('invoices').update({ status: 'sent', sent_at: new Date().toISOString() }).eq('id', invoice.id);
+    await supabase
+      .from('invoices')
+      .update({ status: 'sent', sent_at: new Date().toISOString() })
+      .eq('id', invoice.id);
     setBusy(false);
     void refresh();
     void pushInvoiceToXero(invoice.id, currentOrg.id);
@@ -268,7 +325,9 @@ export function InvoiceDetailPage() {
 
   const pushInvoiceToXero = async (invoiceId: string, orgId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/xero-push-invoice`;
       await fetch(url, {
@@ -310,13 +369,19 @@ export function InvoiceDetailPage() {
       paid_at: new Date().toISOString(),
     });
     setBusy(false);
-    if (payErr) { setError(payErr.message); return; }
+    if (payErr) {
+      setError(payErr.message);
+      return;
+    }
     void refresh();
   };
 
   const voidInvoice = async () => {
     if (!invoice) return;
-    if (!confirm(`Void ${invoice.invoice_number}? It stays in the list but is excluded from totals.`)) return;
+    if (
+      !confirm(`Void ${invoice.invoice_number}? It stays in the list but is excluded from totals.`)
+    )
+      return;
     await supabase.from('invoices').update({ status: 'void' }).eq('id', invoice.id);
     void refresh();
   };
@@ -334,7 +399,9 @@ export function InvoiceDetailPage() {
       <section className="animated-fade-in" style={{ padding: '2rem 0', textAlign: 'center' }}>
         <AlertCircle size={48} style={{ color: 'var(--accent-danger)', marginBottom: '1rem' }} />
         <h2>Invoice not found</h2>
-        <p style={{ color: 'var(--text-muted)' }}>No invoice details were found under this organization.</p>
+        <p style={{ color: 'var(--text-muted)' }}>
+          No invoice details were found under this organization.
+        </p>
         <Link to="/invoices" className="btn btn-secondary" style={{ marginTop: '1rem' }}>
           <ChevronLeft size={16} /> Back to invoices
         </Link>
@@ -345,15 +412,15 @@ export function InvoiceDetailPage() {
   return (
     <section className="animated-fade-in">
       {/* Top back navigation */}
-      <Link 
-        to="/invoices" 
-        style={{ 
-          color: 'var(--text-muted)', 
-          fontSize: '0.825rem', 
-          display: 'inline-flex', 
-          alignItems: 'center', 
+      <Link
+        to="/invoices"
+        style={{
+          color: 'var(--text-muted)',
+          fontSize: '0.825rem',
+          display: 'inline-flex',
+          alignItems: 'center',
           gap: '0.25rem',
-          marginBottom: '1rem'
+          marginBottom: '1rem',
         }}
       >
         <ChevronLeft size={14} />
@@ -361,79 +428,109 @@ export function InvoiceDetailPage() {
       </Link>
 
       {/* Title + Action controls */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: '1.5rem',
           flexWrap: 'wrap',
-          gap: '1rem'
+          gap: '1rem',
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <FileSpreadsheet size={24} style={{ color: 'var(--accent-primary)' }} />
           {isNew ? 'New invoice' : <code>{invoice?.invoice_number}</code>}
         </h1>
-        
+
         {!isNew && invoice && (
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <StatusPill status={invoice.status} />
-            
+
             {invoice.status === 'draft' && (
               <button onClick={markSent} disabled={busy} className="btn btn-primary">
                 <Mail size={14} />
                 <span>Mark sent</span>
               </button>
             )}
-            
-            {(invoice.status === 'sent' || invoice.status === 'partially_paid' || invoice.status === 'overdue') && (
+
+            {(invoice.status === 'sent' ||
+              invoice.status === 'partially_paid' ||
+              invoice.status === 'overdue') && (
               <button onClick={recordPayment} disabled={busy} className="btn btn-primary">
                 <CreditCard size={14} />
                 <span>Record payment</span>
               </button>
             )}
-            
+
             {!editing && invoice.status !== 'paid' && invoice.status !== 'void' && (
               <button onClick={() => setEditing(true)} className="btn btn-secondary">
                 <Edit3 size={14} />
                 <span>Edit</span>
               </button>
             )}
-            
+
             {invoice.status !== 'paid' && invoice.status !== 'void' && (
-              <button onClick={voidInvoice} className="btn btn-secondary" style={{ color: 'var(--text-danger)' }}>
+              <button
+                onClick={voidInvoice}
+                className="btn btn-secondary"
+                style={{ color: 'var(--text-danger)' }}
+              >
                 <Trash2 size={14} />
                 <span>Void</span>
               </button>
             )}
-            
+
             <MoveToOrgButton
               table="invoices"
               rowId={invoice.id}
               currentOrgId={currentOrg.id}
               fkColumnsToNull={['customer_id', 'job_id']}
-              onMoved={() => { window.location.href = '/invoices'; }}
+              onMoved={() => {
+                window.location.href = '/invoices';
+              }}
             />
           </div>
         )}
       </div>
 
       {error && (
-        <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', marginBottom: '1.5rem', textTransform: 'none' }}>
+        <div
+          className="badge badge-danger"
+          style={{
+            display: 'block',
+            padding: '0.75rem',
+            marginBottom: '1.5rem',
+            textTransform: 'none',
+          }}
+        >
           {error}
         </div>
       )}
 
       {/* Details Card Panel */}
       <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1.25rem',
+          }}
+        >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <Field label="Customer">
               {editing ? (
-                <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="form-select">
+                <select
+                  value={customerId}
+                  onChange={(e) => setCustomerId(e.target.value)}
+                  className="form-select"
+                >
                   <option value="">— pick customer —</option>
-                  {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
                 </select>
               ) : (
                 <span style={{ fontWeight: 600, color: 'var(--text-title)', fontSize: '0.9rem' }}>
@@ -444,9 +541,17 @@ export function InvoiceDetailPage() {
 
             <Field label="Job (optional)">
               {editing ? (
-                <select value={jobId} onChange={(e) => setJobId(e.target.value)} className="form-select">
+                <select
+                  value={jobId}
+                  onChange={(e) => setJobId(e.target.value)}
+                  className="form-select"
+                >
                   <option value="">— no job —</option>
-                  {jobs.map((j) => <option key={j.id} value={j.id}>{j.job_number} · {j.name}</option>)}
+                  {jobs.map((j) => (
+                    <option key={j.id} value={j.id}>
+                      {j.job_number} · {j.name}
+                    </option>
+                  ))}
                 </select>
               ) : (
                 <span style={{ fontSize: '0.9rem' }}>
@@ -454,7 +559,9 @@ export function InvoiceDetailPage() {
                     <Link to={`/jobs/${invoice.job.id}`} style={{ fontWeight: 600 }}>
                       {invoice.job.job_number} · {invoice.job.name}
                     </Link>
-                  ) : '—'}
+                  ) : (
+                    '—'
+                  )}
                 </span>
               )}
             </Field>
@@ -463,23 +570,44 @@ export function InvoiceDetailPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <Field label="Issue date">
               {editing ? (
-                <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="form-input" />
+                <input
+                  type="date"
+                  value={issueDate}
+                  onChange={(e) => setIssueDate(e.target.value)}
+                  className="form-input"
+                />
               ) : (
-                <span style={{ fontSize: '0.9rem', color: 'var(--text-title)' }}>{invoice?.issue_date}</span>
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-title)' }}>
+                  {invoice?.issue_date}
+                </span>
               )}
             </Field>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <Field label="Terms (days)">
                 {editing ? (
-                  <input type="number" min={0} value={termsDays} onChange={(e) => setTermsDays(Number(e.target.value))} className="form-input" />
+                  <input
+                    type="number"
+                    min={0}
+                    value={termsDays}
+                    onChange={(e) => setTermsDays(Number(e.target.value))}
+                    className="form-input"
+                  />
                 ) : (
                   <span style={{ fontSize: '0.9rem' }}>{invoice?.terms_days} days</span>
                 )}
               </Field>
 
               <Field label="Due date">
-                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-title)', display: 'inline-block', paddingTop: '0.5rem' }}>
+                <span
+                  style={{
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    color: 'var(--text-title)',
+                    display: 'inline-block',
+                    paddingTop: '0.5rem',
+                  }}
+                >
                   {editing ? dueDate : invoice?.due_date}
                 </span>
               </Field>
@@ -489,15 +617,23 @@ export function InvoiceDetailPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <Field label="Notes (visible on invoice)">
               {editing ? (
-                <textarea 
-                  value={notes} 
-                  onChange={(e) => setNotes(e.target.value)} 
-                  placeholder="Thanks for your business" 
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Thanks for your business"
                   className="form-textarea"
                   style={{ minHeight: '80px' }}
                 />
               ) : (
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-body)', margin: 0, whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>
+                <p
+                  style={{
+                    fontSize: '0.875rem',
+                    color: 'var(--text-body)',
+                    margin: 0,
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: '1.4',
+                  }}
+                >
                   {invoice?.notes ?? '—'}
                 </p>
               )}
@@ -527,44 +663,58 @@ export function InvoiceDetailPage() {
                 <td>{l.line_number}</td>
                 <td>
                   {editing ? (
-                    <input 
-                      value={l.description} 
-                      onChange={(e) => updateLine(i, { description: e.target.value })} 
-                      placeholder="e.g. Fence install — 30m" 
-                      className="form-input" 
+                    <input
+                      value={l.description}
+                      onChange={(e) => updateLine(i, { description: e.target.value })}
+                      placeholder="e.g. Fence install — 30m"
+                      className="form-input"
                       style={{ padding: '0.4rem 0.6rem' }}
                     />
-                  ) : l.description}
+                  ) : (
+                    l.description
+                  )}
                 </td>
                 <td style={{ textAlign: 'right' }}>
                   {editing ? (
-                    <input 
-                      type="number" 
-                      step="0.01" 
-                      value={l.quantity} 
-                      onChange={(e) => updateLine(i, { quantity: parseFloat(e.target.value) || 0 })} 
-                      className="form-input" 
-                      style={{ textAlign: 'right', padding: '0.4rem 0.6rem' }} 
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={l.quantity}
+                      onChange={(e) => updateLine(i, { quantity: parseFloat(e.target.value) || 0 })}
+                      className="form-input"
+                      style={{ textAlign: 'right', padding: '0.4rem 0.6rem' }}
                     />
-                  ) : l.quantity}
+                  ) : (
+                    l.quantity
+                  )}
                 </td>
                 <td style={{ textAlign: 'right' }}>
                   {editing ? (
-                    <input 
-                      type="number" 
-                      step="0.01" 
-                      value={(l.unit_price_cents / 100).toFixed(2)} 
-                      onChange={(e) => updateLine(i, { unit_price_cents: Math.round((parseFloat(e.target.value) || 0) * 100) })} 
-                      className="form-input" 
-                      style={{ textAlign: 'right', padding: '0.4rem 0.6rem' }} 
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={(l.unit_price_cents / 100).toFixed(2)}
+                      onChange={(e) =>
+                        updateLine(i, {
+                          unit_price_cents: Math.round((parseFloat(e.target.value) || 0) * 100),
+                        })
+                      }
+                      className="form-input"
+                      style={{ textAlign: 'right', padding: '0.4rem 0.6rem' }}
                     />
-                  ) : formatMoney(l.unit_price_cents)}
+                  ) : (
+                    formatMoney(l.unit_price_cents)
+                  )}
                 </td>
                 <td>
                   {editing ? (
-                    <select 
-                      value={l.gst_treatment} 
-                      onChange={(e) => updateLine(i, { gst_treatment: e.target.value as LineItem['gst_treatment'] })} 
+                    <select
+                      value={l.gst_treatment}
+                      onChange={(e) =>
+                        updateLine(i, {
+                          gst_treatment: e.target.value as LineItem['gst_treatment'],
+                        })
+                      }
                       className="form-select"
                       style={{ padding: '0.4rem 0.6rem' }}
                     >
@@ -573,14 +723,18 @@ export function InvoiceDetailPage() {
                       <option value="free">GST free</option>
                       <option value="zero">Zero-rated (free)</option>
                     </select>
-                  ) : GST_TREATMENT_LABELS[l.gst_treatment] ?? l.gst_treatment}
+                  ) : (
+                    (GST_TREATMENT_LABELS[l.gst_treatment] ?? l.gst_treatment)
+                  )}
                 </td>
-                <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(l.line_total_inc_gst_cents)}</td>
+                <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                  {formatMoney(l.line_total_inc_gst_cents)}
+                </td>
                 {editing && (
                   <td style={{ textAlign: 'right' }}>
-                    <button 
-                      onClick={() => removeLine(i)} 
-                      className="btn btn-ghost" 
+                    <button
+                      onClick={() => removeLine(i)}
+                      className="btn btn-ghost"
                       style={{ color: 'var(--text-danger)', padding: '0.2rem 0.4rem' }}
                     >
                       <X size={16} />
@@ -592,10 +746,14 @@ export function InvoiceDetailPage() {
             {editing && (
               <tr>
                 <td colSpan={7} style={{ padding: '0.75rem' }}>
-                  <button 
-                    onClick={addLine} 
-                    className="btn btn-secondary" 
-                    style={{ display: 'inline-flex', padding: '0.4rem 0.75rem', fontSize: '0.825rem' }}
+                  <button
+                    onClick={addLine}
+                    className="btn btn-secondary"
+                    style={{
+                      display: 'inline-flex',
+                      padding: '0.4rem 0.75rem',
+                      fontSize: '0.825rem',
+                    }}
                   >
                     <Plus size={14} />
                     <span>Add line item</span>
@@ -608,16 +766,16 @@ export function InvoiceDetailPage() {
       </div>
 
       {/* Totals panel */}
-      <div 
-        style={{ 
-          marginTop: '1.5rem', 
-          marginLeft: 'auto', 
-          maxWidth: '360px', 
+      <div
+        style={{
+          marginTop: '1.5rem',
+          marginLeft: 'auto',
+          maxWidth: '360px',
           background: 'var(--bg-panel)',
           padding: '1.25rem',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-subtle)',
-          boxShadow: 'var(--shadow-sm)'
+          boxShadow: 'var(--shadow-sm)',
         }}
       >
         <Total label="Subtotal ex GST" value={formatMoney(totals.sub)} />
@@ -625,9 +783,20 @@ export function InvoiceDetailPage() {
         <Total label="Total inc GST" value={formatMoney(totals.total)} bold />
         {!isNew && invoice && invoice.amount_paid_cents > 0 && (
           <>
-            <div style={{ height: '8px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '8px' }} />
+            <div
+              style={{
+                height: '8px',
+                borderBottom: '1px solid var(--border-subtle)',
+                marginBottom: '8px',
+              }}
+            />
             <Total label="Amount Paid" value={formatMoney(invoice.amount_paid_cents)} />
-            <Total label="Balance due" value={formatMoney(invoice.balance_due_cents)} bold highlight />
+            <Total
+              label="Balance due"
+              value={formatMoney(invoice.balance_due_cents)}
+              bold
+              highlight
+            />
           </>
         )}
       </div>
@@ -635,11 +804,21 @@ export function InvoiceDetailPage() {
       {/* Save / Cancel action panel */}
       {editing && (
         <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <button onClick={save} disabled={busy} className="btn btn-primary" style={{ padding: '0.625rem 1.25rem' }}>
+          <button
+            onClick={save}
+            disabled={busy}
+            className="btn btn-primary"
+            style={{ padding: '0.625rem 1.25rem' }}
+          >
             <Save size={16} />
-            <span>{busy ? 'Saving…' : (isNew ? 'Create invoice' : 'Save changes')}</span>
+            <span>{busy ? 'Saving…' : isNew ? 'Create invoice' : 'Save changes'}</span>
           </button>
-          <button onClick={() => isNew ? navigate('/invoices') : setEditing(false)} disabled={busy} className="btn btn-secondary" style={{ padding: '0.625rem 1.25rem' }}>
+          <button
+            onClick={() => (isNew ? navigate('/invoices') : setEditing(false))}
+            disabled={busy}
+            className="btn btn-secondary"
+            style={{ padding: '0.625rem 1.25rem' }}
+          >
             <span>Cancel</span>
           </button>
         </div>
@@ -663,9 +842,17 @@ export function InvoiceDetailPage() {
                 {payments.map((p) => (
                   <tr key={p.id}>
                     <td>{p.paid_at.slice(0, 10)}</td>
-                    <td style={{ textTransform: 'uppercase', fontSize: '0.8rem', fontWeight: 600 }}>{p.method ?? '—'}</td>
-                    <td><code>{p.reference ?? '—'}</code></td>
-                    <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-success)' }}>{formatMoney(p.amount_cents)}</td>
+                    <td style={{ textTransform: 'uppercase', fontSize: '0.8rem', fontWeight: 600 }}>
+                      {p.method ?? '—'}
+                    </td>
+                    <td>
+                      <code>{p.reference ?? '—'}</code>
+                    </td>
+                    <td
+                      style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-success)' }}
+                    >
+                      {formatMoney(p.amount_cents)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -676,18 +863,26 @@ export function InvoiceDetailPage() {
 
       {/* Xero integration drawer */}
       {!isNew && invoice && (
-        <div 
+        <div
           className="card"
-          style={{ 
-            marginTop: '2.5rem', 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '1rem', 
+          style={{
+            marginTop: '2.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
             flexWrap: 'wrap',
-            padding: '1rem 1.25rem'
+            padding: '1rem 1.25rem',
           }}
         >
-          <span style={{ fontSize: '0.825rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <span
+            style={{
+              fontSize: '0.825rem',
+              color: 'var(--text-muted)',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}
+          >
             Xero Status
           </span>
           <XeroStatusPill
@@ -713,23 +908,35 @@ export function InvoiceDetailPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="form-group">
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>{label}</span>
+      <span className="form-label" style={{ fontSize: '0.725rem' }}>
+        {label}
+      </span>
       <div style={{ marginTop: '0.25rem' }}>{children}</div>
     </div>
   );
 }
 
-function Total({ label, value, bold, highlight }: { label: string; value: string; bold?: boolean; highlight?: boolean }) {
+function Total({
+  label,
+  value,
+  bold,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  bold?: boolean;
+  highlight?: boolean;
+}) {
   return (
-    <div 
-      style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        padding: '0.5rem 0', 
-        fontSize: '0.875rem', 
-        borderBottom: '1px solid var(--border-subtle)', 
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        padding: '0.5rem 0',
+        fontSize: '0.875rem',
+        borderBottom: '1px solid var(--border-subtle)',
         fontWeight: bold ? 700 : 500,
-        color: highlight ? 'var(--text-warning)' : bold ? 'var(--text-title)' : 'var(--text-body)'
+        color: highlight ? 'var(--text-warning)' : bold ? 'var(--text-title)' : 'var(--text-body)',
       }}
     >
       <span style={{ color: 'var(--text-muted)' }}>{label}</span>
@@ -744,6 +951,10 @@ function StatusPill({ status }: { status: string }) {
   else if (status === 'sent') badgeClass = 'badge-info';
   else if (status === 'partially_paid') badgeClass = 'badge-warning';
   else if (status === 'overdue') badgeClass = 'badge-danger';
-  
-  return <span className={`badge ${badgeClass}`} style={{ alignSelf: 'center' }}>{status.replace('_', ' ')}</span>;
+
+  return (
+    <span className={`badge ${badgeClass}`} style={{ alignSelf: 'center' }}>
+      {status.replace('_', ' ')}
+    </span>
+  );
 }

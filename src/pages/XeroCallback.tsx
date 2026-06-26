@@ -50,7 +50,9 @@ export function XeroCallbackPage() {
 
     (async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!session) throw new Error('Not signed in');
 
         const redirect_uri =

@@ -42,29 +42,30 @@ export function LoginPage() {
   const isReset = mode === 'reset';
 
   return (
-    <div 
-      style={{ 
-        minHeight: '100vh', 
-        width: '100vw', 
-        display: 'flex', 
-        alignItems: 'center', 
+    <div
+      style={{
+        minHeight: '100vh',
+        width: '100vw',
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
-        background: 'radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, rgba(0,0,0,0) 90%), var(--bg-app)',
+        background:
+          'radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, rgba(0,0,0,0) 90%), var(--bg-app)',
         padding: '1.5rem',
         boxSizing: 'border-box',
         position: 'fixed',
         top: 0,
         left: 0,
-        overflowY: 'auto'
+        overflowY: 'auto',
       }}
     >
-      <div 
-        className="glass-panel animated-fade-in" 
-        style={{ 
-          maxWidth: '420px', 
-          width: '100%', 
+      <div
+        className="glass-panel animated-fade-in"
+        style={{
+          maxWidth: '420px',
+          width: '100%',
           padding: '2.5rem 2rem',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
         }}
       >
         <BrandHeader />
@@ -73,7 +74,10 @@ export function LoginPage() {
           {isReset ? 'Reset password' : 'Sign in to your account'}
         </h2>
 
-        <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form
+          onSubmit={onSubmit}
+          style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+        >
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Email Address</label>
             <input
@@ -88,7 +92,9 @@ export function LoginPage() {
 
           {!isReset && (
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
                 <label className="form-label">Password</label>
                 <button
                   type="button"
@@ -104,7 +110,7 @@ export function LoginPage() {
                     cursor: 'pointer',
                     fontSize: '0.775rem',
                     fontWeight: 600,
-                    padding: 0
+                    padding: 0,
                   }}
                 >
                   Forgot password?
@@ -122,19 +128,36 @@ export function LoginPage() {
           )}
 
           {error && (
-            <div className="badge badge-danger" style={{ width: '100%', padding: '0.625rem', textAlign: 'center', justifyContent: 'center' }}>
+            <div
+              className="badge badge-danger"
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                textAlign: 'center',
+                justifyContent: 'center',
+              }}
+            >
               {error}
             </div>
           )}
           {notice && (
-            <div className="badge badge-success" style={{ width: '100%', padding: '0.625rem', textAlign: 'center', justifyContent: 'center', textTransform: 'none' }}>
+            <div
+              className="badge badge-success"
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                textAlign: 'center',
+                justifyContent: 'center',
+                textTransform: 'none',
+              }}
+            >
               {notice}
             </div>
           )}
 
-          <button 
-            type="submit" 
-            disabled={busy} 
+          <button
+            type="submit"
+            disabled={busy}
             className="btn btn-primary"
             style={{ width: '100%', padding: '0.625rem', marginTop: '0.5rem' }}
           >
@@ -148,7 +171,14 @@ export function LoginPage() {
           </button>
         </form>
 
-        <div style={{ marginTop: '1.75rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+        <div
+          style={{
+            marginTop: '1.75rem',
+            textAlign: 'center',
+            fontSize: '0.875rem',
+            color: 'var(--text-muted)',
+          }}
+        >
           {isReset ? (
             <button
               type="button"
@@ -163,7 +193,7 @@ export function LoginPage() {
                 color: 'var(--accent-primary)',
                 cursor: 'pointer',
                 fontWeight: 600,
-                padding: 0
+                padding: 0,
               }}
             >
               ← Back to sign in

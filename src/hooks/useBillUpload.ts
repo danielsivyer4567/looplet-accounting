@@ -68,13 +68,11 @@ export function useBillUpload() {
 
     // Upload to storage
     setStage({ step: 'uploading', message: `Uploading ${file.name}…`, progress: 15 });
-    const { error: uploadErr } = await supabase.storage
-      .from('bills')
-      .upload(storagePath, file, {
-        contentType: file.type,
-        cacheControl: '3600',
-        upsert: false,
-      });
+    const { error: uploadErr } = await supabase.storage.from('bills').upload(storagePath, file, {
+      contentType: file.type,
+      cacheControl: '3600',
+      upsert: false,
+    });
     if (uploadErr) {
       const err = `Upload failed: ${uploadErr.message}`;
       setStage({ step: 'error', message: err, progress: 0 });

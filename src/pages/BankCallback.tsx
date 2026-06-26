@@ -50,7 +50,9 @@ export function BankCallbackPage() {
 
     (async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!session) throw new Error('Not signed in');
 
         let resolvedConnectionId = connectionId ?? null;
@@ -74,7 +76,7 @@ export function BankCallbackPage() {
             // Basiq's webhook. Tell the user to check Settings in a moment.
             setStatus(
               'Connection is still activating on Basiq — this can take up to 2 minutes. ' +
-              'Your accounts will appear in Settings once ready.',
+                'Your accounts will appear in Settings once ready.',
             );
             setTimeout(() => navigate('/settings'), 4000);
             return;
@@ -102,7 +104,7 @@ export function BankCallbackPage() {
           const accountCount = body.accounts?.length ?? 0;
           setStatus(
             `Connected. ${accountCount} account${accountCount === 1 ? '' : 's'} linked. ` +
-            'Syncing transactions in the background…',
+              'Syncing transactions in the background…',
           );
           setTimeout(() => navigate('/settings'), 2500);
           return;

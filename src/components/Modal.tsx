@@ -65,13 +65,28 @@ export function Modal({
             gap: 12,
           }}
         >
-          <strong style={{ fontSize: 14, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <strong
+            style={{
+              fontSize: 14,
+              color: '#fff',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
             {title}
           </strong>
           <button
             onClick={onClose}
             aria-label="Close"
-            style={{ background: 'transparent', border: 'none', color: '#888', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#888',
+              fontSize: 22,
+              cursor: 'pointer',
+              lineHeight: 1,
+            }}
           >
             &times;
           </button>

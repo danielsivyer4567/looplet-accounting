@@ -3,8 +3,13 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 
 export type EntityKind =
-  | 'supplier' | 'contractor' | 'customer'
-  | 'personal' | 'subscription' | 'internal_admin' | 'unknown';
+  | 'supplier'
+  | 'contractor'
+  | 'customer'
+  | 'personal'
+  | 'subscription'
+  | 'internal_admin'
+  | 'unknown';
 
 export type EntityStatus = 'pending' | 'approved' | 'dismissed' | 'needs_review';
 

@@ -91,9 +91,7 @@ export function useBill(billId: string | undefined) {
  * cheap to refresh, no caching needed for the preview pane.
  */
 export async function getBillFileUrl(storageKey: string): Promise<string | null> {
-  const { data, error } = await supabase.storage
-    .from('bills')
-    .createSignedUrl(storageKey, 60 * 10); // 10 minute window
+  const { data, error } = await supabase.storage.from('bills').createSignedUrl(storageKey, 60 * 10); // 10 minute window
   if (error || !data) return null;
   return data.signedUrl;
 }

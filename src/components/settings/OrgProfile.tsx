@@ -22,7 +22,9 @@ export function OrgProfileForm() {
   const { currentOrg, refresh } = useOrg();
   const [org, setOrg] = useState<Org | null>(null);
   const [draft, setDraft] = useState<{ name: string; abn: string; settings: OrgSettings }>({
-    name: '', abn: '', settings: {},
+    name: '',
+    abn: '',
+    settings: {},
   });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -61,13 +63,17 @@ export function OrgProfileForm() {
       })
       .eq('id', org.id);
     setBusy(false);
-    if (error) { setErr(error.message); return; }
+    if (error) {
+      setErr(error.message);
+      return;
+    }
     setMsg('Saved.');
     void refresh();
     setTimeout(() => setMsg(null), 2000);
   };
 
-  const sset = (patch: Partial<OrgSettings>) => setDraft((d) => ({ ...d, settings: { ...d.settings, ...patch } }));
+  const sset = (patch: Partial<OrgSettings>) =>
+    setDraft((d) => ({ ...d, settings: { ...d.settings, ...patch } }));
 
   return (
     <div style={{ marginTop: '0.5rem' }}>
@@ -78,10 +84,19 @@ export function OrgProfileForm() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, maxWidth: 720 }}>
         <Field label="Trading name">
-          <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} style={inp} />
+          <input
+            value={draft.name}
+            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+            style={inp}
+          />
         </Field>
         <Field label="ABN">
-          <input value={draft.abn} onChange={(e) => setDraft({ ...draft, abn: e.target.value })} placeholder="12 345 678 901" style={inp} />
+          <input
+            value={draft.abn}
+            onChange={(e) => setDraft({ ...draft, abn: e.target.value })}
+            placeholder="12 345 678 901"
+            style={inp}
+          />
         </Field>
       </div>
 
@@ -99,7 +114,10 @@ export function OrgProfileForm() {
         </Field>
         <Field label="Income tax set-aside %">
           <input
-            type="number" min={0} max={100} step={1}
+            type="number"
+            min={0}
+            max={100}
+            step={1}
             value={draft.settings.tax_rate_percent ?? 25}
             onChange={(e) => sset({ tax_rate_percent: Number(e.target.value) })}
             style={inp}
@@ -111,7 +129,8 @@ export function OrgProfileForm() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, maxWidth: 720 }}>
         <Field label="Default payment terms (days)">
           <input
-            type="number" min={0}
+            type="number"
+            min={0}
             value={draft.settings.default_invoice_terms_days ?? 14}
             onChange={(e) => sset({ default_invoice_terms_days: Number(e.target.value) })}
             style={inp}
@@ -128,7 +147,9 @@ export function OrgProfileForm() {
       </div>
 
       <div style={{ marginTop: 16, display: 'flex', gap: 8, alignItems: 'center' }}>
-        <button onClick={save} disabled={busy} style={btnPrim}>{busy ? 'Saving…' : 'Save profile'}</button>
+        <button onClick={save} disabled={busy} style={btnPrim}>
+          {busy ? 'Saving…' : 'Save profile'}
+        </button>
         {msg && <span style={{ color: '#86c7a3', fontSize: 12 }}>{msg}</span>}
         {err && <span style={{ color: 'salmon', fontSize: 12 }}>{err}</span>}
       </div>
@@ -145,12 +166,21 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 const inp: React.CSSProperties = {
-  width: '100%', padding: '6px 8px',
-  background: '#000', color: '#ddd', border: '1px solid #333', borderRadius: 3, fontSize: 12,
+  width: '100%',
+  padding: '6px 8px',
+  background: '#000',
+  color: '#ddd',
+  border: '1px solid #333',
+  borderRadius: 3,
+  fontSize: 12,
 };
 const btnPrim: React.CSSProperties = {
   padding: '0.5rem 1rem',
-  background: '#1c4868', color: '#fff',
-  border: '1px solid #5096d8', borderRadius: 4,
-  fontSize: 13, fontWeight: 600, cursor: 'pointer',
+  background: '#1c4868',
+  color: '#fff',
+  border: '1px solid #5096d8',
+  borderRadius: 4,
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: 'pointer',
 };

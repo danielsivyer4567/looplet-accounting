@@ -62,23 +62,29 @@ export function useApprovals() {
     setLoading(false);
   }, [currentOrg]);
 
-  useEffect(() => { void fetch(); }, [fetch]);
+  useEffect(() => {
+    void fetch();
+  }, [fetch]);
 
   // approve/reject go through the role-gated DEFINER RPCs (0105); reject requires a
   // non-empty reason (the RPC raises otherwise). Both share the resolve path: throw on
   // failure so the page can surface the real message; refresh so the row leaves the queue.
-  const resolve = useCallback(async (rpc: string, args: Record<string, unknown>) => {
-    const { error: err } = await supabase.rpc(rpc, args);
-    if (err) throw new Error(err.message);
-    await fetch();
-  }, [fetch]);
+  const resolve = useCallback(
+    async (rpc: string, args: Record<string, unknown>) => {
+      const { error: err } = await supabase.rpc(rpc, args);
+      if (err) throw new Error(err.message);
+      await fetch();
+    },
+    [fetch],
+  );
 
   const approve = useCallback(
     (approvalId: string) => resolve('approve', { p_approval_id: approvalId }),
     [resolve],
   );
   const reject = useCallback(
-    (approvalId: string, reason: string) => resolve('reject', { p_approval_id: approvalId, p_reason: reason }),
+    (approvalId: string, reason: string) =>
+      resolve('reject', { p_approval_id: approvalId, p_reason: reason }),
     [resolve],
   );
 

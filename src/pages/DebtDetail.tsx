@@ -15,7 +15,7 @@ import {
   DollarSign,
   Calendar,
   Clock,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
 
 interface Debt {
@@ -47,7 +47,15 @@ interface Payment {
   notes: string | null;
 }
 
-const DEBT_KINDS = ['credit_card', 'personal_loan', 'mortgage', 'business_loan', 'overdraft', 'tax_debt', 'other'];
+const DEBT_KINDS = [
+  'credit_card',
+  'personal_loan',
+  'mortgage',
+  'business_loan',
+  'overdraft',
+  'tax_debt',
+  'other',
+];
 
 export function DebtDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -67,8 +75,18 @@ export function DebtDetailPage() {
     setLoading(true);
     setError(null);
     const [debtRes, payRes] = await Promise.all([
-      supabase.from('debts').select('*').eq('id', id).eq('organization_id', currentOrg.id).maybeSingle(),
-      supabase.from('debt_payments').select('*').eq('debt_id', id).eq('organization_id', currentOrg.id).order('paid_at', { ascending: false }),
+      supabase
+        .from('debts')
+        .select('*')
+        .eq('id', id)
+        .eq('organization_id', currentOrg.id)
+        .maybeSingle(),
+      supabase
+        .from('debt_payments')
+        .select('*')
+        .eq('debt_id', id)
+        .eq('organization_id', currentOrg.id)
+        .order('paid_at', { ascending: false }),
     ]);
     if (debtRes.error) {
       setError(debtRes.error.message);
@@ -108,7 +126,8 @@ export function DebtDetailPage() {
       account_number_last4: draft.account_number_last4?.toString().trim() || null,
       current_balance_cents: Number(draft.current_balance_cents ?? debt.current_balance_cents),
       interest_rate_pct: draft.interest_rate_pct == null ? null : Number(draft.interest_rate_pct),
-      minimum_payment_cents: draft.minimum_payment_cents == null ? null : Number(draft.minimum_payment_cents),
+      minimum_payment_cents:
+        draft.minimum_payment_cents == null ? null : Number(draft.minimum_payment_cents),
       payment_due_day: draft.payment_due_day == null ? null : Number(draft.payment_due_day),
       is_personal: !!draft.is_personal,
       notes: draft.notes?.toString().trim() || null,
@@ -152,7 +171,10 @@ export function DebtDetailPage() {
 
   if (!debt) {
     return (
-      <section className="animated-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <section
+        className="animated-fade-in"
+        style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+      >
         <h1>Debt Account Not Found</h1>
         <Link to="/debts" className="btn btn-secondary" style={{ width: 'fit-content' }}>
           <ArrowLeft className="w-4 h-4" /> Back to Debts
@@ -171,13 +193,34 @@ export function DebtDetailPage() {
   });
 
   return (
-    <section className="animated-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <section
+      className="animated-fade-in"
+      style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}
+    >
       <div>
-        <Link to="/debts" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+        <Link
+          to="/debts"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.25rem',
+            fontSize: '0.875rem',
+            color: 'var(--text-muted)',
+            marginBottom: '1rem',
+          }}
+        >
           <ArrowLeft className="w-4 h-4" /> Back to all debts
         </Link>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             <h1 style={{ margin: 0 }}>{debt.name}</h1>
             <span className="badge badge-info" style={{ textTransform: 'capitalize' }}>
@@ -209,7 +252,13 @@ export function DebtDetailPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '1rem',
+        }}
+      >
         <KpiCard
           label="Current Balance"
           value={formatMoney(debt.current_balance_cents)}
@@ -226,12 +275,23 @@ export function DebtDetailPage() {
           label="Total Paid Down"
           value={formatMoney(paidDown)}
           accentColor="var(--accent-success)"
-          icon={<TrendingDown className="w-5 h-5" style={{ color: 'var(--accent-success)', transform: 'rotate(180deg)' }} />}
-          sub={original > 0 ? `${((paidDown / original) * 100).toFixed(1)}% Principal Cleared` : undefined}
+          icon={
+            <TrendingDown
+              className="w-5 h-5"
+              style={{ color: 'var(--accent-success)', transform: 'rotate(180deg)' }}
+            />
+          }
+          sub={
+            original > 0
+              ? `${((paidDown / original) * 100).toFixed(1)}% Principal Cleared`
+              : undefined
+          }
         />
         <KpiCard
           label="Interest Rate (APR)"
-          value={debt.interest_rate_pct != null ? `${Number(debt.interest_rate_pct).toFixed(2)}%` : '—'}
+          value={
+            debt.interest_rate_pct != null ? `${Number(debt.interest_rate_pct).toFixed(2)}%` : '—'
+          }
           accentColor="var(--accent-warning)"
           icon={<Clock className="w-5 h-5" style={{ color: 'var(--accent-warning)' }} />}
         />
@@ -240,24 +300,53 @@ export function DebtDetailPage() {
           value={debt.minimum_payment_cents != null ? formatMoney(debt.minimum_payment_cents) : '—'}
           accentColor="var(--text-muted)"
           icon={<Calendar className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />}
-          sub={debt.payment_due_day != null ? `Due monthly on day ${debt.payment_due_day}` : undefined}
+          sub={
+            debt.payment_due_day != null ? `Due monthly on day ${debt.payment_due_day}` : undefined
+          }
         />
         <KpiCard
           label="Payoff Projection"
-          value={projection.kind === 'ok' ? `${projection.months} months` : projection.kind === 'never' ? 'Never' : '—'}
+          value={
+            projection.kind === 'ok'
+              ? `${projection.months} months`
+              : projection.kind === 'never'
+                ? 'Never'
+                : '—'
+          }
           accentColor={projection.kind === 'ok' ? 'var(--accent-info)' : 'var(--accent-danger)'}
-          icon={<Clock className="w-5 h-5" style={{ color: projection.kind === 'ok' ? 'var(--accent-info)' : 'var(--accent-danger)' }} />}
+          icon={
+            <Clock
+              className="w-5 h-5"
+              style={{
+                color: projection.kind === 'ok' ? 'var(--accent-info)' : 'var(--accent-danger)',
+              }}
+            />
+          }
           sub={projection.note}
         />
       </div>
 
       {editing ? (
         <div className="card-gradient">
-          <h3 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h3
+            style={{
+              marginTop: 0,
+              marginBottom: '1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+          >
             <Edit2 className="w-5 h-5" /> Edit Account Settings
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '1rem',
+              }}
+            >
               <div className="form-group">
                 <label className="form-label">Debt Type</label>
                 <select
@@ -265,7 +354,11 @@ export function DebtDetailPage() {
                   value={String(draft.kind ?? debt.kind)}
                   onChange={(e) => setDraft({ ...draft, kind: e.target.value })}
                 >
-                  {DEBT_KINDS.map((k) => <option key={k} value={k}>{k.replace(/_/g, ' ')}</option>)}
+                  {DEBT_KINDS.map((k) => (
+                    <option key={k} value={k}>
+                      {k.replace(/_/g, ' ')}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="form-group">
@@ -278,7 +371,13 @@ export function DebtDetailPage() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '1rem',
+              }}
+            >
               <div className="form-group">
                 <label className="form-label">Account # (Last 4 digits)</label>
                 <input
@@ -301,15 +400,28 @@ export function DebtDetailPage() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '1rem',
+              }}
+            >
               <div className="form-group">
                 <label className="form-label">Current Balance ($)</label>
                 <input
                   className="form-input"
                   type="number"
                   step="0.01"
-                  value={(Number(draft.current_balance_cents ?? debt.current_balance_cents) / 100).toString()}
-                  onChange={(e) => setDraft({ ...draft, current_balance_cents: Math.round(parseFloat(e.target.value || '0') * 100) })}
+                  value={(
+                    Number(draft.current_balance_cents ?? debt.current_balance_cents) / 100
+                  ).toString()}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      current_balance_cents: Math.round(parseFloat(e.target.value || '0') * 100),
+                    })
+                  }
                 />
               </div>
               <div className="form-group">
@@ -319,20 +431,41 @@ export function DebtDetailPage() {
                   type="number"
                   step="0.01"
                   value={draft.interest_rate_pct == null ? '' : String(draft.interest_rate_pct)}
-                  onChange={(e) => setDraft({ ...draft, interest_rate_pct: e.target.value === '' ? null : Number(e.target.value) })}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      interest_rate_pct: e.target.value === '' ? null : Number(e.target.value),
+                    })
+                  }
                 />
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '1rem',
+              }}
+            >
               <div className="form-group">
                 <label className="form-label">Minimum Monthly Payment ($)</label>
                 <input
                   className="form-input"
                   type="number"
                   step="0.01"
-                  value={draft.minimum_payment_cents == null ? '' : (Number(draft.minimum_payment_cents) / 100).toString()}
-                  onChange={(e) => setDraft({ ...draft, minimum_payment_cents: e.target.value === '' ? null : Math.round(parseFloat(e.target.value) * 100) })}
+                  value={
+                    draft.minimum_payment_cents == null
+                      ? ''
+                      : (Number(draft.minimum_payment_cents) / 100).toString()
+                  }
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      minimum_payment_cents:
+                        e.target.value === '' ? null : Math.round(parseFloat(e.target.value) * 100),
+                    })
+                  }
                 />
               </div>
               <div className="form-group">
@@ -343,7 +476,12 @@ export function DebtDetailPage() {
                   min={1}
                   max={31}
                   value={draft.payment_due_day == null ? '' : String(draft.payment_due_day)}
-                  onChange={(e) => setDraft({ ...draft, payment_due_day: e.target.value === '' ? null : Number(e.target.value) })}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      payment_due_day: e.target.value === '' ? null : Number(e.target.value),
+                    })
+                  }
                 />
               </div>
             </div>
@@ -362,25 +500,49 @@ export function DebtDetailPage() {
               <button className="btn btn-primary" onClick={save} disabled={saving}>
                 {saving ? 'Saving Changes…' : 'Save Changes'}
               </button>
-              <button className="btn btn-secondary" onClick={() => setEditing(false)} disabled={saving}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setEditing(false)}
+                disabled={saving}
+              >
                 Cancel
               </button>
             </div>
             {error && (
-              <div className="badge badge-danger" style={{ display: 'block', padding: '0.5rem 1rem', textTransform: 'none' }}>
+              <div
+                className="badge badge-danger"
+                style={{ display: 'block', padding: '0.5rem 1rem', textTransform: 'none' }}
+              >
                 {error}
               </div>
             )}
           </div>
         </div>
       ) : (
-        <div className="card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+        <div
+          className="card"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '1.5rem',
+          }}
+        >
           <StatField label="Lender / Institution" value={debt.lender_name ?? '—'} />
-          <StatField label="Account Number" value={debt.account_number_last4 ? `•••• •••• •••• ${debt.account_number_last4}` : '—'} />
-          <StatField label="Debt Account Type" value={debt.kind.replace(/_/g, ' ')} style={{ textTransform: 'capitalize' }} />
+          <StatField
+            label="Account Number"
+            value={debt.account_number_last4 ? `•••• •••• •••• ${debt.account_number_last4}` : '—'}
+          />
+          <StatField
+            label="Debt Account Type"
+            value={debt.kind.replace(/_/g, ' ')}
+            style={{ textTransform: 'capitalize' }}
+          />
           <StatField label="Origination Date" value={debt.start_date?.slice(0, 10) ?? '—'} />
           <StatField label="Target Payoff Date" value={debt.end_date?.slice(0, 10) ?? '—'} />
-          <StatField label="Liability Classification" value={debt.is_personal ? 'Personal Liability' : 'Business Liability'} />
+          <StatField
+            label="Liability Classification"
+            value={debt.is_personal ? 'Personal Liability' : 'Business Liability'}
+          />
           <div style={{ gridColumn: '1 / -1' }}>
             <StatField label="Notes / Terms" value={debt.notes ?? 'No notes recorded.'} />
           </div>
@@ -391,14 +553,20 @@ export function DebtDetailPage() {
         <RecordPaymentModal
           debt={debt}
           onClose={() => setShowRecord(false)}
-          onRecorded={() => { setShowRecord(false); void refresh(); }}
+          onRecorded={() => {
+            setShowRecord(false);
+            void refresh();
+          }}
         />
       )}
 
       <div>
         <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Payment Ledger</h2>
         {payments.length === 0 ? (
-          <div className="card" style={{ padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+          <div
+            className="card"
+            style={{ padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}
+          >
             No payments have been recorded for this account.
           </div>
         ) : (
@@ -419,13 +587,23 @@ export function DebtDetailPage() {
                 {payments.map((p) => (
                   <tr key={p.id}>
                     <td>{p.paid_at.slice(0, 10)}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-title)' }}>{formatMoney(p.total_cents)}</td>
-                    <td style={{ textAlign: 'right', color: 'var(--text-success)', fontWeight: 500 }}>
+                    <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-title)' }}>
+                      {formatMoney(p.total_cents)}
+                    </td>
+                    <td
+                      style={{ textAlign: 'right', color: 'var(--text-success)', fontWeight: 500 }}
+                    >
                       {p.principal_cents != null ? formatMoney(p.principal_cents) : '—'}
                     </td>
-                    <td style={{ textAlign: 'right' }}>{p.interest_cents != null ? formatMoney(p.interest_cents) : '—'}</td>
-                    <td style={{ textAlign: 'right' }}>{p.fees_cents != null ? formatMoney(p.fees_cents) : '—'}</td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>{p.notes ?? ''}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      {p.interest_cents != null ? formatMoney(p.interest_cents) : '—'}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      {p.fees_cents != null ? formatMoney(p.fees_cents) : '—'}
+                    </td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
+                      {p.notes ?? ''}
+                    </td>
                     <td style={{ textAlign: 'center' }}>
                       <button
                         onClick={() => void deletePayment(p.id)}
@@ -453,20 +631,34 @@ export function DebtDetailPage() {
           alignItems: 'flex-start',
           fontSize: '0.825rem',
           color: 'var(--text-muted)',
-          borderStyle: 'dashed'
+          borderStyle: 'dashed',
         }}
       >
-        <Info className="w-5 h-5 text-accent-primary" style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--accent-primary)' }} />
+        <Info
+          className="w-5 h-5 text-accent-primary"
+          style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--accent-primary)' }}
+        />
         <div>
-          <strong style={{ color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>Amortisation Planner:</strong>
-          We are building a calculator to simulate interest savings by applying the Avalanche (highest interest first) or Snowball (smallest balance first) paydown methods.
+          <strong style={{ color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>
+            Amortisation Planner:
+          </strong>
+          We are building a calculator to simulate interest savings by applying the Avalanche
+          (highest interest first) or Snowball (smallest balance first) paydown methods.
         </div>
       </div>
     </section>
   );
 }
 
-function RecordPaymentModal({ debt, onClose, onRecorded }: { debt: Debt; onClose: () => void; onRecorded: () => void }) {
+function RecordPaymentModal({
+  debt,
+  onClose,
+  onRecorded,
+}: {
+  debt: Debt;
+  onClose: () => void;
+  onRecorded: () => void;
+}) {
   const { currentOrg } = useOrg();
   const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));
   const [total, setTotal] = useState((debt.minimum_payment_cents ?? 0) / 100);
@@ -495,37 +687,67 @@ function RecordPaymentModal({ debt, onClose, onRecorded }: { debt: Debt; onClose
       fees_cents: feesC || null,
       notes: notes.trim() || null,
     });
-    if (insertErr) { setBusy(false); setErr(insertErr.message); return; }
+    if (insertErr) {
+      setBusy(false);
+      setErr(insertErr.message);
+      return;
+    }
     if (principalC > 0) {
       const { error: updErr } = await supabase
         .from('debts')
         .update({ current_balance_cents: Math.max(0, debt.current_balance_cents - principalC) })
         .eq('id', debt.id);
-      if (updErr) { setBusy(false); setErr(updErr.message); return; }
+      if (updErr) {
+        setBusy(false);
+        setErr(updErr.message);
+        return;
+      }
     }
     setBusy(false);
     onRecorded();
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
-      backdropFilter: 'blur(4px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 50,
-      padding: '1rem'
-    }}>
-      <div className="card animated-fade-in" style={{ width: '100%', maxWidth: '540px', maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--accent-primary)', boxShadow: 'var(--shadow-lg)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        backdropFilter: 'blur(4px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 50,
+        padding: '1rem',
+      }}
+    >
+      <div
+        className="card animated-fade-in"
+        style={{
+          width: '100%',
+          maxWidth: '540px',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          border: '1px solid var(--accent-primary)',
+          boxShadow: 'var(--shadow-lg)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1.5rem',
+          }}
+        >
           <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Plus className="w-5 h-5 text-accent-success" style={{ color: 'var(--accent-success)' }} />
+            <Plus
+              className="w-5 h-5 text-accent-success"
+              style={{ color: 'var(--accent-success)' }}
+            />
             Record Payment
           </h3>
           <button className="btn btn-ghost" onClick={onClose} style={{ padding: '0.25rem' }}>
@@ -537,39 +759,91 @@ function RecordPaymentModal({ debt, onClose, onRecorded }: { debt: Debt; onClose
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">Payment Date</label>
-              <input type="date" className="form-input" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
+              <input
+                type="date"
+                className="form-input"
+                value={paidAt}
+                onChange={(e) => setPaidAt(e.target.value)}
+              />
             </div>
             <div className="form-group">
               <label className="form-label">Total Amount ($)</label>
-              <input type="number" step="0.01" className="form-input" value={total || ''} onChange={(e) => setTotal(parseFloat(e.target.value) || 0)} placeholder="0.00" />
+              <input
+                type="number"
+                step="0.01"
+                className="form-input"
+                value={total || ''}
+                onChange={(e) => setTotal(parseFloat(e.target.value) || 0)}
+                placeholder="0.00"
+              />
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">Principal portion ($)</label>
-              <input type="number" step="0.01" className="form-input" value={principal || ''} onChange={(e) => setPrincipal(parseFloat(e.target.value) || 0)} placeholder="0.00" />
+              <input
+                type="number"
+                step="0.01"
+                className="form-input"
+                value={principal || ''}
+                onChange={(e) => setPrincipal(parseFloat(e.target.value) || 0)}
+                placeholder="0.00"
+              />
             </div>
             <div className="form-group">
               <label className="form-label">Interest portion ($)</label>
-              <input type="number" step="0.01" className="form-input" value={interest || ''} onChange={(e) => setInterest(parseFloat(e.target.value) || 0)} placeholder="0.00" />
+              <input
+                type="number"
+                step="0.01"
+                className="form-input"
+                value={interest || ''}
+                onChange={(e) => setInterest(parseFloat(e.target.value) || 0)}
+                placeholder="0.00"
+              />
             </div>
           </div>
 
           <div className="form-group">
             <label className="form-label">Fees portion ($)</label>
-            <input type="number" step="0.01" className="form-input" value={fees || ''} onChange={(e) => setFees(parseFloat(e.target.value) || 0)} placeholder="0.00" />
+            <input
+              type="number"
+              step="0.01"
+              className="form-input"
+              value={fees || ''}
+              onChange={(e) => setFees(parseFloat(e.target.value) || 0)}
+              placeholder="0.00"
+            />
           </div>
 
           <div className="form-group">
             <label className="form-label">Notes / Description</label>
-            <input className="form-input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Regular monthly payoff" />
+            <input
+              className="form-input"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="e.g. Regular monthly payoff"
+            />
           </div>
 
-          <div className="glass-panel" style={{ padding: '0.75rem 1rem', display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            <AlertCircle className="w-4 h-4 text-accent-success" style={{ flexShrink: 0, color: 'var(--accent-success)' }} />
+          <div
+            className="glass-panel"
+            style={{
+              padding: '0.75rem 1rem',
+              display: 'flex',
+              gap: '0.5rem',
+              alignItems: 'center',
+              fontSize: '0.8rem',
+              color: 'var(--text-muted)',
+            }}
+          >
+            <AlertCircle
+              className="w-4 h-4 text-accent-success"
+              style={{ flexShrink: 0, color: 'var(--accent-success)' }}
+            />
             <span>
-              Principal portion (<strong>{formatMoney(Math.round(principal * 100))}</strong>) will automatically reduce the current outstanding balance.
+              Principal portion (<strong>{formatMoney(Math.round(principal * 100))}</strong>) will
+              automatically reduce the current outstanding balance.
             </span>
           </div>
 
@@ -582,7 +856,10 @@ function RecordPaymentModal({ debt, onClose, onRecorded }: { debt: Debt; onClose
             </button>
           </div>
           {err && (
-            <div className="badge badge-danger" style={{ display: 'block', padding: '0.5rem 1rem', textTransform: 'none' }}>
+            <div
+              className="badge badge-danger"
+              style={{ display: 'block', padding: '0.5rem 1rem', textTransform: 'none' }}
+            >
               {err}
             </div>
           )}
@@ -597,9 +874,17 @@ type Projection =
   | { kind: 'never'; note?: string }
   | { kind: 'unknown'; note?: string };
 
-function computePayoffMonths(input: { balance_cents: number; interest_rate_pct: number | null; minimum_payment_cents: number | null }): Projection {
+function computePayoffMonths(input: {
+  balance_cents: number;
+  interest_rate_pct: number | null;
+  minimum_payment_cents: number | null;
+}): Projection {
   if (input.balance_cents <= 0) return { kind: 'ok', months: 0, note: 'Account fully settled.' };
-  if (input.interest_rate_pct == null || input.minimum_payment_cents == null || input.minimum_payment_cents <= 0) {
+  if (
+    input.interest_rate_pct == null ||
+    input.minimum_payment_cents == null ||
+    input.minimum_payment_cents <= 0
+  ) {
     return { kind: 'unknown', note: 'Specify APR + min payment to calculate projection.' };
   }
   const monthlyRate = Number(input.interest_rate_pct) / 100 / 12;
@@ -612,40 +897,119 @@ function computePayoffMonths(input: { balance_cents: number; interest_rate_pct: 
     return { kind: 'ok', months, note: `Flat-rate payoff (${formatMoney(minPayment)}/mo)` };
   }
   if (minPayment <= monthlyInterestAccrued) {
-    return { kind: 'never', note: `Payment is less than monthly interest accrual (${formatMoney(Math.round(monthlyInterestAccrued))}/mo)` };
+    return {
+      kind: 'never',
+      note: `Payment is less than monthly interest accrual (${formatMoney(Math.round(monthlyInterestAccrued))}/mo)`,
+    };
   }
   const numerator = Math.log(minPayment / (minPayment - balance * monthlyRate));
   const denominator = Math.log(1 + monthlyRate);
   const months = Math.ceil(numerator / denominator);
-  return { kind: 'ok', months, note: `At ${formatMoney(minPayment)}/mo · ${(monthlyRate * 12 * 100).toFixed(2)}% APR` };
+  return {
+    kind: 'ok',
+    months,
+    note: `At ${formatMoney(minPayment)}/mo · ${(monthlyRate * 12 * 100).toFixed(2)}% APR`,
+  };
 }
 
-function StatField({ label, value, mono, style }: { label: string; value: string; mono?: boolean; style?: React.CSSProperties }) {
+function StatField({
+  label,
+  value,
+  mono,
+  style,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  style?: React.CSSProperties;
+}) {
   return (
     <div style={style}>
-      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: '0.25rem' }}>
+      <div
+        style={{
+          fontSize: '0.75rem',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          fontWeight: 600,
+          marginBottom: '0.25rem',
+        }}
+      >
         {label}
       </div>
-      <div style={{ color: 'var(--text-title)', fontSize: '0.95rem', fontWeight: 500, fontFamily: mono ? 'monospace' : 'inherit' }}>
+      <div
+        style={{
+          color: 'var(--text-title)',
+          fontSize: '0.95rem',
+          fontWeight: 500,
+          fontFamily: mono ? 'monospace' : 'inherit',
+        }}
+      >
         {value}
       </div>
     </div>
   );
 }
 
-function KpiCard({ label, value, accentColor, icon, sub }: { label: string; value: string; accentColor: string; icon: React.ReactNode; sub?: string | undefined }) {
+function KpiCard({
+  label,
+  value,
+  accentColor,
+  icon,
+  sub,
+}: {
+  label: string;
+  value: string;
+  accentColor: string;
+  icon: React.ReactNode;
+  sub?: string | undefined;
+}) {
   return (
-    <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderLeft: `4px solid ${accentColor}` }}>
+    <div
+      className="card"
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        borderLeft: `4px solid ${accentColor}`,
+      }}
+    >
       <div>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: '0.35rem' }}>
+        <div
+          style={{
+            fontSize: '0.75rem',
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            fontWeight: 600,
+            marginBottom: '0.35rem',
+          }}
+        >
           {label}
         </div>
-        <div style={{ fontSize: '1.65rem', color: 'var(--text-title)', fontWeight: 700, fontFamily: 'var(--font-title)' }}>
+        <div
+          style={{
+            fontSize: '1.65rem',
+            color: 'var(--text-title)',
+            fontWeight: 700,
+            fontFamily: 'var(--font-title)',
+          }}
+        >
           {value}
         </div>
-        {sub && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{sub}</div>}
+        {sub && (
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+            {sub}
+          </div>
+        )}
       </div>
-      <div style={{ padding: '0.5rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)' }}>
+      <div
+        style={{
+          padding: '0.5rem',
+          background: 'var(--bg-hover)',
+          borderRadius: 'var(--radius-sm)',
+        }}
+      >
         {icon}
       </div>
     </div>

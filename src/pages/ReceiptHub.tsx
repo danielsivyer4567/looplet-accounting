@@ -166,7 +166,9 @@ export function ReceiptHubPage() {
         .limit(6),
       supabase
         .from('receipt_events')
-        .select('id,bill_id,merchant_name,receipt_number,purchase_at,source_channel,status,business_use,deductibility_status,gst_cents,total_inc_gst_cents')
+        .select(
+          'id,bill_id,merchant_name,receipt_number,purchase_at,source_channel,status,business_use,deductibility_status,gst_cents,total_inc_gst_cents',
+        )
         .eq('organization_id', currentOrg.id)
         .order('created_at', { ascending: false })
         .limit(8),
@@ -210,8 +212,9 @@ export function ReceiptHubPage() {
     setIssuing(false);
 
     if (rpcError) {
-      const schemaCacheMiss = rpcError.message.toLowerCase().includes('schema cache')
-        || rpcError.message.toLowerCase().includes('could not find the function');
+      const schemaCacheMiss =
+        rpcError.message.toLowerCase().includes('schema cache') ||
+        rpcError.message.toLowerCase().includes('could not find the function');
       setError(
         schemaCacheMiss
           ? 'Receipt Hub database migration is not applied yet, or Supabase needs a schema-cache reload for issue_receipt_identity.'
@@ -232,7 +235,9 @@ export function ReceiptHubPage() {
     return issued.receipt_token;
   }, [activeChannel, channel.title, currentOrg, refreshReceiptHub]);
 
-  const [simStage, setSimStage] = useState<'idle' | 'tap' | 'pulse' | 'print' | 'fly-to-phone' | 'success-flash' | 'fly-to-app'>('idle');
+  const [simStage, setSimStage] = useState<
+    'idle' | 'tap' | 'pulse' | 'print' | 'fly-to-phone' | 'success-flash' | 'fly-to-app'
+  >('idle');
 
   const runPosSimulator = async () => {
     if (!currentOrg) {
@@ -255,10 +260,12 @@ export function ReceiptHubPage() {
           setError(null); // Clear database error to allow smooth local animation demo
         }
       }
-      
+
       const activeToken = token ?? 'rhp_mocktoken12345.mocksecret987654321';
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -268,7 +275,7 @@ export function ReceiptHubPage() {
 
       const sourceChannel = activeChannel === 'phone-pass' ? 'pos' : activeChannel;
       const payload = buildDemoReceiptPayload(currentOrg.id);
-      
+
       apiPromise = fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/receipt-webhook`, {
         method: 'POST',
         headers,
@@ -279,30 +286,35 @@ export function ReceiptHubPage() {
           payload,
           sync_targets: ['xero', 'myob', 'quickbooks', 'generic_api'],
         }),
-      }).then(async (response) => {
-        const body = await response.json() as ({ ok?: boolean; error?: string } & SimulatorResult);
-        if (!response.ok || !body.ok) throw new Error(body.error ?? 'Receipt webhook failed');
-        return body;
-      }).catch((err) => {
-        console.warn("Webhook failed, using mock result for animation demonstration:", err);
-        return {
-          receipt_event_id: 'mock-event-' + Math.random().toString(36).slice(2, 9),
-          bill_id: 'mock-bill-' + Math.random().toString(36).slice(2, 9),
-          classification: {
-            deductibility_status: 'deductible',
-            business_use: 'business',
-          }
-        };
-      });
+      })
+        .then(async (response) => {
+          const body = (await response.json()) as {
+            ok?: boolean;
+            error?: string;
+          } & SimulatorResult;
+          if (!response.ok || !body.ok) throw new Error(body.error ?? 'Receipt webhook failed');
+          return body;
+        })
+        .catch((err) => {
+          console.warn('Webhook failed, using mock result for animation demonstration:', err);
+          return {
+            receipt_event_id: 'mock-event-' + Math.random().toString(36).slice(2, 9),
+            bill_id: 'mock-bill-' + Math.random().toString(36).slice(2, 9),
+            classification: {
+              deductibility_status: 'deductible',
+              business_use: 'business',
+            },
+          };
+        });
     } catch (err) {
-      console.warn("Simulator initialization error, using mock fallback:", err);
+      console.warn('Simulator initialization error, using mock fallback:', err);
       apiPromise = Promise.resolve({
         receipt_event_id: 'mock-event-' + Math.random().toString(36).slice(2, 9),
         bill_id: 'mock-bill-' + Math.random().toString(36).slice(2, 9),
         classification: {
           deductibility_status: 'deductible',
           business_use: 'business',
-        }
+        },
       });
     }
 
@@ -327,7 +339,7 @@ export function ReceiptHubPage() {
       await new Promise((resolve) => setTimeout(resolve, 800));
       if (!body) return;
       setSimulatorResult(body);
-      
+
       if (body.receipt_event_id.startsWith('mock-event')) {
         const mockEvent: ReceiptEventRow = {
           id: body.receipt_event_id,
@@ -364,20 +376,25 @@ export function ReceiptHubPage() {
     setError(null);
     setDispatchMessage(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in');
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/receipt-sync-dispatch`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/receipt-sync-dispatch`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            organization_id: currentOrg.id,
+            limit: 10,
+          }),
         },
-        body: JSON.stringify({
-          organization_id: currentOrg.id,
-          limit: 10,
-        }),
-      });
-      const body = await response.json() as {
+      );
+      const body = (await response.json()) as {
         ok?: boolean;
         error?: string;
         processed?: number;
@@ -387,7 +404,9 @@ export function ReceiptHubPage() {
 
       const synced = body.results?.filter((item) => item.status === 'synced').length ?? 0;
       const failed = body.results?.filter((item) => item.status === 'failed').length ?? 0;
-      setDispatchMessage(`${body.processed ?? 0} jobs processed · ${synced} synced · ${failed} failed`);
+      setDispatchMessage(
+        `${body.processed ?? 0} jobs processed · ${synced} synced · ${failed} failed`,
+      );
       await refreshReceiptHub();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -406,20 +425,32 @@ export function ReceiptHubPage() {
           </div>
           <h1>Receipt Hub</h1>
           <p>
-            The first stage is a phone-first receipt identity layer: tap, scan, or pass a token at checkout,
-            then let the merchant/POS send a structured receipt into Looplet.
+            The first stage is a phone-first receipt identity layer: tap, scan, or pass a token at
+            checkout, then let the merchant/POS send a structured receipt into Looplet.
           </p>
           <div className="receipt-hub-actions">
-            <button className="btn btn-primary" onClick={() => void issueIdentity()} disabled={!currentOrg || issuing}>
+            <button
+              className="btn btn-primary"
+              onClick={() => void issueIdentity()}
+              disabled={!currentOrg || issuing}
+            >
               {issuing ? <Loader2 size={16} className="spin" /> : <WalletCards size={16} />}
               {issuing ? 'Generating' : 'Generate pass'}
             </button>
-            <button className="btn btn-secondary" onClick={() => void runPosSimulator()} disabled={!currentOrg || simulating || issuing}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => void runPosSimulator()}
+              disabled={!currentOrg || simulating || issuing}
+            >
               {simulating ? <Loader2 size={16} className="spin" /> : <PlugZap size={16} />}
               {simulating ? 'Running simulator' : 'POS simulator'}
             </button>
           </div>
-          {error ? <div className="receipt-alert" role="alert">{error}</div> : null}
+          {error ? (
+            <div className="receipt-alert" role="alert">
+              {error}
+            </div>
+          ) : null}
           {identityToken ? (
             <div className="receipt-token-strip">
               <span>New receipt identity</span>
@@ -1058,8 +1089,12 @@ export function ReceiptHubPage() {
                 <strong>BUNNINGS</strong>
                 <span className="receipt-line">RH-{Date.now().toString().slice(-4)}</span>
                 <span className="receipt-line-dashed" />
-                <span className="receipt-item">Pine Frame<span>$198</span></span>
-                <span className="receipt-item">Fasteners<span>$162</span></span>
+                <span className="receipt-item">
+                  Pine Frame<span>$198</span>
+                </span>
+                <span className="receipt-item">
+                  Fasteners<span>$162</span>
+                </span>
                 <span className="receipt-line-dashed" />
                 <strong className="receipt-total">Total: $360.00</strong>
               </div>
@@ -1085,16 +1120,21 @@ export function ReceiptHubPage() {
               <div className="phone-app-container">
                 {/* Dynamic Island / Notch */}
                 <div className="phone-dynamic-island" />
-                
+
                 {/* Header */}
                 <div className="phone-app-header">
                   <div className="header-brand">
                     <BrandLogo size={8} glow={false} style={{ color: 'var(--accent-primary)' }} />
-                    <span>Looplet <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>accounting</span></span>
+                    <span>
+                      Looplet{' '}
+                      <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
+                        accounting
+                      </span>
+                    </span>
                   </div>
                   <div className="header-battery" />
                 </div>
-                
+
                 {/* Scrollable app area */}
                 <div className="phone-app-body">
                   <div className="phone-app-title">
@@ -1107,7 +1147,9 @@ export function ReceiptHubPage() {
                     <div className="phone-app-kpi billed" style={{ gridColumn: 'span 2' }}>
                       <span className="kpi-label">Total Billed</span>
                       <strong className="kpi-val">
-                        {simStage === 'fly-to-app' || simulatorResult ? '$129,493.75' : '$129,133.75'}
+                        {simStage === 'fly-to-app' || simulatorResult
+                          ? '$129,493.75'
+                          : '$129,133.75'}
                       </strong>
                     </div>
                     <div className="phone-app-kpi paid">
@@ -1116,7 +1158,15 @@ export function ReceiptHubPage() {
                     </div>
                     <div className="phone-app-kpi outstanding">
                       <span className="kpi-label">Outstanding AP</span>
-                      <strong className="kpi-val" style={{ color: simStage === 'fly-to-app' || simulatorResult ? 'var(--accent-info)' : 'var(--text-title)' }}>
+                      <strong
+                        className="kpi-val"
+                        style={{
+                          color:
+                            simStage === 'fly-to-app' || simulatorResult
+                              ? 'var(--accent-info)'
+                              : 'var(--text-title)',
+                        }}
+                      >
                         {simStage === 'fly-to-app' || simulatorResult ? '$360.00' : '$0.00'}
                       </strong>
                     </div>
@@ -1124,18 +1174,40 @@ export function ReceiptHubPage() {
 
                   {/* Tiny Area Chart */}
                   <div className="phone-app-chart-panel">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
                       <span className="panel-title">Payable Pulse</span>
                       <span style={{ fontSize: '4.5px', color: 'var(--text-muted)' }}>
-                        Drift: <strong style={{ color: simStage === 'fly-to-app' || simulatorResult ? 'var(--accent-info)' : 'var(--text-title)' }}>
+                        Drift:{' '}
+                        <strong
+                          style={{
+                            color:
+                              simStage === 'fly-to-app' || simulatorResult
+                                ? 'var(--accent-info)'
+                                : 'var(--text-title)',
+                          }}
+                        >
                           {simStage === 'fly-to-app' || simulatorResult ? '$360.00' : '$0.00'}
                         </strong>
                       </span>
                     </div>
                     <div className="phone-app-chart">
                       <svg viewBox="0 0 100 20" preserveAspectRatio="none">
-                        <path d="M0,18 C15,16 30,14 45,12 C60,10 75,7 90,3 L100,1" fill="none" stroke="var(--accent-success)" strokeWidth="1" />
-                        <path d="M0,18 C15,16 30,14 45,12 C60,10 75,7 90,3 L100,1 L100,20 L0,20 Z" fill="rgba(52, 211, 153, 0.08)" />
+                        <path
+                          d="M0,18 C15,16 30,14 45,12 C60,10 75,7 90,3 L100,1"
+                          fill="none"
+                          stroke="var(--accent-success)"
+                          strokeWidth="1"
+                        />
+                        <path
+                          d="M0,18 C15,16 30,14 45,12 C60,10 75,7 90,3 L100,1 L100,20 L0,20 Z"
+                          fill="rgba(52, 211, 153, 0.08)"
+                        />
                       </svg>
                     </div>
                   </div>
@@ -1152,7 +1224,10 @@ export function ReceiptHubPage() {
                         <div className="phone-app-row is-new-row">
                           <div className="row-info">
                             <strong>Bunnings Trade</strong>
-                            <span>RH-{Date.now().toString().slice(-4)}<span className="phone-app-badge pending">Pending</span></span>
+                            <span>
+                              RH-{Date.now().toString().slice(-4)}
+                              <span className="phone-app-badge pending">Pending</span>
+                            </span>
                           </div>
                           <span className="row-amount is-glowing">$360.00</span>
                         </div>
@@ -1160,14 +1235,18 @@ export function ReceiptHubPage() {
                       <div className="phone-app-row">
                         <div className="row-info">
                           <strong>Jackson Ryan</strong>
-                          <span>2026-02-27<span className="phone-app-badge paid">Paid</span></span>
+                          <span>
+                            2026-02-27<span className="phone-app-badge paid">Paid</span>
+                          </span>
                         </div>
                         <span className="row-amount">$3,206.50</span>
                       </div>
                       <div className="phone-app-row">
                         <div className="row-info">
                           <strong>Paul Finch</strong>
-                          <span>2026-02-27<span className="phone-app-badge paid">Paid</span></span>
+                          <span>
+                            2026-02-27<span className="phone-app-badge paid">Paid</span>
+                          </span>
                         </div>
                         <span className="row-amount">$2,095.50</span>
                       </div>
@@ -1217,17 +1296,26 @@ export function ReceiptHubPage() {
             </div>
           </div>
           <p>
-            Start with a Looplet Receipt Pass token and POS webhook. NFC behaves like the Rewards tap, but
-            receipt extraction happens through the merchant event, not by reading a payment card.
+            Start with a Looplet Receipt Pass token and POS webhook. NFC behaves like the Rewards
+            tap, but receipt extraction happens through the merchant event, not by reading a payment
+            card.
           </p>
           <div className="receipt-signal-row">
-            <span><CreditCard size={14} /> Pay</span>
+            <span>
+              <CreditCard size={14} /> Pay
+            </span>
             <i />
-            <span><Nfc size={14} /> Identify</span>
+            <span>
+              <Nfc size={14} /> Identify
+            </span>
             <i />
-            <span><ReceiptText size={14} /> Receive</span>
+            <span>
+              <ReceiptText size={14} /> Receive
+            </span>
             <i />
-            <span><CheckCircle size={14} /> Classify</span>
+            <span>
+              <CheckCircle size={14} /> Classify
+            </span>
           </div>
         </section>
 
@@ -1240,7 +1328,9 @@ export function ReceiptHubPage() {
             </div>
           </div>
           {loading ? (
-            <div className="receipt-loading"><Loader2 size={16} className="spin" /> Loading receipt state</div>
+            <div className="receipt-loading">
+              <Loader2 size={16} className="spin" /> Loading receipt state
+            </div>
           ) : (
             <ol className="receipt-setup-list">
               {setupSteps.map((step) => (
@@ -1263,27 +1353,35 @@ export function ReceiptHubPage() {
           <div className="receipt-table" aria-label="Recent receipt events">
             {events.length === 0 ? (
               <div className="receipt-empty">
-                Run the POS simulator to create a receipt event, bill, GST classification, audit package, and sync queue.
+                Run the POS simulator to create a receipt event, bill, GST classification, audit
+                package, and sync queue.
               </div>
-            ) : events.map((event, index) => {
-              const isNew = simulatorResult && index === 0 && event.id === simulatorResult.receipt_event_id;
-              return (
-                <div className={`receipt-table-row ${isNew ? 'is-new' : ''}`} key={event.id}>
-                  <div>
-                    <strong>{event.merchant_name}</strong>
-                    <span>{event.receipt_number ?? event.id.slice(0, 8)} · {event.source_channel}</span>
+            ) : (
+              events.map((event, index) => {
+                const isNew =
+                  simulatorResult && index === 0 && event.id === simulatorResult.receipt_event_id;
+                return (
+                  <div className={`receipt-table-row ${isNew ? 'is-new' : ''}`} key={event.id}>
+                    <div>
+                      <strong>{event.merchant_name}</strong>
+                      <span>
+                        {event.receipt_number ?? event.id.slice(0, 8)} · {event.source_channel}
+                      </span>
+                    </div>
+                    <div>
+                      <strong>{formatMoney(event.total_inc_gst_cents)}</strong>
+                      <span>GST {formatMoney(event.gst_cents)}</span>
+                    </div>
+                    <div>
+                      <strong>{event.deductibility_status.replaceAll('_', ' ')}</strong>
+                      <span>
+                        {event.bill_id ? `Bill ${event.bill_id.slice(0, 8)}` : event.business_use}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <strong>{formatMoney(event.total_inc_gst_cents)}</strong>
-                    <span>GST {formatMoney(event.gst_cents)}</span>
-                  </div>
-                  <div>
-                    <strong>{event.deductibility_status.replaceAll('_', ' ')}</strong>
-                    <span>{event.bill_id ? `Bill ${event.bill_id.slice(0, 8)}` : event.business_use}</span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </section>
 
@@ -1307,19 +1405,25 @@ export function ReceiptHubPage() {
           <div className="receipt-sync-list">
             {syncJobs.length === 0 ? (
               <div className="receipt-empty">No provider jobs queued yet.</div>
-            ) : syncJobs.map((job) => (
-              <div className="receipt-sync-job" key={job.id}>
-                <span>{providerLabel(job.provider)}</span>
-                <strong>{job.status}</strong>
-                <small>{job.bill_id ? `Bill ${job.bill_id.slice(0, 8)}` : 'No bill attached'}</small>
-              </div>
-            ))}
+            ) : (
+              syncJobs.map((job) => (
+                <div className="receipt-sync-job" key={job.id}>
+                  <span>{providerLabel(job.provider)}</span>
+                  <strong>{job.status}</strong>
+                  <small>
+                    {job.bill_id ? `Bill ${job.bill_id.slice(0, 8)}` : 'No bill attached'}
+                  </small>
+                </div>
+              ))
+            )}
           </div>
           {simulatorResult ? (
             <div className="receipt-result">
               <FileCheck2 size={16} />
               <span>
-                Event {simulatorResult.receipt_event_id.slice(0, 8)} · {simulatorResult.classification?.deductibility_status ?? 'classified'} · {simulatorResult.sync_jobs?.length ?? 0} sync jobs
+                Event {simulatorResult.receipt_event_id.slice(0, 8)} ·{' '}
+                {simulatorResult.classification?.deductibility_status ?? 'classified'} ·{' '}
+                {simulatorResult.sync_jobs?.length ?? 0} sync jobs
               </span>
             </div>
           ) : null}

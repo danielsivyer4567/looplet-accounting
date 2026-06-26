@@ -6,14 +6,14 @@ This doc covers the choice between **Basiq** (Australian-bank specialist) and **
 
 ## TL;DR — pick a provider
 
-| | Basiq | Plaid |
-|---|---|---|
-| AU bank coverage | All major + 100s of credit unions | CommBank, NAB, Westpac, ANZ (4 majors only in production) |
-| Sandbox | Real AU sandbox banks | US banks only — AU testing requires production |
-| Pricing | Free tier (50 connections) → A$0.50/conn/mo | $0.30 USD/conn/mo (production), free dev |
-| BSB / account-num format | Native AU | Returns AU format correctly but US-shaped API |
-| Initial setup time | ~30 min | ~30 min |
-| Status of Looplet integration | Ready to scaffold (Phase 2) | Code patterns extracted from old build |
+|                               | Basiq                                       | Plaid                                                     |
+| ----------------------------- | ------------------------------------------- | --------------------------------------------------------- |
+| AU bank coverage              | All major + 100s of credit unions           | CommBank, NAB, Westpac, ANZ (4 majors only in production) |
+| Sandbox                       | Real AU sandbox banks                       | US banks only — AU testing requires production            |
+| Pricing                       | Free tier (50 connections) → A$0.50/conn/mo | $0.30 USD/conn/mo (production), free dev                  |
+| BSB / account-num format      | Native AU                                   | Returns AU format correctly but US-shaped API             |
+| Initial setup time            | ~30 min                                     | ~30 min                                                   |
+| Status of Looplet integration | Ready to scaffold (Phase 2)                 | Code patterns extracted from old build                    |
 
 **Recommendation for AFGC:** start with **Basiq** in dev mode. CommBank, ANZ, Westpac,
 NAB all available immediately, real sandbox flow works, no waiting for Plaid AU
@@ -49,6 +49,7 @@ npx supabase secrets set --project-ref dxoikltymmknxqpkpyhi `
 ### 4. Test in browser
 
 (After scaffolds land:)
+
 1. Open `/settings` → "Connect Bank Account"
 2. Pick CommBank / NAB / etc. from Basiq's Connect UI
 3. Authenticate with real online-banking credentials (sandbox uses test credentials in dev mode)
@@ -87,6 +88,7 @@ The old TypeScript implementation works as a near-line-by-line port:
 
 Plaid's sandbox ONLY has US test banks. To test against CommBank/NAB/Westpac/ANZ you
 need to:
+
 1. Apply for **production access** at Plaid Dashboard (1-2 week approval)
 2. Or use **development environment** (free, but rate-limited) with real credentials
 
@@ -99,6 +101,7 @@ Same flow — pick "First Platypus Bank", username `user_good`, password `pass_g
 ## Common — encryption + cron
 
 Both providers use:
+
 - Same `ENCRYPTION_KEY` env (already set; shared with Xero/Gmail tokens)
 - Same `_shared/xero/crypto.ts` AES-256-GCM helpers (rename to `_shared/crypto.ts` once we stop calling it Xero-specific)
 - Same daily `pg_cron` pattern as `gmail-watch-renew` for periodic sync
@@ -134,6 +137,7 @@ Schema is already in place via `bank_transactions.matched_bill_id`,
 ## Production checklist
 
 Before going live:
+
 - [ ] Apply for Plaid production OR Basiq paid tier
 - [ ] Generate fresh `BANKING_ENCRYPTION_KEY` for production
 - [ ] Configure webhook signature verification

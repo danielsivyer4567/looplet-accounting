@@ -36,7 +36,9 @@ interface MonthCell {
 /** Continuous month axis from the earliest to latest obligation, every month in between. */
 function buildAxis(obligations: TaxObligation[]): MonthCell[] {
   if (obligations.length === 0) return [];
-  const times = obligations.map((o) => new Date(`${o.due_date}T00:00:00`).getTime()).sort((a, b) => a - b);
+  const times = obligations
+    .map((o) => new Date(`${o.due_date}T00:00:00`).getTime())
+    .sort((a, b) => a - b);
   const first = new Date(times[0] ?? Date.now());
   const last = new Date(times[times.length - 1] ?? Date.now());
   const cursor = new Date(first.getFullYear(), first.getMonth(), 1);
@@ -181,7 +183,13 @@ export function TaxTimeline({
         <CalendarClock size={16} style={{ color: 'var(--accent-primary)' }} />
         <h2>Timeline</h2>
         {onHide && (
-          <button type="button" className="tt-hide" onClick={onHide} title="Hide timeline" aria-label="Hide timeline">
+          <button
+            type="button"
+            className="tt-hide"
+            onClick={onHide}
+            title="Hide timeline"
+            aria-label="Hide timeline"
+          >
             <ChevronsRight size={16} />
           </button>
         )}
@@ -243,7 +251,9 @@ export function TaxTimeline({
                               <div className="ev-title">{o.title}</div>
                               <div className="ev-meta">
                                 <span className="ev-date">{fmtShort(o.due_date)}</span>
-                                <span className="ev-badge">{countdown(o.stage, o.days_until_due)}</span>
+                                <span className="ev-badge">
+                                  {countdown(o.stage, o.days_until_due)}
+                                </span>
                               </div>
                             </div>
                             <ChevronDown size={14} className="ev-caret" />
@@ -252,13 +262,25 @@ export function TaxTimeline({
                             <div className="ev-panel">
                               {o.description ? <p className="ev-why">{o.description}</p> : null}
                               <div className="ev-actions">
-                                <button type="button" className="ev-act primary" onClick={() => onAsk?.(o, 'explain')}>
+                                <button
+                                  type="button"
+                                  className="ev-act primary"
+                                  onClick={() => onAsk?.(o, 'explain')}
+                                >
                                   <Sparkles size={11} /> Explain simply
                                 </button>
-                                <button type="button" className="ev-act" onClick={() => onAsk?.(o, 'prepare')}>
+                                <button
+                                  type="button"
+                                  className="ev-act"
+                                  onClick={() => onAsk?.(o, 'prepare')}
+                                >
                                   How to prepare
                                 </button>
-                                <button type="button" className="ev-act" onClick={() => onAsk?.(o, 'remind')}>
+                                <button
+                                  type="button"
+                                  className="ev-act"
+                                  onClick={() => onAsk?.(o, 'remind')}
+                                >
                                   Reminder plan
                                 </button>
                               </div>

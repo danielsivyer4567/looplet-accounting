@@ -104,5 +104,15 @@ export function usePeriodClose(period?: string) {
   const blockers = checks.filter((c) => !c.passed);
   const canClose = checks.length > 0 && blockers.length === 0;
 
-  return { period: targetPeriod, checks, blockers, canClose, close, closing, loading, error, refresh };
+  return {
+    period: targetPeriod,
+    checks,
+    blockers,
+    canClose,
+    close,
+    closing,
+    loading,
+    error,
+    refresh,
+  };
 }
