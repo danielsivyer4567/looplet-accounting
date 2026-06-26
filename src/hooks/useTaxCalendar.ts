@@ -4,6 +4,9 @@ import { useOrg } from '@/hooks/useOrg';
 
 export type ObligationStage = 'overdue' | 'due_soon' | 'upcoming';
 
+/** Persisted completion statuses (obligation_status, SC-3.E.02) that override the time-stage. */
+export type ObligationStatusValue = 'in_progress' | 'lodged' | 'paid' | 'done';
+
 export interface TaxObligation {
   organization_id: string;
   obligation_key: string;
@@ -21,6 +24,8 @@ export interface TaxObligation {
   sort_order: number;
   days_until_due: number;
   stage: ObligationStage;
+  /** Persisted status if set (e.g. 'lodged'), else the computed time-stage (v_tax_calendar overlay). */
+  status: ObligationStage | ObligationStatusValue;
 }
 
 export type ObligationIntent = 'explain' | 'prepare' | 'remind';

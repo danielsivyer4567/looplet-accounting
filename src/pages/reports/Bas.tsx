@@ -537,13 +537,32 @@ export function BasPrepCard({
   };
 
   const handleLodge = async (): Promise<void> => {
+    if (!currentOrg) return;
     setBusy('lodge');
     setLodgeMsg(null);
     setActionError(null);
     try {
       await requestLodgeApproval();
+      // Stub lodge write-back (SC-3.E.02): record the lodged status so the
+      // tax-calendar obligation flips to done. PROVISIONAL — in Phase 7 the whole
+      // write path moves server-side (post-approval DSP lodgement), which removes
+      // this client-rebuilt key. period_label MUST equal generate_tax_obligations'
+      // format 'Q{n} FY{gs}-{lpad((gs+1)%100,2)}' (mirrored exactly here; the
+      // migration's check asserts the format hasn't drifted).
+      const periodLabel = `Q${quarter} FY${fy}-${String((fy + 1) % 100).padStart(2, '0')}`;
+      const { error: statusErr } = await supabase.from('obligation_status' as never).upsert(
+        {
+          organization_id: currentOrg.id,
+          obligation_key: 'bas',
+          period_label: periodLabel,
+          status: 'lodged',
+          deleted_at: null,
+        } as never,
+        { onConflict: 'organization_id,obligation_key,period_label' },
+      );
+      if (statusErr) throw new Error(statusErr.message);
       setLodgeMsg(
-        'Lodge approval requested - pending Tier-2 approval. (Lodgement is stubbed until DSP wiring in Phase 7.)',
+        'Lodge approval requested and BAS marked lodged - the tax calendar now shows it done. (DSP lodgement is Phase 7.)',
       );
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e));
