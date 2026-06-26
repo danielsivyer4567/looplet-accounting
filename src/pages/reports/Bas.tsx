@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { useBasWorksheet } from '@/hooks/useBasWorksheet';
 import { formatMoney } from '@/lib/money';
 import { downloadCsv } from '@/lib/csv';
 import { SkeletonTable } from '@/components/Skeleton';
@@ -13,6 +14,10 @@ import {
   DollarSign,
   Wallet,
   Info,
+  FileText,
+  ShieldAlert,
+  CheckCircle2,
+  Loader2,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -242,6 +247,16 @@ export function BasReportPage() {
         />
       </div>
 
+      {/* Guided prep flow for the most recent quarter */}
+      {!loading && rows[0] && (
+        <BasPrepCard
+          fy={rows[0].fy_start_year}
+          quarter={rows[0].quarter_num}
+          quarterName={QUARTER_NAMES[rows[0].quarter_num] ?? `Q${rows[0].quarter_num}`}
+          dueDate={rows[0].due_date}
+        />
+      )}
+
       {loading ? (
         <SkeletonTable rows={4} cols={10} />
       ) : error ? (
@@ -454,6 +469,223 @@ function KpiCard({
       >
         <Icon size={18} />
       </div>
+    </div>
+  );
+}
+
+/**
+ * Guided prep flow for one BAS quarter (SC-3.E.01): worksheet labels +
+ * pre-lodge blockers (GST-treatment exceptions, GL/BAS reconciliation variance)
+ * + a worksheet-PDF download + a Tier-2 approve-and-lodge action. Lodgement is
+ * stubbed (the approval is real; the lodged write-back lands in SC-3.E.02).
+ */
+export function BasPrepCard({
+  fy,
+  quarter,
+  quarterName,
+  dueDate,
+}: {
+  fy: number;
+  quarter: number;
+  quarterName: string;
+  dueDate: string;
+}) {
+  const { currentOrg } = useOrg();
+  const { worksheet, blockers, loading, error, requestLodgeApproval } = useBasWorksheet(fy, quarter);
+  const [busy, setBusy] = useState<null | 'pdf' | 'lodge'>(null);
+  const [lodgeMsg, setLodgeMsg] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const hasExceptions = (blockers.treatmentExceptions ?? 0) > 0;
+  const hasVariance =
+    blockers.reconciliationVarianceCents != null && blockers.reconciliationVarianceCents !== 0;
+  const blocked = hasExceptions || hasVariance || !worksheet;
+
+  const num = (v: number | undefined): string => formatMoney(v ?? 0);
+
+  const downloadPdf = async (): Promise<void> => {
+    if (!currentOrg) return;
+    setBusy('pdf');
+    setActionError(null);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in.');
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bas-worksheet-pdf`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY ?? '',
+        },
+        body: JSON.stringify({ organization_id: currentOrg.id, fy_start_year: fy, quarter }),
+      });
+      if (!res.ok) throw new Error(`PDF generation failed (${res.status}).`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bas-worksheet-FY${fy}-Q${quarter}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleLodge = async (): Promise<void> => {
+    setBusy('lodge');
+    setLodgeMsg(null);
+    setActionError(null);
+    try {
+      await requestLodgeApproval();
+      setLodgeMsg(
+        'Lodge approval requested - pending Tier-2 approval. (Lodgement is stubbed until DSP wiring in Phase 7.)',
+      );
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+        <FileText size={18} style={{ color: 'var(--accent-primary)' }} />
+        <h2 style={{ margin: 0, fontSize: '1.1rem' }}>
+          Prepare {quarterName} FY{fy}-{(fy + 1).toString().slice(2)} BAS
+        </h2>
+      </div>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 1rem' }}>
+        Due {dueDate}. Review the worksheet, clear any blockers, then approve and lodge.
+      </p>
+
+      {loading ? (
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading worksheet...</div>
+      ) : error ? (
+        <div
+          className="badge badge-warning"
+          style={{ display: 'block', textTransform: 'none', padding: '0.75rem' }}
+        >
+          Worksheet unavailable: {error}. (Apply migrations 0116-0122 to enable.)
+        </div>
+      ) : worksheet ? (
+        <>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+              gap: '0.75rem',
+              marginBottom: '1.25rem',
+            }}
+          >
+            <LabelStat label="1A GST on sales" value={num(worksheet.gst?.['1A'])} />
+            <LabelStat label="1B GST on purchases" value={num(worksheet.gst?.['1B'])} />
+            <LabelStat label="4 PAYG withheld" value={num(worksheet.payg_withholding?.['4'])} />
+            <LabelStat label="9 Net amount" value={num(worksheet.summary?.['9_net_amount_cents'])} strong />
+          </div>
+
+          <div style={{ marginBottom: '1.25rem' }}>
+            <BlockerRow
+              ok={!hasExceptions}
+              okText={
+                blockers.treatmentExceptions == null
+                  ? 'GST-treatment check unavailable'
+                  : 'No GST-treatment exceptions'
+              }
+              badText={`${blockers.treatmentExceptions ?? 0} GST-treatment exception${blockers.treatmentExceptions === 1 ? '' : 's'} - resolve before lodging`}
+            />
+            <BlockerRow
+              ok={!hasVariance}
+              okText={
+                blockers.reconciliationVarianceCents == null
+                  ? 'Reconciliation not available'
+                  : 'GL reconciles to the BAS (variance $0)'
+              }
+              badText={`GL vs BAS variance ${formatMoney(blockers.reconciliationVarianceCents ?? 0)} - reconcile before lodging`}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button className="btn btn-secondary" onClick={downloadPdf} disabled={busy !== null}>
+              {busy === 'pdf' ? <Loader2 size={14} /> : <Download size={14} />}
+              <span>Worksheet PDF</span>
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleLodge}
+              disabled={blocked || busy !== null}
+              title={blocked ? 'Clear blockers before lodging' : 'Open a Tier-2 approval to lodge'}
+            >
+              {busy === 'lodge' ? <Loader2 size={14} /> : <ShieldAlert size={14} />}
+              <span>Approve &amp; lodge</span>
+            </button>
+          </div>
+          {lodgeMsg && (
+            <p style={{ color: 'var(--text-success)', fontSize: '0.8rem', marginTop: '0.75rem' }}>
+              {lodgeMsg}
+            </p>
+          )}
+          {actionError && (
+            <p style={{ color: 'var(--text-danger)', fontSize: '0.8rem', marginTop: '0.75rem' }}>
+              {actionError}
+            </p>
+          )}
+        </>
+      ) : (
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+          No worksheet data for this quarter.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LabelStat({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div style={{ background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', padding: '0.75rem' }}>
+      <div
+        style={{
+          fontSize: '0.7rem',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontSize: strong ? '1.25rem' : '1rem',
+          fontWeight: strong ? 800 : 600,
+          color: 'var(--text-title)',
+          marginTop: '0.2rem',
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function BlockerRow({ ok, okText, badText }: { ok: boolean; okText: string; badText: string }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        fontSize: '0.85rem',
+        padding: '0.35rem 0',
+        color: ok ? 'var(--text-success)' : 'var(--text-danger)',
+      }}
+    >
+      {ok ? <CheckCircle2 size={15} /> : <ShieldAlert size={15} />}
+      <span>{ok ? okText : badText}</span>
     </div>
   );
 }
