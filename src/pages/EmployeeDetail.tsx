@@ -18,6 +18,7 @@ import {
   FileText,
   Plus,
   Trash2,
+  AlertTriangle,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -37,7 +38,18 @@ interface Employee {
   role: string | null;
   is_active: boolean;
   wage_components: WageComponents | null;
+  modern_award: string | null;
+  classification_level: string | null;
   created_at: string;
+}
+
+/** Row of v_award_rate_exceptions (SC-3.K.02) when this employee is flagged. */
+interface AwardRateException {
+  modern_award: string;
+  classification_level: string;
+  base_hourly_rate_cents: number;
+  award_min_hourly_rate_cents: number;
+  shortfall_cents: number;
 }
 
 interface JobLite {
@@ -101,6 +113,7 @@ export function EmployeeDetailPage() {
   const [jobs, setJobs] = useState<JobLite[]>([]);
   const [leave, setLeave] = useState<LeaveBalance[]>([]);
   const [paySlips, setPaySlips] = useState<PaySlipLite[]>([]);
+  const [awardException, setAwardException] = useState<AwardRateException | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -119,7 +132,7 @@ export function EmployeeDetailPage() {
     yearAgo.setFullYear(yearAgo.getFullYear() - 1);
     const yearStr = yearAgo.toISOString().slice(0, 10);
 
-    const [empRes, recentRes, yearRes, jobsRes, leaveRes, slipsRes] = await Promise.all([
+    const [empRes, recentRes, yearRes, jobsRes, leaveRes, slipsRes, excRes] = await Promise.all([
       supabase
         .from('employees')
         .select('*')
@@ -162,6 +175,15 @@ export function EmployeeDetailPage() {
         .eq('organization_id', currentOrg.id)
         .order('created_at', { ascending: false })
         .limit(10),
+      // Award underpayment flag (SC-3.K.02). Best-effort: the view may not be
+      // deployed yet — an error degrades to "no flag", never breaks the page.
+      supabase
+        .from('v_award_rate_exceptions' as never)
+        .select(
+          'modern_award, classification_level, base_hourly_rate_cents, award_min_hourly_rate_cents, shortfall_cents',
+        )
+        .eq('employee_id', id)
+        .maybeSingle(),
     ]);
     if (empRes.error) {
       setError(empRes.error.message);
@@ -174,6 +196,7 @@ export function EmployeeDetailPage() {
     setJobs((jobsRes.data ?? []) as JobLite[]);
     setLeave((leaveRes.data ?? []) as LeaveBalance[]);
     setPaySlips((slipsRes.data ?? []) as unknown as PaySlipLite[]);
+    setAwardException(excRes.error ? null : ((excRes.data ?? null) as unknown as AwardRateException | null));
     setLoading(false);
   }, [currentOrg, id]);
 
@@ -186,6 +209,8 @@ export function EmployeeDetailPage() {
       email: employee.email ?? '',
       role: employee.role ?? '',
       is_active: employee.is_active,
+      modern_award: employee.modern_award ?? '',
+      classification_level: employee.classification_level ?? '',
       wage_components: { ...(employee.wage_components ?? {}) },
     });
     setEditing(true);
@@ -203,6 +228,8 @@ export function EmployeeDetailPage() {
       email: draft.email?.toString().trim() || null,
       role: draft.role?.toString().trim() || null,
       is_active: draft.is_active ?? employee.is_active,
+      modern_award: draft.modern_award?.toString().trim() || null,
+      classification_level: draft.classification_level?.toString().trim() || null,
       wage_components: wage,
     };
     const { error: e } = await supabase.from('employees').update(payload).eq('id', employee.id);
@@ -396,6 +423,43 @@ export function EmployeeDetailPage() {
         Employed since {new Date(employee.created_at).toLocaleDateString()}
       </p>
 
+      {/* Award underpayment flag (SC-3.K.02) — ASSIST-ONLY: surfaces a possible
+          underpayment for a human to confirm. No auto-correction. */}
+      {awardException && (
+        <div
+          className="card"
+          style={{
+            marginBottom: '1.5rem',
+            background: 'var(--bg-warning-subtle)',
+            border: '1px solid var(--accent-warning)',
+            display: 'flex',
+            gap: '0.75rem',
+            alignItems: 'flex-start',
+          }}
+        >
+          <AlertTriangle
+            size={20}
+            style={{ color: 'var(--text-warning)', flexShrink: 0, marginTop: '0.1rem' }}
+          />
+          <div>
+            <strong style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--text-warning)' }}>
+              Possible award underpayment — please review
+            </strong>
+            <p style={{ margin: 0, fontSize: '0.875rem' }}>
+              Base rate {formatMoney(awardException.base_hourly_rate_cents)}/hr is{' '}
+              {formatMoney(awardException.shortfall_cents)}/hr below the {awardException.modern_award}{' '}
+              {awardException.classification_level} minimum of{' '}
+              {formatMoney(awardException.award_min_hourly_rate_cents)}/hr.
+            </p>
+            <p style={{ margin: '0.4rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Automated assist using <em>illustrative</em> award data — confirm against the actual
+              modern award and the employee&apos;s exact classification before acting. No pay change
+              is made automatically.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Edit Form / Detail Card */}
       {editing ? (
         <div className="card" style={{ marginBottom: '1.5rem', maxWidth: '850px' }}>
@@ -446,6 +510,31 @@ export function EmployeeDetailPage() {
                   <option value="true">Active</option>
                   <option value="false">Inactive</option>
                 </select>
+              </Field>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '1rem',
+              }}
+            >
+              <Field label="Modern award">
+                <input
+                  value={String(draft.modern_award ?? '')}
+                  onChange={(e) => setDraft({ ...draft, modern_award: e.target.value })}
+                  placeholder="e.g. MA000004"
+                  className="form-input"
+                />
+              </Field>
+              <Field label="Classification level">
+                <input
+                  value={String(draft.classification_level ?? '')}
+                  onChange={(e) => setDraft({ ...draft, classification_level: e.target.value })}
+                  placeholder="e.g. Level 2"
+                  className="form-input"
+                />
               </Field>
             </div>
 
@@ -596,6 +685,8 @@ export function EmployeeDetailPage() {
             value={w.leave_loading_pct != null ? `${w.leave_loading_pct}%` : '—'}
           />
           <Stat label="Loaded $/hr" value={loadedRate > 0 ? formatMoney(loadedRate) : '—'} />
+          <Stat label="Modern award" value={employee.modern_award ?? '—'} />
+          <Stat label="Classification" value={employee.classification_level ?? '—'} />
           <Stat label="Created" value={new Date(employee.created_at).toLocaleDateString()} />
         </div>
       )}
