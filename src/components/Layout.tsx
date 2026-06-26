@@ -44,6 +44,7 @@ import {
 const navItems = [
   { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
   { to: '/ask', label: 'Ask AI', icon: MessageSquare, badge: 'NEW' },
+  { to: '/legal-horizon', label: 'Upcoming', icon: CalendarClock, badge: 'NEW' },
   { to: '/scan', label: 'Scan Doc', icon: Scan },
   { to: '/receipt-hub', label: 'Receipts', icon: ReceiptText, badge: 'MVP' },
   { to: '/onboarding', label: 'Auto Setup', icon: Sparkles },
