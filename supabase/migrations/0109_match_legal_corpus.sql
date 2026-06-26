@@ -21,9 +21,13 @@
 -- (vector type + `<=>` live in public on this project); legal_corpus is world-
 -- readable to authenticated, so DEFINER just guarantees a consistent answer.
 --
--- hnsw.ef_search is raised from the default 40: HNSW finds candidates THEN the WHERE
--- (FY / section / keyword) filters them, so a selective filter can under-return < k
--- rows unless the candidate pool is wider. 100 balances recall vs latency (tunable).
+-- NOTE: a function-level `SET hnsw.ef_search = 100` (a recall tweak — HNSW finds
+-- candidates THEN the WHERE filters them, so a selective FY/section/keyword filter can
+-- under-return < k at the default ef_search of 40) was REMOVED: the managed Supabase
+-- migration role lacks permission to pin that GUC in a function (`permission denied to
+-- set parameter "hnsw.ef_search"`). The fn is correct on the default ef_search; if a
+-- heavily-filtered query under-returns once the corpus is large, raise ef_search per
+-- session/role (`SET hnsw.ef_search = 100`) from the caller rather than in the fn.
 
 CREATE OR REPLACE FUNCTION public.match_legal_corpus(
   p_query_embedding vector(1536),
@@ -46,7 +50,6 @@ LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path = public
-SET hnsw.ef_search = 100
 AS $$
   SELECT
     lc.id,
