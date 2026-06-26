@@ -32,6 +32,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { buildStpEvent, type StpOrg, type StpRun, type StpSlip } from './stp.ts';
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -108,85 +109,14 @@ Deno.serve(async (req) => {
     .eq('pay_run_id', run_id);
   if (slipsErr) return json({ ok: false, error: slipsErr.message }, 500);
 
-  interface EmpJoin {
-    id: string; full_name: string; email: string | null;
-    wage_components: Record<string, unknown> | null;
-  }
-
-  const stp = {
-    schema: 'stp_phase2_v1',
-    generated_at: new Date().toISOString(),
-    generated_by: user.email ?? user.id,
-    header: {
-      employer_abn:   (org?.settings as Record<string, unknown> | null)?.abn ?? null,
-      employer_name:  org?.name ?? null,
-      bms_id:         `looplet-${org?.id ?? 'unknown'}`,
-      software_name:  'Looplet Accounting',
-      software_version: '0.1',
-      run_date:       new Date().toISOString().slice(0, 10),
-    },
-    pay_event: {
-      period_start: run.period_start,
-      period_end:   run.period_end,
-      pay_date:     run.pay_date,
-      totals: {
-        gross_cents: Number(run.total_gross_cents),
-        payg_tax_cents: Number(run.total_tax_cents),
-        super_cents: Number(run.total_super_cents),
-        net_cents: Number(run.total_net_cents),
-      },
-      employees: (slips ?? []).map((s) => {
-        const emp = s.employee as unknown as EmpJoin;
-        const wage = (emp.wage_components ?? {}) as Record<string, unknown>;
-        // OTE = Ordinary Time Earnings. Overtime is excluded from OTE for super.
-        const ote = Number(s.gross_ordinary_cents) + Number(s.gross_leave_cents);
-        return {
-          // TFN intentionally not stored in our schema — placeholder for the
-          // tax agent to fill from the TFN-declaration form on file.
-          tfn: (wage['tfn'] as string | undefined) ?? '000000000',
-          employee_id: emp.id,
-          name: emp.full_name,
-          email: emp.email,
-          // Address: optional, falls back to placeholder so the JSON validates.
-          address: {
-            line1: (wage['address_line1'] as string | undefined) ?? null,
-            line2: (wage['address_line2'] as string | undefined) ?? null,
-            suburb: (wage['suburb'] as string | undefined) ?? null,
-            state:  (wage['state'] as string | undefined) ?? null,
-            postcode: (wage['postcode'] as string | undefined) ?? null,
-            country: 'AU',
-          },
-          ytd: {
-            gross_cents: Number(s.ytd_gross_cents),
-            payg_tax_cents: Number(s.ytd_tax_cents),
-            super_cents: Number(s.ytd_super_cents),
-          },
-          pay: {
-            hours: {
-              ordinary: Number(s.hours_ordinary),
-              overtime: Number(s.hours_overtime),
-              leave:    Number(s.hours_leave),
-            },
-            gross_ordinary_cents: Number(s.gross_ordinary_cents),
-            gross_overtime_cents: Number(s.gross_overtime_cents),
-            gross_leave_cents:    Number(s.gross_leave_cents),
-            gross_total_cents:    Number(s.gross_total_cents),
-            ote_cents:            ote,
-            payg_tax_cents:       Number(s.payg_tax_cents),
-            super_guarantee_cents: Number(s.super_guarantee_cents),
-            super_rate_pct:        Number(s.super_rate_pct),
-            net_pay_cents:         Number(s.net_pay_cents),
-          },
-          deductions: [],   // future: salary sacrifice / child support / etc.
-        };
-      }),
-    },
-    notes: [
-      'STP Phase 2 file. Lodgement to ATO requires SBR-gateway integration ' +
-        '(out of scope) — hand to your registered tax/BAS agent.',
-      'TFN, address, and BMS_ID fields default to placeholders if not stored.',
-    ],
-  };
+  // Shape the STP Phase 2 event (incl. the termination/ETP block when the run carries
+  // run.metadata.termination) via the pure, unit-tested builder.
+  const stp = buildStpEvent({
+    run: run as unknown as StpRun,
+    org: (org ?? null) as StpOrg | null,
+    slips: (slips ?? []) as unknown as StpSlip[],
+    generatedBy: user.email ?? user.id,
+  });
 
   return json({ ok: true, stp });
 });
