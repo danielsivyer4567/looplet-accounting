@@ -246,7 +246,7 @@ export function ReceiptHubPage() {
     setDispatchMessage(null);
     setSimStage('tap');
 
-    let apiPromise: Promise<any> | null = null;
+    let apiPromise: Promise<SimulatorResult> | null = null;
     try {
       let token = identityToken;
       if (!token) {
@@ -325,6 +325,7 @@ export function ReceiptHubPage() {
     try {
       const body = await apiPromise;
       await new Promise((resolve) => setTimeout(resolve, 800));
+      if (!body) return;
       setSimulatorResult(body);
       
       if (body.receipt_event_id.startsWith('mock-event')) {

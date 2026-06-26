@@ -89,12 +89,11 @@ export function ScanPage() {
       'Compiling compliance risk score and summary…'
     ];
 
-    let progressInterval: NodeJS.Timeout;
     const startTime = Date.now();
     const minDuration = 2400; // Enforce a 2.4s scan to feel deliberate and thorough
 
     // Start animating the progress bar
-    progressInterval = setInterval(() => {
+    const progressInterval = setInterval(() => {
       setScanProgress((prev) => {
         if (prev >= 98) {
           clearInterval(progressInterval);
@@ -135,9 +134,9 @@ export function ScanPage() {
       setSummary(data as ScanSummary);
       setScanning(false);
       await refresh();
-    } catch (err: any) {
+    } catch (err) {
       clearInterval(progressInterval);
-      setError(err.message || 'An unexpected error occurred during scan.');
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred during scan.');
       setScanning(false);
       setLoading(false);
     }
