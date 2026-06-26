@@ -3,10 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrg } from '@/hooks/useOrg';
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+import { ChevronLeft, Users, Plus, Trash2, CheckCircle, Clock } from 'lucide-react';
 
 type OrgRole = 'viewer' | 'employee' | 'accountant' | 'admin' | 'owner';
 
@@ -25,51 +22,16 @@ function roleLabel(role: OrgRole): string {
 }
 
 interface MemberRow {
-  id: string;           // membership id
+  id: string;
   user_id: string;
-  role: string;         // legacy membership_role
+  role: string;
   role_enum: OrgRole | null;
   is_default: boolean;
   invited_at: string | null;
   accepted_at: string | null;
-  email?: string | undefined;       // resolved from auth.users via profile join
+  email?: string | undefined;
   full_name?: string | undefined;
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const inputStyle: React.CSSProperties = {
-  background: '#1a1a1a',
-  border: '1px solid #333',
-  borderRadius: 4,
-  color: '#eee',
-  padding: '0.4rem 0.6rem',
-  fontSize: 13,
-  width: '100%',
-  boxSizing: 'border-box',
-};
-
-const selectStyle: React.CSSProperties = {
-  ...inputStyle,
-  cursor: 'pointer',
-};
-
-const btnStyle = (variant: 'primary' | 'ghost' | 'danger' = 'primary'): React.CSSProperties => ({
-  padding: '0.35rem 0.9rem',
-  borderRadius: 4,
-  fontSize: 13,
-  cursor: 'pointer',
-  border: variant === 'ghost' ? '1px solid #444' : variant === 'danger' ? '1px solid #994' : '1px solid #86c7a3',
-  background: variant === 'primary' ? '#86c7a3' : 'transparent',
-  color: variant === 'primary' ? '#111' : variant === 'danger' ? '#c88' : '#aaa',
-  fontWeight: variant === 'primary' ? 600 : 400,
-});
-
-// ---------------------------------------------------------------------------
-// Invite modal
-// ---------------------------------------------------------------------------
 
 function InviteModal({
   callerRole,
@@ -122,9 +84,6 @@ function InviteModal({
     }
 
     setResult(json.message ?? 'Invitation sent.');
-    if (json.invite_link) {
-      setResult(`${json.message}`);
-    }
     onInvited();
   }
 
@@ -133,7 +92,8 @@ function InviteModal({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.7)',
+        background: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(4px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -142,49 +102,44 @@ function InviteModal({
       onClick={onClose}
     >
       <div
+        className="card"
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: '#1a1a1a',
-          border: '1px solid #333',
-          borderRadius: 8,
-          padding: '2rem',
-          width: 360,
+          width: 380,
           maxWidth: '90vw',
+          padding: '2rem',
+          boxShadow: 'var(--shadow-lg)'
         }}
       >
-        <h2 style={{ fontSize: 16, marginBottom: '1.25rem' }}>Invite team member</h2>
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Users size={20} style={{ color: 'var(--accent-primary)' }} />
+          Invite Team Member
+        </h2>
 
-        {result ? (
-          <div style={{ color: '#86c7a3', fontSize: 13, marginBottom: '1rem' }}>{result}</div>
-        ) : null}
+        {result && <div className="badge badge-success" style={{ display: 'block', padding: '0.5rem', marginBottom: '1rem', textTransform: 'none' }}>{result}</div>}
+        {error && <div className="badge badge-danger" style={{ display: 'block', padding: '0.5rem', marginBottom: '1rem', textTransform: 'none' }}>{error}</div>}
 
-        {error ? (
-          <div style={{ color: '#c88', fontSize: 13, marginBottom: '1rem' }}>{error}</div>
-        ) : null}
-
-        <form onSubmit={(e) => { void handleSubmit(e); }}>
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontSize: 12, color: '#888', marginBottom: 4 }}>
-              Email address
-            </label>
+        <form onSubmit={(e) => { void handleSubmit(e); }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <span className="form-label" style={{ fontSize: '0.725rem' }}>Email Address</span>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              style={inputStyle}
+              className="form-input"
+              style={{ marginTop: '0.25rem' }}
               placeholder="name@company.com"
             />
           </div>
 
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', fontSize: 12, color: '#888', marginBottom: 4 }}>
-              Role
-            </label>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <span className="form-label" style={{ fontSize: '0.725rem' }}>Role</span>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as OrgRole)}
-              style={selectStyle}
+              className="form-select"
+              style={{ marginTop: '0.25rem' }}
             >
               {invitableRoles.map((r) => (
                 <option key={r} value={r}>
@@ -194,12 +149,12 @@ function InviteModal({
             </select>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-            <button type="button" onClick={onClose} style={btnStyle('ghost')}>
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+            <button type="button" onClick={onClose} className="btn btn-secondary">
               Cancel
             </button>
-            <button type="submit" disabled={loading} style={btnStyle('primary')}>
-              {loading ? 'Sending…' : 'Send invite'}
+            <button type="submit" disabled={loading} className="btn btn-primary">
+              {loading ? 'Sending…' : 'Send Invite'}
             </button>
           </div>
         </form>
@@ -207,10 +162,6 @@ function InviteModal({
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Main page
-// ---------------------------------------------------------------------------
 
 export function TeamPage() {
   const { user } = useAuth();
@@ -222,7 +173,6 @@ export function TeamPage() {
   const [removing, setRemoving] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
 
-  // Resolve the caller's own role for this org
   const callerMember = members.find((m) => m.user_id === user?.id);
   const callerRole: OrgRole = callerMember?.role_enum ?? 'viewer';
   const callerRank = ROLE_RANK[callerRole];
@@ -245,8 +195,6 @@ export function TeamPage() {
       return;
     }
 
-    // Enrich with user emails from the employees table where possible,
-    // otherwise fall back to showing user_id.
     const { data: employees } = await supabase
       .from('employees')
       .select('user_id, full_name, email')
@@ -279,7 +227,6 @@ export function TeamPage() {
     if (!currentOrg) return;
     setUpdating(memberId);
 
-    // Map org_role → legacy membership_role
     const legacyRole =
       newRole === 'accountant'
         ? 'manager'
@@ -319,7 +266,6 @@ export function TeamPage() {
       return;
     }
     if (targetUserId === user?.id) {
-      // Just removed self — org will reload
       window.location.href = '/';
       return;
     }
@@ -328,50 +274,73 @@ export function TeamPage() {
 
   if (!currentOrg) {
     return (
-      <section>
+      <section className="animated-fade-in">
         <h1>Team</h1>
-        <p style={{ color: '#888' }}>Select an organisation first.</p>
+        <p style={{ color: 'var(--text-muted)' }}>Select an organisation first.</p>
       </section>
     );
   }
 
   return (
-    <section>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h1 style={{ margin: 0 }}>Team</h1>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <Link
-            to="/settings/audit-log"
-            style={{ color: '#86c7a3', fontSize: 13 }}
-          >
-            Audit log &rarr;
-          </Link>
+    <section className="animated-fade-in">
+      {/* Back link */}
+      <Link 
+        to="/settings" 
+        style={{ 
+          color: 'var(--text-muted)', 
+          fontSize: '0.825rem', 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.25rem',
+          marginBottom: '1rem'
+        }}
+      >
+        <ChevronLeft size={14} />
+        <span>Settings</span>
+      </Link>
+
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
+        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Users size={24} style={{ color: 'var(--accent-primary)' }} />
+          Team Members
+        </h1>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           {isAdminPlus && (
-            <button style={btnStyle('primary')} onClick={() => setShowInvite(true)}>
-              Invite member
+            <button className="btn btn-primary" onClick={() => setShowInvite(true)}>
+              <Plus size={16} />
+              <span>Invite member</span>
             </button>
           )}
         </div>
       </div>
 
       {error && (
-        <p style={{ color: '#c88', fontSize: 13, marginBottom: '1rem' }}>{error}</p>
+        <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', marginBottom: '1rem', textTransform: 'none' }}>
+          {error}
+        </div>
       )}
 
       {loading ? (
-        <p style={{ color: '#888', fontSize: 13 }}>Loading members…</p>
+        <p style={{ color: 'var(--text-muted)' }}>Loading members…</p>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <div className="table-premium-container">
+          <table className="table-premium">
             <thead>
-              <tr style={{ borderBottom: '1px solid #2a2a2a', color: '#666', textAlign: 'left' }}>
-                <th style={{ padding: '0.5rem 0.75rem' }}>Member</th>
-                <th style={{ padding: '0.5rem 0.75rem' }}>Role</th>
-                <th style={{ padding: '0.5rem 0.75rem' }}>Status</th>
-                <th style={{ padding: '0.5rem 0.75rem' }}>Invited</th>
-                {isAdminPlus && (
-                  <th style={{ padding: '0.5rem 0.75rem', textAlign: 'right' }}>Actions</th>
-                )}
+              <tr>
+                <th>Member</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Invited</th>
+                {isAdminPlus && <th style={{ textAlign: 'right' }}>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -383,19 +352,16 @@ export function TeamPage() {
                 const isPending = !m.accepted_at;
 
                 return (
-                  <tr
-                    key={m.id}
-                    style={{ borderBottom: '1px solid #1e1e1e' }}
-                  >
-                    <td style={{ padding: '0.6rem 0.75rem' }}>
-                      <div style={{ color: m.full_name ? '#eee' : '#888' }}>
+                  <tr key={m.id}>
+                    <td>
+                      <div style={{ color: 'var(--text-title)', fontWeight: 600 }}>
                         {m.full_name ?? (isMe ? 'You' : m.user_id.slice(0, 8) + '…')}
                       </div>
                       {m.email && (
-                        <div style={{ color: '#666', fontSize: 11 }}>{m.email}</div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.15rem' }}>{m.email}</div>
                       )}
                     </td>
-                    <td style={{ padding: '0.6rem 0.75rem' }}>
+                    <td>
                       {canEdit ? (
                         <select
                           value={memberRole}
@@ -403,7 +369,8 @@ export function TeamPage() {
                           onChange={(e) =>
                             void handleRoleChange(m.id, e.target.value as OrgRole)
                           }
-                          style={{ ...selectStyle, width: 'auto' }}
+                          className="form-select"
+                          style={{ width: 'auto', padding: '0.35rem 0.5rem', fontSize: '0.825rem' }}
                         >
                           {ROLE_OPTIONS.filter((r) => ROLE_RANK[r] < callerRank).map(
                             (r) => (
@@ -414,46 +381,45 @@ export function TeamPage() {
                           )}
                         </select>
                       ) : (
-                        <span
-                          style={{
-                            background: '#2a2a2a',
-                            padding: '0.2rem 0.5rem',
-                            borderRadius: 3,
-                            color: memberRole === 'owner' ? '#86c7a3' : '#aaa',
-                          }}
-                        >
+                        <span className={`badge ${memberRole === 'owner' ? 'badge-success' : 'badge-neutral'}`}>
                           {roleLabel(memberRole)}
                         </span>
                       )}
                     </td>
-                    <td style={{ padding: '0.6rem 0.75rem' }}>
-                      <span
-                        style={{
-                          color: isPending ? '#d2c886' : '#86c7a3',
-                          fontSize: 12,
-                        }}
-                      >
+                    <td>
+                      <span className={`badge ${isPending ? 'badge-warning' : 'badge-success'}`}>
                         {isPending ? 'Pending' : 'Active'}
                       </span>
                     </td>
-                    <td style={{ padding: '0.6rem 0.75rem', color: '#666', fontSize: 12 }}>
-                      {m.invited_at
-                        ? new Date(m.invited_at).toLocaleDateString()
-                        : '—'}
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
+                      {m.invited_at ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <Clock size={12} />
+                          {new Date(m.invited_at).toLocaleDateString()}
+                        </span>
+                      ) : (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <CheckCircle size={12} style={{ color: 'var(--accent-success)' }} />
+                          Auto-joined
+                        </span>
+                      )}
                     </td>
                     {isAdminPlus && (
-                      <td style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>
+                      <td style={{ textAlign: 'right' }}>
                         {(canEdit || isMe) && (
                           <button
                             disabled={removing === m.id}
                             onClick={() => void handleRemove(m.id, m.user_id)}
-                            style={btnStyle('danger')}
+                            className="btn btn-secondary"
+                            style={{ 
+                              padding: '0.25rem 0.5rem', 
+                              fontSize: '0.75rem', 
+                              color: 'var(--text-danger)',
+                              borderColor: 'rgba(239, 68, 68, 0.2)' 
+                            }}
                           >
-                            {removing === m.id
-                              ? 'Removing…'
-                              : isMe
-                              ? 'Leave'
-                              : 'Remove'}
+                            <Trash2 size={12} style={{ marginRight: '0.25rem' }} />
+                            <span>{removing === m.id ? 'Removing…' : isMe ? 'Leave' : 'Remove'}</span>
                           </button>
                         )}
                       </td>
@@ -463,12 +429,6 @@ export function TeamPage() {
               })}
             </tbody>
           </table>
-
-          {members.length === 0 && (
-            <p style={{ color: '#888', fontSize: 13, marginTop: '1rem' }}>
-              No members found.
-            </p>
-          )}
         </div>
       )}
 

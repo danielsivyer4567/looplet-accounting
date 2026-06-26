@@ -1,20 +1,17 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { useGmailIntegrations } from '@/hooks/useGmailIntegrations';
 import { useStagedEntities } from '@/hooks/onboarding/useStagedEntities';
 import { DetectedInsights } from '@/components/onboarding/DetectedInsights';
+import { Sparkles, Mail, ShieldAlert, ArrowRight, Play, RefreshCw } from 'lucide-react';
 
-/**
- * Auto Setup — landing page for the first-scrape onboarding.
- * Shows: connected mailbox, "Run Auto Setup" button, progress meter, and
- * a CTA to /onboarding/triage when entities have been mined.
- */
 export function AutoSetupPage() {
   const { currentOrg } = useOrg();
   const { integrations, loading: gmailLoading } = useGmailIntegrations();
   const { progress, refresh: refreshProgress } = useStagedEntities();
+  const navigate = useNavigate();
 
   const [running, setRunning] = useState(false);
   const [aiRunning, setAiRunning] = useState(false);
@@ -23,9 +20,9 @@ export function AutoSetupPage() {
 
   if (!currentOrg) {
     return (
-      <section>
+      <section className="animated-fade-in">
         <h1>Auto Setup</h1>
-        <p style={{ color: '#888' }}>Pick an organisation first.</p>
+        <p style={{ color: 'var(--text-muted)' }}>Pick an organisation first.</p>
       </section>
     );
   }
@@ -109,7 +106,6 @@ export function AutoSetupPage() {
       let pass = 0;
       let remaining = -1;
 
-      // Loop until remaining = 0 or we've done 5 passes
       while (remaining !== 0 && pass < 5) {
         pass += 1;
         const res = await fetch(url, {
@@ -140,139 +136,188 @@ export function AutoSetupPage() {
   };
 
   return (
-    <section>
-      <h1>Auto Setup</h1>
-      <p style={{ color: '#aaa', maxWidth: 720, lineHeight: 1.6 }}>
-        We'll scan the last 6 months of <strong>{activeGmail?.gmail_address ?? 'your inbox'}</strong> and pre-fill
-        suppliers, contractors, customers, subscriptions, and personal items. Each is matched to a Xero
-        account code so when you push to Xero later, the chart of accounts is already aligned.
-      </p>
-      <p style={{ color: '#666', fontSize: 13, maxWidth: 720, lineHeight: 1.5 }}>
-        Mining is read-only — we look at headers, snippets, and basic body text. We do not download
-        attachment bodies in this pass. Heavy OCR happens later, only on the entities you approve.
-      </p>
+    <section className="animated-fade-in">
+      {/* Header section */}
+      <div style={{ marginBottom: '2rem' }}>
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+          <Sparkles size={24} style={{ color: 'var(--accent-primary)' }} />
+          Auto Setup
+        </h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0, maxWidth: '720px', lineHeight: '1.6' }}>
+          Scans the last 6 months of your mailbox and automatically populates suppliers, contractors, customers, subscriptions, and personal expenses, pre-matching them to appropriate Xero account codes.
+        </p>
+      </div>
+
+      <div 
+        style={{ 
+          padding: '1rem 1.25rem', 
+          background: 'var(--bg-hover)', 
+          border: '1px solid var(--border-subtle)', 
+          borderRadius: 'var(--radius-md)', 
+          fontSize: '0.825rem', 
+          color: 'var(--text-muted)',
+          marginBottom: '2rem',
+          maxWidth: '720px',
+          lineHeight: '1.5'
+        }}
+      >
+        🔒 <strong>Read-Only Scan:</strong> We only evaluate headers, snippets, and basic email body contents. Attachment contents are ignored in this pass. Heavy OCR extraction will run later only on the files you upload.
+      </div>
 
       {!activeGmail ? (
-        <div style={card}>
-          <p style={{ color: '#e9a3a3' }}>
-            Connect Gmail first. <Link to="/settings" style={{ color: '#86c7a3' }}>Go to Settings →</Link>
+        <div className="card" style={{ maxWidth: '720px', borderLeft: '4px solid var(--accent-danger)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-danger)', fontWeight: 'bold' }}>
+            <ShieldAlert size={18} />
+            <span>Connect Gmail First</span>
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.5rem', marginBottom: '1rem' }}>
+            You need to link your email inbox in organization settings before Auto Setup can analyze historical trades transactions.
           </p>
+          <Link to="/settings" className="btn btn-primary" style={{ display: 'inline-flex' }}>
+            Go to Settings &rarr;
+          </Link>
         </div>
       ) : (
-        <>
-          <div style={card}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <strong>{activeGmail.gmail_address}</strong>
-              <span style={{ color: '#86c7a3', fontSize: 12 }}>● connected</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '720px' }}>
+          
+          {/* Active mailbox status card */}
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Mail size={18} style={{ color: 'var(--accent-primary)' }} />
+                <strong style={{ color: 'var(--text-title)' }}>{activeGmail.gmail_address}</strong>
+              </div>
+              <span className="badge badge-success">● Connected</span>
             </div>
 
             {progress && progress.total_entities > 0 && (
               <ProgressBar progress={progress} />
             )}
 
-            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
               <button
                 onClick={runMine}
                 disabled={running || aiRunning || gmailLoading}
-                style={{
-                  padding: '0.6rem 1rem',
-                  background: running ? '#222' : '#1c5135',
-                  color: '#fff',
-                  border: '1px solid #2da565',
-                  borderRadius: 4,
-                  cursor: running ? 'wait' : 'pointer',
-                  fontSize: 13,
-                  fontWeight: 600,
-                }}
+                className="btn btn-primary"
+                style={{ padding: '0.625rem 1.25rem' }}
               >
-                {running
-                  ? 'Mining…'
-                  : progress && progress.total_entities > 0
-                  ? '↻ Re-run mining'
-                  : '▶ 1. Run Auto Setup mining'}
+                {running ? (
+                  <RefreshCw size={14} className="spinning" />
+                ) : (
+                  <Play size={14} fill="currentColor" />
+                )}
+                <span>
+                  {running
+                    ? 'Mining Mailbox…'
+                    : progress && progress.total_entities > 0
+                    ? 'Re-run mining'
+                    : '1. Run Auto Setup Mining'}
+                </span>
               </button>
 
               {progress && progress.total_entities > 0 && (
                 <button
                   onClick={runAiClassify}
                   disabled={running || aiRunning}
-                  style={{
-                    padding: '0.6rem 1rem',
-                    background: aiRunning ? '#222' : '#3a2563',
-                    color: '#fff',
-                    border: '1px solid #6b4ba0',
-                    borderRadius: 4,
-                    cursor: aiRunning ? 'wait' : 'pointer',
-                    fontSize: 13,
-                    fontWeight: 600,
+                  className="btn btn-secondary"
+                  style={{ 
+                    padding: '0.625rem 1.25rem',
+                    border: '1px solid rgba(99, 102, 241, 0.4)',
+                    color: 'var(--accent-primary)'
                   }}
                 >
-                  {aiRunning ? 'AI thinking…' : '✨ 2. AI-classify the unknowns'}
+                  <Sparkles size={14} style={{ color: 'var(--accent-primary)' }} />
+                  <span>{aiRunning ? 'AI Classifying…' : '2. AI-Classify Unknown Senders'}</span>
                 </button>
               )}
             </div>
           </div>
 
+          {/* Action route buttons */}
           {progress && progress.total_entities > 0 && (
-            <Link
-              to="/onboarding/triage"
-              style={{
-                display: 'inline-block',
-                marginTop: 12,
-                padding: '0.5rem 1rem',
-                background: '#1c4868',
-                color: '#fff',
-                border: '1px solid #5096d8',
-                borderRadius: 4,
-                textDecoration: 'none',
-                fontSize: 13,
-                fontWeight: 600,
+            <button
+              onClick={() => navigate('/onboarding/triage')}
+              className="btn btn-primary"
+              style={{ 
+                padding: '0.75rem 1.5rem', 
+                alignSelf: 'flex-start',
+                background: 'linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%)',
+                fontSize: '0.9rem',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: 'var(--shadow-md)'
               }}
             >
-              Triage {progress.pending_count + progress.needs_review_count} unreviewed entities →
-            </Link>
+              <span>Triage {progress.pending_count + progress.needs_review_count} pending senders</span>
+              <ArrowRight size={16} />
+            </button>
           )}
 
+          {/* Logs / Status alerts */}
           {status && (
-            <p style={{ color: '#86c7a3', fontSize: 13, marginTop: 12 }}>{status}</p>
+            <div className="badge badge-info" style={{ display: 'block', padding: '0.75rem', textTransform: 'none', textAlign: 'left', lineHeight: '1.4' }}>
+              {status}
+            </div>
           )}
           {error && (
-            <p style={{ color: 'salmon', fontSize: 13, marginTop: 12 }}>{error}</p>
+            <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', textTransform: 'none', textAlign: 'left' }}>
+              {error}
+            </div>
           )}
 
-          <DetectedInsights />
-        </>
+          <div style={{ marginTop: '1rem' }}>
+            <DetectedInsights />
+          </div>
+        </div>
       )}
     </section>
   );
 }
 
-function ProgressBar({ progress }: { progress: { pct_complete: number; pending_count: number; needs_review_count: number; approved_count: number; dismissed_count: number; total_entities: number; is_complete: boolean } }) {
+function ProgressBar({ 
+  progress 
+}: { 
+  progress: { 
+    pct_complete: number; 
+    pending_count: number; 
+    needs_review_count: number; 
+    approved_count: number; 
+    dismissed_count: number; 
+    total_entities: number; 
+    is_complete: boolean 
+  } 
+}) {
   return (
-    <div style={{ marginBottom: 12 }}>
-      <div style={{ fontSize: 12, color: '#888', marginBottom: 6 }}>
-        {progress.approved_count + progress.dismissed_count} of {progress.total_entities} reviewed
-        ({progress.pct_complete}%)
-        {progress.is_complete && <span style={{ color: '#86c7a3', marginLeft: 8 }}>✓ complete</span>}
+    <div style={{ marginBottom: '1.25rem' }}>
+      <style>{`
+        @keyframes progressPulse {
+          0% { opacity: 0.8; }
+          50% { opacity: 1; }
+          100% { opacity: 0.8; }
+        }
+        .progress-bar-fill {
+          height: 100%;
+          border-radius: var(--radius-full);
+          transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .progress-bar-active {
+          animation: progressPulse 2s infinite ease-in-out;
+        }
+      `}</style>
+      
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 600 }}>
+        <span>{progress.approved_count + progress.dismissed_count} of {progress.total_entities} Senders Reviewed ({progress.pct_complete}%)</span>
+        {progress.is_complete && <span style={{ color: 'var(--text-success)' }}>✓ Complete</span>}
       </div>
-      <div style={{ height: 6, background: '#0a0a0a', borderRadius: 3, overflow: 'hidden' }}>
+      
+      <div style={{ height: '8px', background: 'var(--bg-app)', borderRadius: 'var(--radius-full)', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
         <div
+          className={`progress-bar-fill ${!progress.is_complete ? 'progress-bar-active' : ''}`}
           style={{
             width: `${progress.pct_complete}%`,
-            height: '100%',
-            background: progress.is_complete ? '#2da565' : '#5096d8',
-            transition: 'width 0.3s',
+            background: progress.is_complete ? 'var(--accent-success)' : 'var(--accent-primary)',
           }}
         />
       </div>
     </div>
   );
 }
-
-const card: React.CSSProperties = {
-  marginTop: 16,
-  padding: 16,
-  background: '#1a1a1a',
-  border: '1px solid #2a2a2a',
-  borderRadius: 6,
-};

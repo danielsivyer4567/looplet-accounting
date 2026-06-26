@@ -4,6 +4,10 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
+import { 
+  ChevronLeft, Briefcase, Calendar, User, DollarSign, Wallet, 
+  FileText, Edit3, Save, Plus, AlertTriangle, Unlink, Percent, TrendingUp, type LucideIcon
+} from 'lucide-react';
 
 interface JobRow {
   id: string;
@@ -154,13 +158,17 @@ export function JobDetailPage() {
   };
 
   if (!currentOrg) return null;
-  if (loading) return <section><h1>Job</h1><p style={{ color: '#888' }}>Loading…</p></section>;
-  if (!job) return (
-    <section>
-      <h1>Job not found</h1>
-      <Link to="/jobs" style={{ color: '#86c7a3' }}>&larr; Back to jobs</Link>
-    </section>
-  );
+  if (loading) return <section><p style={{ color: 'var(--text-muted)' }}>Loading job details…</p></section>;
+  if (!job) {
+    return (
+      <section className="animated-fade-in" style={{ padding: '2rem 0', textAlign: 'center' }}>
+        <h2>Job not found</h2>
+        <Link to="/jobs" className="btn btn-secondary" style={{ marginTop: '1rem' }}>
+          <ChevronLeft size={16} /> Back to jobs
+        </Link>
+      </section>
+    );
+  }
 
   // KPIs
   const revenue = pnl?.revenue_inc_gst_cents ?? 0;
@@ -170,37 +178,76 @@ export function JobDetailPage() {
   const budget = job.budget_cents ?? 0;
   const budgetPct = budget > 0 ? (totalCost / budget) * 100 : null;
 
-  // Margin alert if costs exceed 80% of revenue (or 90% of budget if no revenue yet)
+  // Warnings
   const overBudget = budgetPct != null && budgetPct >= 90;
   const lowMargin = margin != null && margin < 20;
 
   return (
-    <section>
-      <Link to="/jobs" style={{ color: '#86c7a3', fontSize: 13 }}>&larr; All jobs</Link>
+    <section className="animated-fade-in">
+      {/* Back link */}
+      <Link 
+        to="/jobs" 
+        style={{ 
+          color: 'var(--text-muted)', 
+          fontSize: '0.825rem', 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.25rem',
+          marginBottom: '1rem'
+        }}
+      >
+        <ChevronLeft size={14} />
+        <span>All jobs</span>
+      </Link>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '0.5rem' }}>
+      {/* Header section */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
         <div>
-          <h1 style={{ margin: 0 }}>
-            <code style={{ color: '#888', fontSize: 18 }}>{job.job_number}</code>{' '}
-            <span style={{ marginLeft: 8 }}>{job.name}</span>
+          <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <code style={{ color: 'var(--text-muted)', fontSize: '1.25rem' }}>{job.job_number}</code>
+            <span>{job.name}</span>
           </h1>
-          <div style={{ marginTop: 4, fontSize: 13, color: '#888' }}>
-            <StatusPill status={job.status} />
-            {' · '}
-            {job.start_date ?? '—'}{job.end_date ? ` → ${job.end_date}` : ''}
+          <div style={{ marginTop: '0.25rem', fontSize: '0.825rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <Pill status={job.status} />
+            <span>•</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+              <Calendar size={12} />
+              {job.start_date ?? '—'}{job.end_date ? ` → ${job.end_date}` : ''}
+            </span>
             {customer && (
               <>
-                {' · '}
-                <Link to={`/customers/${customer.id}`} style={{ color: '#86c7a3' }}>{customer.name}</Link>
+                <span>•</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <User size={12} />
+                  <Link to={`/customers/${customer.id}`} style={{ fontWeight: 600 }}>{customer.name}</Link>
+                </span>
               </>
             )}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           {customer && (
-            <button onClick={() => navigate(`/invoices/new?job_id=${job.id}&customer_id=${customer.id}`)} style={primaryBtn}>+ Raise invoice</button>
+            <button onClick={() => navigate(`/invoices/new?job_id=${job.id}&customer_id=${customer.id}`)} className="btn btn-primary">
+              <Plus size={16} />
+              <span>Raise Invoice</span>
+            </button>
           )}
-          {!editing && <button onClick={startEdit} style={editBtn}>✎ Edit</button>}
+          {!editing && (
+            <button onClick={startEdit} className="btn btn-secondary">
+              <Edit3 size={14} />
+              <span>Edit</span>
+            </button>
+          )}
           <MoveToOrgButton
             table="jobs"
             rowId={job.id}
@@ -211,127 +258,222 @@ export function JobDetailPage() {
         </div>
       </div>
 
+      {/* Warning banner */}
       {(overBudget || lowMargin) && (
-        <div style={{ marginTop: 12, padding: 10, background: '#3d2818', border: '1px solid #d28d4a', borderRadius: 4, fontSize: 13, color: '#f0c47a' }}>
-          ⚠ {overBudget && `${budgetPct?.toFixed(0)}% of budget consumed.`}
-          {overBudget && lowMargin && ' '}
-          {lowMargin && `Gross margin only ${margin?.toFixed(1)}%.`}
+        <div 
+          className="badge badge-warning" 
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem', 
+            padding: '0.875rem 1rem', 
+            marginBottom: '1.5rem', 
+            textTransform: 'none', 
+            fontSize: '0.875rem',
+            width: '100%',
+            justifyContent: 'flex-start'
+          }}
+        >
+          <AlertTriangle size={16} />
+          <span>
+            {overBudget && `${budgetPct?.toFixed(0)}% of budget consumed. `}
+            {lowMargin && `Gross margin is currently low (${margin?.toFixed(1)}%).`}
+          </span>
         </div>
       )}
 
+      {/* Edit Card / Description */}
       {editing ? (
-        <div style={card}>
-          <Field label="Name"><input value={draft.name ?? ''} onChange={(e) => setDraft({ ...draft, name: e.target.value })} style={inp} /></Field>
-          <Field label="Description"><textarea value={draft.description ?? ''} onChange={(e) => setDraft({ ...draft, description: e.target.value })} rows={2} style={inp} /></Field>
-          <div style={grid2}>
-            <Field label="Status">
-              <select value={draft.status ?? job.status} onChange={(e) => setDraft({ ...draft, status: e.target.value })} style={inp}>
-                {JOB_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
+        <div className="card" style={{ marginBottom: '1.5rem', maxWidth: '850px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <Field label="Name *">
+              <input value={draft.name ?? ''} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className="form-input" />
             </Field>
-            <Field label="Budget (AUD)">
-              <input type="number" step="0.01"
-                value={draft.budget_cents != null ? (draft.budget_cents / 100).toFixed(2) : ''}
-                onChange={(e) => setDraft({ ...draft, budget_cents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null })}
-                placeholder="e.g. 5000.00" style={inp} />
+            
+            <Field label="Description">
+              <textarea value={draft.description ?? ''} onChange={(e) => setDraft({ ...draft, description: e.target.value })} rows={2} className="form-textarea" />
             </Field>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+              <Field label="Status">
+                <select value={draft.status ?? job.status} onChange={(e) => setDraft({ ...draft, status: e.target.value })} className="form-select">
+                  {JOB_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </Field>
+              
+              <Field label="Budget (AUD)">
+                <input type="number" step="0.01"
+                  value={draft.budget_cents != null ? (draft.budget_cents / 100).toFixed(2) : ''}
+                  onChange={(e) => setDraft({ ...draft, budget_cents: e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null })}
+                  placeholder="e.g. 5000.00" className="form-input" />
+              </Field>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+              <Field label="Start Date">
+                <input type="date" value={draft.start_date ?? ''} onChange={(e) => setDraft({ ...draft, start_date: e.target.value })} className="form-input" />
+              </Field>
+              <Field label="End Date">
+                <input type="date" value={draft.end_date ?? ''} onChange={(e) => setDraft({ ...draft, end_date: e.target.value })} className="form-input" />
+              </Field>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <button onClick={save} disabled={saving} className="btn btn-primary" style={{ padding: '0.625rem 1.25rem' }}>
+                <Save size={14} />
+                <span>{saving ? 'Saving…' : 'Save'}</span>
+              </button>
+              <button onClick={() => setEditing(false)} disabled={saving} className="btn btn-secondary" style={{ padding: '0.625rem 1.25rem' }}>
+                <span>Cancel</span>
+              </button>
+            </div>
+            {error && <div className="badge badge-danger" style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}>{error}</div>}
           </div>
-          <div style={grid2}>
-            <Field label="Start date"><input type="date" value={draft.start_date ?? ''} onChange={(e) => setDraft({ ...draft, start_date: e.target.value })} style={inp} /></Field>
-            <Field label="End date"><input type="date" value={draft.end_date ?? ''} onChange={(e) => setDraft({ ...draft, end_date: e.target.value })} style={inp} /></Field>
-          </div>
-          <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-            <button onClick={() => void save()} disabled={saving} style={primaryBtn}>{saving ? 'Saving…' : 'Save'}</button>
-            <button onClick={() => setEditing(false)} disabled={saving} style={ghostBtn}>Cancel</button>
-          </div>
-          {error && <p style={{ color: 'salmon', fontSize: 12, marginTop: 8 }}>{error}</p>}
         </div>
-      ) : job.description && (
-        <p style={{ marginTop: 12, color: '#aaa', fontSize: 14, maxWidth: 800 }}>{job.description}</p>
+      ) : job.description ? (
+        <p style={{ marginTop: '0.5rem', marginBottom: '1.5rem', color: 'var(--text-body)', fontSize: '0.95rem', lineHeight: '1.5', maxWidth: '800px' }}>
+          {job.description}
+        </p>
+      ) : null}
+
+      {/* KPI Cards */}
+      <div 
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+          gap: '1rem',
+          marginBottom: '2rem'
+        }}
+      >
+        <Kpi label="Revenue inc GST" value={formatMoney(revenue)} type="success" icon={Wallet} />
+        <Kpi label="Total Cost" value={formatMoney(totalCost)} type="danger" icon={DollarSign} sub={`bills ${formatMoney(pnl?.cost_bills_cents ?? 0)}`} />
+        <Kpi label="Gross Profit" value={formatMoney(grossProfit)} type={grossProfit > 0 ? 'success' : 'danger'} icon={TrendingUp} sub={margin != null ? `${margin.toFixed(1)}% margin` : '—'} />
+        <Kpi label="Budget" value={budget ? formatMoney(budget) : '—'} type="info" icon={Briefcase} sub={budgetPct != null ? `${budgetPct.toFixed(0)}% used` : 'no budget set'} />
+      </div>
+
+      {/* Budget consumption progress bar */}
+      {budget > 0 && (
+        <div className="card" style={{ marginBottom: '2rem', padding: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.825rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+            <span style={{ color: 'var(--text-body)' }}>Budget Consumption</span>
+            <span style={{ color: budgetPct && budgetPct >= 100 ? 'var(--text-danger)' : 'var(--accent-primary)' }}>
+              {budgetPct?.toFixed(1)}% ({formatMoney(totalCost)} of {formatMoney(budget)})
+            </span>
+          </div>
+          <div style={{ height: '8px', background: 'var(--bg-hover)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+            <div 
+              style={{ 
+                height: '100%', 
+                width: `${Math.min(budgetPct ?? 0, 100)}%`, 
+                background: budgetPct && budgetPct >= 100 ? 'var(--accent-danger)' : 'var(--accent-primary)',
+                borderRadius: 'var(--radius-full)',
+                transition: 'width 0.4s ease'
+              }} 
+            />
+          </div>
+        </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 20, maxWidth: 1100 }}>
-        <Kpi label="Revenue inc GST" value={formatMoney(revenue)} colour="#86c7a3" />
-        <Kpi label="Total cost" value={formatMoney(totalCost)} colour="#e9a3a3" sub={`bills ${formatMoney(pnl?.cost_bills_cents ?? 0)}`} />
-        <Kpi label="Gross profit" value={formatMoney(grossProfit)} colour={grossProfit > 0 ? '#86c7a3' : '#e9a3a3'} sub={margin != null ? `${margin.toFixed(1)}% margin` : '—'} />
-        <Kpi label="Budget" value={budget ? formatMoney(budget) : '—'} colour="#aaa" sub={budgetPct != null ? `${budgetPct.toFixed(0)}% used` : 'no budget set'} />
+      {/* Margin Trend Chart */}
+      <div className="card" style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column' }}>
+        <MarginSparkline
+          bills={bills}
+          invoices={invoicesSpark}
+          jobStartDate={job.start_date}
+        />
       </div>
 
-      <MarginSparkline
-        bills={bills}
-        invoices={invoicesSpark}
-        jobStartDate={job.start_date}
-      />
-
-      <div style={{ marginTop: 20 }}>
-        <h2 style={{ fontSize: 14, marginBottom: 8 }}>Cost breakdown</h2>
-        <div style={breakdownRow}><span>Bills (supplier invoices)</span><span style={{ color: '#e9a3a3' }}>{formatMoney(pnl?.cost_bills_cents ?? 0)}</span></div>
-        <div style={breakdownRow}><span>Wages (employee labour)</span><span style={{ color: '#888' }}>{formatMoney(pnl?.cost_wages_cents ?? 0)}</span></div>
-        <div style={breakdownRow}><span>Overhead (allocated)</span><span style={{ color: '#888' }}>{formatMoney(pnl?.cost_overhead_cents ?? 0)}</span></div>
-        <div style={{ ...breakdownRow, borderTop: '1px solid #2a2a2a', fontWeight: 600 }}>
-          <span>Total cost</span><span>{formatMoney(totalCost)}</span>
+      {/* Cost Breakdown */}
+      <div className="card" style={{ marginBottom: '2rem', maxWidth: '600px' }}>
+        <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          <Percent size={16} style={{ color: 'var(--text-muted)' }} />
+          Cost Breakdown
+        </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <div style={breakdownRow}>
+            <span>Bills (Supplier Invoices)</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-danger)' }}>{formatMoney(pnl?.cost_bills_cents ?? 0)}</span>
+          </div>
+          <div style={breakdownRow}>
+            <span>Wages (Employee Labour)</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-body)' }}>{formatMoney(pnl?.cost_wages_cents ?? 0)}</span>
+          </div>
+          <div style={breakdownRow}>
+            <span>Overhead (Allocated)</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-body)' }}>{formatMoney(pnl?.cost_overhead_cents ?? 0)}</span>
+          </div>
+          <div style={{ ...breakdownRow, borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem', marginTop: '0.5rem', fontWeight: 700, fontSize: '0.95rem' }}>
+            <span style={{ color: 'var(--text-title)' }}>Total cost</span>
+            <span style={{ color: 'var(--text-title)' }}>{formatMoney(totalCost)}</span>
+          </div>
+          <div style={{ ...breakdownRow, borderBottom: 'none', color: 'var(--text-muted)', fontSize: '0.825rem' }}>
+            <span>GST input credit</span>
+            <span>{formatMoney(pnl?.gst_input_credit_cents ?? 0)}</span>
+          </div>
         </div>
-        <div style={breakdownRow}><span>GST input credit</span><span style={{ color: '#aaa' }}>{formatMoney(pnl?.gst_input_credit_cents ?? 0)}</span></div>
       </div>
 
-      <h2 style={{ fontSize: 14, marginTop: 24, marginBottom: 8 }}>Attached bills ({bills.length})</h2>
+      {/* Attached Bills */}
+      <h2 style={{ fontSize: '1.25rem', marginTop: '2rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+        <FileText size={16} style={{ color: 'var(--text-muted)' }} />
+        Attached bills ({bills.length})
+      </h2>
       {bills.length === 0 ? (
-        <p style={{ color: '#888', fontSize: 13 }}>No bills attached yet.</p>
+        <div style={{ padding: '2rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+          No bills attached yet.
+        </div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-              <th style={th}>Supplier</th>
-              <th style={th}>Invoice #</th>
-              <th style={th}>Date</th>
-              <th style={th}>Status</th>
-              <th style={thRight}>Total inc GST</th>
-              <th style={thRight}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {bills.map((b) => (
-              <tr
-                key={b.id}
-                style={{ borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
-                onClick={() => navigate(`/bills/${b.id}`)}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = '#202020'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = ''; }}
-              >
-                <td style={td}>
-                  {b.supplier_id ? (
-                    <Link to={`/suppliers/${b.supplier_id}`} onClick={(e) => e.stopPropagation()} style={{ color: '#86c7a3', fontSize: 13 }}>
-                      {b.supplier_name_raw ?? '(linked)'}
-                    </Link>
-                  ) : (
-                    b.supplier_name_raw ?? <span style={{ color: '#666' }}>—</span>
-                  )}
-                </td>
-                <td style={td}><code style={{ color: '#aaa', fontSize: 12 }}>{b.invoice_number ?? '—'}</code></td>
-                <td style={td}>{b.invoice_date ?? '—'}</td>
-                <td style={td}><StatusPill status={b.status} /></td>
-                <td style={tdRight}>{b.total_inc_gst_cents != null ? formatMoney(b.total_inc_gst_cents) : <span style={{ color: '#444' }}>—</span>}</td>
-                <td style={tdRight}>
-                  <button onClick={(e) => { e.stopPropagation(); void detachBill(b.id); }} style={detachBtn}>detach</button>
-                </td>
+        <div className="table-premium-container">
+          <table className="table-premium">
+            <thead>
+              <tr>
+                <th>Supplier</th>
+                <th>Invoice #</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Total inc GST</th>
+                <th style={{ width: '100px' }}>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {bills.map((b) => (
+                <tr
+                  key={b.id}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => navigate(`/bills/${b.id}`)}
+                >
+                  <td>
+                    {b.supplier_id ? (
+                      <Link to={`/suppliers/${b.supplier_id}`} onClick={(e) => e.stopPropagation()} style={{ fontWeight: 600 }}>
+                        {b.supplier_name_raw ?? '(linked)'}
+                      </Link>
+                    ) : (
+                      b.supplier_name_raw ?? <span style={{ color: 'var(--text-muted)' }}>—</span>
+                    )}
+                  </td>
+                  <td><code>{b.invoice_number ?? '—'}</code></td>
+                  <td>{b.invoice_date ?? '—'}</td>
+                  <td><Pill status={b.status} /></td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{b.total_inc_gst_cents != null ? formatMoney(b.total_inc_gst_cents) : <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
+                  <td>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); void detachBill(b.id); }} 
+                      className="btn btn-secondary"
+                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-danger)' }}
+                    >
+                      <Unlink size={12} style={{ marginRight: '0.25rem' }} />
+                      <span>Detach</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
-
-      <p style={{ marginTop: 32, padding: 10, background: '#0e0e0e', border: '1px dashed #2a2a2a', borderRadius: 4, fontSize: 12, color: '#666' }}>
-        Future: invoices, payments received, timesheet hours allocated, margin trend chart.
-      </p>
     </section>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Margin sparkline — pure inline SVG, no chart library
-// Shows cumulative cost (red), cumulative revenue (green), margin (white)
-// over weekly buckets from the first event to today.
-// ---------------------------------------------------------------------------
 
 function getMonday(d: Date): Date {
   const date = new Date(d);
@@ -350,7 +492,6 @@ function buildSparkBuckets(
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Collect all dates to find range
   const allDates: Date[] = [];
   if (jobStartDate) allDates.push(new Date(jobStartDate));
   for (const b of bills) {
@@ -365,7 +506,6 @@ function buildSparkBuckets(
   const startMonday = getMonday(minDate);
   const endMonday = getMonday(today);
 
-  // Build list of weekly bucket start dates
   const weeks: Date[] = [];
   const cur = new Date(startMonday);
   while (cur <= endMonday) {
@@ -374,8 +514,7 @@ function buildSparkBuckets(
   }
   if (weeks.length === 0) return [];
 
-  // Map events to week index
-  const billsByWeek = new Map<number, number>(); // weekIdx -> cumulative cost cents
+  const billsByWeek = new Map<number, number>();
   for (const b of bills) {
     if (!b.invoice_date || b.total_inc_gst_cents == null) continue;
     const d = new Date(b.invoice_date);
@@ -413,18 +552,21 @@ function MarginSparkline({
   const buckets = buildSparkBuckets(bills, invoices, jobStartDate);
 
   const W = 600;
-  const H = 100;
-  const PAD = { top: 8, right: 16, bottom: 20, left: 8 };
+  const H = 140;
+  const PAD = { top: 12, right: 16, bottom: 24, left: 8 };
   const chartW = W - PAD.left - PAD.right;
   const chartH = H - PAD.top - PAD.bottom;
 
-  // At least 2 points to draw lines
   if (buckets.length < 2) {
     const hasAny = bills.length > 0 || invoices.length > 0;
     return (
-      <div style={{ marginTop: 16, padding: 12, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 6, maxWidth: W, display: 'inline-block' }}>
-        <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Margin trend</div>
-        <p style={{ color: '#555', fontSize: 12, margin: 0 }}>{hasAny ? 'Not enough data yet — need events in at least 2 different weeks.' : 'Not enough data yet.'}</p>
+      <div style={{ padding: '0.5rem' }}>
+        <h3 style={{ fontSize: '0.825rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+          Margin Trend
+        </h3>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+          {hasAny ? 'Not enough data yet — need events in at least 2 different weeks.' : 'Not enough data yet.'}
+        </p>
       </div>
     );
   }
@@ -436,7 +578,6 @@ function MarginSparkline({
   const minMargin = Math.min(...buckets.map((b) => b.cumRevenue - b.cumCost));
   const maxMargin = Math.max(...buckets.map((b) => b.cumRevenue - b.cumCost));
 
-  // Unified Y scale: include 0 and all values
   const yMin = Math.min(0, minMargin);
   const yMax = Math.max(maxVal, maxMargin);
   const yRange = yMax - yMin || 1;
@@ -451,46 +592,66 @@ function MarginSparkline({
   const revPts = polyPoints(buckets.map((b) => b.cumRevenue));
   const marginPts = polyPoints(buckets.map((b) => b.cumRevenue - b.cumCost));
 
-  // Zero line y position
   const zeroY = yScale(0);
 
   return (
-    <div style={{ marginTop: 16, padding: '12px 16px', background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 6, maxWidth: W + 32, display: 'inline-block' }}>
-      <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Margin trend</div>
-      <svg
-        width={W}
-        height={H}
-        role="img"
-        aria-label="Job margin trend sparkline showing cumulative cost, revenue, and margin by week"
-        style={{ display: 'block', overflow: 'visible' }}
-      >
-        {/* Zero baseline */}
-        <line x1={PAD.left} y1={zeroY} x2={W - PAD.right} y2={zeroY} stroke="#2a2a2a" strokeWidth={1} strokeDasharray="3,3" />
+    <div style={{ padding: '0.5rem', width: '100%', overflowX: 'auto' }}>
+      <h3 style={{ fontSize: '0.825rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>
+        Margin Trend (Weekly Cumulative)
+      </h3>
+      
+      <div style={{ minWidth: `${W}px` }}>
+        <svg
+          width="100%"
+          height={H}
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-label="Job margin trend sparkline showing cumulative cost, revenue, and margin by week"
+          style={{ display: 'block', overflow: 'visible' }}
+        >
+          {/* Zero baseline */}
+          <line x1={PAD.left} y1={zeroY} x2={W - PAD.right} y2={zeroY} stroke="var(--border-subtle)" strokeWidth={1.5} strokeDasharray="4,4" />
 
-        {/* Cumulative cost — red */}
-        <polyline points={costPts} fill="none" stroke="#e9a3a3" strokeWidth={1.5} strokeLinejoin="round" />
-        {/* Cumulative revenue — green */}
-        <polyline points={revPts} fill="none" stroke="#86c7a3" strokeWidth={1.5} strokeLinejoin="round" />
-        {/* Margin (revenue - cost) — white */}
-        <polyline points={marginPts} fill="none" stroke="#ffffff" strokeWidth={1} strokeLinejoin="round" strokeOpacity={0.55} />
+          {/* Cumulative cost — red */}
+          <polyline points={costPts} fill="none" stroke="var(--accent-danger)" strokeWidth={2.5} strokeLinejoin="round" />
+          {/* Cumulative revenue — green */}
+          <polyline points={revPts} fill="none" stroke="var(--accent-success)" strokeWidth={2.5} strokeLinejoin="round" />
+          {/* Margin (revenue - cost) — primary theme color */}
+          <polyline points={marginPts} fill="none" stroke="var(--accent-primary)" strokeWidth={1.5} strokeLinejoin="round" strokeDasharray="2,2" />
 
-        {/* Axis labels: first and last week */}
-        <text x={PAD.left} y={H - 2} fontSize={9} fill="#555">{buckets[0]?.weekStart.toISOString().slice(0, 10) ?? ''}</text>
-        <text x={W - PAD.right} y={H - 2} fontSize={9} fill="#555" textAnchor="end">{buckets[buckets.length - 1]?.weekStart.toISOString().slice(0, 10) ?? ''}</text>
-      </svg>
-      <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
-        <Legend colour="#86c7a3" label="Cum. revenue" />
-        <Legend colour="#e9a3a3" label="Cum. cost" />
-        <Legend colour="rgba(255,255,255,0.55)" label="Margin" />
+          {/* Axis labels: first and last week */}
+          <text x={PAD.left} y={H - 4} fontSize={9} fill="var(--text-muted)" fontWeight={600}>
+            {buckets[0]?.weekStart.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+          </text>
+          <text x={W - PAD.right} y={H - 4} fontSize={9} fill="var(--text-muted)" fontWeight={600} textAnchor="end">
+            {buckets[buckets.length - 1]?.weekStart.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+          </text>
+        </svg>
+      </div>
+
+      <div style={{ display: 'flex', gap: '1.25rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+        <Legend colour="var(--accent-success)" label="Cumulative Revenue" />
+        <Legend colour="var(--accent-danger)" label="Cumulative Cost" />
+        <Legend colour="var(--accent-primary)" label="Cumulative Margin" dotted />
       </div>
     </div>
   );
 }
 
-function Legend({ colour, label }: { colour: string; label: string }) {
+function Legend({ colour, label, dotted }: { colour: string; label: string; dotted?: boolean }) {
   return (
-    <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#888' }}>
-      <span style={{ display: 'inline-block', width: 14, height: 2, background: colour, borderRadius: 1 }} />
+    <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.825rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+      <span 
+        style={{ 
+          display: 'inline-block', 
+          width: '16px', 
+          height: '3px', 
+          background: dotted ? 'transparent' : colour, 
+          borderTop: dotted ? `3px dotted ${colour}` : 'none',
+          borderRadius: 'var(--radius-full)' 
+        }} 
+      />
       {label}
     </span>
   );
@@ -498,42 +659,68 @@ function Legend({ colour, label }: { colour: string; label: string }) {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label style={{ display: 'block', fontSize: 11, color: '#888', marginTop: 6 }}>
-      <div style={{ marginBottom: 3 }}>{label}</div>
-      {children}
-    </label>
-  );
-}
-
-function Kpi({ label, value, colour, sub }: { label: string; value: string; colour: string; sub?: string }) {
-  return (
-    <div style={{ padding: 12, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 6 }}>
-      <div style={{ fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ marginTop: 4, fontSize: 18, color: colour, fontWeight: 600 }}>{value}</div>
-      {sub && <div style={{ marginTop: 3, fontSize: 11, color: '#888' }}>{sub}</div>}
+    <div className="form-group" style={{ marginBottom: 0 }}>
+      <span className="form-label" style={{ fontSize: '0.725rem' }}>{label}</span>
+      <div style={{ marginTop: '0.25rem' }}>{children}</div>
     </div>
   );
 }
 
-function StatusPill({ status }: { status: string }) {
-  const c = status === 'paid' || status === 'completed' || status === 'active' ? '#86c7a3'
-    : status === 'attached' ? '#5096d8'
-    : status === 'verified' || status === 'quoted' ? '#d2c886'
-    : status === 'void' || status === 'cancelled' ? '#666'
-    : status === 'on_hold' ? '#d28d4a'
-    : '#888';
-  return <span style={{ padding: '0.15rem 0.5rem', fontSize: 11, borderRadius: 3, background: '#222', color: c, textTransform: 'uppercase' }}>{status}</span>;
+function Kpi({ 
+  label, 
+  value, 
+  type,
+  icon: Icon,
+  sub 
+}: { 
+  label: string; 
+  value: string; 
+  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral'; 
+  icon: LucideIcon;
+  sub?: string;
+}) {
+  return (
+    <div 
+      className="card"
+      style={{ 
+        padding: '1.25rem',
+        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
+        position: 'relative'
+      }}
+    >
+      <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+        {label}
+      </div>
+      <div style={{ marginTop: '0.35rem', fontSize: '1.5rem', color: 'var(--text-title)', fontWeight: 800, fontFamily: 'var(--font-title)' }}>
+        {value}
+      </div>
+      {sub ? (
+        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>{sub}</div>
+      ) : (
+        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
+      )}
+      <div style={{ position: 'absolute', right: '1rem', bottom: '1rem', color: `var(--accent-${type === 'neutral' ? 'primary' : type})`, opacity: 0.7 }}>
+        <Icon size={18} />
+      </div>
+    </div>
+  );
 }
 
-const card: React.CSSProperties = { marginTop: 12, padding: 16, background: '#0e0e0e', border: '1px solid #2a2a2a', borderRadius: 6, maxWidth: 920 };
-const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 };
-const inp: React.CSSProperties = { width: '100%', padding: '6px 8px', background: '#000', color: '#ddd', border: '1px solid #333', borderRadius: 3, fontSize: 12 };
-const editBtn: React.CSSProperties = { padding: '0.3rem 0.75rem', background: 'transparent', color: '#aaa', border: '1px solid #333', borderRadius: 3, fontSize: 12, cursor: 'pointer' };
-const primaryBtn: React.CSSProperties = { padding: '0.4rem 1rem', background: '#1c4868', color: '#fff', border: '1px solid #5096d8', borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: 'pointer' };
-const ghostBtn: React.CSSProperties = { padding: '0.4rem 1rem', background: 'transparent', color: '#aaa', border: '1px solid #333', borderRadius: 4, fontSize: 12, cursor: 'pointer' };
-const breakdownRow: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 13, color: '#ddd', borderBottom: '1px solid #1a1a1a', maxWidth: 600 };
-const th: React.CSSProperties = { padding: '0.4rem 0.5rem', textAlign: 'left', fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 };
-const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
-const td: React.CSSProperties = { padding: '0.5rem' };
-const tdRight: React.CSSProperties = { ...td, textAlign: 'right' };
-const detachBtn: React.CSSProperties = { background: 'transparent', color: '#888', border: '1px solid #333', borderRadius: 3, fontSize: 11, padding: '0.15rem 0.5rem', cursor: 'pointer' };
+function Pill({ status }: { status: string }) {
+  let badgeClass = 'badge-neutral';
+  if (status === 'active' || status === 'completed') badgeClass = 'badge-success';
+  else if (status === 'paused' || status === 'on_hold' || status === 'quoted') badgeClass = 'badge-warning';
+  else if (status === 'cancelled' || status === 'archived') badgeClass = 'badge-danger';
+  
+  return <span className={`badge ${badgeClass}`}>{status.replace('_', ' ')}</span>;
+}
+
+const breakdownRow: React.CSSProperties = { 
+  display: 'flex', 
+  justifyContent: 'space-between', 
+  padding: '0.625rem 0', 
+  fontSize: '0.875rem', 
+  color: 'var(--text-body)', 
+  borderBottom: '1px solid var(--border-subtle)', 
+  width: '100%' 
+};

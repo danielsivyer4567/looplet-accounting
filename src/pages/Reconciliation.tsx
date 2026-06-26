@@ -5,6 +5,7 @@ import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import { AllocationSplitButton } from '@/components/AllocationSplitButton';
+import { Scale, CheckCircle2, AlertCircle, ArrowUpRight, ArrowDownRight, RotateCcw } from 'lucide-react';
 
 interface BankTxn {
   id: string;
@@ -107,7 +108,7 @@ export function ReconciliationPage() {
       list.push({ ...c, kind: 'invoice' });
       candidatesByTxn.set(c.bank_transaction_id, list);
     }
-    // Sort each txn's candidates by score desc
+    
     for (const list of candidatesByTxn.values()) {
       list.sort((a, b) => b.score - a.score);
     }
@@ -129,8 +130,6 @@ export function ReconciliationPage() {
   const matchToBill = async (txnId: string, billId: string) => {
     setBusyId(txnId);
     try {
-      // Atomic RPC — both updates in one tx so a connection drop can't
-      // leave the bank txn matched but the bill still 'attached'.
       const { data, error: rpcErr } = await supabase.rpc('reconcile_match_bill', {
         p_bank_transaction_id: txnId,
         p_bill_id: billId,
@@ -140,7 +139,6 @@ export function ReconciliationPage() {
       const result = data as { ok: boolean; error?: string } | null;
       if (result && !result.ok) throw new Error(result.error ?? 'reconcile_match_bill failed');
 
-      // Fire-and-forget: push the now-paid bill to Xero (best effort)
       if (currentOrg) {
         void (async () => {
           try {
@@ -152,7 +150,7 @@ export function ReconciliationPage() {
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
               body: JSON.stringify({ organization_id: currentOrg.id, bill_id: billId }),
             });
-          } catch { /* silently ignore — xero_status will surface 'failed' */ }
+          } catch { /* ignored */ }
         })();
       }
     } catch (err) {
@@ -223,38 +221,72 @@ export function ReconciliationPage() {
   };
 
   return (
-    <section>
-      <h1 style={{ marginBottom: 4 }}>Reconciliation</h1>
-      <p style={{ color: '#888', fontSize: 13 }}>
-        Match bank transactions to bills (money out) and invoices (money in).
-        Bills flip to <code>paid</code>; invoices auto-record an <code>invoice_payment</code> and the trigger flips status.
-      </p>
+    <section className="animated-fade-in">
+      {/* Header title */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+          <Scale size={24} style={{ color: 'var(--accent-primary)' }} />
+          Reconciliation
+        </h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+          Match bank transactions to bills (money out) and invoices (money in).
+        </p>
+      </div>
 
       {loading ? (
         <SkeletonTable rows={8} cols={5} />
       ) : error ? (
-        <p style={{ color: 'salmon' }}>{error}</p>
+        <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', marginBottom: '1rem', textTransform: 'none' }}>
+          {error}
+        </div>
       ) : (
         <>
+          {/* Banner notification for candidate suggestions */}
           {withSugg.length > 0 && (
-            <div style={{ marginTop: 12, padding: 12, background: '#0d2f1f', border: '1px solid #1c5135', borderRadius: 6 }}>
-              <strong style={{ color: '#86c7a3' }}>
-                {withSugg.length} unmatched txn{withSugg.length === 1 ? '' : 's'} have candidate matches.
-              </strong>
-              {' '}
+            <div 
+              style={{ 
+                marginTop: '1rem', 
+                marginBottom: '1.5rem',
+                padding: '1rem 1.25rem', 
+                background: 'var(--bg-success-subtle)', 
+                border: '1px solid rgba(16, 185, 129, 0.2)', 
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.75rem'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-success)', fontSize: '0.875rem', fontWeight: 600 }}>
+                <CheckCircle2 size={16} />
+                <span>{withSugg.length} unmatched transaction{withSugg.length === 1 ? '' : 's'} have candidate matches.</span>
+              </div>
               {rows.some((r) => (r.candidates[0]?.score ?? 0) >= 0.9) && (
-                <button onClick={() => void bulkApplyHigh()} style={primaryBtn}>
+                <button onClick={() => void bulkApplyHigh()} className="btn btn-primary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}>
                   ✓ Auto-match high-confidence
                 </button>
               )}
             </div>
           )}
 
-          <h2 style={h2}>Unmatched transactions ({rows.length})</h2>
+          <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Unmatched transactions ({rows.length})</h2>
           {rows.length === 0 ? (
-            <p style={{ color: '#888', fontSize: 13 }}>Inbox zero. Every transaction is reconciled.</p>
+            <div 
+              style={{ 
+                padding: '2.5rem', 
+                background: 'var(--bg-success-subtle)', 
+                border: '1px dashed var(--accent-success)', 
+                borderRadius: 'var(--radius-md)', 
+                color: 'var(--text-success)', 
+                textAlign: 'center',
+                fontSize: '0.9rem' 
+              }}
+            >
+              ✓ Inbox zero. Every transaction is successfully reconciled.
+            </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2.5rem' }}>
               {rows.map((r) => (
                 <TxnRow
                   key={r.txn.id}
@@ -268,41 +300,54 @@ export function ReconciliationPage() {
             </div>
           )}
 
+          {/* Recently Matched Panel */}
           {matched.length > 0 && (
-            <>
-              <h2 style={h2}>Recently matched (last 20)</h2>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <div style={{ marginTop: '2rem' }}>
+              <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Recently matched (last 20)</h2>
+              <div className="table-premium-container">
+                <table className="table-premium">
                   <thead>
-                    <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-                      <th style={th}>Date</th>
-                      <th style={th}>Description</th>
-                      <th style={thRight}>Amount</th>
-                      <th style={th}>Matched to</th>
-                      <th style={thRight}></th>
+                    <tr>
+                      <th>Date</th>
+                      <th>Description</th>
+                      <th style={{ textAlign: 'right' }}>Amount</th>
+                      <th>Matched to</th>
+                      <th style={{ width: '80px' }}></th>
                     </tr>
                   </thead>
                   <tbody>
                     {matched.map((m) => (
-                      <tr key={m.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                        <td style={td}>{m.posted_at.slice(0, 10)}</td>
-                        <td style={td}>{m.description}</td>
-                        <td style={tdRight}>{formatMoney(m.amount_cents)}</td>
-                        <td style={td}>
+                      <tr key={m.id}>
+                        <td style={{ whiteSpace: 'nowrap' }}>{m.posted_at.slice(0, 10)}</td>
+                        <td>{m.description}</td>
+                        <td style={{ 
+                          textAlign: 'right', 
+                          fontWeight: 600,
+                          color: m.amount_cents < 0 ? 'var(--text-danger)' : 'var(--text-success)'
+                        }}>
+                          {formatMoney(m.amount_cents)}
+                        </td>
+                        <td>
                           {m.matched_bill_id && (
-                            <Link to={`/bills/${m.matched_bill_id}`} style={{ color: '#86c7a3', fontSize: 12 }}>
+                            <Link to={`/bills/${m.matched_bill_id}`} className="badge badge-info" style={{ textDecoration: 'none' }}>
                               bill →
                             </Link>
                           )}
                           {m.matched_invoice_id && (
-                            <Link to={`/invoices/${m.matched_invoice_id}`} style={{ color: '#86c7a3', fontSize: 12 }}>
+                            <Link to={`/invoices/${m.matched_invoice_id}`} className="badge badge-success" style={{ textDecoration: 'none' }}>
                               invoice →
                             </Link>
                           )}
                         </td>
-                        <td style={tdRight}>
-                          <button onClick={() => void undoMatch(m.id)} disabled={busyId === m.id} style={ghostBtn}>
-                            undo
+                        <td style={{ textAlign: 'right' }}>
+                          <button 
+                            onClick={() => void undoMatch(m.id)} 
+                            disabled={busyId === m.id} 
+                            className="btn btn-secondary"
+                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.725rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                          >
+                            <RotateCcw size={12} />
+                            <span>Undo</span>
                           </button>
                         </td>
                       </tr>
@@ -310,12 +355,27 @@ export function ReconciliationPage() {
                   </tbody>
                 </table>
               </div>
-            </>
+            </div>
           )}
 
-          <p style={{ marginTop: 32, padding: 10, background: '#0e0e0e', border: '1px dashed #2a2a2a', borderRadius: 4, fontSize: 12, color: '#666' }}>
-            Future: invoice matches (after P4), auto-categorisation rules, partial-match handling, multi-bill splits, attachable receipt photos.
-          </p>
+          {/* Footer note info box */}
+          <div 
+            style={{ 
+              marginTop: '3rem', 
+              padding: '1rem 1.25rem', 
+              background: 'var(--bg-card)', 
+              border: '1px dashed var(--border-subtle)', 
+              borderRadius: 'var(--radius-md)', 
+              fontSize: '0.75rem', 
+              color: 'var(--text-muted)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <AlertCircle size={16} />
+            <span>Future updates: invoice matches (after P4), auto-categorisation rules, partial-match handling, multi-bill splits, and attachable receipt photos.</span>
+          </div>
         </>
       )}
     </section>
@@ -337,90 +397,132 @@ function TxnRow({
 }) {
   const { txn, candidates } = row;
   const top = candidates[0];
+  const isPositive = txn.amount_cents >= 0;
 
   return (
-    <div style={{ padding: 12, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 6, display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center' }}>
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 600 }}>{txn.description}</div>
-        <div style={{ fontSize: 12, color: '#888', marginTop: 3 }}>
-          {txn.posted_at.slice(0, 10)}{' · '}
-          <span style={{ color: txn.amount_cents < 0 ? '#e9a3a3' : '#86c7a3' }}>{formatMoney(txn.amount_cents)}</span>
-          {txn.reference && <> · ref <code style={{ color: '#666' }}>{txn.reference}</code></>}
+    <div 
+      className="card"
+      style={{ 
+        padding: '1rem 1.25rem', 
+        display: 'flex',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        gap: '1.25rem' 
+      }}
+    >
+      {/* Left side details */}
+      <div style={{ flex: 1, minWidth: '320px' }}>
+        <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-title)' }}>
+          {txn.description}
         </div>
-        <div style={{ marginTop: 6 }}>
+        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span>{txn.posted_at.slice(0, 10)}</span>
+          <span>·</span>
+          <span 
+            style={{ 
+              fontWeight: 700, 
+              color: isPositive ? 'var(--text-success)' : 'var(--text-danger)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.15rem'
+            }}
+          >
+            {isPositive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+            {formatMoney(txn.amount_cents)}
+          </span>
+          {txn.reference && (
+            <>
+              <span>·</span>
+              <span>Ref: <code>{txn.reference}</code></span>
+            </>
+          )}
+        </div>
+        <div style={{ marginTop: '0.75rem' }}>
           <AllocationSplitButton
             resourceType="bank_transaction"
             resourceId={txn.id}
             hostOrgId={hostOrgId}
             onSaved={onSplitSaved}
-            label="⊟ Split across businesses"
+            label="Split across businesses"
           />
         </div>
       </div>
-      <div style={{ minWidth: 360 }}>
+
+      {/* Right side candidates */}
+      <div style={{ minWidth: '360px', flexShrink: 0 }}>
         {candidates.length === 0 ? (
-          <div style={{ fontSize: 12, color: '#666', textAlign: 'right' }}>
-            No matching bill or invoice found
+          <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', textAlign: 'right', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
+            <AlertCircle size={14} />
+            <span>No matching bill or invoice found</span>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {candidates.map((c, i) => (
-              <div key={`${c.kind}-${i}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                {c.kind === 'bill' ? (
-                  <Link to={`/bills/${c.bill_id}`} style={{ fontSize: 12, color: '#aaa', textDecoration: 'none' }}>
-                    <span style={kindPill('#5096d8')}>BILL</span>
-                    {' '}{c.supplier_name ?? '(no supplier)'} · <code>{c.bill_invoice_number ?? '—'}</code> · {c.bill_date} · {formatMoney(c.bill_amount_cents)}
-                  </Link>
-                ) : (
-                  <Link to={`/invoices/${c.invoice_id}`} style={{ fontSize: 12, color: '#aaa', textDecoration: 'none' }}>
-                    <span style={kindPill('#86c7a3')}>INV</span>
-                    {' '}{c.customer_name ?? '(no customer)'} · <code>{c.invoice_number}</code> · {c.invoice_date} · owing {formatMoney(c.invoice_balance_due_cents)}
-                  </Link>
-                )}
-                <button
-                  onClick={() => onMatch(txn.id, txn.amount_cents, c)}
-                  disabled={busy}
-                  style={{
-                    padding: '0.3rem 0.6rem',
-                    background: c.score >= 0.9 ? '#1c5135' : '#1c4868',
-                    color: '#fff',
-                    border: '1px solid ' + (c.score >= 0.9 ? '#2da565' : '#5096d8'),
-                    borderRadius: 3, cursor: busy ? 'wait' : 'pointer', fontSize: 11,
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {candidates.map((c, i) => {
+              const isMatchReady = c.score >= 0.9;
+              return (
+                <div 
+                  key={`${c.kind}-${i}`} 
+                  style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    gap: '0.75rem',
+                    background: 'var(--bg-app)',
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-subtle)'
                   }}
                 >
-                  match ({(c.score * 100).toFixed(0)}%)
-                </button>
-              </div>
-            ))}
+                  {c.kind === 'bill' ? (
+                    <Link to={`/bills/${c.bill_id}`} style={{ fontSize: '0.775rem', color: 'var(--text-body)', display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.25rem' }}>
+                      <span className="badge badge-info" style={{ fontSize: '8px', padding: '1px 3px' }}>BILL</span>
+                      <strong style={{ color: 'var(--text-title)' }}>{c.supplier_name ?? '(no supplier)'}</strong>
+                      <span>·</span>
+                      <code>{c.bill_invoice_number ?? '—'}</code>
+                      <span>·</span>
+                      <span style={{ fontWeight: 600 }}>{formatMoney(c.bill_amount_cents)}</span>
+                    </Link>
+                  ) : (
+                    <Link to={`/invoices/${c.invoice_id}`} style={{ fontSize: '0.775rem', color: 'var(--text-body)', display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.25rem' }}>
+                      <span className="badge badge-success" style={{ fontSize: '8px', padding: '1px 3px' }}>INV</span>
+                      <strong style={{ color: 'var(--text-title)' }}>{c.customer_name ?? '(no customer)'}</strong>
+                      <span>·</span>
+                      <code>{c.invoice_number}</code>
+                      <span>·</span>
+                      <span style={{ fontWeight: 600 }}>Owing {formatMoney(c.invoice_balance_due_cents)}</span>
+                    </Link>
+                  )}
+                  
+                  <button
+                    onClick={() => onMatch(txn.id, txn.amount_cents, c)}
+                    disabled={busy}
+                    className="btn"
+                    style={{
+                      padding: '0.25rem 0.5rem',
+                      fontSize: '0.725rem',
+                      background: isMatchReady ? 'var(--bg-success-subtle)' : 'var(--bg-info-subtle)',
+                      color: isMatchReady ? 'var(--text-success)' : 'var(--text-info)',
+                      borderColor: isMatchReady ? 'var(--accent-success)' : 'var(--accent-info)',
+                      fontWeight: 600,
+                      cursor: busy ? 'wait' : 'pointer'
+                    }}
+                  >
+                    Match ({(c.score * 100).toFixed(0)}%)
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
+        
         {top && top.score >= 0.95 && (
-          <div style={{ marginTop: 4, fontSize: 10, color: '#86c7a3', textAlign: 'right' }}>
-            ✓ Strong match — consider auto-applying
+          <div style={{ marginTop: '0.5rem', fontSize: '0.725rem', color: 'var(--text-success)', textAlign: 'right', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.25rem' }}>
+            <CheckCircle2 size={12} />
+            <span>Strong match candidate — consider auto-applying</span>
           </div>
         )}
       </div>
     </div>
   );
 }
-
-const kindPill = (colour: string): React.CSSProperties => ({
-  display: 'inline-block',
-  padding: '1px 5px',
-  fontSize: 9,
-  fontWeight: 700,
-  letterSpacing: 0.5,
-  borderRadius: 2,
-  background: '#222',
-  color: colour,
-  border: `1px solid ${colour}`,
-  marginRight: 4,
-});
-
-const h2: React.CSSProperties = { fontSize: 14, marginTop: 24, marginBottom: 8 };
-const th: React.CSSProperties = { padding: '0.4rem 0.5rem', textAlign: 'left', fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 };
-const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
-const td: React.CSSProperties = { padding: '0.5rem' };
-const tdRight: React.CSSProperties = { ...td, textAlign: 'right' };
-const primaryBtn: React.CSSProperties = { marginLeft: 12, padding: '0.4rem 1rem', background: '#1c5135', color: '#fff', border: '1px solid #2da565', borderRadius: 4, cursor: 'pointer', fontSize: 13, fontWeight: 600 };
-const ghostBtn: React.CSSProperties = { padding: '0.2rem 0.5rem', background: 'transparent', color: '#888', border: '1px solid #333', borderRadius: 3, cursor: 'pointer', fontSize: 11 };

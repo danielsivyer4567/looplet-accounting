@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { useAuth } from '@/hooks/useAuth';
+import { Clock, Mail, Activity as ActivityIcon, Layers, Info } from 'lucide-react';
 
 interface Session {
   id: string;
@@ -86,45 +87,63 @@ export function MyActivityPage() {
   };
 
   return (
-    <section>
-      <h1>My activity</h1>
-      <p style={{ color: '#888', fontSize: 13 }}>
-        Auto-tracked when you're logged in as an accountant. Digest emails go to your address on session close (idle 30+ min). Use the buttons below to send a digest on demand.
+    <section className="animated-fade-in" style={{ maxWidth: '950px' }}>
+      <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <ActivityIcon size={24} style={{ color: 'var(--accent-primary)' }} />
+        My Activity
+      </h1>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+        Auto-tracked accountant activity. Digest emails are sent to your registered address on session closure (after 30 minutes of idle time). You can also send a digest email on demand below.
       </p>
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-        <button onClick={() => void sendMyLog(1)} disabled={sending} style={btnPrimary}>
-          {sending ? 'Sending…' : '✉ Email me last 24h'}
+      {/* Button panel */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          gap: '0.5rem', 
+          marginBottom: '1.5rem', 
+          flexWrap: 'wrap'
+        }}
+      >
+        <button onClick={() => void sendMyLog(1)} disabled={sending} className="btn btn-primary">
+          <Mail size={14} />
+          <span>Email last 24h</span>
         </button>
-        <button onClick={() => void sendMyLog(7)} disabled={sending} style={btnSecondary}>
-          ✉ Last 7 days
+        <button onClick={() => void sendMyLog(7)} disabled={sending} className="btn btn-secondary">
+          <span>Last 7 days</span>
         </button>
-        <button onClick={() => void sendMyLog(30)} disabled={sending} style={btnSecondary}>
-          ✉ Last 30 days
+        <button onClick={() => void sendMyLog(30)} disabled={sending} className="btn btn-secondary">
+          <span>Last 30 days</span>
         </button>
       </div>
-      {msg && <p style={{ color: '#86c7a3', fontSize: 12, marginTop: 8 }}>{msg}</p>}
-      {err && <p style={{ color: 'salmon', fontSize: 12, marginTop: 8 }}>{err}</p>}
 
-      <h2 style={{ fontSize: 14, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 32 }}>
-        Recent sessions
+      {msg && <div className="badge badge-success" style={{ display: 'block', padding: '0.75rem', marginBottom: '1.5rem', textTransform: 'none' }}>{msg}</div>}
+      {err && <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', marginBottom: '1.5rem', textTransform: 'none' }}>{err}</div>}
+
+      {/* Recent Sessions */}
+      <h2 style={{ fontSize: '1.25rem', marginTop: '2rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+        <Clock size={16} style={{ color: 'var(--text-muted)' }} />
+        Recent Sessions
       </h2>
-      {loading ? <p style={{ color: '#888' }}>Loading…</p> :
-        sessions.length === 0 ? (
-          <p style={{ color: '#888', fontSize: 13 }}>
-            No sessions yet. Sessions auto-create on your first pageview while logged in as an accountant.
-          </p>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 8 }}>
+      
+      {loading ? (
+        <p style={{ color: 'var(--text-muted)' }}>Loading sessions…</p>
+      ) : sessions.length === 0 ? (
+        <div style={{ padding: '2rem 1.5rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+          No sessions yet. Sessions auto-create on your first pageview while logged in as an accountant.
+        </div>
+      ) : (
+        <div className="table-premium-container" style={{ marginBottom: '2rem' }}>
+          <table className="table-premium">
             <thead>
-              <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-                <th style={th}>Started</th>
-                <th style={th}>Ended</th>
-                <th style={thRight}>Duration</th>
-                <th style={thRight}>Pages</th>
-                <th style={thRight}>Actions</th>
-                <th style={th}>Reason</th>
-                <th style={th}>Digest</th>
+              <tr>
+                <th>Started</th>
+                <th>Ended</th>
+                <th style={{ textAlign: 'right' }}>Duration</th>
+                <th style={{ textAlign: 'right' }}>Pages</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+                <th>Reason</th>
+                <th>Digest Status</th>
               </tr>
             </thead>
             <tbody>
@@ -133,62 +152,86 @@ export function MyActivityPage() {
                   ? `${Math.floor(s.total_seconds / 3600)}h ${Math.floor((s.total_seconds % 3600) / 60)}m`
                   : s.ended_at ? '—' : 'open';
                 return (
-                  <tr key={s.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                    <td style={td}>{new Date(s.started_at).toLocaleString('en-AU')}</td>
-                    <td style={td}>{s.ended_at ? new Date(s.ended_at).toLocaleString('en-AU') : <span style={{ color: '#86c7a3' }}>open</span>}</td>
-                    <td style={tdRight}>{dur}</td>
-                    <td style={tdRight}>{s.pageview_count}</td>
-                    <td style={tdRight}>{s.action_count}</td>
-                    <td style={td}>{s.end_reason ?? '—'}</td>
-                    <td style={td}>{s.digest_sent_at ? '✓ sent' : (s.ended_at ? 'pending' : '—')}</td>
+                  <tr key={s.id}>
+                    <td style={{ fontWeight: 600 }}>{new Date(s.started_at).toLocaleString('en-AU')}</td>
+                    <td>
+                      {s.ended_at ? (
+                        new Date(s.ended_at).toLocaleString('en-AU')
+                      ) : (
+                        <span className="badge badge-success">open</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>{dur}</td>
+                    <td style={{ textAlign: 'right' }}>{s.pageview_count}</td>
+                    <td style={{ textAlign: 'right' }}>{s.action_count}</td>
+                    <td>{s.end_reason ?? '—'}</td>
+                    <td>
+                      <span className={`badge ${s.digest_sent_at ? 'badge-success' : (s.ended_at ? 'badge-warning' : 'badge-neutral')}`}>
+                        {s.digest_sent_at ? 'sent' : (s.ended_at ? 'pending' : '—')}
+                      </span>
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-        )
-      }
-
-      <h2 style={{ fontSize: 14, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 32 }}>
-        Recent activity (last 50)
-      </h2>
-      {recent.length === 0 ? (
-        <p style={{ color: '#888', fontSize: 13 }}>None yet.</p>
-      ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, marginTop: 8 }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-              <th style={th}>When</th>
-              <th style={th}>Type</th>
-              <th style={th}>Path / Description</th>
-              <th style={thRight}>Duration</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recent.map((a) => (
-              <tr key={a.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                <td style={td}>{new Date(a.occurred_at).toLocaleTimeString('en-AU')}</td>
-                <td style={td}>{a.event_type}</td>
-                <td style={td}>{a.description ?? a.path ?? '—'}</td>
-                <td style={tdRight}>{a.duration_ms ? `${(a.duration_ms / 1000).toFixed(1)}s` : '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        </div>
       )}
+
+      {/* Recent Activity Log */}
+      <h2 style={{ fontSize: '1.25rem', marginTop: '2rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+        <Layers size={16} style={{ color: 'var(--text-muted)' }} />
+        Recent Activity (last 50)
+      </h2>
+      
+      {recent.length === 0 ? (
+        <div style={{ padding: '2rem 1.5rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+          None yet.
+        </div>
+      ) : (
+        <div className="table-premium-container">
+          <table className="table-premium">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Type</th>
+                <th>Path / Description</th>
+                <th style={{ textAlign: 'right' }}>Duration</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recent.map((a) => (
+                <tr key={a.id}>
+                  <td>{new Date(a.occurred_at).toLocaleTimeString('en-AU')}</td>
+                  <td><code style={{ fontSize: '0.75rem' }}>{a.event_type}</code></td>
+                  <td>{a.description ?? a.path ?? '—'}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{a.duration_ms ? `${(a.duration_ms / 1000).toFixed(1)}s` : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Info callout */}
+      <div 
+        className="card" 
+        style={{ 
+          marginTop: '2.5rem', 
+          background: 'var(--bg-hover)', 
+          border: '1px dashed var(--border-subtle)',
+          padding: '1.25rem',
+          display: 'flex',
+          gap: '0.75rem',
+          alignItems: 'flex-start'
+        }}
+      >
+        <Info size={16} style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }} />
+        <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+          <span style={{ fontWeight: 600, color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>Activity Logging</span>
+          Activity is tracked locally to enable audits and reviews of actions performed by external advisors. Logs are encrypted and accessible only by org administrators.
+        </div>
+      </div>
     </section>
   );
 }
-
-const btnPrimary: React.CSSProperties = {
-  padding: '0.5rem 1rem', background: '#1c4868', color: '#fff',
-  border: '1px solid #5096d8', borderRadius: 4, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-};
-const btnSecondary: React.CSSProperties = {
-  padding: '0.5rem 1rem', background: 'transparent', color: '#9ab0c0',
-  border: '1px solid #1f3a52', borderRadius: 4, fontSize: 13, cursor: 'pointer',
-};
-const th: React.CSSProperties = { padding: '0.4rem 0.5rem', textAlign: 'left', fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 };
-const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
-const td: React.CSSProperties = { padding: '0.5rem' };
-const tdRight: React.CSSProperties = { ...td, textAlign: 'right' };

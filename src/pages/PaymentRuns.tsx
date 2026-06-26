@@ -3,14 +3,7 @@ import { useOrg } from '@/hooks/useOrg';
 import { usePaymentRuns, type PaymentRunRow } from '@/hooks/usePaymentRuns';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
-
-const STATUS_COLORS: Record<PaymentRunRow['status'], string> = {
-  draft:     '#888',
-  approved:  '#d2c886',
-  exported:  '#86c7a3',
-  paid:      '#7799d6',
-  cancelled: '#555',
-};
+import { Layers, Plus } from 'lucide-react';
 
 export function PaymentRunsPage() {
   const { currentOrg } = useOrg();
@@ -18,101 +11,92 @@ export function PaymentRunsPage() {
 
   if (!currentOrg) {
     return (
-      <section>
+      <section className="animated-fade-in">
         <h1>Payment Runs</h1>
-        <p style={{ color: '#888' }}>Pick an organisation to see payment runs.</p>
+        <p style={{ color: 'var(--text-muted)' }}>Pick an organisation to see payment runs.</p>
       </section>
     );
   }
 
   return (
-    <section>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Payment Runs</h1>
-        <Link
-          to="/payment-runs/new"
-          style={{
-            padding: '0.5rem 1rem',
-            background: '#1c5135',
-            color: '#fff',
-            border: '1px solid #2da565',
-            borderRadius: 4,
-            textDecoration: 'none',
-            fontSize: 13,
-            fontWeight: 600,
-          }}
-        >
-          + New payment run
-        </Link>
+    <section className="animated-fade-in">
+      {/* Header section */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
+        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Layers size={24} style={{ color: 'var(--accent-primary)' }} />
+          Payment Runs
+        </h1>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <Link to="/payment-runs/new" className="btn btn-primary">
+            <Plus size={16} />
+            <span>New payment run</span>
+          </Link>
+        </div>
       </div>
-      <p style={{ color: '#888', fontSize: 13, marginTop: 4 }}>
+
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '-0.5rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
         Batch-pay multiple bills via a single ABA (Cemtex) bank file upload.
       </p>
 
       {loading ? (
         <SkeletonTable rows={5} cols={6} />
       ) : error ? (
-        <p style={{ color: 'salmon' }}>Failed: {error}</p>
+        <div className="badge badge-danger" style={{ display: 'block', padding: '1rem', textTransform: 'none' }}>
+          Failed to load payment runs: {error}
+        </div>
       ) : runs.length === 0 ? (
-        <p style={{ color: '#888', marginTop: '2rem' }}>
+        <div style={{ padding: '3rem 1.5rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
           No payment runs yet.{' '}
-          <Link to="/payment-runs/new" style={{ color: '#86c7a3' }}>
+          <Link to="/payment-runs/new" style={{ fontWeight: 600 }}>
             Create your first one
           </Link>
           .
-        </p>
+        </div>
       ) : (
-        <div style={{ overflowX: 'auto', marginTop: '1.5rem' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="table-premium-container">
+          <table className="table-premium">
             <thead>
-              <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-                <th style={th}>Pay date</th>
-                <th style={th}>Bills</th>
-                <th style={thRight}>Total</th>
-                <th style={th}>Status</th>
-                <th style={th}>ABA exported</th>
-                <th style={th}>Created</th>
+              <tr>
+                <th>Pay date</th>
+                <th>Bills</th>
+                <th style={{ textAlign: 'right' }}>Total</th>
+                <th>Status</th>
+                <th>ABA exported</th>
+                <th>Created</th>
               </tr>
             </thead>
             <tbody>
               {runs.map((run) => (
-                <tr
-                  key={run.id}
-                  style={{ borderBottom: '1px solid #1a1a1a' }}
-                >
-                  <td style={td}>
-                    <Link
-                      to={`/payment-runs/${run.id}`}
-                      style={{ color: '#86c7a3', textDecoration: 'none' }}
-                    >
+                <tr key={run.id}>
+                  <td>
+                    <Link to={`/payment-runs/${run.id}`} style={{ fontWeight: 600 }}>
                       {run.pay_date}
                     </Link>
                   </td>
-                  <td style={td}>{run.bill_count}</td>
-                  <td style={{ ...td, textAlign: 'right' }}>
+                  <td>{run.bill_count}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>
                     {formatMoney(run.total_cents)}
                   </td>
-                  <td style={td}>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        padding: '2px 6px',
-                        borderRadius: 3,
-                        background: STATUS_COLORS[run.status] + '33',
-                        color: STATUS_COLORS[run.status],
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                      }}
-                    >
-                      {run.status}
-                    </span>
+                  <td>
+                    <Pill status={run.status} />
                   </td>
-                  <td style={td}>
-                    {run.aba_file_generated_at
-                      ? new Date(run.aba_file_generated_at).toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' })
-                      : <span style={{ color: '#555' }}>—</span>}
+                  <td style={{ fontSize: '0.825rem' }}>
+                    {run.aba_file_generated_at ? (
+                      new Date(run.aba_file_generated_at).toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' })
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)' }}>—</span>
+                    )}
                   </td>
-                  <td style={td}>
+                  <td style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
                     {new Date(run.created_at).toLocaleDateString('en-AU')}
                   </td>
                 </tr>
@@ -125,18 +109,12 @@ export function PaymentRunsPage() {
   );
 }
 
-const th: React.CSSProperties = {
-  textAlign: 'left',
-  padding: '0.5rem 0.75rem',
-  fontSize: 11,
-  color: '#666',
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-};
-const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
-const td: React.CSSProperties = {
-  padding: '0.6rem 0.75rem',
-  fontSize: 13,
-  color: '#ccc',
-};
+function Pill({ status }: { status: PaymentRunRow['status'] }) {
+  let badgeClass = 'badge-neutral';
+  if (status === 'paid' || status === 'exported') badgeClass = 'badge-success';
+  else if (status === 'approved') badgeClass = 'badge-info';
+  else if (status === 'draft') badgeClass = 'badge-warning';
+  else if (status === 'cancelled') badgeClass = 'badge-danger';
+  
+  return <span className={`badge ${badgeClass}`}>{status}</span>;
+}

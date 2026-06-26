@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
+import { Contact, Plus, Wallet, Clock, X, Users, Calculator, type LucideIcon } from 'lucide-react';
 
 interface Employee {
   id: string;
@@ -86,19 +87,53 @@ export function EmployeesPage() {
   const hoursLast30 = timesheets.reduce((a, t) => a + Number(t.hours), 0);
 
   return (
-    <section>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-        <h1 style={{ margin: 0 }}>Employees</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => setShowLogTime(true)} disabled={employees.length === 0} style={btnPrim}>+ Log time</button>
-          <button onClick={() => setShowAddEmployee(true)} style={btnGhost}>+ Add employee</button>
+    <section className="animated-fade-in">
+      {/* Header section */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
+        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Contact size={24} style={{ color: 'var(--accent-primary)' }} />
+          Employees
+        </h1>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button 
+            onClick={() => setShowLogTime(true)} 
+            disabled={employees.length === 0} 
+            className="btn btn-primary"
+          >
+            <Clock size={16} />
+            <span>Log hours</span>
+          </button>
+          <button 
+            onClick={() => setShowAddEmployee(true)} 
+            className="btn btn-secondary"
+          >
+            <Plus size={16} />
+            <span>Add employee</span>
+          </button>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, maxWidth: 900 }}>
-        <Kpi label="Active employees" value={String(employees.filter((e) => e.is_active).length)} colour="#aaa" />
-        <Kpi label="Hours logged (30d)" value={hoursLast30.toFixed(1)} colour="#5096d8" />
-        <Kpi label="Wage cost (30d)" value={formatMoney(totalLast30)} colour="#e9a3a3" sub="loaded — incl super/leave/workcover" />
+      {/* Wage cost / Hours KPIs */}
+      <div 
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
+          gap: '1rem',
+          marginBottom: '2rem'
+        }}
+      >
+        <Kpi label="Active employees" value={String(employees.filter((e) => e.is_active).length)} type="info" icon={Users} />
+        <Kpi label="Hours logged (30d)" value={hoursLast30.toFixed(1)} type="neutral" icon={Clock} />
+        <Kpi label="Loaded wage cost (30d)" value={formatMoney(totalLast30)} type="danger" icon={Wallet} sub="Loaded — incl. super/leave/workcover" />
       </div>
 
       {showAddEmployee && (
@@ -108,16 +143,38 @@ export function EmployeesPage() {
         <LogTimeForm employees={employees} jobs={jobs} computeLoadedRate={computeLoadedRate} onClose={() => setShowLogTime(false)} onLogged={() => { setShowLogTime(false); void refresh(); }} />
       )}
 
-      <h2 style={h2}>Employees</h2>
-      {loading ? <SkeletonTable rows={4} cols={6} /> : employees.length === 0 ? (
-        <p style={{ color: '#888', fontSize: 13 }}>No employees yet. Add one to start logging time against jobs.</p>
+      {/* Employees Directory List */}
+      <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Staff Roster</h2>
+      {loading ? (
+        <SkeletonTable rows={4} cols={6} />
+      ) : employees.length === 0 ? (
+        <div 
+          style={{ 
+            padding: '2.5rem', 
+            background: 'var(--bg-card)', 
+            border: '1px dashed var(--border-subtle)', 
+            borderRadius: 'var(--radius-md)', 
+            color: 'var(--text-muted)', 
+            textAlign: 'center',
+            fontSize: '0.9rem',
+            marginBottom: '2rem'
+          }}
+        >
+          No employees added yet. Add staff to start tracking timesheets and job costs.
+        </div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead><tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-              <th style={th}>Name</th><th style={th}>Role</th><th style={th}>Email</th>
-              <th style={thRight}>Base $/hr</th><th style={thRight}>Loaded $/hr</th><th style={th}>Status</th>
-            </tr></thead>
+        <div className="table-premium-container" style={{ marginBottom: '2.5rem' }}>
+          <table className="table-premium">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Email</th>
+                <th style={{ textAlign: 'right' }}>Base Rate</th>
+                <th style={{ textAlign: 'right' }}>Loaded Rate</th>
+                <th>Status</th>
+              </tr>
+            </thead>
             <tbody>
               {employees.map((e) => {
                 const w = e.wage_components ?? {};
@@ -125,17 +182,23 @@ export function EmployeesPage() {
                 return (
                   <tr
                     key={e.id}
-                    style={{ borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
+                    style={{ cursor: 'pointer' }}
                     onClick={() => navigate(`/employees/${e.id}`)}
-                    onMouseEnter={(ev) => { (ev.currentTarget as HTMLTableRowElement).style.background = '#202020'; }}
-                    onMouseLeave={(ev) => { (ev.currentTarget as HTMLTableRowElement).style.background = ''; }}
                   >
-                    <td style={td}><strong>{e.full_name}</strong></td>
-                    <td style={td}>{e.role ?? '—'}</td>
-                    <td style={td}>{e.email ?? '—'}</td>
-                    <td style={tdRight}>{w.base_hourly_rate != null ? `$${w.base_hourly_rate.toFixed(2)}` : '—'}</td>
-                    <td style={tdRight}>{loaded > 0 ? formatMoney(loaded) : '—'}</td>
-                    <td style={td}>{e.is_active ? <Pill on>Active</Pill> : <Pill>Inactive</Pill>}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{e.full_name}</td>
+                    <td>{e.role ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
+                    <td>{e.email ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>
+                      {w.base_hourly_rate != null ? `$${w.base_hourly_rate.toFixed(2)}/hr` : '—'}
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'ui-monospace, monospace' }}>
+                      {loaded > 0 ? `${formatMoney(loaded)}/hr` : '—'}
+                    </td>
+                    <td>
+                      <span className={`badge ${e.is_active ? 'badge-success' : 'badge-neutral'}`}>
+                        {e.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
                   </tr>
                 );
               })}
@@ -144,25 +207,55 @@ export function EmployeesPage() {
         </div>
       )}
 
-      <h2 style={h2}>Recent timesheets (last 30 days)</h2>
+      {/* Recent Timesheets List */}
+      <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Recent timesheets (last 30 days)</h2>
       {timesheets.length === 0 ? (
-        <p style={{ color: '#888', fontSize: 13 }}>No timesheet entries yet. Log time against a job to start cost-tracking.</p>
+        <div 
+          style={{ 
+            padding: '2.5rem', 
+            background: 'var(--bg-card)', 
+            border: '1px dashed var(--border-subtle)', 
+            borderRadius: 'var(--radius-md)', 
+            color: 'var(--text-muted)', 
+            textAlign: 'center',
+            fontSize: '0.9rem',
+            marginBottom: '2rem'
+          }}
+        >
+          No timesheet entries recorded in the last 30 days.
+        </div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead><tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-              <th style={th}>Date</th><th style={th}>Employee</th><th style={th}>Job</th>
-              <th style={thRight}>Hours</th><th style={thRight}>Rate</th><th style={thRight}>Cost</th>
-            </tr></thead>
+        <div className="table-premium-container" style={{ marginBottom: '2.5rem' }}>
+          <table className="table-premium">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Employee</th>
+                <th>Job Assignment</th>
+                <th style={{ textAlign: 'right' }}>Hours</th>
+                <th style={{ textAlign: 'right' }}>Loaded Rate</th>
+                <th style={{ textAlign: 'right' }}>Loaded Cost</th>
+              </tr>
+            </thead>
             <tbody>
               {timesheets.map((t) => (
-                <tr key={t.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                  <td style={td}>{t.work_date}</td>
-                  <td style={td}>{t.employee?.full_name ?? '—'}</td>
-                  <td style={td}>{t.job ? `${t.job.job_number} · ${t.job.name}` : <span style={{ color: '#666' }}>(unassigned)</span>}</td>
-                  <td style={tdRight}>{Number(t.hours).toFixed(2)}</td>
-                  <td style={tdRight}>{formatMoney(t.loaded_hourly_rate_cents)}</td>
-                  <td style={tdRight}>{formatMoney(t.total_cost_cents)}</td>
+                <tr key={t.id}>
+                  <td style={{ whiteSpace: 'nowrap' }}>{t.work_date}</td>
+                  <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{t.employee?.full_name ?? '—'}</td>
+                  <td>
+                    {t.job ? (
+                      <Link to={`/jobs/${t.job_id}`} style={{ fontWeight: 600 }}>
+                        <code>{t.job.job_number}</code> · <span style={{ color: 'var(--text-muted)' }}>{t.job.name}</span>
+                      </Link>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>(unassigned)</span>
+                    )}
+                  </td>
+                  <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>{Number(t.hours).toFixed(2)}</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>{formatMoney(t.loaded_hourly_rate_cents)}/hr</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--accent-primary)', fontFamily: 'ui-monospace, monospace' }}>
+                    {formatMoney(t.total_cost_cents)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -170,14 +263,32 @@ export function EmployeesPage() {
         </div>
       )}
 
-      <p style={{ marginTop: 32, padding: 10, background: '#0e0e0e', border: '1px dashed #2a2a2a', borderRadius: 4, fontSize: 12, color: '#666' }}>
-        Future: full payroll run (gross → tax → super → net), STP file export, geofenced timesheet starts (per ADR 0001), leave balances, employee self-service portal.
-      </p>
+      {/* Info Footnote block */}
+      <div 
+        style={{ 
+          padding: '1rem 1.25rem', 
+          background: 'var(--bg-card)', 
+          border: '1px dashed var(--border-subtle)', 
+          borderRadius: 'var(--radius-md)', 
+          fontSize: '0.75rem', 
+          color: 'var(--text-muted)' 
+        }}
+      >
+        💡 <strong>Future payroll roadmap:</strong> Gross to net superannuation calculations, Single Touch Payroll (STP) export options, leaves records, and staff self-service timesheet logging.
+      </div>
     </section>
   );
 }
 
-function AddEmployeeForm({ onClose, onAdded, computeLoadedRate }: { onClose: () => void; onAdded: () => void; computeLoadedRate: (w: WageComponents) => number }) {
+function AddEmployeeForm({ 
+  onClose, 
+  onAdded, 
+  computeLoadedRate 
+}: { 
+  onClose: () => void; 
+  onAdded: () => void; 
+  computeLoadedRate: (w: WageComponents) => number 
+}) {
   const { currentOrg } = useOrg();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -214,36 +325,108 @@ function AddEmployeeForm({ onClose, onAdded, computeLoadedRate }: { onClose: () 
   };
 
   return (
-    <div style={card}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <h3 style={{ fontSize: 14, margin: 0 }}>Add employee</h3>
-        <button onClick={onClose} style={closeBtn}>×</button>
+    <div className="card" style={{ marginBottom: '1.5rem', maxWidth: '720px', animation: 'fadeIn 0.25s ease' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+        <h3 style={{ margin: 0, fontSize: '1.15rem' }}>Add Employee</h3>
+        <button onClick={onClose} className="btn btn-ghost" style={{ padding: '0.2rem 0.4rem' }}>
+          <X size={16} />
+        </button>
       </div>
-      <div style={grid2}>
-        <Field label="Full name"><input value={fullName} onChange={(e) => setFullName(e.target.value)} style={inp} /></Field>
-        <Field label="Role"><input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Tradie / Apprentice / Foreman" style={inp} /></Field>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+          <Field label="Full name *">
+            <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="John Doe" className="form-input" />
+          </Field>
+          <Field label="Role">
+            <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Tradie / Apprentice / Foreman" className="form-input" />
+          </Field>
+        </div>
+        
+        <Field label="Email address">
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="john@company.com" className="form-input" />
+        </Field>
+
+        <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem', marginTop: '0.5rem' }}>
+          <span 
+            style={{ 
+              fontSize: '0.725rem', 
+              color: 'var(--text-muted)', 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.05em', 
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem'
+            }}
+          >
+            <Calculator size={12} />
+            Wage settings & loaded multipliers
+          </span>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.75rem', marginTop: '0.75rem' }}>
+            <Field label="Base Rate ($/hr)">
+              <input type="number" step="0.01" value={baseRate} onChange={(e) => setBaseRate(parseFloat(e.target.value) || 0)} className="form-input" style={{ textAlign: 'right' }} />
+            </Field>
+            <Field label="Super (%)">
+              <input type="number" step="0.1" value={superPct} onChange={(e) => setSuperPct(parseFloat(e.target.value) || 0)} className="form-input" style={{ textAlign: 'right' }} />
+            </Field>
+            <Field label="Workcover (%)">
+              <input type="number" step="0.1" value={workcoverPct} onChange={(e) => setWorkcoverPct(parseFloat(e.target.value) || 0)} className="form-input" style={{ textAlign: 'right' }} />
+            </Field>
+            <Field label="Leave Loading (%)">
+              <input type="number" step="0.1" value={leavePct} onChange={(e) => setLeavePct(parseFloat(e.target.value) || 0)} className="form-input" style={{ textAlign: 'right' }} />
+            </Field>
+          </div>
+        </div>
+
+        <div 
+          style={{ 
+            background: 'var(--bg-success-subtle)', 
+            padding: '0.75rem 1rem', 
+            borderRadius: 'var(--radius-sm)', 
+            border: '1px solid rgba(16, 185, 129, 0.2)',
+            fontSize: '0.85rem',
+            color: 'var(--text-success)',
+            marginTop: '0.5rem',
+            fontWeight: 500
+          }}
+        >
+          Loaded rate estimate: <strong>{formatMoney(loadedRate)}/hr</strong> (calculated loaded labor cost).
+        </div>
+
+        {err && (
+          <div className="badge badge-danger" style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}>
+            {err}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+          <button onClick={submit} disabled={busy || !fullName.trim()} className="btn btn-primary" style={{ padding: '0.625rem 1.25rem' }}>
+            {busy ? 'Saving employee…' : 'Add employee'}
+          </button>
+          <button onClick={onClose} disabled={busy} className="btn btn-secondary" style={{ padding: '0.625rem 1.25rem' }}>
+            Cancel
+          </button>
+        </div>
       </div>
-      <Field label="Email"><input value={email} onChange={(e) => setEmail(e.target.value)} style={inp} /></Field>
-      <h4 style={{ fontSize: 12, color: '#888', marginTop: 12 }}>Wage components — loaded hourly rate</h4>
-      <div style={grid4}>
-        <Field label="Base $/hr"><input type="number" step="0.01" value={baseRate} onChange={(e) => setBaseRate(parseFloat(e.target.value) || 0)} style={inp} /></Field>
-        <Field label="Super %"><input type="number" step="0.1" value={superPct} onChange={(e) => setSuperPct(parseFloat(e.target.value) || 0)} style={inp} /></Field>
-        <Field label="Workcover %"><input type="number" step="0.1" value={workcoverPct} onChange={(e) => setWorkcoverPct(parseFloat(e.target.value) || 0)} style={inp} /></Field>
-        <Field label="Leave loading %"><input type="number" step="0.1" value={leavePct} onChange={(e) => setLeavePct(parseFloat(e.target.value) || 0)} style={inp} /></Field>
-      </div>
-      <p style={{ marginTop: 8, fontSize: 12, color: '#86c7a3' }}>
-        Loaded rate: <strong>{formatMoney(loadedRate)}</strong> per hour (per ADR 0001).
-      </p>
-      <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-        <button onClick={submit} disabled={busy || !fullName.trim()} style={btnPrim}>{busy ? 'Adding…' : 'Add employee'}</button>
-        <button onClick={onClose} disabled={busy} style={btnGhost}>Cancel</button>
-      </div>
-      {err && <p style={{ color: 'salmon', fontSize: 12, marginTop: 8 }}>{err}</p>}
     </div>
   );
 }
 
-function LogTimeForm({ employees, jobs, computeLoadedRate, onClose, onLogged }: { employees: Employee[]; jobs: Job[]; computeLoadedRate: (w: WageComponents) => number; onClose: () => void; onLogged: () => void }) {
+function LogTimeForm({ 
+  employees, 
+  jobs, 
+  computeLoadedRate, 
+  onClose, 
+  onLogged 
+}: { 
+  employees: Employee[]; 
+  jobs: Job[]; 
+  computeLoadedRate: (w: WageComponents) => number; 
+  onClose: () => void; 
+  onLogged: () => void 
+}) {
   const { currentOrg } = useOrg();
   const [employeeId, setEmployeeId] = useState(employees[0]?.id ?? '');
   const [jobId, setJobId] = useState('');
@@ -278,75 +461,131 @@ function LogTimeForm({ employees, jobs, computeLoadedRate, onClose, onLogged }: 
   };
 
   return (
-    <div style={card}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <h3 style={{ fontSize: 14, margin: 0 }}>Log time</h3>
-        <button onClick={onClose} style={closeBtn}>×</button>
+    <div className="card" style={{ marginBottom: '1.5rem', maxWidth: '720px', animation: 'fadeIn 0.25s ease' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+        <h3 style={{ margin: 0, fontSize: '1.15rem' }}>Log Hours Work</h3>
+        <button onClick={onClose} className="btn btn-ghost" style={{ padding: '0.2rem 0.4rem' }}>
+          <X size={16} />
+        </button>
       </div>
-      <div style={grid2}>
-        <Field label="Employee">
-          <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} style={inp}>
-            {employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+          <Field label="Employee *">
+            <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="form-select">
+              {employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+            </select>
+          </Field>
+          <Field label="Work Date">
+            <input type="date" value={workDate} onChange={(e) => setWorkDate(e.target.value)} className="form-input" />
+          </Field>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+          <Field label="Job Assignment (optional)">
+            <select value={jobId} onChange={(e) => setJobId(e.target.value)} className="form-select">
+              <option value="">— unassigned —</option>
+              {jobs.map((j) => <option key={j.id} value={j.id}>{j.job_number} · {j.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Hours Worked">
+            <input type="number" step="0.25" value={hours} onChange={(e) => setHours(parseFloat(e.target.value) || 0)} className="form-input" style={{ textAlign: 'right' }} />
+          </Field>
+        </div>
+
+        <Field label="Hourly multiplier type">
+          <select value={entryType} onChange={(e) => setEntryType(e.target.value as typeof entryType)} className="form-select">
+            <option value="ordinary">Ordinary hours</option>
+            <option value="overtime">Overtime hours</option>
+            <option value="annual_leave">Annual leave</option>
+            <option value="sick_leave">Sick leave</option>
+            <option value="public_holiday">Public holiday</option>
           </select>
         </Field>
-        <Field label="Date"><input type="date" value={workDate} onChange={(e) => setWorkDate(e.target.value)} style={inp} /></Field>
-      </div>
-      <div style={grid2}>
-        <Field label="Job (optional)">
-          <select value={jobId} onChange={(e) => setJobId(e.target.value)} style={inp}>
-            <option value="">— unassigned —</option>
-            {jobs.map((j) => <option key={j.id} value={j.id}>{j.job_number} · {j.name}</option>)}
-          </select>
+
+        <Field label="Work Description / Notes">
+          <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Description of task worked on…" className="form-input" />
         </Field>
-        <Field label="Hours"><input type="number" step="0.25" value={hours} onChange={(e) => setHours(parseFloat(e.target.value) || 0)} style={inp} /></Field>
+
+        <div 
+          style={{ 
+            background: 'var(--bg-success-subtle)', 
+            padding: '0.75rem 1rem', 
+            borderRadius: 'var(--radius-sm)', 
+            border: '1px solid rgba(16, 185, 129, 0.2)',
+            fontSize: '0.85rem',
+            color: 'var(--text-success)',
+            marginTop: '0.5rem',
+            fontWeight: 500
+          }}
+        >
+          Loaded labor cost: <strong>{formatMoney(totalCost)}</strong> ({hours}h × {formatMoney(loadedRate)}/hr loaded rate)
+        </div>
+
+        {err && (
+          <div className="badge badge-danger" style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}>
+            {err}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+          <button onClick={submit} disabled={busy || !employeeId || hours <= 0} className="btn btn-primary" style={{ padding: '0.625rem 1.25rem' }}>
+            {busy ? 'Logging entry…' : 'Log entry'}
+          </button>
+          <button onClick={onClose} disabled={busy} className="btn btn-secondary" style={{ padding: '0.625rem 1.25rem' }}>
+            Cancel
+          </button>
+        </div>
       </div>
-      <Field label="Entry type">
-        <select value={entryType} onChange={(e) => setEntryType(e.target.value as typeof entryType)} style={inp}>
-          <option value="ordinary">Ordinary</option>
-          <option value="overtime">Overtime</option>
-          <option value="annual_leave">Annual leave</option>
-          <option value="sick_leave">Sick leave</option>
-          <option value="public_holiday">Public holiday</option>
-        </select>
-      </Field>
-      <Field label="Notes"><input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What was worked on" style={inp} /></Field>
-      <p style={{ marginTop: 8, fontSize: 12, color: '#86c7a3' }}>
-        Cost: <strong>{formatMoney(totalCost)}</strong> ({hours}h × {formatMoney(loadedRate)}/hr loaded)
-      </p>
-      <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-        <button onClick={submit} disabled={busy || !employeeId || hours <= 0} style={btnPrim}>{busy ? 'Logging…' : 'Log entry'}</button>
-        <button onClick={onClose} disabled={busy} style={btnGhost}>Cancel</button>
-      </div>
-      {err && <p style={{ color: 'salmon', fontSize: 12, marginTop: 8 }}>{err}</p>}
     </div>
   );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label style={{ display: 'block', fontSize: 11, color: '#888', marginTop: 6 }}><div style={{ marginBottom: 3 }}>{label}</div>{children}</label>;
-}
-function Kpi({ label, value, colour, sub }: { label: string; value: string; colour: string; sub?: string }) {
   return (
-    <div style={{ padding: 12, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 6 }}>
-      <div style={{ fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ marginTop: 4, fontSize: 18, color: colour, fontWeight: 600 }}>{value}</div>
-      {sub && <div style={{ marginTop: 3, fontSize: 11, color: '#888' }}>{sub}</div>}
+    <div className="form-group" style={{ marginBottom: 0 }}>
+      <span className="form-label" style={{ fontSize: '0.725rem' }}>{label}</span>
+      <div style={{ marginTop: '0.25rem' }}>{children}</div>
     </div>
   );
 }
-function Pill({ children, on }: { children: React.ReactNode; on?: boolean }) {
-  return <span style={{ padding: '0.15rem 0.5rem', fontSize: 11, borderRadius: 3, background: '#222', color: on ? '#86c7a3' : '#666', textTransform: 'uppercase' }}>{children}</span>;
-}
 
-const card: React.CSSProperties = { marginTop: 16, padding: 16, background: '#0e0e0e', border: '1px solid #2a2a2a', borderRadius: 6, maxWidth: 720 };
-const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 };
-const grid4: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 };
-const inp: React.CSSProperties = { width: '100%', padding: '6px 8px', background: '#000', color: '#ddd', border: '1px solid #333', borderRadius: 3, fontSize: 12 };
-const h2: React.CSSProperties = { fontSize: 14, marginTop: 24, marginBottom: 8 };
-const th: React.CSSProperties = { padding: '0.4rem 0.5rem', textAlign: 'left', fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 };
-const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
-const td: React.CSSProperties = { padding: '0.5rem' };
-const tdRight: React.CSSProperties = { ...td, textAlign: 'right' };
-const btnPrim: React.CSSProperties = { padding: '0.4rem 1rem', background: '#1c4868', color: '#fff', border: '1px solid #5096d8', borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: 'pointer' };
-const btnGhost: React.CSSProperties = { padding: '0.4rem 1rem', background: 'transparent', color: '#aaa', border: '1px solid #333', borderRadius: 4, fontSize: 12, cursor: 'pointer' };
-const closeBtn: React.CSSProperties = { background: 'transparent', color: '#888', border: 'none', fontSize: 18, cursor: 'pointer', padding: 0 };
+function Kpi({ 
+  label, 
+  value, 
+  type,
+  icon: Icon,
+  sub 
+}: { 
+  label: string; 
+  value: string; 
+  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral'; 
+  icon: LucideIcon;
+  sub?: string;
+}) {
+  return (
+    <div 
+      className="card"
+      style={{ 
+        padding: '1.25rem',
+        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
+        position: 'relative'
+      }}
+    >
+      <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+        {label}
+      </div>
+      <div style={{ marginTop: '0.35rem', fontSize: '1.5rem', color: 'var(--text-title)', fontWeight: 800, fontFamily: 'var(--font-title)' }}>
+        {value}
+      </div>
+      {sub ? (
+        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>{sub}</div>
+      ) : (
+        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
+      )}
+      <div style={{ position: 'absolute', right: '1rem', bottom: '1rem', color: `var(--accent-${type === 'neutral' ? 'primary' : type})`, opacity: 0.7 }}>
+        <Icon size={18} />
+      </div>
+    </div>
+  );
+}

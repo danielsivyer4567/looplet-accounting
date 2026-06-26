@@ -8,17 +8,11 @@ import {
   type EntityKind,
 } from '@/hooks/onboarding/useStagedEntities';
 import { useIntakeCategories } from '@/hooks/useIntakeCategories';
+import { 
+  ChevronLeft, 
+  Globe
+} from 'lucide-react';
 
-/**
- * Auto Setup → Triage. Every staged entity must be approved or dismissed
- * before Auto Setup is considered "complete". Approval creates a row in
- * `intake_rules` so future intake auto-applies the user's classification.
- *
- * Gap-proofing:
- * - Entities default to predicted classification but every row needs a click.
- * - The "Finish onboarding" button is disabled until pending+needs_review = 0.
- * - Re-running gmail-mine never downgrades a row already approved/dismissed.
- */
 export function TriagePage() {
   const { currentOrg } = useOrg();
   const { entities, progress, refresh, loading } = useStagedEntities();
@@ -64,7 +58,6 @@ export function TriagePage() {
       e.sonar_enriched_at == null,
   ).length;
 
-  // Group by predicted_kind for easier scanning
   const groups = useMemo(() => {
     const out: Record<EntityKind, StagedEntity[]> = {
       supplier: [], contractor: [], customer: [], subscription: [],
@@ -74,8 +67,8 @@ export function TriagePage() {
     return out;
   }, [entities]);
 
-  if (!currentOrg) return <p style={{ color: '#888' }}>Pick an organisation first.</p>;
-  if (loading) return <p style={{ color: '#888' }}>Loading…</p>;
+  if (!currentOrg) return <p style={{ color: 'var(--text-muted)' }}>Pick an organisation first.</p>;
+  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading triage list…</p>;
 
   const remaining = (progress?.pending_count ?? 0) + (progress?.needs_review_count ?? 0);
 
@@ -118,7 +111,6 @@ export function TriagePage() {
       e.confidence >= 0.8,
   ).length;
 
-  // Sonar-aware bulk approve: prefer Sonar's pick when it's confident.
   const bulkApproveSonarHighConfidence = async () => {
     const candidates = entities.filter(
       (e) =>
@@ -167,7 +159,6 @@ export function TriagePage() {
       e.sonar_suggested_category != null,
   ).length;
 
-  // Bulk dismiss: low-confidence, no category, no Sonar evidence — likely junk
   const bulkDismissJunk = async () => {
     const junk = entities.filter(
       (e) =>
@@ -335,8 +326,6 @@ export function TriagePage() {
       skip_ocr: false,
       notes: `Auto Setup — predicted ${e.predicted_kind} (${e.confidence})`,
     });
-    // Duplicate rules (same matcher_value) are not an error here — re-approving
-    // a sender shouldn't fail. Only surface non-23505 errors.
     if (ruleErr && ruleErr.code !== '23505') {
       throw new Error(`intake_rules insert (${matcher_value}): ${ruleErr.message}`);
     }
@@ -378,25 +367,35 @@ export function TriagePage() {
   };
 
   return (
-    <section>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-        <h1>Triage</h1>
-        <Link to="/onboarding" style={{ color: '#888', fontSize: 13 }}>← back to Auto Setup</Link>
+    <section className="animated-fade-in">
+      {/* Header section */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={{ margin: 0 }}>Onboarding Triage</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+            Review, pre-categorise, and approve staged senders from your historical inbox messages.
+          </p>
+        </div>
+        <Link to="/onboarding" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+          <ChevronLeft size={14} />
+          <span>Back to Auto Setup</span>
+        </Link>
       </div>
+
+      {/* Progress tracking banner */}
       {progress && (
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 13, color: '#aaa', marginBottom: 6 }}>
-            {progress.approved_count + progress.dismissed_count} of {progress.total_entities} reviewed
-            · {remaining} remaining
-            {progress.is_complete && <span style={{ color: '#86c7a3', marginLeft: 8 }}>✓ complete</span>}
+        <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.825rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 600 }}>
+            <span>{progress.approved_count + progress.dismissed_count} of {progress.total_entities} Reviewed · {remaining} Remaining</span>
+            {progress.is_complete && <span style={{ color: 'var(--text-success)' }}>✓ Onboarding complete</span>}
           </div>
-          <div style={{ height: 6, background: '#0a0a0a', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ height: '8px', background: 'var(--bg-app)', borderRadius: 'var(--radius-full)', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
             <div
               style={{
                 width: `${progress.pct_complete}%`,
                 height: '100%',
-                background: progress.is_complete ? '#2da565' : '#5096d8',
-                transition: 'width 0.3s',
+                background: progress.is_complete ? 'var(--accent-success)' : 'var(--accent-primary)',
+                transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
               }}
             />
           </div>
@@ -404,224 +403,229 @@ export function TriagePage() {
       )}
 
       {error && (
-        <p style={{ color: 'salmon', fontSize: 12 }}>{error}</p>
+        <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', marginBottom: '1rem', textTransform: 'none' }}>
+          {error}
+        </div>
       )}
 
-      <div style={{
-        marginBottom: 16,
-        padding: 10,
-        background: '#0e1820',
-        border: '1px solid #1f3a52',
-        borderRadius: 6,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: 12,
-        flexWrap: 'wrap',
-      }}>
-        <div>
-          <strong style={{ color: '#7fb6e8' }}>✦ Sonar fact-check</strong>
-          <div style={{ fontSize: 11, color: '#9ab0c0', marginTop: 3 }}>
-            Use Perplexity Sonar (web-grounded) to verify what each sender actually does + suggest a category with citation.
-            {sonarPendingCount > 0 && ` ${sonarPendingCount} entit${sonarPendingCount === 1 ? 'y' : 'ies'} not yet enriched.`}
+      {/* Perplexity Sonar fact checking card */}
+      <div 
+        className="card"
+        style={{
+          borderLeft: '4px solid var(--accent-info)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          marginBottom: '1rem',
+          padding: '1.25rem'
+        }}
+      >
+        <div style={{ flex: 1, minWidth: '320px' }}>
+          <div style={{ fontWeight: 700, color: 'var(--text-title)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <Globe size={16} style={{ color: 'var(--accent-info)' }} />
+            <span>Fact-Check Senders with Perplexity AI</span>
           </div>
+          <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+            Performs real-time web searches to verify the products or business nature of unrecognized senders and suggests high-accuracy tax classification.
+            {sonarPendingCount > 0 && ` There are ${sonarPendingCount} senders remaining to be enriched.`}
+          </p>
         </div>
         <button
           onClick={() => void enrichWithSonar()}
           disabled={busy === 'sonar' || sonarPendingCount === 0}
-          style={{
-            padding: '0.5rem 1rem',
-            background: '#1c4868',
-            color: '#fff',
-            border: '1px solid #5096d8',
-            borderRadius: 4,
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: busy === 'sonar' || sonarPendingCount === 0 ? 'wait' : 'pointer',
+          className="btn btn-primary"
+          style={{ 
+            background: 'var(--accent-info)', 
+            borderColor: 'var(--accent-info)',
+            padding: '0.5rem 1rem' 
           }}
         >
-          {busy === 'sonar' ? 'Enriching…' : sonarPendingCount === 0 ? '✓ All enriched' : `✦ Enrich next ${Math.min(60, sonarPendingCount)} with Sonar`}
+          {busy === 'sonar' ? 'Enriching senders…' : sonarPendingCount === 0 ? '✓ All Enriched' : `Enrich next ${Math.min(60, sonarPendingCount)}`}
         </button>
       </div>
+
       {sonarMsg && (
-        <p style={{ marginTop: 4, marginBottom: 16, fontSize: 12, color: '#86c7a3' }}>{sonarMsg}</p>
+        <div className="badge badge-success" style={{ display: 'block', padding: '0.75rem', marginBottom: '1rem', textTransform: 'none' }}>
+          {sonarMsg}
+        </div>
       )}
 
+      {/* Sonar Bulk approval banner */}
       {sonarHighConfCount > 0 && (
-        <div style={{
-          marginBottom: 16,
-          padding: 12,
-          background: '#0e1820',
-          border: '1px solid #1f4d70',
-          borderRadius: 6,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 12,
-          flexWrap: 'wrap',
-        }}>
+        <div 
+          className="card"
+          style={{
+            borderLeft: '4px solid var(--accent-info)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+            flexWrap: 'wrap',
+            marginBottom: '1rem',
+            padding: '1.25rem'
+          }}
+        >
           <div>
-            <strong style={{ color: '#7fb6e8' }}>
-              ✦ {sonarHighConfCount} entit{sonarHighConfCount === 1 ? 'y' : 'ies'} fact-checked by Sonar with ≥85% confidence
+            <strong style={{ color: 'var(--text-title)' }}>
+              ✦ {sonarHighConfCount} Senders verified with high Sonar confidence
             </strong>
-            <div style={{ fontSize: 11, color: '#9ab0c0', marginTop: 3 }}>
-              One click approves all using Sonar's web-verified kind + category (overrides Groq's heuristic guess).
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+              Approve all these fact-checked categories in one click, overriding default AI heuristic predictions.
             </div>
           </div>
           <button
             onClick={bulkApproveSonarHighConfidence}
             disabled={busy === 'bulk:sonar-conf'}
-            style={{
-              padding: '0.5rem 1.25rem',
-              background: '#1c4868',
-              color: '#fff',
-              border: '1px solid #5096d8',
-              borderRadius: 4,
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: busy === 'bulk:sonar-conf' ? 'wait' : 'pointer',
-            }}
+            className="btn btn-primary"
           >
-            {busy === 'bulk:sonar-conf' ? 'Approving…' : `✦ Approve all ${sonarHighConfCount} Sonar picks`}
+            {busy === 'bulk:sonar-conf' ? 'Approving…' : `Approve all ${sonarHighConfCount} Sonar picks`}
           </button>
         </div>
       )}
 
+      {/* Bulk Dismiss Noise banner */}
       {junkCount > 0 && (
-        <div style={{
-          marginBottom: 16,
-          padding: 10,
-          background: '#1d1410',
-          border: '1px solid #3d2818',
-          borderRadius: 6,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 12,
-          flexWrap: 'wrap',
-        }}>
+        <div 
+          className="card"
+          style={{
+            borderLeft: '4px solid var(--accent-warning)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+            flexWrap: 'wrap',
+            marginBottom: '1rem',
+            padding: '1.25rem'
+          }}
+        >
           <div>
-            <span style={{ color: '#d2a886', fontWeight: 600 }}>
-              {junkCount} low-confidence "unknown" sender{junkCount === 1 ? '' : 's'}
-            </span>
-            <div style={{ fontSize: 11, color: '#a89380', marginTop: 3 }}>
-              Both Groq and Sonar have &lt;40% confidence — likely one-off receipts / marketing / noise.
+            <strong style={{ color: 'var(--text-title)' }}>
+              ⚠️ {junkCount} Low-confidence junk senders detected
+            </strong>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+              These have less than 40% confidence and are likely newsletter, invoice notifications, or marketing noise.
             </div>
           </div>
           <button
             onClick={bulkDismissJunk}
             disabled={busy === 'bulk:junk'}
-            style={{
-              padding: '0.4rem 1rem',
-              background: 'transparent',
-              color: '#e9a3a3',
-              border: '1px solid #5d2828',
-              borderRadius: 4,
-              fontSize: 12,
-              cursor: busy === 'bulk:junk' ? 'wait' : 'pointer',
-            }}
+            className="btn btn-secondary"
+            style={{ color: 'var(--text-danger)', borderColor: 'var(--accent-danger)' }}
           >
-            {busy === 'bulk:junk' ? 'Dismissing…' : `✕ Dismiss all ${junkCount}`}
+            {busy === 'bulk:junk' ? 'Dismissing…' : `Dismiss all ${junkCount} items`}
           </button>
         </div>
       )}
 
+      {/* AI confidence bulk approval card */}
       {highConfCount > 0 && (
-        <div style={{
-          marginBottom: 24,
-          padding: 12,
-          background: '#0d2f1f',
-          border: '1px solid #1c5135',
-          borderRadius: 6,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 12,
-          flexWrap: 'wrap',
-        }}>
+        <div 
+          className="card"
+          style={{
+            borderLeft: '4px solid var(--accent-success)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+            flexWrap: 'wrap',
+            marginBottom: '1.5rem',
+            padding: '1.25rem'
+          }}
+        >
           <div>
-            <strong style={{ color: '#86c7a3' }}>
-              {highConfCount} entit{highConfCount === 1 ? 'y has' : 'ies have'} high-confidence (≥80%) AI predictions
+            <strong style={{ color: 'var(--text-title)' }}>
+              ✓ {highConfCount} Senders with ≥80% AI confidence predictions
             </strong>
-            <div style={{ fontSize: 11, color: '#aaa', marginTop: 3 }}>
-              One click approves all of them, creates supplier/customer records, and inserts intake_rules for auto-routing.
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+              Save time by bulk-approving all highly confident AI predictions into auto-intake rules.
             </div>
           </div>
           <button
             onClick={bulkApproveAllHighConfidence}
             disabled={busy === 'bulk:high-conf'}
-            style={{
-              padding: '0.5rem 1.25rem',
-              background: '#1c5135',
-              color: '#fff',
-              border: '1px solid #2da565',
-              borderRadius: 4,
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: busy === 'bulk:high-conf' ? 'wait' : 'pointer',
-            }}
+            className="btn btn-primary"
+            style={{ background: 'var(--accent-success)', borderColor: 'var(--accent-success)' }}
           >
-            {busy === 'bulk:high-conf' ? 'Approving…' : `✓ Approve all ${highConfCount} high-confidence`}
+            {busy === 'bulk:high-conf' ? 'Approving…' : `Approve all ${highConfCount} predictions`}
           </button>
         </div>
       )}
 
+      {/* Triage Group Blocks */}
       {(['supplier', 'contractor', 'subscription', 'internal_admin', 'customer', 'personal', 'unknown'] as EntityKind[]).map((k) => {
         const rows = groups[k] ?? [];
         if (rows.length === 0) return null;
         return (
-          <div key={k} style={{ marginBottom: 32 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <h2 style={{ fontSize: 14, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, margin: 0 }}>
+          <div key={k} style={{ marginBottom: '2.5rem', animation: 'fadeIn 0.3s ease' }}>
+            <div 
+              style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                marginBottom: '0.75rem',
+                flexWrap: 'wrap',
+                gap: '0.5rem'
+              }}
+            >
+              <h2 style={{ fontSize: '1.1rem', margin: 0 }}>
                 {kindLabel(k)} ({rows.length})
               </h2>
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', gap: '0.35rem' }}>
                 <button
                   onClick={() => bulkApproveGroup(k)}
                   disabled={busy === 'bulk:' + k}
-                  style={{ ...btn, background: '#1c5135', color: '#86c7a3', borderColor: '#2da565' }}
+                  className="btn btn-secondary"
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', color: 'var(--text-success)' }}
                 >
-                  {busy === 'bulk:' + k ? '…' : '✓ Approve all predictions'}
+                  ✓ Approve all {rows.length}
                 </button>
                 <button
                   onClick={() => bulkDismissGroup(k)}
                   disabled={busy === 'bulk:' + k}
-                  style={{ ...btn, background: 'transparent', color: '#e9a3a3', borderColor: '#3d1818' }}
+                  className="btn btn-secondary"
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', color: 'var(--text-danger)' }}
                 >
                   ✕ Dismiss all
                 </button>
               </div>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-                  <th style={th}>Sender</th>
-                  <th style={th}>Sample subjects</th>
-                  <th style={thRight}>Msgs</th>
-                  <th style={thRight}>Att.</th>
-                  <th style={th}>Category (Xero account)</th>
-                  <th style={th}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((e) => (
-                  <TriageRow
-                    key={e.id}
-                    entity={e}
-                    categories={categories}
-                    busy={busy === e.id}
-                    onApprove={(kind, category) => updateOne(e, { status: 'approved', user_kind: kind, user_category: category })}
-                    onDismiss={() => updateOne(e, { status: 'dismissed' })}
-                  />
-                ))}
-              </tbody>
-            </table>
+
+            <div className="table-premium-container">
+              <table className="table-premium">
+                <thead>
+                  <tr>
+                    <th>Sender details</th>
+                    <th>Sample subjects</th>
+                    <th style={{ textAlign: 'right', width: '70px' }}>Emails</th>
+                    <th style={{ textAlign: 'right', width: '70px' }}>Files</th>
+                    <th>Category (Xero Account Code)</th>
+                    <th style={{ width: '220px' }}>Review Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((e) => (
+                    <TriageRow
+                      key={e.id}
+                      entity={e}
+                      categories={categories}
+                      busy={busy === e.id}
+                      onApprove={(kind, category) => updateOne(e, { status: 'approved', user_kind: kind, user_category: category })}
+                      onDismiss={() => updateOne(e, { status: 'dismissed' })}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         );
       })}
 
       {entities.length === 0 && (
-        <p style={{ color: '#888' }}>No staged entities yet. Run Auto Setup mining first.</p>
+        <div style={{ padding: '3rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+          No staged senders found yet. Run mailbox mining first.
+        </div>
       )}
     </section>
   );
@@ -640,110 +644,129 @@ function TriageRow({
   const [category, setCategory] = useState<string | null>(entity.predicted_category);
 
   const isReviewed = entity.status === 'approved' || entity.status === 'dismissed';
-
-  // Derive the kind from the chosen category. User only picks ONE thing.
   const derivedKind = kindFromCategory(category) ?? kind;
 
   const sonarDiffers =
     (entity.sonar_suggested_category && entity.sonar_suggested_category !== category) ||
     (entity.sonar_suggested_kind && entity.sonar_suggested_kind !== derivedKind);
+
   const applySonar = () => {
     if (entity.sonar_suggested_category) setCategory(entity.sonar_suggested_category);
     if (entity.sonar_suggested_kind) setKind(entity.sonar_suggested_kind);
   };
 
   return (
-    <tr style={{ borderBottom: '1px solid #1a1a1a', opacity: isReviewed ? 0.5 : 1 }}>
-      <td style={td}>
-        <div style={{ fontWeight: 600 }}>{entity.display_name}</div>
-        <div style={{ color: '#888', fontSize: 11 }}>{entity.primary_email}</div>
-        {entity.abn && <div style={{ color: '#86c7a3', fontSize: 10 }}>ABN {entity.abn}</div>}
+    <tr style={{ opacity: isReviewed ? 0.65 : 1, transition: 'var(--transition-smooth)' }}>
+      <td>
+        <div style={{ fontWeight: 700, color: 'var(--text-title)' }}>{entity.display_name}</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.15rem' }}>{entity.primary_email}</div>
+        {entity.abn && <div style={{ color: 'var(--text-success)', fontSize: '0.7rem', fontWeight: 600, marginTop: '0.15rem' }}>ABN: {entity.abn}</div>}
+        
         {entity.sonar_summary && (
-          <div style={{
-            marginTop: 6,
-            padding: '4px 6px',
-            background: '#0e1820',
-            border: '1px solid #1f3a52',
-            borderRadius: 3,
-            fontSize: 11,
-            color: '#9ab0c0',
-            maxWidth: 340,
-            lineHeight: 1.35,
-          }}>
-            <span style={{ color: '#7fb6e8', fontWeight: 600 }}>✦ Sonar:</span> {entity.sonar_summary}
+          <div 
+            style={{
+              marginTop: '0.5rem',
+              padding: '0.5rem',
+              background: 'var(--bg-hover)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '0.775rem',
+              color: 'var(--text-body)',
+              maxWidth: '320px',
+              lineHeight: '1.4',
+            }}
+          >
+            <span style={{ color: 'var(--accent-info)', fontWeight: 700 }}>✦ Sonar Search:</span> {entity.sonar_summary}
             {entity.sonar_evidence_url && (
               <a
                 href={entity.sonar_evidence_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ marginLeft: 6, color: '#5096d8', fontSize: 10, textDecoration: 'none' }}
-              >source ↗</a>
+                style={{ marginLeft: 6, color: 'var(--accent-primary)', fontSize: '0.7rem', fontWeight: 600 }}
+              >
+                Source ↗
+              </a>
             )}
           </div>
         )}
       </td>
-      <td style={td}>
+      <td>
         {entity.sample_subjects.slice(0, 2).map((s, i) => (
-          <div key={i} style={{ color: '#aaa', fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 280 }}>
+          <div key={i} style={{ color: 'var(--text-muted)', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '240px', marginBottom: '0.15rem' }}>
             {s}
           </div>
         ))}
       </td>
-      <td style={tdRight}>{entity.message_count}</td>
-      <td style={tdRight}>{entity.attachment_count}</td>
-      <td style={td}>
-        <select
-          value={category ?? ''}
-          onChange={(e) => setCategory(e.target.value || null)}
-          disabled={busy || isReviewed}
-          style={{ ...selectStyle, minWidth: 220 }}
-        >
-          <option value="">— pick a category —</option>
-          {categories.map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.label}{c.xero_account_code ? ` (${c.xero_account_code})` : ''}
-            </option>
-          ))}
-        </select>
-        <div style={{ color: '#666', fontSize: 10, marginTop: 3 }}>
-          → creates {kindActionLabel(derivedKind)}
-          {' · '}
-          {Math.round(entity.confidence * 100)}% conf
-          {entity.prediction_reason ? ` · ${entity.prediction_reason}` : ''}
+      <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>{entity.message_count}</td>
+      <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>{entity.attachment_count}</td>
+      <td>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <select
+            value={category ?? ''}
+            onChange={(e) => setCategory(e.target.value || null)}
+            disabled={busy || isReviewed}
+            className="form-select"
+            style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem' }}
+          >
+            <option value="">— select category —</option>
+            {categories.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.label}{c.xero_account_code ? ` (${c.xero_account_code})` : ''}
+              </option>
+            ))}
+          </select>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', paddingLeft: '0.25rem' }}>
+            Creates {kindActionLabel(derivedKind)} · {Math.round(entity.confidence * 100)}% confidence
+          </div>
+          
+          {sonarDiffers && !isReviewed && (
+            <button
+              onClick={applySonar}
+              disabled={busy}
+              className="btn btn-secondary"
+              style={{
+                marginTop: '0.25rem',
+                padding: '0.2rem 0.4rem',
+                fontSize: '0.7rem',
+                color: 'var(--text-info)',
+                borderColor: 'var(--accent-info)',
+                alignSelf: 'flex-start'
+              }}
+              title={`Sonar suggests: ${entity.sonar_suggested_category ?? '?'} (${entity.sonar_confidence != null ? Math.round(entity.sonar_confidence * 100) : '?'}%)`}
+            >
+              ✦ Use Sonar's pick
+            </button>
+          )}
         </div>
-        {sonarDiffers && !isReviewed && (
-          <button
-            onClick={applySonar}
-            disabled={busy}
-            style={{
-              marginTop: 4, padding: '0.15rem 0.5rem',
-              background: '#1c4868', color: '#9bcaf3',
-              border: '1px solid #5096d8', borderRadius: 3,
-              fontSize: 10, cursor: 'pointer',
-            }}
-            title={`Sonar suggests: ${entity.sonar_suggested_category ?? '?'} (${entity.sonar_confidence != null ? Math.round(entity.sonar_confidence * 100) : '?'}%)`}
-          >✦ Use Sonar's pick: {entity.sonar_suggested_category ?? entity.sonar_suggested_kind}</button>
-        )}
       </td>
-      <td style={td}>
+      <td>
         {isReviewed ? (
-          <span style={{ color: entity.status === 'approved' ? '#86c7a3' : '#888', fontSize: 11 }}>
+          <span className={`badge ${entity.status === 'approved' ? 'badge-success' : 'badge-neutral'}`} style={{ padding: '0.35rem 0.75rem', display: 'inline-flex' }}>
             {entity.status}
           </span>
         ) : (
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div style={{ display: 'flex', gap: '0.25rem' }}>
             <button
               onClick={() => onApprove(derivedKind, category)}
               disabled={busy || !category}
-              style={{ ...btn, background: '#1c5135', color: '#86c7a3', borderColor: '#2da565', opacity: !category ? 0.5 : 1 }}
+              className="btn btn-primary"
+              style={{ 
+                padding: '0.35rem 0.75rem', 
+                fontSize: '0.75rem', 
+                flex: 1, 
+                opacity: !category ? 0.5 : 1,
+                background: 'var(--accent-success)',
+                borderColor: 'var(--accent-success)'
+              }}
               title={!category ? 'Pick a category first' : `Approve as ${kindActionLabel(derivedKind)}`}
             >
-              {busy ? '…' : '✓ Approve'}
+              {busy ? '…' : 'Approve'}
             </button>
             <button
               onClick={onDismiss}
               disabled={busy}
-              style={{ ...btn, background: 'transparent', color: '#e9a3a3', borderColor: '#3d1818' }}
+              className="btn btn-secondary"
+              style={{ padding: '0.35rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-danger)', borderColor: 'var(--accent-danger)' }}
             >
               ✕ Dismiss
             </button>
@@ -760,26 +783,24 @@ function kindLabel(k: EntityKind): string {
     case 'contractor': return 'Contractors';
     case 'customer': return 'Customers';
     case 'subscription': return 'Subscriptions';
-    case 'internal_admin': return 'Government / admin';
-    case 'personal': return 'Personal';
-    case 'unknown': return 'Needs review';
+    case 'internal_admin': return 'Government & Admin';
+    case 'personal': return 'Personal Expenses';
+    case 'unknown': return 'Needs Review';
   }
 }
 
-// What action does approving this row trigger? Used to clarify what happens.
 function kindActionLabel(k: EntityKind): string {
   switch (k) {
-    case 'supplier': return 'a Supplier record';
-    case 'contractor': return 'a Subcontractor record';
-    case 'customer': return 'a Customer record';
-    case 'subscription': return 'a Subscription record';
-    case 'internal_admin': return 'a Government supplier (gov/admin)';
-    case 'personal': return 'a personal-expense rule (no business record)';
-    case 'unknown': return 'a rule only (no record)';
+    case 'supplier': return 'Supplier';
+    case 'contractor': return 'Subcontractor';
+    case 'customer': return 'Customer';
+    case 'subscription': return 'Subscription';
+    case 'internal_admin': return 'Gov/Admin supplier';
+    case 'personal': return 'Personal rule';
+    case 'unknown': return 'Intake rule';
   }
 }
 
-// Map a category code to the kind that should be created. Drives the Approve action.
 function kindFromCategory(category: string | null): EntityKind | null {
   if (!category) return null;
   switch (category) {
@@ -793,35 +814,6 @@ function kindFromCategory(category: string | null): EntityKind | null {
     case 'bank_fees':
     case 'refunds':
     case 'uncategorized': return 'unknown';
-    // Everything else = supplier (materials, fuel, motor_vehicle, insurance, rent, utilities, etc.)
     default: return 'supplier';
   }
 }
-
-const th: React.CSSProperties = {
-  padding: '0.4rem 0.5rem',
-  textAlign: 'left',
-  fontSize: 11,
-  color: '#888',
-  textTransform: 'uppercase',
-  letterSpacing: 0.5,
-  fontWeight: 500,
-};
-const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
-const td: React.CSSProperties = { padding: '0.6rem 0.5rem', verticalAlign: 'top' };
-const tdRight: React.CSSProperties = { ...td, textAlign: 'right' };
-const selectStyle: React.CSSProperties = {
-  background: '#0a0a0a',
-  color: '#fff',
-  border: '1px solid #2a2a2a',
-  borderRadius: 3,
-  padding: '0.25rem 0.4rem',
-  fontSize: 12,
-};
-const btn: React.CSSProperties = {
-  border: '1px solid',
-  borderRadius: 3,
-  fontSize: 11,
-  padding: '0.25rem 0.5rem',
-  cursor: 'pointer',
-};

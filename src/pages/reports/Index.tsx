@@ -1,78 +1,101 @@
 import { Link } from 'react-router-dom';
+import { FileSpreadsheet, Layers, TrendingUp, Coins, Calendar } from 'lucide-react';
 
 const REPORTS = [
   {
     to: '/reports/bas',
-    title: 'BAS quarterly (GST)',
+    title: 'BAS Quarterly (GST)',
     description: 'GST collected on sales minus GST paid on purchases, by AU fiscal quarter. Personal-flagged expenses excluded.',
     status: 'live',
+    icon: Calendar
   },
   {
     to: '/reports/cash-flow',
-    title: 'Cash flow forecast',
-    description: 'Weekly inflows from outstanding invoices and outflows from unpaid bills. Forward visibility on what hits the bank when.',
+    title: 'Cash Flow Forecast',
+    description: 'Weekly inflows from outstanding invoices and outflows from unpaid bills. Forward visibility on bank balances.',
     status: 'live',
+    icon: TrendingUp
   },
   {
     to: null,
-    title: 'P&L by job (export)',
+    title: 'P&L by Job (Export)',
     description: 'Per-job profit & loss with attached bills, wages, overhead allocation, and revenue from invoices. PDF/CSV export.',
     status: 'planned',
+    icon: FileSpreadsheet
   },
   {
     to: '/reports/balance-sheet',
-    title: 'Balance sheet',
-    description: 'Assets (bank balances, AR), liabilities (AP, debts), equity. Approximate — based on bills/invoices, not a true GL ledger.',
+    title: 'Balance Sheet',
+    description: 'Assets (bank balances, AR), liabilities (AP, debts), equity. Approximate rollup based on bills/invoices.',
     status: 'live',
+    icon: Coins
   },
   {
     to: null,
-    title: 'Tax summary (annual)',
+    title: 'Tax Summary (Annual)',
     description: 'Annual income, deductible expenses, GST summary, depreciation. Aligned to AU tax-return categories.',
     status: 'planned',
+    icon: Layers
   },
 ];
 
 export function ReportsIndexPage() {
   return (
-    <section>
-      <h1>Reports</h1>
-      <p style={{ color: '#888', fontSize: 13, maxWidth: 720 }}>
-        Cross-cutting financial views. Drill in for detail or export.
+    <section className="animated-fade-in">
+      <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+        <FileSpreadsheet size={24} style={{ color: 'var(--accent-primary)' }} />
+        Reports
+      </h1>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '2rem', maxWidth: '720px', lineHeight: '1.5' }}>
+        Cross-cutting financial reports and summaries. Drill down into specific quarterly details or export raw data for compliance.
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginTop: 16, maxWidth: 1100 }}>
+      <div 
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
+          gap: '1.25rem',
+          maxWidth: '1100px'
+        }}
+      >
         {REPORTS.map((r) => {
-          const card = (
+          const Icon = r.icon;
+          const cardContent = (
             <div
               key={r.title}
+              className="card"
               style={{
-                padding: 16,
-                background: '#1a1a1a',
-                border: '1px solid #2a2a2a',
-                borderRadius: 6,
-                opacity: r.status === 'planned' ? 0.5 : 1,
-                cursor: r.to ? 'pointer' : 'default',
+                display: 'flex',
+                flexDirection: 'column',
                 height: '100%',
-                boxSizing: 'border-box',
+                opacity: r.status === 'planned' ? 0.6 : 1,
+                cursor: r.to ? 'pointer' : 'default',
+                padding: '1.5rem',
+                position: 'relative'
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <h2 style={{ fontSize: 15, margin: 0 }}>{r.title}</h2>
-                <span style={{
-                  fontSize: 10,
-                  textTransform: 'uppercase',
-                  padding: '0.15rem 0.5rem',
-                  borderRadius: 3,
-                  background: r.status === 'live' ? '#0d2f1f' : '#2a2a2a',
-                  color: r.status === 'live' ? '#86c7a3' : '#888',
-                  border: '1px solid ' + (r.status === 'live' ? '#1c5135' : '#444'),
-                }}>{r.status}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Icon size={20} style={{ color: r.status === 'live' ? 'var(--accent-primary)' : 'var(--text-muted)' }} />
+                  <h3 style={{ fontSize: '1rem', margin: 0, fontWeight: 700 }}>{r.title}</h3>
+                </div>
+                <span className={`badge ${r.status === 'live' ? 'badge-success' : 'badge-neutral'}`} style={{ fontSize: '0.675rem' }}>
+                  {r.status}
+                </span>
               </div>
-              <p style={{ color: '#888', fontSize: 12, marginTop: 8, lineHeight: 1.4 }}>{r.description}</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', margin: 0, lineHeight: '1.5', flexGrow: 1 }}>
+                {r.description}
+              </p>
             </div>
           );
-          return r.to ? <Link key={r.title} to={r.to} style={{ textDecoration: 'none', color: 'inherit' }}>{card}</Link> : card;
+          
+          return r.to ? (
+            <Link key={r.title} to={r.to} style={{ textDecoration: 'none', color: 'inherit' }}>
+              {cardContent}
+            </Link>
+          ) : (
+            cardContent
+          );
         })}
       </div>
     </section>

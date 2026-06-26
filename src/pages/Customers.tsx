@@ -5,6 +5,7 @@ import { useCustomers } from '@/hooks/useCustomers';
 import type { BillingAddress } from '@/hooks/useCustomers';
 import { supabase } from '@/lib/supabase';
 import { SkeletonTable } from '@/components/Skeleton';
+import { Plus, Users, X } from 'lucide-react';
 
 function formatAddress(addr: BillingAddress | null): string {
   if (!addr) return '—';
@@ -20,26 +21,38 @@ export function CustomersPage() {
 
   if (!currentOrg) {
     return (
-      <section>
+      <section className="animated-fade-in">
         <h1>Customers</h1>
-        <p style={{ color: '#888' }}>Pick an organisation to see customers.</p>
+        <p style={{ color: 'var(--text-muted)' }}>Pick an organisation to see customers.</p>
       </section>
     );
   }
 
   return (
-    <section>
-      {/* Header row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1rem' }}>
-        <h1 style={{ margin: 0 }}>Customers</h1>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          {!loading && (
-            <span style={{ color: '#888', fontSize: 13 }}>
-              {customers.length} customer{customers.length !== 1 ? 's' : ''}
-            </span>
-          )}
-          <button onClick={() => setShowCreate(true)} style={primaryBtn}>+ New customer</button>
-        </div>
+    <section className="animated-fade-in">
+      {/* Header section */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
+        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Users size={24} style={{ color: 'var(--accent-primary)' }} />
+          Customers
+        </h1>
+        <button 
+          onClick={() => setShowCreate(true)} 
+          className="btn btn-primary"
+          aria-label="+ New customer"
+        >
+          <Plus size={16} />
+          <span>New customer</span>
+        </button>
       </div>
 
       {showCreate && (
@@ -49,24 +62,24 @@ export function CustomersPage() {
         />
       )}
 
-      {/* Count card */}
+      {/* Customer Count Card */}
       {!loading && !error && (
         <div
+          className="card"
           style={{
             display: 'inline-flex',
             flexDirection: 'column',
             padding: '1rem 1.5rem',
-            background: '#1a1a1a',
-            border: '1px solid #2a2a2a',
-            borderRadius: 6,
+            borderLeft: '4px solid var(--accent-primary)',
             marginBottom: '1.5rem',
+            minWidth: '180px'
           }}
         >
-          <span style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            Total customers
+          <span style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+            Total Customers
           </span>
-          <span style={{ fontSize: 32, fontWeight: 700, color: '#86c7a3', marginTop: '0.25rem' }}>
-            {customers.length}
+          <span style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-title)', marginTop: '0.25rem', fontFamily: 'var(--font-title)' }}>
+            {customers.length} <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)' }}>{customers.length === 1 ? 'customer' : 'customers'}</span>
           </span>
         </div>
       )}
@@ -74,59 +87,65 @@ export function CustomersPage() {
       {loading ? (
         <SkeletonTable rows={5} cols={5} />
       ) : error ? (
-        <p style={{ color: 'salmon' }}>Failed to load: {error}</p>
+        <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}>Failed to load: {error}</div>
       ) : customers.length === 0 ? (
-        <p style={{ color: '#888' }}>No customers found for {currentOrg.name}.</p>
+        <div 
+          style={{ 
+            padding: '2.5rem', 
+            background: 'var(--bg-card)', 
+            border: '1px dashed var(--border-subtle)', 
+            borderRadius: 'var(--radius-md)', 
+            color: 'var(--text-muted)', 
+            textAlign: 'center',
+            fontSize: '0.9rem' 
+          }}
+        >
+          No customers found for {currentOrg.name}. Add one to get started.
+        </div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="table-premium-container">
+          <table className="table-premium">
             <thead>
-              <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-                <th style={th}>Name</th>
-                <th style={th}>Email</th>
-                <th style={th}>Phone</th>
-                <th style={th}>Billing address</th>
-                <th style={th}>ABN</th>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Billing Address</th>
+                <th>ABN</th>
               </tr>
             </thead>
             <tbody>
               {customers.map((c) => (
                 <tr
                   key={c.id}
-                  style={{ borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
-                  onClick={() => void navigate(`/customers/${c.id}`)}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLTableRowElement).style.background = '#202020';
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLTableRowElement).style.background = '';
-                  }}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => navigate(`/customers/${c.id}`)}
                 >
-                  <td style={{ ...td, fontWeight: 500 }}>{c.name}</td>
-                  <td style={td}>
+                  <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{c.name}</td>
+                  <td>
                     {c.email ? (
-                      <span style={{ color: '#aaa', fontSize: 13 }}>{c.email}</span>
+                      <span style={{ fontSize: '0.875rem' }}>{c.email}</span>
                     ) : (
-                      <span style={{ color: '#444' }}>—</span>
+                      <span style={{ color: 'var(--text-muted)' }}>—</span>
                     )}
                   </td>
-                  <td style={td}>
+                  <td>
                     {c.phone ? (
-                      <span style={{ color: '#aaa', fontSize: 13 }}>{c.phone}</span>
+                      <span style={{ fontSize: '0.875rem' }}>{c.phone}</span>
                     ) : (
-                      <span style={{ color: '#444' }}>—</span>
+                      <span style={{ color: 'var(--text-muted)' }}>—</span>
                     )}
                   </td>
-                  <td style={td}>
-                    <span style={{ color: '#aaa', fontSize: 13 }}>
+                  <td>
+                    <span style={{ fontSize: '0.875rem' }}>
                       {formatAddress(c.billing_address)}
                     </span>
                   </td>
-                  <td style={td}>
+                  <td>
                     {c.abn ? (
-                      <code style={{ color: '#888', fontSize: 12 }}>{c.abn}</code>
+                      <code>{c.abn}</code>
                     ) : (
-                      <span style={{ color: '#444' }}>—</span>
+                      <span style={{ color: 'var(--text-muted)' }}>—</span>
                     )}
                   </td>
                 </tr>
@@ -176,53 +195,73 @@ function CreateCustomerForm({ onClose, onCreated }: { onClose: () => void; onCre
   };
 
   return (
-    <div style={card}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <h3 style={{ fontSize: 14, margin: 0 }}>New customer</h3>
-        <button onClick={onClose} style={closeBtn}>×</button>
+    <div className="card" style={{ marginBottom: '1.5rem', maxWidth: '720px', animation: 'fadeIn 0.25s ease' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+        <h3 style={{ margin: 0, fontSize: '1.15rem' }}>New Customer</h3>
+        <button onClick={onClose} className="btn btn-ghost" style={{ padding: '0.2rem 0.4rem' }}>
+          <X size={16} />
+        </button>
       </div>
-      <div style={grid2}>
-        <Field label="Name *"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Customer name or business" style={inp} /></Field>
-        <Field label="ABN"><input value={abn} onChange={(e) => setAbn(e.target.value)} placeholder="12 345 678 901" style={inp} /></Field>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+          <Field label="Name *">
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Customer name or business" className="form-input" />
+          </Field>
+          <Field label="ABN">
+            <input value={abn} onChange={(e) => setAbn(e.target.value)} placeholder="12 345 678 901" className="form-input" />
+          </Field>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+          <Field label="Email">
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@domain.com" className="form-input" />
+          </Field>
+          <Field label="Phone">
+            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0400 000 000" className="form-input" />
+          </Field>
+        </div>
+
+        <Field label="Address line 1">
+          <input value={line1} onChange={(e) => setLine1(e.target.value)} placeholder="123 Street Rd" className="form-input" />
+        </Field>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '0.75rem' }}>
+          <Field label="City">
+            <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Brisbane" className="form-input" />
+          </Field>
+          <Field label="State">
+            <input value={state} onChange={(e) => setState(e.target.value)} placeholder="QLD" className="form-input" />
+          </Field>
+          <Field label="Postcode">
+            <input value={postcode} onChange={(e) => setPostcode(e.target.value)} placeholder="4000" className="form-input" />
+          </Field>
+        </div>
+
+        {err && (
+          <div className="badge badge-danger" style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}>
+            {err}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+          <button onClick={submit} disabled={busy || !name.trim()} className="btn btn-primary" style={{ padding: '0.625rem 1.25rem' }}>
+            {busy ? 'Creating…' : 'Create customer'}
+          </button>
+          <button onClick={onClose} disabled={busy} className="btn btn-secondary" style={{ padding: '0.625rem 1.25rem' }}>
+            Cancel
+          </button>
+        </div>
       </div>
-      <div style={grid2}>
-        <Field label="Email"><input value={email} onChange={(e) => setEmail(e.target.value)} style={inp} /></Field>
-        <Field label="Phone"><input value={phone} onChange={(e) => setPhone(e.target.value)} style={inp} /></Field>
-      </div>
-      <Field label="Address line 1"><input value={line1} onChange={(e) => setLine1(e.target.value)} style={inp} /></Field>
-      <div style={grid3}>
-        <Field label="City"><input value={city} onChange={(e) => setCity(e.target.value)} style={inp} /></Field>
-        <Field label="State"><input value={state} onChange={(e) => setState(e.target.value)} style={inp} /></Field>
-        <Field label="Postcode"><input value={postcode} onChange={(e) => setPostcode(e.target.value)} style={inp} /></Field>
-      </div>
-      <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-        <button onClick={submit} disabled={busy || !name.trim()} style={primaryBtn}>{busy ? 'Creating…' : 'Create customer'}</button>
-        <button onClick={onClose} disabled={busy} style={ghostBtn}>Cancel</button>
-      </div>
-      {err && <p style={{ color: 'salmon', fontSize: 12, marginTop: 8 }}>{err}</p>}
     </div>
   );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label style={{ display: 'block', fontSize: 11, color: '#888', marginTop: 8 }}><div style={{ marginBottom: 3 }}>{label}</div>{children}</label>;
+  return (
+    <div className="form-group" style={{ marginBottom: 0 }}>
+      <span className="form-label" style={{ fontSize: '0.725rem' }}>{label}</span>
+      <div style={{ marginTop: '0.25rem' }}>{children}</div>
+    </div>
+  );
 }
-
-const card: React.CSSProperties = { marginBottom: 16, padding: 16, background: '#0e0e0e', border: '1px solid #2a2a2a', borderRadius: 6, maxWidth: 720 };
-const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 };
-const grid3: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 };
-const inp: React.CSSProperties = { width: '100%', padding: '6px 8px', background: '#000', color: '#ddd', border: '1px solid #333', borderRadius: 3, fontSize: 12 };
-const primaryBtn: React.CSSProperties = { padding: '0.5rem 1rem', background: '#1c4868', color: '#fff', border: '1px solid #5096d8', borderRadius: 4, fontSize: 13, fontWeight: 600, cursor: 'pointer' };
-const ghostBtn: React.CSSProperties = { padding: '0.5rem 1rem', background: 'transparent', color: '#aaa', border: '1px solid #333', borderRadius: 4, fontSize: 12, cursor: 'pointer' };
-const closeBtn: React.CSSProperties = { background: 'transparent', color: '#888', border: 'none', fontSize: 18, cursor: 'pointer', padding: 0 };
-
-const th: React.CSSProperties = {
-  padding: '0.5rem 0.75rem',
-  textAlign: 'left',
-  fontSize: 12,
-  color: '#888',
-  textTransform: 'uppercase',
-  letterSpacing: 0.5,
-  fontWeight: 500,
-};
-const td: React.CSSProperties = { padding: '0.65rem 0.75rem' };

@@ -5,6 +5,7 @@ import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { downloadCsv } from '@/lib/csv';
 import { SkeletonTable } from '@/components/Skeleton';
+import { ChevronLeft, Download, TrendingUp, DollarSign, Wallet, Info, type LucideIcon } from 'lucide-react';
 
 interface FlowRow {
   week_start: string;
@@ -17,6 +18,7 @@ interface AggRow {
   inflow: number;
   outflow: number;
   net: number;
+  running?: number;
 }
 
 export function CashFlowPage() {
@@ -42,7 +44,6 @@ export function CashFlowPage() {
         .is('deleted_at', null),
     ]);
 
-    // Sum all active bank account balances for this org
     const opening = ((bankRes.data ?? []) as { current_balance_cents: number | null }[])
       .reduce((sum, acct) => sum + (acct.current_balance_cents ?? 0), 0);
     setOpeningBalance(opening);
@@ -57,7 +58,6 @@ export function CashFlowPage() {
     }
     const sorted = Array.from(agg.values()).sort((a, b) => a.week_start.localeCompare(b.week_start));
 
-    // Running balance seeded from opening (sum of bank account balances)
     let running = opening;
     const withRunning = sorted.map((r) => {
       running += r.net;
@@ -80,7 +80,6 @@ export function CashFlowPage() {
     const first = rows[0];
     const last = rows[rows.length - 1];
     if (!first || !last) return;
-    // ISO week number helper (YYYY-Www)
     const firstWeek = first.week_start.replace(/-/g, '').slice(0, 6);
     const lastWeek = last.week_start.replace(/-/g, '').slice(0, 6);
     const filename = `cash-flow-${firstWeek}-to-${lastWeek}.csv`;
@@ -95,64 +94,111 @@ export function CashFlowPage() {
   };
 
   return (
-    <section>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <Link to="/reports" style={{ color: '#86c7a3', fontSize: 13 }}>&larr; Reports</Link>
+    <section className="animated-fade-in">
+      {/* Navigation & Export Action */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '1rem',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
+        <Link 
+          to="/reports" 
+          style={{ 
+            color: 'var(--text-muted)', 
+            fontSize: '0.825rem', 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '0.25rem'
+          }}
+        >
+          <ChevronLeft size={14} />
+          <span>Reports</span>
+        </Link>
+        
         {rows.length > 0 && (
-          <button onClick={handleExport} style={exportBtn} aria-label="Export cash flow data as CSV">
-            &#8659; Export CSV
+          <button onClick={handleExport} className="btn btn-secondary" aria-label="Export cash flow data as CSV">
+            <Download size={14} />
+            <span>Export CSV</span>
           </button>
         )}
       </div>
-      <h1 style={{ marginTop: '0.5rem' }}>Cash flow forecast</h1>
-      <p style={{ color: '#888', fontSize: 13 }}>
-        Weekly buckets of unpaid invoices (expected receipts) and unpaid bills (expected payments).
-        Personal-flagged bills excluded.
+
+      <h1 style={{ margin: 0 }}>Cash Flow Forecast</h1>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem', marginBottom: '1.5rem', maxWidth: '800px', lineHeight: '1.5' }}>
+        Weekly buckets of unpaid invoices (expected receipts) and unpaid bills (expected payments). Personal-flagged bills are excluded.
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, maxWidth: 1100, marginTop: 16 }}>
-        <Kpi label="Opening balance" value={formatMoney(openingBalance)} colour={openingBalance >= 0 ? '#aaa' : '#e9a3a3'} />
-        <Kpi label="Expected receipts" value={formatMoney(totalIn)} colour="#86c7a3" />
-        <Kpi label="Expected payments" value={formatMoney(totalOut)} colour="#e9a3a3" />
-        <Kpi label="Projected closing" value={formatMoney(finalRunning)} colour={finalRunning >= 0 ? '#86c7a3' : '#e9a3a3'} />
+      {/* KPI Cards */}
+      <div 
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+          gap: '1rem',
+          marginBottom: '2rem'
+        }}
+      >
+        <KpiCard label="Opening Balance" value={formatMoney(openingBalance)} type="neutral" icon={DollarSign} />
+        <KpiCard label="Expected Receipts" value={formatMoney(totalIn)} type="success" icon={Wallet} />
+        <KpiCard label="Expected Payments" value={formatMoney(totalOut)} type="danger" icon={DollarSign} />
+        <KpiCard label="Projected Closing" value={formatMoney(finalRunning)} type={finalRunning >= 0 ? 'success' : 'danger'} icon={TrendingUp} />
       </div>
 
       {loading ? (
-        <div style={{ marginTop: 16 }}>
-          <SkeletonTable rows={6} cols={6} />
-        </div>
+        <SkeletonTable rows={6} cols={6} />
       ) : rows.length === 0 ? (
-        <div style={{ marginTop: 24, padding: 16, background: '#0e0e0e', border: '1px dashed #2a2a2a', borderRadius: 4, color: '#888', fontSize: 13 }}>
-          Nothing committed yet. As invoices land and bills arrive (with due dates), the forecast populates.
+        <div style={{ padding: '3rem 1.5rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+          Nothing committed yet. Issue invoices and bills (with due dates) to populate the forecast.
         </div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 16 }}>
+        <div className="table-premium-container">
+          <table className="table-premium">
             <thead>
-              <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-                <th style={th}>Week starting</th>
-                <th style={thRight}>Inflow (invoices)</th>
-                <th style={thRight}>Outflow (bills)</th>
-                <th style={thRight}>Net</th>
-                <th style={thRight}>Running</th>
-                <th style={th}>Distribution</th>
+              <tr>
+                <th>Week Starting</th>
+                <th style={{ textAlign: 'right' }}>Inflow (Invoices)</th>
+                <th style={{ textAlign: 'right' }}>Outflow (Bills)</th>
+                <th style={{ textAlign: 'right' }}>Net</th>
+                <th style={{ textAlign: 'right' }}>Projected Running</th>
+                <th>Distribution (In vs Out)</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => {
-                const inWidth = (r.inflow / max) * 120;
-                const outWidth = (r.outflow / max) * 120;
+                const inWidth = (r.inflow / max) * 100;
+                const outWidth = (r.outflow / max) * 100;
+                const rRunning = (r as AggRow & { running: number }).running;
                 return (
-                  <tr key={r.week_start} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                    <td style={td}>{r.week_start}</td>
-                    <td style={{ ...tdRight, color: '#86c7a3' }}>{r.inflow > 0 ? formatMoney(r.inflow) : '—'}</td>
-                    <td style={{ ...tdRight, color: '#e9a3a3' }}>{r.outflow > 0 ? formatMoney(-r.outflow) : '—'}</td>
-                    <td style={{ ...tdRight, color: r.net >= 0 ? '#86c7a3' : '#e9a3a3', fontWeight: 600 }}>{formatMoney(r.net)}</td>
-                    <td style={{ ...tdRight, color: (r as AggRow & { running: number }).running >= 0 ? '#aaa' : '#e9a3a3' }}>{formatMoney((r as AggRow & { running: number }).running)}</td>
-                    <td style={td}>
-                      <div style={{ display: 'flex', alignItems: 'center', height: 16 }}>
-                        <div style={{ width: inWidth, height: 8, background: '#2da565', marginRight: 2 }} />
-                        <div style={{ width: outWidth, height: 8, background: '#a52d2d' }} />
+                  <tr key={r.week_start}>
+                    <td style={{ fontWeight: 600 }}>{r.week_start}</td>
+                    <td style={{ textAlign: 'right', color: 'var(--text-success)' }}>{r.inflow > 0 ? formatMoney(r.inflow) : '—'}</td>
+                    <td style={{ textAlign: 'right', color: 'var(--text-danger)' }}>{r.outflow > 0 ? formatMoney(-r.outflow) : '—'}</td>
+                    <td style={{ 
+                      textAlign: 'right', 
+                      fontWeight: 700, 
+                      color: r.net >= 0 ? 'var(--text-success)' : 'var(--text-danger)' 
+                    }}>
+                      {formatMoney(r.net)}
+                    </td>
+                    <td style={{ 
+                      textAlign: 'right', 
+                      fontWeight: 600,
+                      color: rRunning >= 0 ? 'var(--text-title)' : 'var(--text-danger)' 
+                    }}>
+                      {formatMoney(rRunning)}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', height: '14px', background: 'var(--bg-hover)', borderRadius: 'var(--radius-full)', overflow: 'hidden', padding: '2px', width: '120px' }}>
+                        {r.inflow > 0 && (
+                          <div style={{ width: `${Math.max(inWidth, 5)}%`, height: '100%', background: 'var(--accent-success)', borderRadius: r.outflow > 0 ? 'var(--radius-full) 0 0 var(--radius-full)' : 'var(--radius-full)' }} />
+                        )}
+                        {r.outflow > 0 && (
+                          <div style={{ width: `${Math.max(outWidth, 5)}%`, height: '100%', background: 'var(--accent-danger)', borderRadius: r.inflow > 0 ? '0 var(--radius-full) var(--radius-full) 0' : 'var(--radius-full)' }} />
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -163,24 +209,65 @@ export function CashFlowPage() {
         </div>
       )}
 
-      <p style={{ marginTop: 32, padding: 10, background: '#0e0e0e', border: '1px dashed #2a2a2a', borderRadius: 4, fontSize: 12, color: '#666' }}>
-        Future: payment-pattern smoothing (avg days late), scenario modelling (what-if X invoice paid late).
-      </p>
+      {/* Info Disclaimer */}
+      <div 
+        className="card" 
+        style={{ 
+          marginTop: '2.5rem', 
+          background: 'var(--bg-hover)', 
+          border: '1px dashed var(--border-subtle)',
+          padding: '1.25rem',
+          display: 'flex',
+          gap: '0.75rem',
+          alignItems: 'flex-start'
+        }}
+      >
+        <Info size={16} style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }} />
+        <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+          <span style={{ fontWeight: 600, color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>Cash Flow Details</span>
+          Future forecasts will factor in historical payment behavior profiles (e.g. average days late per customer) and allow hypothetical what-if scenario planning.
+        </div>
+      </div>
     </section>
   );
 }
 
-function Kpi({ label, value, colour }: { label: string; value: string; colour: string }) {
+function KpiCard({ 
+  label, 
+  value, 
+  type,
+  icon: Icon,
+  sub 
+}: { 
+  label: string; 
+  value: string; 
+  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral'; 
+  icon: LucideIcon;
+  sub?: string;
+}) {
   return (
-    <div style={{ padding: 12, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 6 }}>
-      <div style={{ fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ marginTop: 4, fontSize: 18, color: colour, fontWeight: 600 }}>{value}</div>
+    <div 
+      className="card"
+      style={{ 
+        padding: '1.25rem',
+        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
+        position: 'relative'
+      }}
+    >
+      <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+        {label}
+      </div>
+      <div style={{ marginTop: '0.35rem', fontSize: '1.5rem', color: 'var(--text-title)', fontWeight: 800, fontFamily: 'var(--font-title)' }}>
+        {value}
+      </div>
+      {sub ? (
+        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>{sub}</div>
+      ) : (
+        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
+      )}
+      <div style={{ position: 'absolute', right: '1rem', bottom: '1rem', color: `var(--accent-${type === 'neutral' ? 'primary' : type})`, opacity: 0.7 }}>
+        <Icon size={18} />
+      </div>
     </div>
   );
 }
-
-const th: React.CSSProperties = { padding: '0.4rem 0.5rem', textAlign: 'left', fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500 };
-const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
-const td: React.CSSProperties = { padding: '0.5rem' };
-const tdRight: React.CSSProperties = { ...td, textAlign: 'right' };
-const exportBtn: React.CSSProperties = { padding: '0.25rem 0.75rem', background: 'transparent', color: '#86c7a3', border: '1px solid #2da565', borderRadius: 4, fontSize: 12, cursor: 'pointer' };

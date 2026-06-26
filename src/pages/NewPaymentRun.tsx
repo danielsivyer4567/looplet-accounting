@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { useUnpaidBillsForRun, type UnpaidBillForRun } from '@/hooks/usePaymentRuns';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
+import { ChevronLeft, Layers, CheckCircle, AlertTriangle } from 'lucide-react';
 
 export function NewPaymentRunPage() {
   const { currentOrg } = useOrg();
@@ -13,9 +14,8 @@ export function NewPaymentRunPage() {
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [payDate, setPayDate] = useState<string>(() => {
-    // Default: next Friday
     const d = new Date();
-    const day = d.getDay(); // 0=Sun, 5=Fri
+    const day = d.getDay();
     const daysUntilFriday = (5 - day + 7) % 7 || 7;
     d.setDate(d.getDate() + daysUntilFriday);
     return d.toISOString().split('T')[0] ?? '';
@@ -25,9 +25,9 @@ export function NewPaymentRunPage() {
 
   if (!currentOrg) {
     return (
-      <section>
+      <section className="animated-fade-in">
         <h1>New Payment Run</h1>
-        <p style={{ color: '#888' }}>Pick an organisation first.</p>
+        <p style={{ color: 'var(--text-muted)' }}>Pick an organisation first.</p>
       </section>
     );
   }
@@ -101,71 +101,89 @@ export function NewPaymentRunPage() {
   };
 
   return (
-    <section>
-      <h1>New Payment Run</h1>
-      <p style={{ color: '#888', fontSize: 13 }}>
+    <section className="animated-fade-in">
+      {/* Back button */}
+      <Link 
+        to="/payment-runs" 
+        style={{ 
+          color: 'var(--text-muted)', 
+          fontSize: '0.825rem', 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.25rem',
+          marginBottom: '1rem'
+        }}
+      >
+        <ChevronLeft size={14} />
+        <span>Payment runs</span>
+      </Link>
+
+      <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <Layers size={24} style={{ color: 'var(--accent-primary)' }} />
+        New Payment Run
+      </h1>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
         Select bills to pay, set the payment date, and create the run. Then download the ABA file
         and upload it to your internet banking.
       </p>
 
-      {/* Header controls */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 12,
-          alignItems: 'flex-end',
-          margin: '1.5rem 0 1rem',
-          flexWrap: 'wrap',
-        }}
-      >
-        <label style={{ fontSize: 12, color: '#888' }}>
-          <div style={{ marginBottom: 3 }}>Payment date</div>
-          <input
-            type="date"
-            value={payDate}
-            onChange={(e) => setPayDate(e.target.value)}
-            style={inp}
-          />
-        </label>
-
-        {selected.size > 0 && (
-          <div style={{ fontSize: 13, color: '#ccc', alignSelf: 'flex-end', paddingBottom: 6 }}>
-            {selected.size} bill{selected.size !== 1 ? 's' : ''} selected — {formatMoney(totalCents)}
-            {missingBank.length > 0 && (
-              <span style={{ color: '#f4a261', marginLeft: 8 }}>
-                {missingBank.length} missing bank details
-              </span>
-            )}
+      {/* Header controls card */}
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <span className="form-label" style={{ fontSize: '0.725rem' }}>Payment Date</span>
+            <input
+              type="date"
+              value={payDate}
+              onChange={(e) => setPayDate(e.target.value)}
+              className="form-input"
+              style={{ width: '160px', marginTop: '0.25rem' }}
+            />
           </div>
-        )}
+
+          {selected.size > 0 && (
+            <div style={{ fontSize: '0.875rem', color: 'var(--text-title)', fontWeight: 600, paddingBottom: '0.5rem' }}>
+              {selected.size} bill{selected.size !== 1 ? 's' : ''} selected — <span style={{ color: 'var(--accent-primary)' }}>{formatMoney(totalCents)}</span>
+              {missingBank.length > 0 && (
+                <span className="badge badge-warning" style={{ marginLeft: '0.5rem', textTransform: 'none', padding: '0.25rem 0.5rem' }}>
+                  <AlertTriangle size={12} style={{ marginRight: '0.25rem' }} />
+                  {missingBank.length} missing bank details
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {loading ? (
-        <SkeletonTable rows={8} cols={6} />
+        <SkeletonTable rows={8} cols={7} />
       ) : error ? (
-        <p style={{ color: 'salmon' }}>Failed: {error}</p>
+        <div className="badge badge-danger" style={{ display: 'block', padding: '1rem', textTransform: 'none' }}>
+          Failed to load unpaid bills: {error}
+        </div>
       ) : bills.length === 0 ? (
-        <p style={{ color: '#888' }}>
+        <div style={{ padding: '3rem 1.5rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
           No unpaid bills ready for payment (status "attached", not yet in a run).
-        </p>
+        </div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="table-premium-container">
+          <table className="table-premium">
             <thead>
-              <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-                <th style={{ ...th, width: 32 }}>
+              <tr>
+                <th style={{ width: 40 }}>
                   <input
                     type="checkbox"
                     checked={selected.size === bills.length && bills.length > 0}
                     onChange={toggleAll}
+                    style={{ cursor: 'pointer' }}
                   />
                 </th>
-                <th style={th}>Invoice #</th>
-                <th style={th}>Supplier</th>
-                <th style={th}>Due date</th>
-                <th style={thRight}>Amount</th>
-                <th style={th}>Payee BSB</th>
-                <th style={th}>Payee account</th>
+                <th>Invoice #</th>
+                <th>Supplier</th>
+                <th>Due date</th>
+                <th style={{ textAlign: 'right' }}>Amount</th>
+                <th>Payee BSB</th>
+                <th>Payee account</th>
               </tr>
             </thead>
             <tbody>
@@ -182,20 +200,36 @@ export function NewPaymentRunPage() {
         </div>
       )}
 
-      <div style={{ marginTop: 24, display: 'flex', gap: 12, alignItems: 'center' }}>
+      {/* Footer trigger bar */}
+      <div 
+        style={{ 
+          marginTop: '1.5rem', 
+          display: 'flex', 
+          gap: '1rem', 
+          alignItems: 'center',
+          flexWrap: 'wrap'
+        }}
+      >
         <button
           onClick={() => void handleCreate()}
           disabled={submitting || selected.size === 0}
-          style={btnPrim}
+          className="btn btn-primary"
+          style={{ padding: '0.625rem 1.25rem' }}
         >
-          {submitting ? 'Creating…' : `Create payment run (${selected.size} bills)`}
+          <CheckCircle size={16} />
+          <span>{submitting ? 'Creating…' : `Create payment run (${selected.size} bills)`}</span>
         </button>
-        {submitErr && <span style={{ color: 'salmon', fontSize: 12 }}>{submitErr}</span>}
+        
+        {submitErr && <div className="badge badge-danger" style={{ padding: '0.625rem 1rem', textTransform: 'none' }}>{submitErr}</div>}
+        
         {missingBank.length > 0 && selected.size > 0 && (
-          <span style={{ color: '#f4a261', fontSize: 12 }}>
-            Warning: {missingBank.length} payee(s) have no bank details — the ABA file will
-            have blank account fields. Add them via Suppliers before downloading.
-          </span>
+          <div className="badge badge-warning" style={{ textTransform: 'none', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+            <span>
+              Warning: {missingBank.length} payee(s) have no bank details. ABA file account fields will be blank. 
+              Add details via Suppliers before downloading ABA.
+            </span>
+          </div>
         )}
       </div>
     </section>
@@ -211,44 +245,45 @@ function BillRow({
   checked: boolean;
   onToggle: () => void;
 }) {
+  const isBillOverdue = isOverdue(bill.due_date);
   return (
     <tr
       style={{
-        borderBottom: '1px solid #1a1a1a',
-        background: checked ? '#1a2a1a' : 'transparent',
+        background: checked ? 'var(--bg-success-subtle)' : 'transparent',
         cursor: 'pointer',
       }}
       onClick={onToggle}
     >
-      <td style={td}>
+      <td onClick={(e) => e.stopPropagation()}>
         <input
           type="checkbox"
           checked={checked}
           onChange={onToggle}
-          onClick={(e) => e.stopPropagation()}
+          style={{ cursor: 'pointer' }}
         />
       </td>
-      <td style={td}>{bill.invoice_number ?? <span style={{ color: '#555' }}>—</span>}</td>
-      <td style={td}>{bill.supplier_name ?? bill.supplier_name_raw ?? <span style={{ color: '#555' }}>Unknown</span>}</td>
-      <td style={{ ...td, color: isOverdue(bill.due_date) ? '#f4a261' : '#ccc' }}>
-        {bill.due_date ?? <span style={{ color: '#555' }}>—</span>}
+      <td style={{ fontWeight: 600 }}>{bill.invoice_number ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
+      <td style={{ color: 'var(--text-title)', fontWeight: 600 }}>{bill.supplier_name ?? bill.supplier_name_raw ?? <span style={{ color: 'var(--text-muted)' }}>Unknown</span>}</td>
+      <td style={{ color: isBillOverdue ? 'var(--text-danger)' : 'var(--text-body)', fontWeight: isBillOverdue ? 600 : 'normal' }}>
+        {bill.due_date ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}
+        {isBillOverdue && <span style={{ fontSize: '0.75rem', marginLeft: '0.25rem' }}>(overdue)</span>}
       </td>
-      <td style={{ ...td, textAlign: 'right' }}>{formatMoney(bill.total_inc_gst_cents)}</td>
-      <td style={td}>
+      <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(bill.total_inc_gst_cents)}</td>
+      <td>
         {bill.payee_bsb ? (
           bill.payee_bsb
         ) : (
-          <span title="Missing — add via Suppliers" style={{ color: '#f4a261' }}>
-            ⚠ missing
+          <span className="badge badge-warning" style={{ textTransform: 'none', fontSize: '0.75rem' }}>
+            missing
           </span>
         )}
       </td>
-      <td style={td}>
+      <td>
         {bill.payee_account_number ? (
           maskAccount(bill.payee_account_number)
         ) : (
-          <span title="Missing — add via Suppliers" style={{ color: '#f4a261' }}>
-            ⚠ missing
+          <span className="badge badge-warning" style={{ textTransform: 'none', fontSize: '0.75rem' }}>
+            missing
           </span>
         )}
       </td>
@@ -261,42 +296,7 @@ function isOverdue(dueDate: string | null): boolean {
   return new Date(dueDate) < new Date();
 }
 
-/** Show last 4 digits of account number, rest as stars. */
 function maskAccount(acct: string): string {
   if (acct.length <= 4) return acct;
   return '****' + acct.slice(-4);
 }
-
-const inp: React.CSSProperties = {
-  padding: '6px 8px',
-  background: '#000',
-  color: '#ddd',
-  border: '1px solid #333',
-  borderRadius: 3,
-  fontSize: 13,
-};
-const th: React.CSSProperties = {
-  textAlign: 'left',
-  padding: '0.5rem 0.75rem',
-  fontSize: 11,
-  color: '#666',
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-};
-const thRight: React.CSSProperties = { ...th, textAlign: 'right' };
-const td: React.CSSProperties = {
-  padding: '0.6rem 0.75rem',
-  fontSize: 13,
-  color: '#ccc',
-};
-const btnPrim: React.CSSProperties = {
-  padding: '0.5rem 1rem',
-  background: '#1c5135',
-  color: '#fff',
-  border: '1px solid #2da565',
-  borderRadius: 4,
-  fontSize: 13,
-  fontWeight: 600,
-  cursor: 'pointer',
-};

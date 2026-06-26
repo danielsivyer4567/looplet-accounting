@@ -5,6 +5,7 @@ import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { downloadCsv } from '@/lib/csv';
 import { SkeletonTable } from '@/components/Skeleton';
+import { ChevronLeft, Download, DollarSign, Wallet, TrendingUp, Info, type LucideIcon } from 'lucide-react';
 
 interface BalanceSheetRow {
   organization_id: string;
@@ -25,9 +26,6 @@ export function BalanceSheetPage() {
     if (!currentOrg) return;
     setLoading(true);
     setError(null);
-    // The view evaluates "as of CURRENT_DATE" server-side — the picker is
-    // descriptive in v1; future improvement is a parameterised SECURITY DEFINER
-    // function that takes a date arg.
     const { data, error: e } = await supabase
       .from('v_balance_sheet')
       .select('*')
@@ -58,7 +56,6 @@ export function BalanceSheetPage() {
       'Line item': r.line_item,
       'Amount (AUD)': (Number(r.amount_cents) / 100).toFixed(2),
     }));
-    // Append totals
     exportRows.push({
       'As of': asOfDate,
       Category: 'asset',
@@ -83,147 +80,184 @@ export function BalanceSheetPage() {
   if (!currentOrg) return null;
 
   return (
-    <section>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-        <Link to="/reports" style={{ color: '#86c7a3', fontSize: 13 }}>&larr; Reports</Link>
+    <section className="animated-fade-in">
+      {/* Back & Export Bar */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '1rem',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
+        <Link 
+          to="/reports" 
+          style={{ 
+            color: 'var(--text-muted)', 
+            fontSize: '0.825rem', 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '0.25rem'
+          }}
+        >
+          <ChevronLeft size={14} />
+          <span>Reports</span>
+        </Link>
+        
         {rows.length > 0 && (
-          <button onClick={handleExport} style={exportBtn} aria-label="Export balance sheet as CSV">
-            &#8659; Export CSV
+          <button onClick={handleExport} className="btn btn-secondary" aria-label="Export balance sheet as CSV">
+            <Download size={14} />
+            <span>Export CSV</span>
           </button>
         )}
       </div>
 
-      <h1 style={{ marginTop: '0.5rem' }}>Balance sheet</h1>
-      <p style={{ color: '#888', fontSize: 13, maxWidth: 720 }}>
-        Snapshot of what the business owns vs owes. Approximation — unsettled GST and current-quarter GST collected
-        are based on bills/invoices, not a true general-ledger journal. Personal-flagged bills and debts are excluded.
+      <h1 style={{ margin: 0 }}>Balance Sheet</h1>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem', marginBottom: '1.5rem', maxWidth: '800px', lineHeight: '1.5' }}>
+        Snapshot of what the business owns vs owes. Unsettled GST is based on processed invoices/bills, not a traditional general-ledger journal. Personal-flagged items are excluded.
       </p>
 
-      {/* Date picker (descriptive in v1) */}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 12, flexWrap: 'wrap' }}>
-        <label style={{ fontSize: 12, color: '#888' }}>
-          As of:&nbsp;
+      {/* Date filter block */}
+      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <div className="form-group" style={{ marginBottom: 0, flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+          <span className="form-label" style={{ fontSize: '0.725rem', whiteSpace: 'nowrap' }}>As of Date</span>
           <input
             type="date"
             value={asOfDate}
             onChange={(e) => setAsOfDate(e.target.value)}
-            style={{
-              background: '#1a1a1a',
-              color: '#ddd',
-              border: '1px solid #2a2a2a',
-              borderRadius: 4,
-              padding: '0.25rem 0.4rem',
-              fontSize: 12,
-            }}
+            className="form-input"
+            style={{ width: '150px', padding: '0.4rem 0.625rem' }}
           />
-        </label>
-        <span style={{ fontSize: 11, color: '#666' }}>(view currently always reflects today; historical as-of coming soon)</span>
+        </div>
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          (Currently always reflects today; historical date range options coming soon)
+        </span>
       </div>
 
-      {/* Net worth headline */}
+      {/* Net Worth Summary Panel */}
       <div
+        className="card-gradient"
         style={{
-          marginTop: 20,
-          padding: 20,
-          background: '#0e0e0e',
-          border: '1px solid #2a2a2a',
-          borderRadius: 6,
           display: 'flex',
-          gap: 24,
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '1.5rem',
           flexWrap: 'wrap',
-          alignItems: 'baseline',
+          marginBottom: '2rem'
         }}
       >
         <div>
-          <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            Net worth (assets &minus; liabilities)
+          <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+            Net Worth (Assets &minus; Liabilities)
           </div>
           <div
             style={{
-              marginTop: 6,
-              fontSize: 32,
-              fontWeight: 700,
-              color: netEquity >= 0 ? '#86c7a3' : '#e9a3a3',
+              marginTop: '0.35rem',
+              fontSize: '2rem',
+              fontWeight: 800,
+              fontFamily: 'var(--font-title)',
+              color: netEquity >= 0 ? 'var(--text-success)' : 'var(--text-danger)',
             }}
           >
             {formatMoney(netEquity)}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 16, marginLeft: 'auto' }}>
-          <Mini label="Total assets" value={formatMoney(totalAssets)} colour="#86c7a3" />
-          <Mini label="Total liabilities" value={formatMoney(totalLiabilities)} colour="#e9a3a3" />
+        
+        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+          <MiniCard label="Total Assets" value={formatMoney(totalAssets)} type="success" icon={Wallet} />
+          <MiniCard label="Total Liabilities" value={formatMoney(totalLiabilities)} type="danger" icon={DollarSign} />
         </div>
       </div>
 
       {loading ? (
-        <div style={{ marginTop: 16 }}>
-          <SkeletonTable rows={4} cols={3} />
-        </div>
+        <SkeletonTable rows={4} cols={3} />
       ) : error ? (
-        <p style={{ color: 'salmon', marginTop: 16 }}>{error}</p>
+        <div className="badge badge-danger" style={{ display: 'block', padding: '1rem', textTransform: 'none' }}>
+          {error}
+        </div>
       ) : rows.length === 0 ? (
-        <div style={emptyBox}>
-          No data yet. Add bank accounts, bills, invoices, and debts to populate the balance sheet.
+        <div style={{ padding: '3rem 1.5rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+          No balance sheet data yet. Add bank accounts, bills, invoices, and debts.
         </div>
       ) : (
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: 16,
-            marginTop: 20,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '1.5rem',
+            alignItems: 'start'
           }}
         >
-          <Column title="Assets" colour="#86c7a3" rows={assets} totalCents={totalAssets} />
-          <Column title="Liabilities" colour="#e9a3a3" rows={liabilities} totalCents={totalLiabilities} />
+          <Column title="Assets" type="success" rows={assets} totalCents={totalAssets} icon={Wallet} />
+          <Column title="Liabilities" type="danger" rows={liabilities} totalCents={totalLiabilities} icon={DollarSign} />
           <Column
             title="Equity"
-            colour={netEquity >= 0 ? '#86c7a3' : '#e9a3a3'}
+            type={netEquity >= 0 ? 'success' : 'danger'}
             rows={equity.length > 0 ? equity : [{
               organization_id: currentOrg.id,
               as_of_date: asOfDate,
               category: 'equity' as const,
-              line_item: 'Net equity (assets − liabilities)',
+              line_item: 'Net Equity (Assets − Liabilities)',
               amount_cents: netEquity,
             }]}
             totalCents={netEquity}
+            icon={TrendingUp}
           />
         </div>
       )}
 
-      <p style={{ marginTop: 32, padding: 10, background: '#0e0e0e', border: '1px dashed #2a2a2a', borderRadius: 4, fontSize: 12, color: '#666' }}>
-        Future: true general-ledger schema (journal entries + chart of accounts), historical as-of-date snapshots, depreciation schedules, retained-earnings vs current-period equity split.
-      </p>
+      {/* ATO Disclaimer / Note */}
+      <div 
+        className="card" 
+        style={{ 
+          marginTop: '2.5rem', 
+          background: 'var(--bg-hover)', 
+          border: '1px dashed var(--border-subtle)',
+          padding: '1.25rem',
+          display: 'flex',
+          gap: '0.75rem',
+          alignItems: 'flex-start'
+        }}
+      >
+        <Info size={16} style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }} />
+        <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+          <span style={{ fontWeight: 600, color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>Balance Sheet Details</span>
+          Future versions will support a complete double-entry general ledger, historical snapshot comparisons, asset depreciation schedules, and automated retained-earnings splits.
+        </div>
+      </div>
     </section>
   );
 }
 
 function Column({
   title,
-  colour,
+  type,
   rows,
   totalCents,
+  icon: Icon
 }: {
   title: string;
-  colour: string;
+  type: 'success' | 'danger';
   rows: BalanceSheetRow[];
   totalCents: number;
+  icon: LucideIcon;
 }) {
   return (
-    <div
-      style={{
-        padding: 16,
-        background: '#1a1a1a',
-        border: '1px solid #2a2a2a',
-        borderRadius: 6,
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <h2 style={{ fontSize: 13, margin: 0, color: colour, textTransform: 'uppercase', letterSpacing: 0.5 }}>{title}</h2>
-      <ul style={{ listStyle: 'none', padding: 0, margin: '12px 0 0 0', flex: 1 }}>
+    <div className="card" style={{ display: 'flex', flexDirection: 'column', minHeight: '300px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+        <h2 style={{ fontSize: '1.05rem', margin: 0, color: `var(--text-${type})`, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          {title}
+        </h2>
+        <div style={{ color: `var(--accent-${type})` }}>
+          <Icon size={16} />
+        </div>
+      </div>
+      
+      <ul style={{ listStyle: 'none', padding: 0, margin: 0, flex: 1 }}>
         {rows.length === 0 ? (
-          <li style={{ fontSize: 12, color: '#666', padding: '6px 0' }}>—</li>
+          <li style={{ fontSize: '0.875rem', color: 'var(--text-muted)', padding: '0.5rem 0' }}>—</li>
         ) : (
           rows.map((r, i) => (
             <li
@@ -231,62 +265,60 @@ function Column({
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                gap: 8,
-                fontSize: 13,
-                padding: '6px 0',
-                borderBottom: '1px dotted #2a2a2a',
+                gap: '0.5rem',
+                fontSize: '0.875rem',
+                padding: '0.5rem 0',
+                borderBottom: '1px dotted var(--border-subtle)',
               }}
             >
-              <span style={{ color: '#ddd' }}>{r.line_item}</span>
-              <span style={{ color: '#aaa', fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ color: 'var(--text-body)' }}>{r.line_item}</span>
+              <span style={{ color: 'var(--text-title)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                 {formatMoney(Number(r.amount_cents))}
               </span>
             </li>
           ))
         )}
       </ul>
+      
       <div
         style={{
-          marginTop: 12,
-          paddingTop: 10,
-          borderTop: '1px solid #2a2a2a',
+          marginTop: '1rem',
+          paddingTop: '0.75rem',
+          borderTop: '2px solid var(--border-subtle)',
           display: 'flex',
           justifyContent: 'space-between',
-          fontWeight: 600,
-          fontSize: 14,
+          fontWeight: 700,
+          fontSize: '0.95rem',
         }}
       >
-        <span style={{ color: '#fff' }}>Total</span>
-        <span style={{ color: colour, fontVariantNumeric: 'tabular-nums' }}>{formatMoney(totalCents)}</span>
+        <span style={{ color: 'var(--text-title)' }}>Total {title}</span>
+        <span style={{ color: `var(--text-${type})`, fontVariantNumeric: 'tabular-nums' }}>{formatMoney(totalCents)}</span>
       </div>
     </div>
   );
 }
 
-function Mini({ label, value, colour }: { label: string; value: string; colour: string }) {
+function MiniCard({ label, value, type, icon: Icon }: { label: string; value: string; type: 'success' | 'danger'; icon: LucideIcon }) {
   return (
-    <div>
-      <div style={{ fontSize: 10, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ marginTop: 4, fontSize: 16, color: colour, fontWeight: 600 }}>{value}</div>
+    <div 
+      className="card" 
+      style={{ 
+        padding: '0.75rem 1rem', 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '0.75rem', 
+        minWidth: '150px',
+        background: 'var(--bg-app)',
+        borderColor: 'var(--border-subtle)'
+      }}
+    >
+      <div style={{ color: `var(--accent-${type})` }}>
+        <Icon size={18} />
+      </div>
+      <div>
+        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+        <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-title)', marginTop: '0.15rem' }}>{value}</div>
+      </div>
     </div>
   );
 }
-
-const exportBtn: React.CSSProperties = {
-  padding: '0.25rem 0.75rem',
-  background: 'transparent',
-  color: '#86c7a3',
-  border: '1px solid #2da565',
-  borderRadius: 4,
-  fontSize: 12,
-  cursor: 'pointer',
-};
-const emptyBox: React.CSSProperties = {
-  marginTop: 24,
-  padding: 16,
-  background: '#0e0e0e',
-  border: '1px dashed #2a2a2a',
-  borderRadius: 4,
-  color: '#888',
-  fontSize: 13,
-};

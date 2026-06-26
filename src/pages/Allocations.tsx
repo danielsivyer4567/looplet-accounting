@@ -7,10 +7,7 @@ import type { JobListRow } from '@/hooks/useJobs';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
 import { SkeletonLine } from '@/components/Skeleton';
-
-// ---------------------------------------------------------------------------
-// PDF preview pane — generates a signed URL from storage_key on demand
-// ---------------------------------------------------------------------------
+import { GitPullRequest, Eye, EyeOff, CheckCircle2, ChevronRight, X } from 'lucide-react';
 
 function BillPreviewPane({
   bill,
@@ -29,7 +26,7 @@ function BillPreviewPane({
 
     supabase.storage
       .from('bills')
-      .createSignedUrl(bill.storage_key, 300) // 5 min TTL
+      .createSignedUrl(bill.storage_key, 300)
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error || !data?.signedUrl) {
@@ -52,14 +49,16 @@ function BillPreviewPane({
         position: 'fixed',
         top: 0,
         right: 0,
-        width: '40vw',
+        width: '400px',
+        maxWidth: '85vw',
         height: '100vh',
-        background: '#111',
-        borderLeft: '1px solid #2a2a2a',
+        background: 'var(--bg-panel)',
+        borderLeft: '1px solid var(--border-subtle)',
         display: 'flex',
         flexDirection: 'column',
         zIndex: 100,
-        boxShadow: '-4px 0 24px rgba(0,0,0,0.6)',
+        boxShadow: 'var(--shadow-lg)',
+        animation: 'fadeIn 0.3s ease'
       }}
       role="complementary"
       aria-label="Bill PDF preview"
@@ -67,66 +66,58 @@ function BillPreviewPane({
       {/* Header */}
       <div
         style={{
-          padding: '0.75rem 1rem',
-          borderBottom: '1px solid #2a2a2a',
+          padding: '1rem',
+          borderBottom: '1px solid var(--border-subtle)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexShrink: 0,
         }}
       >
-        <div>
-          <span style={{ fontWeight: 600, fontSize: 13 }}>
+        <div style={{ minWidth: 0, flex: 1, marginRight: '0.5rem' }}>
+          <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-title)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {bill.supplier_name_raw ?? 'Preview'}
-          </span>
-          <span style={{ color: '#666', fontSize: 12, marginLeft: 8 }}>
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.15rem' }}>
             {bill.invoice_date ?? ''}{bill.invoice_number ? ` · #${bill.invoice_number}` : ''}
-          </span>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexShrink: 0 }}>
           {signedUrl && (
             <a
               href={`/bills/${bill.id}`}
               target="_blank"
               rel="noreferrer"
-              style={{ color: '#86c7a3', fontSize: 12 }}
+              style={{ color: 'var(--accent-primary)', fontSize: '0.75rem', fontWeight: 600 }}
             >
-              Open detail &rarr;
+              Open page &rarr;
             </a>
           )}
           <button
             onClick={onClose}
             aria-label="Close preview"
-            style={{
-              background: 'transparent',
-              color: '#888',
-              border: '1px solid #333',
-              borderRadius: 3,
-              fontSize: 13,
-              padding: '0.2rem 0.6rem',
-              cursor: 'pointer',
-              lineHeight: 1.4,
-            }}
+            className="btn btn-ghost"
+            style={{ padding: '0.2rem 0.4rem' }}
           >
-            ✕
+            <X size={16} />
           </button>
         </div>
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', background: '#e2e8f0' }}>
         {urlError ? (
-          <div style={{ padding: 20, color: 'salmon', fontSize: 13 }}>
-            <p style={{ margin: 0 }}>Could not load preview:</p>
-            <p style={{ margin: '4px 0 0', color: '#888' }}>{urlError}</p>
+          <div style={{ padding: 20, color: 'var(--text-danger)', fontSize: '0.875rem', background: 'var(--bg-panel)', height: '100%' }}>
+            <p style={{ margin: 0, fontWeight: 'bold' }}>Could not load preview:</p>
+            <p style={{ margin: '4px 0 0', color: 'var(--text-muted)' }}>{urlError}</p>
             <p style={{ marginTop: 12 }}>
-              <Link to={`/bills/${bill.id}`} style={{ color: '#86c7a3' }}>
+              <Link to={`/bills/${bill.id}`} style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
                 Open bill detail page instead &rarr;
               </Link>
             </p>
           </div>
         ) : !signedUrl ? (
-          <div style={{ padding: 20, color: '#555', fontSize: 13 }}>Generating preview…</div>
+          <div style={{ padding: 20, color: 'var(--text-muted)', fontSize: '0.875rem', background: 'var(--bg-panel)', height: '100%' }}>Generating preview…</div>
         ) : isPdf ? (
           <iframe
             src={signedUrl}
@@ -134,12 +125,11 @@ function BillPreviewPane({
             style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
           />
         ) : (
-          // Image fallback (PNG/JPEG)
           <div style={{ height: '100%', overflowY: 'auto', padding: 12 }}>
             <img
               src={signedUrl}
               alt={`Bill from ${bill.supplier_name_raw ?? 'supplier'}`}
-              style={{ width: '100%', borderRadius: 4 }}
+              style={{ width: '100%', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-sm)' }}
             />
           </div>
         )}
@@ -147,10 +137,6 @@ function BillPreviewPane({
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
 
 export function AllocationsPage() {
   const { currentOrg } = useOrg();
@@ -165,60 +151,81 @@ export function AllocationsPage() {
 
   if (!currentOrg) {
     return (
-      <section>
+      <section className="animated-fade-in">
         <h1>Allocations</h1>
-        <p style={{ color: '#888' }}>Pick an organisation to see the allocation queue.</p>
+        <p style={{ color: 'var(--text-muted)' }}>Pick an organisation to see the allocation queue.</p>
       </section>
     );
   }
+  
   if (loading) {
     return (
-      <section>
+      <section className="animated-fade-in">
         <h1>Allocations</h1>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
-          {Array.from({ length: 5 }).map((_, i) => (
+          {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
+              className="card"
               style={{
-                padding: '1rem',
-                background: '#1a1a1a',
-                border: '1px solid #2a2a2a',
-                borderRadius: 6,
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '0.5rem',
               }}
             >
-              <SkeletonLine width="40%" height={16} />
-              <SkeletonLine width="65%" height={12} />
-              <SkeletonLine width="30%" height={12} />
+              <SkeletonLine width="30%" height={16} />
+              <SkeletonLine width="50%" height={12} />
+              <SkeletonLine width="20%" height={12} />
             </div>
           ))}
         </div>
       </section>
     );
   }
-  if (error) return <p style={{ color: 'salmon' }}>Failed to load: {error}</p>;
+  if (error) {
+    return (
+      <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}>
+        Failed to load: {error}
+      </div>
+    );
+  }
 
   if (bills.length === 0) {
     return (
-      <section>
-        <h1>Allocations</h1>
-        <p style={{ color: '#888' }}>Inbox zero. Every bill is attached to a job.</p>
-        <p style={{ color: '#666', fontSize: 14 }}>
-          Bills land here when they're extracted but couldn't auto-attach. Either no exact{' '}
-          <code>job_reference</code> match, low extraction confidence, or no job ref on the bill at
-          all.
-        </p>
+      <section className="animated-fade-in" style={{ padding: '2rem 0' }}>
+        <h1 style={{ marginBottom: '0.5rem' }}>Allocations</h1>
+        <div 
+          style={{ 
+            padding: '2.5rem 2rem', 
+            background: 'var(--bg-success-subtle)', 
+            border: '1px dashed var(--accent-success)', 
+            borderRadius: 'var(--radius-lg)', 
+            color: 'var(--text-success)', 
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1rem',
+            maxWidth: '650px',
+            margin: '2rem auto',
+            textAlign: 'center'
+          }}
+        >
+          <CheckCircle2 size={48} />
+          <div>
+            <h3 style={{ color: 'var(--text-success)', margin: '0 0 0.25rem 0', fontSize: '1.15rem' }}>Allocation Inbox Zero!</h3>
+            <p style={{ margin: 0, fontSize: '0.875rem', opacity: 0.85 }}>Every single bill has been attached to a job.</p>
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.775rem', lineHeight: '1.5', margin: '0.5rem 0 0 0', maxWidth: '480px' }}>
+            Bills land here when they are processed but couldn't auto-attach. This happens when no exact job reference match is found, extraction confidence is low, or no job details were parsed.
+          </p>
+        </div>
       </section>
     );
   }
 
   const confirmAttach = async (bill: QueueBill, jobId: string) => {
     setBusyId(bill.id);
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       setBusyId(null);
       return;
@@ -264,7 +271,6 @@ export function AllocationsPage() {
     let n = 0;
     for (const b of billsWithSuggestion) {
       if (!b.suggested_job?.id) continue;
-      // Direct DB update — fast, idempotent. Skips bills-attach edge fn (no Xero push in stub mode).
       await supabase
         .from('bills')
         .update({
@@ -296,46 +302,55 @@ export function AllocationsPage() {
 
   return (
     <>
-      {/* Main content — shrinks when preview pane is open */}
       <section
         style={{
-          marginRight: previewOpen ? '40vw' : 0,
-          transition: 'margin-right 0.15s ease',
+          marginRight: previewOpen ? '420px' : 0,
+          transition: 'margin-right 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
+        className="animated-fade-in"
       >
-        <h1>Allocations</h1>
-        <p style={{ color: '#888', fontSize: 14 }}>
-          {bills.length} bill{bills.length === 1 ? '' : 's'} waiting for a job. Suggested matches at
-          the top, no-suggestion at the bottom.
-        </p>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+            <GitPullRequest size={24} style={{ color: 'var(--accent-primary)' }} />
+            Allocations
+          </h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+            {bills.length} bill{bills.length === 1 ? '' : 's'} waiting to be allocated to jobs.
+          </p>
+        </div>
 
         {billsWithSuggestion.length > 0 && (
-          <div style={{ marginTop: 12, padding: 12, background: '#0d2f1f', border: '1px solid #1c5135', borderRadius: 6 }}>
-            <strong style={{ color: '#86c7a3' }}>
-              {billsWithSuggestion.length} bills have AI-suggested job matches.
-            </strong>
+          <div 
+            style={{ 
+              marginTop: '1rem', 
+              marginBottom: '1.5rem',
+              padding: '1rem 1.25rem', 
+              background: 'var(--bg-success-subtle)', 
+              border: '1px solid rgba(16, 185, 129, 0.2)', 
+              borderRadius: 'var(--radius-md)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '0.75rem'
+            }}
+          >
+            <div style={{ color: 'var(--text-success)', fontSize: '0.875rem', fontWeight: 600 }}>
+              {billsWithSuggestion.length} bills have suggested matches.
+            </div>
             <button
               onClick={bulkAttachAllSuggestions}
               disabled={bulkBusy}
-              style={{
-                marginLeft: 12,
-                padding: '0.4rem 1rem',
-                background: '#1c5135',
-                color: '#fff',
-                border: '1px solid #2da565',
-                borderRadius: 4,
-                cursor: bulkBusy ? 'wait' : 'pointer',
-                fontSize: 13,
-                fontWeight: 600,
-              }}
+              className="btn btn-primary"
+              style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
             >
               {bulkBusy ? 'Attaching…' : `✓ Bulk-attach all ${billsWithSuggestion.length}`}
             </button>
-            {bulkMsg && <div style={{ color: '#aaa', fontSize: 12, marginTop: 6 }}>{bulkMsg}</div>}
+            {bulkMsg && <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', width: '100%', marginTop: '0.25rem' }}>{bulkMsg}</div>}
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {bills.map((b) => (
             <BillCard
               key={b.id}
@@ -352,7 +367,7 @@ export function AllocationsPage() {
         </div>
       </section>
 
-      {/* Docked preview pane */}
+      {/* Slide-out Preview Panel */}
       {previewBill && (
         <BillPreviewPane
           bill={previewBill}
@@ -384,115 +399,119 @@ function BillCard({
 }) {
   const score = bill.suggested_match_score ?? 0;
   const sugg = bill.suggested_job;
-  const scoreColour = score >= 0.85 ? '#86c7a3' : score >= 0.65 ? '#d2c886' : '#888';
+  
+  let scoreClass = 'badge-neutral';
+  if (score >= 0.85) scoreClass = 'badge-success';
+  else if (score >= 0.65) scoreClass = 'badge-warning';
 
   return (
     <div
+      className="card"
       style={{
-        padding: '1rem',
-        background: isPreviewing ? '#1e1e2a' : '#1a1a1a',
-        border: isPreviewing ? '1px solid #5096d8' : '1px solid #2a2a2a',
-        borderRadius: 6,
-        display: 'grid',
-        gridTemplateColumns: '1fr auto',
-        gap: '1rem',
+        padding: '1.25rem',
+        borderLeft: isPreviewing ? '4px solid var(--accent-primary)' : '1px solid var(--border-subtle)',
+        display: 'flex',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
         alignItems: 'center',
+        gap: '1rem',
       }}
     >
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 600 }}>
-          {bill.supplier_name_raw ?? <span style={{ color: '#888' }}>No supplier</span>}
+      <div style={{ flex: 1, minWidth: '300px' }}>
+        <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-title)' }}>
+          {bill.supplier_name_raw ?? <span style={{ color: 'var(--text-muted)' }}>No supplier extracted</span>}
         </div>
-        <div style={{ fontSize: 12, color: '#888', marginTop: '0.25rem' }}>
-          {formatMoney(bill.total_inc_gst_cents)} ·{' '}
-          <code>{bill.invoice_number ?? '—'}</code> · {bill.invoice_date ?? '—'} · OCR:{' '}
-          {bill.ocr_provider ?? '—'} ({bill.ocr_confidence ?? '—'})
-        </div>
-        <div style={{ fontSize: 12, color: '#888', marginTop: '0.25rem' }}>
-          Job ref on bill:{' '}
-          {bill.job_reference_raw ? (
-            <code style={{ color: '#d2c886' }}>{bill.job_reference_raw}</code>
-          ) : (
-            <span style={{ color: '#666' }}>none extracted</span>
+        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+          <span style={{ fontWeight: 600, color: 'var(--text-body)' }}>{formatMoney(bill.total_inc_gst_cents)}</span>
+          <span>·</span>
+          <code>{bill.invoice_number ?? '—'}</code>
+          <span>·</span>
+          <span>{bill.invoice_date ?? '—'}</span>
+          {bill.ocr_provider && (
+            <>
+              <span>·</span>
+              <span>Intake: {bill.ocr_provider} ({Math.round((bill.ocr_confidence ?? 0) * 100)}%)</span>
+            </>
           )}
         </div>
-        {/* Preview toggle */}
+        
+        <div style={{ fontSize: '0.775rem', color: 'var(--text-body)', marginTop: '0.35rem' }}>
+          Job Reference (raw):{' '}
+          {bill.job_reference_raw ? (
+            <code style={{ color: 'var(--text-warning)', fontWeight: 600 }}>{bill.job_reference_raw}</code>
+          ) : (
+            <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>None extracted</span>
+          )}
+        </div>
+
+        {/* Preview Button Trigger */}
         <button
           onClick={onPreview}
-          title={isPreviewing ? 'Close preview' : 'Preview bill PDF'}
+          className="btn btn-ghost"
           style={{
             marginTop: '0.5rem',
-            background: 'transparent',
-            color: isPreviewing ? '#5096d8' : '#666',
-            border: 'none',
-            padding: 0,
-            cursor: 'pointer',
-            fontSize: 12,
+            padding: '0.2rem 0.5rem',
+            fontSize: '0.75rem',
+            marginLeft: '-0.5rem'
           }}
           aria-pressed={isPreviewing}
-          aria-label={isPreviewing ? 'Close bill preview' : 'Preview bill PDF'}
         >
-          {isPreviewing ? '✕ close preview' : '👁 preview'}
+          {isPreviewing ? <EyeOff size={12} /> : <Eye size={12} />}
+          <span>{isPreviewing ? 'Close Preview' : 'Show PDF'}</span>
         </button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: 240 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: '280px', flexShrink: 0 }}>
         {sugg ? (
-          <>
-            <div style={{ fontSize: 12, color: '#aaa' }}>
-              Suggested:{' '}
-              <strong style={{ color: '#fff' }}>{sugg.job_number}</strong>{' '}
-              <span style={{ color: scoreColour }}>({(score * 100).toFixed(0)}% match)</span>
+          <div 
+            style={{ 
+              background: 'var(--bg-app)', 
+              padding: '0.75rem', 
+              borderRadius: 'var(--radius-sm)', 
+              border: '1px solid var(--border-subtle)' 
+            }}
+          >
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>AI Suggested Match:</span>
+              <span className={`badge ${scoreClass}`} style={{ fontSize: '8px' }}>
+                {(score * 100).toFixed(0)}% Match
+              </span>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            
+            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-title)', marginBottom: '0.75rem' }}>
+              <code style={{ marginRight: '0.5rem', color: 'var(--accent-primary)' }}>{sugg.job_number}</code>
+              <span>{sugg.name}</span>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '0.35rem' }}>
               <button
                 onClick={() => onConfirm(sugg.id)}
                 disabled={busy}
-                style={{
-                  padding: '0.4rem 0.75rem',
-                  background: '#1c5135',
-                  color: '#fff',
-                  border: '1px solid #2da565',
-                  borderRadius: 4,
-                  cursor: busy ? 'wait' : 'pointer',
-                  fontSize: 13,
-                }}
+                className="btn btn-primary"
+                style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', flex: 1 }}
               >
-                {busy ? 'Attaching…' : `Attach to ${sugg.job_number}`}
+                {busy ? 'Attaching…' : 'Approve Match'}
               </button>
               <button
                 onClick={onReject}
                 disabled={busy}
-                style={{
-                  padding: '0.4rem 0.75rem',
-                  background: 'transparent',
-                  color: '#aaa',
-                  border: '1px solid #444',
-                  borderRadius: 4,
-                  cursor: busy ? 'wait' : 'pointer',
-                  fontSize: 13,
-                }}
+                className="btn btn-secondary"
+                style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
               >
                 Wrong
               </button>
             </div>
-          </>
+          </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
             <select
               onChange={(e) => e.target.value && onQuickAssign(e.target.value)}
               defaultValue=""
               disabled={busy}
-              style={{
-                padding: '0.4rem 0.5rem',
-                background: '#0a0a0a',
-                color: '#fff',
-                border: '1px solid #444',
-                borderRadius: 4,
-                fontSize: 12,
-              }}
+              className="form-select"
+              style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem' }}
             >
-              <option value="">— quick-assign to job —</option>
+              <option value="">— Assign to a job —</option>
               {jobs.map((j) => (
                 <option key={j.id} value={j.id}>
                   {j.job_number} · {j.name}
@@ -501,9 +520,10 @@ function BillCard({
             </select>
             <Link
               to={`/bills/${bill.id}`}
-              style={{ color: '#888', fontSize: 11, textAlign: 'right' }}
+              style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textAlign: 'right', display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.15rem' }}
             >
-              or open detail page →
+              <span>or open details</span>
+              <ChevronRight size={12} />
             </Link>
           </div>
         )}
