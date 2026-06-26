@@ -48,8 +48,8 @@ export function BillUploadPage() {
       </Link>
       <h1 style={{ marginTop: '0.5rem' }}>Upload bill</h1>
       <p style={{ color: '#888', fontSize: 14, marginBottom: '1.5rem' }}>
-        PDF, PNG, JPG, HEIC, or WEBP. Max 25 MB. Born-digital PDFs extract in ~100ms with no
-        OCR cost; photos and scans run vision OCR.
+        PDF, PNG, JPG, HEIC, or WEBP. Max 25 MB. Born-digital PDFs extract in ~100ms with no OCR
+        cost; photos and scans run vision OCR.
       </p>
 
       {stage.step === 'idle' || stage.step === 'error' ? (

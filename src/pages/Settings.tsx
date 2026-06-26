@@ -6,16 +6,7 @@ import { GmailConnect } from '@/components/settings/GmailConnect';
 import { BankConnect } from '@/components/settings/BankConnect';
 import { XeroConnect } from '@/components/settings/XeroConnect';
 import { PayerBankDetails } from '@/components/settings/PayerBankDetails';
-import { 
-  User, 
-  Lock, 
-  Bell, 
-  Eye, 
-  Shield, 
-  ChevronRight, 
-  Info,
-  X
-} from 'lucide-react';
+import { User, Lock, Bell, Eye, Shield, ChevronRight, Info, X } from 'lucide-react';
 
 type SettingsCategory = 'account' | 'privacy' | 'notification' | 'appearance';
 
@@ -28,11 +19,11 @@ export function SettingsPage() {
     social: true,
     thirdParty: false,
     commodities: true,
-    crypto: true
+    crypto: true,
   });
 
   const toggleNotification = (key: keyof typeof notifications) => {
-    setNotifications(prev => ({ ...prev, [key]: !prev[key] }));
+    setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   return (
@@ -125,16 +116,25 @@ export function SettingsPage() {
       `}</style>
 
       {/* Settings Header with close (X) button */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '1rem' }}>
-        <button 
-          style={{ 
-            background: 'transparent', 
-            border: 'none', 
-            cursor: 'pointer', 
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          marginBottom: '1.5rem',
+          borderBottom: '1px solid var(--border-subtle)',
+          paddingBottom: '1rem',
+        }}
+      >
+        <button
+          style={{
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
             color: 'var(--text-title)',
             display: 'flex',
             alignItems: 'center',
-            padding: '0.2rem'
+            padding: '0.2rem',
           }}
           onClick={() => window.history.back()}
           title="Back"
@@ -147,28 +147,28 @@ export function SettingsPage() {
       <div className="settings-container">
         {/* Left Side: Navigation Links */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <button 
+          <button
             className={`settings-tab-btn ${activeCategory === 'account' ? 'active' : ''}`}
             onClick={() => setActiveCategory('account')}
           >
             <User size={16} />
             <span>Account</span>
           </button>
-          <button 
+          <button
             className={`settings-tab-btn ${activeCategory === 'privacy' ? 'active' : ''}`}
             onClick={() => setActiveCategory('privacy')}
           >
             <Lock size={16} />
             <span>Privacy</span>
           </button>
-          <button 
+          <button
             className={`settings-tab-btn ${activeCategory === 'notification' ? 'active' : ''}`}
             onClick={() => setActiveCategory('notification')}
           >
             <Bell size={16} />
             <span>Notification</span>
           </button>
-          <button 
+          <button
             className={`settings-tab-btn ${activeCategory === 'appearance' ? 'active' : ''}`}
             onClick={() => setActiveCategory('appearance')}
           >
@@ -200,7 +200,15 @@ export function SettingsPage() {
                 <PayerBankDetails />
               </div>
               <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem' }}>
-                <h2 style={{ fontSize: '1.15rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <h2
+                  style={{
+                    fontSize: '1.15rem',
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                  }}
+                >
                   <Shield size={18} style={{ color: 'var(--text-muted)' }} />
                   Team & Security
                 </h2>
@@ -219,7 +227,7 @@ export function SettingsPage() {
                       fontWeight: 600,
                       fontSize: '0.825rem',
                       textDecoration: 'none',
-                      transition: 'var(--transition-smooth)'
+                      transition: 'var(--transition-smooth)',
                     }}
                   >
                     <span>Team members &amp; roles</span>
@@ -239,7 +247,7 @@ export function SettingsPage() {
                       fontWeight: 600,
                       fontSize: '0.825rem',
                       textDecoration: 'none',
-                      transition: 'var(--transition-smooth)'
+                      transition: 'var(--transition-smooth)',
                     }}
                   >
                     <span>Audit log</span>
@@ -254,13 +262,26 @@ export function SettingsPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Privacy settings</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>
-                Your data is strictly isolated within tenant containers and encrypted at rest. Select options below to configure audit levels.
+                Your data is strictly isolated within tenant containers and encrypted at rest.
+                Select options below to configure audit levels.
               </p>
               <div className="card" style={{ padding: '0.5rem 0' }}>
                 <div className="settings-row">
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}>Strict Tenant Isolation</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>Verify row-level security policies on every API call.</div>
+                    <div
+                      style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
+                    >
+                      Strict Tenant Isolation
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--text-muted)',
+                        marginTop: '0.15rem',
+                      }}
+                    >
+                      Verify row-level security policies on every API call.
+                    </div>
                   </div>
                   <label className="switch">
                     <input type="checkbox" defaultChecked disabled />
@@ -269,8 +290,20 @@ export function SettingsPage() {
                 </div>
                 <div className="settings-row">
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}>Anonymized Audits</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>Anonymize financial metrics in aggregate performance logs.</div>
+                    <div
+                      style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
+                    >
+                      Anonymized Audits
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--text-muted)',
+                        marginTop: '0.15rem',
+                      }}
+                    >
+                      Anonymize financial metrics in aggregate performance logs.
+                    </div>
                   </div>
                   <label className="switch">
                     <input type="checkbox" />
@@ -283,71 +316,185 @@ export function SettingsPage() {
 
           {activeCategory === 'notification' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Notification settings</h3>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>
+                Notification settings
+              </h3>
 
               {/* Marketing Group */}
               <div>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Marketing</span>
+                <span
+                  style={{
+                    display: 'block',
+                    fontSize: '0.75rem',
+                    color: 'var(--text-muted)',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  Marketing
+                </span>
                 <div className="card" style={{ padding: '0.5rem 0' }}>
-                  
                   <div className="settings-row">
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}>Personalized emails</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem', lineHeight: 1.4 }}>I am happy to receive emails about Revolut products, services and offers that may interest me</div>
+                      <div
+                        style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
+                      >
+                        Personalized emails
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          marginTop: '0.15rem',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        I am happy to receive emails about Revolut products, services and offers
+                        that may interest me
+                      </div>
                     </div>
                     <label className="switch">
-                      <input type="checkbox" checked={notifications.emails} onChange={() => toggleNotification('emails')} />
+                      <input
+                        type="checkbox"
+                        checked={notifications.emails}
+                        onChange={() => toggleNotification('emails')}
+                      />
                       <span className="slider" />
                     </label>
                   </div>
 
                   <div className="settings-row">
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}>Personalized pushes</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem', lineHeight: 1.4 }}>I am happy to receive push notifications about Revolut products, services and offers that may interest me</div>
+                      <div
+                        style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
+                      >
+                        Personalized pushes
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          marginTop: '0.15rem',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        I am happy to receive push notifications about Revolut products, services
+                        and offers that may interest me
+                      </div>
                     </div>
                     <label className="switch">
-                      <input type="checkbox" checked={notifications.pushes} onChange={() => toggleNotification('pushes')} />
+                      <input
+                        type="checkbox"
+                        checked={notifications.pushes}
+                        onChange={() => toggleNotification('pushes')}
+                      />
                       <span className="slider" />
                     </label>
                   </div>
 
                   <div className="settings-row">
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}>Personalized in-app recommendations</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem', lineHeight: 1.4 }}>I'm happy to see recommendations about Revolut products, services and offers that may interest me</div>
+                      <div
+                        style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
+                      >
+                        Personalized in-app recommendations
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          marginTop: '0.15rem',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        I'm happy to see recommendations about Revolut products, services and offers
+                        that may interest me
+                      </div>
                     </div>
                     <label className="switch">
-                      <input type="checkbox" checked={notifications.inApp} onChange={() => toggleNotification('inApp')} />
+                      <input
+                        type="checkbox"
+                        checked={notifications.inApp}
+                        onChange={() => toggleNotification('inApp')}
+                      />
                       <span className="slider" />
                     </label>
                   </div>
 
                   <div className="settings-row">
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}>Social media and advertising platforms</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem', lineHeight: 1.4 }}>I'm happy for Revolut to share my name, email address, and app events with social media platforms to allow Revolut to advertise to me and others like me</div>
+                      <div
+                        style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
+                      >
+                        Social media and advertising platforms
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          marginTop: '0.15rem',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        I'm happy for Revolut to share my name, email address, and app events with
+                        social media platforms to allow Revolut to advertise to me and others like
+                        me
+                      </div>
                     </div>
                     <label className="switch">
-                      <input type="checkbox" checked={notifications.social} onChange={() => toggleNotification('social')} />
+                      <input
+                        type="checkbox"
+                        checked={notifications.social}
+                        onChange={() => toggleNotification('social')}
+                      />
                       <span className="slider" />
                     </label>
                   </div>
-
                 </div>
               </div>
 
               {/* Promotions Group */}
               <div>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Promotions</span>
+                <span
+                  style={{
+                    display: 'block',
+                    fontSize: '0.75rem',
+                    color: 'var(--text-muted)',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  Promotions
+                </span>
                 <div className="card" style={{ padding: '0.5rem 0' }}>
                   <div className="settings-row">
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}>Third party promotions</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem', lineHeight: 1.4 }}>I want to receive notifications about promotions from Revolut partners</div>
+                      <div
+                        style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
+                      >
+                        Third party promotions
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          marginTop: '0.15rem',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        I want to receive notifications about promotions from Revolut partners
+                      </div>
                     </div>
                     <label className="switch">
-                      <input type="checkbox" checked={notifications.thirdParty} onChange={() => toggleNotification('thirdParty')} />
+                      <input
+                        type="checkbox"
+                        checked={notifications.thirdParty}
+                        onChange={() => toggleNotification('thirdParty')}
+                      />
                       <span className="slider" />
                     </label>
                   </div>
@@ -356,15 +503,45 @@ export function SettingsPage() {
 
               {/* Commodities Group */}
               <div>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Commodities</span>
+                <span
+                  style={{
+                    display: 'block',
+                    fontSize: '0.75rem',
+                    color: 'var(--text-muted)',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  Commodities
+                </span>
                 <div className="card" style={{ padding: '0.5rem 0' }}>
                   <div className="settings-row">
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}>Commodities volatility alerts</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem', lineHeight: 1.4 }}>Notify me automatically whenever the price of precious metals makes a significant move</div>
+                      <div
+                        style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
+                      >
+                        Commodities volatility alerts
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          marginTop: '0.15rem',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        Notify me automatically whenever the price of precious metals makes a
+                        significant move
+                      </div>
                     </div>
                     <label className="switch">
-                      <input type="checkbox" checked={notifications.commodities} onChange={() => toggleNotification('commodities')} />
+                      <input
+                        type="checkbox"
+                        checked={notifications.commodities}
+                        onChange={() => toggleNotification('commodities')}
+                      />
                       <span className="slider" />
                     </label>
                   </div>
@@ -373,21 +550,50 @@ export function SettingsPage() {
 
               {/* Cryptocurrencies Group */}
               <div>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Cryptocurrencies</span>
+                <span
+                  style={{
+                    display: 'block',
+                    fontSize: '0.75rem',
+                    color: 'var(--text-muted)',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  Cryptocurrencies
+                </span>
                 <div className="card" style={{ padding: '0.5rem 0' }}>
                   <div className="settings-row">
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}>Crypto volatility alerts</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem', lineHeight: 1.4 }}>Notify me automatically whenever the price of cryptocurrency makes a significant move</div>
+                      <div
+                        style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
+                      >
+                        Crypto volatility alerts
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          marginTop: '0.15rem',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        Notify me automatically whenever the price of cryptocurrency makes a
+                        significant move
+                      </div>
                     </div>
                     <label className="switch">
-                      <input type="checkbox" checked={notifications.crypto} onChange={() => toggleNotification('crypto')} />
+                      <input
+                        type="checkbox"
+                        checked={notifications.crypto}
+                        onChange={() => toggleNotification('crypto')}
+                      />
                       <span className="slider" />
                     </label>
                   </div>
                 </div>
               </div>
-
             </div>
           )}
 
@@ -395,30 +601,44 @@ export function SettingsPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Appearance</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>
-                Appearance settings are controlled globally in the top header. Switch themes (light/dark mode) using the sun/moon icon.
+                Appearance settings are controlled globally in the top header. Switch themes
+                (light/dark mode) using the sun/moon icon.
               </p>
             </div>
           )}
         </div>
       </div>
-      
+
       {/* Informative card info */}
-      <div 
-        className="card" 
-        style={{ 
-          marginTop: '2.5rem', 
-          background: 'var(--bg-hover)', 
+      <div
+        className="card"
+        style={{
+          marginTop: '2.5rem',
+          background: 'var(--bg-hover)',
           border: '1px dashed var(--border-subtle)',
           padding: '1.25rem',
           display: 'flex',
           gap: '0.75rem',
-          alignItems: 'flex-start'
+          alignItems: 'flex-start',
         }}
       >
-        <Info size={16} style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }} />
+        <Info
+          size={16}
+          style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }}
+        />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-          <span style={{ fontWeight: 600, color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>Accounting Preferences</span>
-          Looplet syncs organizations dynamically. BAS submission alerts, tax deadlines, and OCR scanning cues are loaded contextually based on active company setups.
+          <span
+            style={{
+              fontWeight: 600,
+              color: 'var(--text-title)',
+              display: 'block',
+              marginBottom: '0.25rem',
+            }}
+          >
+            Accounting Preferences
+          </span>
+          Looplet syncs organizations dynamically. BAS submission alerts, tax deadlines, and OCR
+          scanning cues are loaded contextually based on active company setups.
         </div>
       </div>
     </section>

@@ -7,17 +7,17 @@ import { AllocationSplitButton } from '@/components/AllocationSplitButton';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
 import { useOrg } from '@/hooks/useOrg';
-import { 
-  ChevronLeft, 
-  Edit3, 
-  Save, 
-  X, 
-  RefreshCw, 
-  FileText, 
-  Briefcase, 
+import {
+  ChevronLeft,
+  Edit3,
+  Save,
+  X,
+  RefreshCw,
+  FileText,
+  Briefcase,
   FolderOpen,
   AlertTriangle,
-  Star
+  Star,
 } from 'lucide-react';
 
 interface BillDraft {
@@ -34,8 +34,7 @@ interface BillDraft {
 }
 
 function billToDraft(bill: Bill): BillDraft {
-  const cents2str = (c: number | null) =>
-    c != null ? (c / 100).toFixed(2) : '';
+  const cents2str = (c: number | null) => (c != null ? (c / 100).toFixed(2) : '');
   return {
     supplier_name_raw: bill.supplier_name_raw ?? '',
     supplier_abn: bill.supplier_abn ?? '',
@@ -155,10 +154,7 @@ export function BillDetailPage() {
         notes: draft.notes.trim() || null,
       };
 
-      const { error: saveErr } = await supabase
-        .from('bills')
-        .update(payload)
-        .eq('id', bill.id);
+      const { error: saveErr } = await supabase.from('bills').update(payload).eq('id', bill.id);
 
       if (saveErr) {
         setActionError(saveErr.message);
@@ -183,7 +179,9 @@ export function BillDetailPage() {
     setBusy(true);
     setActionError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error('No session');
 
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bills-attach`;
@@ -211,7 +209,9 @@ export function BillDetailPage() {
     setBusy(true);
     setActionError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error('No session');
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bills-extract`;
       const res = await fetch(url, {
@@ -235,15 +235,15 @@ export function BillDetailPage() {
   return (
     <section className="animated-fade-in">
       {/* Top back navigation */}
-      <Link 
-        to="/bills" 
-        style={{ 
-          color: 'var(--text-muted)', 
-          fontSize: '0.825rem', 
-          display: 'inline-flex', 
-          alignItems: 'center', 
+      <Link
+        to="/bills"
+        style={{
+          color: 'var(--text-muted)',
+          fontSize: '0.825rem',
+          display: 'inline-flex',
+          alignItems: 'center',
           gap: '0.25rem',
-          marginBottom: '1rem'
+          marginBottom: '1rem',
         }}
       >
         <ChevronLeft size={14} />
@@ -251,48 +251,57 @@ export function BillDetailPage() {
       </Link>
 
       {/* Header controls bar */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: '0.5rem',
           flexWrap: 'wrap',
-          gap: '1rem'
+          gap: '1rem',
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <FileText size={24} style={{ color: 'var(--accent-primary)' }} />
-          {bill.supplier_name_raw ?? <span style={{ color: 'var(--text-muted)' }}>Bill {bill.id.slice(0, 8)}</span>}
+          {bill.supplier_name_raw ?? (
+            <span style={{ color: 'var(--text-muted)' }}>Bill {bill.id.slice(0, 8)}</span>
+          )}
         </h1>
-        
+
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
           {savedFlash && (
-            <span className="badge badge-success" style={{ padding: '0.4rem 0.75rem', textTransform: 'none' }}>✓ Saved</span>
+            <span
+              className="badge badge-success"
+              style={{ padding: '0.4rem 0.75rem', textTransform: 'none' }}
+            >
+              ✓ Saved
+            </span>
           )}
-          
+
           <PersonalToggle bill={bill} onChange={() => void refresh()} />
-          
+
           {!editing && (
             <button onClick={startEdit} className="btn btn-secondary">
               <Edit3 size={14} />
               <span>Edit Details</span>
             </button>
           )}
-          
+
           <AllocationSplitButton
             resourceType="bill"
             resourceId={bill.id}
             hostOrgId={bill.organization_id}
             onSaved={() => void refresh()}
           />
-          
+
           <MoveToOrgButton
             table="bills"
             rowId={bill.id}
             currentOrgId={bill.organization_id}
             fkColumnsToNull={['supplier_id', 'job_id', 'suggested_job_id']}
-            onMoved={() => { window.location.href = '/bills'; }}
+            onMoved={() => {
+              window.location.href = '/bills';
+            }}
           />
         </div>
       </div>
@@ -300,23 +309,39 @@ export function BillDetailPage() {
       <StatusBar bill={bill} />
 
       {actionError && (
-        <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', marginBottom: '1.5rem', textTransform: 'none' }}>
+        <div
+          className="badge badge-danger"
+          style={{
+            display: 'block',
+            padding: '0.75rem',
+            marginBottom: '1.5rem',
+            textTransform: 'none',
+          }}
+        >
           {actionError}
         </div>
       )}
 
       {/* Two Column Split View */}
-      <div 
-        style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', 
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
           gap: '1.5rem',
-          alignItems: 'start'
+          alignItems: 'start',
         }}
       >
         {/* Left Side: Document Preview Pane */}
         <div>
-          <h3 style={{ fontSize: '0.875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+          <h3
+            style={{
+              fontSize: '0.875rem',
+              color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              marginBottom: '0.5rem',
+            }}
+          >
             Original Document
           </h3>
           <div
@@ -326,7 +351,7 @@ export function BillDetailPage() {
               height: '75vh',
               overflow: 'hidden',
               display: 'flex',
-              flexDirection: 'column'
+              flexDirection: 'column',
             }}
           >
             {fileUrl ? (
@@ -334,15 +359,33 @@ export function BillDetailPage() {
                 <iframe
                   src={fileUrl}
                   title={bill.original_filename}
-                  style={{ width: '100%', height: '100%', border: 'none', borderRadius: 'var(--radius-sm)' }}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                    borderRadius: 'var(--radius-sm)',
+                  }}
                 />
               ) : bill.mime_type.startsWith('image/') ? (
-                <div style={{ height: '100%', overflow: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    overflow: 'auto',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
                   <a href={fileUrl} target="_blank" rel="noreferrer" style={{ width: '100%' }}>
                     <img
                       src={fileUrl}
                       alt={bill.original_filename}
-                      style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 'var(--radius-sm)' }}
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        display: 'block',
+                        borderRadius: 'var(--radius-sm)',
+                      }}
                     />
                   </a>
                 </div>
@@ -355,7 +398,9 @@ export function BillDetailPage() {
                 </p>
               )
             ) : (
-              <p style={{ color: 'var(--text-muted)', padding: '1.5rem', textAlign: 'center' }}>Loading preview…</p>
+              <p style={{ color: 'var(--text-muted)', padding: '1.5rem', textAlign: 'center' }}>
+                Loading preview…
+              </p>
             )}
           </div>
         </div>
@@ -363,17 +408,42 @@ export function BillDetailPage() {
         {/* Right Side: Data Fields & Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <h3 style={{ fontSize: '0.875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '0.5rem',
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: '0.875rem',
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  margin: 0,
+                }}
+              >
                 Extracted Data
               </h3>
               {editing && (
                 <div style={{ display: 'flex', gap: '0.35rem' }}>
-                  <button onClick={() => void saveBill()} disabled={saving} className="btn btn-primary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}>
+                  <button
+                    onClick={() => void saveBill()}
+                    disabled={saving}
+                    className="btn btn-primary"
+                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                  >
                     <Save size={12} />
                     <span>{saving ? 'Saving…' : 'Save'}</span>
                   </button>
-                  <button onClick={cancelEdit} disabled={saving} className="btn btn-secondary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}>
+                  <button
+                    onClick={cancelEdit}
+                    disabled={saving}
+                    className="btn btn-secondary"
+                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                  >
                     <X size={12} />
                     <span>Cancel</span>
                   </button>
@@ -426,7 +496,10 @@ export function BillDetailPage() {
                       className="form-input"
                     />
                   </EditField>
-                  <EditField label="Total inc GST" hint="Auto-computes GST = total ÷ 11 if GST left blank">
+                  <EditField
+                    label="Total inc GST"
+                    hint="Auto-computes GST = total ÷ 11 if GST left blank"
+                  >
                     <input
                       value={draft.total_inc_gst_dollars}
                       onChange={(e) => setField('total_inc_gst_dollars', e.target.value)}
@@ -479,13 +552,24 @@ export function BillDetailPage() {
                   <Field label="Due" value={bill.due_date} />
                   <Field
                     label="Total inc GST"
-                    value={bill.total_inc_gst_cents != null ? formatMoney(bill.total_inc_gst_cents) : null}
+                    value={
+                      bill.total_inc_gst_cents != null
+                        ? formatMoney(bill.total_inc_gst_cents)
+                        : null
+                    }
                     highlight
                   />
-                  <Field label="GST" value={bill.gst_cents != null ? formatMoney(bill.gst_cents) : null} />
+                  <Field
+                    label="GST"
+                    value={bill.gst_cents != null ? formatMoney(bill.gst_cents) : null}
+                  />
                   <Field
                     label="Subtotal ex GST"
-                    value={bill.subtotal_ex_gst_cents != null ? formatMoney(bill.subtotal_ex_gst_cents) : null}
+                    value={
+                      bill.subtotal_ex_gst_cents != null
+                        ? formatMoney(bill.subtotal_ex_gst_cents)
+                        : null
+                    }
                   />
                   <Field label="Job Reference" value={bill.job_reference_raw} mono />
                   {bill.notes && <Field label="Notes" value={bill.notes} />}
@@ -505,7 +589,15 @@ export function BillDetailPage() {
           {/* Line items section */}
           {bill.line_items.length > 0 && (
             <div>
-              <h3 style={{ fontSize: '0.875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+              <h3
+                style={{
+                  fontSize: '0.875rem',
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  marginBottom: '0.5rem',
+                }}
+              >
                 Line Items
               </h3>
               <div className="table-premium-container">
@@ -524,7 +616,9 @@ export function BillDetailPage() {
                         <td>{li.description}</td>
                         <td style={{ textAlign: 'right' }}>{li.quantity}</td>
                         <td style={{ textAlign: 'right' }}>{formatMoney(li.unit_price_cents)}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(li.total_cents)}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                          {formatMoney(li.total_cents)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -538,64 +632,105 @@ export function BillDetailPage() {
 
           {/* Job attachment panel */}
           <div>
-            <h3 style={{ fontSize: '0.875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <h3
+              style={{
+                fontSize: '0.875rem',
+                color: 'var(--text-muted)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                marginBottom: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+              }}
+            >
               <Briefcase size={14} />
-              {bill.status === 'attached' || bill.status === 'paid' ? 'Attached Job' : 'Attach to a Job'}
+              {bill.status === 'attached' || bill.status === 'paid'
+                ? 'Attached Job'
+                : 'Attach to a Job'}
             </h3>
 
             {bill.status === 'attached' || bill.status === 'paid' ? (
-              <div 
+              <div
                 className="card"
                 style={{
                   borderLeft: '4px solid var(--accent-success)',
-                  padding: '1rem 1.25rem'
+                  padding: '1rem 1.25rem',
                 }}
               >
                 <div style={{ fontWeight: 700, color: 'var(--text-title)' }}>
-                  <code style={{ color: 'var(--text-success)', fontSize: '0.875rem', marginRight: '0.5rem' }}>
+                  <code
+                    style={{
+                      color: 'var(--text-success)',
+                      fontSize: '0.875rem',
+                      marginRight: '0.5rem',
+                    }}
+                  >
                     {bill.attached_job?.job_number ?? bill.job_id?.slice(0, 8)}
                   </code>{' '}
                   <span>{bill.attached_job?.name}</span>
                 </div>
                 {bill.xero_invoice_id && (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                  <div
+                    style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}
+                  >
                     Xero ID: <code>{bill.xero_invoice_id}</code> · Sync: {bill.xero_status}
                   </div>
                 )}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {bill.suggested_job && (() => {
-                  const suggestedJob = bill.suggested_job;
-                  return (
-                    <div 
-                      className="card"
-                      style={{
-                        padding: '1rem',
-                        borderLeft: '4px solid var(--accent-primary)',
-                      }}
-                    >
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-                        Suggested Match ({Math.round((bill.suggested_match_score ?? 0) * 100)}% confidence):
-                      </div>
-                      <div style={{ marginBottom: '0.75rem', fontWeight: 600 }}>
-                        <code style={{ color: 'var(--accent-primary)', marginRight: '0.5rem' }}>{suggestedJob.job_number}</code>
-                        <span style={{ color: 'var(--text-title)' }}>{suggestedJob.name}</span>
-                      </div>
-                      <button
-                        onClick={() => attachToJob(suggestedJob.id)}
-                        disabled={busy}
-                        className="btn btn-primary"
-                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                {bill.suggested_job &&
+                  (() => {
+                    const suggestedJob = bill.suggested_job;
+                    return (
+                      <div
+                        className="card"
+                        style={{
+                          padding: '1rem',
+                          borderLeft: '4px solid var(--accent-primary)',
+                        }}
                       >
-                        Attach to suggested job
-                      </button>
-                    </div>
-                  );
-                })()}
+                        <div
+                          style={{
+                            fontSize: '0.75rem',
+                            color: 'var(--text-muted)',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            marginBottom: '0.35rem',
+                          }}
+                        >
+                          Suggested Match ({Math.round((bill.suggested_match_score ?? 0) * 100)}%
+                          confidence):
+                        </div>
+                        <div style={{ marginBottom: '0.75rem', fontWeight: 600 }}>
+                          <code style={{ color: 'var(--accent-primary)', marginRight: '0.5rem' }}>
+                            {suggestedJob.job_number}
+                          </code>
+                          <span style={{ color: 'var(--text-title)' }}>{suggestedJob.name}</span>
+                        </div>
+                        <button
+                          onClick={() => attachToJob(suggestedJob.id)}
+                          disabled={busy}
+                          className="btn btn-primary"
+                          style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                        >
+                          Attach to suggested job
+                        </button>
+                      </div>
+                    );
+                  })()}
 
                 <div className="card" style={{ padding: '1rem' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                  <div
+                    style={{
+                      fontSize: '0.75rem',
+                      color: 'var(--text-muted)',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      marginBottom: '0.5rem',
+                    }}
+                  >
                     Search Job List
                   </div>
                   <JobPicker onPick={(job) => attachToJob(job.id)} busy={busy} />
@@ -621,20 +756,25 @@ export function BillDetailPage() {
 
 function EffectiveAllocations({ billId }: { billId: string }) {
   const { organizations } = useOrg();
-  const [rows, setRows] = useState<{
-    organization_id: string;
-    is_host: boolean;
-    percentage: number;
-    effective_total_inc_gst_cents: number;
-    effective_gst_cents: number;
-  }[] | null>(null);
+  const [rows, setRows] = useState<
+    | {
+        organization_id: string;
+        is_host: boolean;
+        percentage: number;
+        effective_total_inc_gst_cents: number;
+        effective_gst_cents: number;
+      }[]
+    | null
+  >(null);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       const { data, error } = await supabase
         .from('v_bill_effective_allocations')
-        .select('organization_id, is_host, percentage, effective_total_inc_gst_cents, effective_gst_cents')
+        .select(
+          'organization_id, is_host, percentage, effective_total_inc_gst_cents, effective_gst_cents',
+        )
         .eq('bill_id', billId);
       if (cancelled) return;
       if (error || !data) {
@@ -651,14 +791,27 @@ function EffectiveAllocations({ billId }: { billId: string }) {
         })),
       );
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [billId]);
 
   if (!rows || rows.length <= 1) return null;
 
   return (
     <div>
-      <h3 style={{ fontSize: '0.875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+      <h3
+        style={{
+          fontSize: '0.875rem',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          marginBottom: '0.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.25rem',
+        }}
+      >
         <FolderOpen size={14} />
         Effective allocations
       </h3>
@@ -674,14 +827,28 @@ function EffectiveAllocations({ billId }: { billId: string }) {
           </thead>
           <tbody>
             {rows.map((r) => {
-              const orgName = organizations.find((o) => o.id === r.organization_id)?.name
-                ?? r.organization_id.slice(0, 8);
+              const orgName =
+                organizations.find((o) => o.id === r.organization_id)?.name ??
+                r.organization_id.slice(0, 8);
               return (
                 <tr key={r.organization_id}>
                   <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>
-                    {r.is_host && <span style={{ color: 'var(--accent-success)', marginRight: 4 }}>★</span>}
+                    {r.is_host && (
+                      <span style={{ color: 'var(--accent-success)', marginRight: 4 }}>★</span>
+                    )}
                     {orgName}
-                    {r.is_host && <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 'normal' }}> (host)</span>}
+                    {r.is_host && (
+                      <span
+                        style={{
+                          color: 'var(--text-muted)',
+                          fontSize: '0.75rem',
+                          fontWeight: 'normal',
+                        }}
+                      >
+                        {' '}
+                        (host)
+                      </span>
+                    )}
                   </td>
                   <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>
                     {r.percentage.toFixed(2)}%
@@ -689,9 +856,7 @@ function EffectiveAllocations({ billId }: { billId: string }) {
                   <td style={{ textAlign: 'right', fontWeight: 600 }}>
                     {formatMoney(r.effective_total_inc_gst_cents)}
                   </td>
-                  <td style={{ textAlign: 'right' }}>
-                    {formatMoney(r.effective_gst_cents)}
-                  </td>
+                  <td style={{ textAlign: 'right' }}>{formatMoney(r.effective_gst_cents)}</td>
                 </tr>
               );
             })}
@@ -718,10 +883,11 @@ function PersonalToggle({ bill, onChange }: { bill: Bill; onChange: () => void }
       style={{
         background: bill.is_personal ? 'var(--bg-warning-subtle)' : 'transparent',
         color: bill.is_personal ? 'var(--text-warning)' : 'var(--text-muted)',
-        border: '1px solid ' + (bill.is_personal ? 'var(--accent-warning)' : 'var(--border-subtle)'),
+        border:
+          '1px solid ' + (bill.is_personal ? 'var(--accent-warning)' : 'var(--border-subtle)'),
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '0.25rem'
+        gap: '0.25rem',
       }}
       title="Tag as a personal (non-business) expense — excluded from P&L, BAS, and tax set-aside."
     >
@@ -738,12 +904,24 @@ function StatusBar({ bill }: { bill: Bill }) {
   else if (bill.status === 'verified') badgeClass = 'badge-warning';
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.825rem', color: 'var(--text-muted)', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        fontSize: '0.825rem',
+        color: 'var(--text-muted)',
+        marginBottom: '1.5rem',
+        flexWrap: 'wrap',
+      }}
+    >
       <span className={`badge ${badgeClass}`}>{bill.status}</span>
       <span>·</span>
       <span>Uploaded: {new Date(bill.created_at).toLocaleString('en-AU')}</span>
       <span>·</span>
-      <span>File: <code>{bill.original_filename}</code></span>
+      <span>
+        File: <code>{bill.original_filename}</code>
+      </span>
     </div>
   );
 }
@@ -758,11 +936,30 @@ function EditField({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', padding: '0.35rem 0', borderBottom: '1px solid var(--border-subtle)', gap: 12 }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        padding: '0.35rem 0',
+        borderBottom: '1px solid var(--border-subtle)',
+        gap: 12,
+      }}
+    >
       <div style={{ width: 130, flexShrink: 0, paddingTop: 6 }}>
-        <span className="form-label" style={{ fontSize: '0.725rem' }}>{label}</span>
+        <span className="form-label" style={{ fontSize: '0.725rem' }}>
+          {label}
+        </span>
         {hint && (
-          <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.3 }}>{hint}</div>
+          <div
+            style={{
+              fontSize: '0.675rem',
+              color: 'var(--text-muted)',
+              marginTop: 2,
+              lineHeight: 1.3,
+            }}
+          >
+            {hint}
+          </div>
         )}
       </div>
       <div style={{ flex: 1 }}>{children}</div>
@@ -782,14 +979,25 @@ function Field({
   highlight?: boolean;
 }) {
   return (
-    <div style={{ display: 'flex', padding: '0.5rem 0', borderBottom: '1px solid var(--border-subtle)', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-      <span style={{ fontSize: '0.825rem', color: 'var(--text-muted)', fontWeight: 500 }}>{label}</span>
-      <span 
-        style={{ 
-          fontSize: '0.875rem', 
-          fontWeight: highlight || mono ? 700 : 500, 
+    <div
+      style={{
+        display: 'flex',
+        padding: '0.5rem 0',
+        borderBottom: '1px solid var(--border-subtle)',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+      }}
+    >
+      <span style={{ fontSize: '0.825rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+        {label}
+      </span>
+      <span
+        style={{
+          fontSize: '0.875rem',
+          fontWeight: highlight || mono ? 700 : 500,
           color: highlight ? 'var(--text-warning)' : 'var(--text-title)',
-          fontFamily: mono ? 'ui-monospace, monospace' : 'inherit'
+          fontFamily: mono ? 'ui-monospace, monospace' : 'inherit',
         }}
       >
         {value ?? '—'}

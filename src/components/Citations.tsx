@@ -70,18 +70,33 @@ export function CitedAnswer({
     if (marker?.[1]) {
       const n = parseInt(marker[1], 10);
       if (hasCorpus) {
-        return byN.has(n)
-          ? <CitationMarker key={i} n={n} active={active === n} onClick={() => toggle(n)} />
-          : <sup key={i} style={{ color: 'var(--text-muted)' }}>{part}</sup>;
+        return byN.has(n) ? (
+          <CitationMarker key={i} n={n} active={active === n} onClick={() => toggle(n)} />
+        ) : (
+          <sup key={i} style={{ color: 'var(--text-muted)' }}>
+            {part}
+          </sup>
+        );
       }
       const url = sonarCitations[n - 1];
-      return url ? <SonarMarker key={i} n={n} url={url} /> : <sup key={i} style={{ color: 'var(--text-muted)' }}>{part}</sup>;
+      return url ? (
+        <SonarMarker key={i} n={n} url={url} />
+      ) : (
+        <sup key={i} style={{ color: 'var(--text-muted)' }}>
+          {part}
+        </sup>
+      );
     }
 
     if (ASSERTION_RE.test(part)) return <ModelAssertionChip key={i} />;
 
     const bold = BOLD_RE.exec(part);
-    if (bold?.[1]) return <strong key={i} style={{ color: 'var(--text-title)', fontWeight: 700 }}>{bold[1]}</strong>;
+    if (bold?.[1])
+      return (
+        <strong key={i} style={{ color: 'var(--text-title)', fontWeight: 700 }}>
+          {bold[1]}
+        </strong>
+      );
 
     return <span key={i}>{part}</span>;
   };
@@ -96,7 +111,15 @@ export function CitedAnswer({
   );
 }
 
-function CitationMarker({ n, active, onClick }: { n: number; active: boolean; onClick: () => void }) {
+function CitationMarker({
+  n,
+  active,
+  onClick,
+}: {
+  n: number;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"

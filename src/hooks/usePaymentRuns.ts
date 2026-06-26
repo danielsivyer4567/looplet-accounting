@@ -72,7 +72,9 @@ export function usePaymentRuns() {
     setLoading(false);
   }, [currentOrg]);
 
-  useEffect(() => { void fetch(); }, [fetch]);
+  useEffect(() => {
+    void fetch();
+  }, [fetch]);
 
   return { runs, loading, error, refresh: fetch };
 }
@@ -133,7 +135,9 @@ export function usePaymentRunDetail(id: string | undefined) {
         .maybeSingle(),
       supabase
         .from('payment_run_items')
-        .select('id, bill_id, amount_cents, payee_bsb, payee_account_number, payee_account_name, reference')
+        .select(
+          'id, bill_id, amount_cents, payee_bsb, payee_account_number, payee_account_name, reference',
+        )
         .eq('payment_run_id', id)
         .order('created_at', { ascending: true }),
     ]);
@@ -147,7 +151,9 @@ export function usePaymentRunDetail(id: string | undefined) {
     setLoading(false);
   }, [currentOrg, id]);
 
-  useEffect(() => { void fetch(); }, [fetch]);
+  useEffect(() => {
+    void fetch();
+  }, [fetch]);
 
   return { run, items, loading, error, refresh: fetch };
 }

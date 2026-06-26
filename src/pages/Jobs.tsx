@@ -59,15 +59,16 @@ export function JobsPage() {
   let runningCostCents = 0;
   let runningProfitCents = 0;
 
-  const jobsChronological = jobs
-    .slice()
-    .sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const jobsChronological = jobs.slice().sort((a, b) => a.created_at.localeCompare(b.created_at));
 
   const cumulativeProfitTrend = jobsChronological.length
     ? jobsChronological.map((j) => {
         runningProfitCents += j.gross_profit_cents ?? 0;
         return {
-          label: new Date(j.created_at).toLocaleDateString('en-AU', { day: '2-digit', month: 'short' }),
+          label: new Date(j.created_at).toLocaleDateString('en-AU', {
+            day: '2-digit',
+            month: 'short',
+          }),
           value: runningProfitCents,
         };
       })
@@ -92,14 +93,14 @@ export function JobsPage() {
   return (
     <section className="animated-fade-in">
       {/* Header */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: '1.5rem',
           flexWrap: 'wrap',
-          gap: '1rem'
+          gap: '1rem',
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -120,24 +121,35 @@ export function JobsPage() {
       </div>
 
       {showCreate && (
-        <div className="card" style={{ marginBottom: '1.5rem', border: '1px solid var(--accent-primary)', position: 'relative' }}>
-          <button 
-            onClick={() => setShowCreate(false)} 
-            style={{ 
-              position: 'absolute', 
-              right: '1rem', 
-              top: '1rem', 
-              background: 'none', 
-              border: 'none', 
-              color: 'var(--text-muted)', 
-              cursor: 'pointer' 
+        <div
+          className="card"
+          style={{
+            marginBottom: '1.5rem',
+            border: '1px solid var(--accent-primary)',
+            position: 'relative',
+          }}
+        >
+          <button
+            onClick={() => setShowCreate(false)}
+            style={{
+              position: 'absolute',
+              right: '1rem',
+              top: '1rem',
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
             }}
           >
             <X size={20} />
           </button>
           <CreateJobForm
             onClose={() => setShowCreate(false)}
-            onCreated={(id) => { setShowCreate(false); void refresh(); navigate(`/jobs/${id}`); }}
+            onCreated={(id) => {
+              setShowCreate(false);
+              void refresh();
+              navigate(`/jobs/${id}`);
+            }}
           />
         </div>
       )}
@@ -145,18 +157,36 @@ export function JobsPage() {
       {/* Stat cards */}
       {!loading && !error && (
         <>
-          <div 
-            style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
               gap: '1rem',
-              marginBottom: '1.5rem'
+              marginBottom: '1.5rem',
             }}
           >
             <KpiCard label="Active Jobs" value={activeCount} type="success" icon={Briefcase} />
-            <KpiCard label="Total Revenue" value={totalRevenue} formatter={formatMoney} type="info" icon={FileSpreadsheet} />
-            <KpiCard label="Total Job Cost" value={totalCost} formatter={formatMoney} type="neutral" icon={FileSpreadsheet} />
-            <KpiCard label="Gross Margin" value={totalProfit} formatter={formatMoney} type={totalProfit >= 0 ? 'success' : 'danger'} icon={FileSpreadsheet} />
+            <KpiCard
+              label="Total Revenue"
+              value={totalRevenue}
+              formatter={formatMoney}
+              type="info"
+              icon={FileSpreadsheet}
+            />
+            <KpiCard
+              label="Total Job Cost"
+              value={totalCost}
+              formatter={formatMoney}
+              type="neutral"
+              icon={FileSpreadsheet}
+            />
+            <KpiCard
+              label="Gross Margin"
+              value={totalProfit}
+              formatter={formatMoney}
+              type={totalProfit >= 0 ? 'success' : 'danger'}
+              icon={FileSpreadsheet}
+            />
           </div>
 
           {/* Charts Section */}
@@ -183,14 +213,13 @@ export function JobsPage() {
             </InsightPanel>
             <InsightPanel title="Profitability mix" eyebrow="Top performing jobs">
               {profitMixItems.length === 0 ? (
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '1rem 0' }}>
+                <div
+                  style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '1rem 0' }}
+                >
                   No job profitability mix to display.
                 </div>
               ) : (
-                <InsightBarList
-                  items={profitMixItems}
-                  formatValue={formatMoneyCompact}
-                />
+                <InsightBarList items={profitMixItems} formatValue={formatMoneyCompact} />
               )}
             </InsightPanel>
           </div>
@@ -200,11 +229,23 @@ export function JobsPage() {
       {loading ? (
         <SkeletonTable rows={5} cols={6} />
       ) : error ? (
-        <div className="badge badge-danger" style={{ display: 'block', padding: '1rem', textTransform: 'none' }}>
+        <div
+          className="badge badge-danger"
+          style={{ display: 'block', padding: '1rem', textTransform: 'none' }}
+        >
           Failed to load: {error}
         </div>
       ) : jobs.length === 0 ? (
-        <div style={{ padding: '3rem 1.5rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <div
+          style={{
+            padding: '3rem 1.5rem',
+            background: 'var(--bg-card)',
+            border: '1px dashed var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+          }}
+        >
           No jobs yet for {currentOrg.name}.
         </div>
       ) : (
@@ -239,7 +280,9 @@ export function JobsPage() {
                       <code>{j.job_number}</code>
                     </td>
                     <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{j.name}</td>
-                    <td><Pill status={j.status} /></td>
+                    <td>
+                      <Pill status={j.status} />
+                    </td>
                     <td style={{ textAlign: 'right', fontWeight: 600 }}>
                       {attached > 0 ? (
                         <span style={{ color: 'var(--text-success)' }}>{attached}</span>
@@ -266,9 +309,18 @@ export function JobsPage() {
   );
 }
 
-interface CustomerOption { id: string; name: string }
+interface CustomerOption {
+  id: string;
+  name: string;
+}
 
-function CreateJobForm({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
+function CreateJobForm({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (id: string) => void;
+}) {
   const { currentOrg } = useOrg();
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [name, setName] = useState('');
@@ -286,8 +338,19 @@ function CreateJobForm({ onClose, onCreated }: { onClose: () => void; onCreated:
     if (!currentOrg) return;
     void (async () => {
       const [{ data: custs }, { data: maxRow }] = await Promise.all([
-        supabase.from('customers').select('id, name').eq('organization_id', currentOrg.id).is('deleted_at', null).order('name'),
-        supabase.from('jobs').select('job_number').eq('organization_id', currentOrg.id).order('job_number', { ascending: false }).limit(1).maybeSingle(),
+        supabase
+          .from('customers')
+          .select('id, name')
+          .eq('organization_id', currentOrg.id)
+          .is('deleted_at', null)
+          .order('name'),
+        supabase
+          .from('jobs')
+          .select('job_number')
+          .eq('organization_id', currentOrg.id)
+          .order('job_number', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
       setCustomers((custs ?? []) as CustomerOption[]);
       const last = maxRow?.job_number ?? '';
@@ -317,7 +380,10 @@ function CreateJobForm({ onClose, onCreated }: { onClose: () => void; onCreated:
       .select('id')
       .single();
     setBusy(false);
-    if (error) { setErr(error.message); return; }
+    if (error) {
+      setErr(error.message);
+      return;
+    }
     onCreated(data.id);
   };
 
@@ -327,49 +393,116 @@ function CreateJobForm({ onClose, onCreated }: { onClose: () => void; onCreated:
         <Plus size={18} style={{ color: 'var(--accent-primary)' }} />
         Create New Job
       </h3>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: '1rem',
+        }}
+      >
         <Field label="Job number *">
-          <input value={jobNumber} onChange={(e) => setJobNumber(e.target.value)} className="form-input" />
+          <input
+            value={jobNumber}
+            onChange={(e) => setJobNumber(e.target.value)}
+            className="form-input"
+          />
         </Field>
         <Field label="Name / address *">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. 1 Schablon Close, Ormeau Hills" className="form-input" />
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. 1 Schablon Close, Ormeau Hills"
+            className="form-input"
+          />
         </Field>
       </div>
 
       <Field label="Customer">
-        <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="form-select">
+        <select
+          value={customerId}
+          onChange={(e) => setCustomerId(e.target.value)}
+          className="form-select"
+        >
           <option value="">— no customer (link later) —</option>
-          {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          {customers.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
         </select>
       </Field>
 
       <Field label="Description">
-        <textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} className="form-textarea" />
+        <textarea
+          rows={2}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="form-textarea"
+        />
       </Field>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '1rem',
+        }}
+      >
         <Field label="Budget (AUD)">
-          <input type="number" step="0.01" value={budget} onChange={(e) => setBudget(parseFloat(e.target.value) || 0)} className="form-input" />
+          <input
+            type="number"
+            step="0.01"
+            value={budget}
+            onChange={(e) => setBudget(parseFloat(e.target.value) || 0)}
+            className="form-input"
+          />
         </Field>
         <Field label="Start date">
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="form-input" />
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="form-input"
+          />
         </Field>
         <Field label="End date (est.)">
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="form-input" />
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="form-input"
+          />
         </Field>
       </div>
 
       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-        <button onClick={submit} disabled={busy || !name.trim() || !jobNumber.trim()} className="btn btn-primary" style={{ padding: '0.625rem 1.25rem' }}>
+        <button
+          onClick={submit}
+          disabled={busy || !name.trim() || !jobNumber.trim()}
+          className="btn btn-primary"
+          style={{ padding: '0.625rem 1.25rem' }}
+        >
           <Activity size={14} />
           <span>{busy ? 'Creating…' : 'Create job'}</span>
         </button>
-        <button onClick={onClose} disabled={busy} className="btn btn-secondary" style={{ padding: '0.625rem 1.25rem' }}>
+        <button
+          onClick={onClose}
+          disabled={busy}
+          className="btn btn-secondary"
+          style={{ padding: '0.625rem 1.25rem' }}
+        >
           <span>Cancel</span>
         </button>
       </div>
-      {err && <div className="badge badge-danger" style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}>{err}</div>}
+      {err && (
+        <div
+          className="badge badge-danger"
+          style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}
+        >
+          {err}
+        </div>
+      )}
     </div>
   );
 }
@@ -377,48 +510,76 @@ function CreateJobForm({ onClose, onCreated }: { onClose: () => void; onCreated:
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="form-group" style={{ marginBottom: 0 }}>
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>{label}</span>
+      <span className="form-label" style={{ fontSize: '0.725rem' }}>
+        {label}
+      </span>
       <div style={{ marginTop: '0.25rem' }}>{children}</div>
     </div>
   );
 }
 
-function KpiCard({ 
-  label, 
-  value, 
+function KpiCard({
+  label,
+  value,
   type,
   icon: Icon,
   sub,
   formatter,
-}: { 
-  label: string; 
-  value: number; 
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral'; 
+}: {
+  label: string;
+  value: number;
+  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
   icon: LucideIcon;
   sub?: string;
   formatter?: (val: number) => string;
 }) {
   return (
-    <div 
+    <div
       className="card"
-      style={{ 
+      style={{
         padding: '1.25rem',
         borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative'
+        position: 'relative',
       }}
     >
-      <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+      <div
+        style={{
+          fontSize: '0.675rem',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          fontWeight: 700,
+        }}
+      >
         {label}
       </div>
-      <div style={{ marginTop: '0.35rem', fontSize: '1.5rem', color: 'var(--text-title)', fontWeight: 800, fontFamily: 'var(--font-title)' }}>
+      <div
+        style={{
+          marginTop: '0.35rem',
+          fontSize: '1.5rem',
+          color: 'var(--text-title)',
+          fontWeight: 800,
+          fontFamily: 'var(--font-title)',
+        }}
+      >
         <AnimatedNumber value={value} formatter={formatter} />
       </div>
       {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>{sub}</div>
+        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+          {sub}
+        </div>
       ) : (
         <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
       )}
-      <div style={{ position: 'absolute', right: '1rem', bottom: '1rem', color: `var(--accent-${type === 'neutral' ? 'primary' : type})`, opacity: 0.7 }}>
+      <div
+        style={{
+          position: 'absolute',
+          right: '1rem',
+          bottom: '1rem',
+          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
+          opacity: 0.7,
+        }}
+      >
         <Icon size={18} />
       </div>
     </div>
@@ -430,6 +591,6 @@ function Pill({ status }: { status: string }) {
   if (status === 'active' || status === 'completed') badgeClass = 'badge-success';
   else if (status === 'paused') badgeClass = 'badge-warning';
   else if (status === 'cancelled' || status === 'archived') badgeClass = 'badge-danger';
-  
+
   return <span className={`badge ${badgeClass}`}>{status.replace('_', ' ')}</span>;
 }

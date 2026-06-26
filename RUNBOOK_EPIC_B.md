@@ -24,9 +24,11 @@ Project: `dxoikltymmknxqpkpyhi` · Branch: `epic-b-fill-the-books`
 ## You must do (CLI — needs your Supabase auth)
 
 1. **Set the MiniMax key as an edge secret:**
+
    ```
    supabase secrets set MINIMAX_API_KEY=... --project-ref dxoikltymmknxqpkpyhi
    ```
+
    (Optional: `supabase secrets set MINIMAX_VISION_MODEL=MiniMax-M3`)
 
    Until this is set, `OCR_PROVIDER` defaults to `minimax` and extraction will error —
@@ -44,5 +46,6 @@ Project: `dxoikltymmknxqpkpyhi` · Branch: `epic-b-fill-the-books`
 5. **Verify coverage** climbs in `v_bas_gst_coverage` (target: ≥95% `gst_ready`).
 
 ## Done when
+
 `v_bas_gst_coverage.gst_ready` is true for active quarters (≥95% of bills carry amount+GST)
 and the BAS page shows real figures with no provisional banner.

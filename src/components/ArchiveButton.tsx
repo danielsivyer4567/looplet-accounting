@@ -45,9 +45,7 @@ export function ArchiveButton({ table, rowId, isArchived, onChange }: ArchiveBut
     if (!confirm(confirmMsg)) return;
     setBusy(true);
     setErr(null);
-    const patch = isArchived
-      ? { deleted_at: null }
-      : { deleted_at: new Date().toISOString() };
+    const patch = isArchived ? { deleted_at: null } : { deleted_at: new Date().toISOString() };
     const { error } = await supabase.from(table).update(patch).eq('id', rowId);
     setBusy(false);
     if (error) {
@@ -58,7 +56,14 @@ export function ArchiveButton({ table, rowId, isArchived, onChange }: ArchiveBut
   };
 
   return (
-    <span style={{ position: 'relative', display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+    <span
+      style={{
+        position: 'relative',
+        display: 'inline-flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+      }}
+    >
       <button
         onClick={() => void handleClick()}
         disabled={busy}
@@ -77,7 +82,17 @@ export function ArchiveButton({ table, rowId, isArchived, onChange }: ArchiveBut
         {busy ? (isArchived ? 'Restoring…' : 'Archiving…') : label}
       </button>
       {err && (
-        <span style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, fontSize: 11, color: 'salmon', whiteSpace: 'nowrap' }}>
+        <span
+          style={{
+            position: 'absolute',
+            top: '100%',
+            right: 0,
+            marginTop: 4,
+            fontSize: 11,
+            color: 'salmon',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {err}
         </span>
       )}

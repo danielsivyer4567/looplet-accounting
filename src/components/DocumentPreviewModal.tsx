@@ -5,8 +5,7 @@ import { getBillFileUrl } from '@/hooks/useBill';
 
 // Worker must match the installed pdfjs version; served from CDN (same approach
 // as BankStatementImport).
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 export interface PreviewableBill {
   id: string;
@@ -18,9 +17,9 @@ export interface PreviewableBill {
 
 interface State {
   loading: boolean;
-  imageUrl: string | null;     // direct image (png/jpg) signed URL
-  pdfPages: string[];          // PDF rendered to JPEG data URLs, one per page
-  noDoc: boolean;              // bank-imported / no real file
+  imageUrl: string | null; // direct image (png/jpg) signed URL
+  pdfPages: string[]; // PDF rendered to JPEG data URLs, one per page
+  noDoc: boolean; // bank-imported / no real file
   error: string | null;
 }
 
@@ -103,13 +102,17 @@ export function DocumentPreviewModal({
       {s.loading && <p style={{ color: '#888' }}>Loading document…</p>}
       {s.noDoc && (
         <p style={{ color: '#888', lineHeight: 1.5 }}>
-          No source document for this transaction — it was imported from a CommBank
-          statement, not an uploaded file.
+          No source document for this transaction — it was imported from a CommBank statement, not
+          an uploaded file.
         </p>
       )}
       {s.error && <p style={{ color: 'salmon' }}>{s.error}</p>}
       {s.imageUrl && (
-        <img src={s.imageUrl} alt="Bill document" style={{ maxWidth: '100%', borderRadius: 4, display: 'block' }} />
+        <img
+          src={s.imageUrl}
+          alt="Bill document"
+          style={{ maxWidth: '100%', borderRadius: 4, display: 'block' }}
+        />
       )}
       {s.pdfPages.map((src, i) => (
         <img

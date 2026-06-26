@@ -27,69 +27,72 @@ export function useSuppliers(pageSize = 100) {
   const [hasMore, setHasMore] = useState(false);
   const offsetRef = useRef(0);
 
-  const fetch = useCallback(async (reset = true) => {
-    if (!currentOrg) {
-      setSuppliers([]);
-      setSpendMap(new Map());
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-
-    const from = reset ? 0 : offsetRef.current;
-    const to = from + pageSize - 1;
-
-    const [suppliersRes, billsRes] = await Promise.all([
-      supabase
-        .from('suppliers')
-        .select(
-          'id, name, abn, email, contact_phone, default_account_code, current_balance_owing_cents, created_at',
-        )
-        .eq('organization_id', currentOrg.id)
-        .order('name', { ascending: true })
-        .range(from, to),
-      // Fetch spend rows only on first page (reset); append pages don't re-aggregate
-      reset
-        ? supabase
-            .from('bills')
-            .select('supplier_id, total_inc_gst_cents')
-            .eq('organization_id', currentOrg.id)
-            .is('deleted_at', null)
-            .not('supplier_id', 'is', null)
-        : Promise.resolve({ data: null, error: null }),
-    ]);
-
-    if (suppliersRes.error) {
-      setError(suppliersRes.error.message);
-      if (reset) setSuppliers([]);
-      setLoading(false);
-      return;
-    }
-
-    const fetched = (suppliersRes.data ?? []) as SupplierRow[];
-    if (reset) {
-      setSuppliers(fetched);
-    } else {
-      setSuppliers((prev) => [...prev, ...fetched]);
-    }
-    offsetRef.current = from + fetched.length;
-    setHasMore(fetched.length === pageSize);
-
-    // Build spend map client-side from raw bill rows (only on first load / reset)
-    if (reset && billsRes.data) {
-      const map = new Map<string, number>();
-      for (const bill of billsRes.data) {
-        const sid = (bill as { supplier_id: string | null }).supplier_id;
-        if (!sid) continue;
-        const amount = (bill as { total_inc_gst_cents: number | null }).total_inc_gst_cents ?? 0;
-        map.set(sid, (map.get(sid) ?? 0) + amount);
+  const fetch = useCallback(
+    async (reset = true) => {
+      if (!currentOrg) {
+        setSuppliers([]);
+        setSpendMap(new Map());
+        setLoading(false);
+        return;
       }
-      setSpendMap(map);
-    }
+      setLoading(true);
+      setError(null);
 
-    setLoading(false);
-  }, [currentOrg, pageSize]);
+      const from = reset ? 0 : offsetRef.current;
+      const to = from + pageSize - 1;
+
+      const [suppliersRes, billsRes] = await Promise.all([
+        supabase
+          .from('suppliers')
+          .select(
+            'id, name, abn, email, contact_phone, default_account_code, current_balance_owing_cents, created_at',
+          )
+          .eq('organization_id', currentOrg.id)
+          .order('name', { ascending: true })
+          .range(from, to),
+        // Fetch spend rows only on first page (reset); append pages don't re-aggregate
+        reset
+          ? supabase
+              .from('bills')
+              .select('supplier_id, total_inc_gst_cents')
+              .eq('organization_id', currentOrg.id)
+              .is('deleted_at', null)
+              .not('supplier_id', 'is', null)
+          : Promise.resolve({ data: null, error: null }),
+      ]);
+
+      if (suppliersRes.error) {
+        setError(suppliersRes.error.message);
+        if (reset) setSuppliers([]);
+        setLoading(false);
+        return;
+      }
+
+      const fetched = (suppliersRes.data ?? []) as SupplierRow[];
+      if (reset) {
+        setSuppliers(fetched);
+      } else {
+        setSuppliers((prev) => [...prev, ...fetched]);
+      }
+      offsetRef.current = from + fetched.length;
+      setHasMore(fetched.length === pageSize);
+
+      // Build spend map client-side from raw bill rows (only on first load / reset)
+      if (reset && billsRes.data) {
+        const map = new Map<string, number>();
+        for (const bill of billsRes.data) {
+          const sid = (bill as { supplier_id: string | null }).supplier_id;
+          if (!sid) continue;
+          const amount = (bill as { total_inc_gst_cents: number | null }).total_inc_gst_cents ?? 0;
+          map.set(sid, (map.get(sid) ?? 0) + amount);
+        }
+        setSpendMap(map);
+      }
+
+      setLoading(false);
+    },
+    [currentOrg, pageSize],
+  );
 
   useEffect(() => {
     offsetRef.current = 0;
@@ -105,7 +108,10 @@ export function useSuppliers(pageSize = 100) {
     spendMap,
     loading,
     error,
-    refresh: () => { offsetRef.current = 0; return fetch(true); },
+    refresh: () => {
+      offsetRef.current = 0;
+      return fetch(true);
+    },
     hasMore,
     loadMore,
   };

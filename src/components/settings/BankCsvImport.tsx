@@ -47,12 +47,17 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
     setResult(null);
     setBusy(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in');
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bank-csv-import`;
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           organization_id: currentOrg.id,
           institution_name: bank,
@@ -85,11 +90,15 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
       <button
         onClick={() => setOpen(true)}
         style={{
-          marginTop: 12, marginLeft: 8,
+          marginTop: 12,
+          marginLeft: 8,
           padding: '0.4rem 1rem',
-          background: 'transparent', color: '#bbb',
-          border: '1px solid #444', borderRadius: 3,
-          fontSize: 12, cursor: 'pointer',
+          background: 'transparent',
+          color: '#bbb',
+          border: '1px solid #444',
+          borderRadius: 3,
+          fontSize: 12,
+          cursor: 'pointer',
         }}
       >
         ⬆ Import CSV
@@ -98,17 +107,25 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
   }
 
   return (
-    <div style={{
-      marginTop: 16, padding: 16,
-      background: '#0e0e0e', border: '1px solid #2a2a2a', borderRadius: 4,
-      maxWidth: 720,
-    }}>
+    <div
+      style={{
+        marginTop: 16,
+        padding: 16,
+        background: '#0e0e0e',
+        border: '1px solid #2a2a2a',
+        borderRadius: 4,
+        maxWidth: 720,
+      }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <h3 style={{ fontSize: 14, margin: 0 }}>Import bank CSV</h3>
-        <button onClick={() => setOpen(false)} style={closeBtn}>×</button>
+        <button onClick={() => setOpen(false)} style={closeBtn}>
+          ×
+        </button>
       </div>
       <p style={{ fontSize: 12, color: '#888', marginTop: 6 }}>
-        Export a CSV from your internet banking and upload it here. Same dedupe + reconciliation rules apply.
+        Export a CSV from your internet banking and upload it here. Same dedupe + reconciliation
+        rules apply.
       </p>
 
       <div style={grid2}>
@@ -132,7 +149,11 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
           <input value={accountName} onChange={(e) => setAccountName(e.target.value)} style={inp} />
         </Field>
         <Field label="Account type">
-          <select value={accountType} onChange={(e) => setAccountType(e.target.value as AccountType)} style={inp}>
+          <select
+            value={accountType}
+            onChange={(e) => setAccountType(e.target.value as AccountType)}
+            style={inp}
+          >
             <option value="checking">Transaction (checking)</option>
             <option value="savings">Savings</option>
             <option value="credit_card">Credit card</option>
@@ -145,10 +166,20 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
 
       <div style={grid2}>
         <Field label="BSB (optional)">
-          <input value={bsb} onChange={(e) => setBsb(e.target.value)} placeholder="062-001" style={inp} />
+          <input
+            value={bsb}
+            onChange={(e) => setBsb(e.target.value)}
+            placeholder="062-001"
+            style={inp}
+          />
         </Field>
         <Field label="Account # last 4 (optional)">
-          <input value={last4} onChange={(e) => setLast4(e.target.value)} placeholder="1234" style={inp} />
+          <input
+            value={last4}
+            onChange={(e) => setLast4(e.target.value)}
+            placeholder="1234"
+            style={inp}
+          />
         </Field>
       </div>
 
@@ -156,17 +187,24 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
         <input
           type="file"
           accept=".csv,text/csv"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleFile(f);
+          }}
           style={{ ...inp, padding: '6px 0' }}
         />
       </Field>
 
-      <Field label={`Or paste CSV (${csvText ? csvText.split('\n').length + ' lines loaded' : 'empty'})`}>
+      <Field
+        label={`Or paste CSV (${csvText ? csvText.split('\n').length + ' lines loaded' : 'empty'})`}
+      >
         <textarea
           value={csvText}
           onChange={(e) => setCsvText(e.target.value)}
           rows={6}
-          placeholder={'01/05/2026,-50.00,EFTPOS WOOLWORTHS,1234.56\n02/05/2026,1500.00,SALARY ACME PTY LTD,2734.56'}
+          placeholder={
+            '01/05/2026,-50.00,EFTPOS WOOLWORTHS,1234.56\n02/05/2026,1500.00,SALARY ACME PTY LTD,2734.56'
+          }
           style={{ ...inp, fontFamily: 'monospace', fontSize: 11 }}
         />
       </Field>
@@ -189,19 +227,31 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
         {busy ? 'Importing…' : 'Import transactions'}
       </button>
 
-      {error && (
-        <p style={{ color: 'salmon', fontSize: 12, marginTop: 8 }}>{error}</p>
-      )}
+      {error && <p style={{ color: 'salmon', fontSize: 12, marginTop: 8 }}>{error}</p>}
       {result && (
-        <div style={{ marginTop: 12, padding: 8, background: '#0a1f12', border: '1px solid #2da565', borderRadius: 3, fontSize: 12 }}>
+        <div
+          style={{
+            marginTop: 12,
+            padding: 8,
+            background: '#0a1f12',
+            border: '1px solid #2da565',
+            borderRadius: 3,
+            fontSize: 12,
+          }}
+        >
           ✓ Imported <strong>{result.imported}</strong> transactions
           {result.duplicates > 0 && <> · {result.duplicates} duplicates skipped</>}
           {result.insert_errors > 0 && <> · {result.insert_errors} insert errors</>}
           {result.parse_errors.length > 0 && (
             <details style={{ marginTop: 6 }}>
-              <summary style={{ color: '#e9a3a3', cursor: 'pointer' }}>{result.parse_errors.length} parse error{result.parse_errors.length === 1 ? '' : 's'}</summary>
+              <summary style={{ color: '#e9a3a3', cursor: 'pointer' }}>
+                {result.parse_errors.length} parse error
+                {result.parse_errors.length === 1 ? '' : 's'}
+              </summary>
               <ul style={{ marginTop: 4, color: '#e9a3a3', fontSize: 11 }}>
-                {result.parse_errors.map((e, i) => <li key={i}>{e}</li>)}
+                {result.parse_errors.map((e, i) => (
+                  <li key={i}>{e}</li>
+                ))}
               </ul>
             </details>
           )}
@@ -235,6 +285,10 @@ const grid2: React.CSSProperties = {
   gap: 12,
 };
 const closeBtn: React.CSSProperties = {
-  background: 'transparent', color: '#888',
-  border: 'none', fontSize: 18, cursor: 'pointer', padding: 0,
+  background: 'transparent',
+  color: '#888',
+  border: 'none',
+  fontSize: 18,
+  cursor: 'pointer',
+  padding: 0,
 };

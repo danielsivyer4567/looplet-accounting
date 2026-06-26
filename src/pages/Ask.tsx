@@ -64,12 +64,17 @@ export function AskPage() {
     if (!q.trim() || busy || !currentOrg) return;
     setBusy(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in');
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ask-bot`;
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           organization_id: currentOrg.id,
           question: q,
@@ -80,11 +85,14 @@ export function AskPage() {
       setHistory((h) => [...h, { question: q, response: body, ts: Date.now() }]);
       setQuestion('');
     } catch (e) {
-      setHistory((h) => [...h, {
-        question: q,
-        response: { ok: false, error: e instanceof Error ? e.message : String(e) },
-        ts: Date.now(),
-      }]);
+      setHistory((h) => [
+        ...h,
+        {
+          question: q,
+          response: { ok: false, error: e instanceof Error ? e.message : String(e) },
+          ts: Date.now(),
+        },
+      ]);
     } finally {
       setBusy(false);
       setTimeout(() => inputRef.current?.focus(), 50);
@@ -103,8 +111,18 @@ export function AskPage() {
 
   if (!currentOrg) {
     return (
-      <section className="animated-fade-in" style={{ padding: '2rem 1.5rem', textAlign: 'center', maxWidth: '600px', margin: '4rem auto' }}>
-        <p style={{ color: 'var(--text-muted)' }}>Pick an organisation in the sidebar to ask questions.</p>
+      <section
+        className="animated-fade-in"
+        style={{
+          padding: '2rem 1.5rem',
+          textAlign: 'center',
+          maxWidth: '600px',
+          margin: '4rem auto',
+        }}
+      >
+        <p style={{ color: 'var(--text-muted)' }}>
+          Pick an organisation in the sidebar to ask questions.
+        </p>
       </section>
     );
   }
@@ -154,7 +172,15 @@ export function AskPage() {
   };
 
   return (
-    <section className="animated-fade-in" style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 120px)', position: 'relative' }}>
+    <section
+      className="animated-fade-in"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 'calc(100vh - 120px)',
+        position: 'relative',
+      }}
+    >
       <style>{`
         .suggestion-card {
           padding: 0.75rem 1rem;
@@ -181,22 +207,45 @@ export function AskPage() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingBottom: '100px' }}>
         {/* Header */}
         <div style={{ marginBottom: '1.5rem' }}>
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+          <h1
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginBottom: '0.25rem',
+            }}
+          >
             <Sparkles size={24} style={{ color: 'var(--accent-primary)' }} />
             Ask AI
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
-            Ask anything about your books or Australian tax regulations. Powered by live accounting records + citation search.
+            Ask anything about your books or Australian tax regulations. Powered by live accounting
+            records + citation search.
           </p>
         </div>
 
         {/* Suggestion Grid */}
         {history.length === 0 && (
           <div style={{ marginTop: '2rem', animation: 'fadeIn 0.4s ease' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.075em', marginBottom: '1rem' }}>
+            <div
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--text-muted)',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.075em',
+                marginBottom: '1rem',
+              }}
+            >
               Suggested Inquiries
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: '0.75rem',
+              }}
+            >
               {SUGGESTED_QUESTIONS.map((sq) => (
                 <button
                   key={sq}
@@ -213,19 +262,24 @@ export function AskPage() {
         )}
 
         {/* Conversation Area */}
-        <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div
+          style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
+        >
           {history.map((turn, idx) => {
             const r = turn.response;
             const sqlOpen = showSql.has(idx);
             const ctxOpen = showCtx.has(idx);
             const mapOpen = showMap.has(idx);
             const mindMapBranches = buildMindMap(turn);
-            const hasVisual = r.ok && r.visual != null && !r.visual.none && (r.visual.nodes?.length ?? 0) >= 2;
+            const hasVisual =
+              r.ok && r.visual != null && !r.visual.none && (r.visual.nodes?.length ?? 0) >= 2;
             return (
-              <div key={turn.ts} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                
+              <div
+                key={turn.ts}
+                style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+              >
                 {/* User Bubble */}
-                <div 
+                <div
                   style={{
                     alignSelf: 'flex-end',
                     maxWidth: '80%',
@@ -236,14 +290,14 @@ export function AskPage() {
                     fontSize: '0.9rem',
                     lineHeight: '1.45',
                     boxShadow: 'var(--shadow-sm)',
-                    animation: 'fadeIn 0.25s ease'
+                    animation: 'fadeIn 0.25s ease',
                   }}
                 >
                   {turn.question}
                 </div>
 
                 {/* Assistant Card */}
-                <div 
+                <div
                   className="card"
                   style={{
                     alignSelf: 'flex-start',
@@ -253,11 +307,14 @@ export function AskPage() {
                     fontSize: '0.9rem',
                     lineHeight: '1.6',
                     animation: 'fadeIn 0.3s ease',
-                    boxShadow: 'var(--shadow-sm)'
+                    boxShadow: 'var(--shadow-sm)',
                   }}
                 >
                   {!r.ok && (
-                    <div className="badge badge-danger" style={{ display: 'flex', padding: '0.75rem', justifyContent: 'center' }}>
+                    <div
+                      className="badge badge-danger"
+                      style={{ display: 'flex', padding: '0.75rem', justifyContent: 'center' }}
+                    >
                       Error: {r.error ?? 'Unknown error occurred'}
                     </div>
                   )}
@@ -265,8 +322,18 @@ export function AskPage() {
                   {r.ok && (
                     <>
                       {/* Meta badges */}
-                      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                        <span className="badge badge-neutral" style={{ textTransform: 'capitalize' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '0.5rem',
+                          marginBottom: '1rem',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <span
+                          className="badge badge-neutral"
+                          style={{ textTransform: 'capitalize' }}
+                        >
                           route: {r.route}
                         </span>
                         {r.data_row_count != null && r.data_row_count > 0 && (
@@ -309,13 +376,24 @@ export function AskPage() {
                         <button
                           onClick={() => toggleMap(idx)}
                           className="btn btn-secondary"
-                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                          style={{
+                            padding: '0.25rem 0.5rem',
+                            fontSize: '0.75rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                          }}
                           title="How this answer was assembled: question → books → rules → decision"
                         >
                           <GitBranch size={12} />
                           {mapOpen ? 'Hide reasoning map' : 'Show reasoning map'}
                         </button>
-                        {mapOpen && <TopDownMindMap root="Transparent answer path" branches={mindMapBranches} />}
+                        {mapOpen && (
+                          <TopDownMindMap
+                            root="Transparent answer path"
+                            branches={mindMapBranches}
+                          />
+                        )}
                       </div>
 
                       {/* SQL Database Output Table */}
@@ -327,14 +405,47 @@ export function AskPage() {
 
                       {/* Sonar citations block */}
                       {r.sonar_citations && r.sonar_citations.length > 0 && (
-                        <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' }}>
-                          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-info)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                        <div
+                          style={{
+                            marginTop: '1.5rem',
+                            padding: '1rem',
+                            background: 'var(--bg-app)',
+                            border: '1px solid var(--border-subtle)',
+                            borderRadius: 'var(--radius-md)',
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              color: 'var(--accent-info)',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                              marginBottom: '0.5rem',
+                            }}
+                          >
                             Sources & Citations
                           </div>
                           {r.sonar_citations.map((url, i) => (
-                            <div key={i} style={{ display: 'flex', gap: '0.5rem', fontSize: '0.8rem', marginBottom: '0.35rem', alignItems: 'baseline' }}>
-                              <span style={{ color: 'var(--accent-info)', fontWeight: 'bold' }}>[{i + 1}]</span>
-                              <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', wordBreak: 'break-all' }}>
+                            <div
+                              key={i}
+                              style={{
+                                display: 'flex',
+                                gap: '0.5rem',
+                                fontSize: '0.8rem',
+                                marginBottom: '0.35rem',
+                                alignItems: 'baseline',
+                              }}
+                            >
+                              <span style={{ color: 'var(--accent-info)', fontWeight: 'bold' }}>
+                                [{i + 1}]
+                              </span>
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ color: 'var(--accent-primary)', wordBreak: 'break-all' }}
+                              >
                                 {url}
                               </a>
                             </div>
@@ -344,13 +455,28 @@ export function AskPage() {
 
                       {/* Transparency and Debugging logs */}
                       {(r.sql || r.sql_error || r.business_context) && (
-                        <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <div
+                          style={{
+                            marginTop: '1.25rem',
+                            paddingTop: '1rem',
+                            borderTop: '1px solid var(--border-subtle)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.5rem',
+                          }}
+                        >
                           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                             {(r.sql || r.sql_error) && (
                               <button
                                 onClick={() => toggleSql(idx)}
                                 className="btn btn-secondary"
-                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                style={{
+                                  padding: '0.25rem 0.5rem',
+                                  fontSize: '0.75rem',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem',
+                                }}
                               >
                                 <Code size={12} />
                                 {sqlOpen ? 'Hide SQL Query' : 'View SQL Query'}
@@ -360,7 +486,13 @@ export function AskPage() {
                               <button
                                 onClick={() => toggleCtx(idx)}
                                 className="btn btn-secondary"
-                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                style={{
+                                  padding: '0.25rem 0.5rem',
+                                  fontSize: '0.75rem',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem',
+                                }}
                                 title="What the agent knew about your business"
                               >
                                 <Terminal size={12} />
@@ -368,21 +500,55 @@ export function AskPage() {
                               </button>
                             )}
                           </div>
-                          
+
                           {sqlOpen && r.sql && (
-                            <pre style={{ margin: 0, padding: '0.75rem', background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontSize: '0.775rem', overflowX: 'auto', color: 'var(--text-title)', whiteSpace: 'pre-wrap' }}>
+                            <pre
+                              style={{
+                                margin: 0,
+                                padding: '0.75rem',
+                                background: 'var(--bg-app)',
+                                border: '1px solid var(--border-subtle)',
+                                borderRadius: 'var(--radius-sm)',
+                                fontSize: '0.775rem',
+                                overflowX: 'auto',
+                                color: 'var(--text-title)',
+                                whiteSpace: 'pre-wrap',
+                              }}
+                            >
                               <code>{r.sql}</code>
                             </pre>
                           )}
-                          
+
                           {sqlOpen && r.sql_error && (
-                            <div className="badge badge-danger" style={{ display: 'block', padding: '0.5rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'none' }}>
+                            <div
+                              className="badge badge-danger"
+                              style={{
+                                display: 'block',
+                                padding: '0.5rem',
+                                textAlign: 'left',
+                                fontSize: '0.75rem',
+                                textTransform: 'none',
+                              }}
+                            >
                               SQL compilation error: {r.sql_error}
                             </div>
                           )}
-                          
+
                           {ctxOpen && r.business_context && (
-                            <pre style={{ margin: 0, padding: '0.75rem', background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontSize: '0.775rem', overflowX: 'auto', color: 'var(--text-muted)', whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>
+                            <pre
+                              style={{
+                                margin: 0,
+                                padding: '0.75rem',
+                                background: 'var(--bg-app)',
+                                border: '1px solid var(--border-subtle)',
+                                borderRadius: 'var(--radius-sm)',
+                                fontSize: '0.775rem',
+                                overflowX: 'auto',
+                                color: 'var(--text-muted)',
+                                whiteSpace: 'pre-wrap',
+                                lineHeight: '1.4',
+                              }}
+                            >
                               {r.business_context}
                             </pre>
                           )}
@@ -399,7 +565,7 @@ export function AskPage() {
       </div>
 
       {/* Floating Bottom Input Bar */}
-      <div 
+      <div
         style={{
           position: 'absolute',
           bottom: 0,
@@ -408,7 +574,7 @@ export function AskPage() {
           background: 'var(--bg-app)',
           padding: '1rem 0 1.5rem 0',
           borderTop: '1px solid var(--border-subtle)',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
         }}
       >
         {history.length > 0 && (
@@ -418,7 +584,13 @@ export function AskPage() {
               disabled={busy}
               className="btn btn-secondary"
               title="Clear the conversation and start over"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem', fontSize: '0.78rem' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.4rem 0.8rem',
+                fontSize: '0.78rem',
+              }}
             >
               <Eraser size={14} />
               Clear chat
@@ -432,14 +604,18 @@ export function AskPage() {
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder={busy ? 'Processing request…' : 'Ask anything about your books or Australian tax regulations…'}
+            placeholder={
+              busy
+                ? 'Processing request…'
+                : 'Ask anything about your books or Australian tax regulations…'
+            }
             disabled={busy}
             rows={2}
             style={{
               resize: 'none',
               borderRadius: 'var(--radius-md)',
               lineHeight: '1.4',
-              padding: '0.75rem 1rem'
+              padding: '0.75rem 1rem',
             }}
           />
           <button
@@ -450,13 +626,22 @@ export function AskPage() {
               padding: '0 1.5rem',
               borderRadius: 'var(--radius-md)',
               fontWeight: 600,
-              fontSize: '0.875rem'
+              fontSize: '0.875rem',
             }}
           >
             {busy ? '…' : 'Send'}
           </button>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.675rem', color: 'var(--text-muted)', marginTop: '0.35rem', padding: '0 0.25rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            fontSize: '0.675rem',
+            color: 'var(--text-muted)',
+            marginTop: '0.35rem',
+            padding: '0 0.25rem',
+          }}
+        >
           <span>Enter to send · Shift+Enter for newline</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
             <HelpCircle size={10} /> Cost: ~$0.0004 per inquiry
@@ -484,8 +669,16 @@ function buildMindMap(turn: ChatTurn): MindMapBranch[] {
   if (!r.ok) {
     return [
       { title: 'Question', detail: compactText(turn.question), tone: 'primary' },
-      { title: 'Path', detail: 'The request failed before evidence could be assembled.', tone: 'danger' },
-      { title: 'Action', detail: r.error ?? 'Retry after checking the connection and server logs.', tone: 'warning' },
+      {
+        title: 'Path',
+        detail: 'The request failed before evidence could be assembled.',
+        tone: 'danger',
+      },
+      {
+        title: 'Action',
+        detail: r.error ?? 'Retry after checking the connection and server logs.',
+        tone: 'warning',
+      },
     ];
   }
 
@@ -509,7 +702,11 @@ function buildMindMap(turn: ChatTurn): MindMapBranch[] {
         : 'Answered from company records rather than external tax research.',
       tone: needsKnowledge && (r.sonar_citations?.length ?? 0) === 0 ? 'warning' : 'info',
     },
-    { title: 'Decision', detail: firstSentence(r.answer ?? 'No written answer returned.'), tone: 'success' },
+    {
+      title: 'Decision',
+      detail: firstSentence(r.answer ?? 'No written answer returned.'),
+      tone: 'success',
+    },
   ];
 }
 
@@ -522,7 +719,9 @@ function DataTable({ rows }: { rows: Record<string, unknown>[] }) {
       <thead>
         <tr>
           {cols.map((c) => (
-            <th key={c} style={{ fontSize: '0.7rem' }}>{c}</th>
+            <th key={c} style={{ fontSize: '0.7rem' }}>
+              {c}
+            </th>
           ))}
         </tr>
       </thead>
@@ -550,4 +749,3 @@ function formatCell(v: unknown, col: string): string {
   if (typeof v === 'object') return JSON.stringify(v);
   return String(v);
 }
-

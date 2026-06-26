@@ -49,7 +49,7 @@ const DEFAULT_PROPS = {
 };
 
 interface ButtonProps {
-  table?: typeof DEFAULT_PROPS['table'];
+  table?: (typeof DEFAULT_PROPS)['table'];
   rowId?: string;
   currentOrgId?: string;
   fkColumnsToNull?: string[];
@@ -125,9 +125,7 @@ describe('MoveToOrgButton', () => {
 
   it('renders nothing when the user belongs to only one organisation', () => {
     // With only one org, targets will be empty and the component returns null
-    _mockOrganizations = [
-      { id: 'org-a', name: 'Solo Corp', organization_type: 'standard' },
-    ];
+    _mockOrganizations = [{ id: 'org-a', name: 'Solo Corp', organization_type: 'standard' }];
     const { container } = renderButton({ currentOrgId: 'org-a' });
     expect(container.firstChild).toBeNull();
   });

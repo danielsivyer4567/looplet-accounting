@@ -80,11 +80,21 @@ function BillPreviewPane({ bill, onClose }: { bill: BillInfo; onClose: () => voi
         }}
       >
         <div style={{ minWidth: 0, flex: 1, marginRight: '0.5rem' }}>
-          <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-title)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div
+            style={{
+              fontWeight: 700,
+              fontSize: '0.875rem',
+              color: 'var(--text-title)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
             {bill.supplier_name_raw ?? 'Preview'}
           </div>
           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.15rem' }}>
-            {bill.invoice_date ?? ''}{bill.invoice_number ? ` · #${bill.invoice_number}` : ''}
+            {bill.invoice_date ?? ''}
+            {bill.invoice_number ? ` · #${bill.invoice_number}` : ''}
           </div>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexShrink: 0 }}>
@@ -96,7 +106,12 @@ function BillPreviewPane({ bill, onClose }: { bill: BillInfo; onClose: () => voi
           >
             Open page &rarr;
           </a>
-          <button onClick={onClose} aria-label="Close preview" className="btn btn-ghost" style={{ padding: '0.2rem 0.4rem' }}>
+          <button
+            onClick={onClose}
+            aria-label="Close preview"
+            className="btn btn-ghost"
+            style={{ padding: '0.2rem 0.4rem' }}
+          >
             <X size={16} />
           </button>
         </div>
@@ -104,21 +119,54 @@ function BillPreviewPane({ bill, onClose }: { bill: BillInfo; onClose: () => voi
 
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative', background: '#e2e8f0' }}>
         {!loaded ? (
-          <div style={{ padding: 20, color: 'var(--text-muted)', fontSize: '0.875rem', background: 'var(--bg-panel)', height: '100%' }}>Generating preview…</div>
+          <div
+            style={{
+              padding: 20,
+              color: 'var(--text-muted)',
+              fontSize: '0.875rem',
+              background: 'var(--bg-panel)',
+              height: '100%',
+            }}
+          >
+            Generating preview…
+          </div>
         ) : !signedUrl ? (
-          <div style={{ padding: 20, color: 'var(--text-danger)', fontSize: '0.875rem', background: 'var(--bg-panel)', height: '100%' }}>
+          <div
+            style={{
+              padding: 20,
+              color: 'var(--text-danger)',
+              fontSize: '0.875rem',
+              background: 'var(--bg-panel)',
+              height: '100%',
+            }}
+          >
             <p style={{ margin: 0, fontWeight: 'bold' }}>Could not load preview.</p>
             <p style={{ marginTop: 12 }}>
-              <Link to={`/bills/${bill.id}`} style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
+              <Link
+                to={`/bills/${bill.id}`}
+                style={{ color: 'var(--accent-primary)', fontWeight: 600 }}
+              >
                 Open bill detail page instead &rarr;
               </Link>
             </p>
           </div>
         ) : isPdf ? (
-          <iframe src={signedUrl} title={`Bill preview — ${bill.supplier_name_raw ?? bill.id}`} style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }} />
+          <iframe
+            src={signedUrl}
+            title={`Bill preview — ${bill.supplier_name_raw ?? bill.id}`}
+            style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
+          />
         ) : (
           <div style={{ height: '100%', overflowY: 'auto', padding: 12 }}>
-            <img src={signedUrl} alt={`Bill from ${bill.supplier_name_raw ?? 'supplier'}`} style={{ width: '100%', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-sm)' }} />
+            <img
+              src={signedUrl}
+              alt={`Bill from ${bill.supplier_name_raw ?? 'supplier'}`}
+              style={{
+                width: '100%',
+                borderRadius: 'var(--radius-sm)',
+                boxShadow: 'var(--shadow-sm)',
+              }}
+            />
           </div>
         )}
       </div>
@@ -161,7 +209,9 @@ export function CodingReviewPage() {
     let cancelled = false;
     supabase
       .from('bills')
-      .select('id, storage_key, mime_type, supplier_name_raw, invoice_number, invoice_date, total_inc_gst_cents')
+      .select(
+        'id, storage_key, mime_type, supplier_name_raw, invoice_number, invoice_date, total_inc_gst_cents',
+      )
       .eq('organization_id', currentOrg.id)
       .in('id', billIds)
       .then(({ data, error: billErr }) => {
@@ -215,7 +265,9 @@ export function CodingReviewPage() {
     return (
       <section className="animated-fade-in">
         <h1>Coding Review</h1>
-        <p style={{ color: 'var(--text-muted)' }}>Pick an organisation to see the coding review queue.</p>
+        <p style={{ color: 'var(--text-muted)' }}>
+          Pick an organisation to see the coding review queue.
+        </p>
       </section>
     );
   }
@@ -224,9 +276,15 @@ export function CodingReviewPage() {
     return (
       <section className="animated-fade-in">
         <h1>Coding Review</h1>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
+        <div
+          style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}
+        >
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div
+              key={i}
+              className="card"
+              style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
+            >
               <SkeletonLine width="30%" height={16} />
               <SkeletonLine width="50%" height={12} />
               <SkeletonLine width="20%" height={12} />
@@ -239,7 +297,10 @@ export function CodingReviewPage() {
 
   if (error) {
     return (
-      <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}>
+      <div
+        className="badge badge-danger"
+        style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}
+      >
         Failed to load: {error}
       </div>
     );
@@ -267,18 +328,33 @@ export function CodingReviewPage() {
         >
           <CheckCircle2 size={48} />
           <div>
-            <h3 style={{ color: 'var(--text-success)', margin: '0 0 0.25rem 0', fontSize: '1.15rem' }}>Coding queue clear</h3>
-            <p style={{ margin: 0, fontSize: '0.875rem', opacity: 0.85 }}>Every bill the classifier wasn't sure about has been coded.</p>
+            <h3
+              style={{ color: 'var(--text-success)', margin: '0 0 0.25rem 0', fontSize: '1.15rem' }}
+            >
+              Coding queue clear
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.875rem', opacity: 0.85 }}>
+              Every bill the classifier wasn't sure about has been coded.
+            </p>
           </div>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.775rem', lineHeight: '1.5', margin: '0.5rem 0 0 0', maxWidth: '480px' }}>
-            Low-confidence codings land here. High-confidence ones post automatically. Accept the proposed code, or override it, and the journal posts.
+          <p
+            style={{
+              color: 'var(--text-muted)',
+              fontSize: '0.775rem',
+              lineHeight: '1.5',
+              margin: '0.5rem 0 0 0',
+              maxWidth: '480px',
+            }}
+          >
+            Low-confidence codings land here. High-confidence ones post automatically. Accept the
+            proposed code, or override it, and the journal posts.
           </p>
         </div>
       </section>
     );
   }
 
-  const previewBill = previewBillId ? billMap[previewBillId] ?? null : null;
+  const previewBill = previewBillId ? (billMap[previewBillId] ?? null) : null;
 
   return (
     <>
@@ -290,12 +366,20 @@ export function CodingReviewPage() {
         className="animated-fade-in"
       >
         <div style={{ marginBottom: '1.5rem' }}>
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+          <h1
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginBottom: '0.25rem',
+            }}
+          >
             <ListChecks size={24} style={{ color: 'var(--accent-primary)' }} />
             Coding Review
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
-            {suggestions.length} bill{suggestions.length === 1 ? '' : 's'} the classifier wants a human to code.
+            {suggestions.length} bill{suggestions.length === 1 ? '' : 's'} the classifier wants a
+            human to code.
           </p>
         </div>
 
@@ -358,7 +442,9 @@ function SuggestionCard({
       className="card"
       style={{
         padding: '1.25rem',
-        borderLeft: isPreviewing ? '4px solid var(--accent-primary)' : '1px solid var(--border-subtle)',
+        borderLeft: isPreviewing
+          ? '4px solid var(--accent-primary)'
+          : '1px solid var(--border-subtle)',
         display: 'flex',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
@@ -368,10 +454,24 @@ function SuggestionCard({
     >
       <div style={{ flex: 1, minWidth: '300px' }}>
         <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-title)' }}>
-          {bill?.supplier_name_raw ?? <span style={{ color: 'var(--text-muted)' }}>No supplier extracted</span>}
+          {bill?.supplier_name_raw ?? (
+            <span style={{ color: 'var(--text-muted)' }}>No supplier extracted</span>
+          )}
         </div>
-        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-          <span style={{ fontWeight: 600, color: 'var(--text-body)' }}>{bill ? formatMoney(bill.total_inc_gst_cents) : '—'}</span>
+        <div
+          style={{
+            fontSize: '0.8rem',
+            color: 'var(--text-muted)',
+            marginTop: '0.25rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '0.5rem',
+            alignItems: 'center',
+          }}
+        >
+          <span style={{ fontWeight: 600, color: 'var(--text-body)' }}>
+            {bill ? formatMoney(bill.total_inc_gst_cents) : '—'}
+          </span>
           <span>·</span>
           <code>{bill?.invoice_number ?? '—'}</code>
           <span>·</span>
@@ -382,12 +482,35 @@ function SuggestionCard({
           </span>
         </div>
 
-        <div style={{ fontSize: '0.8rem', color: 'var(--text-body)', marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+        <div
+          style={{
+            fontSize: '0.8rem',
+            color: 'var(--text-body)',
+            marginTop: '0.5rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '0.5rem',
+            alignItems: 'center',
+          }}
+        >
           <span style={{ color: 'var(--text-muted)' }}>Proposed:</span>
-          <code style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{suggestion.account_code ?? '— no account —'}</code>
-          {suggestion.tax_code && <span className="badge badge-neutral" style={{ fontSize: '8px' }}>{suggestion.tax_code}</span>}
+          <code style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
+            {suggestion.account_code ?? '— no account —'}
+          </code>
+          {suggestion.tax_code && (
+            <span className="badge badge-neutral" style={{ fontSize: '8px' }}>
+              {suggestion.tax_code}
+            </span>
+          )}
         </div>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', fontStyle: 'italic' }}>
+        <div
+          style={{
+            fontSize: '0.75rem',
+            color: 'var(--text-muted)',
+            marginTop: '0.25rem',
+            fontStyle: 'italic',
+          }}
+        >
           {rationaleSummary(suggestion.rationale)}
         </div>
 
@@ -395,7 +518,12 @@ function SuggestionCard({
           onClick={onPreview}
           disabled={!canPreview}
           className="btn btn-ghost"
-          style={{ marginTop: '0.5rem', padding: '0.2rem 0.5rem', fontSize: '0.75rem', marginLeft: '-0.5rem' }}
+          style={{
+            marginTop: '0.5rem',
+            padding: '0.2rem 0.5rem',
+            fontSize: '0.75rem',
+            marginLeft: '-0.5rem',
+          }}
           aria-pressed={isPreviewing}
           title={canPreview ? undefined : 'No document attached'}
         >
@@ -404,13 +532,30 @@ function SuggestionCard({
         </button>
 
         {actionError && (
-          <div className="badge badge-danger" style={{ display: 'block', marginTop: '0.5rem', padding: '0.4rem 0.6rem', textTransform: 'none', fontSize: '0.75rem' }}>
+          <div
+            className="badge badge-danger"
+            style={{
+              display: 'block',
+              marginTop: '0.5rem',
+              padding: '0.4rem 0.6rem',
+              textTransform: 'none',
+              fontSize: '0.75rem',
+            }}
+          >
             {actionError}
           </div>
         )}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: '280px', flexShrink: 0 }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem',
+          minWidth: '280px',
+          flexShrink: 0,
+        }}
+      >
         {!overriding ? (
           <div style={{ display: 'flex', gap: '0.35rem' }}>
             <button
@@ -426,13 +571,29 @@ function SuggestionCard({
               onClick={() => setOverriding(true)}
               disabled={busy}
               className="btn btn-secondary"
-              style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+              style={{
+                padding: '0.35rem 0.75rem',
+                fontSize: '0.75rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+              }}
             >
               <Pencil size={12} /> Override
             </button>
           </div>
         ) : (
-          <div style={{ background: 'var(--bg-app)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div
+            style={{
+              background: 'var(--bg-app)',
+              padding: '0.75rem',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border-subtle)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+            }}
+          >
             <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
               Account
               <select
@@ -440,7 +601,12 @@ function SuggestionCard({
                 onChange={(e) => setAccountCode(e.target.value)}
                 disabled={busy}
                 className="form-select"
-                style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', width: '100%', marginTop: '0.2rem' }}
+                style={{
+                  padding: '0.4rem 0.5rem',
+                  fontSize: '0.8rem',
+                  width: '100%',
+                  marginTop: '0.2rem',
+                }}
               >
                 <option value="">— Select an account —</option>
                 {accounts.map((a) => (
@@ -459,7 +625,12 @@ function SuggestionCard({
                 list="coding-tax-codes"
                 placeholder="e.g. GST on Expenses"
                 className="form-input"
-                style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', width: '100%', marginTop: '0.2rem' }}
+                style={{
+                  padding: '0.4rem 0.5rem',
+                  fontSize: '0.8rem',
+                  width: '100%',
+                  marginTop: '0.2rem',
+                }}
               />
               <datalist id="coding-tax-codes">
                 <option value="GST on Expenses" />
@@ -470,7 +641,12 @@ function SuggestionCard({
             </label>
             <div style={{ display: 'flex', gap: '0.35rem' }}>
               <button
-                onClick={() => onOverride({ account_code: accountCode, tax_code: taxCode.trim() === '' ? null : taxCode.trim() })}
+                onClick={() =>
+                  onOverride({
+                    account_code: accountCode,
+                    tax_code: taxCode.trim() === '' ? null : taxCode.trim(),
+                  })
+                }
                 disabled={busy || accountCode.trim() === ''}
                 className="btn btn-primary"
                 style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', flex: 1 }}

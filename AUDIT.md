@@ -21,11 +21,11 @@
 
 ## Verdict (at audit time)
 
-| Goal | Status | Summary |
-|---|---|---|
-| (a) Runs now on autopilot | **NOT READY** | Crons/intake live, but Gmail dead since 2026-05-09, `bank-sync-all` 403s every run, `accountant-session-digest` 401s every 10 min (all reported "succeeded"), no auto-reconciler. |
-| (b) REST/connector API | **NOT READY** | No API-key mechanism, no ingestion endpoint, no docs; every endpoint needs a human JWT. (Scaffold added in this PR.) |
-| (c) Complete enough to need no accountant | **NOT READY** | No double-entry GL/journals/trial-balance/COA; P&L mixes GST-inc revenue with ex-GST costs; no GST/BAS or STP/super lodgement; no credit notes, fixed assets, accruals. |
+| Goal                                      | Status        | Summary                                                                                                                                                                           |
+| ----------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| (a) Runs now on autopilot                 | **NOT READY** | Crons/intake live, but Gmail dead since 2026-05-09, `bank-sync-all` 403s every run, `accountant-session-digest` 401s every 10 min (all reported "succeeded"), no auto-reconciler. |
+| (b) REST/connector API                    | **NOT READY** | No API-key mechanism, no ingestion endpoint, no docs; every endpoint needs a human JWT. (Scaffold added in this PR.)                                                              |
+| (c) Complete enough to need no accountant | **NOT READY** | No double-entry GL/journals/trial-balance/COA; P&L mixes GST-inc revenue with ex-GST costs; no GST/BAS or STP/super lodgement; no credit notes, fixed assets, accruals.           |
 
 ---
 
@@ -45,6 +45,7 @@
 ## Missing requirements by goal
 
 ### (a) Autopilot / background
+
 - [ ] `bank-sync-all` cron sends no auth → **403 every run** (omits the `?secret=` other crons use). Fix command + add heartbeat (don't trust pg_cron "succeeded"). **(high)**
 - [ ] `accountant-session-digest` **401 every 10 min** — builds bearer from `vault.decrypted_secrets WHERE name='service_role_key'` which doesn't exist. Create the vault secret or switch to `?secret=`. **(high)**
 - [ ] No end-to-end cron alerting — nothing reads `net._http_response`. Add monitor / per-function heartbeat + "no success in window" notification. **(high)**
@@ -54,6 +55,7 @@
 - [ ] Extend confidence-tiered auto-accept beyond exact job-ref match (`_shared/bills/router.ts:62-71`) to LLM-classified entities. **(low/med)**
 
 ### (b) REST API / connectivity
+
 - [ ] `api_keys` table + issue/revoke UI. **(Scaffold: 0056 + Settings UI TODO)**
 - [ ] Generic `POST /ingest` + per-entity push (bills/transactions/invoices). **(Scaffold: functions/ingest)**
 - [ ] Webhook/cron auth weak — single global URL `?secret=`, no HMAC, no per-org scoping (`bank-webhook:36-43`, `gmail-pubsub-push:69-79`). Verify provider HMAC, move secrets to headers, scope per org. **(high)**
@@ -61,6 +63,7 @@
 - [ ] PostgREST is the de-facto API but undocumented — publish OpenAPI + integration guide. **(high)**
 
 ### (c) Accounting completeness (internal capability target)
+
 - [ ] Double-entry GL / journals / trial balance / chart of accounts; derive P&L/BS from postings (fix GST-inc revenue mixing). **(XL)**
 - [ ] GST/BAS: W1/W2 + G-code label mapping into `v_bas_quarterly`; SBR e-lodgement (today `Bas.tsx` is read-only CSV). **(high)**
 - [ ] STP Phase 2 + super: SBR gateway + SuperStream; real TFNs (placeholder `000000000` at `payroll-export-stp/index.ts:146`); `super_payments` table. **(high)**
@@ -70,6 +73,7 @@
 - [ ] Income/company tax-return prep or structured EOFY pack. **(medium)**
 
 ### (d) Integrity / security / data
+
 - [x] `public.notify()` anon-executable revoked (0055). Deeper fix (org guard `p_org IN (SELECT get_accessible_org_ids())`) still TODO. **(high)**
 - [ ] 26 SECURITY DEFINER functions executable by PUBLIC + 27 with mutable `search_path` — add `SET search_path=''`, `REVOKE EXECUTE FROM PUBLIC`. **(medium)**
 - [ ] Drop orphaned cross-product functions `deduct_credits` / `check_rate_limit` / `is_agency_user` (anon execute already revoked in 0055). **(medium)**
@@ -93,7 +97,7 @@
 ## §5 — Recommended connection method (external REST / direct-connect)
 
 - **API key → scoped JWT.** `api_keys(org_id, key_prefix, hashed_key, scopes[], expires_at, revoked_at)` (migration 0056). Store only a SHA-256 hash; org-bound so a leaked key never crosses tenants.
-- **`api-gateway` edge fn** (`verify_jwt:false`) validates the key, mints a short-lived JWT (`role=authenticated` + `organization_id` + scopes) → existing RLS enforces. *(Finish: wire the token to a per-org integration user or an `organization_id` RLS claim — see code NOTE.)*
+- **`api-gateway` edge fn** (`verify_jwt:false`) validates the key, mints a short-lived JWT (`role=authenticated` + `organization_id` + scopes) → existing RLS enforces. _(Finish: wire the token to a per-org integration user or an `organization_id` RLS claim — see code NOTE.)_
 - **Reads ride PostgREST** `/rest/v1/...` (now RLS-safe after 0055); publish the auto OpenAPI as the documented read API.
 - **`POST /functions/v1/ingest`** `{type,payload}` — service-role write after pinning `organization_id` to the key's org; reuse the bill router + bank dedupe so pushed records get identical auto-routing.
 - **Webhooks:** HMAC signatures (not URL secrets), persist events before acking, per-connection secret.

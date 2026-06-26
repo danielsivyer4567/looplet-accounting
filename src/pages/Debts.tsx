@@ -18,7 +18,7 @@ import {
   Info,
   ChevronRight,
   TrendingDown,
-  X
+  X,
 } from 'lucide-react';
 
 interface Debt {
@@ -48,20 +48,42 @@ interface Payment {
   fees_cents: number | null;
 }
 
-const DEBT_KINDS = ['credit_card', 'personal_loan', 'mortgage', 'business_loan', 'overdraft', 'tax_debt', 'other'];
+const DEBT_KINDS = [
+  'credit_card',
+  'personal_loan',
+  'mortgage',
+  'business_loan',
+  'overdraft',
+  'tax_debt',
+  'other',
+];
 
 function getDebtIcon(kind: string) {
   switch (kind) {
     case 'credit_card':
-      return <CreditCard className="w-4 h-4 text-accent-info" style={{ color: 'var(--accent-info)' }} />;
+      return (
+        <CreditCard className="w-4 h-4 text-accent-info" style={{ color: 'var(--accent-info)' }} />
+      );
     case 'personal_loan':
     case 'business_loan':
-      return <Landmark className="w-4 h-4 text-accent-primary" style={{ color: 'var(--accent-primary)' }} />;
+      return (
+        <Landmark
+          className="w-4 h-4 text-accent-primary"
+          style={{ color: 'var(--accent-primary)' }}
+        />
+      );
     case 'mortgage':
-      return <Landmark className="w-4 h-4 text-accent-success" style={{ color: 'var(--accent-success)' }} />;
+      return (
+        <Landmark
+          className="w-4 h-4 text-accent-success"
+          style={{ color: 'var(--accent-success)' }}
+        />
+      );
     case 'overdraft':
     case 'tax_debt':
-      return <Receipt className="w-4 h-4 text-accent-danger" style={{ color: 'var(--accent-danger)' }} />;
+      return (
+        <Receipt className="w-4 h-4 text-accent-danger" style={{ color: 'var(--accent-danger)' }} />
+      );
     default:
       return <HelpCircle className="w-4 h-4 text-muted" style={{ color: 'var(--text-muted)' }} />;
   }
@@ -79,8 +101,17 @@ export function DebtsPage() {
     if (!currentOrg) return;
     setLoading(true);
     const [debtsRes, paysRes] = await Promise.all([
-      supabase.from('debts').select('*').eq('organization_id', currentOrg.id).order('current_balance_cents', { ascending: false }),
-      supabase.from('debt_payments').select('*').eq('organization_id', currentOrg.id).order('paid_at', { ascending: false }).limit(20),
+      supabase
+        .from('debts')
+        .select('*')
+        .eq('organization_id', currentOrg.id)
+        .order('current_balance_cents', { ascending: false }),
+      supabase
+        .from('debt_payments')
+        .select('*')
+        .eq('organization_id', currentOrg.id)
+        .order('paid_at', { ascending: false })
+        .limit(20),
     ]);
     setDebts((debtsRes.data ?? []) as Debt[]);
     setPayments((paysRes.data ?? []) as Payment[]);
@@ -91,8 +122,12 @@ export function DebtsPage() {
 
   if (!currentOrg) return null;
 
-  const businessDebt = debts.filter((d) => !d.is_personal).reduce((a, d) => a + d.current_balance_cents, 0);
-  const personalDebt = debts.filter((d) => d.is_personal).reduce((a, d) => a + d.current_balance_cents, 0);
+  const businessDebt = debts
+    .filter((d) => !d.is_personal)
+    .reduce((a, d) => a + d.current_balance_cents, 0);
+  const personalDebt = debts
+    .filter((d) => d.is_personal)
+    .reduce((a, d) => a + d.current_balance_cents, 0);
   const totalMinPayments = debts.reduce((a, d) => a + (d.minimum_payment_cents ?? 0), 0);
 
   // Debt Mix (all active debts)
@@ -110,15 +145,16 @@ export function DebtsPage() {
   let runningPrincipalCents = 0;
   let runningInterestCents = 0;
 
-  const paymentsChronological = payments
-    .slice()
-    .sort((a, b) => a.paid_at.localeCompare(b.paid_at));
+  const paymentsChronological = payments.slice().sort((a, b) => a.paid_at.localeCompare(b.paid_at));
 
   const totalPaymentsTrend = paymentsChronological.length
     ? paymentsChronological.map((p) => {
         runningPaidCents += p.total_cents;
         return {
-          label: new Date(p.paid_at).toLocaleDateString('en-AU', { day: '2-digit', month: 'short' }),
+          label: new Date(p.paid_at).toLocaleDateString('en-AU', {
+            day: '2-digit',
+            month: 'short',
+          }),
           value: runningPaidCents,
         };
       })
@@ -141,20 +177,41 @@ export function DebtsPage() {
   });
 
   return (
-    <section className="animated-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <section
+      className="animated-fade-in"
+      style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}
+    >
       <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '0.5rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            marginBottom: '0.5rem',
+          }}
+        >
           <h1 style={{ margin: 0 }}>Debts Tracker</h1>
           <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
             <Plus className="w-4 h-4" /> Add Debt
           </button>
         </div>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.925rem', maxWidth: '600px', margin: 0 }}>
-          Loans, credit cards, overdrafts. Tracks balance, interest rate, and monthly minimum so you know what's eating cash.
+        <p
+          style={{ color: 'var(--text-muted)', fontSize: '0.925rem', maxWidth: '600px', margin: 0 }}
+        >
+          Loans, credit cards, overdrafts. Tracks balance, interest rate, and monthly minimum so you
+          know what's eating cash.
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: '1rem',
+        }}
+      >
         <KpiCard
           label="Business Debt"
           value={businessDebt}
@@ -207,26 +264,43 @@ export function DebtsPage() {
               No debt allocations to display.
             </div>
           ) : (
-            <InsightBarList
-              items={debtMixItems}
-              formatValue={formatMoneyCompact}
-            />
+            <InsightBarList items={debtMixItems} formatValue={formatMoneyCompact} />
           )}
         </InsightPanel>
       </div>
 
       {showAdd && (
         <div className="card-gradient" style={{ animation: 'fadeIn 0.2s ease-out' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.25rem',
+            }}
+          >
             <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <TrendingDown className="w-5 h-5 text-accent-primary" style={{ color: 'var(--accent-primary)' }} />
+              <TrendingDown
+                className="w-5 h-5 text-accent-primary"
+                style={{ color: 'var(--accent-primary)' }}
+              />
               Add New Debt Account
             </h3>
-            <button className="btn btn-ghost" onClick={() => setShowAdd(false)} style={{ padding: '0.25rem' }}>
+            <button
+              className="btn btn-ghost"
+              onClick={() => setShowAdd(false)}
+              style={{ padding: '0.25rem' }}
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
-          <AddDebtForm onClose={() => setShowAdd(false)} onAdded={() => { setShowAdd(false); void refresh(); }} />
+          <AddDebtForm
+            onClose={() => setShowAdd(false)}
+            onAdded={() => {
+              setShowAdd(false);
+              void refresh();
+            }}
+          />
         </div>
       )}
 
@@ -235,9 +309,17 @@ export function DebtsPage() {
         {loading ? (
           <SkeletonTable rows={4} cols={7} />
         ) : debts.length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-            <Landmark className="w-12 h-12 text-muted" style={{ margin: '0 auto 1rem', opacity: 0.4 }} />
-            <p style={{ margin: 0, fontSize: '0.925rem' }}>No debts tracked yet. Add one to start watching the cash bleed.</p>
+          <div
+            className="card"
+            style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}
+          >
+            <Landmark
+              className="w-12 h-12 text-muted"
+              style={{ margin: '0 auto 1rem', opacity: 0.4 }}
+            />
+            <p style={{ margin: 0, fontSize: '0.925rem' }}>
+              No debts tracked yet. Add one to start watching the cash bleed.
+            </p>
           </div>
         ) : (
           <div className="table-premium-container">
@@ -262,7 +344,15 @@ export function DebtsPage() {
                     onClick={() => navigate(`/debts/${d.id}`)}
                   >
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: 600, color: 'var(--text-title)' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          fontWeight: 600,
+                          color: 'var(--text-title)',
+                        }}
+                      >
                         {getDebtIcon(d.kind)}
                         {d.name}
                       </div>
@@ -271,7 +361,13 @@ export function DebtsPage() {
                     <td>
                       {d.lender_name ?? '—'}
                       {d.account_number_last4 && (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '0.25rem' }}>
+                        <span
+                          style={{
+                            color: 'var(--text-muted)',
+                            fontSize: '0.8rem',
+                            marginLeft: '0.25rem',
+                          }}
+                        >
                           •••• {d.account_number_last4}
                         </span>
                       )}
@@ -280,7 +376,9 @@ export function DebtsPage() {
                       {formatMoney(d.current_balance_cents)}
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      {d.interest_rate_pct != null ? `${Number(d.interest_rate_pct).toFixed(2)}%` : '—'}
+                      {d.interest_rate_pct != null
+                        ? `${Number(d.interest_rate_pct).toFixed(2)}%`
+                        : '—'}
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       {d.minimum_payment_cents != null ? formatMoney(d.minimum_payment_cents) : '—'}
@@ -306,7 +404,10 @@ export function DebtsPage() {
       <div>
         <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Recent Payments</h2>
         {payments.length === 0 ? (
-          <div className="card" style={{ padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+          <div
+            className="card"
+            style={{ padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}
+          >
             No payments recorded yet.
           </div>
         ) : (
@@ -327,8 +428,12 @@ export function DebtsPage() {
                   return (
                     <tr key={p.id}>
                       <td>{p.paid_at.slice(0, 10)}</td>
-                      <td style={{ fontWeight: 500, color: 'var(--text-title)' }}>{debt?.name ?? '—'}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-title)' }}>
+                      <td style={{ fontWeight: 500, color: 'var(--text-title)' }}>
+                        {debt?.name ?? '—'}
+                      </td>
+                      <td
+                        style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-title)' }}
+                      >
                         {formatMoney(p.total_cents)}
                       </td>
                       <td style={{ textAlign: 'right', color: 'var(--text-success)' }}>
@@ -355,13 +460,19 @@ export function DebtsPage() {
           alignItems: 'flex-start',
           fontSize: '0.825rem',
           color: 'var(--text-muted)',
-          borderStyle: 'dashed'
+          borderStyle: 'dashed',
         }}
       >
-        <Info className="w-5 h-5 text-accent-primary" style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--accent-primary)' }} />
+        <Info
+          className="w-5 h-5 text-accent-primary"
+          style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--accent-primary)' }}
+        />
         <div>
-          <strong style={{ color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>Future Features:</strong>
-          Amortisation schedule tables, "snowball vs avalanche" payoff planner/strategy simulator, transaction auto-matching, and SMS/Email payment alerts before due dates.
+          <strong style={{ color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>
+            Future Features:
+          </strong>
+          Amortisation schedule tables, "snowball vs avalanche" payoff planner/strategy simulator,
+          transaction auto-matching, and SMS/Email payment alerts before due dates.
         </div>
       </div>
     </section>
@@ -395,57 +506,121 @@ function AddDebtForm({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
       is_personal: isPersonal,
     });
     setBusy(false);
-    if (error) { setErr(error.message); return; }
+    if (error) {
+      setErr(error.message);
+      return;
+    }
     onAdded();
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '1rem',
+        }}
+      >
         <div className="form-group">
           <label className="form-label">Account Name</label>
-          <input className="form-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. CommBank Visa" />
+          <input
+            className="form-input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. CommBank Visa"
+          />
         </div>
         <div className="form-group">
           <label className="form-label">Debt Type</label>
           <select className="form-select" value={kind} onChange={(e) => setKind(e.target.value)}>
-            {DEBT_KINDS.map((k) => <option key={k} value={k}>{k.replace(/_/g, ' ')}</option>)}
+            {DEBT_KINDS.map((k) => (
+              <option key={k} value={k}>
+                {k.replace(/_/g, ' ')}
+              </option>
+            ))}
           </select>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '1rem',
+        }}
+      >
         <div className="form-group">
           <label className="form-label">Lender Name</label>
-          <input className="form-input" value={lender} onChange={(e) => setLender(e.target.value)} placeholder="e.g. Commonwealth Bank" />
+          <input
+            className="form-input"
+            value={lender}
+            onChange={(e) => setLender(e.target.value)}
+            placeholder="e.g. Commonwealth Bank"
+          />
         </div>
         <div className="form-group">
           <label className="form-label">Liability Classification</label>
-          <select className="form-select" value={isPersonal ? 'true' : 'false'} onChange={(e) => setIsPersonal(e.target.value === 'true')}>
+          <select
+            className="form-select"
+            value={isPersonal ? 'true' : 'false'}
+            onChange={(e) => setIsPersonal(e.target.value === 'true')}
+          >
             <option value="false">Business Liability</option>
             <option value="true">Personal Liability</option>
           </select>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '1rem',
+        }}
+      >
         <div className="form-group">
           <label className="form-label">Current Balance ($)</label>
-          <input className="form-input" type="number" step="0.01" value={balance || ''} onChange={(e) => setBalance(parseFloat(e.target.value) || 0)} placeholder="0.00" />
+          <input
+            className="form-input"
+            type="number"
+            step="0.01"
+            value={balance || ''}
+            onChange={(e) => setBalance(parseFloat(e.target.value) || 0)}
+            placeholder="0.00"
+          />
         </div>
         <div className="form-group">
           <label className="form-label">Interest Rate (APR %)</label>
-          <input className="form-input" type="number" step="0.01" value={interestPct || ''} onChange={(e) => setInterestPct(parseFloat(e.target.value) || 0)} placeholder="0.00" />
+          <input
+            className="form-input"
+            type="number"
+            step="0.01"
+            value={interestPct || ''}
+            onChange={(e) => setInterestPct(parseFloat(e.target.value) || 0)}
+            placeholder="0.00"
+          />
         </div>
       </div>
 
       <div className="form-group">
         <label className="form-label">Minimum Monthly Payment ($)</label>
-        <input className="form-input" type="number" step="0.01" value={minPayment || ''} onChange={(e) => setMinPayment(parseFloat(e.target.value) || 0)} placeholder="0.00" />
+        <input
+          className="form-input"
+          type="number"
+          step="0.01"
+          value={minPayment || ''}
+          onChange={(e) => setMinPayment(parseFloat(e.target.value) || 0)}
+          placeholder="0.00"
+        />
       </div>
 
       <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-        <button className="btn btn-primary" onClick={submit} disabled={busy || !name.trim() || balance <= 0}>
+        <button
+          className="btn btn-primary"
+          onClick={submit}
+          disabled={busy || !name.trim() || balance <= 0}
+        >
           {busy ? 'Adding Account…' : 'Add Debt Account'}
         </button>
         <button className="btn btn-secondary" onClick={onClose} disabled={busy}>
@@ -454,7 +629,10 @@ function AddDebtForm({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
       </div>
 
       {err && (
-        <div className="badge badge-danger" style={{ display: 'block', padding: '0.5rem 1rem', textTransform: 'none' }}>
+        <div
+          className="badge badge-danger"
+          style={{ display: 'block', padding: '0.5rem 1rem', textTransform: 'none' }}
+        >
           {err}
         </div>
       )}
@@ -478,20 +656,53 @@ function KpiCard({
   formatter?: (val: number) => string;
 }) {
   return (
-    <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderLeft: `4px solid ${accentColor}` }}>
+    <div
+      className="card"
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        borderLeft: `4px solid ${accentColor}`,
+      }}
+    >
       <div>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: '0.35rem' }}>
+        <div
+          style={{
+            fontSize: '0.75rem',
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            fontWeight: 600,
+            marginBottom: '0.35rem',
+          }}
+        >
           {label}
         </div>
-        <div style={{ fontSize: '1.65rem', color: 'var(--text-title)', fontWeight: 700, fontFamily: 'var(--font-title)' }}>
+        <div
+          style={{
+            fontSize: '1.65rem',
+            color: 'var(--text-title)',
+            fontWeight: 700,
+            fontFamily: 'var(--font-title)',
+          }}
+        >
           <AnimatedNumber value={value} formatter={formatter} />
         </div>
-        {sub && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{sub}</div>}
+        {sub && (
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+            {sub}
+          </div>
+        )}
       </div>
-      <div style={{ padding: '0.5rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)' }}>
+      <div
+        style={{
+          padding: '0.5rem',
+          background: 'var(--bg-hover)',
+          borderRadius: 'var(--radius-sm)',
+        }}
+      >
         {icon}
       </div>
     </div>
   );
 }
-

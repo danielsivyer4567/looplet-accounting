@@ -49,9 +49,7 @@ function InviteModal({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
 
-  const invitableRoles = ROLE_OPTIONS.filter(
-    (r) => ROLE_RANK[r] <= ROLE_RANK[callerRole],
-  );
+  const invitableRoles = ROLE_OPTIONS.filter((r) => ROLE_RANK[r] <= ROLE_RANK[callerRole]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -60,20 +58,19 @@ function InviteModal({
     setError(null);
     setResult(null);
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     const token = session?.access_token;
 
-    const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/team-invite`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token ?? ''}`,
-        },
-        body: JSON.stringify({ email, role, organization_id: currentOrg.id }),
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/team-invite`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token ?? ''}`,
       },
-    );
+      body: JSON.stringify({ email, role, organization_id: currentOrg.id }),
+    });
 
     const json = await res.json().catch(() => ({ ok: false, error: 'Bad response' }));
     setLoading(false);
@@ -108,20 +105,59 @@ function InviteModal({
           width: 380,
           maxWidth: '90vw',
           padding: '2rem',
-          boxShadow: 'var(--shadow-lg)'
+          boxShadow: 'var(--shadow-lg)',
         }}
       >
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <h2
+          style={{
+            fontSize: '1.25rem',
+            marginBottom: '1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
+        >
           <Users size={20} style={{ color: 'var(--accent-primary)' }} />
           Invite Team Member
         </h2>
 
-        {result && <div className="badge badge-success" style={{ display: 'block', padding: '0.5rem', marginBottom: '1rem', textTransform: 'none' }}>{result}</div>}
-        {error && <div className="badge badge-danger" style={{ display: 'block', padding: '0.5rem', marginBottom: '1rem', textTransform: 'none' }}>{error}</div>}
+        {result && (
+          <div
+            className="badge badge-success"
+            style={{
+              display: 'block',
+              padding: '0.5rem',
+              marginBottom: '1rem',
+              textTransform: 'none',
+            }}
+          >
+            {result}
+          </div>
+        )}
+        {error && (
+          <div
+            className="badge badge-danger"
+            style={{
+              display: 'block',
+              padding: '0.5rem',
+              marginBottom: '1rem',
+              textTransform: 'none',
+            }}
+          >
+            {error}
+          </div>
+        )}
 
-        <form onSubmit={(e) => { void handleSubmit(e); }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <form
+          onSubmit={(e) => {
+            void handleSubmit(e);
+          }}
+          style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+        >
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <span className="form-label" style={{ fontSize: '0.725rem' }}>Email Address</span>
+            <span className="form-label" style={{ fontSize: '0.725rem' }}>
+              Email Address
+            </span>
             <input
               type="email"
               value={email}
@@ -134,7 +170,9 @@ function InviteModal({
           </div>
 
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <span className="form-label" style={{ fontSize: '0.725rem' }}>Role</span>
+            <span className="form-label" style={{ fontSize: '0.725rem' }}>
+              Role
+            </span>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as OrgRole)}
@@ -149,7 +187,14 @@ function InviteModal({
             </select>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '0.5rem',
+              justifyContent: 'flex-end',
+              marginTop: '0.5rem',
+            }}
+          >
             <button type="button" onClick={onClose} className="btn btn-secondary">
               Cancel
             </button>
@@ -211,7 +256,8 @@ export function TeamPage() {
     const enriched: MemberRow[] = (data ?? []).map((m) => ({
       ...m,
       role_enum: m.role_enum as OrgRole | null,
-      email: empMap.get(m.user_id)?.email ?? (user && m.user_id === user.id ? user.email ?? '' : ''),
+      email:
+        empMap.get(m.user_id)?.email ?? (user && m.user_id === user.id ? (user.email ?? '') : ''),
       full_name: empMap.get(m.user_id)?.full_name,
     }));
 
@@ -231,8 +277,8 @@ export function TeamPage() {
       newRole === 'accountant'
         ? 'manager'
         : newRole === 'viewer' || newRole === 'employee'
-        ? 'member'
-        : newRole;
+          ? 'member'
+          : newRole;
 
     const { error: updateErr } = await supabase
       .from('organization_memberships')
@@ -284,29 +330,29 @@ export function TeamPage() {
   return (
     <section className="animated-fade-in">
       {/* Back link */}
-      <Link 
-        to="/settings" 
-        style={{ 
-          color: 'var(--text-muted)', 
-          fontSize: '0.825rem', 
-          display: 'inline-flex', 
-          alignItems: 'center', 
+      <Link
+        to="/settings"
+        style={{
+          color: 'var(--text-muted)',
+          fontSize: '0.825rem',
+          display: 'inline-flex',
+          alignItems: 'center',
           gap: '0.25rem',
-          marginBottom: '1rem'
+          marginBottom: '1rem',
         }}
       >
         <ChevronLeft size={14} />
         <span>Settings</span>
       </Link>
 
-      <div 
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: '1.5rem',
           flexWrap: 'wrap',
-          gap: '1rem'
+          gap: '1rem',
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -324,7 +370,15 @@ export function TeamPage() {
       </div>
 
       {error && (
-        <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', marginBottom: '1rem', textTransform: 'none' }}>
+        <div
+          className="badge badge-danger"
+          style={{
+            display: 'block',
+            padding: '0.75rem',
+            marginBottom: '1rem',
+            textTransform: 'none',
+          }}
+        >
           {error}
         </div>
       )}
@@ -358,7 +412,15 @@ export function TeamPage() {
                         {m.full_name ?? (isMe ? 'You' : m.user_id.slice(0, 8) + '…')}
                       </div>
                       {m.email && (
-                        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.15rem' }}>{m.email}</div>
+                        <div
+                          style={{
+                            color: 'var(--text-muted)',
+                            fontSize: '0.75rem',
+                            marginTop: '0.15rem',
+                          }}
+                        >
+                          {m.email}
+                        </div>
                       )}
                     </td>
                     <td>
@@ -366,22 +428,20 @@ export function TeamPage() {
                         <select
                           value={memberRole}
                           disabled={updating === m.id}
-                          onChange={(e) =>
-                            void handleRoleChange(m.id, e.target.value as OrgRole)
-                          }
+                          onChange={(e) => void handleRoleChange(m.id, e.target.value as OrgRole)}
                           className="form-select"
                           style={{ width: 'auto', padding: '0.35rem 0.5rem', fontSize: '0.825rem' }}
                         >
-                          {ROLE_OPTIONS.filter((r) => ROLE_RANK[r] < callerRank).map(
-                            (r) => (
-                              <option key={r} value={r}>
-                                {roleLabel(r)}
-                              </option>
-                            ),
-                          )}
+                          {ROLE_OPTIONS.filter((r) => ROLE_RANK[r] < callerRank).map((r) => (
+                            <option key={r} value={r}>
+                              {roleLabel(r)}
+                            </option>
+                          ))}
                         </select>
                       ) : (
-                        <span className={`badge ${memberRole === 'owner' ? 'badge-success' : 'badge-neutral'}`}>
+                        <span
+                          className={`badge ${memberRole === 'owner' ? 'badge-success' : 'badge-neutral'}`}
+                        >
                           {roleLabel(memberRole)}
                         </span>
                       )}
@@ -393,12 +453,16 @@ export function TeamPage() {
                     </td>
                     <td style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
                       {m.invited_at ? (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                        >
                           <Clock size={12} />
                           {new Date(m.invited_at).toLocaleDateString()}
                         </span>
                       ) : (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                        >
                           <CheckCircle size={12} style={{ color: 'var(--accent-success)' }} />
                           Auto-joined
                         </span>
@@ -411,15 +475,17 @@ export function TeamPage() {
                             disabled={removing === m.id}
                             onClick={() => void handleRemove(m.id, m.user_id)}
                             className="btn btn-secondary"
-                            style={{ 
-                              padding: '0.25rem 0.5rem', 
-                              fontSize: '0.75rem', 
+                            style={{
+                              padding: '0.25rem 0.5rem',
+                              fontSize: '0.75rem',
                               color: 'var(--text-danger)',
-                              borderColor: 'rgba(239, 68, 68, 0.2)' 
+                              borderColor: 'rgba(239, 68, 68, 0.2)',
                             }}
                           >
                             <Trash2 size={12} style={{ marginRight: '0.25rem' }} />
-                            <span>{removing === m.id ? 'Removing…' : isMe ? 'Leave' : 'Remove'}</span>
+                            <span>
+                              {removing === m.id ? 'Removing…' : isMe ? 'Leave' : 'Remove'}
+                            </span>
                           </button>
                         )}
                       </td>

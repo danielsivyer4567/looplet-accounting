@@ -29,7 +29,9 @@ vi.mock('@/hooks/useLegalHorizon', () => ({
 
 import { LegalHorizonPage } from '@/pages/LegalHorizon';
 
-function makeRow(over: Partial<LegalHorizonRow> & Pick<LegalHorizonRow, 'id' | 'title'>): LegalHorizonRow {
+function makeRow(
+  over: Partial<LegalHorizonRow> & Pick<LegalHorizonRow, 'id' | 'title'>,
+): LegalHorizonRow {
   return {
     id: over.id,
     title: over.title,
@@ -83,7 +85,9 @@ describe('LegalHorizonPage', () => {
   });
 
   it('flags low-confidence items so they are not read as reliable', () => {
-    h.state.items = [makeRow({ id: 'b', title: 'Speculative measure', confidence: 0.3, stage: 'announced' })];
+    h.state.items = [
+      makeRow({ id: 'b', title: 'Speculative measure', confidence: 0.3, stage: 'announced' }),
+    ];
 
     render(<LegalHorizonPage />);
 

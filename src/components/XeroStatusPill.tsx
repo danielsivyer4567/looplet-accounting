@@ -16,11 +16,18 @@ interface XeroStatusPillProps {
   repushBusy?: boolean;
 }
 
-export function XeroStatusPill({ xeroStatus, lastError, onRepush, repushBusy }: XeroStatusPillProps) {
+export function XeroStatusPill({
+  xeroStatus,
+  lastError,
+  onRepush,
+  repushBusy,
+}: XeroStatusPillProps) {
   const status = xeroStatus ?? null;
 
   const { label, colour, bg } = resolveStyle(status);
-  const showRepush = onRepush && (status === null || status === 'failed' || status === 'error' || status === 'pending');
+  const showRepush =
+    onRepush &&
+    (status === null || status === 'failed' || status === 'error' || status === 'pending');
 
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -42,7 +49,10 @@ export function XeroStatusPill({ xeroStatus, lastError, onRepush, repushBusy }: 
       </span>
       {showRepush && (
         <button
-          onClick={(e) => { e.stopPropagation(); void onRepush(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            void onRepush();
+          }}
           disabled={repushBusy}
           style={{
             padding: '0.1rem 0.5rem',

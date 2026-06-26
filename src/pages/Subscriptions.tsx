@@ -16,7 +16,7 @@ import {
   Briefcase,
   User,
   Calendar,
-  LayoutGrid
+  LayoutGrid,
 } from 'lucide-react';
 
 interface Subscription {
@@ -44,7 +44,7 @@ const STATUS_FILTERS = ['all', 'candidate', 'confirmed', 'cancelled', 'dismissed
 export function SubscriptionsPage() {
   const { currentOrg } = useOrg();
   const navigate = useNavigate();
-  const [filter, setFilter] = useState<typeof STATUS_FILTERS[number]>('all');
+  const [filter, setFilter] = useState<(typeof STATUS_FILTERS)[number]>('all');
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [detecting, setDetecting] = useState(false);
@@ -95,13 +95,22 @@ export function SubscriptionsPage() {
     return s.amount_cents;
   };
 
-  const totalMonthly = subs.filter((s) => s.status !== 'cancelled' && s.status !== 'dismissed').reduce((a, s) => a + monthlyEquivalent(s), 0);
-  const businessOnly = subs.filter((s) => s.is_business && !s.is_personal && s.status !== 'dismissed').reduce((a, s) => a + monthlyEquivalent(s) * 12, 0);
-  const personalOnly = subs.filter((s) => s.is_personal && s.status !== 'dismissed').reduce((a, s) => a + monthlyEquivalent(s) * 12, 0);
+  const totalMonthly = subs
+    .filter((s) => s.status !== 'cancelled' && s.status !== 'dismissed')
+    .reduce((a, s) => a + monthlyEquivalent(s), 0);
+  const businessOnly = subs
+    .filter((s) => s.is_business && !s.is_personal && s.status !== 'dismissed')
+    .reduce((a, s) => a + monthlyEquivalent(s) * 12, 0);
+  const personalOnly = subs
+    .filter((s) => s.is_personal && s.status !== 'dismissed')
+    .reduce((a, s) => a + monthlyEquivalent(s) * 12, 0);
 
   const setFlag = async (id: string, patch: Partial<Subscription>) => {
     const { error: e } = await supabase.from('subscriptions').update(patch).eq('id', id);
-    if (e) { setError(`Failed to update: ${e.message}`); return; }
+    if (e) {
+      setError(`Failed to update: ${e.message}`);
+      return;
+    }
     void refresh();
   };
 
@@ -110,7 +119,10 @@ export function SubscriptionsPage() {
       .from('subscriptions')
       .update({ status, reviewed_at: new Date().toISOString() })
       .eq('id', id);
-    if (e) { setError(`Failed to set status=${status}: ${e.message}`); return; }
+    if (e) {
+      setError(`Failed to set status=${status}: ${e.message}`);
+      return;
+    }
     void refresh();
   };
 
@@ -128,16 +140,26 @@ export function SubscriptionsPage() {
     setDetecting(true);
     setDetectMsg(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in');
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/subscriptions-detect`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ organization_id: currentOrg.id }),
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/subscriptions-detect`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ organization_id: currentOrg.id }),
+        },
+      );
       const body = await res.json();
       if (!res.ok || !body.ok) throw new Error(body.error ?? `${res.status}`);
-      setDetectMsg(`Scanned ${body.scanned_txns} txns · ${body.upserted} new + ${body.updated} updated subscriptions`);
+      setDetectMsg(
+        `Scanned ${body.scanned_txns} txns · ${body.upserted} new + ${body.updated} updated subscriptions`,
+      );
       void refresh();
     } catch (e) {
       setDetectMsg('Detection error: ' + (e instanceof Error ? e.message : String(e)));
@@ -147,30 +169,61 @@ export function SubscriptionsPage() {
   };
 
   return (
-    <section className="animated-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <section
+      className="animated-fade-in"
+      style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}
+    >
       <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '0.5rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            marginBottom: '0.5rem',
+          }}
+        >
           <h1 style={{ margin: 0 }}>Subscriptions</h1>
           <button className="btn btn-primary" onClick={detect} disabled={detecting}>
             <RefreshCw className={`w-4 h-4 ${detecting ? 'animate-spin' : ''}`} />
             {detecting ? 'Detecting…' : 'Sync Subscription Feeds'}
           </button>
         </div>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.925rem', maxWidth: '600px', margin: 0 }}>
-          Recurring payments auto-detected from bank transactions and email receipts. Categorise each as business or personal to roll them into your reports.
+        <p
+          style={{ color: 'var(--text-muted)', fontSize: '0.925rem', maxWidth: '600px', margin: 0 }}
+        >
+          Recurring payments auto-detected from bank transactions and email receipts. Categorise
+          each as business or personal to roll them into your reports.
         </p>
       </div>
 
       {detectMsg && (
-        <div className={`badge ${detectMsg.startsWith('Detection error') ? 'badge-danger' : 'badge-success'}`} style={{ display: 'block', padding: '0.625rem 1rem', textTransform: 'none', width: 'fit-content' }}>
+        <div
+          className={`badge ${detectMsg.startsWith('Detection error') ? 'badge-danger' : 'badge-success'}`}
+          style={{
+            display: 'block',
+            padding: '0.625rem 1rem',
+            textTransform: 'none',
+            width: 'fit-content',
+          }}
+        >
           {detectMsg}
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '1rem',
+        }}
+      >
         <KpiCard
           label="Active Subscriptions"
-          value={String(subs.filter((s) => s.status !== 'cancelled' && s.status !== 'dismissed').length)}
+          value={String(
+            subs.filter((s) => s.status !== 'cancelled' && s.status !== 'dismissed').length,
+          )}
           accentColor="var(--accent-info)"
           icon={<LayoutGrid className="w-5 h-5" style={{ color: 'var(--accent-info)' }} />}
         />
@@ -198,13 +251,19 @@ export function SubscriptionsPage() {
       </div>
 
       <div>
-        <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+        <div
+          style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}
+        >
           {STATUS_FILTERS.map((s) => (
             <button
               key={s}
               onClick={() => setFilter(s)}
               className={`btn ${filter === s ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ padding: '0.375rem 0.75rem', textTransform: 'capitalize', fontSize: '0.8rem' }}
+              style={{
+                padding: '0.375rem 0.75rem',
+                textTransform: 'capitalize',
+                fontSize: '0.8rem',
+              }}
             >
               {s}
             </button>
@@ -212,23 +271,47 @@ export function SubscriptionsPage() {
         </div>
 
         {error && (
-          <div className="badge badge-danger" style={{ display: 'block', padding: '0.5rem 1rem', textTransform: 'none', marginBottom: '1rem' }}>
+          <div
+            className="badge badge-danger"
+            style={{
+              display: 'block',
+              padding: '0.5rem 1rem',
+              textTransform: 'none',
+              marginBottom: '1rem',
+            }}
+          >
             {error}
           </div>
         )}
 
         {loading ? (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-              {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '1rem',
+                marginBottom: '1rem',
+              }}
+            >
+              {Array.from({ length: 4 }).map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
             </div>
             <SkeletonTable rows={6} cols={10} />
           </>
         ) : subs.length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-            <Calendar className="w-12 h-12 text-muted" style={{ margin: '0 auto 1rem', opacity: 0.4 }} />
+          <div
+            className="card"
+            style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}
+          >
+            <Calendar
+              className="w-12 h-12 text-muted"
+              style={{ margin: '0 auto 1rem', opacity: 0.4 }}
+            />
             <p style={{ margin: 0, fontSize: '0.925rem' }}>
-              No subscriptions detected matching the status filter. Run a scan or sync your bank feeds to detect payments.
+              No subscriptions detected matching the status filter. Run a scan or sync your bank
+              feeds to detect payments.
             </p>
           </div>
         ) : (
@@ -277,47 +360,87 @@ export function SubscriptionsPage() {
                   return (
                     <g key={`group-wrapper:${groupKey}`}>
                       <tr
-                        style={{ borderBottom: '1px solid var(--border-subtle)', backgroundColor: 'var(--bg-hover)', cursor: 'pointer' }}
+                        style={{
+                          borderBottom: '1px solid var(--border-subtle)',
+                          backgroundColor: 'var(--bg-hover)',
+                          cursor: 'pointer',
+                        }}
                         onClick={() => toggleExpanded(groupKey)}
                       >
                         <td style={{ textAlign: 'center' }}>
-                          {isOpen ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronRight className="w-4 h-4 text-muted" />}
+                          {isOpen ? (
+                            <ChevronDown className="w-4 h-4 text-muted" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-muted" />
+                          )}
                         </td>
                         <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, color: 'var(--text-title)' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              fontWeight: 600,
+                              color: 'var(--text-title)',
+                            }}
+                          >
                             {g.name}
-                            <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)', backgroundColor: 'var(--bg-card)', padding: '0.1rem 0.4rem', borderRadius: 'var(--radius-sm)' }}>
+                            <span
+                              style={{
+                                fontSize: '0.75rem',
+                                fontWeight: 400,
+                                color: 'var(--text-muted)',
+                                backgroundColor: 'var(--bg-card)',
+                                padding: '0.1rem 0.4rem',
+                                borderRadius: 'var(--radius-sm)',
+                              }}
+                            >
                               {g.rows.length} variants
                             </span>
                           </div>
                         </td>
                         <td style={{ color: 'var(--text-muted)' }}>—</td>
                         <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
-                        <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-title)' }}>{formatMoney(groupMonthly)}</td>
-                        <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{formatMoney(groupAnnual)}</td>
+                        <td
+                          style={{
+                            textAlign: 'right',
+                            fontWeight: 600,
+                            color: 'var(--text-title)',
+                          }}
+                        >
+                          {formatMoney(groupMonthly)}
+                        </td>
+                        <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>
+                          {formatMoney(groupAnnual)}
+                        </td>
                         <td>
                           <div style={{ display: 'flex', gap: '0.25rem' }}>
-                            {Array.from(distinctStatuses).map((s) => <StatusPill key={s} status={s} />)}
+                            {Array.from(distinctStatuses).map((s) => (
+                              <StatusPill key={s} status={s} />
+                            ))}
                           </div>
                         </td>
                         <td></td>
                         <td></td>
                         <td onClick={(e) => e.stopPropagation()}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Click to view details</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            Click to view details
+                          </span>
                         </td>
                       </tr>
-                      {isOpen && g.rows.map((s) => (
-                        <SubRow
-                          key={s.id}
-                          s={s}
-                          monthly={monthlyEquivalent(s)}
-                          indent={true}
-                          navigate={navigate}
-                          setFlag={setFlag}
-                          setStatus={setStatus}
-                          refresh={refresh}
-                        />
-                      ))}
+                      {isOpen &&
+                        g.rows.map((s) => (
+                          <SubRow
+                            key={s.id}
+                            s={s}
+                            monthly={monthlyEquivalent(s)}
+                            indent={true}
+                            navigate={navigate}
+                            setFlag={setFlag}
+                            setStatus={setStatus}
+                            refresh={refresh}
+                          />
+                        ))}
                     </g>
                   );
                 })}
@@ -336,13 +459,19 @@ export function SubscriptionsPage() {
           alignItems: 'flex-start',
           fontSize: '0.825rem',
           color: 'var(--text-muted)',
-          borderStyle: 'dashed'
+          borderStyle: 'dashed',
         }}
       >
-        <Info className="w-5 h-5 text-accent-primary" style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--accent-primary)' }} />
+        <Info
+          className="w-5 h-5 text-accent-primary"
+          style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--accent-primary)' }}
+        />
         <div>
-          <strong style={{ color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>Future Features:</strong>
-          Double-charge and price hike alerts, visual subscription comparison charts, direct cancel links, and project/job allocation tracking.
+          <strong style={{ color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>
+            Future Features:
+          </strong>
+          Double-charge and price hike alerts, visual subscription comparison charts, direct cancel
+          links, and project/job allocation tracking.
         </div>
       </div>
     </section>
@@ -350,7 +479,13 @@ export function SubscriptionsPage() {
 }
 
 function SubRow({
-  s, monthly, indent, navigate, setFlag, setStatus, refresh,
+  s,
+  monthly,
+  indent,
+  navigate,
+  setFlag,
+  setStatus,
+  refresh,
 }: {
   s: Subscription;
   monthly: number;
@@ -371,44 +506,71 @@ function SubRow({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {indent && <span style={{ color: 'var(--text-muted)', userSelect: 'none' }}>↳</span>}
           <a
-            onClick={(e) => { e.preventDefault(); navigate(`/subscriptions/${s.id}`); }}
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(`/subscriptions/${s.id}`);
+            }}
             href={`/subscriptions/${s.id}`}
             style={{ fontWeight: 600, color: 'var(--accent-primary)', textDecoration: 'none' }}
           >
             {s.merchant_name}
           </a>
         </div>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem', paddingLeft: indent ? '1rem' : undefined }}>{sourceHint}</div>
+        <div
+          style={{
+            fontSize: '0.75rem',
+            color: 'var(--text-muted)',
+            marginTop: '0.15rem',
+            paddingLeft: indent ? '1rem' : undefined,
+          }}
+        >
+          {sourceHint}
+        </div>
       </td>
       <td style={{ textTransform: 'capitalize' }}>{s.cadence}</td>
-      <td style={{ textAlign: 'right', fontWeight: 500, color: 'var(--text-title)' }}>{s.amount_cents > 0 ? formatMoney(s.amount_cents) : '—'}</td>
+      <td style={{ textAlign: 'right', fontWeight: 500, color: 'var(--text-title)' }}>
+        {s.amount_cents > 0 ? formatMoney(s.amount_cents) : '—'}
+      </td>
       <td style={{ textAlign: 'right' }}>{monthly > 0 ? formatMoney(monthly) : '—'}</td>
       <td style={{ textAlign: 'right' }}>{annual > 0 ? formatMoney(annual) : '—'}</td>
-      <td><StatusPill status={s.status} /></td>
+      <td>
+        <StatusPill status={s.status} />
+      </td>
       <td>
         <div style={{ display: 'flex', gap: '0.25rem' }}>
           <button
-            onClick={() => setFlag(s.id, { is_business: !s.is_business, is_personal: false } as Partial<Subscription>)}
+            onClick={() =>
+              setFlag(s.id, {
+                is_business: !s.is_business,
+                is_personal: false,
+              } as Partial<Subscription>)
+            }
             className="btn"
             style={{
               padding: '0.2rem 0.5rem',
               fontSize: '0.7rem',
-              backgroundColor: s.is_business && !s.is_personal ? 'var(--bg-success-subtle)' : 'var(--bg-hover)',
+              backgroundColor:
+                s.is_business && !s.is_personal ? 'var(--bg-success-subtle)' : 'var(--bg-hover)',
               color: s.is_business && !s.is_personal ? 'var(--text-success)' : 'var(--text-muted)',
-              border: `1px solid ${s.is_business && !s.is_personal ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-subtle)'}`
+              border: `1px solid ${s.is_business && !s.is_personal ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-subtle)'}`,
             }}
           >
             Biz
           </button>
           <button
-            onClick={() => setFlag(s.id, { is_personal: !s.is_personal, is_business: false } as Partial<Subscription>)}
+            onClick={() =>
+              setFlag(s.id, {
+                is_personal: !s.is_personal,
+                is_business: false,
+              } as Partial<Subscription>)
+            }
             className="btn"
             style={{
               padding: '0.2rem 0.5rem',
               fontSize: '0.7rem',
               backgroundColor: s.is_personal ? 'var(--bg-warning-subtle)' : 'var(--bg-hover)',
               color: s.is_personal ? 'var(--text-warning)' : 'var(--text-muted)',
-              border: `1px solid ${s.is_personal ? 'rgba(245, 158, 11, 0.2)' : 'var(--border-subtle)'}`
+              border: `1px solid ${s.is_personal ? 'rgba(245, 158, 11, 0.2)' : 'var(--border-subtle)'}`,
             }}
           >
             Personal
@@ -418,12 +580,35 @@ function SubRow({
       <td>
         {s.confidence != null ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{(s.confidence * 100).toFixed(0)}%</span>
-            <div style={{ width: '40px', height: '4px', backgroundColor: 'var(--border-subtle)', borderRadius: '2px', overflow: 'hidden' }}>
-              <div style={{ width: `${s.confidence * 100}%`, height: '100%', backgroundColor: s.confidence > 0.8 ? 'var(--accent-success)' : s.confidence > 0.5 ? 'var(--accent-warning)' : 'var(--accent-danger)' }}></div>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>
+              {(s.confidence * 100).toFixed(0)}%
+            </span>
+            <div
+              style={{
+                width: '40px',
+                height: '4px',
+                backgroundColor: 'var(--border-subtle)',
+                borderRadius: '2px',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  width: `${s.confidence * 100}%`,
+                  height: '100%',
+                  backgroundColor:
+                    s.confidence > 0.8
+                      ? 'var(--accent-success)'
+                      : s.confidence > 0.5
+                        ? 'var(--accent-warning)'
+                        : 'var(--accent-danger)',
+                }}
+              ></div>
             </div>
           </div>
-        ) : '—'}
+        ) : (
+          '—'
+        )}
       </td>
       <td>
         <div style={{ display: 'inline-flex', gap: '0.25rem', flexWrap: 'wrap' }}>
@@ -477,19 +662,65 @@ function SubRow({
   );
 }
 
-function KpiCard({ label, value, icon, accentColor, sub }: { label: string; value: string; icon: React.ReactNode; accentColor: string; sub?: string }) {
+function KpiCard({
+  label,
+  value,
+  icon,
+  accentColor,
+  sub,
+}: {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+  accentColor: string;
+  sub?: string;
+}) {
   return (
-    <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderLeft: `4px solid ${accentColor}` }}>
+    <div
+      className="card"
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        borderLeft: `4px solid ${accentColor}`,
+      }}
+    >
       <div>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: '0.35rem' }}>
+        <div
+          style={{
+            fontSize: '0.75rem',
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            fontWeight: 600,
+            marginBottom: '0.35rem',
+          }}
+        >
           {label}
         </div>
-        <div style={{ fontSize: '1.65rem', color: 'var(--text-title)', fontWeight: 700, fontFamily: 'var(--font-title)' }}>
+        <div
+          style={{
+            fontSize: '1.65rem',
+            color: 'var(--text-title)',
+            fontWeight: 700,
+            fontFamily: 'var(--font-title)',
+          }}
+        >
           {value}
         </div>
-        {sub && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{sub}</div>}
+        {sub && (
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+            {sub}
+          </div>
+        )}
       </div>
-      <div style={{ padding: '0.5rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)' }}>
+      <div
+        style={{
+          padding: '0.5rem',
+          background: 'var(--bg-hover)',
+          borderRadius: 'var(--radius-sm)',
+        }}
+      >
         {icon}
       </div>
     </div>

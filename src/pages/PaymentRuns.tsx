@@ -21,14 +21,14 @@ export function PaymentRunsPage() {
   return (
     <section className="animated-fade-in">
       {/* Header section */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: '1.5rem',
           flexWrap: 'wrap',
-          gap: '1rem'
+          gap: '1rem',
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -43,18 +43,38 @@ export function PaymentRunsPage() {
         </div>
       </div>
 
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '-0.5rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+      <p
+        style={{
+          color: 'var(--text-muted)',
+          fontSize: '0.875rem',
+          marginTop: '-0.5rem',
+          marginBottom: '1.5rem',
+          lineHeight: '1.5',
+        }}
+      >
         Batch-pay multiple bills via a single ABA (Cemtex) bank file upload.
       </p>
 
       {loading ? (
         <SkeletonTable rows={5} cols={6} />
       ) : error ? (
-        <div className="badge badge-danger" style={{ display: 'block', padding: '1rem', textTransform: 'none' }}>
+        <div
+          className="badge badge-danger"
+          style={{ display: 'block', padding: '1rem', textTransform: 'none' }}
+        >
           Failed to load payment runs: {error}
         </div>
       ) : runs.length === 0 ? (
-        <div style={{ padding: '3rem 1.5rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <div
+          style={{
+            padding: '3rem 1.5rem',
+            background: 'var(--bg-card)',
+            border: '1px dashed var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+          }}
+        >
           No payment runs yet.{' '}
           <Link to="/payment-runs/new" style={{ fontWeight: 600 }}>
             Create your first one
@@ -91,7 +111,10 @@ export function PaymentRunsPage() {
                   </td>
                   <td style={{ fontSize: '0.825rem' }}>
                     {run.aba_file_generated_at ? (
-                      new Date(run.aba_file_generated_at).toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' })
+                      new Date(run.aba_file_generated_at).toLocaleString('en-AU', {
+                        dateStyle: 'short',
+                        timeStyle: 'short',
+                      })
                     ) : (
                       <span style={{ color: 'var(--text-muted)' }}>—</span>
                     )}
@@ -115,6 +138,6 @@ function Pill({ status }: { status: PaymentRunRow['status'] }) {
   else if (status === 'approved') badgeClass = 'badge-info';
   else if (status === 'draft') badgeClass = 'badge-warning';
   else if (status === 'cancelled') badgeClass = 'badge-danger';
-  
+
   return <span className={`badge ${badgeClass}`}>{status}</span>;
 }

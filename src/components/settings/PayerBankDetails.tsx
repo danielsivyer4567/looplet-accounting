@@ -39,12 +39,13 @@ export function PayerBankDetails() {
         .select('settings')
         .eq('id', currentOrg.id)
         .maybeSingle();
-      const s = (data as Record<string, unknown> | null)?.['settings'] as Record<string, unknown> ?? {};
+      const s =
+        ((data as Record<string, unknown> | null)?.['settings'] as Record<string, unknown>) ?? {};
       setExisting(s);
       setDraft({
-        payer_bsb:     (s['payer_bsb'] as string | undefined) ?? '',
+        payer_bsb: (s['payer_bsb'] as string | undefined) ?? '',
         payer_account: (s['payer_account'] as string | undefined) ?? '',
-        payer_name:    (s['payer_name'] as string | undefined) ?? '',
+        payer_name: (s['payer_name'] as string | undefined) ?? '',
         payer_apca_id: (s['payer_apca_id'] as string | undefined) ?? '',
       });
     })();
@@ -54,7 +55,8 @@ export function PayerBankDetails() {
 
   const validate = (): string | null => {
     if (!draft.payer_bsb?.trim()) return 'BSB is required.';
-    if (!BSB_RE.test(draft.payer_bsb.trim())) return 'BSB must be in NNN-NNN format (e.g. 062-001).';
+    if (!BSB_RE.test(draft.payer_bsb.trim()))
+      return 'BSB must be in NNN-NNN format (e.g. 062-001).';
     if (!draft.payer_account?.trim()) return 'Account number is required.';
     if (!/^\d{5,9}$/.test(draft.payer_account.trim())) return 'Account number must be 5–9 digits.';
     if (!draft.payer_name?.trim()) return 'Account name is required.';
@@ -67,15 +69,20 @@ export function PayerBankDetails() {
 
   const save = async () => {
     const v = validate();
-    if (v) { setErr(v); return; }
+    if (v) {
+      setErr(v);
+      return;
+    }
 
-    setErr(null); setMsg(null); setBusy(true);
+    setErr(null);
+    setMsg(null);
+    setBusy(true);
 
     const newSettings = {
       ...existing,
-      payer_bsb:     draft.payer_bsb?.trim() ?? '',
+      payer_bsb: draft.payer_bsb?.trim() ?? '',
       payer_account: draft.payer_account?.trim() ?? '',
-      payer_name:    draft.payer_name?.trim() ?? '',
+      payer_name: draft.payer_name?.trim() ?? '',
       payer_apca_id: draft.payer_apca_id?.trim() || '000000',
     };
 
@@ -85,7 +92,10 @@ export function PayerBankDetails() {
       .eq('id', currentOrg.id);
 
     setBusy(false);
-    if (saveErr) { setErr(saveErr.message); return; }
+    if (saveErr) {
+      setErr(saveErr.message);
+      return;
+    }
     setExisting(newSettings);
     setMsg('Saved.');
     setTimeout(() => setMsg(null), 2000);
@@ -97,8 +107,8 @@ export function PayerBankDetails() {
     <div>
       <h2 style={{ fontSize: 16, marginBottom: 4 }}>Payer bank details</h2>
       <p style={{ color: '#888', fontSize: 12, marginBottom: 12 }}>
-        Your bank account used as the <em>from</em> side in ABA (Cemtex) payment run files.
-        Required before you can export a payment run.
+        Your bank account used as the <em>from</em> side in ABA (Cemtex) payment run files. Required
+        before you can export a payment run.
         {!isComplete && (
           <span style={{ color: '#f4a261', marginLeft: 6 }}>
             Incomplete — fill in all fields before creating a payment run.
@@ -118,7 +128,9 @@ export function PayerBankDetails() {
         <Field label="Your account number (digits only)">
           <input
             value={draft.payer_account ?? ''}
-            onChange={(e) => setDraft((d) => ({ ...d, payer_account: e.target.value.replace(/\D/g, '') }))}
+            onChange={(e) =>
+              setDraft((d) => ({ ...d, payer_account: e.target.value.replace(/\D/g, '') }))
+            }
             placeholder="12345678"
             style={inp}
           />
@@ -134,7 +146,12 @@ export function PayerBankDetails() {
         <Field label="APCA user ID (optional, 6-digit)">
           <input
             value={draft.payer_apca_id ?? ''}
-            onChange={(e) => setDraft((d) => ({ ...d, payer_apca_id: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+            onChange={(e) =>
+              setDraft((d) => ({
+                ...d,
+                payer_apca_id: e.target.value.replace(/\D/g, '').slice(0, 6),
+              }))
+            }
             placeholder="000000"
             style={inp}
           />

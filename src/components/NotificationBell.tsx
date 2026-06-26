@@ -115,7 +115,9 @@ export function NotificationBell() {
           lineHeight: 1,
         }}
       >
-        <span aria-hidden style={{ fontSize: 14 }}>🔔</span>
+        <span aria-hidden style={{ fontSize: 14 }}>
+          🔔
+        </span>
         {unread > 0 && (
           <span
             aria-hidden
@@ -173,9 +175,7 @@ export function NotificationBell() {
             }}
           >
             <strong style={{ fontSize: 13, color: '#ddd' }}>Notifications</strong>
-            {unread > 0 && (
-              <span style={{ fontSize: 11, color: '#888' }}>{unread} unread</span>
-            )}
+            {unread > 0 && <span style={{ fontSize: 11, color: '#888' }}>{unread} unread</span>}
           </div>
 
           <div style={{ overflowY: 'auto', flex: 1 }}>
@@ -247,7 +247,13 @@ export function NotificationBell() {
             )}
           </div>
 
-          <div style={{ borderTop: '1px solid #2a2a2a', padding: '0.5rem 0.85rem', textAlign: 'center' }}>
+          <div
+            style={{
+              borderTop: '1px solid #2a2a2a',
+              padding: '0.5rem 0.85rem',
+              textAlign: 'center',
+            }}
+          >
             <Link
               to="/notifications"
               onClick={() => setOpen(false)}

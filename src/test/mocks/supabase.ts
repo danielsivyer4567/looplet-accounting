@@ -34,9 +34,10 @@ let _pendingResponse: { data: unknown; error: { message: string } | null } = {
  * @example
  *   mockSupabaseResponse({ data: null, error: { message: 'Forbidden' } });
  */
-export function mockSupabaseResponse(
-  response: { data: unknown; error: { message: string } | null },
-) {
+export function mockSupabaseResponse(response: {
+  data: unknown;
+  error: { message: string } | null;
+}) {
   _pendingResponse = response;
 }
 
@@ -58,10 +59,28 @@ function buildChain() {
   const passthrough = () => chain;
 
   [
-    'select', 'insert', 'update', 'delete', 'upsert',
-    'eq', 'neq', 'gt', 'lt', 'gte', 'lte', 'like', 'ilike',
-    'in', 'is', 'not', 'or', 'filter',
-    'order', 'limit', 'range', 'match',
+    'select',
+    'insert',
+    'update',
+    'delete',
+    'upsert',
+    'eq',
+    'neq',
+    'gt',
+    'lt',
+    'gte',
+    'lte',
+    'like',
+    'ilike',
+    'in',
+    'is',
+    'not',
+    'or',
+    'filter',
+    'order',
+    'limit',
+    'range',
+    'match',
     'returns',
   ].forEach((method) => {
     chain[method] = passthrough;
@@ -79,8 +98,7 @@ function buildChain() {
   chain['maybeSingle'] = chain['single'];
 
   // Allow await directly on the builder (like the real client)
-  chain['then'] = (resolve: (v: unknown) => unknown) =>
-    terminal().then(resolve);
+  chain['then'] = (resolve: (v: unknown) => unknown) => terminal().then(resolve);
 
   return chain as unknown as QueryChain;
 }

@@ -56,7 +56,14 @@ function ApprovalCard({
 
   return (
     <div className="card" style={{ padding: '1rem', marginBottom: '0.75rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: '1rem',
+          alignItems: 'flex-start',
+        }}
+      >
         <div>
           <span className="badge badge-warning">Tier 2 · approval required</span>
           <div style={{ fontWeight: 600, marginTop: '0.5rem' }}>
@@ -71,10 +78,21 @@ function ApprovalCard({
         </div>
         {!rejecting && (
           <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-            <button className="btn btn-primary" onClick={() => void run(() => onApprove(approval.id))} disabled={busy}>
+            <button
+              className="btn btn-primary"
+              onClick={() => void run(() => onApprove(approval.id))}
+              disabled={busy}
+            >
               <CheckCircle2 size={16} /> Approve
             </button>
-            <button className="btn btn-secondary" onClick={() => { setRejecting(true); setErr(null); }} disabled={busy}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                setRejecting(true);
+                setErr(null);
+              }}
+              disabled={busy}
+            >
               <X size={16} /> Reject
             </button>
           </div>
@@ -83,7 +101,9 @@ function ApprovalCard({
 
       {rejecting && (
         <div style={{ marginTop: '0.75rem' }}>
-          <label className="form-label" htmlFor={`reason-${approval.id}`}>Reason for rejection</label>
+          <label className="form-label" htmlFor={`reason-${approval.id}`}>
+            Reason for rejection
+          </label>
           <textarea
             id={`reason-${approval.id}`}
             className="form-textarea"
@@ -93,10 +113,16 @@ function ApprovalCard({
             rows={2}
           />
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-            <button className="btn btn-secondary" onClick={doReject} disabled={busy}>Confirm rejection</button>
+            <button className="btn btn-secondary" onClick={doReject} disabled={busy}>
+              Confirm rejection
+            </button>
             <button
               className="btn btn-ghost"
-              onClick={() => { setRejecting(false); setReason(''); setErr(null); }}
+              onClick={() => {
+                setRejecting(false);
+                setReason('');
+                setErr(null);
+              }}
               disabled={busy}
             >
               Cancel
@@ -115,13 +141,15 @@ export function ApprovalsPage() {
 
   return (
     <section className="animated-fade-in">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}
+      >
         <ShieldCheck size={22} />
         <h1 style={{ margin: 0 }}>Approvals</h1>
       </div>
       <p style={{ color: MUTED, marginTop: 0 }}>
-        Money-movers and lodgements that need sign-off before they run. An approval binds to the exact
-        content requested — editing it afterwards re-requires approval.
+        Money-movers and lodgements that need sign-off before they run. An approval binds to the
+        exact content requested — editing it afterwards re-requires approval.
       </p>
 
       {error && <ErrorBadge message={error} />}
@@ -130,7 +158,8 @@ export function ApprovalsPage() {
         <div style={{ color: MUTED }}>Loading…</div>
       ) : pending.length === 0 ? (
         <div className="card" style={{ padding: '1.5rem', textAlign: 'center', color: MUTED }}>
-          Nothing awaiting approval. Tier-2 actions (paying a payment run, finalising payroll) appear here.
+          Nothing awaiting approval. Tier-2 actions (paying a payment run, finalising payroll)
+          appear here.
         </div>
       ) : (
         pending.map((a) => (

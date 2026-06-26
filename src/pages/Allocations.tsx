@@ -9,13 +9,7 @@ import { formatMoney } from '@/lib/money';
 import { SkeletonLine } from '@/components/Skeleton';
 import { GitPullRequest, Eye, EyeOff, CheckCircle2, ChevronRight, X } from 'lucide-react';
 
-function BillPreviewPane({
-  bill,
-  onClose,
-}: {
-  bill: QueueBill;
-  onClose: () => void;
-}) {
+function BillPreviewPane({ bill, onClose }: { bill: QueueBill; onClose: () => void }) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [urlError, setUrlError] = useState<string | null>(null);
 
@@ -58,7 +52,7 @@ function BillPreviewPane({
         flexDirection: 'column',
         zIndex: 100,
         boxShadow: 'var(--shadow-lg)',
-        animation: 'fadeIn 0.3s ease'
+        animation: 'fadeIn 0.3s ease',
       }}
       role="complementary"
       aria-label="Bill PDF preview"
@@ -75,11 +69,21 @@ function BillPreviewPane({
         }}
       >
         <div style={{ minWidth: 0, flex: 1, marginRight: '0.5rem' }}>
-          <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-title)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div
+            style={{
+              fontWeight: 700,
+              fontSize: '0.875rem',
+              color: 'var(--text-title)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
             {bill.supplier_name_raw ?? 'Preview'}
           </div>
           <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.15rem' }}>
-            {bill.invoice_date ?? ''}{bill.invoice_number ? ` · #${bill.invoice_number}` : ''}
+            {bill.invoice_date ?? ''}
+            {bill.invoice_number ? ` · #${bill.invoice_number}` : ''}
           </div>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexShrink: 0 }}>
@@ -107,17 +111,38 @@ function BillPreviewPane({
       {/* Content */}
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative', background: '#e2e8f0' }}>
         {urlError ? (
-          <div style={{ padding: 20, color: 'var(--text-danger)', fontSize: '0.875rem', background: 'var(--bg-panel)', height: '100%' }}>
+          <div
+            style={{
+              padding: 20,
+              color: 'var(--text-danger)',
+              fontSize: '0.875rem',
+              background: 'var(--bg-panel)',
+              height: '100%',
+            }}
+          >
             <p style={{ margin: 0, fontWeight: 'bold' }}>Could not load preview:</p>
             <p style={{ margin: '4px 0 0', color: 'var(--text-muted)' }}>{urlError}</p>
             <p style={{ marginTop: 12 }}>
-              <Link to={`/bills/${bill.id}`} style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
+              <Link
+                to={`/bills/${bill.id}`}
+                style={{ color: 'var(--accent-primary)', fontWeight: 600 }}
+              >
                 Open bill detail page instead &rarr;
               </Link>
             </p>
           </div>
         ) : !signedUrl ? (
-          <div style={{ padding: 20, color: 'var(--text-muted)', fontSize: '0.875rem', background: 'var(--bg-panel)', height: '100%' }}>Generating preview…</div>
+          <div
+            style={{
+              padding: 20,
+              color: 'var(--text-muted)',
+              fontSize: '0.875rem',
+              background: 'var(--bg-panel)',
+              height: '100%',
+            }}
+          >
+            Generating preview…
+          </div>
         ) : isPdf ? (
           <iframe
             src={signedUrl}
@@ -129,7 +154,11 @@ function BillPreviewPane({
             <img
               src={signedUrl}
               alt={`Bill from ${bill.supplier_name_raw ?? 'supplier'}`}
-              style={{ width: '100%', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-sm)' }}
+              style={{
+                width: '100%',
+                borderRadius: 'var(--radius-sm)',
+                boxShadow: 'var(--shadow-sm)',
+              }}
             />
           </div>
         )}
@@ -147,22 +176,26 @@ export function AllocationsPage() {
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
   const [previewBillId, setPreviewBillId] = useState<string | null>(null);
 
-  const previewBill = previewBillId ? bills.find((b) => b.id === previewBillId) ?? null : null;
+  const previewBill = previewBillId ? (bills.find((b) => b.id === previewBillId) ?? null) : null;
 
   if (!currentOrg) {
     return (
       <section className="animated-fade-in">
         <h1>Allocations</h1>
-        <p style={{ color: 'var(--text-muted)' }}>Pick an organisation to see the allocation queue.</p>
+        <p style={{ color: 'var(--text-muted)' }}>
+          Pick an organisation to see the allocation queue.
+        </p>
       </section>
     );
   }
-  
+
   if (loading) {
     return (
       <section className="animated-fade-in">
         <h1>Allocations</h1>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
+        <div
+          style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}
+        >
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
@@ -184,7 +217,10 @@ export function AllocationsPage() {
   }
   if (error) {
     return (
-      <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}>
+      <div
+        className="badge badge-danger"
+        style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}
+      >
         Failed to load: {error}
       </div>
     );
@@ -194,29 +230,45 @@ export function AllocationsPage() {
     return (
       <section className="animated-fade-in" style={{ padding: '2rem 0' }}>
         <h1 style={{ marginBottom: '0.5rem' }}>Allocations</h1>
-        <div 
-          style={{ 
-            padding: '2.5rem 2rem', 
-            background: 'var(--bg-success-subtle)', 
-            border: '1px dashed var(--accent-success)', 
-            borderRadius: 'var(--radius-lg)', 
-            color: 'var(--text-success)', 
+        <div
+          style={{
+            padding: '2.5rem 2rem',
+            background: 'var(--bg-success-subtle)',
+            border: '1px dashed var(--accent-success)',
+            borderRadius: 'var(--radius-lg)',
+            color: 'var(--text-success)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             gap: '1rem',
             maxWidth: '650px',
             margin: '2rem auto',
-            textAlign: 'center'
+            textAlign: 'center',
           }}
         >
           <CheckCircle2 size={48} />
           <div>
-            <h3 style={{ color: 'var(--text-success)', margin: '0 0 0.25rem 0', fontSize: '1.15rem' }}>Allocation Inbox Zero!</h3>
-            <p style={{ margin: 0, fontSize: '0.875rem', opacity: 0.85 }}>Every single bill has been attached to a job.</p>
+            <h3
+              style={{ color: 'var(--text-success)', margin: '0 0 0.25rem 0', fontSize: '1.15rem' }}
+            >
+              Allocation Inbox Zero!
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.875rem', opacity: 0.85 }}>
+              Every single bill has been attached to a job.
+            </p>
           </div>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.775rem', lineHeight: '1.5', margin: '0.5rem 0 0 0', maxWidth: '480px' }}>
-            Bills land here when they are processed but couldn't auto-attach. This happens when no exact job reference match is found, extraction confidence is low, or no job details were parsed.
+          <p
+            style={{
+              color: 'var(--text-muted)',
+              fontSize: '0.775rem',
+              lineHeight: '1.5',
+              margin: '0.5rem 0 0 0',
+              maxWidth: '480px',
+            }}
+          >
+            Bills land here when they are processed but couldn't auto-attach. This happens when no
+            exact job reference match is found, extraction confidence is low, or no job details were
+            parsed.
           </p>
         </div>
       </section>
@@ -225,7 +277,9 @@ export function AllocationsPage() {
 
   const confirmAttach = async (bill: QueueBill, jobId: string) => {
     setBusyId(bill.id);
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) {
       setBusyId(null);
       return;
@@ -265,7 +319,12 @@ export function AllocationsPage() {
 
   const bulkAttachAllSuggestions = async () => {
     if (billsWithSuggestion.length === 0) return;
-    if (!confirm(`Attach ${billsWithSuggestion.length} bill${billsWithSuggestion.length === 1 ? '' : 's'} to their suggested job? You can detach individually if any are wrong.`)) return;
+    if (
+      !confirm(
+        `Attach ${billsWithSuggestion.length} bill${billsWithSuggestion.length === 1 ? '' : 's'} to their suggested job? You can detach individually if any are wrong.`,
+      )
+    )
+      return;
     setBulkBusy(true);
     setBulkMsg(`Attaching 0 / ${billsWithSuggestion.length}…`);
     let n = 0;
@@ -292,7 +351,12 @@ export function AllocationsPage() {
     setBusyId(billId);
     await supabase
       .from('bills')
-      .update({ job_id: jobId, suggested_job_id: null, suggested_match_score: null, status: 'attached' })
+      .update({
+        job_id: jobId,
+        suggested_job_id: null,
+        suggested_match_score: null,
+        status: 'attached',
+      })
       .eq('id', billId);
     await refresh();
     setBusyId(null);
@@ -310,7 +374,14 @@ export function AllocationsPage() {
         className="animated-fade-in"
       >
         <div style={{ marginBottom: '1.5rem' }}>
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+          <h1
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginBottom: '0.25rem',
+            }}
+          >
             <GitPullRequest size={24} style={{ color: 'var(--accent-primary)' }} />
             Allocations
           </h1>
@@ -320,19 +391,19 @@ export function AllocationsPage() {
         </div>
 
         {billsWithSuggestion.length > 0 && (
-          <div 
-            style={{ 
-              marginTop: '1rem', 
+          <div
+            style={{
+              marginTop: '1rem',
               marginBottom: '1.5rem',
-              padding: '1rem 1.25rem', 
-              background: 'var(--bg-success-subtle)', 
-              border: '1px solid rgba(16, 185, 129, 0.2)', 
+              padding: '1rem 1.25rem',
+              background: 'var(--bg-success-subtle)',
+              border: '1px solid rgba(16, 185, 129, 0.2)',
               borderRadius: 'var(--radius-md)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               flexWrap: 'wrap',
-              gap: '0.75rem'
+              gap: '0.75rem',
             }}
           >
             <div style={{ color: 'var(--text-success)', fontSize: '0.875rem', fontWeight: 600 }}>
@@ -346,7 +417,18 @@ export function AllocationsPage() {
             >
               {bulkBusy ? 'Attaching…' : `✓ Bulk-attach all ${billsWithSuggestion.length}`}
             </button>
-            {bulkMsg && <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', width: '100%', marginTop: '0.25rem' }}>{bulkMsg}</div>}
+            {bulkMsg && (
+              <div
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.75rem',
+                  width: '100%',
+                  marginTop: '0.25rem',
+                }}
+              >
+                {bulkMsg}
+              </div>
+            )}
           </div>
         )}
 
@@ -368,12 +450,7 @@ export function AllocationsPage() {
       </section>
 
       {/* Slide-out Preview Panel */}
-      {previewBill && (
-        <BillPreviewPane
-          bill={previewBill}
-          onClose={() => setPreviewBillId(null)}
-        />
-      )}
+      {previewBill && <BillPreviewPane bill={previewBill} onClose={() => setPreviewBillId(null)} />}
     </>
   );
 }
@@ -399,7 +476,7 @@ function BillCard({
 }) {
   const score = bill.suggested_match_score ?? 0;
   const sugg = bill.suggested_job;
-  
+
   let scoreClass = 'badge-neutral';
   if (score >= 0.85) scoreClass = 'badge-success';
   else if (score >= 0.65) scoreClass = 'badge-warning';
@@ -409,7 +486,9 @@ function BillCard({
       className="card"
       style={{
         padding: '1.25rem',
-        borderLeft: isPreviewing ? '4px solid var(--accent-primary)' : '1px solid var(--border-subtle)',
+        borderLeft: isPreviewing
+          ? '4px solid var(--accent-primary)'
+          : '1px solid var(--border-subtle)',
         display: 'flex',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
@@ -419,10 +498,24 @@ function BillCard({
     >
       <div style={{ flex: 1, minWidth: '300px' }}>
         <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-title)' }}>
-          {bill.supplier_name_raw ?? <span style={{ color: 'var(--text-muted)' }}>No supplier extracted</span>}
+          {bill.supplier_name_raw ?? (
+            <span style={{ color: 'var(--text-muted)' }}>No supplier extracted</span>
+          )}
         </div>
-        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-          <span style={{ fontWeight: 600, color: 'var(--text-body)' }}>{formatMoney(bill.total_inc_gst_cents)}</span>
+        <div
+          style={{
+            fontSize: '0.8rem',
+            color: 'var(--text-muted)',
+            marginTop: '0.25rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '0.5rem',
+            alignItems: 'center',
+          }}
+        >
+          <span style={{ fontWeight: 600, color: 'var(--text-body)' }}>
+            {formatMoney(bill.total_inc_gst_cents)}
+          </span>
           <span>·</span>
           <code>{bill.invoice_number ?? '—'}</code>
           <span>·</span>
@@ -430,15 +523,19 @@ function BillCard({
           {bill.ocr_provider && (
             <>
               <span>·</span>
-              <span>Intake: {bill.ocr_provider} ({Math.round((bill.ocr_confidence ?? 0) * 100)}%)</span>
+              <span>
+                Intake: {bill.ocr_provider} ({Math.round((bill.ocr_confidence ?? 0) * 100)}%)
+              </span>
             </>
           )}
         </div>
-        
+
         <div style={{ fontSize: '0.775rem', color: 'var(--text-body)', marginTop: '0.35rem' }}>
           Job Reference (raw):{' '}
           {bill.job_reference_raw ? (
-            <code style={{ color: 'var(--text-warning)', fontWeight: 600 }}>{bill.job_reference_raw}</code>
+            <code style={{ color: 'var(--text-warning)', fontWeight: 600 }}>
+              {bill.job_reference_raw}
+            </code>
           ) : (
             <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>None extracted</span>
           )}
@@ -452,7 +549,7 @@ function BillCard({
             marginTop: '0.5rem',
             padding: '0.2rem 0.5rem',
             fontSize: '0.75rem',
-            marginLeft: '-0.5rem'
+            marginLeft: '-0.5rem',
           }}
           aria-pressed={isPreviewing}
         >
@@ -461,28 +558,54 @@ function BillCard({
         </button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: '280px', flexShrink: 0 }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem',
+          minWidth: '280px',
+          flexShrink: 0,
+        }}
+      >
         {sugg ? (
-          <div 
-            style={{ 
-              background: 'var(--bg-app)', 
-              padding: '0.75rem', 
-              borderRadius: 'var(--radius-sm)', 
-              border: '1px solid var(--border-subtle)' 
+          <div
+            style={{
+              background: 'var(--bg-app)',
+              padding: '0.75rem',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border-subtle)',
             }}
           >
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--text-muted)',
+                marginBottom: '0.5rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
               <span>AI Suggested Match:</span>
               <span className={`badge ${scoreClass}`} style={{ fontSize: '8px' }}>
                 {(score * 100).toFixed(0)}% Match
               </span>
             </div>
-            
-            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-title)', marginBottom: '0.75rem' }}>
-              <code style={{ marginRight: '0.5rem', color: 'var(--accent-primary)' }}>{sugg.job_number}</code>
+
+            <div
+              style={{
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                color: 'var(--text-title)',
+                marginBottom: '0.75rem',
+              }}
+            >
+              <code style={{ marginRight: '0.5rem', color: 'var(--accent-primary)' }}>
+                {sugg.job_number}
+              </code>
               <span>{sugg.name}</span>
             </div>
-            
+
             <div style={{ display: 'flex', gap: '0.35rem' }}>
               <button
                 onClick={() => onConfirm(sugg.id)}
@@ -520,7 +643,15 @@ function BillCard({
             </select>
             <Link
               to={`/bills/${bill.id}`}
-              style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textAlign: 'right', display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.15rem' }}
+              style={{
+                color: 'var(--text-muted)',
+                fontSize: '0.75rem',
+                textAlign: 'right',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                gap: '0.15rem',
+              }}
             >
               <span>or open details</span>
               <ChevronRight size={12} />

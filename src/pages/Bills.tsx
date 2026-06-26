@@ -9,7 +9,15 @@ import { supabase } from '@/lib/supabase';
 import { DocumentPreviewModal } from '@/components/DocumentPreviewModal';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
-import { Plus, Eye, AlertTriangle, FileText, Wallet, DollarSign, type LucideIcon } from 'lucide-react';
+import {
+  Plus,
+  Eye,
+  AlertTriangle,
+  FileText,
+  Wallet,
+  DollarSign,
+  type LucideIcon,
+} from 'lucide-react';
 
 const filters: { label: string; value: BillListRow['status'] | null }[] = [
   { label: 'All Bills', value: null },
@@ -32,7 +40,9 @@ export function BillsPage() {
     if (!currentOrg) return;
     setRepushingId(bill.id);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/xero-push-bill`;
       await fetch(url, {
@@ -60,8 +70,12 @@ export function BillsPage() {
 
   // Aggregate KPIs
   const totalBilled = bills.reduce((a, b) => a + (b.total_inc_gst_cents ?? 0), 0);
-  const totalPaid = bills.filter((b) => b.status === 'paid').reduce((a, b) => a + (b.total_inc_gst_cents ?? 0), 0);
-  const totalOutstanding = bills.filter((b) => b.status !== 'paid' && b.status !== 'void').reduce((a, b) => a + (b.total_inc_gst_cents ?? 0), 0);
+  const totalPaid = bills
+    .filter((b) => b.status === 'paid')
+    .reduce((a, b) => a + (b.total_inc_gst_cents ?? 0), 0);
+  const totalOutstanding = bills
+    .filter((b) => b.status !== 'paid' && b.status !== 'void')
+    .reduce((a, b) => a + (b.total_inc_gst_cents ?? 0), 0);
 
   // Supplier Mix (Top 5) - creative classification
   const supplierSpendMap = new Map<string, number>();
@@ -84,7 +98,7 @@ export function BillsPage() {
   let runningPayableCents = 0;
   let runningBilledCents = 0;
   let runningPaidCents = 0;
-  
+
   const billsChronological = bills
     .filter((b) => b.invoice_date)
     .slice()
@@ -96,7 +110,10 @@ export function BillsPage() {
           runningPayableCents += b.total_inc_gst_cents ?? 0;
         }
         return {
-          label: new Date(b.invoice_date || '').toLocaleDateString('en-AU', { day: '2-digit', month: 'short' }),
+          label: new Date(b.invoice_date || '').toLocaleDateString('en-AU', {
+            day: '2-digit',
+            month: 'short',
+          }),
           value: runningPayableCents,
         };
       })
@@ -105,7 +122,10 @@ export function BillsPage() {
   const billedTrendItems = billsChronological.map((b) => {
     runningBilledCents += b.total_inc_gst_cents ?? 0;
     return {
-      label: new Date(b.invoice_date || '').toLocaleDateString('en-AU', { day: '2-digit', month: 'short' }),
+      label: new Date(b.invoice_date || '').toLocaleDateString('en-AU', {
+        day: '2-digit',
+        month: 'short',
+      }),
       value: runningBilledCents,
     };
   });
@@ -115,21 +135,24 @@ export function BillsPage() {
       runningPaidCents += b.total_inc_gst_cents ?? 0;
     }
     return {
-      label: new Date(b.invoice_date || '').toLocaleDateString('en-AU', { day: '2-digit', month: 'short' }),
+      label: new Date(b.invoice_date || '').toLocaleDateString('en-AU', {
+        day: '2-digit',
+        month: 'short',
+      }),
       value: runningPaidCents,
     };
   });
 
   return (
     <section className="animated-fade-in">
-      <div 
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: '1.5rem',
           flexWrap: 'wrap',
-          gap: '1rem'
+          gap: '1rem',
         }}
       >
         <h1 style={{ margin: 0 }}>Bills</h1>
@@ -140,34 +163,34 @@ export function BillsPage() {
       </div>
 
       {/* KPIs Section */}
-      <div 
-        style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: '1rem',
-          marginBottom: '1.5rem'
+          marginBottom: '1.5rem',
         }}
       >
-        <Kpi 
-          label="Total Billed" 
-          value={totalBilled} 
-          type="neutral" 
-          icon={FileText} 
+        <Kpi
+          label="Total Billed"
+          value={totalBilled}
+          type="neutral"
+          icon={FileText}
           formatter={formatMoney}
         />
-        <Kpi 
-          label="Total Paid" 
-          value={totalPaid} 
-          type="success" 
-          icon={Wallet} 
-          sub={`${bills.filter((b) => b.status === 'paid').length} bills`} 
+        <Kpi
+          label="Total Paid"
+          value={totalPaid}
+          type="success"
+          icon={Wallet}
+          sub={`${bills.filter((b) => b.status === 'paid').length} bills`}
           formatter={formatMoney}
         />
-        <Kpi 
-          label="Outstanding AP" 
-          value={totalOutstanding} 
-          type={totalOutstanding > 0 ? 'danger' : 'neutral'} 
-          icon={DollarSign} 
+        <Kpi
+          label="Outstanding AP"
+          value={totalOutstanding}
+          type={totalOutstanding > 0 ? 'danger' : 'neutral'}
+          icon={DollarSign}
           formatter={formatMoney}
         />
       </div>
@@ -195,10 +218,7 @@ export function BillsPage() {
           />
         </InsightPanel>
         <InsightPanel title="Supplier mix" eyebrow="Top supplier spend">
-          <InsightBarList
-            items={supplierSpendItems}
-            formatValue={formatMoneyCompact}
-          />
+          <InsightBarList items={supplierSpendItems} formatValue={formatMoneyCompact} />
         </InsightPanel>
       </div>
 
@@ -214,7 +234,7 @@ export function BillsPage() {
           background: 'var(--bg-panel)',
           padding: '0.75rem 1rem',
           borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)'
+          border: '1px solid var(--border-subtle)',
         }}
       >
         {/* Status segmented controls */}
@@ -248,7 +268,7 @@ export function BillsPage() {
             fontSize: '0.825rem',
             color: 'var(--text-muted)',
             cursor: 'pointer',
-            fontWeight: 500
+            fontWeight: 500,
           }}
           title="Show documents the intake classifier flagged as non-invoices (logos, photos, screenshots)"
         >
@@ -265,17 +285,22 @@ export function BillsPage() {
       {loading ? (
         <SkeletonTable rows={6} cols={7} />
       ) : error ? (
-        <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}>Failed: {error}</div>
+        <div
+          className="badge badge-danger"
+          style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}
+        >
+          Failed: {error}
+        </div>
       ) : bills.length === 0 ? (
-        <div 
-          style={{ 
-            padding: '2.5rem', 
-            background: 'var(--bg-card)', 
-            border: '1px dashed var(--border-subtle)', 
-            borderRadius: 'var(--radius-md)', 
-            color: 'var(--text-muted)', 
+        <div
+          style={{
+            padding: '2.5rem',
+            background: 'var(--bg-card)',
+            border: '1px dashed var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--text-muted)',
             textAlign: 'center',
-            fontSize: '0.9rem' 
+            fontSize: '0.9rem',
           }}
         >
           No bills found{filter ? ` with status "${filter}"` : ''}.
@@ -306,7 +331,9 @@ export function BillsPage() {
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span style={{ fontWeight: 600, color: 'var(--text-title)' }}>
-                        {b.supplier_name_raw ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                        {b.supplier_name_raw ?? (
+                          <span style={{ color: 'var(--text-muted)' }}>—</span>
+                        )}
                       </span>
                       {b.is_probable_bill === false && (
                         <span
@@ -316,7 +343,7 @@ export function BillsPage() {
                             padding: '1px 5px',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '2px'
+                            gap: '2px',
                           }}
                           title="Classified by intake as not an invoice"
                         >
@@ -328,12 +355,16 @@ export function BillsPage() {
                   </td>
                   <td>
                     {b.attached_job?.job_number ? (
-                      <code style={{ color: 'var(--accent-success)', fontWeight: 600 }}>{b.attached_job.job_number}</code>
+                      <code style={{ color: 'var(--accent-success)', fontWeight: 600 }}>
+                        {b.attached_job.job_number}
+                      </code>
                     ) : (
                       <span style={{ color: 'var(--text-muted)' }}>—</span>
                     )}
                   </td>
-                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(b.total_inc_gst_cents)}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                    {formatMoney(b.total_inc_gst_cents)}
+                  </td>
                   <td>
                     <StatusBadge status={b.status} />
                   </td>
@@ -354,7 +385,7 @@ export function BillsPage() {
                         fontSize: '0.725rem',
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '0.25rem'
+                        gap: '0.25rem',
                       }}
                     >
                       <Eye size={12} />
@@ -378,46 +409,72 @@ function StatusBadge({ status }: { status: BillListRow['status'] }) {
   else if (status === 'verified') badgeClass = 'badge-warning';
   else if (status === 'attached') badgeClass = 'badge-success';
   else if (status === 'paid') badgeClass = 'badge-info';
-  
+
   return <span className={`badge ${badgeClass}`}>{status}</span>;
 }
 
-function Kpi({ 
-  label, 
-  value, 
+function Kpi({
+  label,
+  value,
   type,
   icon: Icon,
   sub,
-  formatter = (v: number) => v.toLocaleString()
-}: { 
-  label: string; 
-  value: number; 
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral'; 
+  formatter = (v: number) => v.toLocaleString(),
+}: {
+  label: string;
+  value: number;
+  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
   icon: LucideIcon;
   sub?: string;
   formatter?: (val: number) => string;
 }) {
   return (
-    <div 
+    <div
       className="card"
-      style={{ 
+      style={{
         padding: '1.25rem',
         borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative'
+        position: 'relative',
       }}
     >
-      <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+      <div
+        style={{
+          fontSize: '0.675rem',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          fontWeight: 700,
+        }}
+      >
         {label}
       </div>
-      <div style={{ marginTop: '0.35rem', fontSize: '1.5rem', color: 'var(--text-title)', fontWeight: 800, fontFamily: 'var(--font-title)' }}>
+      <div
+        style={{
+          marginTop: '0.35rem',
+          fontSize: '1.5rem',
+          color: 'var(--text-title)',
+          fontWeight: 800,
+          fontFamily: 'var(--font-title)',
+        }}
+      >
         <AnimatedNumber value={value} formatter={formatter} />
       </div>
       {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>{sub}</div>
+        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+          {sub}
+        </div>
       ) : (
         <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
       )}
-      <div style={{ position: 'absolute', right: '1rem', bottom: '1rem', color: `var(--accent-${type === 'neutral' ? 'primary' : type})`, opacity: 0.7 }}>
+      <div
+        style={{
+          position: 'absolute',
+          right: '1rem',
+          bottom: '1rem',
+          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
+          opacity: 0.7,
+        }}
+      >
         <Icon size={18} />
       </div>
     </div>

@@ -65,7 +65,9 @@ export function NewPaymentRunPage() {
     setSubmitErr(null);
     setSubmitting(true);
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) {
       setSubmitErr('Not authenticated.');
       setSubmitting(false);
@@ -89,7 +91,7 @@ export function NewPaymentRunPage() {
       },
     );
 
-    const result = await resp.json() as { ok: boolean; payment_run_id?: string; error?: string };
+    const result = (await resp.json()) as { ok: boolean; payment_run_id?: string; error?: string };
     setSubmitting(false);
 
     if (!result.ok) {
@@ -103,15 +105,15 @@ export function NewPaymentRunPage() {
   return (
     <section className="animated-fade-in">
       {/* Back button */}
-      <Link 
-        to="/payment-runs" 
-        style={{ 
-          color: 'var(--text-muted)', 
-          fontSize: '0.825rem', 
-          display: 'inline-flex', 
-          alignItems: 'center', 
+      <Link
+        to="/payment-runs"
+        style={{
+          color: 'var(--text-muted)',
+          fontSize: '0.825rem',
+          display: 'inline-flex',
+          alignItems: 'center',
           gap: '0.25rem',
-          marginBottom: '1rem'
+          marginBottom: '1rem',
         }}
       >
         <ChevronLeft size={14} />
@@ -122,16 +124,29 @@ export function NewPaymentRunPage() {
         <Layers size={24} style={{ color: 'var(--accent-primary)' }} />
         New Payment Run
       </h1>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+      <p
+        style={{
+          color: 'var(--text-muted)',
+          fontSize: '0.875rem',
+          marginTop: '0.25rem',
+          marginBottom: '1.5rem',
+          lineHeight: '1.5',
+        }}
+      >
         Select bills to pay, set the payment date, and create the run. Then download the ABA file
         and upload it to your internet banking.
       </p>
 
       {/* Header controls card */}
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div
+        className="card"
+        style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}
+      >
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <span className="form-label" style={{ fontSize: '0.725rem' }}>Payment Date</span>
+            <span className="form-label" style={{ fontSize: '0.725rem' }}>
+              Payment Date
+            </span>
             <input
               type="date"
               value={payDate}
@@ -142,10 +157,21 @@ export function NewPaymentRunPage() {
           </div>
 
           {selected.size > 0 && (
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-title)', fontWeight: 600, paddingBottom: '0.5rem' }}>
-              {selected.size} bill{selected.size !== 1 ? 's' : ''} selected — <span style={{ color: 'var(--accent-primary)' }}>{formatMoney(totalCents)}</span>
+            <div
+              style={{
+                fontSize: '0.875rem',
+                color: 'var(--text-title)',
+                fontWeight: 600,
+                paddingBottom: '0.5rem',
+              }}
+            >
+              {selected.size} bill{selected.size !== 1 ? 's' : ''} selected —{' '}
+              <span style={{ color: 'var(--accent-primary)' }}>{formatMoney(totalCents)}</span>
               {missingBank.length > 0 && (
-                <span className="badge badge-warning" style={{ marginLeft: '0.5rem', textTransform: 'none', padding: '0.25rem 0.5rem' }}>
+                <span
+                  className="badge badge-warning"
+                  style={{ marginLeft: '0.5rem', textTransform: 'none', padding: '0.25rem 0.5rem' }}
+                >
                   <AlertTriangle size={12} style={{ marginRight: '0.25rem' }} />
                   {missingBank.length} missing bank details
                 </span>
@@ -158,11 +184,23 @@ export function NewPaymentRunPage() {
       {loading ? (
         <SkeletonTable rows={8} cols={7} />
       ) : error ? (
-        <div className="badge badge-danger" style={{ display: 'block', padding: '1rem', textTransform: 'none' }}>
+        <div
+          className="badge badge-danger"
+          style={{ display: 'block', padding: '1rem', textTransform: 'none' }}
+        >
           Failed to load unpaid bills: {error}
         </div>
       ) : bills.length === 0 ? (
-        <div style={{ padding: '3rem 1.5rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <div
+          style={{
+            padding: '3rem 1.5rem',
+            background: 'var(--bg-card)',
+            border: '1px dashed var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+          }}
+        >
           No unpaid bills ready for payment (status "attached", not yet in a run).
         </div>
       ) : (
@@ -201,13 +239,13 @@ export function NewPaymentRunPage() {
       )}
 
       {/* Footer trigger bar */}
-      <div 
-        style={{ 
-          marginTop: '1.5rem', 
-          display: 'flex', 
-          gap: '1rem', 
+      <div
+        style={{
+          marginTop: '1.5rem',
+          display: 'flex',
+          gap: '1rem',
           alignItems: 'center',
-          flexWrap: 'wrap'
+          flexWrap: 'wrap',
         }}
       >
         <button
@@ -219,15 +257,31 @@ export function NewPaymentRunPage() {
           <CheckCircle size={16} />
           <span>{submitting ? 'Creating…' : `Create payment run (${selected.size} bills)`}</span>
         </button>
-        
-        {submitErr && <div className="badge badge-danger" style={{ padding: '0.625rem 1rem', textTransform: 'none' }}>{submitErr}</div>}
-        
+
+        {submitErr && (
+          <div
+            className="badge badge-danger"
+            style={{ padding: '0.625rem 1rem', textTransform: 'none' }}
+          >
+            {submitErr}
+          </div>
+        )}
+
         {missingBank.length > 0 && selected.size > 0 && (
-          <div className="badge badge-warning" style={{ textTransform: 'none', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          <div
+            className="badge badge-warning"
+            style={{
+              textTransform: 'none',
+              padding: '0.5rem 1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+            }}
+          >
             <AlertTriangle size={14} style={{ flexShrink: 0 }} />
             <span>
-              Warning: {missingBank.length} payee(s) have no bank details. ABA file account fields will be blank. 
-              Add details via Suppliers before downloading ABA.
+              Warning: {missingBank.length} payee(s) have no bank details. ABA file account fields
+              will be blank. Add details via Suppliers before downloading ABA.
             </span>
           </div>
         )}
@@ -262,18 +316,36 @@ function BillRow({
           style={{ cursor: 'pointer' }}
         />
       </td>
-      <td style={{ fontWeight: 600 }}>{bill.invoice_number ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
-      <td style={{ color: 'var(--text-title)', fontWeight: 600 }}>{bill.supplier_name ?? bill.supplier_name_raw ?? <span style={{ color: 'var(--text-muted)' }}>Unknown</span>}</td>
-      <td style={{ color: isBillOverdue ? 'var(--text-danger)' : 'var(--text-body)', fontWeight: isBillOverdue ? 600 : 'normal' }}>
-        {bill.due_date ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}
-        {isBillOverdue && <span style={{ fontSize: '0.75rem', marginLeft: '0.25rem' }}>(overdue)</span>}
+      <td style={{ fontWeight: 600 }}>
+        {bill.invoice_number ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}
       </td>
-      <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(bill.total_inc_gst_cents)}</td>
+      <td style={{ color: 'var(--text-title)', fontWeight: 600 }}>
+        {bill.supplier_name ?? bill.supplier_name_raw ?? (
+          <span style={{ color: 'var(--text-muted)' }}>Unknown</span>
+        )}
+      </td>
+      <td
+        style={{
+          color: isBillOverdue ? 'var(--text-danger)' : 'var(--text-body)',
+          fontWeight: isBillOverdue ? 600 : 'normal',
+        }}
+      >
+        {bill.due_date ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}
+        {isBillOverdue && (
+          <span style={{ fontSize: '0.75rem', marginLeft: '0.25rem' }}>(overdue)</span>
+        )}
+      </td>
+      <td style={{ textAlign: 'right', fontWeight: 600 }}>
+        {formatMoney(bill.total_inc_gst_cents)}
+      </td>
       <td>
         {bill.payee_bsb ? (
           bill.payee_bsb
         ) : (
-          <span className="badge badge-warning" style={{ textTransform: 'none', fontSize: '0.75rem' }}>
+          <span
+            className="badge badge-warning"
+            style={{ textTransform: 'none', fontSize: '0.75rem' }}
+          >
             missing
           </span>
         )}
@@ -282,7 +354,10 @@ function BillRow({
         {bill.payee_account_number ? (
           maskAccount(bill.payee_account_number)
         ) : (
-          <span className="badge badge-warning" style={{ textTransform: 'none', fontSize: '0.75rem' }}>
+          <span
+            className="badge badge-warning"
+            style={{ textTransform: 'none', fontSize: '0.75rem' }}
+          >
             missing
           </span>
         )}

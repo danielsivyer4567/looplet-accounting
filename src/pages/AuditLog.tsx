@@ -3,7 +3,16 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { downloadCsv } from '@/lib/csv';
-import { ChevronLeft, Download, User, Calendar, Search, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import {
+  ChevronLeft,
+  Download,
+  User,
+  Calendar,
+  Search,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle,
+} from 'lucide-react';
 
 interface AuditRow {
   id: string;
@@ -57,27 +66,65 @@ function JsonDiff({ changes }: { changes: Record<string, [unknown, unknown]> }) 
           borderCollapse: 'collapse',
           width: '100%',
           marginTop: '0.5rem',
-          color: 'var(--text-body)'
+          color: 'var(--text-body)',
         }}
       >
         <thead>
-          <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
+          <tr
+            style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}
+          >
             <th style={{ textAlign: 'left', padding: '0.4rem 0.5rem' }}>Field</th>
-            <th style={{ textAlign: 'left', padding: '0.4rem 0.5rem', color: 'var(--text-danger)' }}>Before</th>
-            <th style={{ textAlign: 'left', padding: '0.4rem 0.5rem', color: 'var(--text-success)' }}>After</th>
+            <th
+              style={{ textAlign: 'left', padding: '0.4rem 0.5rem', color: 'var(--text-danger)' }}
+            >
+              Before
+            </th>
+            <th
+              style={{ textAlign: 'left', padding: '0.4rem 0.5rem', color: 'var(--text-success)' }}
+            >
+              After
+            </th>
           </tr>
         </thead>
         <tbody>
           {Object.entries(changes).map(([col, [old, next]]) => (
             <tr key={col} style={{ borderBottom: '1px dashed var(--border-subtle)' }}>
-              <td style={{ padding: '0.4rem 0.5rem', color: 'var(--text-title)', fontFamily: 'var(--font-mono, monospace)' }}>
+              <td
+                style={{
+                  padding: '0.4rem 0.5rem',
+                  color: 'var(--text-title)',
+                  fontFamily: 'var(--font-mono, monospace)',
+                }}
+              >
                 {col}
               </td>
-              <td style={{ padding: '0.4rem 0.5rem', color: 'var(--text-danger)', fontFamily: 'var(--font-mono, monospace)', wordBreak: 'break-all' }}>
-                {old === null ? <span style={{ fontStyle: 'italic', opacity: 0.5 }}>null</span> : JSON.stringify(old)}
+              <td
+                style={{
+                  padding: '0.4rem 0.5rem',
+                  color: 'var(--text-danger)',
+                  fontFamily: 'var(--font-mono, monospace)',
+                  wordBreak: 'break-all',
+                }}
+              >
+                {old === null ? (
+                  <span style={{ fontStyle: 'italic', opacity: 0.5 }}>null</span>
+                ) : (
+                  JSON.stringify(old)
+                )}
               </td>
-              <td style={{ padding: '0.4rem 0.5rem', color: 'var(--text-success)', fontFamily: 'var(--font-mono, monospace)', wordBreak: 'break-all' }}>
-                {next === null ? <span style={{ fontStyle: 'italic', opacity: 0.5 }}>null</span> : JSON.stringify(next)}
+              <td
+                style={{
+                  padding: '0.4rem 0.5rem',
+                  color: 'var(--text-success)',
+                  fontFamily: 'var(--font-mono, monospace)',
+                  wordBreak: 'break-all',
+                }}
+              >
+                {next === null ? (
+                  <span style={{ fontStyle: 'italic', opacity: 0.5 }}>null</span>
+                ) : (
+                  JSON.stringify(next)
+                )}
               </td>
             </tr>
           ))}
@@ -111,33 +158,70 @@ function AuditRowItem({ row }: { row: AuditRow }) {
         onClick={() => row.changes && setExpanded((x) => !x)}
       >
         {/* Operation badge */}
-        <span className={`badge ${operationBadgeClass(op)}`} style={{ minWidth: '70px', textAlign: 'center', justifyContent: 'center' }}>
+        <span
+          className={`badge ${operationBadgeClass(op)}`}
+          style={{ minWidth: '70px', textAlign: 'center', justifyContent: 'center' }}
+        >
           {op}
         </span>
 
         {/* Resource details */}
-        <span style={{ fontSize: '0.825rem', color: 'var(--text-title)', fontFamily: 'var(--font-mono, monospace)' }}>
+        <span
+          style={{
+            fontSize: '0.825rem',
+            color: 'var(--text-title)',
+            fontFamily: 'var(--font-mono, monospace)',
+          }}
+        >
           {resourceType}
           {resourceId ? (
-            <span style={{ color: 'var(--text-muted)', marginLeft: '0.25rem' }}>#{resourceId.slice(0, 8)}</span>
+            <span style={{ color: 'var(--text-muted)', marginLeft: '0.25rem' }}>
+              #{resourceId.slice(0, 8)}
+            </span>
           ) : null}
         </span>
 
         {/* Actor */}
-        <span style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+        <span
+          style={{
+            fontSize: '0.825rem',
+            color: 'var(--text-muted)',
+            marginLeft: 'auto',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.25rem',
+          }}
+        >
           <User size={12} />
           {row.actor_email ?? (row.actor_user_id ? row.actor_user_id.slice(0, 8) + '…' : 'system')}
         </span>
 
         {/* Timestamp */}
-        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+        <span
+          style={{
+            fontSize: '0.75rem',
+            color: 'var(--text-muted)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.25rem',
+          }}
+        >
           <Calendar size={12} />
           {formatTimestamp(row.occurred_at)}
         </span>
 
         {/* Expand indicator */}
         {row.changes && (
-          <span className="badge badge-neutral" style={{ fontSize: '0.725rem', textTransform: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+          <span
+            className="badge badge-neutral"
+            style={{
+              fontSize: '0.725rem',
+              textTransform: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+            }}
+          >
             <span>{Object.keys(row.changes).length} field(s)</span>
             {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </span>
@@ -232,14 +316,10 @@ export function AuditLogPage() {
 
       if (reset || currentPage === 0) {
         const actors = Array.from(
-          new Set(
-            visible.map((r) => r.actor_email).filter((e): e is string => !!e),
-          ),
+          new Set(visible.map((r) => r.actor_email).filter((e): e is string => !!e)),
         ).sort();
         const resources = Array.from(
-          new Set(
-            visible.map((r) => r.resource_type).filter((r): r is string => !!r),
-          ),
+          new Set(visible.map((r) => r.resource_type).filter((r): r is string => !!r)),
         ).sort();
         setActorOptions(actors);
         setResourceOptions(resources);
@@ -281,15 +361,15 @@ export function AuditLogPage() {
   return (
     <section className="animated-fade-in" style={{ maxWidth: '950px' }}>
       {/* Back button link */}
-      <Link 
-        to="/settings" 
-        style={{ 
-          color: 'var(--text-muted)', 
-          fontSize: '0.825rem', 
-          display: 'inline-flex', 
-          alignItems: 'center', 
+      <Link
+        to="/settings"
+        style={{
+          color: 'var(--text-muted)',
+          fontSize: '0.825rem',
+          display: 'inline-flex',
+          alignItems: 'center',
           gap: '0.25rem',
-          marginBottom: '1rem'
+          marginBottom: '1rem',
         }}
       >
         <ChevronLeft size={14} />
@@ -310,33 +390,33 @@ export function AuditLogPage() {
           <Search size={24} style={{ color: 'var(--accent-primary)' }} />
           Audit Log
         </h1>
-        <button
-          onClick={handleExport}
-          disabled={rows.length === 0}
-          className="btn btn-secondary"
-        >
+        <button onClick={handleExport} disabled={rows.length === 0} className="btn btn-secondary">
           <Download size={14} />
           <span>Export CSV</span>
         </button>
       </div>
 
       {/* Filters Toolbar Card */}
-      <div 
-        className="card" 
-        style={{ 
-          display: 'flex', 
-          gap: '0.75rem', 
-          flexWrap: 'wrap', 
+      <div
+        className="card"
+        style={{
+          display: 'flex',
+          gap: '0.75rem',
+          flexWrap: 'wrap',
           marginBottom: '1.5rem',
           alignItems: 'center',
-          padding: '1rem'
+          padding: '1rem',
         }}
       >
         <select
           value={filterActor}
           onChange={(e) => setFilterActor(e.target.value)}
           className="form-select"
-          style={{ width: 'auto', padding: '0.45rem 1.75rem 0.45rem 0.75rem', fontSize: '0.825rem' }}
+          style={{
+            width: 'auto',
+            padding: '0.45rem 1.75rem 0.45rem 0.75rem',
+            fontSize: '0.825rem',
+          }}
         >
           <option value="">All actors</option>
           {actorOptions.map((a) => (
@@ -350,7 +430,11 @@ export function AuditLogPage() {
           value={filterResource}
           onChange={(e) => setFilterResource(e.target.value)}
           className="form-select"
-          style={{ width: 'auto', padding: '0.45rem 1.75rem 0.45rem 0.75rem', fontSize: '0.825rem' }}
+          style={{
+            width: 'auto',
+            padding: '0.45rem 1.75rem 0.45rem 0.75rem',
+            fontSize: '0.825rem',
+          }}
         >
           <option value="">All resources</option>
           {resourceOptions.map((r) => (
@@ -368,7 +452,7 @@ export function AuditLogPage() {
           style={{ width: '140px', padding: '0.45rem 0.75rem', fontSize: '0.825rem' }}
           title="From date"
         />
-        
+
         <input
           type="date"
           value={filterDateTo}
@@ -395,7 +479,15 @@ export function AuditLogPage() {
       </div>
 
       {error && (
-        <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', marginBottom: '1rem', textTransform: 'none' }}>
+        <div
+          className="badge badge-danger"
+          style={{
+            display: 'block',
+            padding: '0.75rem',
+            marginBottom: '1rem',
+            textTransform: 'none',
+          }}
+        >
           {error}
         </div>
       )}
@@ -403,14 +495,34 @@ export function AuditLogPage() {
       {loading && rows.length === 0 ? (
         <p style={{ color: 'var(--text-muted)' }}>Loading audit events…</p>
       ) : rows.length === 0 ? (
-        <div style={{ padding: '3rem 1.5rem', background: 'var(--bg-card)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <div
+          style={{
+            padding: '3rem 1.5rem',
+            background: 'var(--bg-card)',
+            border: '1px dashed var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+          }}
+        >
           No audit events found for the current filters.
         </div>
       ) : (
         <>
-          <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          <div
+            style={{
+              fontSize: '0.825rem',
+              color: 'var(--text-muted)',
+              marginBottom: '0.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+            }}
+          >
             <AlertCircle size={14} />
-            <span>Showing {rows.length} events. Click any UPDATE row to expand field-level diff.</span>
+            <span>
+              Showing {rows.length} events. Click any UPDATE row to expand field-level diff.
+            </span>
           </div>
 
           <div className="card" style={{ padding: '0 1.25rem' }}>

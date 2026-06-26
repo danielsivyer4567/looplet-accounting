@@ -38,7 +38,7 @@ import {
   CalendarClock,
   ListChecks,
   Boxes,
-  ShieldCheck
+  ShieldCheck,
 } from 'lucide-react';
 
 const navItems = [
@@ -73,14 +73,14 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', alignItems: 'center' }}>
       {/* Brand Header: Centered Round Square 'L' Logo */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
           justifyContent: 'center',
           padding: '0.75rem 0 1.25rem 0',
           borderBottom: '1px solid var(--border-sidebar)',
-          width: '100%'
+          width: '100%',
         }}
       >
         <BrandLogo size={32} />
@@ -97,7 +97,7 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
           overflowY: 'auto',
           overflowX: 'hidden',
           width: '100%',
-          padding: '0.25rem'
+          padding: '0.25rem',
         }}
       >
         {navItems.map((item) => {
@@ -121,26 +121,36 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
                 transition: 'var(--transition-smooth)',
                 position: 'relative',
                 width: '100%',
-                gap: '4px'
+                gap: '4px',
               })}
               className="nav-link-item"
             >
               {({ isActive }) => (
                 <>
                   <Icon size={18} strokeWidth={isActive ? 2.25 : 1.75} />
-                  <span style={{ fontSize: '9px', fontWeight: 600, textAlign: 'center', display: 'block', lineHeight: 1.1 }}>{item.label}</span>
+                  <span
+                    style={{
+                      fontSize: '9px',
+                      fontWeight: 600,
+                      textAlign: 'center',
+                      display: 'block',
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    {item.label}
+                  </span>
                   {item.badge && (
-                    <span 
-                      style={{ 
+                    <span
+                      style={{
                         position: 'absolute',
                         top: '2px',
                         right: '2px',
-                        fontSize: '7px', 
-                        padding: '1px 3px', 
-                        borderRadius: '3px', 
-                        background: 'var(--accent-primary)', 
-                        color: '#fff', 
-                        fontWeight: 700 
+                        fontSize: '7px',
+                        padding: '1px 3px',
+                        borderRadius: '3px',
+                        background: 'var(--accent-primary)',
+                        color: '#fff',
+                        fontWeight: 700,
                       }}
                     >
                       {item.badge}
@@ -154,15 +164,15 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
       </nav>
 
       {/* Sidebar Footer */}
-      <div 
-        style={{ 
-          padding: '0.75rem 0', 
-          borderTop: '1px solid var(--border-sidebar)', 
+      <div
+        style={{
+          padding: '0.75rem 0',
+          borderTop: '1px solid var(--border-sidebar)',
           marginTop: 'auto',
           fontSize: '8px',
           color: 'var(--text-muted)',
           textAlign: 'center',
-          width: '100%'
+          width: '100%',
         }}
       >
         v1.0.0
@@ -267,7 +277,7 @@ export function Layout() {
             flexDirection: 'column',
             position: 'sticky',
             top: 0,
-            height: '100vh'
+            height: '100vh',
           }}
         >
           <SidebarContent />
@@ -320,7 +330,7 @@ export function Layout() {
             gap: '0.75rem',
             position: 'sticky',
             top: 0,
-            zIndex: 10
+            zIndex: 10,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -342,9 +352,11 @@ export function Layout() {
                 <Menu size={18} />
               </button>
             )}
-            
+
             {/* Dynamic Page Title (large white bold font) */}
-            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-title)' }}>
+            <h1
+              style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-title)' }}
+            >
               {pageTitle === 'Home' ? 'Home' : pageTitle}
             </h1>
           </div>
@@ -380,8 +392,17 @@ export function Layout() {
 
               {appSwitcherOpen && (
                 <div className="app-switcher-popup">
-                  <h4 style={{ gridColumn: '1 / -1', margin: '0 0 -0.5rem 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Apps</h4>
-                  
+                  <h4
+                    style={{
+                      gridColumn: '1 / -1',
+                      margin: '0 0 -0.5rem 0',
+                      fontSize: '0.85rem',
+                      color: 'var(--text-muted)',
+                    }}
+                  >
+                    Apps
+                  </h4>
+
                   <div className="app-switch-btn" style={{ background: '#000' }}>
                     <div style={{ fontSize: '14px', fontWeight: 800 }}>R</div>
                     <span style={{ fontSize: '8px' }}>Personal</span>
@@ -397,7 +418,10 @@ export function Layout() {
                     <span style={{ fontSize: '8px' }}>Invest</span>
                   </div>
 
-                  <div className="app-switch-btn" style={{ background: 'linear-gradient(45deg, #f06, #4a90e2)' }}>
+                  <div
+                    className="app-switch-btn"
+                    style={{ background: 'linear-gradient(45deg, #f06, #4a90e2)' }}
+                  >
                     <div style={{ fontSize: '14px', fontWeight: 800 }}>R</div>
                     <span style={{ fontSize: '8px' }}>Revolut X</span>
                   </div>
@@ -419,28 +443,34 @@ export function Layout() {
                 </div>
               )}
             </div>
-            
+
             {/* User Profile Avatar with Initials */}
-            <div 
+            <div
               onClick={() => signOut()}
               title="Sign out"
-              style={{ 
-                width: '32px', 
-                height: '32px', 
-                borderRadius: '50%', 
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
                 backgroundColor: 'var(--accent-primary)',
                 color: '#fff',
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                fontWeight: 700, 
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
                 fontSize: '0.8rem',
                 cursor: 'pointer',
                 transition: 'var(--transition-smooth)',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
+                boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent-danger)'; e.currentTarget.textContent = '✖'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent-primary)'; e.currentTarget.textContent = initials; }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--accent-danger)';
+                e.currentTarget.textContent = '✖';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--accent-primary)';
+                e.currentTarget.textContent = initials;
+              }}
             >
               {initials}
             </div>

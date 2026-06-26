@@ -31,22 +31,22 @@ export function CustomersPage() {
   return (
     <section className="animated-fade-in">
       {/* Header section */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: '1.5rem',
           flexWrap: 'wrap',
-          gap: '1rem'
+          gap: '1rem',
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Users size={24} style={{ color: 'var(--accent-primary)' }} />
           Customers
         </h1>
-        <button 
-          onClick={() => setShowCreate(true)} 
+        <button
+          onClick={() => setShowCreate(true)}
           className="btn btn-primary"
           aria-label="+ New customer"
         >
@@ -58,7 +58,11 @@ export function CustomersPage() {
       {showCreate && (
         <CreateCustomerForm
           onClose={() => setShowCreate(false)}
-          onCreated={(id) => { setShowCreate(false); void refresh(); navigate(`/customers/${id}`); }}
+          onCreated={(id) => {
+            setShowCreate(false);
+            void refresh();
+            navigate(`/customers/${id}`);
+          }}
         />
       )}
 
@@ -72,14 +76,33 @@ export function CustomersPage() {
             padding: '1rem 1.5rem',
             borderLeft: '4px solid var(--accent-primary)',
             marginBottom: '1.5rem',
-            minWidth: '180px'
+            minWidth: '180px',
           }}
         >
-          <span style={{ fontSize: '0.675rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+          <span
+            style={{
+              fontSize: '0.675rem',
+              color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              fontWeight: 700,
+            }}
+          >
             Total Customers
           </span>
-          <span style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-title)', marginTop: '0.25rem', fontFamily: 'var(--font-title)' }}>
-            {customers.length} <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)' }}>{customers.length === 1 ? 'customer' : 'customers'}</span>
+          <span
+            style={{
+              fontSize: '2rem',
+              fontWeight: 800,
+              color: 'var(--text-title)',
+              marginTop: '0.25rem',
+              fontFamily: 'var(--font-title)',
+            }}
+          >
+            {customers.length}{' '}
+            <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)' }}>
+              {customers.length === 1 ? 'customer' : 'customers'}
+            </span>
           </span>
         </div>
       )}
@@ -87,17 +110,22 @@ export function CustomersPage() {
       {loading ? (
         <SkeletonTable rows={5} cols={5} />
       ) : error ? (
-        <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}>Failed to load: {error}</div>
+        <div
+          className="badge badge-danger"
+          style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}
+        >
+          Failed to load: {error}
+        </div>
       ) : customers.length === 0 ? (
-        <div 
-          style={{ 
-            padding: '2.5rem', 
-            background: 'var(--bg-card)', 
-            border: '1px dashed var(--border-subtle)', 
-            borderRadius: 'var(--radius-md)', 
-            color: 'var(--text-muted)', 
+        <div
+          style={{
+            padding: '2.5rem',
+            background: 'var(--bg-card)',
+            border: '1px dashed var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--text-muted)',
             textAlign: 'center',
-            fontSize: '0.9rem' 
+            fontSize: '0.9rem',
           }}
         >
           No customers found for {currentOrg.name}. Add one to get started.
@@ -137,9 +165,7 @@ export function CustomersPage() {
                     )}
                   </td>
                   <td>
-                    <span style={{ fontSize: '0.875rem' }}>
-                      {formatAddress(c.billing_address)}
-                    </span>
+                    <span style={{ fontSize: '0.875rem' }}>{formatAddress(c.billing_address)}</span>
                   </td>
                   <td>
                     {c.abn ? (
@@ -158,7 +184,13 @@ export function CustomersPage() {
   );
 }
 
-function CreateCustomerForm({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
+function CreateCustomerForm({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (id: string) => void;
+}) {
   const { currentOrg } = useOrg();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -174,9 +206,15 @@ function CreateCustomerForm({ onClose, onCreated }: { onClose: () => void; onCre
   const submit = async () => {
     if (!currentOrg || !name.trim()) return;
     setBusy(true);
-    const billing_address = (line1 || city || postcode)
-      ? { line1: line1 || undefined, city: city || undefined, state: state || undefined, postcode: postcode || undefined }
-      : null;
+    const billing_address =
+      line1 || city || postcode
+        ? {
+            line1: line1 || undefined,
+            city: city || undefined,
+            state: state || undefined,
+            postcode: postcode || undefined,
+          }
+        : null;
     const { data, error } = await supabase
       .from('customers')
       .insert({
@@ -190,13 +228,26 @@ function CreateCustomerForm({ onClose, onCreated }: { onClose: () => void; onCre
       .select('id')
       .single();
     setBusy(false);
-    if (error) { setErr(error.message); return; }
+    if (error) {
+      setErr(error.message);
+      return;
+    }
     onCreated(data.id);
   };
 
   return (
-    <div className="card" style={{ marginBottom: '1.5rem', maxWidth: '720px', animation: 'fadeIn 0.25s ease' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+    <div
+      className="card"
+      style={{ marginBottom: '1.5rem', maxWidth: '720px', animation: 'fadeIn 0.25s ease' }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '1.25rem',
+        }}
+      >
         <h3 style={{ margin: 0, fontSize: '1.15rem' }}>New Customer</h3>
         <button onClick={onClose} className="btn btn-ghost" style={{ padding: '0.2rem 0.4rem' }}>
           <X size={16} />
@@ -204,51 +255,118 @@ function CreateCustomerForm({ onClose, onCreated }: { onClose: () => void; onCre
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1rem',
+          }}
+        >
           <Field label="Name *">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Customer name or business" className="form-input" />
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Customer name or business"
+              className="form-input"
+            />
           </Field>
           <Field label="ABN">
-            <input value={abn} onChange={(e) => setAbn(e.target.value)} placeholder="12 345 678 901" className="form-input" />
+            <input
+              value={abn}
+              onChange={(e) => setAbn(e.target.value)}
+              placeholder="12 345 678 901"
+              className="form-input"
+            />
           </Field>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1rem',
+          }}
+        >
           <Field label="Email">
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@domain.com" className="form-input" />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="email@domain.com"
+              className="form-input"
+            />
           </Field>
           <Field label="Phone">
-            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0400 000 000" className="form-input" />
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="0400 000 000"
+              className="form-input"
+            />
           </Field>
         </div>
 
         <Field label="Address line 1">
-          <input value={line1} onChange={(e) => setLine1(e.target.value)} placeholder="123 Street Rd" className="form-input" />
+          <input
+            value={line1}
+            onChange={(e) => setLine1(e.target.value)}
+            placeholder="123 Street Rd"
+            className="form-input"
+          />
         </Field>
 
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '0.75rem' }}>
           <Field label="City">
-            <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Brisbane" className="form-input" />
+            <input
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Brisbane"
+              className="form-input"
+            />
           </Field>
           <Field label="State">
-            <input value={state} onChange={(e) => setState(e.target.value)} placeholder="QLD" className="form-input" />
+            <input
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              placeholder="QLD"
+              className="form-input"
+            />
           </Field>
           <Field label="Postcode">
-            <input value={postcode} onChange={(e) => setPostcode(e.target.value)} placeholder="4000" className="form-input" />
+            <input
+              value={postcode}
+              onChange={(e) => setPostcode(e.target.value)}
+              placeholder="4000"
+              className="form-input"
+            />
           </Field>
         </div>
 
         {err && (
-          <div className="badge badge-danger" style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}>
+          <div
+            className="badge badge-danger"
+            style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}
+          >
             {err}
           </div>
         )}
 
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-          <button onClick={submit} disabled={busy || !name.trim()} className="btn btn-primary" style={{ padding: '0.625rem 1.25rem' }}>
+          <button
+            onClick={submit}
+            disabled={busy || !name.trim()}
+            className="btn btn-primary"
+            style={{ padding: '0.625rem 1.25rem' }}
+          >
             {busy ? 'Creating…' : 'Create customer'}
           </button>
-          <button onClick={onClose} disabled={busy} className="btn btn-secondary" style={{ padding: '0.625rem 1.25rem' }}>
+          <button
+            onClick={onClose}
+            disabled={busy}
+            className="btn btn-secondary"
+            style={{ padding: '0.625rem 1.25rem' }}
+          >
             Cancel
           </button>
         </div>
@@ -260,7 +378,9 @@ function CreateCustomerForm({ onClose, onCreated }: { onClose: () => void; onCre
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="form-group" style={{ marginBottom: 0 }}>
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>{label}</span>
+      <span className="form-label" style={{ fontSize: '0.725rem' }}>
+        {label}
+      </span>
       <div style={{ marginTop: '0.25rem' }}>{children}</div>
     </div>
   );
