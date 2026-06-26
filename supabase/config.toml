@@ -32,3 +32,8 @@ verify_jwt = false
 # (0112_legal_corpus_sync_cron.sql) via net.http_post with a ?secret= cron secret.
 [functions.legal-corpus-sync]
 verify_jwt = false
+
+# legal-horizon-scan (SC-LC.F.03): the 3-hourly Sonar horizon scanner, driven by
+# pg_cron (0114_horizon_cron_reconcile.sql) via net.http_post with a ?secret= cron secret.
+[functions.legal-horizon-scan]
+verify_jwt = false
