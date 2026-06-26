@@ -52,7 +52,7 @@ describe('CitedAnswer', () => {
     fireEvent.click(screen.getByTitle('Show cited section [1]'));
     expect(screen.getByText(/You can deduct a loss or outgoing/)).toBeInTheDocument();
     const link = screen.getByRole('link', { name: /View the section/ });
-    expect(link).toHaveAttribute('href', CITATIONS[0]!.citation_url);
+    expect(link).toHaveAttribute('href', CITATIONS[0]?.citation_url);
   });
 
   it('flags an uncited legal claim as a distinct "model assertion — verify" chip', () => {
