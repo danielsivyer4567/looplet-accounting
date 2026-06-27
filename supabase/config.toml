@@ -37,3 +37,8 @@ verify_jwt = false
 # pg_cron (0114_horizon_cron_reconcile.sql) via net.http_post with a ?secret= cron secret.
 [functions.legal-horizon-scan]
 verify_jwt = false
+
+# advisor (SC-6.B.02): user-invoked proactive advisory engine. JWT stays on;
+# the function forwards the caller token into Supabase so RLS/RPC org checks apply.
+[functions.advisor]
+verify_jwt = true
