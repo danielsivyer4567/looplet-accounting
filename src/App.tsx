@@ -38,6 +38,7 @@ import { SmsfPage } from '@/pages/SMSF';
 import { EmployeesPage } from '@/pages/Employees';
 import { EmployeeDetailPage } from '@/pages/EmployeeDetail';
 import { SettingsPage } from '@/pages/Settings';
+import { RegistrationsPage } from '@/pages/settings/Registrations';
 import { TeamPage } from '@/pages/Team';
 import { AuditLogPage } from '@/pages/AuditLog';
 import { GmailCallbackPage } from '@/pages/GmailCallback';
@@ -115,6 +116,7 @@ export function App() {
             <Route path="trusts/:id" element={<TrustDetailPage />} />
             <Route path="smsf" element={<SmsfPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="settings/registrations" element={<RegistrationsPage />} />
             <Route path="settings/team" element={<TeamPage />} />
             <Route path="settings/audit-log" element={<AuditLogPage />} />
             <Route path="settings/gmail-callback" element={<GmailCallbackPage />} />

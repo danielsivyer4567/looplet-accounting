@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { downloadBlob } from '@/lib/download';
 
 // The slice of business_profile (live schema, verified) the registration payload maps from.
 export interface RegistrationProfile {
@@ -171,5 +172,16 @@ export function useRegistrations() {
     void refresh();
   }, [refresh]);
 
-  return { payload, loading, error, refresh, abrRegisterUrl: ABR_REGISTER_URL };
+  /**
+   * Download the prepared registration payload as JSON for the user to carry to the ABR/ATO
+   * channel (v1 is deep-link + payload only; real submission is deferred to Phase 7). Owned by
+   * the hook so the page stays presentation-only, matching useSmsf's download actions.
+   */
+  const downloadPayload = useCallback(() => {
+    if (!payload) return;
+    const json = JSON.stringify(payload, null, 2);
+    downloadBlob(new Blob([json], { type: 'application/json' }), 'registration-details.json');
+  }, [payload]);
+
+  return { payload, loading, error, refresh, downloadPayload, abrRegisterUrl: ABR_REGISTER_URL };
 }
