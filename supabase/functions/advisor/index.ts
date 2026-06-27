@@ -22,9 +22,13 @@ import {
   modelStructuring,
   type StructuringModelResult,
 } from "../_shared/models/structuring.ts";
+import {
+  modelYearEnd,
+  type YearEndModelResult,
+} from "../_shared/models/yearEnd.ts";
 
-export type AdvisorMode = "noop_echo" | "structuring";
-export type AdviceNoteKind = "forecast" | "structuring";
+export type AdvisorMode = "noop_echo" | "structuring" | "year_end";
+export type AdviceNoteKind = "forecast" | "structuring" | "year_end";
 
 export interface AdvisorRequestBody {
   organization_id?: string;
@@ -153,6 +157,59 @@ export function buildStructuringAdviceNote(
   };
 }
 
+export function buildYearEndAdviceNote(
+  organizationId: string,
+  facts: AdvisoryFacts,
+  model: YearEndModelResult,
+  citation: AdviceCitationResult,
+): CreateAdviceNoteArgs {
+  const totalSavingCents = model.levers.reduce(
+    (sum, lever) => sum + lever.saving_cents,
+    0,
+  );
+  const leverSummary = model.levers.length > 0
+    ? model.levers
+      .map((lever) =>
+        `${lever.label}: estimated saving ${money(lever.saving_cents)}`
+      )
+      .join("; ")
+    : "No quantified year-end levers surfaced for the selected date.";
+  const summary = [
+    `Year-end planning model (${model.as_at_date}): ${leverSummary}`,
+    `Total modelled saving/timing benefit: ${money(totalSavingCents)}.`,
+    citation.text ? `Research context: ${citation.text}` : null,
+  ].filter((line): line is string => line !== null).join("\n\n");
+
+  return {
+    p_org: organizationId,
+    p_kind: "year_end",
+    p_title: "Year-end planning levers",
+    p_summary: summary,
+    p_inputs: {
+      mode: "year_end",
+      current_entity_type: facts.profile.entity_type,
+      profile: facts.profile,
+      signals: facts.signals,
+      source_errors: facts.source_errors,
+      research_text: citation.text,
+    },
+    p_numbers: {
+      as_at_date: model.as_at_date,
+      in_year_end_window: model.in_year_end_window,
+      deduction_rate_bps: model.deduction_rate_bps,
+      total_saving_cents: totalSavingCents,
+      levers: model.levers,
+    },
+    p_assumptions: {
+      as_at_fy: model.as_at_fy,
+      model_warnings: model.warnings,
+    },
+    p_citations: citation.citations,
+    p_disclaimer:
+      "General information only; not tax, legal, or financial advice. Review with a registered agent before acting.",
+  };
+}
+
 async function handleAdvisor(req: Request): Promise<Response> {
   const pre = preflight(req);
   if (pre) return pre;
@@ -181,7 +238,7 @@ async function handleAdvisor(req: Request): Promise<Response> {
   }
 
   const mode = body.mode ?? "noop_echo";
-  if (mode !== "noop_echo" && mode !== "structuring") {
+  if (mode !== "noop_echo" && mode !== "structuring" && mode !== "year_end") {
     return json({
       ok: false,
       error: `Unsupported advisor mode: ${String(mode)}`,
@@ -203,6 +260,17 @@ async function handleAdvisor(req: Request): Promise<Response> {
         modelStructuring(facts),
         await citeForAdvice(
           "Which Australian tax and business-structure rules matter when comparing sole trader, company, and discretionary trust structures for this business?",
+          facts,
+          Deno.env.get("PERPLEXITY_API_KEY"),
+        ),
+      )
+      : mode === "year_end"
+      ? buildYearEndAdviceNote(
+        orgId,
+        facts,
+        modelYearEnd(facts, new Date()),
+        await citeForAdvice(
+          "Which Australian year-end tax planning rules matter for concessional super contributions, instant asset write-off purchases, deductible prepayments, and income deferral?",
           facts,
           Deno.env.get("PERPLEXITY_API_KEY"),
         ),

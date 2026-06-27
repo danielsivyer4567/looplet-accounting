@@ -2,10 +2,12 @@ import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   buildNoopEchoAdviceNote,
   buildStructuringAdviceNote,
+  buildYearEndAdviceNote,
   type CreateAdviceNoteArgs,
 } from "./index.ts";
 import type { AdvisoryFacts } from "../_shared/advisoryFacts.ts";
 import { modelStructuring } from "../_shared/models/structuring.ts";
+import { modelYearEnd } from "../_shared/models/yearEnd.ts";
 
 const facts: AdvisoryFacts = {
   organization_id: "org-1",
@@ -103,5 +105,35 @@ Deno.test("buildStructuringAdviceNote echoes the calculator tax_diff_cents into 
   assertEquals(
     (payload.p_assumptions.model_assumptions as string[])[0],
     "Taxable profit is proxied by current-FY gross_profit_cents from v_organization_realtime_pnl.",
+  );
+});
+
+Deno.test("buildYearEndAdviceNote carries every year-end lever into numbers", () => {
+  const yearEndFacts = {
+    ...facts,
+    year_end_inputs: {
+      current_concessional_super_cents: 1_000_000,
+      planned_asset_purchase_cents: 1_800_000,
+      planned_prepayment_cents: 1_200_000,
+      deferrable_revenue_cents: 5_000_000,
+    },
+  };
+  const model = modelYearEnd(yearEndFacts, "2026-06-15");
+  const payload = buildYearEndAdviceNote("org-1", facts, model, {
+    text: "Year-end deductions generally need action before 30 June [1].",
+    citations: ["https://www.ato.gov.au/year-end"],
+  });
+
+  assertEquals(payload.p_org, "org-1");
+  assertEquals(payload.p_kind, "year_end");
+  assertEquals(payload.p_title, "Year-end planning levers");
+  assertEquals(payload.p_numbers.levers, model.levers);
+  assertEquals(payload.p_numbers.total_saving_cents, 2_200_000);
+  assertEquals(payload.p_numbers.in_year_end_window, true);
+  assertEquals(payload.p_citations, ["https://www.ato.gov.au/year-end"]);
+  assertEquals(payload.p_inputs.mode, "year_end");
+  assertEquals(
+    payload.p_inputs.research_text,
+    "Year-end deductions generally need action before 30 June [1].",
   );
 });
