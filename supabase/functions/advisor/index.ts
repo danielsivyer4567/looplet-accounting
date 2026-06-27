@@ -43,6 +43,7 @@ import {
 
 export type AdvisorMode =
   | "noop_echo"
+  | "scheduled"
   | "forecast"
   | "structuring"
   | "year_end"
@@ -60,6 +61,7 @@ export type AdviceNoteKind =
 export interface AdvisorRequestBody {
   organization_id?: string;
   mode?: AdvisorMode;
+  as_at_date?: string;
   cgt_disposal?: CgtDisposalInput;
   fbt_inputs?: FbtScenarioInputs;
 }
@@ -76,8 +78,18 @@ export interface CreateAdviceNoteArgs {
   p_disclaimer: string;
 }
 
+type SupabaseClientLike = {
+  from(relation: string): any;
+};
+
+interface ExistingAdviceNoteRow {
+  id: string;
+  status: string;
+}
+
 const SUPPORTED_MODES: readonly AdvisorMode[] = [
   "noop_echo",
+  "scheduled",
   "forecast",
   "structuring",
   "year_end",
@@ -88,6 +100,81 @@ const SUPPORTED_MODES: readonly AdvisorMode[] = [
 
 const GENERAL_ADVICE_DISCLAIMER =
   "General information only; not tax, legal, or financial advice. Review with a registered agent before acting.";
+
+type ScenarioAdvisorMode = Exclude<AdvisorMode, "scheduled">;
+
+export interface ScheduledAdviceResult {
+  kind: AdviceNoteKind;
+  period: string;
+  action: "inserted" | "updated_draft" | "kept_existing";
+  advice_note_id: string | null;
+}
+
+export function selectSeasonalModes(
+  asAt: Date | string = new Date(),
+): AdviceNoteKind[] {
+  const date = parseAsAtDate(asAt);
+  const modes: AdviceNoteKind[] = ["forecast"];
+  if (isJuneYearEndWindow(date)) {
+    modes.push("year_end", "structuring");
+  }
+  return modes;
+}
+
+export function scheduledPeriodForMode(
+  mode: AdviceNoteKind,
+  asAt: Date | string = new Date(),
+): string {
+  const date = parseAsAtDate(asAt);
+  if (mode === "forecast") return `week:${isoWeekStart(date)}`;
+  return `fy:${fyLabel(date)}`;
+}
+
+function parseAsAtDate(value: Date | string): Date {
+  const date = value instanceof Date
+    ? new Date(value.getTime())
+    : new Date(value.length <= 10 ? `${value}T00:00:00Z` : value);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("as_at_date must be a valid ISO date");
+  }
+  return date;
+}
+
+function isJuneYearEndWindow(date: Date): boolean {
+  return date.getUTCMonth() === 5 && date.getUTCDate() <= 30;
+}
+
+function isoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function isoWeekStart(date: Date): string {
+  const copy = new Date(Date.UTC(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate(),
+  ));
+  const day = copy.getUTCDay() || 7;
+  copy.setUTCDate(copy.getUTCDate() - day + 1);
+  return isoDate(copy);
+}
+
+function fyLabel(date: Date): string {
+  const startYear = date.getUTCMonth() >= 6
+    ? date.getUTCFullYear()
+    : date.getUTCFullYear() - 1;
+  return `${startYear}-${startYear + 1}`;
+}
+
+/** Constant-time string compare; false on length mismatch. */
+function safeEqual(a: string, b: string): boolean {
+  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) {
+    return false;
+  }
+  let out = 0;
+  for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return out === 0;
+}
 
 export interface CashFlowForecastRow {
   week_start: string;
@@ -628,6 +715,278 @@ export function buildProfitExtractionAdviceNote(
   };
 }
 
+async function buildAdviceNoteForMode({
+  mode,
+  orgId,
+  facts,
+  client,
+  body,
+  cgtDisposal,
+  asAt,
+}: {
+  mode: ScenarioAdvisorMode;
+  orgId: string;
+  facts: AdvisoryFacts;
+  client: SupabaseClientLike;
+  body: AdvisorRequestBody;
+  cgtDisposal: CgtDisposalInput | null;
+  asAt: Date;
+}): Promise<CreateAdviceNoteArgs> {
+  switch (mode) {
+    case "forecast": {
+      const [forecastResult, budgetResult, bankResult] = await Promise.all([
+        client
+          .from("v_cash_flow_forecast")
+          .select("*")
+          .eq("organization_id", orgId)
+          .order("week_start", { ascending: true }),
+        client
+          .from("v_budget_vs_actual_weekly")
+          .select("*")
+          .eq("organization_id", orgId)
+          .order("week_start", { ascending: true }),
+        client
+          .from("bank_accounts")
+          .select("current_balance_cents")
+          .eq("organization_id", orgId)
+          .eq("is_active", true),
+      ]);
+      if (forecastResult.error) {
+        throw new Error(
+          `v_cash_flow_forecast: ${forecastResult.error.message}`,
+        );
+      }
+      if (budgetResult.error) {
+        throw new Error(
+          `v_budget_vs_actual_weekly: ${budgetResult.error.message}`,
+        );
+      }
+      if (bankResult.error) {
+        throw new Error(`bank_accounts: ${bankResult.error.message}`);
+      }
+      return buildForecastAdviceNote(
+        orgId,
+        facts,
+        summarizeForecast(
+          forecastRowsFrom(forecastResult.data),
+          budgetVarianceRowsFrom(budgetResult.data),
+          openingBalanceCentsFrom(bankResult.data),
+        ),
+        await citeForAdvice(
+          "Which cash-flow forecasting and budget variance factors should an Australian small business review in a vCFO cash-flow brief?",
+          facts,
+          Deno.env.get("PERPLEXITY_API_KEY"),
+        ),
+      );
+    }
+    case "structuring":
+      return buildStructuringAdviceNote(
+        orgId,
+        facts,
+        modelStructuring(facts),
+        await citeForAdvice(
+          "Which Australian tax and business-structure rules matter when comparing sole trader, company, and discretionary trust structures for this business?",
+          facts,
+          Deno.env.get("PERPLEXITY_API_KEY"),
+        ),
+      );
+    case "year_end":
+      return buildYearEndAdviceNote(
+        orgId,
+        facts,
+        modelYearEnd(facts, asAt),
+        await citeForAdvice(
+          "Which Australian year-end tax planning rules matter for concessional super contributions, instant asset write-off purchases, deductible prepayments, and income deferral?",
+          facts,
+          Deno.env.get("PERPLEXITY_API_KEY"),
+        ),
+      );
+    case "cgt":
+      if (!cgtDisposal) throw new Error("cgt_disposal required for cgt mode");
+      return buildCgtAdviceNote(
+        orgId,
+        facts,
+        cgtDisposal,
+        modelCgt(facts, cgtDisposal),
+        await citeForAdvice(
+          "Which Australian small-business CGT concession rules matter when screening a business asset disposal?",
+          facts,
+          Deno.env.get("PERPLEXITY_API_KEY"),
+        ),
+      );
+    case "fbt": {
+      const fbtInputs = body.fbt_inputs ?? {};
+      const fbtFacts = { ...facts, fbt_inputs: fbtInputs };
+      return buildFbtAdviceNote(
+        orgId,
+        facts,
+        fbtInputs,
+        modelFbt(fbtFacts),
+        await citeForAdvice(
+          "Which Australian FBT car-benefit rules matter when comparing statutory-formula and operating-cost methods, electric vehicle exemptions, and work-vehicle private-use limits?",
+          facts,
+          Deno.env.get("PERPLEXITY_API_KEY"),
+        ),
+      );
+    }
+    case "profit_extraction":
+      return buildProfitExtractionAdviceNote(
+        orgId,
+        facts,
+        modelProfitExtraction(facts),
+        await citeForAdvice(
+          "Which Australian tax rules matter when comparing owner wages, fully franked dividends, and trust distribution mixes for extracting business profits?",
+          facts,
+          Deno.env.get("PERPLEXITY_API_KEY"),
+        ),
+      );
+    case "noop_echo":
+      return buildNoopEchoAdviceNote(orgId, facts);
+  }
+}
+
+function withScheduledInputs(
+  noteArgs: CreateAdviceNoteArgs,
+  period: string,
+  asAt: Date,
+): CreateAdviceNoteArgs {
+  return {
+    ...noteArgs,
+    p_inputs: {
+      ...noteArgs.p_inputs,
+      scheduled: true,
+      scheduler_period: period,
+      scheduler_kind: noteArgs.p_kind,
+      scheduler_as_at_date: isoDate(asAt),
+    },
+  };
+}
+
+async function upsertScheduledAdviceNote(
+  admin: SupabaseClientLike,
+  noteArgs: CreateAdviceNoteArgs,
+  period: string,
+): Promise<ScheduledAdviceResult> {
+  const { data: existingRows, error: existingError } = await admin
+    .from("advice_notes")
+    .select("id,status")
+    .eq("organization_id", noteArgs.p_org)
+    .eq("kind", noteArgs.p_kind)
+    .contains("inputs", {
+      scheduled: true,
+      scheduler_period: period,
+      scheduler_kind: noteArgs.p_kind,
+    })
+    .is("deleted_at", null)
+    .order("updated_at", { ascending: false })
+    .limit(1);
+  if (existingError) {
+    throw new Error(`advice_notes dedupe: ${existingError.message}`);
+  }
+
+  const existing: ExistingAdviceNoteRow | null = Array.isArray(existingRows)
+    ? (existingRows[0] as ExistingAdviceNoteRow | undefined) ?? null
+    : null;
+  if (existing && existing.status !== "draft") {
+    return {
+      kind: noteArgs.p_kind,
+      period,
+      action: "kept_existing",
+      advice_note_id: String(existing.id ?? ""),
+    };
+  }
+
+  const row = {
+    organization_id: noteArgs.p_org,
+    kind: noteArgs.p_kind,
+    title: noteArgs.p_title,
+    summary: noteArgs.p_summary,
+    inputs: noteArgs.p_inputs,
+    numbers: noteArgs.p_numbers,
+    assumptions: noteArgs.p_assumptions,
+    citations: noteArgs.p_citations,
+    disclaimer: noteArgs.p_disclaimer,
+  };
+
+  if (existing) {
+    const { data, error } = await admin
+      .from("advice_notes")
+      .update(row)
+      .eq("id", existing.id)
+      .select("id")
+      .single();
+    if (error) throw new Error(`advice_notes update: ${error.message}`);
+    return {
+      kind: noteArgs.p_kind,
+      period,
+      action: "updated_draft",
+      advice_note_id: String(data?.id ?? existing.id ?? ""),
+    };
+  }
+
+  const { data, error } = await admin
+    .from("advice_notes")
+    .insert(row)
+    .select("id")
+    .single();
+  if (error) throw new Error(`advice_notes insert: ${error.message}`);
+
+  return {
+    kind: noteArgs.p_kind,
+    period,
+    action: "inserted",
+    advice_note_id: String(data?.id ?? ""),
+  };
+}
+
+async function runScheduledAdvisor(
+  admin: SupabaseClientLike,
+  orgId: string,
+  body: AdvisorRequestBody,
+): Promise<{
+  scheduled_modes: AdviceNoteKind[];
+  results: ScheduledAdviceResult[];
+  source_errors: string[];
+}> {
+  const asAt = parseAsAtDate(body.as_at_date ?? new Date());
+  const { data: org, error: orgError } = await admin
+    .from("organizations")
+    .select("id")
+    .eq("id", orgId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (orgError) throw new Error(`organizations: ${orgError.message}`);
+  if (!org) throw new Error("organization not found or deleted");
+
+  const facts = await loadAdvisoryFacts(advisoryFactsClient(admin), orgId);
+  const scheduledModes = selectSeasonalModes(asAt);
+  const results: ScheduledAdviceResult[] = [];
+
+  for (const scheduledMode of scheduledModes) {
+    const period = scheduledPeriodForMode(scheduledMode, asAt);
+    const noteArgs = withScheduledInputs(
+      await buildAdviceNoteForMode({
+        mode: scheduledMode,
+        orgId,
+        facts,
+        client: admin,
+        body,
+        cgtDisposal: null,
+        asAt,
+      }),
+      period,
+      asAt,
+    );
+    results.push(await upsertScheduledAdviceNote(admin, noteArgs, period));
+  }
+
+  return {
+    scheduled_modes: scheduledModes,
+    results,
+    source_errors: facts.source_errors,
+  };
+}
+
 async function handleAdvisor(req: Request): Promise<Response> {
   const pre = preflight(req);
   if (pre) return pre;
@@ -635,8 +994,19 @@ async function handleAdvisor(req: Request): Promise<Response> {
     return json({ ok: false, error: "Method not allowed" }, 405);
   }
 
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return json({ ok: false, error: "Unauthorized" }, 401);
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const cronSecret = Deno.env.get("ADVISOR_CRON_SECRET");
+  const urlSecret = new URL(req.url).searchParams.get("secret") ?? "";
+  const isServiceRole = serviceKey.length > 0 && safeEqual(bearer, serviceKey);
+  const secretOk = !!cronSecret && safeEqual(urlSecret, cronSecret);
+  const cronAuthorized = isServiceRole || secretOk;
+  const hasBearer = bearer.length > 0;
+
+  if (!cronAuthorized && !hasBearer) {
+    return json({ ok: false, error: "Unauthorized" }, 401);
+  }
 
   let body: AdvisorRequestBody;
   try {
@@ -663,6 +1033,13 @@ async function handleAdvisor(req: Request): Promise<Response> {
     }, 400);
   }
 
+  if (mode === "scheduled" && !cronAuthorized) {
+    return json({ ok: false, error: "Scheduled mode requires cron auth" }, 403);
+  }
+  if (mode !== "scheduled" && !hasBearer) {
+    return json({ ok: false, error: "Unauthorized" }, 401);
+  }
+
   let cgtDisposal: CgtDisposalInput | null = null;
   try {
     if (mode === "cgt") {
@@ -673,133 +1050,52 @@ async function handleAdvisor(req: Request): Promise<Response> {
     return json({ ok: false, error: message }, 400);
   }
 
+  let asAt: Date;
   try {
+    asAt = parseAsAtDate(body.as_at_date ?? new Date());
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return json({ ok: false, error: message }, 400);
+  }
+
+  try {
+    const supabaseUrl = requireEnv("SUPABASE_URL");
+    const anonKey = requireEnv("SUPABASE_ANON_KEY");
+
+    if (mode === "scheduled") {
+      const admin = createClient(
+        supabaseUrl,
+        requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
+        { auth: { persistSession: false, autoRefreshToken: false } },
+      );
+      const scheduled = await runScheduledAdvisor(admin, orgId, {
+        ...body,
+        as_at_date: isoDate(asAt),
+      });
+      return json({
+        ok: true,
+        mode,
+        organization_id: orgId,
+        ...scheduled,
+      });
+    }
+
     const client = createClient(
-      requireEnv("SUPABASE_URL"),
-      requireEnv("SUPABASE_ANON_KEY"),
+      supabaseUrl,
+      anonKey,
       { global: { headers: { Authorization: authHeader } } },
     );
 
     const facts = await loadAdvisoryFacts(advisoryFactsClient(client), orgId);
-    let noteArgs: CreateAdviceNoteArgs;
-    switch (mode) {
-      case "forecast": {
-        const [forecastResult, budgetResult, bankResult] = await Promise.all([
-          client
-            .from("v_cash_flow_forecast")
-            .select("*")
-            .eq("organization_id", orgId)
-            .order("week_start", { ascending: true }),
-          client
-            .from("v_budget_vs_actual_weekly")
-            .select("*")
-            .eq("organization_id", orgId)
-            .order("week_start", { ascending: true }),
-          client
-            .from("bank_accounts")
-            .select("current_balance_cents")
-            .eq("organization_id", orgId)
-            .eq("is_active", true),
-        ]);
-        if (forecastResult.error) {
-          throw new Error(
-            `v_cash_flow_forecast: ${forecastResult.error.message}`,
-          );
-        }
-        if (budgetResult.error) {
-          throw new Error(
-            `v_budget_vs_actual_weekly: ${budgetResult.error.message}`,
-          );
-        }
-        if (bankResult.error) {
-          throw new Error(`bank_accounts: ${bankResult.error.message}`);
-        }
-        noteArgs = buildForecastAdviceNote(
-          orgId,
-          facts,
-          summarizeForecast(
-            forecastRowsFrom(forecastResult.data),
-            budgetVarianceRowsFrom(budgetResult.data),
-            openingBalanceCentsFrom(bankResult.data),
-          ),
-          await citeForAdvice(
-            "Which cash-flow forecasting and budget variance factors should an Australian small business review in a vCFO cash-flow brief?",
-            facts,
-            Deno.env.get("PERPLEXITY_API_KEY"),
-          ),
-        );
-        break;
-      }
-      case "structuring":
-        noteArgs = buildStructuringAdviceNote(
-          orgId,
-          facts,
-          modelStructuring(facts),
-          await citeForAdvice(
-            "Which Australian tax and business-structure rules matter when comparing sole trader, company, and discretionary trust structures for this business?",
-            facts,
-            Deno.env.get("PERPLEXITY_API_KEY"),
-          ),
-        );
-        break;
-      case "year_end":
-        noteArgs = buildYearEndAdviceNote(
-          orgId,
-          facts,
-          modelYearEnd(facts, new Date()),
-          await citeForAdvice(
-            "Which Australian year-end tax planning rules matter for concessional super contributions, instant asset write-off purchases, deductible prepayments, and income deferral?",
-            facts,
-            Deno.env.get("PERPLEXITY_API_KEY"),
-          ),
-        );
-        break;
-      case "cgt":
-        if (!cgtDisposal) throw new Error("cgt_disposal required for cgt mode");
-        noteArgs = buildCgtAdviceNote(
-          orgId,
-          facts,
-          cgtDisposal,
-          modelCgt(facts, cgtDisposal),
-          await citeForAdvice(
-            "Which Australian small-business CGT concession rules matter when screening a business asset disposal?",
-            facts,
-            Deno.env.get("PERPLEXITY_API_KEY"),
-          ),
-        );
-        break;
-      case "fbt": {
-        const fbtInputs = body.fbt_inputs ?? {};
-        const fbtFacts = { ...facts, fbt_inputs: fbtInputs };
-        noteArgs = buildFbtAdviceNote(
-          orgId,
-          facts,
-          fbtInputs,
-          modelFbt(fbtFacts),
-          await citeForAdvice(
-            "Which Australian FBT car-benefit rules matter when comparing statutory-formula and operating-cost methods, electric vehicle exemptions, and work-vehicle private-use limits?",
-            facts,
-            Deno.env.get("PERPLEXITY_API_KEY"),
-          ),
-        );
-        break;
-      }
-      case "profit_extraction":
-        noteArgs = buildProfitExtractionAdviceNote(
-          orgId,
-          facts,
-          modelProfitExtraction(facts),
-          await citeForAdvice(
-            "Which Australian tax rules matter when comparing owner wages, fully franked dividends, and trust distribution mixes for extracting business profits?",
-            facts,
-            Deno.env.get("PERPLEXITY_API_KEY"),
-          ),
-        );
-        break;
-      case "noop_echo":
-        noteArgs = buildNoopEchoAdviceNote(orgId, facts);
-        break;
-    }
+    const noteArgs = await buildAdviceNoteForMode({
+      mode: mode as ScenarioAdvisorMode,
+      orgId,
+      facts,
+      client,
+      body,
+      cgtDisposal,
+      asAt,
+    });
     const { data, error } = await client.rpc("create_advice_note", noteArgs);
     if (error) throw new Error(error.message);
 

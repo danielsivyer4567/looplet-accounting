@@ -10,6 +10,8 @@ import {
   buildYearEndAdviceNote,
   type CashFlowForecastRow,
   type CreateAdviceNoteArgs,
+  scheduledPeriodForMode,
+  selectSeasonalModes,
   summarizeForecast,
 } from "./index.ts";
 import type { AdvisoryFacts } from "../_shared/advisoryFacts.ts";
@@ -152,6 +154,30 @@ Deno.test("summarizeForecast computes runway and largest budget variances", () =
     ],
   );
   assertEquals(model.warnings, []);
+});
+
+Deno.test("selectSeasonalModes includes year-end and structuring before 30 June only", () => {
+  assertEquals(selectSeasonalModes("2026-06-27"), [
+    "forecast",
+    "year_end",
+    "structuring",
+  ]);
+  assertEquals(selectSeasonalModes("2026-10-15"), ["forecast"]);
+});
+
+Deno.test("scheduledPeriodForMode dedupes forecast weekly and seasonal notes by FY", () => {
+  assertEquals(
+    scheduledPeriodForMode("forecast", "2026-06-27"),
+    "week:2026-06-22",
+  );
+  assertEquals(
+    scheduledPeriodForMode("year_end", "2026-06-27"),
+    "fy:2025-2026",
+  );
+  assertEquals(
+    scheduledPeriodForMode("structuring", "2026-10-15"),
+    "fy:2026-2027",
+  );
 });
 
 Deno.test("buildForecastAdviceNote echoes runway and largest budget variances into numbers", () => {
