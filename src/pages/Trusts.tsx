@@ -3,13 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
 import { useTrusts } from '@/hooks/useTrusts';
 import { SkeletonTable } from '@/components/Skeleton';
+import { titleCase, formatDay } from '@/lib/formatting';
 import { Landmark } from 'lucide-react';
-
-/** "discretionary" -> "Discretionary"; "" -> "". */
-function titleCase(s: string | null | undefined): string {
-  if (!s) return '';
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
 
 // Shared styling for the page's dashed "notice" cards (not-a-trust gate + empty list).
 const noticeCardStyle: CSSProperties = {
@@ -21,12 +16,6 @@ const noticeCardStyle: CSSProperties = {
   textAlign: 'center',
   fontSize: '0.9rem',
 };
-
-/** A date string -> "30 Jun 2024"; null -> em dash. */
-function formatDay(d: string | null): string {
-  if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
-}
 
 export function TrustsPage() {
   const navigate = useNavigate();
