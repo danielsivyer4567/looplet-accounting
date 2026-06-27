@@ -6,6 +6,10 @@
 // slices; no recommendation, lodgement, payment, or external send happens here.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  type AdviceCitationResult,
+  citeForAdvice,
+} from "../_shared/advisoryCite.ts";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
 import { requireEnv } from "../_shared/env.ts";
 import {
@@ -14,8 +18,13 @@ import {
   type AdvisoryFactsQuery,
   loadAdvisoryFacts,
 } from "../_shared/advisoryFacts.ts";
+import {
+  modelStructuring,
+  type StructuringModelResult,
+} from "../_shared/models/structuring.ts";
 
-export type AdvisorMode = "noop_echo";
+export type AdvisorMode = "noop_echo" | "structuring";
+export type AdviceNoteKind = "forecast" | "structuring";
 
 export interface AdvisorRequestBody {
   organization_id?: string;
@@ -24,7 +33,7 @@ export interface AdvisorRequestBody {
 
 export interface CreateAdviceNoteArgs {
   p_org: string;
-  p_kind: "forecast";
+  p_kind: AdviceNoteKind;
   p_title: string;
   p_summary: string;
   p_inputs: Record<string, unknown>;
@@ -32,6 +41,15 @@ export interface CreateAdviceNoteArgs {
   p_assumptions: Record<string, unknown>;
   p_citations: unknown[];
   p_disclaimer: string;
+}
+
+function money(cents: number): string {
+  return `$${
+    (cents / 100).toLocaleString("en-AU", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    })
+  }`;
 }
 
 function json(body: unknown, status = 200): Response {
@@ -90,6 +108,51 @@ export function buildNoopEchoAdviceNote(
   };
 }
 
+export function buildStructuringAdviceNote(
+  organizationId: string,
+  facts: AdvisoryFacts,
+  model: StructuringModelResult,
+  citation: AdviceCitationResult,
+): CreateAdviceNoteArgs {
+  const best = model.options[model.best_option];
+  const summary = [
+    `Simple current-FY structure comparison: lowest modelled tax is ${best.label} at ${
+      money(best.tax_cents)
+    }.`,
+    `Potential difference versus sole trader: ${money(model.tax_diff_cents)}.`,
+    citation.text ? `Research context: ${citation.text}` : null,
+  ].filter((line): line is string => line !== null).join("\n\n");
+
+  return {
+    p_org: organizationId,
+    p_kind: "structuring",
+    p_title: "Structuring tax comparison",
+    p_summary: summary,
+    p_inputs: {
+      mode: "structuring",
+      current_entity_type: facts.profile.entity_type,
+      profile: facts.profile,
+      signals: facts.signals,
+      source_errors: facts.source_errors,
+      research_text: citation.text,
+    },
+    p_numbers: {
+      taxable_profit_cents: model.taxable_profit_cents,
+      tax_diff_cents: model.tax_diff_cents,
+      best_option: model.best_option,
+      options: model.options,
+    },
+    p_assumptions: {
+      as_at_fy: model.as_at_fy,
+      model_assumptions: model.assumptions,
+      model_warnings: model.warnings,
+    },
+    p_citations: citation.citations,
+    p_disclaimer:
+      "General information only; not tax, legal, or financial advice. Review with a registered agent before acting.",
+  };
+}
+
 async function handleAdvisor(req: Request): Promise<Response> {
   const pre = preflight(req);
   if (pre) return pre;
@@ -118,7 +181,7 @@ async function handleAdvisor(req: Request): Promise<Response> {
   }
 
   const mode = body.mode ?? "noop_echo";
-  if (mode !== "noop_echo") {
+  if (mode !== "noop_echo" && mode !== "structuring") {
     return json({
       ok: false,
       error: `Unsupported advisor mode: ${String(mode)}`,
@@ -133,7 +196,18 @@ async function handleAdvisor(req: Request): Promise<Response> {
     );
 
     const facts = await loadAdvisoryFacts(advisoryFactsClient(client), orgId);
-    const noteArgs = buildNoopEchoAdviceNote(orgId, facts);
+    const noteArgs = mode === "structuring"
+      ? buildStructuringAdviceNote(
+        orgId,
+        facts,
+        modelStructuring(facts),
+        await citeForAdvice(
+          "Which Australian tax and business-structure rules matter when comparing sole trader, company, and discretionary trust structures for this business?",
+          facts,
+          Deno.env.get("PERPLEXITY_API_KEY"),
+        ),
+      )
+      : buildNoopEchoAdviceNote(orgId, facts);
     const { data, error } = await client.rpc("create_advice_note", noteArgs);
     if (error) throw new Error(error.message);
 

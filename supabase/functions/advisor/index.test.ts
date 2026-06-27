@@ -1,6 +1,11 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { buildNoopEchoAdviceNote, type CreateAdviceNoteArgs } from "./index.ts";
+import {
+  buildNoopEchoAdviceNote,
+  buildStructuringAdviceNote,
+  type CreateAdviceNoteArgs,
+} from "./index.ts";
 import type { AdvisoryFacts } from "../_shared/advisoryFacts.ts";
+import { modelStructuring } from "../_shared/models/structuring.ts";
 
 const facts: AdvisoryFacts = {
   organization_id: "org-1",
@@ -73,5 +78,30 @@ Deno.test("buildNoopEchoAdviceNote creates a non-advisory draft payload over gro
     (payload.p_inputs.signals as AdvisoryFacts["signals"])
       .vehicle_without_logbook,
     true,
+  );
+});
+
+Deno.test("buildStructuringAdviceNote echoes the calculator tax_diff_cents into numbers", () => {
+  const model = modelStructuring(facts);
+  const payload = buildStructuringAdviceNote("org-1", facts, model, {
+    text: "Company and trust structures have different tax treatment [1].",
+    citations: ["https://www.ato.gov.au/structure"],
+  });
+
+  assertEquals(payload.p_org, "org-1");
+  assertEquals(payload.p_kind, "structuring");
+  assertEquals(payload.p_title, "Structuring tax comparison");
+  assertEquals(payload.p_numbers.tax_diff_cents, model.tax_diff_cents);
+  assertEquals(payload.p_numbers.best_option, model.best_option);
+  assertEquals(payload.p_numbers.options, model.options);
+  assertEquals(payload.p_citations, ["https://www.ato.gov.au/structure"]);
+  assertEquals(payload.p_inputs.mode, "structuring");
+  assertEquals(
+    payload.p_inputs.research_text,
+    "Company and trust structures have different tax treatment [1].",
+  );
+  assertEquals(
+    (payload.p_assumptions.model_assumptions as string[])[0],
+    "Taxable profit is proxied by current-FY gross_profit_cents from v_organization_realtime_pnl.",
   );
 });
