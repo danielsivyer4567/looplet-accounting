@@ -1,11 +1,23 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { useAdviceNotes, type AdviceNote, type AdviceNoteKind } from '@/hooks/useAdviceNotes';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { AdviceNoteView } from '@/components/AdviceNoteView';
 import { TopDownMindMap, type MindMapBranch } from '@/components/InsightCharts';
 import { DiagramView, type DiagramSpec } from '@/components/DiagramView';
 import { CitedAnswer, type LegalCitation } from '@/components/Citations';
-import { Sparkles, ArrowRight, Terminal, HelpCircle, Code, GitBranch, Eraser } from 'lucide-react';
+import {
+  Sparkles,
+  ArrowRight,
+  Terminal,
+  HelpCircle,
+  Code,
+  GitBranch,
+  Eraser,
+  FileText,
+  RefreshCw,
+} from 'lucide-react';
 
 interface AskResponse {
   ok: boolean;
@@ -28,6 +40,17 @@ interface ChatTurn {
   ts: number;
 }
 
+interface AdvisorFunctionResponse {
+  ok?: boolean;
+  advice_note_id?: string | null;
+  error?: string;
+}
+
+interface AdvisorScenario {
+  mode: AdviceNoteKind;
+  label: string;
+}
+
 const SUGGESTED_QUESTIONS = [
   'Can I claim my new ute under instant asset write-off?',
   'Are tools under $300 immediately deductible or do I depreciate?',
@@ -43,18 +66,47 @@ const SUGGESTED_QUESTIONS = [
 const TRANSPARENT_ANSWER_RULE =
   'Always return a written answer that can be mirrored as a top-down mind map: question, books/data checked, law/evidence checked, and final decision.';
 
+const ADVISOR_SCENARIOS: AdvisorScenario[] = [
+  { mode: 'structuring', label: 'Structuring' },
+  { mode: 'year_end', label: 'Year-end' },
+  { mode: 'cgt', label: 'CGT' },
+  { mode: 'fbt', label: 'FBT' },
+  { mode: 'profit_extraction', label: 'Profit extraction' },
+  { mode: 'forecast', label: 'Forecast' },
+];
+
 export function AskPage() {
   const { currentOrg } = useOrg();
+  const {
+    notes,
+    loading: adviceLoading,
+    actionBusy: adviceActionBusy,
+    error: adviceError,
+    refresh: refreshAdviceNotes,
+    signOff,
+    dismiss,
+  } = useAdviceNotes();
   const location = useLocation();
   const navigate = useNavigate();
   const [question, setQuestion] = useState('');
   const [busy, setBusy] = useState(false);
+  const [advisorBusyMode, setAdvisorBusyMode] = useState<AdviceNoteKind | null>(null);
+  const [advisorError, setAdvisorError] = useState<string | null>(null);
+  const [advisorMessage, setAdvisorMessage] = useState<string | null>(null);
+  const [selectedAdviceNoteId, setSelectedAdviceNoteId] = useState<string | null>(null);
   const [history, setHistory] = useState<ChatTurn[]>([]);
   const [showSql, setShowSql] = useState<Set<number>>(new Set());
   const [showCtx, setShowCtx] = useState<Set<number>>(new Set());
   const [showMap, setShowMap] = useState<Set<number>>(new Set());
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const sortedAdviceNotes = useMemo(() => sortAdviceNotes(notes), [notes]);
+
+  useEffect(() => {
+    if (selectedAdviceNoteId && !notes.some((note) => note.id === selectedAdviceNoteId)) {
+      setSelectedAdviceNoteId(null);
+    }
+  }, [notes, selectedAdviceNoteId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -96,6 +148,42 @@ export function AskPage() {
     } finally {
       setBusy(false);
       setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  };
+
+  const runAdvisorScenario = async (mode: AdviceNoteKind) => {
+    if (!currentOrg || advisorBusyMode) return;
+    setAdvisorBusyMode(mode);
+    setAdvisorError(null);
+    setAdvisorMessage(null);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in');
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/advisor`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          organization_id: currentOrg.id,
+          mode,
+        }),
+      });
+      const body = (await res.json().catch(() => ({}))) as AdvisorFunctionResponse;
+      if (!res.ok || body.ok === false) {
+        throw new Error(body.error ?? `Advisor request failed (${res.status})`);
+      }
+      await refreshAdviceNotes();
+      if (body.advice_note_id) setSelectedAdviceNoteId(body.advice_note_id);
+      setAdvisorMessage('Advisor note created.');
+    } catch (err) {
+      setAdvisorError(err instanceof Error ? err.message : 'Failed to run advisor scenario.');
+    } finally {
+      setAdvisorBusyMode(null);
     }
   };
 
@@ -223,6 +311,22 @@ export function AskPage() {
             records + citation search.
           </p>
         </div>
+
+        <AdvisorPanel
+          scenarios={ADVISOR_SCENARIOS}
+          notes={sortedAdviceNotes}
+          loading={adviceLoading}
+          error={advisorError ?? adviceError}
+          message={advisorMessage}
+          runningMode={advisorBusyMode}
+          actionBusy={adviceActionBusy}
+          selectedNoteId={selectedAdviceNoteId}
+          onRunScenario={(mode) => void runAdvisorScenario(mode)}
+          onRefresh={() => void refreshAdviceNotes()}
+          onSelectNote={setSelectedAdviceNoteId}
+          onSignOff={(id) => void signOff(id)}
+          onDismiss={(id) => void dismiss(id)}
+        />
 
         {/* Suggestion Grid */}
         {history.length === 0 && (
@@ -650,6 +754,261 @@ export function AskPage() {
       </div>
     </section>
   );
+}
+
+export function AdvisorPanel({
+  scenarios,
+  notes,
+  loading,
+  error,
+  message,
+  runningMode,
+  actionBusy,
+  selectedNoteId,
+  onRunScenario,
+  onRefresh,
+  onSelectNote,
+  onSignOff,
+  onDismiss,
+}: {
+  scenarios: AdvisorScenario[];
+  notes: AdviceNote[];
+  loading: boolean;
+  error: string | null;
+  message: string | null;
+  runningMode: AdviceNoteKind | null;
+  actionBusy: boolean;
+  selectedNoteId: string | null;
+  onRunScenario: (mode: AdviceNoteKind) => void;
+  onRefresh: () => void;
+  onSelectNote: (id: string) => void;
+  onSignOff: (id: string) => void | Promise<void>;
+  onDismiss: (id: string) => void | Promise<void>;
+}) {
+  const selectedNote = selectedNoteId
+    ? (notes.find((note) => note.id === selectedNoteId) ?? null)
+    : null;
+
+  return (
+    <section
+      aria-label="Advisor"
+      style={{
+        display: 'grid',
+        gap: '1rem',
+        padding: '1rem',
+        background: 'var(--bg-panel)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-md)',
+        boxShadow: 'var(--shadow-sm)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: '1rem',
+          flexWrap: 'wrap',
+        }}
+      >
+        <div>
+          <h2
+            style={{
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              color: 'var(--text-title)',
+              fontSize: '1rem',
+              letterSpacing: 0,
+            }}
+          >
+            <Sparkles size={18} style={{ color: 'var(--accent-primary)' }} />
+            Advisor
+          </h2>
+          <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+            {notes.length} note{notes.length === 1 ? '' : 's'} available
+          </p>
+        </div>
+        <button type="button" className="btn btn-secondary" onClick={onRefresh} disabled={loading}>
+          <RefreshCw size={15} />
+          Refresh
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        {scenarios.map((scenario) => (
+          <button
+            key={scenario.mode}
+            type="button"
+            className="btn btn-secondary"
+            disabled={runningMode != null}
+            onClick={() => onRunScenario(scenario.mode)}
+          >
+            <ArrowRight size={14} />
+            {runningMode === scenario.mode ? 'Running...' : `Run ${scenario.label}`}
+          </button>
+        ))}
+      </div>
+
+      {error ? (
+        <div className="badge badge-danger" style={{ display: 'block', padding: '0.6rem' }}>
+          {error}
+        </div>
+      ) : null}
+      {message ? (
+        <div className="badge badge-success" style={{ display: 'block', padding: '0.6rem' }}>
+          {message}
+        </div>
+      ) : null}
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '1rem',
+          alignItems: 'start',
+        }}
+      >
+        <div style={{ display: 'grid', gap: '0.5rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.75rem',
+            }}
+          >
+            <h3
+              style={{
+                margin: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                color: 'var(--text-title)',
+                fontSize: '0.9rem',
+                letterSpacing: 0,
+              }}
+            >
+              <FileText size={15} />
+              Notes
+            </h3>
+            {loading ? <span className="badge badge-neutral">Loading</span> : null}
+          </div>
+
+          {notes.length === 0 && !loading ? (
+            <div
+              style={{
+                padding: '0.85rem',
+                border: '1px dashed var(--border-subtle)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--text-muted)',
+                fontSize: '0.82rem',
+              }}
+            >
+              No advisor notes yet.
+            </div>
+          ) : null}
+
+          {notes.map((note) => {
+            const selected = selectedNoteId === note.id;
+            return (
+              <button
+                key={note.id}
+                type="button"
+                onClick={() => onSelectNote(note.id)}
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '0.75rem',
+                  border: `1px solid ${selected ? 'var(--accent-primary)' : 'var(--border-subtle)'}`,
+                  borderRadius: 'var(--radius-sm)',
+                  background: selected ? 'var(--bg-hover)' : 'var(--bg-card)',
+                  color: 'var(--text-body)',
+                  cursor: 'pointer',
+                  display: 'grid',
+                  gap: '0.45rem',
+                }}
+              >
+                <span style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  <span className={`badge ${adviceStatusBadgeClass(note.status)}`}>
+                    {labelFromStatus(note.status)}
+                  </span>
+                  <span className="badge badge-info">{labelFromAdviceKind(note.kind)}</span>
+                </span>
+                <strong style={{ color: 'var(--text-title)', lineHeight: 1.25 }}>
+                  {note.title}
+                </strong>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', lineHeight: 1.4 }}>
+                  {compactText(note.summary, 120)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ minWidth: 0 }}>
+          {selectedNote ? (
+            <AdviceNoteView
+              note={selectedNote}
+              actionBusy={actionBusy}
+              onSignOff={onSignOff}
+              onDismiss={onDismiss}
+            />
+          ) : (
+            <div
+              style={{
+                padding: '1rem',
+                border: '1px dashed var(--border-subtle)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--text-muted)',
+                fontSize: '0.85rem',
+                minHeight: '8rem',
+                display: 'grid',
+                placeItems: 'center',
+                textAlign: 'center',
+              }}
+            >
+              Select a note to inspect it.
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function sortAdviceNotes(notes: AdviceNote[]): AdviceNote[] {
+  return [...notes].sort((a, b) => {
+    const bTime = new Date(b.updated_at).getTime();
+    const aTime = new Date(a.updated_at).getTime();
+    return (Number.isFinite(bTime) ? bTime : 0) - (Number.isFinite(aTime) ? aTime : 0);
+  });
+}
+
+function labelFromAdviceKind(kind: AdviceNoteKind): string {
+  return kind
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+    .replace(/\bCgt\b/g, 'CGT')
+    .replace(/\bFbt\b/g, 'FBT');
+}
+
+function labelFromStatus(status: AdviceNote['status']): string {
+  return status.replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function adviceStatusBadgeClass(status: AdviceNote['status']): string {
+  switch (status) {
+    case 'issued':
+    case 'acted':
+      return 'badge-success';
+    case 'dismissed':
+      return 'badge-neutral';
+    case 'draft':
+    default:
+      return 'badge-warning';
+  }
 }
 
 function compactText(text: string, max = 120): string {
