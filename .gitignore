@@ -49,3 +49,6 @@ src/lib/database.types.ts
 
 # Claude Code scratch (ledgers, check markers — transient work-tracking)
 .claude/scratch/
+
+# Personal Claude Code overrides (not committed)
+.claude/settings.local.json
