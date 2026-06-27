@@ -1,0 +1,52 @@
+-- 0185_accountant_orchestrator_cron.sql - SC-7.I.02
+--
+-- TRACKED FOR LATER - DO NOT RUN AS-IS. This migration documents the intended
+-- pg_cron registration for the accountant-orchestrator edge function, but the
+-- cron.schedule() call is intentionally inert because enabling it requires:
+--   1. supabase functions deploy accountant-orchestrator --no-verify-jwt
+--   2. supabase secrets set ACCOUNTANT_ORCHESTRATOR_CRON_SECRET=<random-32-char-string>
+--   3. Replace <PROJECT_REF> and <ACCOUNTANT_ORCHESTRATOR_CRON_SECRET> below
+--      and run the cron.schedule() statement once, deliberately.
+--
+-- Preferred deployment shape: notifications-cron already runs nightly and now
+-- has an optional ACCOUNTANT_ORCHESTRATOR_CRON_SECRET handoff, so one deployed
+-- notifications-cron schedule can drive both legacy notification checks and the
+-- SC-7.I.01 orchestrator decision engine without duplicating all-org sweeps.
+--
+-- The standalone schedule below is kept only as an operations fallback. The
+-- function creates org-wide notifications with deterministic resource UUIDs
+-- derived from task idempotency keys; it does not lodge, pay, send externally,
+-- or mutate tax/ATO state.
+--
+-- MIGRATION NUMBER: ledger planned 0177, but 0177 is already
+-- 0177_cash_flow_forecast.sql and current sequential repo head is 0184. This
+-- was reassigned to 0185 per the drift rule.
+
+-- ----------------------------------------------------------------------------
+-- SELECT cron.schedule(
+--   'accountant-orchestrator-daily',
+--   '45 3 * * *',  -- 03:45 every day (server tz), after notifications-cron
+--   $cron$
+--     SELECT net.http_post(
+--       url := 'https://<PROJECT_REF>.supabase.co/functions/v1/accountant-orchestrator'
+--              || '?secret=<ACCOUNTANT_ORCHESTRATOR_CRON_SECRET>',
+--       headers := jsonb_build_object('Content-Type', 'application/json'),
+--       body := jsonb_build_object(
+--         'organization_id', o.id,
+--         'as_at_date', current_date::text
+--       )
+--     )
+--     FROM public.organizations o
+--     WHERE o.deleted_at IS NULL;
+--   $cron$
+-- );
+-- ----------------------------------------------------------------------------
+
+-- To inspect:
+--   SELECT * FROM cron.job WHERE jobname = 'accountant-orchestrator-daily';
+--   SELECT * FROM cron.job_run_details
+--    WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'accountant-orchestrator-daily')
+--    ORDER BY start_time DESC LIMIT 10;
+--
+-- To unschedule:
+--   SELECT cron.unschedule('accountant-orchestrator-daily');

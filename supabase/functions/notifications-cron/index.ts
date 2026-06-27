@@ -13,6 +13,8 @@
  *   low_confidence_review — count(*) from v_low_confidence_bills > 0
  *   subscription_alert    — subs whose next_expected_at within 3 days AND
  *                            amount_cents up >5% from last month
+ *   orchestrator_task     — optional handoff to accountant-orchestrator when
+ *                            ACCOUNTANT_ORCHESTRATOR_CRON_SECRET is configured
  *   cron_failed           — emitted by the catch wrapper if a per-org block
  *                            errors out
  *
@@ -33,10 +35,13 @@
  * param matching NOTIFICATIONS_CRON_SECRET env.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  createClient,
+  type SupabaseClient,
+} from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 
-type SupabaseAdmin = ReturnType<typeof createClient>;
+type SupabaseAdmin = SupabaseClient;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -45,6 +50,9 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const cronSecret = Deno.env.get('NOTIFICATIONS_CRON_SECRET');
+    const orchestratorSecret = Deno.env.get(
+      'ACCOUNTANT_ORCHESTRATOR_CRON_SECRET',
+    );
     if (!supabaseUrl || !serviceKey || !cronSecret) {
       return json({ ok: false, error: 'Server config missing (need NOTIFICATIONS_CRON_SECRET)' }, 500);
     }
@@ -88,6 +96,13 @@ Deno.serve(async (req) => {
         emitted += await checkConnectionsExpiring(admin, orgId, errors);
         emitted += await checkLowConfidence(admin, orgId, errors);
         emitted += await checkSubscriptionAlerts(admin, orgId, errors);
+        emitted += await checkAccountantOrchestrator(
+          supabaseUrl,
+          serviceKey,
+          orchestratorSecret,
+          orgId,
+          errors,
+        );
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         errors.push(`fatal: ${msg}`);
@@ -392,6 +407,58 @@ async function checkSubscriptionAlerts(admin: SupabaseAdmin, orgId: string, erro
     return emitted;
   } catch (err) {
     errors.push(`subscription_alert: ${err instanceof Error ? err.message : String(err)}`);
+    return 0;
+  }
+}
+
+async function checkAccountantOrchestrator(
+  supabaseUrl: string,
+  serviceKey: string,
+  orchestratorSecret: string | undefined,
+  orgId: string,
+  errors: string[],
+): Promise<number> {
+  if (!orchestratorSecret) return 0;
+
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const response = await fetch(
+      `${supabaseUrl}/functions/v1/accountant-orchestrator?secret=${
+        encodeURIComponent(orchestratorSecret)
+      }`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ organization_id: orgId, as_at_date: today }),
+      },
+    );
+    const detail = await response.json().catch(() => ({})) as Record<
+      string,
+      unknown
+    >;
+    if (!response.ok || detail.ok === false) {
+      errors.push(
+        `accountant_orchestrator: ${response.status} ${
+          String(detail.error ?? response.statusText)
+        }`,
+      );
+      return 0;
+    }
+
+    const direct = Number(detail.emitted ?? Number.NaN);
+    if (Number.isFinite(direct)) return direct;
+
+    const results = Array.isArray(detail.results) ? detail.results : [];
+    return results.reduce((sum, row) => {
+      if (!row || typeof row !== 'object') return sum;
+      const emitted = Number((row as { emitted?: unknown }).emitted ?? 0);
+      return Number.isFinite(emitted) ? sum + emitted : sum;
+    }, 0);
+  } catch (err) {
+    errors.push(`accountant_orchestrator: ${err instanceof Error ? err.message : String(err)}`);
     return 0;
   }
 }
