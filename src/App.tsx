@@ -28,6 +28,7 @@ import { BasReportPage } from '@/pages/reports/Bas';
 import { CashFlowPage } from '@/pages/reports/CashFlow';
 import { BalanceSheetPage } from '@/pages/reports/BalanceSheet';
 import { EofyReportPage } from '@/pages/reports/EOFY';
+import { TaxReturnPage } from '@/pages/reports/TaxReturn';
 import { NotificationsPage } from '@/pages/Notifications';
 import { SuppliersPage } from '@/pages/Suppliers';
 import { SupplierDetailPage } from '@/pages/SupplierDetail';
@@ -100,6 +101,7 @@ export function App() {
             <Route path="reports/cash-flow" element={<CashFlowPage />} />
             <Route path="reports/balance-sheet" element={<BalanceSheetPage />} />
             <Route path="reports/eofy" element={<EofyReportPage />} />
+            <Route path="reports/tax-return" element={<TaxReturnPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="suppliers" element={<SuppliersPage />} />
             <Route path="suppliers/:id" element={<SupplierDetailPage />} />

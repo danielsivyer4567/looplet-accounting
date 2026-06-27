@@ -43,11 +43,11 @@ const REPORTS = [
     icon: Archive,
   },
   {
-    to: null,
+    to: '/reports/tax-return',
     title: 'Tax Summary (Annual)',
     description:
-      'Annual income, deductible expenses, GST summary, depreciation. Aligned to AU tax-return categories.',
-    status: 'planned',
+      'Entity-aware draft return: GL mapped to tax-return labels, book-to-tax reconciliation to taxable income, offsets/credits to net tax, and the CGT schedule.',
+    status: 'live',
     icon: Layers,
   },
 ];
