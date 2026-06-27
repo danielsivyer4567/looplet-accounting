@@ -32,6 +32,7 @@ import { TaxReturnPage } from '@/pages/reports/TaxReturn';
 import { NotificationsPage } from '@/pages/Notifications';
 import { SuppliersPage } from '@/pages/Suppliers';
 import { SupplierDetailPage } from '@/pages/SupplierDetail';
+import { TrustsPage } from '@/pages/Trusts';
 import { EmployeesPage } from '@/pages/Employees';
 import { EmployeeDetailPage } from '@/pages/EmployeeDetail';
 import { SettingsPage } from '@/pages/Settings';
@@ -108,6 +109,7 @@ export function App() {
             <Route path="employees" element={<EmployeesPage />} />
             <Route path="employees/:id" element={<EmployeeDetailPage />} />
             <Route path="fixed-assets" element={<FixedAssetsPage />} />
+            <Route path="trusts" element={<TrustsPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="settings/team" element={<TeamPage />} />
             <Route path="settings/audit-log" element={<AuditLogPage />} />
