@@ -43,6 +43,7 @@ import {
 
 export type AdvisorMode =
   | "noop_echo"
+  | "forecast"
   | "structuring"
   | "year_end"
   | "cgt"
@@ -77,6 +78,7 @@ export interface CreateAdviceNoteArgs {
 
 const SUPPORTED_MODES: readonly AdvisorMode[] = [
   "noop_echo",
+  "forecast",
   "structuring",
   "year_end",
   "cgt",
@@ -86,6 +88,33 @@ const SUPPORTED_MODES: readonly AdvisorMode[] = [
 
 const GENERAL_ADVICE_DISCLAIMER =
   "General information only; not tax, legal, or financial advice. Review with a registered agent before acting.";
+
+export interface CashFlowForecastRow {
+  week_start: string;
+  scheduled_invoice_cents: number;
+  scheduled_bill_cents: number;
+  recurring_subscription_cents: number;
+  forecast_net_cents: number;
+  actual_net_cents: number;
+  variance_cents: number;
+}
+
+export interface BudgetVarianceRow {
+  week_start: string;
+  budget_cents: number;
+  actual_cents: number;
+  variance_cents: number;
+  job_count: number;
+}
+
+export interface ForecastModelResult {
+  opening_balance_cents: number;
+  runway_weeks: number;
+  projected_closing_balance_cents: number;
+  forecast_rows: CashFlowForecastRow[];
+  largest_budget_variances: BudgetVarianceRow[];
+  warnings: string[];
+}
 
 function money(cents: number): string {
   return `$${
@@ -193,6 +222,97 @@ function advisoryFactsClient(client: {
   };
 }
 
+function recordRows(data: unknown): Record<string, unknown>[] {
+  return Array.isArray(data)
+    ? data.filter((row): row is Record<string, unknown> =>
+      row !== null && typeof row === "object" && !Array.isArray(row)
+    )
+    : [];
+}
+
+function numberOrZero(value: unknown): number {
+  const n = Number(value ?? 0);
+  return Number.isFinite(n) ? Math.trunc(n) : 0;
+}
+
+function stringOrEmpty(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function forecastRowsFrom(data: unknown): CashFlowForecastRow[] {
+  return recordRows(data).map((row) => ({
+    week_start: stringOrEmpty(row.week_start),
+    scheduled_invoice_cents: numberOrZero(row.scheduled_invoice_cents),
+    scheduled_bill_cents: numberOrZero(row.scheduled_bill_cents),
+    recurring_subscription_cents: numberOrZero(
+      row.recurring_subscription_cents,
+    ),
+    forecast_net_cents: numberOrZero(row.forecast_net_cents),
+    actual_net_cents: numberOrZero(row.actual_net_cents),
+    variance_cents: numberOrZero(row.variance_cents),
+  })).filter((row) => row.week_start.length > 0);
+}
+
+function budgetVarianceRowsFrom(data: unknown): BudgetVarianceRow[] {
+  return recordRows(data).map((row) => ({
+    week_start: stringOrEmpty(row.week_start),
+    budget_cents: numberOrZero(row.budget_cents),
+    actual_cents: numberOrZero(row.actual_cents),
+    variance_cents: numberOrZero(row.variance_cents),
+    job_count: numberOrZero(row.job_count),
+  })).filter((row) => row.week_start.length > 0);
+}
+
+function openingBalanceCentsFrom(data: unknown): number {
+  return recordRows(data).reduce(
+    (sum, row) => sum + numberOrZero(row.current_balance_cents),
+    0,
+  );
+}
+
+export function summarizeForecast(
+  forecastRows: CashFlowForecastRow[],
+  budgetRows: BudgetVarianceRow[],
+  openingBalanceCents: number,
+): ForecastModelResult {
+  const sortedForecast = [...forecastRows].sort((a, b) =>
+    a.week_start.localeCompare(b.week_start)
+  );
+  const sortedBudgetVariances = [...budgetRows]
+    .sort((a, b) =>
+      Math.abs(b.variance_cents) - Math.abs(a.variance_cents) ||
+      a.week_start.localeCompare(b.week_start)
+    )
+    .slice(0, 5);
+  const warnings: string[] = [];
+  if (sortedForecast.length === 0) {
+    warnings.push(
+      "v_cash_flow_forecast returned no rows for this organization",
+    );
+  }
+
+  let running = openingBalanceCents;
+  let runwayWeeks = 0;
+  for (const row of sortedForecast) {
+    running += row.forecast_net_cents;
+    if (running < 0) break;
+    runwayWeeks += 1;
+  }
+  const projectedClosingBalance = sortedForecast.reduce(
+    (balance, row) => balance + row.forecast_net_cents,
+    openingBalanceCents,
+  );
+
+  return {
+    opening_balance_cents: openingBalanceCents,
+    runway_weeks: runwayWeeks,
+    projected_closing_balance_cents: projectedClosingBalance,
+    forecast_rows: sortedForecast,
+    largest_budget_variances: sortedBudgetVariances,
+    warnings,
+  };
+}
+
 export function buildNoopEchoAdviceNote(
   organizationId: string,
   facts: AdvisoryFacts,
@@ -216,6 +336,58 @@ export function buildNoopEchoAdviceNote(
       purpose: "plumbing_check",
     },
     p_citations: [],
+    p_disclaimer: GENERAL_ADVICE_DISCLAIMER,
+  };
+}
+
+export function buildForecastAdviceNote(
+  organizationId: string,
+  facts: AdvisoryFacts,
+  model: ForecastModelResult,
+  citation: AdviceCitationResult,
+): CreateAdviceNoteArgs {
+  const largestVariance = model.largest_budget_variances[0];
+  const varianceLine = largestVariance
+    ? `Largest budget variance: ${largestVariance.week_start} at ${
+      money(largestVariance.variance_cents)
+    }.`
+    : "No job budget variance rows were available.";
+  const summary = [
+    `vCFO cash-flow forecast: runway is ${model.runway_weeks} weeks from an opening balance of ${
+      money(model.opening_balance_cents)
+    }.`,
+    `Projected closing balance across the forecast horizon: ${
+      money(model.projected_closing_balance_cents)
+    }.`,
+    varianceLine,
+    citation.text ? `Research context: ${citation.text}` : null,
+  ].filter((line): line is string => line !== null).join("\n\n");
+
+  return {
+    p_org: organizationId,
+    p_kind: "forecast",
+    p_title: "Cash-flow forecast and vCFO variance brief",
+    p_summary: summary,
+    p_inputs: {
+      mode: "forecast",
+      current_entity_type: facts.profile.entity_type,
+      profile: facts.profile,
+      signals: facts.signals,
+      source_errors: facts.source_errors,
+      research_text: citation.text,
+    },
+    p_numbers: {
+      opening_balance_cents: model.opening_balance_cents,
+      runway_weeks: model.runway_weeks,
+      projected_closing_balance_cents: model.projected_closing_balance_cents,
+      forecast_rows: model.forecast_rows,
+      largest_budget_variances: model.largest_budget_variances,
+    },
+    p_assumptions: {
+      forecast_horizon: "current week plus 12 future weeks",
+      model_warnings: model.warnings,
+    },
+    p_citations: citation.citations,
     p_disclaimer: GENERAL_ADVICE_DISCLAIMER,
   };
 }
@@ -511,6 +683,53 @@ async function handleAdvisor(req: Request): Promise<Response> {
     const facts = await loadAdvisoryFacts(advisoryFactsClient(client), orgId);
     let noteArgs: CreateAdviceNoteArgs;
     switch (mode) {
+      case "forecast": {
+        const [forecastResult, budgetResult, bankResult] = await Promise.all([
+          client
+            .from("v_cash_flow_forecast")
+            .select("*")
+            .eq("organization_id", orgId)
+            .order("week_start", { ascending: true }),
+          client
+            .from("v_budget_vs_actual_weekly")
+            .select("*")
+            .eq("organization_id", orgId)
+            .order("week_start", { ascending: true }),
+          client
+            .from("bank_accounts")
+            .select("current_balance_cents")
+            .eq("organization_id", orgId)
+            .eq("is_active", true),
+        ]);
+        if (forecastResult.error) {
+          throw new Error(
+            `v_cash_flow_forecast: ${forecastResult.error.message}`,
+          );
+        }
+        if (budgetResult.error) {
+          throw new Error(
+            `v_budget_vs_actual_weekly: ${budgetResult.error.message}`,
+          );
+        }
+        if (bankResult.error) {
+          throw new Error(`bank_accounts: ${bankResult.error.message}`);
+        }
+        noteArgs = buildForecastAdviceNote(
+          orgId,
+          facts,
+          summarizeForecast(
+            forecastRowsFrom(forecastResult.data),
+            budgetVarianceRowsFrom(budgetResult.data),
+            openingBalanceCentsFrom(bankResult.data),
+          ),
+          await citeForAdvice(
+            "Which cash-flow forecasting and budget variance factors should an Australian small business review in a vCFO cash-flow brief?",
+            facts,
+            Deno.env.get("PERPLEXITY_API_KEY"),
+          ),
+        );
+        break;
+      }
       case "structuring":
         noteArgs = buildStructuringAdviceNote(
           orgId,

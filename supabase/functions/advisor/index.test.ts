@@ -1,12 +1,16 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
+  type BudgetVarianceRow,
   buildCgtAdviceNote,
   buildFbtAdviceNote,
+  buildForecastAdviceNote,
   buildNoopEchoAdviceNote,
   buildProfitExtractionAdviceNote,
   buildStructuringAdviceNote,
   buildYearEndAdviceNote,
+  type CashFlowForecastRow,
   type CreateAdviceNoteArgs,
+  summarizeForecast,
 } from "./index.ts";
 import type { AdvisoryFacts } from "../_shared/advisoryFacts.ts";
 import { type CgtDisposalInput, modelCgt } from "../_shared/models/cgt.ts";
@@ -87,6 +91,114 @@ Deno.test("buildNoopEchoAdviceNote creates a non-advisory draft payload over gro
       .vehicle_without_logbook,
     true,
   );
+});
+
+Deno.test("summarizeForecast computes runway and largest budget variances", () => {
+  const forecastRows: CashFlowForecastRow[] = [
+    {
+      week_start: "2026-07-06",
+      scheduled_invoice_cents: 0,
+      scheduled_bill_cents: -2_000,
+      recurring_subscription_cents: 0,
+      forecast_net_cents: -2_000,
+      actual_net_cents: 0,
+      variance_cents: -2_000,
+    },
+    {
+      week_start: "2026-07-13",
+      scheduled_invoice_cents: 1_000,
+      scheduled_bill_cents: -4_000,
+      recurring_subscription_cents: 0,
+      forecast_net_cents: -3_000,
+      actual_net_cents: 0,
+      variance_cents: -3_000,
+    },
+    {
+      week_start: "2026-07-20",
+      scheduled_invoice_cents: 0,
+      scheduled_bill_cents: -4_000,
+      recurring_subscription_cents: 0,
+      forecast_net_cents: -4_000,
+      actual_net_cents: 0,
+      variance_cents: -4_000,
+    },
+  ];
+  const budgetRows: BudgetVarianceRow[] = [
+    {
+      week_start: "2026-07-06",
+      budget_cents: 10_000,
+      actual_cents: 15_000,
+      variance_cents: 5_000,
+      job_count: 1,
+    },
+    {
+      week_start: "2026-07-13",
+      budget_cents: 20_000,
+      actual_cents: 11_000,
+      variance_cents: -9_000,
+      job_count: 2,
+    },
+  ];
+
+  const model = summarizeForecast(forecastRows, budgetRows, 10_000);
+
+  assertEquals(model.runway_weeks, 3);
+  assertEquals(model.projected_closing_balance_cents, 1_000);
+  assertEquals(
+    model.largest_budget_variances.map((row) => row.variance_cents),
+    [
+      -9_000,
+      5_000,
+    ],
+  );
+  assertEquals(model.warnings, []);
+});
+
+Deno.test("buildForecastAdviceNote echoes runway and largest budget variances into numbers", () => {
+  const model = summarizeForecast(
+    [
+      {
+        week_start: "2026-07-06",
+        scheduled_invoice_cents: 10_000,
+        scheduled_bill_cents: -3_000,
+        recurring_subscription_cents: -2_000,
+        forecast_net_cents: 5_000,
+        actual_net_cents: 3_000,
+        variance_cents: 2_000,
+      },
+    ],
+    [
+      {
+        week_start: "2026-07-06",
+        budget_cents: 8_000,
+        actual_cents: 11_000,
+        variance_cents: 3_000,
+        job_count: 1,
+      },
+    ],
+    10_000,
+  );
+  const payload = buildForecastAdviceNote("org-1", facts, model, {
+    text:
+      "Cash-flow forecasts should compare expected receipts, payments, and variance drivers [1].",
+    citations: ["https://www.ato.gov.au/cash-flow"],
+  });
+
+  assertEquals(payload.p_org, "org-1");
+  assertEquals(payload.p_kind, "forecast");
+  assertEquals(
+    payload.p_title,
+    "Cash-flow forecast and vCFO variance brief",
+  );
+  assertEquals(payload.p_numbers.runway_weeks, 1);
+  assertEquals(payload.p_numbers.projected_closing_balance_cents, 15_000);
+  assertEquals(
+    (payload.p_numbers.largest_budget_variances as BudgetVarianceRow[])[0]
+      ?.variance_cents,
+    3_000,
+  );
+  assertEquals(payload.p_inputs.mode, "forecast");
+  assertEquals(payload.p_citations, ["https://www.ato.gov.au/cash-flow"]);
 });
 
 Deno.test("buildStructuringAdviceNote echoes the calculator tax_diff_cents into numbers", () => {
