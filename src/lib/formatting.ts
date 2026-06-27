@@ -12,3 +12,9 @@ export function formatDay(d: string | null | undefined): string {
   if (!d) return '—';
   return new Date(d).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
 }
+
+/** The current AU income year as its start year (Jul-Dec => this year; Jan-Jun => prior). */
+export function currentFyStartYear(): number {
+  const now = new Date();
+  return now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+}

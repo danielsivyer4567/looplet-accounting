@@ -3,9 +3,12 @@ import { Link, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { useTrust, BENEFICIARY_TYPES } from '@/hooks/useTrusts';
+import { useTrustDistribution } from '@/hooks/useTrustDistribution';
 import { SkeletonTable } from '@/components/Skeleton';
-import { titleCase, formatDay } from '@/lib/formatting';
-import { ChevronLeft, Landmark, FileText, Plus, Save, Edit3, Trash2 } from 'lucide-react';
+import { titleCase, formatDay, currentFyStartYear } from '@/lib/formatting';
+import { formatMoney } from '@/lib/money';
+import { downloadBlob } from '@/lib/download';
+import { ChevronLeft, Landmark, FileText, Plus, Save, Edit3, Trash2, Coins } from 'lucide-react';
 
 const cardStyle: CSSProperties = {
   background: 'var(--bg-card)',
@@ -26,6 +29,9 @@ const sectionTitleStyle: CSSProperties = {
   alignItems: 'center',
   gap: '0.4rem',
 };
+
+// Icon + label button content alignment, shared by the action buttons.
+const btnIconStyle: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '0.25rem' };
 
 // A blank beneficiary draft for the add form.
 const EMPTY_BENEFICIARY = {
@@ -231,7 +237,7 @@ export function TrustDetailPage() {
                     setDraft(EMPTY_BENEFICIARY);
                     setFormError(null);
                   }}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                  style={btnIconStyle}
                 >
                   <Plus size={14} /> Add
                 </button>
@@ -329,9 +335,176 @@ export function TrustDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Distribution wizard */}
+          {id && <DistributionWizard trustId={id} />}
         </>
       )}
     </section>
+  );
+}
+
+// The distribution wizard: pick an income year, run the streaming optimiser proposal,
+// review the per-beneficiary streamed components, save it as draft, generate the minute,
+// and (once an approval exists) finalise. Approve itself lives in the approvals queue
+// (SC-2.E) — we link out rather than re-implement it here.
+function DistributionWizard({ trustId }: { trustId: string }) {
+  const { proposal, loading, error, persisting, persistResult, runProposal, persistDraft } =
+    useTrustDistribution();
+  const [fy, setFy] = useState<number>(currentFyStartYear());
+  const [minuteBusy, setMinuteBusy] = useState(false);
+  const [minuteError, setMinuteError] = useState<string | null>(null);
+
+  // Generate the distribution minute PDF (trust-minute edge fn, SC-5.D.01) and download it.
+  const generateMinute = async () => {
+    setMinuteBusy(true);
+    setMinuteError(null);
+    const { data, error: fnErr } = await supabase.functions.invoke<Blob>('trust-minute', {
+      body: { trust_id: trustId, fy_start_year: fy },
+    });
+    setMinuteBusy(false);
+    if (fnErr || !data) {
+      setMinuteError(fnErr?.message ?? 'Could not generate the minute.');
+      return;
+    }
+    downloadBlob(data, `trust-minute-FY${fy}.pdf`);
+  };
+
+  const t = proposal?.totals;
+
+  return (
+    <div style={cardStyle}>
+      <div style={{ ...sectionTitleStyle, justifyContent: 'space-between' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <Coins size={14} style={{ color: 'var(--accent-primary)' }} /> Distribution
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 400 }}>
+          <label style={{ color: 'var(--text-muted)' }}>
+            FY
+            <input
+              className="input"
+              type="number"
+              value={fy}
+              onChange={(e) => setFy(Number(e.target.value))}
+              style={{ width: 90, marginLeft: '0.4rem' }}
+            />
+          </label>
+          <button className="btn btn-primary btn-sm" disabled={loading} onClick={() => void runProposal(trustId, fy)}>
+            {loading ? 'Optimising…' : 'Run proposal'}
+          </button>
+        </span>
+      </div>
+
+      {error && (
+        <div className="badge badge-danger" style={{ display: 'block', padding: '0.5rem', marginBottom: '0.75rem', textTransform: 'none' }}>
+          {error}
+        </div>
+      )}
+
+      {!proposal && !loading && !error && (
+        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+          Run the optimiser to propose how FY{fy}-{fy + 1} net income is distributed across beneficiaries.
+        </span>
+      )}
+
+      {proposal && (
+        <>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+            {proposal.method === 'specific_streaming' ? 'Streaming allowed' : 'Proportional (no streaming)'} ·
+            net income {formatMoney(proposal.net_income_cents)}
+            {t && t.trustee_retained_cents > 0 ? <> · trustee retained {formatMoney(t.trustee_retained_cents)}</> : null}
+          </div>
+          <div className="table-premium-container">
+            <table className="table-premium">
+              <thead>
+                <tr>
+                  <th>Beneficiary</th>
+                  <th style={{ textAlign: 'right' }}>Capital gain</th>
+                  <th style={{ textAlign: 'right' }}>Franked</th>
+                  <th style={{ textAlign: 'right' }}>Credits</th>
+                  <th style={{ textAlign: 'right' }}>Other</th>
+                  <th style={{ textAlign: 'right' }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {proposal.streamed.map((s) => (
+                  <tr key={s.beneficiary_id}>
+                    <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>
+                      {s.name}
+                      {!s.eligible && s.exclusion_reason ? (
+                        <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> · {s.exclusion_reason}</span>
+                      ) : null}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>{formatMoney(s.capital_gain_cents)}</td>
+                    <td style={{ textAlign: 'right' }}>{formatMoney(s.franked_dividend_cents)}</td>
+                    <td style={{ textAlign: 'right' }}>{formatMoney(s.franking_credits_cents)}</td>
+                    <td style={{ textAlign: 'right' }}>{formatMoney(s.other_cents)}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(s.amount_cents)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              {t && (
+                <tfoot>
+                  <tr style={{ fontWeight: 600 }}>
+                    <td>Total distributed</td>
+                    <td style={{ textAlign: 'right' }}>{formatMoney(t.streamed_capital_gain_cents)}</td>
+                    <td style={{ textAlign: 'right' }}>{formatMoney(t.streamed_franked_dividend_cents)}</td>
+                    <td style={{ textAlign: 'right' }}>{formatMoney(t.streamed_franking_credits_cents)}</td>
+                    <td style={{ textAlign: 'right' }}>{formatMoney(t.other_cents)}</td>
+                    <td style={{ textAlign: 'right' }}>{formatMoney(t.distributed_amount_cents)}</td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '1rem', alignItems: 'center' }}>
+            <button
+              className="btn btn-secondary btn-sm"
+              disabled={persisting}
+              onClick={() => void persistDraft(trustId, fy)}
+              style={btnIconStyle}
+            >
+              <Save size={14} /> {persisting ? 'Saving…' : 'Save draft'}
+            </button>
+            <button
+              className="btn btn-secondary btn-sm"
+              disabled={minuteBusy}
+              onClick={() => void generateMinute()}
+              style={btnIconStyle}
+            >
+              <FileText size={14} /> {minuteBusy ? 'Generating…' : 'Generate minute'}
+            </button>
+            {/* Finalise is gated on an approval; approve itself lives in the approvals queue. */}
+            <button className="btn btn-ghost btn-sm" disabled title="Requires a Tier-2 approval (see Approvals)">
+              Finalise (needs approval)
+            </button>
+            <Link to="/approvals" style={{ fontSize: '0.85rem', color: 'var(--accent-primary)' }}>
+              Go to Approvals →
+            </Link>
+          </div>
+
+          {persistResult?.ok && (
+            <div style={{ marginTop: '0.6rem', fontSize: '0.85rem', color: 'var(--text-success)' }}>
+              Saved {persistResult.drafts_written} draft row{persistResult.drafts_written === 1 ? '' : 's'}
+              {persistResult.drafts_replaced > 0 ? ` (replaced ${persistResult.drafts_replaced})` : ''}.
+            </div>
+          )}
+          {minuteError && (
+            <div className="badge badge-danger" style={{ display: 'block', padding: '0.5rem', marginTop: '0.6rem', textTransform: 'none' }}>
+              {minuteError}
+            </div>
+          )}
+          {proposal.totals && !proposal.totals.grossed_reconciles && (
+            <div style={{ marginTop: '0.6rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Note: the streamed classes do not fully reconcile to net income (e.g. a current-year loss or
+              deduction-heavy year) — review before finalising.
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 
@@ -408,7 +581,7 @@ function BeneficiaryForm({
         className="btn btn-primary btn-sm"
         disabled={saving}
         onClick={onSave}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+        style={btnIconStyle}
       >
         <Save size={14} /> {saving ? 'Saving…' : 'Save'}
       </button>
