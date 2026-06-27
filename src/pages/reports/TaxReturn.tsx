@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
 import {
@@ -9,6 +9,7 @@ import {
   type TaxPayable,
 } from '@/hooks/useTaxReturn';
 import { useBookToTax, type BookToTax, type CgtCalc } from '@/hooks/useBookToTax';
+import { useApprovals } from '@/hooks/useApprovals';
 import { CgtEventsPanel } from '@/components/CgtEventsPanel';
 import { formatMoney } from '@/lib/money';
 import {
@@ -20,17 +21,26 @@ import {
   Scale,
   AlertTriangle,
   Info,
+  ShieldCheck,
+  CheckCircle2,
+  Lock,
+  Clock,
+  Loader2,
 } from 'lucide-react';
 
 /**
- * Tax return draft (SC-4.I.02) — the entity-aware draft annual return for one AU FY,
- * consuming useTaxReturn (build_return + compute_tax_payable) and useBookToTax
- * (book_to_tax + cgt_calc). Read-only draft: it shows the return labels mapped from the
- * GL, the book-to-tax reconciliation to taxable income, the offset/credit waterfall to
- * net tax payable, and the CGT schedule (with the capture surface). It is the screen
- * behind the "Tax Summary (Annual)" report card and reads off the same year-end books
- * the EOFY pack bundles. Lodgement and the approve-to-finalise gate are later slices
- * (SC-4.I.03 / Phase 7).
+ * Tax return draft (SC-4.I.02) + approve-to-finalise gate (SC-4.I.03) — the entity-aware
+ * draft annual return for one AU FY, consuming useTaxReturn (build_return +
+ * compute_tax_payable) and useBookToTax (book_to_tax + cgt_calc). Shows the return labels
+ * mapped from the GL, the book-to-tax reconciliation to taxable income, the offset/credit
+ * waterfall to net tax payable, and the CGT schedule (with the capture surface). It is the
+ * screen behind the "Tax Summary (Annual)" report card and reads off the same year-end
+ * books the EOFY pack bundles.
+ *
+ * A tax return is a Tier-2 (approve-first) artifact (§3.2): "Approve return" opens a
+ * Tier-2 approval (request_approval) bound to the return's key figures; the "Finalise"
+ * action stays gated until an admin approves that row (is_action_approved). Finalising
+ * locks the draft read-only — it is NOT lodgement, which stays a Phase-7 (SC-7.E/DSP) stub.
  */
 
 const fyLabel = (fy: number) => `FY${fy}-${(fy + 1).toString().slice(2)}`;
@@ -53,25 +63,79 @@ const ENTITY_LABELS: Record<string, string> = {
 const entityLabel = (entity: string | undefined): string =>
   entity ? (ENTITY_LABELS[entity] ?? entity) : '—';
 
+/** approvals.resource_type for the annual-return finalise gate (no per-return row exists,
+ * so resource_id is the org — the payload hash carries the FY-precise identity). */
+const RESOURCE_TYPE = 'tax_return';
+
 export function TaxReturnPage() {
   const { currentOrg } = useOrg();
   const fyStart = currentFyStartYear();
   const [fyStartYear, setFyStartYear] = useState<number>(fyStart);
 
-  // Both hooks guard on currentOrg internally; call them unconditionally (rules of hooks).
+  // The data hooks guard on currentOrg internally; call them unconditionally (rules of
+  // hooks) — every hook must run before the no-org early return below.
   const { taxReturn, taxPayable, loading: returnLoading, error: returnError } =
     useTaxReturn(fyStartYear);
   const { bookToTax, cgt, loading: bookLoading, error: bookError } = useBookToTax(fyStartYear);
+  const { pending, requestApproval, isApproved, refresh: refreshApprovals } = useApprovals();
+
+  const entity = taxReturn?.entity_type ?? taxPayable?.entity_type ?? bookToTax?.entity_type;
+  const taxableIncome = bookToTax?.taxable_income_cents ?? taxPayable?.taxable_income_cents ?? null;
+
+  // ---- approve-to-finalise gate (SC-4.I.03) ----------------------------------------
+  // The Tier-2 payload pins the return's identity + headline figures, so editing the
+  // return (e.g. a CGT event) after approval changes the hash and re-gates finalisation.
+  const orgId = currentOrg?.id ?? null;
+  // Memoised so its identity is stable across renders — the gate effect below depends on
+  // it directly (no JSON round-trip) and only re-checks when the figures actually change.
+  const approvalPayload = useMemo<Record<string, unknown>>(
+    () => ({
+      kind: 'tax_return_finalise',
+      fy_start_year: fyStartYear,
+      entity_type: entity ?? null,
+      taxable_income_cents: taxableIncome,
+      net_tax_payable_cents: taxPayable?.net_tax_payable_cents ?? null,
+      net_refund_cents: taxPayable?.net_refund_cents ?? null,
+    }),
+    [fyStartYear, entity, taxableIncome, taxPayable],
+  );
+  const canApprove = taxReturn != null || taxPayable != null;
+  // Coarse "a request is open" hint (resource is org-scoped; the hash is the FY identity).
+  const pendingForReturn = pending.some(
+    (a) => a.resource_type === RESOURCE_TYPE && a.resource_id === orgId,
+  );
+
+  const [approved, setApproved] = useState(false);
+  const [finalised, setFinalised] = useState(false);
+  const [busy, setBusy] = useState<null | 'approve' | 'refresh'>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // Re-check the Tier-2 guard whenever the figures or the pending queue change — an admin
+  // approval lands out-of-band, so it surfaces on the next load / "Check status" refresh.
+  useEffect(() => {
+    let live = true;
+    if (!orgId || !canApprove) {
+      setApproved(false);
+      return;
+    }
+    isApproved(RESOURCE_TYPE, orgId, approvalPayload)
+      .then((ok) => live && setApproved(ok))
+      .catch(() => live && setApproved(false));
+    return () => {
+      live = false;
+    };
+    // pendingForReturn re-triggers the check when a pending request resolves out-of-band
+    // (the row drops from the queue on admin approval) — cheaper than watching the array.
+  }, [orgId, approvalPayload, pendingForReturn, canApprove, isApproved]);
+
+  // Switching FY views a different return — clear the per-FY finalised lock.
+  useEffect(() => setFinalised(false), [fyStartYear]);
 
   if (!currentOrg) return null;
 
   const fyOptions = [0, 1, 2, 3, 4].map((i) => fyStart - i);
   const loading = returnLoading || bookLoading;
   const errors = [returnError, bookError].filter((e): e is string => !!e);
-
-  const entity = taxReturn?.entity_type ?? taxPayable?.entity_type ?? bookToTax?.entity_type;
-  const taxableIncome = bookToTax?.taxable_income_cents ?? taxPayable?.taxable_income_cents ?? null;
-
   const caveats = Array.from(
     new Set([
       ...(bookToTax?.caveats ?? []),
@@ -79,6 +143,35 @@ export function TaxReturnPage() {
       ...(cgt?.sbe_concession_caveats ?? []),
     ]),
   );
+
+  const handleApprove = async () => {
+    if (!orgId) return;
+    setBusy('approve');
+    setActionError(null);
+    try {
+      await requestApproval(RESOURCE_TYPE, orgId, approvalPayload);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleRefreshStatus = async () => {
+    setBusy('refresh');
+    setActionError(null);
+    try {
+      await refreshApprovals();
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleFinalise = () => {
+    if (approved) setFinalised(true);
+  };
 
   return (
     <section className="animated-fade-in">
@@ -161,6 +254,19 @@ export function TaxReturnPage() {
         </div>
       </div>
 
+      {/* Approve-to-finalise gate (SC-4.I.03) */}
+      <FinalisationCard
+        finalised={finalised}
+        approved={approved}
+        pending={pendingForReturn}
+        canApprove={canApprove}
+        busy={busy}
+        actionError={actionError}
+        onApprove={handleApprove}
+        onFinalise={handleFinalise}
+        onRefreshStatus={handleRefreshStatus}
+      />
+
       {/* RPC error banner (partial — book_to_tax / build_return can fail independently). */}
       {!loading && errors.length > 0 && (
         <Banner tone="warning" icon={AlertTriangle}>
@@ -226,10 +332,28 @@ export function TaxReturnPage() {
             </Card>
           )}
 
-          {/* CGT schedule + capture surface */}
+          {/* CGT schedule + capture surface (locked once finalised — read-only return) */}
           <Card title="Capital gains (CGT)" icon={Layers}>
             {cgt && <CgtSummary cgt={cgt} />}
-            <CgtEventsPanel />
+            {finalised ? (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.875rem 1rem',
+                  background: 'var(--bg-hover)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.825rem',
+                }}
+              >
+                <Lock size={15} />
+                <span>CGT events are locked — this return is finalised.</span>
+              </div>
+            ) : (
+              <CgtEventsPanel />
+            )}
           </Card>
 
           {/* Caveats */}
@@ -777,6 +901,130 @@ function Banner({
     >
       <Icon size={16} style={{ marginTop: '2px', flexShrink: 0 }} />
       <span>{children}</span>
+    </div>
+  );
+}
+
+// ---- approve-to-finalise gate card (SC-4.I.03) -------------------------------------
+//
+// A tax return is a Tier-2 (approve-first) artifact (§3.2). "Approve return" opens the
+// Tier-2 approval; "Finalise return" stays DISABLED until an admin has approved that
+// request (approved===true via is_action_approved). Finalising locks the draft read-only
+// — it is NOT lodgement (that stays the Phase-7 SC-7.E/DSP stub).
+function FinalisationCard({
+  finalised,
+  approved,
+  pending,
+  canApprove,
+  busy,
+  actionError,
+  onApprove,
+  onFinalise,
+  onRefreshStatus,
+}: {
+  finalised: boolean;
+  approved: boolean;
+  pending: boolean;
+  canApprove: boolean;
+  busy: null | 'approve' | 'refresh';
+  actionError: string | null;
+  onApprove: () => void;
+  onFinalise: () => void;
+  onRefreshStatus: () => void;
+}) {
+  const status = finalised ? 'Finalised' : approved ? 'Approved' : pending ? 'Pending approval' : 'Draft';
+  const badge = finalised || approved ? 'badge-success' : pending ? 'badge-warning' : 'badge-neutral';
+
+  return (
+    <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <ShieldCheck size={18} style={{ color: 'var(--accent-primary)' }} />
+          <h2 style={{ margin: 0, fontSize: '1.1rem' }}>Finalisation</h2>
+        </div>
+        <span className={`badge ${badge}`} style={{ textTransform: 'none' }}>
+          {status}
+        </span>
+      </div>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.5rem 0 1rem', lineHeight: '1.5' }}>
+        A tax return is a Tier-2 approve-first artifact. Approve it to open a Tier-2 sign-off, then
+        finalise once an admin approves — finalising locks the draft. Lodgement to the ATO is a
+        separate, later step.
+      </p>
+
+      {finalised ? (
+        <div
+          className="badge badge-success"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.75rem 1rem',
+            textTransform: 'none',
+            fontSize: '0.85rem',
+            width: '100%',
+            justifyContent: 'flex-start',
+          }}
+        >
+          <Lock size={15} />
+          <span>This return is finalised and read-only.</span>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          {!approved && (
+            <button
+              className="btn btn-secondary"
+              onClick={onApprove}
+              disabled={pending || !canApprove || busy !== null}
+              title={
+                !canApprove
+                  ? 'Load the return figures before approving'
+                  : pending
+                    ? 'A Tier-2 approval is already open'
+                    : 'Open a Tier-2 approval for this return'
+              }
+            >
+              {busy === 'approve' ? <Loader2 size={14} /> : <ShieldCheck size={14} />}
+              <span>{pending ? 'Approval requested' : 'Approve return'}</span>
+            </button>
+          )}
+          <button
+            className="btn btn-primary"
+            onClick={onFinalise}
+            disabled={!approved || busy !== null}
+            title={approved ? 'Lock this draft as finalised' : 'Approve the return first'}
+          >
+            <Lock size={14} />
+            <span>Finalise return</span>
+          </button>
+          {pending && !approved && (
+            <button className="btn btn-ghost" onClick={onRefreshStatus} disabled={busy !== null}>
+              {busy === 'refresh' ? <Loader2 size={14} /> : <Clock size={14} />}
+              <span>Check status</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {pending && !approved && !finalised && (
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.75rem', marginBottom: 0 }}>
+          Awaiting sign-off — an admin can approve it in the{' '}
+          <Link to="/approvals" style={{ color: 'var(--accent-primary)', textDecoration: 'underline', fontWeight: 600 }}>
+            Approvals queue
+          </Link>
+          .
+        </p>
+      )}
+      {approved && !finalised && (
+        <p style={{ color: 'var(--text-success)', fontSize: '0.8rem', marginTop: '0.75rem', marginBottom: 0, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+          <CheckCircle2 size={14} /> Approved — ready to finalise.
+        </p>
+      )}
+      {actionError && (
+        <p style={{ color: 'var(--text-danger)', fontSize: '0.8rem', marginTop: '0.75rem', marginBottom: 0 }}>
+          {actionError}
+        </p>
+      )}
     </div>
   );
 }

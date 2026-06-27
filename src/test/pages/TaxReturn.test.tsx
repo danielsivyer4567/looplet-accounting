@@ -1,19 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { TaxReturn, TaxPayable } from '@/hooks/useTaxReturn';
 import type { BookToTax, CgtCalc } from '@/hooks/useBookToTax';
+import type { ApprovalRow } from '@/hooks/useApprovals';
 
 /**
- * TaxReturnPage runtime smoke test (SC-4.I.02). Drives the draft-return page with
- * mocked useTaxReturn / useBookToTax / useCgtEvents so no Supabase/network is needed
- * — the runtime look the check skill wants (Preview/Chrome MCP is unavailable in this
- * env, same as the BAS prep-card test). Asserts:
- *   - the entity-aware return labels, book-to-tax reconciliation, tax-payable
- *     waterfall and CGT schedule all render for a company return (the "compiles but
- *     throws at render" class tsc is blind to),
- *   - the page degrades to the unavailable-banner + empty-return card (no crash) when
- *     build_return / book_to_tax return null.
+ * TaxReturnPage runtime test (SC-4.I.02 page + SC-4.I.03 approve-to-finalise gate).
+ * Drives the page with mocked useTaxReturn / useBookToTax / useApprovals / useCgtEvents
+ * so no Supabase/network is needed — the runtime look the check skill wants (Preview/
+ * Chrome MCP is unavailable in this env, same as the BAS prep-card test). Asserts:
+ *   - the entity-aware return, reconciliation, tax-payable waterfall and CGT schedule
+ *     render for a company return; the page degrades (banner + empty card) on null RPCs;
+ *   - "Approve return" calls request_approval (Tier-2);
+ *   - "Finalise return" is GATED until a matching approval row exists (is_action_approved
+ *     true), and finalising locks the draft read-only (CGT capture surface hidden).
  */
 
 const h = vi.hoisted(() => ({
@@ -31,10 +32,28 @@ const h = vi.hoisted(() => ({
     error: null as string | null,
     refresh: vi.fn(),
   },
+  approvals: {
+    pending: [] as ApprovalRow[],
+    isApprovedResult: false,
+    requestApproval: vi.fn(),
+    refresh: vi.fn(),
+  },
 }));
 
 vi.mock('@/hooks/useTaxReturn', () => ({ useTaxReturn: () => h.ret }));
 vi.mock('@/hooks/useBookToTax', () => ({ useBookToTax: () => h.book }));
+vi.mock('@/hooks/useApprovals', () => ({
+  useApprovals: () => ({
+    pending: h.approvals.pending,
+    loading: false,
+    error: null,
+    refresh: h.approvals.refresh,
+    approve: vi.fn(),
+    reject: vi.fn(),
+    requestApproval: h.approvals.requestApproval,
+    isApproved: vi.fn(async () => h.approvals.isApprovedResult),
+  }),
+}));
 vi.mock('@/hooks/useOrg', () => ({
   useOrg: () => ({ currentOrg: { id: 'org-1', name: 'Test Org' } }),
 }));
@@ -168,9 +187,15 @@ const CGT: CgtCalc = {
   events: [],
 };
 
+const withCompanyData = () => {
+  h.ret = { taxReturn: COMPANY_RETURN, taxPayable: TAX_PAYABLE, loading: false, error: null, refresh: vi.fn() };
+  h.book = { bookToTax: BOOK_TO_TAX, cgt: CGT, loading: false, error: null, refresh: vi.fn() };
+};
+
 beforeEach(() => {
   h.ret = { taxReturn: null, taxPayable: null, loading: false, error: null, refresh: vi.fn() };
   h.book = { bookToTax: null, cgt: null, loading: false, error: null, refresh: vi.fn() };
+  h.approvals = { pending: [], isApprovedResult: false, requestApproval: vi.fn(), refresh: vi.fn() };
 });
 
 const renderPage = () =>
@@ -180,13 +205,11 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
-describe('TaxReturnPage (SC-4.I.02)', () => {
+describe('TaxReturnPage (SC-4.I.02 / SC-4.I.03)', () => {
   it('renders the entity-aware return, reconciliation, tax-payable waterfall and CGT schedule', () => {
-    h.ret = { taxReturn: COMPANY_RETURN, taxPayable: TAX_PAYABLE, loading: false, error: null, refresh: vi.fn() };
-    h.book = { bookToTax: BOOK_TO_TAX, cgt: CGT, loading: false, error: null, refresh: vi.fn() };
+    withCompanyData();
     renderPage();
 
-    // Page shell + the four sections render (would throw, not just type-mismatch, if a branch were broken).
     expect(screen.getByText('Tax Return (Draft)')).toBeInTheDocument();
     expect(screen.getByText('Return labels')).toBeInTheDocument();
     expect(screen.getByText('Item 6 income')).toBeInTheDocument();
@@ -194,13 +217,15 @@ describe('TaxReturnPage (SC-4.I.02)', () => {
     expect(screen.getByText('Book-to-tax reconciliation')).toBeInTheDocument();
     expect(screen.getByText('Tax payable')).toBeInTheDocument();
     expect(screen.getByText('Capital gains (CGT)')).toBeInTheDocument();
-    // Entity + a refundable result surface; the embedded CGT capture panel renders.
     expect(screen.getByText('Company')).toBeInTheDocument();
     expect(screen.getByText('refundable')).toBeInTheDocument();
     expect(screen.getByText('CGT events')).toBeInTheDocument();
-    // Caveats from book_to_tax + compute_tax_payable are de-duplicated into one list.
     expect(screen.getByText('Caveats & assumptions')).toBeInTheDocument();
     expect(screen.getByText(/Passive-income/)).toBeInTheDocument();
+
+    // Finalisation gate present; Finalise is disabled until approved.
+    expect(screen.getByText('Finalisation')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Finalise return/i })).toBeDisabled();
   });
 
   it('degrades to the unavailable banner + empty-return card without crashing when the RPCs return null', () => {
@@ -210,7 +235,41 @@ describe('TaxReturnPage (SC-4.I.02)', () => {
 
     expect(screen.getByText(/Some figures are unavailable/)).toBeInTheDocument();
     expect(screen.getByText(/No mapped return for this entity/)).toBeInTheDocument();
-    // The CGT capture surface is always available, even with no computed figures.
     expect(screen.getByText('CGT events')).toBeInTheDocument();
+    // Nothing to approve → both gate actions are disabled.
+    expect(screen.getByRole('button', { name: /Approve return/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Finalise return/i })).toBeDisabled();
+  });
+
+  it('"Approve return" opens a Tier-2 approval bound to the return (request_approval)', async () => {
+    withCompanyData();
+    renderPage();
+
+    const approve = screen.getByRole('button', { name: /Approve return/i });
+    expect(approve).not.toBeDisabled();
+    fireEvent.click(approve);
+
+    await waitFor(() => expect(h.approvals.requestApproval).toHaveBeenCalledTimes(1));
+    expect(h.approvals.requestApproval).toHaveBeenCalledWith(
+      'tax_return',
+      'org-1',
+      expect.objectContaining({ kind: 'tax_return_finalise' }),
+    );
+  });
+
+  it('gates Finalise until an approval row exists, then locks the draft read-only', async () => {
+    withCompanyData();
+    h.approvals.isApprovedResult = true; // a matching approved Tier-2 row exists
+    renderPage();
+
+    const finalise = await screen.findByRole('button', { name: /Finalise return/i });
+    // The is_action_approved check resolves async → Finalise enables once approved.
+    await waitFor(() => expect(finalise).not.toBeDisabled());
+    expect(screen.getByText(/ready to finalise/i)).toBeInTheDocument();
+
+    fireEvent.click(finalise);
+
+    expect(screen.getByText(/finalised and read-only/i)).toBeInTheDocument();
+    expect(screen.getByText(/CGT events are locked/i)).toBeInTheDocument();
   });
 });
