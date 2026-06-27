@@ -34,6 +34,7 @@ import { SuppliersPage } from '@/pages/Suppliers';
 import { SupplierDetailPage } from '@/pages/SupplierDetail';
 import { TrustsPage } from '@/pages/Trusts';
 import { TrustDetailPage } from '@/pages/TrustDetail';
+import { SmsfPage } from '@/pages/SMSF';
 import { EmployeesPage } from '@/pages/Employees';
 import { EmployeeDetailPage } from '@/pages/EmployeeDetail';
 import { SettingsPage } from '@/pages/Settings';
@@ -112,6 +113,7 @@ export function App() {
             <Route path="fixed-assets" element={<FixedAssetsPage />} />
             <Route path="trusts" element={<TrustsPage />} />
             <Route path="trusts/:id" element={<TrustDetailPage />} />
+            <Route path="smsf" element={<SmsfPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="settings/team" element={<TeamPage />} />
             <Route path="settings/audit-log" element={<AuditLogPage />} />
