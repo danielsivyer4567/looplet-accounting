@@ -1,9 +1,9 @@
-// advisor (SC-6.B.02)
+// advisor (SC-6.B.02+)
 //
-// Proactive advisory engine entrypoint. This skeleton only supports
-// mode:"noop_echo": load grounded facts, emit a draft advice_note via the
-// SC-6.A.02 RPC, and return the note id. Real scenario modes land in later
-// slices; no recommendation, lodgement, payment, or external send happens here.
+// Proactive advisory engine entrypoint. Loads grounded org facts, runs a
+// selected pure advisory model, emits a draft advice_note via the SC-6.A.02
+// RPC, and returns the note id. No recommendation is acted on here; lodgement,
+// payment, registered-agent sign-off, and outward sends remain separate gates.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
@@ -19,6 +19,20 @@ import {
   loadAdvisoryFacts,
 } from "../_shared/advisoryFacts.ts";
 import {
+  type CgtDisposalInput,
+  type CgtModelResult,
+  modelCgt,
+} from "../_shared/models/cgt.ts";
+import {
+  type FbtModelResult,
+  type FbtScenarioInputs,
+  modelFbt,
+} from "../_shared/models/fbt.ts";
+import {
+  modelProfitExtraction,
+  type ProfitExtractionModelResult,
+} from "../_shared/models/profitExtraction.ts";
+import {
   modelStructuring,
   type StructuringModelResult,
 } from "../_shared/models/structuring.ts";
@@ -27,12 +41,26 @@ import {
   type YearEndModelResult,
 } from "../_shared/models/yearEnd.ts";
 
-export type AdvisorMode = "noop_echo" | "structuring" | "year_end";
-export type AdviceNoteKind = "forecast" | "structuring" | "year_end";
+export type AdvisorMode =
+  | "noop_echo"
+  | "structuring"
+  | "year_end"
+  | "cgt"
+  | "fbt"
+  | "profit_extraction";
+export type AdviceNoteKind =
+  | "forecast"
+  | "structuring"
+  | "year_end"
+  | "cgt"
+  | "fbt"
+  | "profit_extraction";
 
 export interface AdvisorRequestBody {
   organization_id?: string;
   mode?: AdvisorMode;
+  cgt_disposal?: CgtDisposalInput;
+  fbt_inputs?: FbtScenarioInputs;
 }
 
 export interface CreateAdviceNoteArgs {
@@ -46,6 +74,18 @@ export interface CreateAdviceNoteArgs {
   p_citations: unknown[];
   p_disclaimer: string;
 }
+
+const SUPPORTED_MODES: readonly AdvisorMode[] = [
+  "noop_echo",
+  "structuring",
+  "year_end",
+  "cgt",
+  "fbt",
+  "profit_extraction",
+];
+
+const GENERAL_ADVICE_DISCLAIMER =
+  "General information only; not tax, legal, or financial advice. Review with a registered agent before acting.";
 
 function money(cents: number): string {
   return `$${
@@ -68,6 +108,75 @@ function requireUuidish(value: unknown, field: string): string {
     throw new Error(`${field} required`);
   }
   return value.trim();
+}
+
+function numberField(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`${field} must be a finite number`);
+  }
+  return value;
+}
+
+function stringField(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`${field} required`);
+  }
+  return value.trim();
+}
+
+function booleanField(value: unknown, field: string): boolean {
+  if (typeof value !== "boolean") {
+    throw new Error(`${field} must be true or false`);
+  }
+  return value;
+}
+
+function optionalNumberField(value: unknown, field: string): number | null {
+  if (value == null) return null;
+  return numberField(value, field);
+}
+
+function optionalBooleanField(value: unknown, field: string): boolean | null {
+  if (value == null) return null;
+  if (typeof value !== "boolean") {
+    throw new Error(`${field} must be true or false`);
+  }
+  return value;
+}
+
+function requireCgtDisposal(value: unknown): CgtDisposalInput {
+  if (!value || Array.isArray(value) || typeof value !== "object") {
+    throw new Error("cgt_disposal required for cgt mode");
+  }
+  const row = value as Record<string, unknown>;
+  return {
+    proceeds_cents: numberField(
+      row.proceeds_cents,
+      "cgt_disposal.proceeds_cents",
+    ),
+    cost_base_cents: numberField(
+      row.cost_base_cents,
+      "cgt_disposal.cost_base_cents",
+    ),
+    acquired_date: stringField(row.acquired_date, "cgt_disposal.acquired_date"),
+    disposal_date: stringField(row.disposal_date, "cgt_disposal.disposal_date"),
+    is_active_asset: booleanField(
+      row.is_active_asset,
+      "cgt_disposal.is_active_asset",
+    ),
+    active_asset_years: optionalNumberField(
+      row.active_asset_years,
+      "cgt_disposal.active_asset_years",
+    ),
+    net_asset_value_cents: optionalNumberField(
+      row.net_asset_value_cents,
+      "cgt_disposal.net_asset_value_cents",
+    ),
+    significant_individual_55_or_retiring: optionalBooleanField(
+      row.significant_individual_55_or_retiring,
+      "cgt_disposal.significant_individual_55_or_retiring",
+    ),
+  };
 }
 
 function advisoryFactsClient(client: {
@@ -107,8 +216,7 @@ export function buildNoopEchoAdviceNote(
       purpose: "plumbing_check",
     },
     p_citations: [],
-    p_disclaimer:
-      "General information only; not tax, legal, or financial advice. Review with a registered agent before acting.",
+    p_disclaimer: GENERAL_ADVICE_DISCLAIMER,
   };
 }
 
@@ -152,8 +260,7 @@ export function buildStructuringAdviceNote(
       model_warnings: model.warnings,
     },
     p_citations: citation.citations,
-    p_disclaimer:
-      "General information only; not tax, legal, or financial advice. Review with a registered agent before acting.",
+    p_disclaimer: GENERAL_ADVICE_DISCLAIMER,
   };
 }
 
@@ -205,8 +312,147 @@ export function buildYearEndAdviceNote(
       model_warnings: model.warnings,
     },
     p_citations: citation.citations,
-    p_disclaimer:
-      "General information only; not tax, legal, or financial advice. Review with a registered agent before acting.",
+    p_disclaimer: GENERAL_ADVICE_DISCLAIMER,
+  };
+}
+
+export function buildCgtAdviceNote(
+  organizationId: string,
+  facts: AdvisoryFacts,
+  disposal: CgtDisposalInput,
+  model: CgtModelResult,
+  citation: AdviceCitationResult,
+): CreateAdviceNoteArgs {
+  const summary = [
+    `CGT concession screen: gross gain ${
+      money(model.gross_gain_cents)
+    }, discounted gain ${money(model.discounted_gain_cents)}.`,
+    model.flags.basic_conditions_met
+      ? "The model flags the Division 152 basic-condition evidence as present."
+      : "The model does not have enough evidence for the Division 152 basic conditions.",
+    citation.text ? `Research context: ${citation.text}` : null,
+  ].filter((line): line is string => line !== null).join("\n\n");
+
+  return {
+    p_org: organizationId,
+    p_kind: "cgt",
+    p_title: "CGT concession screen",
+    p_summary: summary,
+    p_inputs: {
+      mode: "cgt",
+      disposal,
+      current_entity_type: facts.profile.entity_type,
+      profile: facts.profile,
+      signals: facts.signals,
+      source_errors: facts.source_errors,
+      research_text: citation.text,
+    },
+    p_numbers: {
+      gross_gain_cents: model.gross_gain_cents,
+      discounted_gain_cents: model.discounted_gain_cents,
+      ownership_days: model.ownership_days,
+      flags: model.flags,
+    },
+    p_assumptions: {
+      as_at_fy: model.as_at_fy,
+      model_warnings: model.warnings,
+    },
+    p_citations: citation.citations,
+    p_disclaimer: GENERAL_ADVICE_DISCLAIMER,
+  };
+}
+
+export function buildFbtAdviceNote(
+  organizationId: string,
+  facts: AdvisoryFacts,
+  inputs: FbtScenarioInputs,
+  model: FbtModelResult,
+  citation: AdviceCitationResult,
+): CreateAdviceNoteArgs {
+  const lower = model.lower_cost_method === "statutory_formula"
+    ? model.statutory_formula
+    : model.operating_cost;
+  const summary = [
+    `FBT car-benefit comparison: lower modelled method is ${lower.method} at ${
+      money(lower.fbt_cents)
+    } FBT.`,
+    `Modelled FBT delta between methods: ${money(model.fbt_delta_cents)}.`,
+    citation.text ? `Research context: ${citation.text}` : null,
+  ].filter((line): line is string => line !== null).join("\n\n");
+
+  return {
+    p_org: organizationId,
+    p_kind: "fbt",
+    p_title: "FBT strategy comparison",
+    p_summary: summary,
+    p_inputs: {
+      mode: "fbt",
+      fbt_inputs: inputs,
+      current_entity_type: facts.profile.entity_type,
+      profile: facts.profile,
+      signals: facts.signals,
+      source_errors: facts.source_errors,
+      research_text: citation.text,
+    },
+    p_numbers: {
+      private_use_bps: model.private_use_bps,
+      lower_cost_method: model.lower_cost_method,
+      fbt_delta_cents: model.fbt_delta_cents,
+      statutory_formula: model.statutory_formula,
+      operating_cost: model.operating_cost,
+      exemption_candidates: model.exemption_candidates,
+    },
+    p_assumptions: {
+      as_at_fy: model.as_at_fy,
+      model_warnings: model.warnings,
+    },
+    p_citations: citation.citations,
+    p_disclaimer: GENERAL_ADVICE_DISCLAIMER,
+  };
+}
+
+export function buildProfitExtractionAdviceNote(
+  organizationId: string,
+  facts: AdvisoryFacts,
+  model: ProfitExtractionModelResult,
+  citation: AdviceCitationResult,
+): CreateAdviceNoteArgs {
+  const summary = [
+    `Profit extraction model: recommended strategy is ${model.recommended_strategy} with total tax ${
+      money(model.recommended_total_tax_cents)
+    }.`,
+    `Potential saving versus the baseline: ${money(model.tax_saving_cents)}.`,
+    citation.text ? `Research context: ${citation.text}` : null,
+  ].filter((line): line is string => line !== null).join("\n\n");
+
+  return {
+    p_org: organizationId,
+    p_kind: "profit_extraction",
+    p_title: "Profit extraction comparison",
+    p_summary: summary,
+    p_inputs: {
+      mode: "profit_extraction",
+      current_entity_type: facts.profile.entity_type,
+      profile: facts.profile,
+      signals: facts.signals,
+      source_errors: facts.source_errors,
+      research_text: citation.text,
+    },
+    p_numbers: {
+      profit_available_cents: model.profit_available_cents,
+      recommended_strategy: model.recommended_strategy,
+      recommended_split: model.recommended_split,
+      recommended_total_tax_cents: model.recommended_total_tax_cents,
+      tax_saving_cents: model.tax_saving_cents,
+      options: model.options,
+    },
+    p_assumptions: {
+      as_at_fy: model.as_at_fy,
+      model_assumptions: model.assumptions,
+      model_warnings: model.warnings,
+    },
+    p_citations: citation.citations,
+    p_disclaimer: GENERAL_ADVICE_DISCLAIMER,
   };
 }
 
@@ -238,11 +484,21 @@ async function handleAdvisor(req: Request): Promise<Response> {
   }
 
   const mode = body.mode ?? "noop_echo";
-  if (mode !== "noop_echo" && mode !== "structuring" && mode !== "year_end") {
+  if (!SUPPORTED_MODES.includes(mode as AdvisorMode)) {
     return json({
       ok: false,
       error: `Unsupported advisor mode: ${String(mode)}`,
     }, 400);
+  }
+
+  let cgtDisposal: CgtDisposalInput | null = null;
+  try {
+    if (mode === "cgt") {
+      cgtDisposal = requireCgtDisposal(body.cgt_disposal);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return json({ ok: false, error: message }, 400);
   }
 
   try {
@@ -253,29 +509,78 @@ async function handleAdvisor(req: Request): Promise<Response> {
     );
 
     const facts = await loadAdvisoryFacts(advisoryFactsClient(client), orgId);
-    const noteArgs = mode === "structuring"
-      ? buildStructuringAdviceNote(
-        orgId,
-        facts,
-        modelStructuring(facts),
-        await citeForAdvice(
-          "Which Australian tax and business-structure rules matter when comparing sole trader, company, and discretionary trust structures for this business?",
+    let noteArgs: CreateAdviceNoteArgs;
+    switch (mode) {
+      case "structuring":
+        noteArgs = buildStructuringAdviceNote(
+          orgId,
           facts,
-          Deno.env.get("PERPLEXITY_API_KEY"),
-        ),
-      )
-      : mode === "year_end"
-      ? buildYearEndAdviceNote(
-        orgId,
-        facts,
-        modelYearEnd(facts, new Date()),
-        await citeForAdvice(
-          "Which Australian year-end tax planning rules matter for concessional super contributions, instant asset write-off purchases, deductible prepayments, and income deferral?",
+          modelStructuring(facts),
+          await citeForAdvice(
+            "Which Australian tax and business-structure rules matter when comparing sole trader, company, and discretionary trust structures for this business?",
+            facts,
+            Deno.env.get("PERPLEXITY_API_KEY"),
+          ),
+        );
+        break;
+      case "year_end":
+        noteArgs = buildYearEndAdviceNote(
+          orgId,
           facts,
-          Deno.env.get("PERPLEXITY_API_KEY"),
-        ),
-      )
-      : buildNoopEchoAdviceNote(orgId, facts);
+          modelYearEnd(facts, new Date()),
+          await citeForAdvice(
+            "Which Australian year-end tax planning rules matter for concessional super contributions, instant asset write-off purchases, deductible prepayments, and income deferral?",
+            facts,
+            Deno.env.get("PERPLEXITY_API_KEY"),
+          ),
+        );
+        break;
+      case "cgt":
+        if (!cgtDisposal) throw new Error("cgt_disposal required for cgt mode");
+        noteArgs = buildCgtAdviceNote(
+          orgId,
+          facts,
+          cgtDisposal,
+          modelCgt(facts, cgtDisposal),
+          await citeForAdvice(
+            "Which Australian small-business CGT concession rules matter when screening a business asset disposal?",
+            facts,
+            Deno.env.get("PERPLEXITY_API_KEY"),
+          ),
+        );
+        break;
+      case "fbt": {
+        const fbtInputs = body.fbt_inputs ?? {};
+        const fbtFacts = { ...facts, fbt_inputs: fbtInputs };
+        noteArgs = buildFbtAdviceNote(
+          orgId,
+          facts,
+          fbtInputs,
+          modelFbt(fbtFacts),
+          await citeForAdvice(
+            "Which Australian FBT car-benefit rules matter when comparing statutory-formula and operating-cost methods, electric vehicle exemptions, and work-vehicle private-use limits?",
+            facts,
+            Deno.env.get("PERPLEXITY_API_KEY"),
+          ),
+        );
+        break;
+      }
+      case "profit_extraction":
+        noteArgs = buildProfitExtractionAdviceNote(
+          orgId,
+          facts,
+          modelProfitExtraction(facts),
+          await citeForAdvice(
+            "Which Australian tax rules matter when comparing owner wages, fully franked dividends, and trust distribution mixes for extracting business profits?",
+            facts,
+            Deno.env.get("PERPLEXITY_API_KEY"),
+          ),
+        );
+        break;
+      case "noop_echo":
+        noteArgs = buildNoopEchoAdviceNote(orgId, facts);
+        break;
+    }
     const { data, error } = await client.rpc("create_advice_note", noteArgs);
     if (error) throw new Error(error.message);
 

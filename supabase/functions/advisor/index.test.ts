@@ -1,11 +1,17 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
+  buildCgtAdviceNote,
+  buildFbtAdviceNote,
   buildNoopEchoAdviceNote,
+  buildProfitExtractionAdviceNote,
   buildStructuringAdviceNote,
   buildYearEndAdviceNote,
   type CreateAdviceNoteArgs,
 } from "./index.ts";
 import type { AdvisoryFacts } from "../_shared/advisoryFacts.ts";
+import { type CgtDisposalInput, modelCgt } from "../_shared/models/cgt.ts";
+import { type FbtScenarioInputs, modelFbt } from "../_shared/models/fbt.ts";
+import { modelProfitExtraction } from "../_shared/models/profitExtraction.ts";
 import { modelStructuring } from "../_shared/models/structuring.ts";
 import { modelYearEnd } from "../_shared/models/yearEnd.ts";
 
@@ -136,4 +142,94 @@ Deno.test("buildYearEndAdviceNote carries every year-end lever into numbers", ()
     payload.p_inputs.research_text,
     "Year-end deductions generally need action before 30 June [1].",
   );
+});
+
+Deno.test("buildCgtAdviceNote echoes the CGT model headline numbers", () => {
+  const disposal: CgtDisposalInput = {
+    proceeds_cents: 50_000_000,
+    cost_base_cents: 20_000_000,
+    acquired_date: "2010-01-01",
+    disposal_date: "2026-06-30",
+    is_active_asset: true,
+    active_asset_years: 16,
+    significant_individual_55_or_retiring: true,
+  };
+  const model = modelCgt(facts, disposal);
+  const payload = buildCgtAdviceNote("org-1", facts, disposal, model, {
+    text: "Small business CGT concessions depend on basic conditions [1].",
+    citations: ["https://www.ato.gov.au/cgt"],
+  });
+
+  assertEquals(payload.p_org, "org-1");
+  assertEquals(payload.p_kind, "cgt");
+  assertEquals(payload.p_title, "CGT concession screen");
+  assertEquals(payload.p_numbers.gross_gain_cents, model.gross_gain_cents);
+  assertEquals(
+    payload.p_numbers.discounted_gain_cents,
+    model.discounted_gain_cents,
+  );
+  assertEquals(payload.p_numbers.flags, model.flags);
+  assertEquals(payload.p_inputs.mode, "cgt");
+  assertEquals(payload.p_inputs.disposal, disposal);
+  assertEquals(payload.p_citations, ["https://www.ato.gov.au/cgt"]);
+});
+
+Deno.test("buildFbtAdviceNote echoes the FBT lower-cost method and delta", () => {
+  const fbtInputs: FbtScenarioInputs = {
+    vehicle_base_value_cents: 6_000_000,
+    annual_operating_cost_cents: 1_200_000,
+    employee_contribution_cents: 0,
+    is_electric_vehicle: false,
+    work_vehicle_private_use_limited: false,
+  };
+  const fbtFacts: AdvisoryFacts & { fbt_inputs: FbtScenarioInputs } = {
+    ...facts,
+    fbt_inputs: fbtInputs,
+  };
+  const model = modelFbt(fbtFacts);
+  const payload = buildFbtAdviceNote("org-1", facts, fbtInputs, model, {
+    text:
+      "FBT car benefits can be calculated using statutory formula or operating cost methods [1].",
+    citations: ["https://www.ato.gov.au/fbt"],
+  });
+
+  assertEquals(payload.p_org, "org-1");
+  assertEquals(payload.p_kind, "fbt");
+  assertEquals(payload.p_title, "FBT strategy comparison");
+  assertEquals(payload.p_numbers.lower_cost_method, "operating_cost");
+  assertEquals(payload.p_numbers.fbt_delta_cents, 938_586);
+  assertEquals(payload.p_numbers.operating_cost, model.operating_cost);
+  assertEquals(payload.p_inputs.mode, "fbt");
+  assertEquals(payload.p_inputs.fbt_inputs, fbtInputs);
+  assertEquals(payload.p_citations, ["https://www.ato.gov.au/fbt"]);
+});
+
+Deno.test("buildProfitExtractionAdviceNote echoes the recommended strategy and tax result", () => {
+  const model = modelProfitExtraction(facts);
+  const payload = buildProfitExtractionAdviceNote("org-1", facts, model, {
+    text:
+      "Owner wages, franked dividends, and trust distributions have different tax mechanics [1].",
+    citations: ["https://www.ato.gov.au/profit-extraction"],
+  });
+
+  assertEquals(payload.p_org, "org-1");
+  assertEquals(payload.p_kind, "profit_extraction");
+  assertEquals(payload.p_title, "Profit extraction comparison");
+  assertEquals(
+    payload.p_numbers.profit_available_cents,
+    model.profit_available_cents,
+  );
+  assertEquals(
+    payload.p_numbers.recommended_strategy,
+    model.recommended_strategy,
+  );
+  assertEquals(
+    payload.p_numbers.recommended_total_tax_cents,
+    model.recommended_total_tax_cents,
+  );
+  assertEquals(payload.p_numbers.options, model.options);
+  assertEquals(payload.p_inputs.mode, "profit_extraction");
+  assertEquals(payload.p_citations, [
+    "https://www.ato.gov.au/profit-extraction",
+  ]);
 });
