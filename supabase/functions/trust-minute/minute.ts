@@ -1,0 +1,123 @@
+// trust-minute/minute.ts — pure doc-builder for the trustee distribution-resolution
+// PDF (SC-5.D.01). Split out from index.ts so it carries NO side effects (index.ts
+// runs Deno.serve at module load): the test imports this module and the pure builder
+// without booting an HTTP listener, and index.ts imports it for the handler. Render
+// text is kept WinAnsi-safe ASCII (hyphens, no em-dashes) per the shared renderer's
+// StandardFonts.Helvetica constraint (_shared/pdf/worksheet.ts).
+
+import { type WorksheetDoc } from "../_shared/pdf/worksheet.ts";
+
+export interface TrustRow {
+  name: string;
+  trust_type: string | null;
+  abn: string | null;
+  trustee_name: string | null;
+  trustee_abn: string | null;
+  is_corporate_trustee: boolean | null;
+}
+
+export interface BeneficiaryRow {
+  name: string;
+  beneficiary_type: string | null;
+  relationship: string | null;
+}
+
+export interface DistributionRow {
+  beneficiary_id: string;
+  amount_cents: number;
+  capital_gain_cents: number;
+  franked_dividend_cents: number;
+  other_cents: number;
+  franking_credits_cents: number;
+  status: string;
+  trust_beneficiaries: BeneficiaryRow | null;
+}
+
+/** Cents (any) -> "$1,234.00". */
+export function money(cents: unknown): string {
+  const n = Number(cents ?? 0);
+  return `$${(n / 100).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/**
+ * "individual" -> "Individual"; "related_entity" -> "Related Entity"; null -> "".
+ * A general capitaliser (not an enum lookup) because `relationship` is free text
+ * (0151: "Free text - used descriptively"), not a closed set. WinAnsi-safe.
+ */
+export function titleCase(s: string | null | undefined): string {
+  if (!s) return "";
+  return s.replace(/(^|[\s_])([a-z])/g, (_m, sep: string, c: string) => sep.replace("_", " ") + c.toUpperCase());
+}
+
+/**
+ * Map the trust + its distribution rows into the generic worksheet doc as a
+ * distribution resolution. One section per beneficiary (name + the income-class
+ * breakdown the streaming overlay produced), then a totals section. The income year
+ * ended 30 June (fy_start_year + 1); the resolution is dated before year-end by the
+ * trustee when signed (the deed requires the resolution by 30 June).
+ */
+export function toMinuteDoc(
+  trust: TrustRow,
+  rows: DistributionRow[],
+  fy: number,
+  isDraft: boolean,
+): WorksheetDoc {
+  const yearEnd = `30 June ${fy + 1}`;
+  const trusteeKind = trust.is_corporate_trustee ? "corporate trustee" : "trustee";
+  const trustee = trust.trustee_name
+    ? `${trust.trustee_name} (${trusteeKind})`
+    : `the ${trusteeKind}`;
+
+  // One section per beneficiary that received a distribution.
+  const sections: WorksheetDoc["sections"] = rows.map((r) => {
+    const b = r.trust_beneficiaries;
+    const who = b?.name ?? r.beneficiary_id;
+    const kind = titleCase(b?.beneficiary_type);
+    const rel = b?.relationship ? titleCase(b.relationship) : "";
+    const caption = [kind, rel].filter(Boolean).join(" - ") || undefined;
+    return {
+      heading: who,
+      caption,
+      rows: [
+        { label: "Net capital gain (streamed, Subdiv 115-C)", value: money(r.capital_gain_cents) },
+        { label: "Franked distributions (streamed, Subdiv 207-B)", value: money(r.franked_dividend_cents) },
+        { label: "  Attached franking credits", value: money(r.franking_credits_cents) },
+        { label: "Other income (ordinary, foreign)", value: money(r.other_cents) },
+        { label: "Total share of net income", value: money(r.amount_cents) },
+      ],
+    };
+  });
+
+  // Totals across all beneficiaries (one pass; tiny N).
+  const sum = (k: keyof DistributionRow): number =>
+    rows.reduce((acc, r) => acc + Number(r[k] ?? 0), 0);
+  sections.push({
+    heading: "Resolution totals",
+    caption: "Sum of all beneficiary shares for the year",
+    rows: [
+      { label: "Total net capital gain streamed", value: money(sum("capital_gain_cents")) },
+      { label: "Total franked distributions streamed", value: money(sum("franked_dividend_cents")) },
+      { label: "Total franking credits attached", value: money(sum("franking_credits_cents")) },
+      { label: "Total other income", value: money(sum("other_cents")) },
+      { label: "Total income distributed", value: money(sum("amount_cents")) },
+    ],
+  });
+
+  const status = isDraft ? "DRAFT - not yet resolved" : "Resolved";
+  const trustName = trust.trustee_abn
+    ? `${trust.name} (Trustee ABN ${trust.trustee_abn})`
+    : trust.name;
+
+  return {
+    title: "Trustee Resolution - Distribution of Income",
+    subtitle:
+      `${trustName} - ${titleCase(trust.trust_type)} trust - ` +
+      `income year ended ${yearEnd} - ${status}`,
+    sections,
+    footer:
+      `Resolution of ${trustee} to distribute the net income of the trust for the year ended ` +
+      `${yearEnd} as set out above, to be made and signed on or before ${yearEnd}. ` +
+      `Draft generated by Looplet Accounting; verify against the trust deed and source records ` +
+      `before the trustee signs. This document does not itself effect or finalise the resolution.`,
+  };
+}
