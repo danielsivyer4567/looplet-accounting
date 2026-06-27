@@ -85,11 +85,25 @@ alter table public.advice_notes enable row level security;
 create policy advice_notes_select on public.advice_notes for select
   using (organization_id in (select get_accessible_org_ids()));
 create policy advice_notes_insert on public.advice_notes for insert
-  with check (organization_id in (select get_accessible_org_ids()));
+  with check (
+    organization_id in (select get_accessible_org_ids())
+    and public.require_role(organization_id, 'accountant'::public.org_role)
+  );
 create policy advice_notes_update on public.advice_notes for update
-  using (organization_id in (select get_accessible_org_ids()))
-  with check (organization_id in (select get_accessible_org_ids()));
+  using (
+    organization_id in (select get_accessible_org_ids())
+    and public.require_role(organization_id, 'accountant'::public.org_role)
+  )
+  with check (
+    organization_id in (select get_accessible_org_ids())
+    and public.require_role(organization_id, 'accountant'::public.org_role)
+  );
 create policy advice_notes_delete on public.advice_notes for delete
-  using (organization_id in (select get_accessible_org_ids()));
+  using (
+    organization_id in (select get_accessible_org_ids())
+    and public.require_role(organization_id, 'admin'::public.org_role)
+  );
 
-grant select, insert, update, delete on public.advice_notes to authenticated;
+revoke all on table public.advice_notes from public, anon, authenticated;
+grant select on public.advice_notes to authenticated;
+grant all on public.advice_notes to service_role;

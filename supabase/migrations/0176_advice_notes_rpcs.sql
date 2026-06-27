@@ -32,6 +32,9 @@ begin
   if p_org not in (select get_accessible_org_ids()) then
     raise exception 'create_advice_note: organization % not accessible', p_org;
   end if;
+  if not public.require_role(p_org, 'accountant'::public.org_role) then
+    raise exception 'create_advice_note: accountant role required for organization %', p_org;
+  end if;
 
   insert into public.advice_notes (
     organization_id,
@@ -113,6 +116,9 @@ begin
   if v_org not in (select get_accessible_org_ids()) then
     raise exception 'sign_off_advice_note: note % not accessible', p_id;
   end if;
+  if not public.require_role(v_org, 'accountant'::public.org_role) then
+    raise exception 'sign_off_advice_note: accountant role required for note %', p_id;
+  end if;
 
   update public.advice_notes
      set registered_agent_signoff_by = auth.uid(),
@@ -150,6 +156,9 @@ begin
   if v_org not in (select get_accessible_org_ids()) then
     raise exception 'dismiss_advice_note: note % not accessible', p_id;
   end if;
+  if not public.require_role(v_org, 'accountant'::public.org_role) then
+    raise exception 'dismiss_advice_note: accountant role required for note %', p_id;
+  end if;
 
   update public.advice_notes
      set status = 'dismissed'
@@ -166,17 +175,19 @@ $$;
 
 comment on function public.create_advice_note(uuid, public.advice_note_kind, text, text, jsonb, jsonb, jsonb, jsonb, text) is
   'SC-6.A.02: creates a draft advice_notes row after checking the caller can access p_org. '
-  'Returns a jsonb envelope with advice_note_id. SECURITY DEFINER with explicit org access check.';
+  'Requires accountant-or-higher org role. Returns a jsonb envelope with advice_note_id. '
+  'SECURITY DEFINER with explicit org access and role checks.';
 
 comment on function public.list_advice_notes(uuid, public.advice_note_kind, public.advice_note_status) is
   'SC-6.A.02: lists accessible advice notes for an org, optionally filtered by kind/status. '
   'Non-members receive zero rows. SECURITY DEFINER with explicit org access predicate.';
 
 comment on function public.sign_off_advice_note(uuid) is
-  'SC-6.A.02: stamps registered_agent_signoff_by/at and flips an accessible note to issued.';
+  'SC-6.A.02: stamps registered_agent_signoff_by/at and flips an accessible note to issued. '
+  'Requires accountant-or-higher org role.';
 
 comment on function public.dismiss_advice_note(uuid) is
-  'SC-6.A.02: flips an accessible note to dismissed.';
+  'SC-6.A.02: flips an accessible note to dismissed. Requires accountant-or-higher org role.';
 
 revoke all on function public.create_advice_note(uuid, public.advice_note_kind, text, text, jsonb, jsonb, jsonb, jsonb, text) from public, anon;
 revoke all on function public.list_advice_notes(uuid, public.advice_note_kind, public.advice_note_status) from public, anon;
