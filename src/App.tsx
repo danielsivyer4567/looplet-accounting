@@ -48,6 +48,7 @@ import { AutoSetupPage } from '@/pages/onboarding/AutoSetup';
 import { TriagePage } from '@/pages/onboarding/Triage';
 import { PaymentRunsPage } from '@/pages/PaymentRuns';
 import { ApprovalsPage } from '@/pages/Approvals';
+import { LodgementsPage } from '@/pages/Lodgements';
 import { NewPaymentRunPage } from '@/pages/NewPaymentRun';
 import { PaymentRunDetailPage } from '@/pages/PaymentRunDetail';
 import { PayrollPage } from '@/pages/Payroll';
@@ -87,6 +88,7 @@ export function App() {
             <Route path="allocations" element={<AllocationsPage />} />
             <Route path="coding-review" element={<CodingReviewPage />} />
             <Route path="approvals" element={<ApprovalsPage />} />
+            <Route path="lodgements" element={<LodgementsPage />} />
             <Route path="reconciliation" element={<ReconciliationPage />} />
             <Route path="jobs" element={<JobsPage />} />
             <Route path="jobs/:id" element={<JobDetailPage />} />

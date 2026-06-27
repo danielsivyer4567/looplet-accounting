@@ -39,6 +39,7 @@ import {
   ListChecks,
   Boxes,
   ShieldCheck,
+  Send,
 } from 'lucide-react';
 
 const navItems = [
@@ -54,6 +55,7 @@ const navItems = [
   { to: '/allocations', label: 'Allocations', icon: GitCommit },
   { to: '/coding-review', label: 'Coding', icon: ListChecks },
   { to: '/approvals', label: 'Approvals', icon: ShieldCheck },
+  { to: '/lodgements', label: 'Lodgements', icon: Send },
   { to: '/reconciliation', label: 'Reconcile', icon: Scale },
   { to: '/fixed-assets', label: 'Assets', icon: Boxes },
   { to: '/jobs', label: 'Jobs', icon: Briefcase },
