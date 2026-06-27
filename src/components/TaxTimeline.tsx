@@ -6,6 +6,7 @@ const stageColor: Record<ObligationStage, string> = {
   overdue: 'var(--accent-danger)',
   due_soon: 'var(--accent-warning)',
   upcoming: 'var(--accent-info)',
+  done: 'var(--accent-success)',
 };
 
 function fmtShort(iso: string): string {
@@ -15,6 +16,7 @@ function fmtShort(iso: string): string {
 }
 
 function countdown(stage: ObligationStage, days: number): string {
+  if (stage === 'done') return 'done';
   if (stage === 'overdue') return `${Math.abs(days)}d overdue`;
   if (days === 0) return 'due today';
   return `in ${days}d`;
