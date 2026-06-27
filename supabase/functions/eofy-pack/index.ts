@@ -233,7 +233,7 @@ function toWorksheetDoc(
 }
 
 /** Drill-down links into the working papers backing the statements. */
-function workingPaperLinks(): Array<{ label: string; href: string }> {
+function workingPaperLinks(): { label: string; href: string }[] {
   return [
     { label: "Books health & reconciliation", href: "/quality" },
     { label: "Fixed-asset register & depreciation", href: "/fixed-assets" },

@@ -93,7 +93,8 @@ export function useDiv7a() {
     }
     // The scan can fail independently (e.g. undeployed) without blanking the loan list.
     if (scanRes.error) {
-      setError((prev) => prev ?? scanRes.error!.message);
+      const scanMessage = scanRes.error.message;
+      setError((prev) => prev ?? scanMessage);
       setScan(null);
     } else {
       setScan(scanRes.data as unknown as Div7aScan);

@@ -34,10 +34,10 @@ function run(metadata: Record<string, unknown> | null): StpRun {
 
 interface PayEvent {
   termination: { employee_id: string; cessation_date: string; cessation_type_code: string } | null;
-  employees: Array<{
+  employees: {
     employee_id: string;
     etp: { code: string; taxable_cents: number; tax_free_cents: number; tax_withheld_cents: number } | null;
-  }>;
+  }[];
 }
 const payEvent = (stp: Record<string, unknown>) => (stp as { pay_event: PayEvent }).pay_event;
 

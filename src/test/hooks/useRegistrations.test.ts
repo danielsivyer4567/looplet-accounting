@@ -35,8 +35,11 @@ function baseProfile(overrides: Partial<RegistrationProfile> = {}): Registration
   };
 }
 
-const line = (payload: ReturnType<typeof buildRegistrationPayload>, type: RegistrationType) =>
-  payload.lines.find((l) => l.type === type)!;
+const line = (payload: ReturnType<typeof buildRegistrationPayload>, type: RegistrationType) => {
+  const match = payload.lines.find((l) => l.type === type);
+  if (!match) throw new Error(`Missing registration line: ${type}`);
+  return match;
+};
 
 describe('buildRegistrationPayload — header mapping', () => {
   it('maps the entity/industry/state/turnover fields straight through', () => {
