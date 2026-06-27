@@ -1,14 +1,15 @@
-import { useState, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { useTrust, BENEFICIARY_TYPES } from '@/hooks/useTrusts';
 import { useTrustDistribution } from '@/hooks/useTrustDistribution';
+import { useDiv7a, type Div7aBreach } from '@/hooks/useDiv7a';
 import { SkeletonTable } from '@/components/Skeleton';
 import { titleCase, formatDay, currentFyStartYear } from '@/lib/formatting';
 import { formatMoney } from '@/lib/money';
 import { downloadBlob } from '@/lib/download';
-import { ChevronLeft, Landmark, FileText, Plus, Save, Edit3, Trash2, Coins } from 'lucide-react';
+import { ChevronLeft, Landmark, FileText, Plus, Save, Edit3, Trash2, Coins, AlertTriangle, Banknote } from 'lucide-react';
 
 const cardStyle: CSSProperties = {
   background: 'var(--bg-card)',
@@ -338,9 +339,136 @@ export function TrustDetailPage() {
 
           {/* Distribution wizard */}
           {id && <DistributionWizard trustId={id} />}
+
+          {/* Division 7A tracker (org-wide loans + UPE breach flags) */}
+          <Div7aPanel />
         </>
       )}
     </section>
+  );
+}
+
+// The Division 7A tracker: the org's complying loans (with a generate-agreement action)
+// and the breach flags from div7a_breach_scan (repayment shortfalls, over-term loans,
+// stale UPEs). Org-wide — Div 7A loans are company->shareholder, not trust-scoped — shown
+// in the trust workspace as its Div 7A view.
+function Div7aPanel() {
+  const { loans, scan, loading, error, agreementBusyId, generateAgreement } = useDiv7a();
+
+  // Group breaches by loan_id for inline flags; stale-UPE breaches are listed separately.
+  const { breachesByLoan, upeBreaches } = useMemo(() => {
+    const byLoan = new Map<string, Div7aBreach[]>();
+    const upes: Div7aBreach[] = [];
+    for (const b of scan?.breaches ?? []) {
+      if (b.kind === 'stale_upe') {
+        upes.push(b);
+      } else if (b.loan_id) {
+        const list = byLoan.get(b.loan_id) ?? [];
+        list.push(b);
+        byLoan.set(b.loan_id, list);
+      }
+    }
+    return { breachesByLoan: byLoan, upeBreaches: upes };
+  }, [scan?.breaches]);
+
+  return (
+    <div style={cardStyle}>
+      <div style={{ ...sectionTitleStyle, justifyContent: 'space-between' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <Banknote size={14} style={{ color: 'var(--accent-primary)' }} /> Division 7A
+        </span>
+        {scan && (
+          <span style={{ fontWeight: 400, color: scan.breach_count > 0 ? 'var(--text-danger)' : 'var(--text-success)' }}>
+            {scan.breach_count > 0 ? `${scan.breach_count} issue${scan.breach_count === 1 ? '' : 's'}` : 'No issues'}
+          </span>
+        )}
+      </div>
+
+      {error && (
+        <div className="badge badge-danger" style={{ display: 'block', padding: '0.5rem', marginBottom: '0.75rem', textTransform: 'none' }}>
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <SkeletonTable rows={3} cols={4} />
+      ) : loans.length === 0 ? (
+        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No Division 7A loans recorded.</span>
+      ) : (
+        <div className="table-premium-container">
+          <table className="table-premium">
+            <thead>
+              <tr>
+                <th>Lender → Borrower</th>
+                <th>Made</th>
+                <th style={{ textAlign: 'right' }}>Principal</th>
+                <th>Term</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loans.map((l) => {
+                const flags = breachesByLoan.get(l.id) ?? [];
+                const hasShortfall = flags.some((f) => f.kind === 'repayment_shortfall');
+                return (
+                  <tr key={l.id}>
+                    <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>
+                      {l.lender_company_name} → {l.borrower_name}
+                    </td>
+                    <td>FY{l.loan_year}-{l.loan_year + 1}</td>
+                    <td style={{ textAlign: 'right' }}>{formatMoney(l.principal_cents)}</td>
+                    <td>{l.term_years}yr</td>
+                    <td>
+                      {flags.length > 0 ? (
+                        <span
+                          className="badge badge-danger"
+                          style={{ fontSize: '11px', textTransform: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                          title={flags.map((f) => f.detail ?? f.kind).join('\n')}
+                        >
+                          <AlertTriangle size={12} />
+                          {hasShortfall ? 'Shortfall' : 'Over term'}
+                        </span>
+                      ) : l.has_complying_agreement ? (
+                        <span className="badge badge-success" style={{ fontSize: '11px', textTransform: 'none' }}>Complying</span>
+                      ) : (
+                        <span className="badge badge-neutral" style={{ fontSize: '11px', textTransform: 'none' }}>No agreement</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        disabled={agreementBusyId === l.id}
+                        onClick={() => void generateAgreement(l.id)}
+                        style={btnIconStyle}
+                      >
+                        <FileText size={14} /> {agreementBusyId === l.id ? 'Generating…' : 'Agreement'}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Stale UPEs (not tied to a loan row) */}
+      {upeBreaches.length > 0 && (
+        <div style={{ marginTop: '1rem' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-danger)', fontWeight: 600, marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <AlertTriangle size={13} /> Unpaid present entitlements at risk
+          </div>
+          <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.85rem', color: 'var(--text-body)' }}>
+            {upeBreaches.map((u) => (
+              <li key={u.upe_id}>
+                {u.beneficiary} — {formatMoney(u.unpaid_amount_cents)} unpaid from FY{u.year_arose}-{(u.year_arose ?? 0) + 1}, still unmanaged
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
 
