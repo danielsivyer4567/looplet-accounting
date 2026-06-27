@@ -66,7 +66,7 @@ Deno.test("citeForAdvice fails open when the Sonar key is absent", async () => {
 });
 
 Deno.test("citeForAdvice extracts Sonar text and top-level citations without network", async () => {
-  const calls: Array<{ url: string; init?: RequestInit }> = [];
+  const calls: { url: string; init?: RequestInit }[] = [];
   const result = await citeForAdvice(
     "Can I claim ute costs?",
     facts,
