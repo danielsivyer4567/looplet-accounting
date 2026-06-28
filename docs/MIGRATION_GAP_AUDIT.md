@@ -7,20 +7,22 @@
 
 ## 2026-06-29 Wrap-up Addendum
 
-The live project `dxoikltymmknxqpkpyhi` is still not safe for a blind
-`supabase db push`.
+The live project `dxoikltymmknxqpkpyhi` is much closer to migration-history
+parity, but it is still not safe for a blind `supabase db push`.
 
 Current evidence:
 
 - `supabase db query --linked` works through the Management API.
 - `supabase migration list --linked` works when the stale
-  `SUPABASE_DB_PASSWORD` environment variable is removed, but it compares local
-  numeric files against remote timestamp versions. It reports local `0089`-
-  `0196` as local-only while remote has timestamp rows whose `name` values map
-  to many of those same migrations.
-- Raw `supabase_migrations.schema_migrations` rows map these timestamp versions
-  to local migration names: `0089`, `0090`-`0137`, `0108`-`0115`, `0151`-
-  `0153`, `0178`, and `0179`.
+  `SUPABASE_DB_PASSWORD` environment variable is removed.
+- Earlier on 2026-06-29, it compared local numeric files against remote
+  timestamp versions and reported local `0089`-`0196` as local-only, even though
+  raw `supabase_migrations.schema_migrations` rows mapped many timestamp
+  versions to the same local migration names.
+- That timestamp-history drift has now been repaired: 54 timestamp-version rows
+  whose `name` matched a local migration prefix were rewritten to the matching
+  numeric `version` (`0089`, `0090`-`0137`, `0108`-`0115`, `0151`-`0153`,
+  `0178`, and `0179`).
 - Missing live DDL for `0181`-`0187` was applied on 2026-06-29 after checking
   target objects/columns were absent and existing data would not violate the new
   constraints. Verified live after apply: `lodgements`, `ato_correspondence`,
@@ -30,19 +32,23 @@ Current evidence:
   `distribution_finalise_payload(uuid,uuid,integer,text)`,
   `obligation_status.lodgement_id`, `obligation_status.lodged_at`, receipt POS
   reliability columns, and the expected lodgement/receipt indexes all exist.
-- `0180` and `0185` are inert/commented cron notes. `0188` was not replayed
-  because live `write_audit_log()` already includes the organizations special
-  case and has a stricter `search_path = public, pg_temp` than the local file.
+- Numeric history rows were added for known-applied or intentionally no-op
+  migrations `0180`-`0196`. `0180`, `0185`, and `0192` are inert/commented notes.
+  `0188` was not replayed because live `write_audit_log()` already includes the
+  organizations special case and has a stricter `search_path = public, pg_temp`
+  than the local file. The other rows in that range have live DDL evidence.
+- Post-repair `supabase migration list --linked` shows local/remote parity
+  through `0137`, then for `0151`-`0153`, and again for `0178`-`0196`.
+- The remaining local-only ranges are `0138`-`0150` and `0154`-`0177`. These were
+  deliberately left unmarked because their live DDL has not been proven in this
+  wrap-up pass.
 
 Remaining migration-history work:
 
-- Decide and execute one canonical repair path before using `supabase db push`.
-  The likely repair is to convert timestamp history rows whose `name` matches a
-  local file into the corresponding numeric `version`, then add numeric history
-  rows only for manually applied migrations whose live DDL has been verified.
-- Do not insert duplicate numeric rows beside timestamp rows without deciding
-  how to handle the timestamp rows; that would trade a local-only warning for a
-  remote-only warning and still leave history ambiguous.
+- Audit and either apply or intentionally defer the remaining local-only
+  migrations `0138`-`0150` and `0154`-`0177`.
+- Do not mark those remaining ranges as applied without live object/function
+  evidence for each file.
 
 ## Problem
 

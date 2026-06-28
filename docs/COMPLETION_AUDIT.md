@@ -12,9 +12,9 @@ This document is now a historical May 6 baseline, not the current release
 scorecard. Current wrap-up evidence changes these conclusions:
 
 - **Reconciliation invoice-side:** code and live DB hardening are done. The UI
-  matches bank inflows to invoices and caps settlement at `min(bank inflow,
-invoice balance)`. Live `0196_harden_invoice_reconciliation.sql` proof shows
-  hardened AR grants, invoice-payment validation, triggers, and a
+  matches bank inflows to invoices and caps settlement at the lesser of the bank
+  inflow and invoice balance. Live `0196_harden_invoice_reconciliation.sql`
+  proof shows hardened AR grants, invoice-payment validation, triggers, and a
   security-invoker invoice match view. Remaining proof is a signed-in live
   invoice/payment smoke with real AR data.
 - **Receipt Hub:** the Receipt Tag/Web NFC carrier and WhatsApp delivery scope
@@ -34,10 +34,11 @@ invoice balance)`. Live `0196_harden_invoice_reconciliation.sql` proof shows
   still needs a signed-in Ask/on-demand smoke proving a live `advice_notes` draft
   row is created.
 - **Migration state:** missing live DDL for `0181`-`0187` was applied and verified
-  on 2026-06-29. Migration history is still not canonicalised: the remote table
-  records many local migrations under timestamp versions, while the CLI still
-  reports numeric local files `0089`-`0196` as local-only. Do not run
-  `supabase db push` blind.
+  on 2026-06-29. The timestamp-version drift for known-applied rows was repaired
+  afterwards: `supabase migration list --linked` now lines up through `0137`,
+  then `0151`-`0153`, and `0178`-`0196`. The remaining local-only ranges are
+  `0138`-`0150` and `0154`-`0177`; do not run `supabase db push` blind until
+  those are audited.
 - **Fresh local gates:** after the wrap-up DB/doc work, `npm run format:check`,
   `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build` all
   passed on 2026-06-29. The build still emits the pre-existing pdfjs dynamic
