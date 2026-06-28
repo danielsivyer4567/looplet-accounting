@@ -117,6 +117,7 @@ interface ReceiptAuditPackageRow {
   gst_status: string;
   deductibility_status: string;
   decision_path: Record<string, unknown>;
+  storage_key: string | null;
 }
 
 interface ApiKeyRpcRow {
@@ -430,7 +431,7 @@ export function ReceiptHubPage() {
           .order('line_number', { ascending: true }),
         supabase
           .from('receipt_audit_packages')
-          .select('id,bill_id,gst_status,deductibility_status,decision_path')
+          .select('id,bill_id,gst_status,deductibility_status,decision_path,storage_key')
           .eq('organization_id', currentOrg.id)
           .eq('receipt_event_id', eventId)
           .order('created_at', { ascending: false })
@@ -2246,6 +2247,16 @@ function ReceiptEventDrawer({
     typeof audit?.decision_path?.['reason'] === 'string'
       ? (audit.decision_path['reason'] as string)
       : null;
+
+  const downloadAuditPackage = async (storageKey: string | null) => {
+    if (!storageKey) return;
+    const { data, error: signErr } = await supabase.storage
+      .from('receipt-audit')
+      .createSignedUrl(storageKey, 60);
+    if (signErr || !data?.signedUrl) return;
+    window.open(data.signedUrl, '_blank', 'noopener');
+  };
+
   return (
     <>
       <div className="receipt-drawer-backdrop" onClick={onClose} aria-hidden="true" />
@@ -2315,7 +2326,18 @@ function ReceiptEventDrawer({
             </div>
 
             <div className="receipt-drawer-section">
-              <h4>Audit decision path</h4>
+              <h4>
+                Audit decision path
+                {audit?.storage_key ? (
+                  <button
+                    type="button"
+                    className="receipt-panel-action receipt-audit-download"
+                    onClick={() => void downloadAuditPackage(audit.storage_key)}
+                  >
+                    <FileCheck2 size={14} /> Download
+                  </button>
+                ) : null}
+              </h4>
               {audit && Object.keys(audit.decision_path).length > 0 ? (
                 <pre className="receipt-decision-path">
                   {JSON.stringify(audit.decision_path, null, 2)}

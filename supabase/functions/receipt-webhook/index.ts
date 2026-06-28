@@ -936,6 +936,32 @@ async function createAuditPackage(admin: SupabaseClient, args: {
   eventType: ReceiptEventType;
   relatedReceiptEventId: string | null;
 }) {
+  const evidence = {
+    source_channel: args.sourceChannel,
+    event_type: args.eventType,
+    related_receipt_event_id: args.relatedReceiptEventId,
+    merchant: args.payload.merchant ?? {},
+    receipt: args.payload.receipt ?? {},
+    line_count: Array.isArray(args.payload.line_items) ? args.payload.line_items.length : 0,
+  };
+  const decisionPath = {
+    root: 'Receipt Hub decision',
+    branches: [
+      { title: 'Identity', detail: 'Receipt pass token matched active Looplet identity.' },
+      { title: 'GST', detail: args.gstEstimated ? 'GST was estimated from total using AU 1/11 rule.' : 'GST was supplied by POS payload.' },
+      { title: 'Business use', detail: args.classification.businessUse },
+      { title: 'Deductibility', detail: args.classification.deductibility },
+      {
+        title: 'Next sync',
+        detail: args.billId
+          ? 'Bill created and sync jobs queued.'
+          : args.eventType === 'sale'
+            ? 'Stored as personal/review evidence.'
+            : 'Stored as refund/void evidence; accounting credit handling is a separate workflow.',
+      },
+    ],
+  };
+
   const { data, error } = await admin
     .from('receipt_audit_packages')
     .insert({
@@ -943,37 +969,44 @@ async function createAuditPackage(admin: SupabaseClient, args: {
       receipt_event_id: args.eventId,
       bill_id: args.billId,
       storage_key: args.storageKey,
-      evidence: {
-        source_channel: args.sourceChannel,
-        event_type: args.eventType,
-        related_receipt_event_id: args.relatedReceiptEventId,
-        merchant: args.payload.merchant ?? {},
-        receipt: args.payload.receipt ?? {},
-        line_count: Array.isArray(args.payload.line_items) ? args.payload.line_items.length : 0,
-      },
-      decision_path: {
-        root: 'Receipt Hub decision',
-        branches: [
-          { title: 'Identity', detail: 'Receipt pass token matched active Looplet identity.' },
-          { title: 'GST', detail: args.gstEstimated ? 'GST was estimated from total using AU 1/11 rule.' : 'GST was supplied by POS payload.' },
-          { title: 'Business use', detail: args.classification.businessUse },
-          { title: 'Deductibility', detail: args.classification.deductibility },
-          {
-            title: 'Next sync',
-            detail: args.billId
-              ? 'Bill created and sync jobs queued.'
-              : args.eventType === 'sale'
-                ? 'Stored as personal/review evidence.'
-                : 'Stored as refund/void evidence; accounting credit handling is a separate workflow.',
-          },
-        ],
-      },
+      evidence,
+      decision_path: decisionPath,
       gst_status: args.gstEstimated ? 'estimated' : 'supplied',
       deductibility_status: args.classification.deductibility,
     })
     .select('id')
     .single();
   if (error || !data) throw new Error(error?.message ?? 'audit package insert failed');
+
+  // Write the immutable audit JSON to the private receipt-audit bucket at the
+  // key the row points to. Best-effort: a storage hiccup must not roll back a
+  // successfully-ingested receipt, but it IS surfaced so the dangling pointer is
+  // visible rather than silent. upsert:true keeps re-ingests idempotent.
+  try {
+    const auditDoc = {
+      audit_package_id: data.id as string,
+      organization_id: args.organizationId,
+      receipt_event_id: args.eventId,
+      bill_id: args.billId,
+      gst_status: args.gstEstimated ? 'estimated' : 'supplied',
+      deductibility_status: args.classification.deductibility,
+      payload: args.payload,
+      evidence,
+      decision_path: decisionPath,
+      generated_at: new Date().toISOString(),
+    };
+    const { error: uploadErr } = await admin.storage
+      .from('receipt-audit')
+      .upload(args.storageKey, new Blob([JSON.stringify(auditDoc, null, 2)], {
+        type: 'application/json',
+      }), { contentType: 'application/json', upsert: true });
+    if (uploadErr) {
+      console.error(`audit package storage write failed for ${args.storageKey}: ${uploadErr.message}`);
+    }
+  } catch (storageErr) {
+    console.error(`audit package storage write threw for ${args.storageKey}:`, storageErr);
+  }
+
   return data.id as string;
 }
 

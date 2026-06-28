@@ -1809,6 +1809,15 @@ code {
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.receipt-audit-download {
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .receipt-line-list {
