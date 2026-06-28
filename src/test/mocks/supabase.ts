@@ -143,6 +143,9 @@ export const supabase = {
     from: vi.fn().mockReturnValue({
       upload: vi.fn().mockResolvedValue({ data: {}, error: null }),
       getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://example.com/file' } }),
+      createSignedUrl: vi
+        .fn()
+        .mockResolvedValue({ data: { signedUrl: 'https://example.com/signed' }, error: null }),
     }),
   },
 
@@ -151,4 +154,5 @@ export const supabase = {
     subscribe: vi.fn().mockReturnThis(),
     unsubscribe: vi.fn(),
   }),
+  removeChannel: vi.fn().mockResolvedValue('ok'),
 };

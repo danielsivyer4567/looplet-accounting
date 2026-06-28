@@ -11,6 +11,8 @@
  */
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// NOTE: this is a type-only import (erased at runtime), so the module is safe to
+// import from both the Deno edge runtime and a Node/vitest test context.
 
 export interface GenericApiBill {
   id: string;
