@@ -21,7 +21,9 @@
 //     source_name?: string,    // … or by name (one of the two is required)
 //     text?: string,           // OPTIONAL: the already-fetched text (manual/test);
 //                              //           omit to fetch source.canonical_url
-//     effective_from?: string } // OPTIONAL 'YYYY-MM-DD' compilation date; default = today
+//     effective_from?: string, // OPTIONAL 'YYYY-MM-DD' compilation date; default = today
+//     chunk_offset?: number,   // OPTIONAL: start chunk index for resumable large sources
+//     chunk_limit?: number }   // OPTIONAL: max chunks to process in this call
 //
 // DEPLOY PREREQUISITES (post-slice): 0108–0111 applied; OPENAI_API_KEY set (embeds);
 // LEGAL_SYNC_SECRET set for the cron; deploy via Supabase MCP. Fetched FRL sources
@@ -42,6 +44,8 @@ interface RequestBody {
   source_name?: string;
   text?: string;
   effective_from?: string;
+  chunk_offset?: number;
+  chunk_limit?: number;
 }
 
 interface SourceRow {
@@ -54,6 +58,8 @@ interface SourceRow {
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const DEFAULT_CHUNK_LIMIT = 120;
+const MAX_CHUNK_LIMIT = 200;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -166,12 +172,28 @@ Deno.serve(async (req: Request) => {
     // The registry name IS the corpus doc_ref (see CONVENTION above).
     const doc_ref = source.name;
     const chunks = chunkLegalText(text, { doc_ref });
+    const requestedOffset = Number.isFinite(body.chunk_offset)
+      ? Math.floor(body.chunk_offset ?? 0)
+      : 0;
+    const chunkOffset = Math.max(0, requestedOffset);
+    const requestedLimit = Number.isFinite(body.chunk_limit)
+      ? Math.floor(body.chunk_limit ?? 0)
+      : 0;
+    const chunkLimit =
+      requestedLimit > 0
+        ? Math.min(requestedLimit, MAX_CHUNK_LIMIT)
+        : body.chunk_offset != null
+          ? DEFAULT_CHUNK_LIMIT
+          : chunks.length;
+    const chunkWindow = chunks.slice(chunkOffset, chunkOffset + chunkLimit);
+    const nextOffset = chunkOffset + chunkWindow.length;
+    const complete = nextOffset >= chunks.length;
     const { stats, changes, current } = await upsertVersionedChunks(admin, {
       doc_ref,
       source: source.name,
       citation_url: fetched.citation_url,
       effective_from,
-      chunks,
+      chunks: chunkWindow,
     });
 
     // Record each section change in the event ledger (E.02).
@@ -187,28 +209,42 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Repeal detection: a section live BEFORE this run but ABSENT from the new
-    // text is no longer in force — close it (append-only, not deleted) + flag it.
-    const newRefs = new Set(chunks.map((c) => c.section_ref));
     let repealed = 0;
-    for (const [section_ref, cur] of current) {
-      if (newRefs.has(section_ref)) continue;
-      const { error: closeErr } = await admin
-        .from('legal_corpus')
-        .update({ effective_to: effective_from })
-        .eq('id', cur.id);
-      if (closeErr) throw new Error(`repeal close ${section_ref}: ${closeErr.message}`);
-      await recordChange(admin, doc_ref, section_ref, 'repealed', cur.id, null, effective_from);
-      repealed += 1;
+    if (complete) {
+      // Repeal detection only runs on the final/full window: a section live
+      // BEFORE this run but ABSENT from the new text is no longer in force.
+      // Earlier windows must not treat not-yet-processed chunks as repealed.
+      const newRefs = new Set(chunks.map((c) => c.section_ref));
+      for (const [section_ref, cur] of current) {
+        if (newRefs.has(section_ref)) continue;
+        const { error: closeErr } = await admin
+          .from('legal_corpus')
+          .update({ effective_to: effective_from })
+          .eq('id', cur.id);
+        if (closeErr) throw new Error(`repeal close ${section_ref}: ${closeErr.message}`);
+        await recordChange(admin, doc_ref, section_ref, 'repealed', cur.id, null, effective_from);
+        repealed += 1;
+      }
+
+      // Stamp the source's check cursor only after the final/full window.
+      await admin
+        .from('legal_sources')
+        .update({ last_checked_at: new Date().toISOString(), last_version_ref: version_ref })
+        .eq('id', source.id);
     }
 
-    // Stamp the source's check cursor.
-    await admin
-      .from('legal_sources')
-      .update({ last_checked_at: new Date().toISOString(), last_version_ref: version_ref })
-      .eq('id', source.id);
-
-    return json({ ok: true, source: source.name, effective_from, stats: { ...stats, repealed } });
+    return json({
+      ok: true,
+      source: source.name,
+      effective_from,
+      chunk_offset: chunkOffset,
+      chunk_limit: chunkLimit,
+      processed_chunks: chunkWindow.length,
+      total_chunks: chunks.length,
+      next_offset: complete ? null : nextOffset,
+      complete,
+      stats: { ...stats, repealed },
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return json({ ok: false, error: msg }, 500);

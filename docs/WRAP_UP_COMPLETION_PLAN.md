@@ -27,7 +27,7 @@ work and re-checking the live project. It intentionally separates:
   `0196`; `supabase db push --linked --dry-run` returned
   `Remote database is up to date.`
 - Fresh live blocker counts checked on 2026-06-29:
-  `legal_sources=7`, `legal_corpus=391`, `legal_change_events=385`,
+  `legal_sources=7`, `legal_corpus=1433`, `legal_change_events=750`,
   `legal_horizon=0`, `advice_notes=1`, `receipt_events=0`,
   enabled `receipt_sync_endpoints=0`, enabled `xero_integrations=0`, and
   pending-ish `receipt_sync_jobs=0`.
@@ -43,12 +43,15 @@ work and re-checking the live project. It intentionally separates:
   date metadata instead of passing raw markup to the chunker. Local live-source
   proof against the current ITAA 1997 FRL page extracted 7,758,792 characters,
   produced 5,956 chunks, and found `s 8-1 General deductions`.
-- The updated `legal-corpus-sync` bundle is deployed live as version 13. Live
+- The updated `legal-corpus-sync` bundle is deployed live as version 16. Live
   smoke on 2026-06-29: OPTIONS returned 200 with CORS and unauthenticated POST
   reached the function and returned `{"ok":false,"error":"Unauthorized"}` with
-  HTTP 401. The FBT source then synced successfully over the operator-secret
-  path: HTTP 200 with `chunks=391`, `inserted=385`, `unchanged=6`, and all 391
-  current FBT corpus rows have embeddings.
+  HTTP 401. The sync path now supports resumable `chunk_offset`/`chunk_limit`
+  windows for large Acts. The FBT source synced successfully over the
+  operator-secret path: HTTP 200 with `chunks=391`, `inserted=385`,
+  `unchanged=6`, and all 391 current FBT corpus rows have embeddings. The GST
+  source completed across 14 windows with `processed=1042`, `inserted=365`,
+  `unchanged=677`, and all 1,042 current GST corpus rows have embeddings.
 - Supabase secret-name check found the scanner provider key, `OPENAI_API_KEY`,
   and `LEGAL_SYNC_SECRET` present, but no `LEGAL_INGEST_SECRET` or
   `LEGAL_SCAN_SECRET` configured by those names. Do not expose secret values in
@@ -64,13 +67,13 @@ work and re-checking the live project. It intentionally separates:
   `NOTIFICATIONS_CRON_SECRET`, `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET`, and
   `OPENAI_API_KEY` and `LEGAL_SYNC_SECRET`, and false for
   `LEGAL_INGEST_SECRET` and `LEGAL_SCAN_SECRET`.
-- `gmail-pubsub-push` is deployed live as version 39. It now shares the Gmail
+- `gmail-pubsub-push` is deployed live as version 41. It now shares the Gmail
   message-id duplicate guard with backfill, leaves `last_history_id` unchanged
   on retryable ingest failures so future pushes can replay safely, and the live
   audit proves unsigned POSTs fail closed with HTTP 401.
 - `bank-sync`, `bank-sync-all`, and `notifications-cron` have had the
   forgeable service-role branch removed. Live versions after deploy:
-  `bank-sync` 34, `bank-sync-all` 32, and `notifications-cron` 29. The live
+  `bank-sync` 36, `bank-sync-all` 34, and `notifications-cron` 31. The live
   audit proves forged `bank-sync` service-role JWTs fail closed with HTTP 401,
   unsigned `bank-sync-all` and `notifications-cron` POSTs fail closed with HTTP
   403, both cron runtime secret names exist in Supabase, and all three
@@ -82,7 +85,7 @@ work and re-checking the live project. It intentionally separates:
   `orgs=0`, and a DB-side `pg_net` probe through the same Vault path returned
   HTTP 200 with `{"ok":true,"orgs":0,"results":[]}`.
 - `accountant-session-digest` cron auth is fixed live. The function is active
-  as version 24 with `verify_jwt=false`, cron mode now requires exact
+  as version 26 with `verify_jwt=false`, cron mode now requires exact
   `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET` or service-role bearer, and
   browser/on-demand modes still verify the caller JWT internally. The active
   cron is job 15 and reads a scoped `accountant_session_digest_cron_secret` from
@@ -214,7 +217,7 @@ supabase/functions/gmail-pubsub-push/index.ts` passed.
 - `supabase functions deploy gmail-pubsub-push --project-ref
 dxoikltymmknxqpkpyhi --no-verify-jwt` deployed the hardened Gmail Pub/Sub
   handler. The follow-up `npm run wrap:live-audit` passed with
-  `gmail-pubsub-push` active as version 39, CORS OPTIONS 200, live Gmail
+  `gmail-pubsub-push` active as version 41, CORS OPTIONS 200, live Gmail
   runtime secret-name presence, and unsigned POST fail-closed status 401.
 - `deno test supabase/functions/_shared/serviceRole.test.ts` passed: 3 tests.
   It proves exact service-role bearer matching, exact cron secret matching, and
@@ -230,8 +233,8 @@ dxoikltymmknxqpkpyhi --no-verify-jwt`, and `supabase functions deploy
 notifications-cron --project-ref dxoikltymmknxqpkpyhi --no-verify-jwt`
   deployed the hardened bank/cron handlers.
 - The follow-up `npm run wrap:live-audit` passed with `bank-sync` active as
-  version 34, `bank-sync-all` as version 32, `notifications-cron` as version
-  29, CORS OPTIONS 200 for both cron endpoints, live cron secret-name presence,
+  version 36, `bank-sync-all` as version 34, `notifications-cron` as version
+  31, CORS OPTIONS 200 for both cron endpoints, live cron secret-name presence,
   forged `bank-sync` service-role JWT fail-closed status 401, and unsigned
   `bank-sync-all`/`notifications-cron` fail-closed status 403.
 - Live cron inspection showed `bank-sync-all` was still scheduled without auth.
@@ -246,7 +249,7 @@ supabase/functions/accountant-session-digest/index.ts` passed.
 - `supabase functions deploy accountant-session-digest --project-ref
 dxoikltymmknxqpkpyhi --no-verify-jwt` deployed the self-authenticating digest
   handler. The follow-up `npm run wrap:live-audit` passed with
-  `accountant-session-digest` active as version 24, CORS OPTIONS 200, live
+  `accountant-session-digest` active as version 26, CORS OPTIONS 200, live
   `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET` name presence, and unsigned cron-mode
   POST fail-closed status 403.
 - The live digest cron was rescheduled from the missing `service_role_key`
@@ -289,8 +292,8 @@ dxoikltymmknxqpkpyhi --no-verify-jwt` deployed the self-authenticating digest
 
 ## Workstream 1: Legal RAG And Horizon
 
-**Current status:** one official source is live-proven; full production corpus,
-Horizon, and signed-in Ask citation proof remain open.
+**Current status:** two official sources are live-proven; full production
+corpus, Horizon, and signed-in Ask citation proof remain open.
 
 Completed:
 
@@ -302,12 +305,15 @@ Completed:
   `C2004A05138`-style source URLs resolve to `/latest/text`, EPUB document pages
   are fetched in order, tables of sections/scripts/styles/tags are stripped, and
   FRL effective date/version metadata is captured for the sync cursor.
-- `legal-corpus-sync` version 13 is deployed live and still fails closed without
+- `legal-corpus-sync` version 16 is deployed live and still fails closed without
   service-role bearer or `LEGAL_SYNC_SECRET`.
 - The FBT Act source is synced live: 391 current `legal_corpus` rows, 391
   embeddings, 385 legal change events, source cursor stamped, and
   `match_legal_corpus` returns `s 47 [1] Exempt residual benefits` at
   similarity `1.0000`.
+- The GST Act source is synced live through resumable windows: 1,042 current
+  `legal_corpus` rows, 1,042 embeddings, source cursor stamped, and
+  `match_legal_corpus` returns `s 9-5 Taxable supplies` at similarity `1.0000`.
 - `legal-horizon-run` is deployed and blocks unauthenticated calls at the
   Supabase gateway.
 - The Legal Horizon UI scan controls passed mocked desktop/mobile browser smoke.
@@ -330,7 +336,7 @@ Exit criteria:
 
 - Seed the remaining registered source names, or the approved smaller source
   set, through `legal-corpus-sync`/`legal-corpus-ingest`.
-- Extend the current proof beyond FBT by verifying embeddings and
+- Extend the current proof beyond FBT/GST by verifying embeddings and
   `match_legal_corpus` for 2-3 known queries across the remaining source set.
 - Ask a signed-in tax question and capture UI evidence that corpus
   `citations[]` render and open the quoted law panel.
