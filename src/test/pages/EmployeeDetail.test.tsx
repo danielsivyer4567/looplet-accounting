@@ -21,8 +21,29 @@ vi.mock('@/lib/supabase', () => {
     const chain: Record<string, unknown> = {};
     const pass = () => chain;
     [
-      'select', 'insert', 'update', 'delete', 'upsert', 'eq', 'neq', 'gt', 'lt', 'gte', 'lte',
-      'like', 'ilike', 'in', 'is', 'not', 'or', 'filter', 'order', 'limit', 'range', 'match', 'returns',
+      'select',
+      'insert',
+      'update',
+      'delete',
+      'upsert',
+      'eq',
+      'neq',
+      'gt',
+      'lt',
+      'gte',
+      'lte',
+      'like',
+      'ilike',
+      'in',
+      'is',
+      'not',
+      'or',
+      'filter',
+      'order',
+      'limit',
+      'range',
+      'match',
+      'returns',
     ].forEach((m) => {
       chain[m] = pass;
     });
@@ -66,7 +87,12 @@ const EMP = {
   is_active: true,
   modern_award: 'MA000003',
   classification_level: 'Level 1',
-  wage_components: { base_hourly_rate: 24.0, super_pct: 11.5, workcover_pct: 1.5, leave_loading_pct: 8 },
+  wage_components: {
+    base_hourly_rate: 24.0,
+    super_pct: 11.5,
+    workcover_pct: 1.5,
+    leave_loading_pct: 8,
+  },
   created_at: '2024-01-01T00:00:00Z',
 };
 const EXC = {
@@ -122,7 +148,10 @@ describe('EmployeeDetail award underpayment badge (SC-3.K.03)', () => {
   });
 
   it('degrades gracefully when the exceptions view is unavailable (not deployed)', async () => {
-    h.tables['v_award_rate_exceptions'] = { data: null, error: { message: 'relation does not exist' } };
+    h.tables['v_award_rate_exceptions'] = {
+      data: null,
+      error: { message: 'relation does not exist' },
+    };
     await renderLoaded();
     expect(screen.getByText('Jane Doe')).toBeInTheDocument();
     expect(screen.queryByText(/Possible award underpayment/i)).not.toBeInTheDocument();

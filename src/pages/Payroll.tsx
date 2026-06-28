@@ -431,7 +431,13 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
         }}
       >
         <h2
-          style={{ fontSize: '1.25rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+          style={{
+            fontSize: '1.25rem',
+            margin: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+          }}
         >
           <Wallet size={16} style={{ color: 'var(--text-muted)' }} />
           Super batch - {fyLabel}
@@ -487,11 +493,22 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
             </table>
           </div>
           <div
-            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginTop: '1rem' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              flexWrap: 'wrap',
+              marginTop: '1rem',
+            }}
           >
             <span
               className={`badge ${isSent ? 'badge-success' : 'badge-warning'}`}
-              style={{ textTransform: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+              style={{
+                textTransform: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+              }}
             >
               {isSent ? <CheckCircle2 size={13} /> : null}
               {batch.status}
@@ -507,7 +524,9 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
             </button>
           </div>
           {msg && (
-            <p style={{ color: 'var(--text-success)', fontSize: '0.8rem', marginTop: '0.75rem' }}>{msg}</p>
+            <p style={{ color: 'var(--text-success)', fontSize: '0.8rem', marginTop: '0.75rem' }}>
+              {msg}
+            </p>
           )}
           {actionError && (
             <p style={{ color: 'var(--text-danger)', fontSize: '0.8rem', marginTop: '0.75rem' }}>

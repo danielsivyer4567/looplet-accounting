@@ -107,7 +107,10 @@ export function TrustsPage() {
                 >
                   <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{t.name}</td>
                   <td>
-                    <span className="badge badge-neutral" style={{ fontSize: '11px', textTransform: 'none' }}>
+                    <span
+                      className="badge badge-neutral"
+                      style={{ fontSize: '11px', textTransform: 'none' }}
+                    >
                       {titleCase(t.trust_type)}
                     </span>
                   </td>

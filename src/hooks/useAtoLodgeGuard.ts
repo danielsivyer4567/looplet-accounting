@@ -1,4 +1,4 @@
-// ATO lodge UI guard (SC-7.B.01 -> SC-4 extension)  
+// ATO lodge UI guard (SC-7.B.01 -> SC-4 extension)
 //
 // Frontend guard for ATO lodge page. Checks EVTE/DSP/SBR configuration completeness.
 // If not configured, shows "Setup Required" banner with config status.
@@ -9,9 +9,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { checkLodgeGuard, type LodgeGuardResult } from '@/hooks/useLodgeGuard';
 
-export function useAtoLodgeGuard(
-  organizationId: string,
-): {
+export function useAtoLodgeGuard(organizationId: string): {
   allowed: boolean;
   health?: LodgeGuardResult['health'];
   error?: string;

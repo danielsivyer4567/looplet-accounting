@@ -1,7 +1,7 @@
 // ATO lodge page guard component (SC-7.B.01 -> SC-4 extension)
 //
 // UI component wrapper for ATO lodge page guard.
-// 
+//
 // DEPLOY-GATED: Requires env vars: ATO_DSP_ABN, ATO_SOFTWARE_ID, ATO_STIN, ATO_M2M_KEYSTORE_REF
 //                   SBR_TAXONOMY_VERSION, SBR_TAXONOMY_BASE_URL
 //
@@ -17,17 +17,9 @@ interface AtoLodgePageGuardProps {
   children: React.ReactNode;
 }
 
-export function AtoLodgePageGuard({
-  organizationId,
-  children,
-}: AtoLodgePageGuardProps) {
+export function AtoLodgePageGuard({ organizationId, children }: AtoLodgePageGuardProps) {
   const { user, loading: authLoading } = useAuth();
-  const {
-    allowed,
-    health,
-    isLoading,
-    configUrl,
-  } = useAtoLodgeGuard(organizationId);
+  const { allowed, health, isLoading, configUrl } = useAtoLodgeGuard(organizationId);
 
   if (authLoading || isLoading) {
     return (
@@ -85,16 +77,17 @@ export function AtoLodgePageGuard({
           </p>
 
           {configUrl && (
-            <a className="inline-flex w-full items-center justify-center rounded bg-yellow-700 px-4 py-2 text-sm font-semibold text-white" href={configUrl}>
+            <a
+              className="inline-flex w-full items-center justify-center rounded bg-yellow-700 px-4 py-2 text-sm font-semibold text-white"
+              href={configUrl}
+            >
               <Settings className="mr-2 h-4 w-4" />
               Configure ATO Credentials
             </a>
           )}
 
           {health?.audit_trail && (
-            <div className="p-2 bg-gray-50 rounded text-xs font-mono">
-              {health.audit_trail}
-            </div>
+            <div className="p-2 bg-gray-50 rounded text-xs font-mono">{health.audit_trail}</div>
           )}
         </div>
       </section>

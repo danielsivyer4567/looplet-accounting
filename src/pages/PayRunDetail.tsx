@@ -821,10 +821,18 @@ export function TerminationWizard({
         {step === 2 && (
           <div style={{ display: 'grid', gap: '0.75rem' }}>
             {field('Redundancy / severance ($)', money(redundancyDollars, setRedundancyDollars))}
-            {field('Other ETP — ex gratia / golden handshake ($)', money(otherEtpDollars, setOtherEtpDollars))}
-            {field('Other taxable income this FY ($)', money(otherIncomeDollars, setOtherIncomeDollars))}
+            {field(
+              'Other ETP — ex gratia / golden handshake ($)',
+              money(otherEtpDollars, setOtherEtpDollars),
+            )}
+            {field(
+              'Other taxable income this FY ($)',
+              money(otherIncomeDollars, setOtherIncomeDollars),
+            )}
             {field('Unused-leave marginal rate (%)', money(marginalPct, setMarginalPct))}
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
+            <label
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}
+            >
               <input
                 type="checkbox"
                 checked={atPreservation}
@@ -841,7 +849,11 @@ export function TerminationWizard({
         {step === 3 && (
           <div style={{ display: 'grid', gap: '0.5rem' }}>
             {!result ? (
-              <button onClick={calculate} disabled={busy || !employeeId} className="btn btn-primary">
+              <button
+                onClick={calculate}
+                disabled={busy || !employeeId}
+                className="btn btn-primary"
+              >
                 {busy ? 'Calculating…' : 'Calculate breakdown'}
               </button>
             ) : (
@@ -859,10 +871,19 @@ export function TerminationWizard({
         )}
 
         {err && (
-          <p style={{ color: 'var(--text-danger)', fontSize: '0.8rem', marginTop: '0.75rem' }}>{err}</p>
+          <p style={{ color: 'var(--text-danger)', fontSize: '0.8rem', marginTop: '0.75rem' }}>
+            {err}
+          </p>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginTop: '1.25rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: '0.5rem',
+            marginTop: '1.25rem',
+          }}
+        >
           <button
             onClick={() => setStep((s) => Math.max(0, s - 1))}
             disabled={step === 0 || busy}
@@ -876,11 +897,19 @@ export function TerminationWizard({
             </button>
           ) : (
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button onClick={() => save(false)} disabled={busy || !result} className="btn btn-secondary">
+              <button
+                onClick={() => save(false)}
+                disabled={busy || !result}
+                className="btn btn-secondary"
+              >
                 Save details
               </button>
               {isOwner && (
-                <button onClick={() => save(true)} disabled={busy || !result} className="btn btn-success">
+                <button
+                  onClick={() => save(true)}
+                  disabled={busy || !result}
+                  className="btn btn-success"
+                >
                   {busy ? 'Saving…' : 'Save & finalise'}
                 </button>
               )}
@@ -894,7 +923,9 @@ export function TerminationWizard({
 
 function Row({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: strong ? 700 : 400 }}>
+    <div
+      style={{ display: 'flex', justifyContent: 'space-between', fontWeight: strong ? 700 : 400 }}
+    >
       <span style={{ color: 'var(--text-muted)' }}>{label}</span>
       <span>{formatMoney(value)}</span>
     </div>

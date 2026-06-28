@@ -475,26 +475,47 @@ export function ReceiptHubPage() {
       setTagScanning(false);
     };
 
+    let detach: (() => void) | undefined;
     try {
       const reader = new NDEFReader();
-      reader.addEventListener('reading', (event: NDEFReadingEvent) => {
-        for (const record of event.message.records) {
-          if (record.recordType !== 'text' || !record.data) continue;
-          const decoder = new TextDecoder(record.encoding ?? 'utf-8');
-          const value = decoder.decode(record.data).trim();
-          if (value.startsWith('rhp_') && value.includes('.')) {
-            setIdentityToken(value);
-            setTagMessage('Tag identified. Capture a receipt and it will use this pass.');
-            cleanup();
-            return;
-          }
+      const readPromise = new Promise<void>((resolve, reject) => {
+        function finish() {
+          reader.removeEventListener('reading', onReading);
+          controller.signal.removeEventListener('abort', onAbort);
         }
-        setTagError('That tag is not a Looplet Receipt Tag.');
-        cleanup();
+
+        function onAbort() {
+          finish();
+          reject(new DOMException('Tag not detected.', 'AbortError'));
+        }
+
+        function onReading(event: NDEFReadingEvent) {
+          for (const record of event.message.records) {
+            if (record.recordType !== 'text' || !record.data) continue;
+            const decoder = new TextDecoder(record.encoding ?? 'utf-8');
+            const value = decoder.decode(record.data).trim();
+            if (value.startsWith('rhp_') && value.includes('.')) {
+              setIdentityToken(value);
+              setTagMessage('Tag identified. Capture a receipt and it will use this pass.');
+              finish();
+              resolve();
+              return;
+            }
+          }
+          finish();
+          reject(new Error('That tag is not a Looplet Receipt Tag.'));
+        }
+
+        detach = finish;
+        reader.addEventListener('reading', onReading);
+        controller.signal.addEventListener('abort', onAbort, { once: true });
       });
       await reader.scan({ signal: controller.signal });
+      await readPromise;
     } catch (err) {
+      detach?.();
       setTagError(nfcErrorMessage(err));
+    } finally {
       cleanup();
     }
   }, []);

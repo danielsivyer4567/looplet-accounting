@@ -1,6 +1,11 @@
 import { Fragment, useState, type CSSProperties } from 'react';
 import { CalendarClock, ChevronDown, ChevronsRight, Sparkles } from 'lucide-react';
-import type { ObligationIntent, ObligationStage, TaxObligation } from '@/hooks/useTaxCalendar';
+import {
+  isCompletedObligationStatus,
+  type ObligationIntent,
+  type ObligationStage,
+  type TaxObligation,
+} from '@/hooks/useTaxCalendar';
 
 const stageColor: Record<ObligationStage, string> = {
   overdue: 'var(--accent-danger)',
@@ -20,6 +25,10 @@ function countdown(stage: ObligationStage, days: number): string {
   if (stage === 'overdue') return `${Math.abs(days)}d overdue`;
   if (days === 0) return 'due today';
   return `in ${days}d`;
+}
+
+function displayStage(o: TaxObligation): ObligationStage {
+  return isCompletedObligationStatus(o.status) ? 'done' : o.stage;
 }
 
 function ym(d: Date): string {
@@ -85,7 +94,7 @@ export function TaxTimeline({
   onHide?: () => void;
 }) {
   const cells = buildAxis(obligations);
-  const overdueCount = obligations.filter((o) => o.stage === 'overdue').length;
+  const overdueCount = obligations.filter((o) => displayStage(o) === 'overdue').length;
   const [openKey, setOpenKey] = useState<string | null>(null);
 
   return (
@@ -240,8 +249,9 @@ export function TaxTimeline({
                     {c.items.map((o) => {
                       const id = `${o.obligation_key}-${o.due_date}`;
                       const open = openKey === id;
+                      const state = displayStage(o);
                       return (
-                        <div key={id} style={{ '--c': stageColor[o.stage] } as CSSProperties}>
+                        <div key={id} style={{ '--c': stageColor[state] } as CSSProperties}>
                           <button
                             type="button"
                             className={`ev${open ? ' open' : ''}`}
@@ -254,7 +264,7 @@ export function TaxTimeline({
                               <div className="ev-meta">
                                 <span className="ev-date">{fmtShort(o.due_date)}</span>
                                 <span className="ev-badge">
-                                  {countdown(o.stage, o.days_until_due)}
+                                  {countdown(state, o.days_until_due)}
                                 </span>
                               </div>
                             </div>

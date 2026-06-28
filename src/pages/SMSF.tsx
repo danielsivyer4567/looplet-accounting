@@ -23,10 +23,23 @@ const noticeCardStyle: CSSProperties = {
 function Stat({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div style={{ minWidth: '8rem' }}>
-      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+      <div
+        style={{
+          fontSize: '0.7rem',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.03em',
+        }}
+      >
         {label}
       </div>
-      <div style={{ fontSize: '1rem', fontWeight: 600, color: strong ? 'var(--text-title)' : 'var(--text-body)' }}>
+      <div
+        style={{
+          fontSize: '1rem',
+          fontWeight: 600,
+          color: strong ? 'var(--text-title)' : 'var(--text-body)',
+        }}
+      >
         {value}
       </div>
     </div>
@@ -39,7 +52,13 @@ function FlagChip({ label, count }: { label: string; count: number }) {
   return (
     <span
       className={`badge ${clear ? 'badge-success' : 'badge-warning'}`}
-      style={{ fontSize: '11px', textTransform: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+      style={{
+        fontSize: '11px',
+        textTransform: 'none',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.3rem',
+      }}
     >
       {clear ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
       {label}: {count}
@@ -62,7 +81,13 @@ function FundPanels({ fundId }: { fundId: string }) {
   const { operating, financial, caps, drawdown, tbc } = panels;
 
   return (
-    <div style={{ marginTop: '1.25rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem' }}>
+    <div
+      style={{
+        marginTop: '1.25rem',
+        borderTop: '1px solid var(--border-subtle)',
+        paddingTop: '1rem',
+      }}
+    >
       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
         Financials &amp; compliance — income year ended 30 June {fy + 1}
       </div>
@@ -82,25 +107,46 @@ function FundPanels({ fundId }: { fundId: string }) {
         <>
           {/* Financials strip (SC-5.J.01/.02) */}
           <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-            <Stat label="Assessable income" value={formatMoney(operating?.assessable_income_cents ?? 0)} />
+            <Stat
+              label="Assessable income"
+              value={formatMoney(operating?.assessable_income_cents ?? 0)}
+            />
             <Stat label="Income tax" value={formatMoney(operating?.income_tax_cents ?? 0)} />
             <Stat label="Net result" value={formatMoney(operating?.net_result_cents ?? 0)} />
-            <Stat label="Total assets" value={formatMoney(financial?.assets?.total_assets_cents ?? 0)} />
-            <Stat label="Members' funds" value={formatMoney(financial?.members_funds_cents ?? 0)} strong />
+            <Stat
+              label="Total assets"
+              value={formatMoney(financial?.assets?.total_assets_cents ?? 0)}
+            />
+            <Stat
+              label="Members' funds"
+              value={formatMoney(financial?.members_funds_cents ?? 0)}
+              strong
+            />
           </div>
 
           {/* Compliance flags (SC-5.L.01/.02) */}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-            <FlagChip label="Over concessional cap" count={caps?.totals?.members_over_concessional ?? 0} />
-            <FlagChip label="Over non-concessional cap" count={caps?.totals?.members_over_non_concessional ?? 0} />
+            <FlagChip
+              label="Over concessional cap"
+              count={caps?.totals?.members_over_concessional ?? 0}
+            />
+            <FlagChip
+              label="Over non-concessional cap"
+              count={caps?.totals?.members_over_non_concessional ?? 0}
+            />
             <FlagChip label="Div 293" count={caps?.totals?.members_div293 ?? 0} />
-            <FlagChip label="Pensions under minimum" count={drawdown?.totals?.under_minimum_count ?? 0} />
+            <FlagChip
+              label="Pensions under minimum"
+              count={drawdown?.totals?.under_minimum_count ?? 0}
+            />
           </div>
 
           {/* TBC tracker (SC-5.I.02) */}
           {tbc && tbc.members?.length > 0 && (
             <div style={{ marginBottom: '1rem' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
+              <div
+                style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}
+              >
                 Transfer balance cap ({formatMoney(tbc.tbc_cents)} per member)
               </div>
               <div className="table-premium-container">
@@ -133,7 +179,8 @@ function FundPanels({ fundId }: { fundId: string }) {
               disabled={actionBusy !== null}
               onClick={() => void downloadReturnDraft()}
             >
-              <FileText size={14} /> {actionBusy === 'return' ? 'Preparing…' : 'Annual return draft'}
+              <FileText size={14} />{' '}
+              {actionBusy === 'return' ? 'Preparing…' : 'Annual return draft'}
             </button>
             <button
               className="btn btn-secondary"
@@ -186,7 +233,9 @@ function FundCard({ fund, members }: { fund: SmsfFundRow; members: SmsfMemberRow
         }}
       >
         <div>
-          <h2 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--text-title)' }}>{fund.name}</h2>
+          <h2 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--text-title)' }}>
+            {fund.name}
+          </h2>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
             {fund.abn ? <code>{fund.abn}</code> : <span>ABN not recorded</span>}
             {' · '}
@@ -201,7 +250,9 @@ function FundCard({ fund, members }: { fund: SmsfFundRow; members: SmsfMemberRow
 
       {/* Members */}
       {fundMembers.length === 0 ? (
-        <div style={{ ...noticeCardStyle, padding: '1.5rem' }}>No members recorded for this fund yet.</div>
+        <div style={{ ...noticeCardStyle, padding: '1.5rem' }}>
+          No members recorded for this fund yet.
+        </div>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">
@@ -219,7 +270,10 @@ function FundCard({ fund, members }: { fund: SmsfFundRow; members: SmsfMemberRow
                 <tr key={m.id}>
                   <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{m.name}</td>
                   <td>
-                    <span className="badge badge-neutral" style={{ fontSize: '11px', textTransform: 'none' }}>
+                    <span
+                      className="badge badge-neutral"
+                      style={{ fontSize: '11px', textTransform: 'none' }}
+                    >
                       {titleCase(m.role)}
                     </span>
                   </td>
@@ -258,8 +312,8 @@ export function SmsfPage() {
           SMSF
         </h1>
         <div style={{ ...noticeCardStyle, marginTop: '1.5rem' }}>
-          The SMSF workspace applies to self-managed super funds. Set this organisation's entity type to{' '}
-          <strong>SMSF</strong> in{' '}
+          The SMSF workspace applies to self-managed super funds. Set this organisation's entity
+          type to <strong>SMSF</strong> in{' '}
           <span
             style={{ color: 'var(--accent-primary)', cursor: 'pointer' }}
             onClick={() => navigate('/settings')}

@@ -10,7 +10,11 @@ export function titleCase(s: string | null | undefined): string {
 /** A date(-time) string -> "30 Jun 2024" (en-AU); null -> em dash. */
 export function formatDay(d: string | null | undefined): string {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(d).toLocaleDateString('en-AU', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 /** The current AU income year as its start year (Jul-Dec => this year; Jan-Jun => prior). */

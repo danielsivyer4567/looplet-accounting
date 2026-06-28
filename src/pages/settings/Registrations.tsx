@@ -62,7 +62,11 @@ function FilingStatusChip({ status }: { status: AsicFiling['status'] }) {
         : status === 'lodged'
           ? 'badge badge-warning'
           : 'badge badge-neutral';
-  return <span className={className} style={{ fontSize: '11px', textTransform: 'none' }}>{status}</span>;
+  return (
+    <span className={className} style={{ fontSize: '11px', textTransform: 'none' }}>
+      {status}
+    </span>
+  );
 }
 
 const formatDate = (value: string | null | undefined): string => {
@@ -101,11 +105,16 @@ function AsicRegisterSection() {
       {loading ? (
         <SkeletonTable rows={4} cols={4} />
       ) : error ? (
-        <div className="badge badge-warning" style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}>
+        <div
+          className="badge badge-warning"
+          style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}
+        >
           ASIC register data is unavailable: {error}
         </div>
       ) : !isCompany ? (
-        <div style={noticeCardStyle}>ASIC registers are shown when the business profile entity type is company.</div>
+        <div style={noticeCardStyle}>
+          ASIC registers are shown when the business profile entity type is company.
+        </div>
       ) : (
         <>
           <div
@@ -124,7 +133,11 @@ function AsicRegisterSection() {
               </div>
               <div>
                 Calendar reminder:{' '}
-                <strong>{annualReview ? `${annualReview.title} — ${formatDate(annualReview.due_date)}` : '—'}</strong>
+                <strong>
+                  {annualReview
+                    ? `${annualReview.title} — ${formatDate(annualReview.due_date)}`
+                    : '—'}
+                </strong>
               </div>
             </div>
             <button
@@ -152,7 +165,10 @@ function AsicRegisterSection() {
                 fontSize: '0.85rem',
               }}
             >
-              <AlertTriangle size={16} style={{ color: 'var(--accent-warning)', flexShrink: 0, marginTop: 2 }} />
+              <AlertTriangle
+                size={16}
+                style={{ color: 'var(--accent-warning)', flexShrink: 0, marginTop: 2 }}
+              />
               <span>
                 Director ID missing for {directorsMissingId.map((d) => d.name).join(', ')}.
               </span>
@@ -161,8 +177,15 @@ function AsicRegisterSection() {
 
           {lastDraft && (
             <div
-              className={lastDraft.status === 'empty' ? 'badge badge-neutral' : 'badge badge-success'}
-              style={{ display: 'block', padding: '0.75rem', marginBottom: '1rem', textTransform: 'none' }}
+              className={
+                lastDraft.status === 'empty' ? 'badge badge-neutral' : 'badge badge-success'
+              }
+              style={{
+                display: 'block',
+                padding: '0.75rem',
+                marginBottom: '1rem',
+                textTransform: 'none',
+              }}
             >
               {lastDraft.status === 'empty'
                 ? 'No Form 484 changes detected.'
@@ -172,7 +195,14 @@ function AsicRegisterSection() {
 
           <div style={{ display: 'grid', gap: '1.25rem' }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  marginBottom: '0.5rem',
+                }}
+              >
                 <UserRound size={16} style={{ color: 'var(--text-muted)' }} />
                 <h3 style={{ margin: 0, fontSize: '1rem' }}>Officers</h3>
               </div>
@@ -189,16 +219,24 @@ function AsicRegisterSection() {
                   </thead>
                   <tbody>
                     {officers.length === 0 ? (
-                      <tr><td colSpan={5} style={{ color: 'var(--text-muted)' }}>No officers recorded.</td></tr>
-                    ) : officers.map((officer) => (
-                      <tr key={officer.id}>
-                        <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{officer.name}</td>
-                        <td>{officer.role}</td>
-                        <td>{officer.director_id || '—'}</td>
-                        <td>{formatDate(officer.appointment_date)}</td>
-                        <td>{formatDate(officer.cessation_date)}</td>
+                      <tr>
+                        <td colSpan={5} style={{ color: 'var(--text-muted)' }}>
+                          No officers recorded.
+                        </td>
                       </tr>
-                    ))}
+                    ) : (
+                      officers.map((officer) => (
+                        <tr key={officer.id}>
+                          <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>
+                            {officer.name}
+                          </td>
+                          <td>{officer.role}</td>
+                          <td>{officer.director_id || '—'}</td>
+                          <td>{formatDate(officer.appointment_date)}</td>
+                          <td>{formatDate(officer.cessation_date)}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -219,23 +257,38 @@ function AsicRegisterSection() {
                   </thead>
                   <tbody>
                     {shares.length === 0 ? (
-                      <tr><td colSpan={5} style={{ color: 'var(--text-muted)' }}>No shareholdings recorded.</td></tr>
-                    ) : shares.map((share) => (
-                      <tr key={share.id}>
-                        <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{share.member_name}</td>
-                        <td>{share.share_class}</td>
-                        <td>{share.number_held.toLocaleString('en-AU')}</td>
-                        <td>{formatMoney(share.amount_paid_cents)}</td>
-                        <td>{formatMoney(share.amount_unpaid_cents)}</td>
+                      <tr>
+                        <td colSpan={5} style={{ color: 'var(--text-muted)' }}>
+                          No shareholdings recorded.
+                        </td>
                       </tr>
-                    ))}
+                    ) : (
+                      shares.map((share) => (
+                        <tr key={share.id}>
+                          <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>
+                            {share.member_name}
+                          </td>
+                          <td>{share.share_class}</td>
+                          <td>{share.number_held.toLocaleString('en-AU')}</td>
+                          <td>{formatMoney(share.amount_paid_cents)}</td>
+                          <td>{formatMoney(share.amount_unpaid_cents)}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  marginBottom: '0.5rem',
+                }}
+              >
                 <FileText size={16} style={{ color: 'var(--text-muted)' }} />
                 <h3 style={{ margin: 0, fontSize: '1rem' }}>ASIC filings</h3>
               </div>
@@ -251,15 +304,25 @@ function AsicRegisterSection() {
                   </thead>
                   <tbody>
                     {filings.length === 0 ? (
-                      <tr><td colSpan={4} style={{ color: 'var(--text-muted)' }}>No ASIC filings recorded.</td></tr>
-                    ) : filings.map((filing) => (
-                      <tr key={filing.id}>
-                        <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>Form {filing.form_type}</td>
-                        <td><FilingStatusChip status={filing.status} /></td>
-                        <td>{formatDate(filing.lodgement_date)}</td>
-                        <td>{formatDate(filing.created_at)}</td>
+                      <tr>
+                        <td colSpan={4} style={{ color: 'var(--text-muted)' }}>
+                          No ASIC filings recorded.
+                        </td>
                       </tr>
-                    ))}
+                    ) : (
+                      filings.map((filing) => (
+                        <tr key={filing.id}>
+                          <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>
+                            Form {filing.form_type}
+                          </td>
+                          <td>
+                            <FilingStatusChip status={filing.status} />
+                          </td>
+                          <td>{formatDate(filing.lodgement_date)}</td>
+                          <td>{formatDate(filing.created_at)}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -284,9 +347,17 @@ export function RegistrationsPage() {
         <ClipboardCheck size={24} style={{ color: 'var(--accent-primary)' }} />
         <h1 style={{ margin: 0 }}>Registrations</h1>
       </div>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 0, marginBottom: '1.5rem' }}>
-        Prepare your ABN, GST, PAYG, and FBT registrations from your business profile. This pre-fills
-        the details and links you to the official channel — it does not submit on your behalf.
+      <p
+        style={{
+          color: 'var(--text-muted)',
+          fontSize: '0.9rem',
+          marginTop: 0,
+          marginBottom: '1.5rem',
+        }}
+      >
+        Prepare your ABN, GST, PAYG, and FBT registrations from your business profile. This
+        pre-fills the details and links you to the official channel — it does not submit on your
+        behalf.
       </p>
 
       {loading ? (
@@ -318,7 +389,9 @@ export function RegistrationsPage() {
                     <td>
                       <StatusChip line={line} />
                     </td>
-                    <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{line.reason}</td>
+                    <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      {line.reason}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -336,9 +409,15 @@ export function RegistrationsPage() {
               color: 'var(--text-muted)',
             }}
           >
-            <span>Entity type: <strong>{orDash(payload.entity_type)}</strong></span>
-            <span>State: <strong>{orDash(payload.state_code)}</strong></span>
-            <span>Industry: <strong>{orDash(payload.industry_label ?? payload.industry_code)}</strong></span>
+            <span>
+              Entity type: <strong>{orDash(payload.entity_type)}</strong>
+            </span>
+            <span>
+              State: <strong>{orDash(payload.state_code)}</strong>
+            </span>
+            <span>
+              Industry: <strong>{orDash(payload.industry_label ?? payload.industry_code)}</strong>
+            </span>
             <span>
               Estimated turnover:{' '}
               <strong>{orDash(payload.estimated_annual_turnover_cents, formatMoney)}</strong>

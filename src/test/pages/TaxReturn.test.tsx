@@ -84,17 +84,46 @@ const COMPANY_RETURN: TaxReturn = {
   item6_total_profit_or_loss: {
     income: {
       lines: [
-        { account_code: '4000', account_name: 'Sales', form_item: '6', label_code: 'C', label_name: 'Gross income', amount_cents: 10_000_000 },
+        {
+          account_code: '4000',
+          account_name: 'Sales',
+          form_item: '6',
+          label_code: 'C',
+          label_name: 'Gross income',
+          amount_cents: 10_000_000,
+        },
       ],
-      total: { form_item: '6', label_code: 'S', label_name: 'Total income', amount_cents: 10_000_000 },
+      total: {
+        form_item: '6',
+        label_code: 'S',
+        label_name: 'Total income',
+        amount_cents: 10_000_000,
+      },
     },
     expenses: {
       lines: [
-        { account_code: '5000', account_name: 'Subcontractors', form_item: '6', label_code: null, label_name: 'Expense', amount_cents: 3_000_000 },
+        {
+          account_code: '5000',
+          account_name: 'Subcontractors',
+          form_item: '6',
+          label_code: null,
+          label_name: 'Expense',
+          amount_cents: 3_000_000,
+        },
       ],
-      total: { form_item: '6', label_code: 'Q', label_name: 'Total expenses', amount_cents: 3_000_000 },
+      total: {
+        form_item: '6',
+        label_code: 'Q',
+        label_name: 'Total expenses',
+        amount_cents: 3_000_000,
+      },
     },
-    total_profit_or_loss: { form_item: '6', label_code: 'T', label_name: 'Total profit or loss', amount_cents: 7_000_000 },
+    total_profit_or_loss: {
+      form_item: '6',
+      label_code: 'T',
+      label_name: 'Total profit or loss',
+      amount_cents: 7_000_000,
+    },
   },
 };
 
@@ -105,12 +134,29 @@ const TAX_PAYABLE: TaxPayable = {
   period_end: '2026-06-30',
   entity_type: 'company',
   taxable_income_cents: 7_310_000,
-  rate_basis: { kind: 'company_flat', note: 'Company base-rate entity (25%)', rate: 0.25, base_rate_entity: true, turnover_cents: 1_000_000 },
+  rate_basis: {
+    kind: 'company_flat',
+    note: 'Company base-rate entity (25%)',
+    rate: 0.25,
+    base_rate_entity: true,
+    turnover_cents: 1_000_000,
+  },
   income_tax_cents: 1_827_500,
   medicare_levy_cents: 0,
   offsets: {
-    non_refundable: { sbito_cents: 0, company_franking_cents: 0, total_cents: 0, unused_cents: 0, note: '' },
-    refundable: { franking_cents: 0, payg_instalments_paid_cents: 2_000_000, total_cents: 2_000_000, note: '' },
+    non_refundable: {
+      sbito_cents: 0,
+      company_franking_cents: 0,
+      total_cents: 0,
+      unused_cents: 0,
+      note: '',
+    },
+    refundable: {
+      franking_cents: 0,
+      payg_instalments_paid_cents: 2_000_000,
+      total_cents: 2_000_000,
+      note: '',
+    },
   },
   tax_after_non_refundable_offsets_cents: 1_827_500,
   total_liability_cents: 1_827_500,
@@ -130,10 +176,22 @@ const BOOK_TO_TAX: BookToTax = {
   basis: 'cumulative_to_date',
   accounting_profit_cents: 7_000_000,
   add_backs: {
-    lines: [{ account_code: '6710', account_name: 'Entertainment', amount_cents: 50_000, reason: 'Entertainment (Div 32)' }],
+    lines: [
+      {
+        account_code: '6710',
+        account_name: 'Entertainment',
+        amount_cents: 50_000,
+        reason: 'Entertainment (Div 32)',
+      },
+    ],
     total_cents: 50_000,
   },
-  depreciation_reconciliation: { book_depreciation_cents: 300_000, tax_depreciation_cents: 240_000, difference_cents: 60_000, note: '' },
+  depreciation_reconciliation: {
+    book_depreciation_cents: 300_000,
+    tax_depreciation_cents: 240_000,
+    difference_cents: 60_000,
+    note: '',
+  },
   taxable_income_subtotal_cents: 7_110_000,
   capital_gains: {
     net_capital_gain_cents: 200_000,
@@ -143,9 +201,19 @@ const BOOK_TO_TAX: BookToTax = {
     net_capital_loss_carried_forward_cents: 0,
     source: 'cgt_calc',
   },
-  franking: { credits_received_cents: 0, grossed_up_into_assessable_income: false, note: 'No franking credits' },
+  franking: {
+    credits_received_cents: 0,
+    grossed_up_into_assessable_income: false,
+    note: 'No franking credits',
+  },
   assessable_income_before_losses_cents: 7_310_000,
-  revenue_losses: { available_cents: 0, applied_cents: 0, current_year_loss_cents: 0, carried_forward_cents: 0, source: 'business_profile' },
+  revenue_losses: {
+    available_cents: 0,
+    applied_cents: 0,
+    current_year_loss_cents: 0,
+    carried_forward_cents: 0,
+    source: 'business_profile',
+  },
   taxable_income_cents: 7_310_000,
   caveats: ['Single-balance revenue-loss input, not FY-keyed.'],
   note: '',
@@ -161,8 +229,22 @@ const CGT: CgtCalc = {
   sbe_eligible: false,
   size_condition: {
     passed: false,
-    turnover_test: { passed: false, threshold_cents: 200_000_000, aggregated_turnover_cents: 1_000_000, turnover_bracket: 'under_2m', source: 'estimate', reason: '' },
-    mnav_test: { passed: false, threshold_cents: 600_000_000, net_asset_value_cents: 0, total_assets_cents: 0, total_liabilities_cents: 0, basis: 'balance_sheet' },
+    turnover_test: {
+      passed: false,
+      threshold_cents: 200_000_000,
+      aggregated_turnover_cents: 1_000_000,
+      turnover_bracket: 'under_2m',
+      source: 'estimate',
+      reason: '',
+    },
+    mnav_test: {
+      passed: false,
+      threshold_cents: 600_000_000,
+      net_asset_value_cents: 0,
+      total_assets_cents: 0,
+      total_liabilities_cents: 0,
+      basis: 'balance_sheet',
+    },
   },
   event_count: 1,
   current_year_capital_gains_cents: 200_000,
@@ -188,14 +270,25 @@ const CGT: CgtCalc = {
 };
 
 const withCompanyData = () => {
-  h.ret = { taxReturn: COMPANY_RETURN, taxPayable: TAX_PAYABLE, loading: false, error: null, refresh: vi.fn() };
+  h.ret = {
+    taxReturn: COMPANY_RETURN,
+    taxPayable: TAX_PAYABLE,
+    loading: false,
+    error: null,
+    refresh: vi.fn(),
+  };
   h.book = { bookToTax: BOOK_TO_TAX, cgt: CGT, loading: false, error: null, refresh: vi.fn() };
 };
 
 beforeEach(() => {
   h.ret = { taxReturn: null, taxPayable: null, loading: false, error: null, refresh: vi.fn() };
   h.book = { bookToTax: null, cgt: null, loading: false, error: null, refresh: vi.fn() };
-  h.approvals = { pending: [], isApprovedResult: false, requestApproval: vi.fn(), refresh: vi.fn() };
+  h.approvals = {
+    pending: [],
+    isApprovedResult: false,
+    requestApproval: vi.fn(),
+    refresh: vi.fn(),
+  };
 });
 
 const renderPage = () =>
@@ -229,8 +322,20 @@ describe('TaxReturnPage (SC-4.I.02 / SC-4.I.03)', () => {
   });
 
   it('degrades to the unavailable banner + empty-return card without crashing when the RPCs return null', () => {
-    h.ret = { taxReturn: null, taxPayable: null, loading: false, error: 'build_return: feature_not_supported', refresh: vi.fn() };
-    h.book = { bookToTax: null, cgt: null, loading: false, error: 'book_to_tax: missing', refresh: vi.fn() };
+    h.ret = {
+      taxReturn: null,
+      taxPayable: null,
+      loading: false,
+      error: 'build_return: feature_not_supported',
+      refresh: vi.fn(),
+    };
+    h.book = {
+      bookToTax: null,
+      cgt: null,
+      loading: false,
+      error: 'book_to_tax: missing',
+      refresh: vi.fn(),
+    };
     renderPage();
 
     expect(screen.getByText(/Some figures are unavailable/)).toBeInTheDocument();

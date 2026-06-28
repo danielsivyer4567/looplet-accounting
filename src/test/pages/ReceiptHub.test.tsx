@@ -30,9 +30,7 @@ describe('ReceiptHubPage POS bridge setup copy', () => {
     render(<ReceiptHubPage />);
 
     expect(await screen.findByText('POS bridge setup')).toBeInTheDocument();
-    expect(
-      screen.getByText(/fallback\/readiness receipt identity token/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/fallback\/readiness receipt identity token/i)).toBeInTheDocument();
     expect(
       screen.getByText(/customer's scanned Looplet identity per receipt/i),
     ).toBeInTheDocument();
@@ -47,16 +45,30 @@ describe('ReceiptHubPage POS bridge setup copy', () => {
     expect(screen.getByText(/scheduled task enabled with healthy run logs/i)).toBeInTheDocument();
     expect(screen.getByText(/Customer-scanned Looplet identity_token/i)).toBeInTheDocument();
     expect(screen.getByText(/Site manifest records POS merchant_name/i)).toBeInTheDocument();
-    expect(screen.getByText(/completed POS trigger, source format, and field capture method/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/completed POS trigger, source format, and field capture method/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/refund\/void original sale references/i)).toBeInTheDocument();
-    expect(screen.getByText(/Integration profile passes integration-fit\.mjs/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Integration profile passes integration-fit\.mjs/i),
+    ).toBeInTheDocument();
     expect(screen.getByText('Go-live evidence must prove')).toBeInTheDocument();
-    expect(screen.getByText(/Keep pos-integration-profile\.json for --fit-profile/i)).toBeInTheDocument();
-    expect(screen.getByText(/archive pos-integration-fit\.json as the fit result/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Keep pos-integration-profile\.json for --fit-profile/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/archive pos-integration-fit\.json as the fit result/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/real POS sale, refund, and void field samples/i)).toBeInTheDocument();
-    expect(screen.getByText(/Connector mode, receipt source format, and field capture method match/i)).toBeInTheDocument();
-    expect(screen.getByText(/Refund and void field samples point back to the sale/i)).toBeInTheDocument();
-    expect(screen.getByText(/Run go-live\.mjs with --fit-profile pos-integration-profile\.json/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Connector mode, receipt source format, and field capture method match/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Refund and void field samples point back to the sale/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Run go-live\.mjs with --fit-profile pos-integration-profile\.json/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Verifier field-file reconciliation matches/i)).toBeInTheDocument();
     expect(screen.getByText(/EFTPOS-only data can confirm payment/i)).toBeInTheDocument();
     expect(screen.queryByText(/LOOPLET_BRIDGE_INBOX=/)).not.toBeInTheDocument();
@@ -85,7 +97,9 @@ describe('ReceiptHubPage POS bridge setup copy', () => {
       screen.getByRole('img', { name: /pos scannable receipt identity barcode/i }),
     ).toBeInTheDocument();
     expect(screen.getByText('rhp_customer.receiptsecret')).toBeInTheDocument();
-    expect(screen.getByText(/cashier scans this Looplet identity before tender/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/cashier scans this Looplet identity before tender/i),
+    ).toBeInTheDocument();
     expect(supabase.rpc).toHaveBeenCalledWith(
       'issue_receipt_identity',
       expect.objectContaining({
@@ -120,7 +134,11 @@ describe('ReceiptHubPage POS bridge setup copy', () => {
     expect(screen.getByText(/LOOPLET_BRIDGE_LOG_DIR=/)).toBeInTheDocument();
     expect(screen.getByText(/LOOPLET_BRIDGE_MIN_FILE_AGE_MS=1000/)).toBeInTheDocument();
     expect(screen.queryByText(/LOOPLET_BRIDGE_INBOX=/)).not.toBeInTheDocument();
-    expect(screen.getByText(/LOOPLET_RECEIPT_WEBHOOK_URL=https:\/\/looplet\.supabase\.co\/functions\/v1\/receipt-webhook/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /LOOPLET_RECEIPT_WEBHOOK_URL=https:\/\/looplet\.supabase\.co\/functions\/v1\/receipt-webhook/,
+      ),
+    ).toBeInTheDocument();
     expect(supabase.rpc).toHaveBeenCalledWith(
       'issue_api_key',
       expect.objectContaining({

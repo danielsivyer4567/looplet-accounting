@@ -476,8 +476,8 @@ function KpiCard({
 /**
  * Guided prep flow for one BAS quarter (SC-3.E.01): worksheet labels +
  * pre-lodge blockers (GST-treatment exceptions, GL/BAS reconciliation variance)
- * + a worksheet-PDF download + a Tier-2 approve-and-lodge action. Lodgement is
- * stubbed (the approval is real; the lodged write-back lands in SC-3.E.02).
+ * + a worksheet-PDF download + a Tier-2 approval request. Real lodgement/status
+ * write-back stays server-side in the Phase-7 lodge flow.
  */
 export function BasPrepCard({
   fy,
@@ -491,7 +491,10 @@ export function BasPrepCard({
   dueDate: string;
 }) {
   const { currentOrg } = useOrg();
-  const { worksheet, blockers, loading, error, requestLodgeApproval } = useBasWorksheet(fy, quarter);
+  const { worksheet, blockers, loading, error, requestLodgeApproval } = useBasWorksheet(
+    fy,
+    quarter,
+  );
   const [busy, setBusy] = useState<null | 'pdf' | 'lodge'>(null);
   const [lodgeMsg, setLodgeMsg] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -512,15 +515,18 @@ export function BasPrepCard({
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in.');
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bas-worksheet-pdf`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY ?? '',
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bas-worksheet-pdf`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY ?? '',
+          },
+          body: JSON.stringify({ organization_id: currentOrg.id, fy_start_year: fy, quarter }),
         },
-        body: JSON.stringify({ organization_id: currentOrg.id, fy_start_year: fy, quarter }),
-      });
+      );
       if (!res.ok) throw new Error(`PDF generation failed (${res.status}).`);
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -543,26 +549,8 @@ export function BasPrepCard({
     setActionError(null);
     try {
       await requestLodgeApproval();
-      // Stub lodge write-back (SC-3.E.02): record the lodged status so the
-      // tax-calendar obligation flips to done. PROVISIONAL — in Phase 7 the whole
-      // write path moves server-side (post-approval DSP lodgement), which removes
-      // this client-rebuilt key. period_label MUST equal generate_tax_obligations'
-      // format 'Q{n} FY{gs}-{lpad((gs+1)%100,2)}' (mirrored exactly here; the
-      // migration's check asserts the format hasn't drifted).
-      const periodLabel = `Q${quarter} FY${fy}-${String((fy + 1) % 100).padStart(2, '0')}`;
-      const { error: statusErr } = await supabase.from('obligation_status' as never).upsert(
-        {
-          organization_id: currentOrg.id,
-          obligation_key: 'bas',
-          period_label: periodLabel,
-          status: 'lodged',
-          deleted_at: null,
-        } as never,
-        { onConflict: 'organization_id,obligation_key,period_label' },
-      );
-      if (statusErr) throw new Error(statusErr.message);
       setLodgeMsg(
-        'Lodge approval requested and BAS marked lodged - the tax calendar now shows it done. (DSP lodgement is Phase 7.)',
+        'Lodge approval requested. The BAS will only be marked lodged after the approved lodge flow completes.',
       );
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e));
@@ -573,7 +561,9 @@ export function BasPrepCard({
 
   return (
     <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}
+      >
         <FileText size={18} style={{ color: 'var(--accent-primary)' }} />
         <h2 style={{ margin: 0, fontSize: '1.1rem' }}>
           Prepare {quarterName} FY{fy}-{(fy + 1).toString().slice(2)} BAS
@@ -605,7 +595,11 @@ export function BasPrepCard({
             <LabelStat label="1A GST on sales" value={num(worksheet.gst?.['1A'])} />
             <LabelStat label="1B GST on purchases" value={num(worksheet.gst?.['1B'])} />
             <LabelStat label="4 PAYG withheld" value={num(worksheet.payg_withholding?.['4'])} />
-            <LabelStat label="9 Net amount" value={num(worksheet.summary?.['9_net_amount_cents'])} strong />
+            <LabelStat
+              label="9 Net amount"
+              value={num(worksheet.summary?.['9_net_amount_cents'])}
+              strong
+            />
           </div>
 
           <div style={{ marginBottom: '1.25rem' }}>
@@ -638,10 +632,10 @@ export function BasPrepCard({
               className="btn btn-primary"
               onClick={handleLodge}
               disabled={blocked || busy !== null}
-              title={blocked ? 'Clear blockers before lodging' : 'Open a Tier-2 approval to lodge'}
+              title={blocked ? 'Clear blockers before lodging' : 'Open a Tier-2 approval request'}
             >
               {busy === 'lodge' ? <Loader2 size={14} /> : <ShieldAlert size={14} />}
-              <span>Approve &amp; lodge</span>
+              <span>Request lodge approval</span>
             </button>
           </div>
           {lodgeMsg && (
@@ -666,7 +660,13 @@ export function BasPrepCard({
 
 function LabelStat({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
-    <div style={{ background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', padding: '0.75rem' }}>
+    <div
+      style={{
+        background: 'var(--bg-hover)',
+        borderRadius: 'var(--radius-sm)',
+        padding: '0.75rem',
+      }}
+    >
       <div
         style={{
           fontSize: '0.7rem',

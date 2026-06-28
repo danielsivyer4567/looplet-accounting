@@ -69,7 +69,8 @@ export function buildRegistrationPayload(p: RegistrationProfile): RegistrationPa
       label: 'Australian Business Number (ABN)',
       registered: false,
       recommended: true,
-      reason: 'The base registration for an operating entity; required before adding GST/PAYG/FBT roles.',
+      reason:
+        'The base registration for an operating entity; required before adding GST/PAYG/FBT roles.',
     },
     {
       type: 'GST',
@@ -126,7 +127,8 @@ export function buildRegistrationPayload(p: RegistrationProfile): RegistrationPa
 }
 
 /** The Australian Business Register "register for an ABN" entry point (the v1 deep link). */
-export const ABR_REGISTER_URL = 'https://www.abr.gov.au/business-super-funds-charities/applying-abn';
+export const ABR_REGISTER_URL =
+  'https://www.abr.gov.au/business-super-funds-charities/applying-abn';
 
 /**
  * Loads the org's business profile and exposes the prepared registration payload + the ABR deep

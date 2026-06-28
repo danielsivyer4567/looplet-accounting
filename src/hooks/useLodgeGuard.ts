@@ -25,9 +25,7 @@ export interface LodgeGuardResult {
   error?: string;
 }
 
-export async function checkLodgeGuard(
-  organizationId: string,
-): Promise<LodgeGuardResult> {
+export async function checkLodgeGuard(organizationId: string): Promise<LodgeGuardResult> {
   if (!organizationId) {
     return {
       allowed: false,
@@ -37,7 +35,13 @@ export async function checkLodgeGuard(
 
   const health: LodgeOperationsHealth = {
     evte_configured: false,
-    evte_missing: ['ATO_EVTE_ENDPOINT', 'ATO_DSP_ABN', 'ATO_SOFTWARE_ID', 'ATO_STIN', 'ATO_M2M_KEYSTORE_REF'],
+    evte_missing: [
+      'ATO_EVTE_ENDPOINT',
+      'ATO_DSP_ABN',
+      'ATO_SOFTWARE_ID',
+      'ATO_STIN',
+      'ATO_M2M_KEYSTORE_REF',
+    ],
     dsp_configured: false,
     dsp_missing: ['ATO_DSP_ABN', 'ATO_SOFTWARE_ID', 'ATO_STIN', 'ATO_M2M_KEYSTORE_REF'],
     sbr_configured: false,

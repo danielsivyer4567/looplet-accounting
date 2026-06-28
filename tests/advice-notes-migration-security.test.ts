@@ -11,6 +11,10 @@ const rpcMigration = readFileSync(
   join(root, 'supabase/migrations/0176_advice_notes_rpcs.sql'),
   'utf8',
 );
+const repairMigration = readFileSync(
+  join(root, 'supabase/migrations/0194_refresh_advice_notes_rpc.sql'),
+  'utf8',
+);
 
 describe('advice_notes migration security posture', () => {
   it('does not grant direct advice_notes mutation privileges to authenticated users', () => {
@@ -45,5 +49,34 @@ describe('advice_notes migration security posture', () => {
     expect(rpcMigration).toMatch(
       /dismiss_advice_note[\s\S]*require_role\(v_org,\s*'accountant'::public\.org_role\)/i,
     );
+  });
+
+  it('keeps the repair migration least-privilege and schema-cache refreshed', () => {
+    expect(repairMigration).toMatch(/create table if not exists public\.advice_notes/i);
+    expect(repairMigration).toMatch(
+      /revoke all on table public\.advice_notes from public,\s*anon,\s*authenticated;/i,
+    );
+    expect(repairMigration).toMatch(/grant select on public\.advice_notes to authenticated;/i);
+    expect(repairMigration).not.toMatch(
+      /grant\s+select\s*,\s*insert\s*,\s*update\s*,\s*delete\s+on\s+public\.advice_notes\s+to\s+authenticated/i,
+    );
+    expect(repairMigration).toMatch(
+      /create_advice_note[\s\S]*require_role\(p_org,\s*'accountant'::public\.org_role\)/i,
+    );
+    expect(repairMigration).toMatch(
+      /sign_off_advice_note[\s\S]*require_role\(v_org,\s*'accountant'::public\.org_role\)/i,
+    );
+    expect(repairMigration).toMatch(
+      /dismiss_advice_note[\s\S]*require_role\(v_org,\s*'accountant'::public\.org_role\)/i,
+    );
+    expect(repairMigration).toMatch(/create or replace function public\.list_advice_notes/i);
+    expect(repairMigration).toMatch(/p_org in \(select get_accessible_org_ids\(\)\)/i);
+    expect(repairMigration).toMatch(
+      /revoke all on function public\.list_advice_notes\(uuid,\s*public\.advice_note_kind,\s*public\.advice_note_status\) from public,\s*anon;/i,
+    );
+    expect(repairMigration).toMatch(
+      /grant execute on function public\.list_advice_notes\(uuid,\s*public\.advice_note_kind,\s*public\.advice_note_status\) to authenticated;/i,
+    );
+    expect(repairMigration).toMatch(/notify pgrst,\s*'reload schema';/i);
   });
 });

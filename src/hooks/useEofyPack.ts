@@ -162,7 +162,9 @@ export interface EofyPackResponse {
 // ---- helpers -----------------------------------------------------------------------
 
 /** Read the JSON error body a non-2xx edge fn returns off the FunctionsHttpError's Response. */
-async function readFnError(err: unknown): Promise<{ message: string; reason?: string | undefined }> {
+async function readFnError(
+  err: unknown,
+): Promise<{ message: string; reason?: string | undefined }> {
   const e = err as { message?: string; context?: { json?: () => Promise<unknown> } };
   let message = e.message ?? 'Request failed';
   let reason: string | undefined;
@@ -199,13 +201,16 @@ export function useEofyPack(fyStartYear: number | null) {
       setError(null);
       setBlocked(false);
 
-      const { data, error: fnErr } = await supabase.functions.invoke<EofyPackResponse>('eofy-pack', {
-        body: {
-          organization_id: currentOrg.id,
-          fy_start_year: fyStartYear,
-          skip_true_up: opts?.skipTrueUp === true,
+      const { data, error: fnErr } = await supabase.functions.invoke<EofyPackResponse>(
+        'eofy-pack',
+        {
+          body: {
+            organization_id: currentOrg.id,
+            fy_start_year: fyStartYear,
+            skip_true_up: opts?.skipTrueUp === true,
+          },
         },
-      });
+      );
 
       let result: EofyPackBundle | null = null;
       if (fnErr) {

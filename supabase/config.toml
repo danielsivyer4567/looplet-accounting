@@ -28,6 +28,11 @@ verify_jwt = false
 [functions.accruals-run]
 verify_jwt = false
 
+# legal-corpus-ingest (SC-LC.C.02): operator seed endpoint for global legal reference
+# data. It self-authenticates with the service-role bearer or LEGAL_INGEST_SECRET.
+[functions.legal-corpus-ingest]
+verify_jwt = false
+
 # legal-corpus-sync (SC-LC.E.04): the legal-RAG auto-updater, driven by pg_cron
 # (0112_legal_corpus_sync_cron.sql) via net.http_post with a ?secret= cron secret.
 [functions.legal-corpus-sync]

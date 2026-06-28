@@ -33,8 +33,12 @@ export interface TaxObligation {
 
 export type ObligationIntent = 'explain' | 'prepare' | 'remind';
 
-function describeDueStatus(o: Pick<TaxObligation, 'stage' | 'days_until_due'>): string {
-  if (o.stage === 'done') return 'already completed';
+export function isCompletedObligationStatus(status: TaxObligation['status']): boolean {
+  return status === 'done' || status === 'lodged' || status === 'accepted' || status === 'paid';
+}
+
+function describeDueStatus(o: Pick<TaxObligation, 'stage' | 'status' | 'days_until_due'>): string {
+  if (isCompletedObligationStatus(o.status)) return 'already completed';
   if (o.stage === 'overdue') return `currently ${Math.abs(o.days_until_due)} days OVERDUE`;
   if (o.days_until_due === 0) return 'due today';
   return `due in ${o.days_until_due} days`;
@@ -63,8 +67,8 @@ export function buildObligationPrompt(o: TaxObligation, intent: ObligationIntent
 /**
  * Upserts a persisted obligation status (obligation_status, SC-3.E.02) — the generic
  * lodge/pay write-back overlaid onto v_tax_calendar via COALESCE(os.status, stage).
- * Reused across obligation keys: BAS marks 'lodged' (Bas.tsx), super marks 'paid'
- * (SC-3.H.02), Phase 7 lodgements pass `lodgementId`/`lodgedAt`. `periodLabel` MUST equal
+ * Reused across obligation keys: super marks 'paid' (SC-3.H.02), and Phase 7
+ * lodgements pass `lodgementId`/`lodgedAt`. `periodLabel` MUST equal
  * generate_tax_obligations' format 'Q{n} FY{gs}-{lpad((gs+1)%100,2)}' so it joins
  * (the migration's check asserts that format hasn't drifted). deleted_at:null so a
  * re-mark un-soft-deletes via the (org, key, period_label) upsert arbiter.

@@ -117,9 +117,9 @@ export function EofyReportPage() {
           lineHeight: '1.5',
         }}
       >
-        Bring the books to their end-of-financial-year state and bundle the statutory P&amp;L, balance
-        sheet, statement of changes in equity, cash-flow statement and notes into one downloadable
-        pack — the input to the annual tax return.
+        Bring the books to their end-of-financial-year state and bundle the statutory P&amp;L,
+        balance sheet, statement of changes in equity, cash-flow statement and notes into one
+        downloadable pack — the input to the annual tax return.
       </p>
 
       {/* Step indicator */}
@@ -188,7 +188,10 @@ export function EofyReportPage() {
       {blocked && error && (
         <Banner tone="warning" icon={ShieldAlert}>
           <strong>Books not ready:</strong> {error} Fix the flagged items on{' '}
-          <Link to="/quality" style={{ color: 'inherit', textDecoration: 'underline', fontWeight: 600 }}>
+          <Link
+            to="/quality"
+            style={{ color: 'inherit', textDecoration: 'underline', fontWeight: 600 }}
+          >
             Quality
           </Link>{' '}
           before generating the pack.
@@ -232,9 +235,21 @@ export function EofyReportPage() {
               marginBottom: readiness.blockers.length > 0 ? '1.25rem' : 0,
             }}
           >
-            <Stat label="Open periods" value={String(readiness.open_period_count)} warn={readiness.open_period_count > 0} />
-            <Stat label="Unreconciled" value={String(readiness.unreconciled_count)} warn={readiness.unreconciled_count > 0} />
-            <Stat label="Uncoded" value={String(readiness.uncoded_count)} warn={readiness.uncoded_count > 0} />
+            <Stat
+              label="Open periods"
+              value={String(readiness.open_period_count)}
+              warn={readiness.open_period_count > 0}
+            />
+            <Stat
+              label="Unreconciled"
+              value={String(readiness.unreconciled_count)}
+              warn={readiness.unreconciled_count > 0}
+            />
+            <Stat
+              label="Uncoded"
+              value={String(readiness.uncoded_count)}
+              warn={readiness.uncoded_count > 0}
+            />
             <Stat
               label="Trial balance"
               value={readiness.trial_balance_balanced ? 'Balanced' : 'Out'}
@@ -297,8 +312,15 @@ export function EofyReportPage() {
               marginBottom: '1.25rem',
             }}
           >
-            <Stat label="Net profit" value={formatMoney(bundle.statements.profit_and_loss.net_profit_cents)} strong />
-            <Stat label="Total assets" value={formatMoney(bundle.statements.balance_sheet.total_assets_cents)} />
+            <Stat
+              label="Net profit"
+              value={formatMoney(bundle.statements.profit_and_loss.net_profit_cents)}
+              strong
+            />
+            <Stat
+              label="Total assets"
+              value={formatMoney(bundle.statements.balance_sheet.total_assets_cents)}
+            />
             <Stat
               label="Total liabilities"
               value={formatMoney(bundle.statements.balance_sheet.total_liabilities_cents)}
@@ -321,7 +343,10 @@ export function EofyReportPage() {
               ok={bundle.equity_and_cash_flow.cash_flow_statement.ties_to_gl}
               label="Cash-flow statement ties to the general ledger"
             />
-            <Check ok={bundle.notes.notes.depreciation.ties_to_gl} label="Depreciation note ties to the GL" />
+            <Check
+              ok={bundle.notes.notes.depreciation.ties_to_gl}
+              label="Depreciation note ties to the GL"
+            />
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -334,7 +359,15 @@ export function EofyReportPage() {
               <span>Download data (JSON)</span>
             </button>
             {bundle.working_papers.length > 0 && (
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', display: 'inline-flex', gap: '0.35rem', alignItems: 'center' }}>
+              <span
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.8rem',
+                  display: 'inline-flex',
+                  gap: '0.35rem',
+                  alignItems: 'center',
+                }}
+              >
                 <Download size={13} />
                 {bundle.working_papers.length} working paper
                 {bundle.working_papers.length === 1 ? '' : 's'} in the pack
@@ -343,13 +376,27 @@ export function EofyReportPage() {
           </div>
 
           {!pdfBase64 && (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.75rem', marginBottom: 0 }}>
+            <p
+              style={{
+                color: 'var(--text-muted)',
+                fontSize: '0.8rem',
+                marginTop: '0.75rem',
+                marginBottom: 0,
+              }}
+            >
               The PDF could not be generated for this pack — download the data (JSON) instead.
             </p>
           )}
 
           {!finalised && (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '1rem', marginBottom: 0 }}>
+            <p
+              style={{
+                color: 'var(--text-muted)',
+                fontSize: '0.8rem',
+                marginTop: '1rem',
+                marginBottom: 0,
+              }}
+            >
               This is a read-only preview. Use <strong>Generate pack</strong> above to run the
               year-end true-up and produce the final, period-locked pack.
             </p>
@@ -360,8 +407,22 @@ export function EofyReportPage() {
   );
 }
 
-function StepPill({ n, label, active, done }: { n: number; label: string; active: boolean; done: boolean }) {
-  const color = done ? 'var(--accent-success)' : active ? 'var(--accent-primary)' : 'var(--text-muted)';
+function StepPill({
+  n,
+  label,
+  active,
+  done,
+}: {
+  n: number;
+  label: string;
+  active: boolean;
+  done: boolean;
+}) {
+  const color = done
+    ? 'var(--accent-success)'
+    : active
+      ? 'var(--accent-primary)'
+      : 'var(--text-muted)';
   return (
     <div
       style={{
@@ -383,9 +444,25 @@ function StepPill({ n, label, active, done }: { n: number; label: string; active
   );
 }
 
-function Stat({ label, value, strong, warn }: { label: string; value: string; strong?: boolean; warn?: boolean }) {
+function Stat({
+  label,
+  value,
+  strong,
+  warn,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+  warn?: boolean;
+}) {
   return (
-    <div style={{ background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', padding: '0.75rem' }}>
+    <div
+      style={{
+        background: 'var(--bg-hover)',
+        borderRadius: 'var(--radius-sm)',
+        padding: '0.75rem',
+      }}
+    >
       <div
         style={{
           fontSize: '0.7rem',

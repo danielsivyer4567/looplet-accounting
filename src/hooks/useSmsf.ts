@@ -60,7 +60,9 @@ export function useSmsf() {
         .order('name', { ascending: true }),
       supabase
         .from('smsf_members')
-        .select('id, fund_id, name, role, date_of_birth, tax_free_component_cents, taxable_component_cents')
+        .select(
+          'id, fund_id, name, role, date_of_birth, tax_free_component_cents, taxable_component_cents',
+        )
         .eq('organization_id', currentOrg.id)
         .is('deleted_at', null)
         .order('name', { ascending: true }),
@@ -81,9 +83,7 @@ export function useSmsf() {
 
     setFunds((fundsRes.data ?? []) as SmsfFundRow[]);
     setMembers((membersRes.data ?? []) as SmsfMemberRow[]);
-    setIsSmsfEntity(
-      (profileRes.data as { entity_type?: string } | null)?.entity_type === 'smsf',
-    );
+    setIsSmsfEntity((profileRes.data as { entity_type?: string } | null)?.entity_type === 'smsf');
     setLoading(false);
   }, [currentOrg]);
 
@@ -129,14 +129,23 @@ export interface SmsfCaps {
 /** smsf_pension_drawdown totals (SC-5.L.02, 0171). */
 export interface SmsfDrawdown {
   ok: boolean;
-  totals: { pension_count: number; under_minimum_count: number; total_required_minimum_cents: number };
+  totals: {
+    pension_count: number;
+    under_minimum_count: number;
+    total_required_minimum_cents: number;
+  };
 }
 
 /** smsf_tbc_tbar (SC-5.I.02, 0165) — transfer-balance cap tracker. */
 export interface SmsfTbc {
   ok: boolean;
   tbc_cents: number;
-  members: { member_id: string; name: string; tba_balance_cents: number; available_cap_cents: number }[];
+  members: {
+    member_id: string;
+    name: string;
+    tba_balance_cents: number;
+    available_cap_cents: number;
+  }[];
 }
 
 export interface SmsfFundPanels {
@@ -148,7 +157,11 @@ export interface SmsfFundPanels {
 }
 
 const EMPTY_PANELS: SmsfFundPanels = {
-  operating: null, financial: null, caps: null, drawdown: null, tbc: null,
+  operating: null,
+  financial: null,
+  caps: null,
+  drawdown: null,
+  tbc: null,
 };
 
 /** Cast a supabase RPC result to its hand-typed shape, or null if the call errored. */
@@ -206,16 +219,19 @@ export function useSmsfFund(fundId: string | undefined, fyStartYear: number) {
     if (!fundId) return false;
     setActionBusy('audit');
     setError(null);
-    const { data, error: fnErr } = await supabase.functions.invoke<{ ok: boolean; pdf_base64?: string }>(
-      'smsf-audit-pack',
-      { body: { fund_id: fundId, fy_start_year: fyStartYear } },
-    );
+    const { data, error: fnErr } = await supabase.functions.invoke<{
+      ok: boolean;
+      pdf_base64?: string;
+    }>('smsf-audit-pack', { body: { fund_id: fundId, fy_start_year: fyStartYear } });
     setActionBusy(null);
     if (fnErr || !data?.pdf_base64) {
       setError(fnErr?.message ?? 'Could not generate the audit pack.');
       return false;
     }
-    downloadBlob(base64ToBlob(data.pdf_base64, 'application/pdf'), `smsf-audit-pack-${fyStartYear + 1}.pdf`);
+    downloadBlob(
+      base64ToBlob(data.pdf_base64, 'application/pdf'),
+      `smsf-audit-pack-${fyStartYear + 1}.pdf`,
+    );
     return true;
   }, [fundId, fyStartYear]);
 
@@ -225,7 +241,9 @@ export function useSmsfFund(fundId: string | undefined, fyStartYear: number) {
     setActionBusy('return');
     setError(null);
     const { data, error: rpcErr } = await supabase.rpc('smsf_return_draft', {
-      p_org: currentOrg.id, p_fy_start_year: fyStartYear, p_fund: fundId,
+      p_org: currentOrg.id,
+      p_fy_start_year: fyStartYear,
+      p_fund: fundId,
     });
     setActionBusy(null);
     if (rpcErr || !data) {
@@ -233,7 +251,10 @@ export function useSmsfFund(fundId: string | undefined, fyStartYear: number) {
       return false;
     }
     const json = JSON.stringify(data, null, 2);
-    downloadBlob(new Blob([json], { type: 'application/json' }), `smsf-annual-return-draft-${fyStartYear + 1}.json`);
+    downloadBlob(
+      new Blob([json], { type: 'application/json' }),
+      `smsf-annual-return-draft-${fyStartYear + 1}.json`,
+    );
     return true;
   }, [currentOrg, fundId, fyStartYear]);
 
@@ -246,5 +267,14 @@ export function useSmsfFund(fundId: string | undefined, fyStartYear: number) {
     return 'Lodgement is not yet available — it is gated by the ATO lodgement gateway (Phase 7). The return draft is ready to download for review.';
   }, []);
 
-  return { panels, loading, error, actionBusy, refresh, downloadAuditPack, downloadReturnDraft, markLodged };
+  return {
+    panels,
+    loading,
+    error,
+    actionBusy,
+    refresh,
+    downloadAuditPack,
+    downloadReturnDraft,
+    markLodged,
+  };
 }

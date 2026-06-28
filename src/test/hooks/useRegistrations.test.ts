@@ -44,7 +44,11 @@ const line = (payload: ReturnType<typeof buildRegistrationPayload>, type: Regist
 describe('buildRegistrationPayload — header mapping', () => {
   it('maps the entity/industry/state/turnover fields straight through', () => {
     const p = buildRegistrationPayload(
-      baseProfile({ entity_type: 'trust', state_code: 'NSW', estimated_annual_turnover_cents: 12345 }),
+      baseProfile({
+        entity_type: 'trust',
+        state_code: 'NSW',
+        estimated_annual_turnover_cents: 12345,
+      }),
     );
     expect(p.entity_type).toBe('trust');
     expect(p.state_code).toBe('NSW');
@@ -70,7 +74,9 @@ describe('buildRegistrationPayload — ABN', () => {
 describe('buildRegistrationPayload — GST threshold rule', () => {
   it('recommends GST when turnover meets the $75k threshold and not yet registered', () => {
     const gst = line(
-      buildRegistrationPayload(baseProfile({ estimated_annual_turnover_cents: GST_THRESHOLD_CENTS })),
+      buildRegistrationPayload(
+        baseProfile({ estimated_annual_turnover_cents: GST_THRESHOLD_CENTS }),
+      ),
       'GST',
     );
     expect(gst.registered).toBe(false);
@@ -80,7 +86,9 @@ describe('buildRegistrationPayload — GST threshold rule', () => {
 
   it('does NOT recommend GST below the threshold (optional)', () => {
     const gst = line(
-      buildRegistrationPayload(baseProfile({ estimated_annual_turnover_cents: GST_THRESHOLD_CENTS - 1 })),
+      buildRegistrationPayload(
+        baseProfile({ estimated_annual_turnover_cents: GST_THRESHOLD_CENTS - 1 }),
+      ),
       'GST',
     );
     expect(gst.recommended).toBe(false);

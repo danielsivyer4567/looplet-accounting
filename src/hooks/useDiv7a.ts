@@ -78,7 +78,9 @@ export function useDiv7a() {
     const [loansRes, scanRes] = await Promise.all([
       supabase
         .from('div7a_loans')
-        .select('id, lender_company_name, borrower_name, loan_year, principal_cents, term_years, has_complying_agreement')
+        .select(
+          'id, lender_company_name, borrower_name, loan_year, principal_cents, term_years, has_complying_agreement',
+        )
         .eq('organization_id', currentOrg.id)
         .is('deleted_at', null)
         .order('loan_year', { ascending: false }),

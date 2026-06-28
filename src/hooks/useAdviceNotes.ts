@@ -56,6 +56,25 @@ export interface UseAdviceNotesOptions {
   status?: AdviceNoteStatus | null;
 }
 
+export const ADVICE_NOTES_UNDEPLOYED_MESSAGE =
+  'Advisor notes are not deployed in this Supabase project yet.';
+
+function isMissingListAdviceNotesRpc(message: string): boolean {
+  return (
+    message.includes('Could not find the function public.list_advice_notes') ||
+    message.includes('Could not find function public.list_advice_notes')
+  );
+}
+
+function isMissingAdviceNotesTable(message: string): boolean {
+  return (
+    message.includes("Could not find the table 'public.advice_notes'") ||
+    message.includes('Could not find the table public.advice_notes') ||
+    message.includes('relation "public.advice_notes" does not exist') ||
+    message.includes('relation "advice_notes" does not exist')
+  );
+}
+
 /**
  * RLS-scoped read/action hook for Phase 6 advisory artifacts. The SQL RPCs own
  * shape defaults and status transitions; the hook keeps UI code on that narrow
@@ -87,10 +106,41 @@ export function useAdviceNotes(options: UseAdviceNotesOptions = {}) {
     });
 
     if (rpcErr) {
-      setNotes([]);
-      setError(rpcErr.message);
+      if (isMissingAdviceNotesTable(rpcErr.message)) {
+        setNotes([]);
+        setError(ADVICE_NOTES_UNDEPLOYED_MESSAGE);
+      } else if (isMissingListAdviceNotesRpc(rpcErr.message)) {
+        let query = supabase
+          .from('advice_notes')
+          .select('*')
+          .eq('organization_id', currentOrg.id)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: true });
+
+        if (kind) query = query.eq('kind', kind);
+        if (status) query = query.eq('status', status);
+
+        const { data: fallbackData, error: fallbackErr } = await query;
+        if (fallbackErr) {
+          if (isMissingAdviceNotesTable(fallbackErr.message)) {
+            setNotes([]);
+            setError(ADVICE_NOTES_UNDEPLOYED_MESSAGE);
+          } else {
+            setNotes([]);
+            setError(fallbackErr.message);
+          }
+        } else {
+          setNotes((fallbackData ?? []) as AdviceNote[]);
+          setError(null);
+        }
+      } else {
+        setNotes([]);
+        setError(rpcErr.message);
+      }
     } else {
       setNotes((data ?? []) as AdviceNote[]);
+      setError(null);
     }
     setLoading(false);
   }, [currentOrg, kind, status]);
@@ -170,11 +220,15 @@ export function useAdviceNotes(options: UseAdviceNotesOptions = {}) {
     [refresh],
   );
 
+  const backendAvailable = error !== ADVICE_NOTES_UNDEPLOYED_MESSAGE;
+
   return {
     notes,
     loading,
     actionBusy,
-    error,
+    error: backendAvailable ? error : null,
+    backendAvailable,
+    unavailableMessage: backendAvailable ? null : ADVICE_NOTES_UNDEPLOYED_MESSAGE,
     refresh,
     createNote,
     signOff,

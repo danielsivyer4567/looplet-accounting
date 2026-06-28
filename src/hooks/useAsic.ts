@@ -102,13 +102,17 @@ export function useAsic() {
         .maybeSingle(),
       supabase
         .from('company_officers')
-        .select('id, name, role, director_id, appointment_date, cessation_date, notes, created_at, updated_at')
+        .select(
+          'id, name, role, director_id, appointment_date, cessation_date, notes, created_at, updated_at',
+        )
         .eq('organization_id', currentOrg.id)
         .is('deleted_at', null)
         .order('name', { ascending: true }),
       supabase
         .from('share_register')
-        .select('id, member_name, share_class, number_held, amount_paid_cents, amount_unpaid_cents, notes, created_at, updated_at')
+        .select(
+          'id, member_name, share_class, number_held, amount_paid_cents, amount_unpaid_cents, notes, created_at, updated_at',
+        )
         .eq('organization_id', currentOrg.id)
         .is('deleted_at', null)
         .order('member_name', { ascending: true }),
@@ -133,8 +137,12 @@ export function useAsic() {
     setFilings((filingsRes.data ?? []) as AsicFiling[]);
     setAnnualReview(((calendarRes.data as AsicCalendarObligation[] | null) ?? [])[0] ?? null);
 
-    const firstError = [profileRes.error, officersRes.error, sharesRes.error, filingsRes.error]
-      .find(Boolean);
+    const firstError = [
+      profileRes.error,
+      officersRes.error,
+      sharesRes.error,
+      filingsRes.error,
+    ].find(Boolean);
     setError(firstError?.message ?? null);
     setLoading(false);
   }, [currentOrg]);
@@ -152,7 +160,9 @@ export function useAsic() {
     if (!currentOrg) return null;
     setActionBusy(true);
     setError(null);
-    const { data, error: rpcErr } = await supabase.rpc('asic_form484_draft', { p_org: currentOrg.id });
+    const { data, error: rpcErr } = await supabase.rpc('asic_form484_draft', {
+      p_org: currentOrg.id,
+    });
     setActionBusy(false);
 
     if (rpcErr) {

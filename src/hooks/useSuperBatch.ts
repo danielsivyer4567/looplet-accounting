@@ -90,7 +90,8 @@ export function useSuperBatch(fyStartYear: number | null, quarter: number | null
   }, [refresh]);
 
   const generate = useCallback(async (): Promise<void> => {
-    if (!currentOrg || fyStartYear == null || quarter == null) throw new Error('Select a quarter first.');
+    if (!currentOrg || fyStartYear == null || quarter == null)
+      throw new Error('Select a quarter first.');
     const { error: err } = await supabase.rpc('generate_super_batch', {
       p_org: currentOrg.id,
       p_fy_start_year: fyStartYear,

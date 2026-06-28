@@ -1,21 +1,31 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useAdviceNotes, type AdviceNote, type AdviceNoteMutationResult } from '@/hooks/useAdviceNotes';
+import {
+  useAdviceNotes,
+  type AdviceNote,
+  type AdviceNoteMutationResult,
+} from '@/hooks/useAdviceNotes';
 
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
+  from: vi.fn(),
   org: {
     current: {
       id: 'org-1',
       name: 'Org One',
       organization_type: 'standard',
-    } as { id: string; name: string; organization_type: 'standard' | 'agency' | 'sub_account' } | null,
+    } as {
+      id: string;
+      name: string;
+      organization_type: 'standard' | 'agency' | 'sub_account';
+    } | null,
   },
 }));
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     rpc: mocks.rpc,
+    from: mocks.from,
   },
 }));
 
@@ -54,6 +64,21 @@ function rpcOk(data: unknown) {
   return Promise.resolve({ data, error: null });
 }
 
+function rpcError(message: string) {
+  return Promise.resolve({ data: null, error: { message } });
+}
+
+function tableQuery(data: unknown, error: { message: string } | null = null) {
+  const query = {
+    select: vi.fn(() => query),
+    eq: vi.fn(() => query),
+    is: vi.fn(() => query),
+    order: vi.fn(() => query),
+    then: vi.fn((resolve) => Promise.resolve({ data, error }).then(resolve)),
+  };
+  return query;
+}
+
 function mutation(status: AdviceNoteMutationResult['status']): AdviceNoteMutationResult {
   return {
     ok: true,
@@ -66,6 +91,7 @@ function mutation(status: AdviceNoteMutationResult['status']): AdviceNoteMutatio
 describe('useAdviceNotes', () => {
   beforeEach(() => {
     mocks.rpc.mockReset();
+    mocks.from.mockReset();
     mocks.org.current = {
       id: 'org-1',
       name: 'Org One',
@@ -87,13 +113,59 @@ describe('useAdviceNotes', () => {
     });
     expect(result.current.notes).toEqual([baseNote]);
     expect(result.current.error).toBeNull();
+    expect(result.current.backendAvailable).toBe(true);
+  });
+
+  it('falls back to the RLS-scoped table read when the list RPC is missing from schema cache', async () => {
+    const query = tableQuery([baseNote]);
+    mocks.rpc.mockReturnValueOnce(
+      rpcError('Could not find the function public.list_advice_notes(p_kind, p_org, p_status)'),
+    );
+    mocks.from.mockReturnValueOnce(query);
+
+    const { result } = renderHook(() => useAdviceNotes({ kind: 'structuring', status: 'draft' }));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(mocks.from).toHaveBeenCalledWith('advice_notes');
+    expect(query.select).toHaveBeenCalledWith('*');
+    expect(query.eq).toHaveBeenCalledWith('organization_id', 'org-1');
+    expect(query.eq).toHaveBeenCalledWith('kind', 'structuring');
+    expect(query.eq).toHaveBeenCalledWith('status', 'draft');
+    expect(query.is).toHaveBeenCalledWith('deleted_at', null);
+    expect(result.current.notes).toEqual([baseNote]);
+    expect(result.current.error).toBeNull();
+    expect(result.current.backendAvailable).toBe(true);
+  });
+
+  it('marks the advice-note backend unavailable when the table is missing from schema cache', async () => {
+    const query = tableQuery(null, {
+      message: "Could not find the table 'public.advice_notes' in the schema cache",
+    });
+    mocks.rpc.mockReturnValueOnce(
+      rpcError('Could not find the function public.list_advice_notes(p_kind, p_org, p_status)'),
+    );
+    mocks.from.mockReturnValueOnce(query);
+
+    const { result } = renderHook(() => useAdviceNotes());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.notes).toEqual([]);
+    expect(result.current.error).toBeNull();
+    expect(result.current.backendAvailable).toBe(false);
+    expect(result.current.unavailableMessage).toBe(
+      'Advisor notes are not deployed in this Supabase project yet.',
+    );
   });
 
   it('creates a note through create_advice_note and refreshes the list', async () => {
     const created = { ...baseNote, id: 'note-2', title: 'Created note' };
     mocks.rpc
       .mockReturnValueOnce(rpcOk([]))
-      .mockReturnValueOnce(rpcOk({ ...mutation('draft'), advice_note_id: 'note-2', kind: 'forecast' }))
+      .mockReturnValueOnce(
+        rpcOk({ ...mutation('draft'), advice_note_id: 'note-2', kind: 'forecast' }),
+      )
       .mockReturnValueOnce(rpcOk([created]));
 
     const { result } = renderHook(() => useAdviceNotes());

@@ -75,6 +75,17 @@ const ADVISOR_SCENARIOS: AdvisorScenario[] = [
   { mode: 'forecast', label: 'Forecast' },
 ];
 
+const ADVISOR_FUNCTION_UNDEPLOYED_MESSAGE =
+  'Advisor edge function is not deployed to this Supabase project yet.';
+
+function advisorFunctionUrl(): string {
+  return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/advisor`;
+}
+
+function isBrowserFetchFailure(err: unknown): boolean {
+  return err instanceof TypeError && /failed to fetch|networkerror|load failed/i.test(err.message);
+}
+
 export function AskPage() {
   const { currentOrg } = useOrg();
   const {
@@ -82,6 +93,8 @@ export function AskPage() {
     loading: adviceLoading,
     actionBusy: adviceActionBusy,
     error: adviceError,
+    backendAvailable: adviceBackendAvailable,
+    unavailableMessage: adviceUnavailableMessage,
     refresh: refreshAdviceNotes,
     signOff,
     dismiss,
@@ -93,6 +106,7 @@ export function AskPage() {
   const [advisorBusyMode, setAdvisorBusyMode] = useState<AdviceNoteKind | null>(null);
   const [advisorError, setAdvisorError] = useState<string | null>(null);
   const [advisorMessage, setAdvisorMessage] = useState<string | null>(null);
+  const [advisorFunctionAvailable, setAdvisorFunctionAvailable] = useState<boolean | null>(null);
   const [selectedAdviceNoteId, setSelectedAdviceNoteId] = useState<string | null>(null);
   const [history, setHistory] = useState<ChatTurn[]>([]);
   const [showSql, setShowSql] = useState<Set<number>>(new Set());
@@ -111,6 +125,21 @@ export function AskPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [history]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setAdvisorFunctionAvailable(null);
+    fetch(advisorFunctionUrl(), { method: 'OPTIONS' })
+      .then((res) => {
+        if (!cancelled) setAdvisorFunctionAvailable(res.status !== 404);
+      })
+      .catch(() => {
+        if (!cancelled) setAdvisorFunctionAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const ask = async (q: string) => {
     if (!q.trim() || busy || !currentOrg) return;
@@ -152,7 +181,14 @@ export function AskPage() {
   };
 
   const runAdvisorScenario = async (mode: AdviceNoteKind) => {
-    if (!currentOrg || advisorBusyMode) return;
+    if (
+      !currentOrg ||
+      advisorBusyMode ||
+      !adviceBackendAvailable ||
+      advisorFunctionAvailable === false
+    ) {
+      return;
+    }
     setAdvisorBusyMode(mode);
     setAdvisorError(null);
     setAdvisorMessage(null);
@@ -161,7 +197,7 @@ export function AskPage() {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in');
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/advisor`;
+      const url = advisorFunctionUrl();
       const res = await fetch(url, {
         method: 'POST',
         headers: {
@@ -181,7 +217,12 @@ export function AskPage() {
       if (body.advice_note_id) setSelectedAdviceNoteId(body.advice_note_id);
       setAdvisorMessage('Advisor note created.');
     } catch (err) {
-      setAdvisorError(err instanceof Error ? err.message : 'Failed to run advisor scenario.');
+      if (isBrowserFetchFailure(err)) {
+        setAdvisorFunctionAvailable(false);
+        setAdvisorError(ADVISOR_FUNCTION_UNDEPLOYED_MESSAGE);
+      } else {
+        setAdvisorError(err instanceof Error ? err.message : 'Failed to run advisor scenario.');
+      }
     } finally {
       setAdvisorBusyMode(null);
     }
@@ -259,6 +300,13 @@ export function AskPage() {
     setTimeout(() => inputRef.current?.focus(), 50);
   };
 
+  const advisorAvailable = adviceBackendAvailable && advisorFunctionAvailable !== false;
+  const advisorUnavailableMessage = !adviceBackendAvailable
+    ? adviceUnavailableMessage
+    : advisorFunctionAvailable === false
+      ? ADVISOR_FUNCTION_UNDEPLOYED_MESSAGE
+      : null;
+
   return (
     <section
       className="animated-fade-in"
@@ -320,6 +368,8 @@ export function AskPage() {
           message={advisorMessage}
           runningMode={advisorBusyMode}
           actionBusy={adviceActionBusy}
+          backendAvailable={advisorAvailable}
+          unavailableMessage={advisorUnavailableMessage}
           selectedNoteId={selectedAdviceNoteId}
           onRunScenario={(mode) => void runAdvisorScenario(mode)}
           onRefresh={() => void refreshAdviceNotes()}
@@ -764,6 +814,8 @@ export function AdvisorPanel({
   message,
   runningMode,
   actionBusy,
+  backendAvailable,
+  unavailableMessage,
   selectedNoteId,
   onRunScenario,
   onRefresh,
@@ -778,6 +830,8 @@ export function AdvisorPanel({
   message: string | null;
   runningMode: AdviceNoteKind | null;
   actionBusy: boolean;
+  backendAvailable: boolean;
+  unavailableMessage: string | null;
   selectedNoteId: string | null;
   onRunScenario: (mode: AdviceNoteKind) => void;
   onRefresh: () => void;
@@ -827,10 +881,17 @@ export function AdvisorPanel({
             Advisor
           </h2>
           <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-            {notes.length} note{notes.length === 1 ? '' : 's'} available
+            {backendAvailable
+              ? `${notes.length} note${notes.length === 1 ? '' : 's'} available`
+              : 'Advisor database unavailable'}
           </p>
         </div>
-        <button type="button" className="btn btn-secondary" onClick={onRefresh} disabled={loading}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={onRefresh}
+          disabled={loading || !backendAvailable}
+        >
           <RefreshCw size={15} />
           Refresh
         </button>
@@ -842,7 +903,7 @@ export function AdvisorPanel({
             key={scenario.mode}
             type="button"
             className="btn btn-secondary"
-            disabled={runningMode != null}
+            disabled={runningMode != null || !backendAvailable}
             onClick={() => onRunScenario(scenario.mode)}
           >
             <ArrowRight size={14} />
@@ -851,7 +912,11 @@ export function AdvisorPanel({
         ))}
       </div>
 
-      {error ? (
+      {!backendAvailable ? (
+        <div className="badge badge-neutral" style={{ display: 'block', padding: '0.6rem' }}>
+          {unavailableMessage}
+        </div>
+      ) : error ? (
         <div className="badge badge-danger" style={{ display: 'block', padding: '0.6rem' }}>
           {error}
         </div>
@@ -896,7 +961,7 @@ export function AdvisorPanel({
             {loading ? <span className="badge badge-neutral">Loading</span> : null}
           </div>
 
-          {notes.length === 0 && !loading ? (
+          {notes.length === 0 && !loading && backendAvailable ? (
             <div
               style={{
                 padding: '0.85rem',
@@ -948,7 +1013,23 @@ export function AdvisorPanel({
         </div>
 
         <div style={{ minWidth: 0 }}>
-          {selectedNote ? (
+          {!backendAvailable ? (
+            <div
+              style={{
+                padding: '1rem',
+                border: '1px dashed var(--border-subtle)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--text-muted)',
+                fontSize: '0.85rem',
+                minHeight: '8rem',
+                display: 'grid',
+                placeItems: 'center',
+                textAlign: 'center',
+              }}
+            >
+              Apply the advice-note Supabase migrations to enable advisor notes.
+            </div>
+          ) : selectedNote ? (
             <AdviceNoteView
               note={selectedNote}
               actionBusy={actionBusy}

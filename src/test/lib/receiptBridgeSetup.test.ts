@@ -15,9 +15,7 @@ describe('receipt bridge setup helpers', () => {
 
   it('derives the Supabase URL from the receipt webhook URL', () => {
     expect(
-      supabaseUrlFromReceiptWebhookUrl(
-        'https://looplet.supabase.co/functions/v1/receipt-webhook',
-      ),
+      supabaseUrlFromReceiptWebhookUrl('https://looplet.supabase.co/functions/v1/receipt-webhook'),
     ).toBe('https://looplet.supabase.co');
   });
 
@@ -39,15 +37,15 @@ describe('receipt bridge setup helpers', () => {
       'LOOPLET_RECEIPT_WEBHOOK_URL=https://looplet.supabase.co/functions/v1/receipt-webhook',
     );
     expect(env).toContain('LOOPLET_POS_API_KEY=llp_merchant.abcdef123456');
-    expect(env).toContain('Production POS exports should include the scanned customer identity_token per receipt.');
+    expect(env).toContain(
+      'Production POS exports should include the scanned customer identity_token per receipt.',
+    );
     expect(env).toContain('LOOPLET_RECEIPT_IDENTITY_TOKEN=rhp_buyer.receiptsecret');
     expect(env).toContain('LOOPLET_SYNC_TARGETS=xero');
     expect(env).toContain('LOOPLET_ACCEPTANCE_SUPABASE_URL=https://looplet.supabase.co');
     expect(env).toContain(String.raw`LOOPLET_BRIDGE_INBOX_DIR=D:\Looplet\inbox`);
     expect(env).toContain(String.raw`LOOPLET_BRIDGE_QUEUE_FILE=D:\Looplet\queue.jsonl`);
-    expect(env).toContain(
-      String.raw`LOOPLET_BRIDGE_DEAD_LETTER_FILE=D:\Looplet\dead-letter.jsonl`,
-    );
+    expect(env).toContain(String.raw`LOOPLET_BRIDGE_DEAD_LETTER_FILE=D:\Looplet\dead-letter.jsonl`);
     expect(env).toContain(String.raw`LOOPLET_BRIDGE_LOG_DIR=D:\Looplet\logs`);
     expect(env).toContain('LOOPLET_BRIDGE_MIN_FILE_AGE_MS=1500');
   });

@@ -43,6 +43,7 @@ vi.mock('@/hooks/useOrg', () => ({
 vi.mock('@/lib/supabase', () => import('@/test/mocks/supabase'));
 
 import { BasPrepCard } from '@/pages/reports/Bas';
+import { supabase } from '@/test/mocks/supabase';
 
 const SAMPLE: BasWorksheetPayload = {
   organization_id: 'org-1',
@@ -64,6 +65,7 @@ beforeEach(() => {
   h.error = null;
   h.refresh = vi.fn();
   h.requestLodgeApproval = vi.fn();
+  vi.mocked(supabase.from).mockClear();
 });
 
 const renderCard = () =>
@@ -81,10 +83,12 @@ describe('BasPrepCard (SC-3.E.01)', () => {
     expect(screen.getByText('No GST-treatment exceptions')).toBeInTheDocument();
     expect(screen.getByText(/GL reconciles to the BAS/)).toBeInTheDocument();
 
-    const lodge = screen.getByRole('button', { name: /Approve & lodge/i });
+    const lodge = screen.getByRole('button', { name: /Request lodge approval/i });
     expect(lodge).not.toBeDisabled();
     fireEvent.click(lodge);
     await waitFor(() => expect(h.requestLodgeApproval).toHaveBeenCalledTimes(1));
+    expect(supabase.from).not.toHaveBeenCalledWith('obligation_status');
+    expect(await screen.findByText(/will only be marked lodged after/i)).toBeInTheDocument();
   });
 
   it('disables approve-and-lodge and surfaces both blockers when exceptions or variance exist', () => {
@@ -94,7 +98,7 @@ describe('BasPrepCard (SC-3.E.01)', () => {
 
     expect(screen.getByText(/3 GST-treatment exceptions - resolve/)).toBeInTheDocument();
     expect(screen.getByText(/GL vs BAS variance .* reconcile/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Approve & lodge/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Request lodge approval/i })).toBeDisabled();
     expect(h.requestLodgeApproval).not.toHaveBeenCalled();
   });
 

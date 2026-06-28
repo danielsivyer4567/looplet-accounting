@@ -196,7 +196,9 @@ export function EmployeeDetailPage() {
     setJobs((jobsRes.data ?? []) as JobLite[]);
     setLeave((leaveRes.data ?? []) as LeaveBalance[]);
     setPaySlips((slipsRes.data ?? []) as unknown as PaySlipLite[]);
-    setAwardException(excRes.error ? null : ((excRes.data ?? null) as unknown as AwardRateException | null));
+    setAwardException(
+      excRes.error ? null : ((excRes.data ?? null) as unknown as AwardRateException | null),
+    );
     setLoading(false);
   }, [currentOrg, id]);
 
@@ -442,13 +444,15 @@ export function EmployeeDetailPage() {
             style={{ color: 'var(--text-warning)', flexShrink: 0, marginTop: '0.1rem' }}
           />
           <div>
-            <strong style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--text-warning)' }}>
+            <strong
+              style={{ display: 'block', marginBottom: '0.25rem', color: 'var(--text-warning)' }}
+            >
               Possible award underpayment — please review
             </strong>
             <p style={{ margin: 0, fontSize: '0.875rem' }}>
               Base rate {formatMoney(awardException.base_hourly_rate_cents)}/hr is{' '}
-              {formatMoney(awardException.shortfall_cents)}/hr below the {awardException.modern_award}{' '}
-              {awardException.classification_level} minimum of{' '}
+              {formatMoney(awardException.shortfall_cents)}/hr below the{' '}
+              {awardException.modern_award} {awardException.classification_level} minimum of{' '}
               {formatMoney(awardException.award_min_hourly_rate_cents)}/hr.
             </p>
             <p style={{ margin: '0.4rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>

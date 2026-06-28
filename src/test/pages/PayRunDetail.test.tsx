@@ -100,7 +100,9 @@ describe('TerminationWizard (SC-3.L.03)', () => {
     // Save details → writes run.metadata.termination (preserving existing metadata)
     fireEvent.click(screen.getByRole('button', { name: 'Save details' }));
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
-    const payload = h.updatePayload as { metadata: { existing?: boolean; termination: Record<string, unknown> } };
+    const payload = h.updatePayload as {
+      metadata: { existing?: boolean; termination: Record<string, unknown> };
+    };
     expect(payload.metadata.existing).toBe(true); // spread preserved
     expect(payload.metadata.termination).toMatchObject({
       employee_id: 'e1',

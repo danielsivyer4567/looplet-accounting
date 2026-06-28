@@ -40,7 +40,9 @@ export function useTrusts() {
     const [trustsRes, profileRes] = await Promise.all([
       supabase
         .from('trusts')
-        .select('id, name, trust_type, abn, trustee_name, is_corporate_trustee, settled_date, created_at')
+        .select(
+          'id, name, trust_type, abn, trustee_name, is_corporate_trustee, settled_date, created_at',
+        )
         .eq('organization_id', currentOrg.id)
         .is('deleted_at', null)
         .order('name', { ascending: true }),
@@ -59,9 +61,7 @@ export function useTrusts() {
     }
 
     setTrusts((trustsRes.data ?? []) as TrustRow[]);
-    setIsTrustEntity(
-      (profileRes.data as { entity_type?: string } | null)?.entity_type === 'trust',
-    );
+    setIsTrustEntity((profileRes.data as { entity_type?: string } | null)?.entity_type === 'trust');
     setLoading(false);
   }, [currentOrg]);
 
@@ -134,7 +134,9 @@ export function useTrust(id: string | undefined) {
     const [trustRes, deedRes, benRes] = await Promise.all([
       supabase
         .from('trusts')
-        .select('id, name, trust_type, abn, tfn, trustee_name, trustee_abn, is_corporate_trustee, settled_date, created_at')
+        .select(
+          'id, name, trust_type, abn, tfn, trustee_name, trustee_abn, is_corporate_trustee, settled_date, created_at',
+        )
         .eq('id', id)
         .eq('organization_id', currentOrg.id)
         .is('deleted_at', null)

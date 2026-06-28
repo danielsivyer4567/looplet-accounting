@@ -46,23 +46,28 @@ async function prepareHarness() {
   await rm(scratchDir, { recursive: true, force: true });
   await mkdir(srcDir, { recursive: true });
 
-  await writeFile(join(scratchDir, 'index.html'), [
-    '<!doctype html>',
-    '<html lang="en">',
-    '  <head>',
-    '    <meta charset="UTF-8" />',
-    '    <meta name="viewport" content="width=device-width, initial-scale=1.0" />',
-    '    <title>ReceiptHub visual smoke</title>',
-    '  </head>',
-    '  <body>',
-    '    <div id="root"></div>',
-    '    <script type="module" src="/src/main.tsx"></script>',
-    '  </body>',
-    '</html>',
-    '',
-  ].join('\n'));
+  await writeFile(
+    join(scratchDir, 'index.html'),
+    [
+      '<!doctype html>',
+      '<html lang="en">',
+      '  <head>',
+      '    <meta charset="UTF-8" />',
+      '    <meta name="viewport" content="width=device-width, initial-scale=1.0" />',
+      '    <title>ReceiptHub visual smoke</title>',
+      '  </head>',
+      '  <body>',
+      '    <div id="root"></div>',
+      '    <script type="module" src="/src/main.tsx"></script>',
+      '  </body>',
+      '</html>',
+      '',
+    ].join('\n'),
+  );
 
-  await writeFile(join(scratchDir, 'vite.config.mjs'), `import { defineConfig } from 'vite';
+  await writeFile(
+    join(scratchDir, 'vite.config.mjs'),
+    `import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 const projectRoot = ${JSON.stringify(toVitePath(rootDir))};
@@ -79,9 +84,12 @@ export default defineConfig({
     ],
   },
 });
-`);
+`,
+  );
 
-  await writeFile(join(srcDir, 'main.tsx'), `import React from 'react';
+  await writeFile(
+    join(srcDir, 'main.tsx'),
+    `import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { ReceiptHubPage } from '@/pages/ReceiptHub';
 import '@/index.css';
@@ -94,9 +102,12 @@ createRoot(rootEl).render(
     <ReceiptHubPage />
   </React.StrictMode>,
 );
-`);
+`,
+  );
 
-  await writeFile(join(srcDir, 'use-org-mock.ts'), `const org = {
+  await writeFile(
+    join(srcDir, 'use-org-mock.ts'),
+    `const org = {
   id: 'org-pos-visual',
   name: 'Looplet Trades Demo',
   organization_type: 'standard',
@@ -112,9 +123,12 @@ export function useOrg() {
     refresh: async () => undefined,
   };
 }
-`);
+`,
+  );
 
-  await writeFile(join(srcDir, 'supabase-mock.ts'), `const receiptEvents = [
+  await writeFile(
+    join(srcDir, 'supabase-mock.ts'),
+    `const receiptEvents = [
   {
     id: 'evt-sale-1',
     bill_id: 'bill-1',
@@ -239,8 +253,19 @@ function makeQuery(table) {
   return query;
 }
 
+function makeChannel() {
+  const channel = {
+    on: () => channel,
+    subscribe: () => channel,
+    unsubscribe: () => undefined,
+  };
+  return channel;
+}
+
 export const supabase = {
   from: (table) => makeQuery(table),
+  channel: () => makeChannel(),
+  removeChannel: async () => 'ok',
   rpc: async (name) => {
     if (name === 'issue_receipt_identity') {
       return {
@@ -276,27 +301,25 @@ export const supabase = {
     }),
   },
 };
-`);
+`,
+  );
 }
 
 function startVite(port) {
   const viteBin = resolve(rootDir, 'node_modules', 'vite', 'bin', 'vite.js');
-  const child = spawn(process.execPath, [
-    viteBin,
-    '--host',
-    '127.0.0.1',
-    '--port',
-    String(port),
-    '--strictPort',
-  ], {
-    cwd: scratchDir,
-    env: {
-      ...process.env,
-      VITE_SUPABASE_URL: supabaseUrl,
-      VITE_SUPABASE_ANON_KEY: 'visual-anon-key',
+  const child = spawn(
+    process.execPath,
+    [viteBin, '--host', '127.0.0.1', '--port', String(port), '--strictPort'],
+    {
+      cwd: scratchDir,
+      env: {
+        ...process.env,
+        VITE_SUPABASE_URL: supabaseUrl,
+        VITE_SUPABASE_ANON_KEY: 'visual-anon-key',
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
     },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  );
   return child;
 }
 
@@ -319,7 +342,9 @@ async function runBrowserSmoke(port) {
     viewports: runs,
     rendered_receipt_hub: runs.every((run) => run.rendered_receipt_hub),
     rendered_pos_bridge_setup: runs.every((run) => run.rendered_pos_bridge_setup),
-    rendered_business_install_requirements: runs.every((run) => run.rendered_business_install_requirements),
+    rendered_business_install_requirements: runs.every(
+      (run) => run.rendered_business_install_requirements,
+    ),
     rendered_sample_receipt_events: runs.every((run) => run.rendered_sample_receipt_events),
     generated_bridge_env: runs.every((run) => run.generated_bridge_env),
     generated_scannable_pass: runs.every((run) => run.generated_scannable_pass),
@@ -389,11 +414,13 @@ async function runViewportSmoke(browser, port, browserName, viewportCase) {
     await page.screenshot({ path: screenshotPath, fullPage: true });
 
     if (consoleErrors.length > 0 || pageErrors.length > 0 || !noHorizontalDocumentOverflow) {
-      throw new Error(`ReceiptHub ${browserName}/${viewportCase.name} visual smoke failed: ${JSON.stringify({
-        consoleErrors,
-        pageErrors,
-        overflow,
-      })}`);
+      throw new Error(
+        `ReceiptHub ${browserName}/${viewportCase.name} visual smoke failed: ${JSON.stringify({
+          consoleErrors,
+          pageErrors,
+          overflow,
+        })}`,
+      );
     }
 
     return {
@@ -406,7 +433,9 @@ async function runViewportSmoke(browser, port, browserName, viewportCase) {
       viewport: viewportCase.viewport,
       rendered_receipt_hub: true,
       rendered_pos_bridge_setup: await page.getByText('POS bridge setup').isVisible(),
-      rendered_business_install_requirements: await page.getByText('Business side must have').isVisible(),
+      rendered_business_install_requirements: await page
+        .getByText('Business side must have')
+        .isVisible(),
       rendered_sample_receipt_events: await page.locator('text=Bunnings Trade').first().isVisible(),
       generated_bridge_env: await page.locator('text=LOOPLET_RECEIPT_WEBHOOK_URL=').isVisible(),
       generated_scannable_pass: await page.getByText('Scan this at POS').isVisible(),
@@ -440,7 +469,7 @@ async function assertKeyboardReachableControls(page, viewportName) {
     window.scrollTo(0, 0);
   });
 
-  for (let index = 0; index < 18; index += 1) {
+  for (let index = 0; index < 36; index += 1) {
     await page.keyboard.press('Tab');
     const active = await page.evaluate(() => {
       const element = document.activeElement;
@@ -457,18 +486,30 @@ async function assertKeyboardReachableControls(page, viewportName) {
     if (!active?.visible || active.disabled || active.tag !== 'button') continue;
     const label = active.ariaLabel || active.text;
     if (label && !reached.includes(label)) reached.push(label);
+    const missing = required.filter(
+      (requiredLabel) => !reached.some((reachedLabel) => reachedLabel.includes(requiredLabel)),
+    );
+    if (missing.length === 0) break;
   }
 
-  const missing = required.filter((label) => !reached.some((reachedLabel) => reachedLabel.includes(label)));
+  const missing = required.filter(
+    (label) => !reached.some((reachedLabel) => reachedLabel.includes(label)),
+  );
   if (missing.length > 0) {
-    throw new Error(`ReceiptHub ${viewportName} keyboard traversal missed controls: ${missing.join(', ')}; reached=${JSON.stringify(reached)}`);
+    throw new Error(
+      `ReceiptHub ${viewportName} keyboard traversal missed controls: ${missing.join(', ')}; reached=${JSON.stringify(reached)}`,
+    );
   }
   return { ok: true, reached };
 }
 
 function readBrowserNames(args) {
-  const value = readOption(args, '--browsers') ?? process.env.LOOPLET_RECEIPT_HUB_BROWSERS ?? 'chromium';
-  const names = value.split(',').map((name) => name.trim()).filter(Boolean);
+  const value =
+    readOption(args, '--browsers') ?? process.env.LOOPLET_RECEIPT_HUB_BROWSERS ?? 'chromium';
+  const names = value
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean);
   if (names.length === 0) throw new Error('--browsers must include at least one browser');
   for (const name of names) {
     if (!Object.prototype.hasOwnProperty.call(browserTypes, name)) {
@@ -508,7 +549,9 @@ async function findFreePort() {
     server.listen(0, '127.0.0.1', resolve);
   });
   const address = server.address();
-  await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+  await new Promise((resolve, reject) =>
+    server.close((error) => (error ? reject(error) : resolve())),
+  );
   if (!address || typeof address === 'string') throw new Error('Could not allocate a free port');
   return address.port;
 }
@@ -524,7 +567,10 @@ function toVitePath(path) {
 }
 
 function toRelativePath(path) {
-  return resolve(path).replace(resolve(rootDir), '').replace(/^[/\\]/, '').replaceAll('\\', '/');
+  return resolve(path)
+    .replace(resolve(rootDir), '')
+    .replace(/^[/\\]/, '')
+    .replaceAll('\\', '/');
 }
 
 function sleep(ms) {

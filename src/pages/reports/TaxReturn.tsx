@@ -74,8 +74,12 @@ export function TaxReturnPage() {
 
   // The data hooks guard on currentOrg internally; call them unconditionally (rules of
   // hooks) — every hook must run before the no-org early return below.
-  const { taxReturn, taxPayable, loading: returnLoading, error: returnError } =
-    useTaxReturn(fyStartYear);
+  const {
+    taxReturn,
+    taxPayable,
+    loading: returnLoading,
+    error: returnError,
+  } = useTaxReturn(fyStartYear);
   const { bookToTax, cgt, loading: bookLoading, error: bookError } = useBookToTax(fyStartYear);
   const { pending, requestApproval, isApproved, refresh: refreshApprovals } = useApprovals();
 
@@ -390,13 +394,26 @@ export function TaxReturnPage() {
           alignItems: 'flex-start',
         }}
       >
-        <Archive size={16} style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }} />
+        <Archive
+          size={16}
+          style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }}
+        />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-          <span style={{ fontWeight: 600, color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>
+          <span
+            style={{
+              fontWeight: 600,
+              color: 'var(--text-title)',
+              display: 'block',
+              marginBottom: '0.25rem',
+            }}
+          >
             Part of the {fyLabel(fyStartYear)} annual cycle
           </span>
           This draft reads the finalised year-end books. Generate the{' '}
-          <Link to="/reports/eofy" style={{ color: 'inherit', textDecoration: 'underline', fontWeight: 600 }}>
+          <Link
+            to="/reports/eofy"
+            style={{ color: 'inherit', textDecoration: 'underline', fontWeight: 600 }}
+          >
             EOFY pack
           </Link>{' '}
           to true-up and lock the periods first, then approve and lodge the return (Phase 7).
@@ -506,10 +523,18 @@ function LabelSection({ title, section }: { title: string; section: ReturnLabelS
                 <tr key={`${l.account_code}-${l.label_code ?? l.label_name}`}>
                   <td>
                     {l.label_code && (
-                      <code style={{ fontSize: '0.7rem', marginRight: '0.4rem' }}>{l.label_code}</code>
+                      <code style={{ fontSize: '0.7rem', marginRight: '0.4rem' }}>
+                        {l.label_code}
+                      </code>
                     )}
                     {l.account_name}
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: '0.4rem' }}>
+                    <span
+                      style={{
+                        color: 'var(--text-muted)',
+                        fontSize: '0.75rem',
+                        marginLeft: '0.4rem',
+                      }}
+                    >
                       {l.account_code}
                     </span>
                   </td>
@@ -525,7 +550,15 @@ function LabelSection({ title, section }: { title: string; section: ReturnLabelS
   );
 }
 
-function TotalRow({ total, strong, note }: { total: ReturnLabelTotal; strong?: boolean; note?: string }) {
+function TotalRow({
+  total,
+  strong,
+  note,
+}: {
+  total: ReturnLabelTotal;
+  strong?: boolean;
+  note?: string;
+}) {
   return (
     <div
       style={{
@@ -544,7 +577,14 @@ function TotalRow({ total, strong, note }: { total: ReturnLabelTotal; strong?: b
         )}
         {total.label_name}
         {note && (
-          <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '0.75rem', marginLeft: '0.4rem' }}>
+          <span
+            style={{
+              color: 'var(--text-muted)',
+              fontWeight: 400,
+              fontSize: '0.75rem',
+              marginLeft: '0.4rem',
+            }}
+          >
             {note}
           </span>
         )}
@@ -590,7 +630,11 @@ function BookToTaxRecon({ bookToTax: b }: { bookToTax: BookToTax }) {
       />
       <ReconRow
         label="Franking gross-up"
-        hint={b.franking.grossed_up_into_assessable_income ? 'grossed up into assessable income' : b.franking.note}
+        hint={
+          b.franking.grossed_up_into_assessable_income
+            ? 'grossed up into assessable income'
+            : b.franking.note
+        }
         value={b.franking.credits_received_cents}
         sign="+"
       />
@@ -650,13 +694,22 @@ function ReconRow({
       <span>
         {label}
         {hint && (
-          <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '0.75rem', marginLeft: '0.4rem' }}>
+          <span
+            style={{
+              color: 'var(--text-muted)',
+              fontWeight: 400,
+              fontSize: '0.75rem',
+              marginLeft: '0.4rem',
+            }}
+          >
             {hint}
           </span>
         )}
       </span>
       <span style={{ whiteSpace: 'nowrap', fontFamily: 'var(--font-title)' }}>
-        {sign && value !== 0 && <span style={{ color: 'var(--text-muted)', marginRight: '0.25rem' }}>{sign}</span>}
+        {sign && value !== 0 && (
+          <span style={{ color: 'var(--text-muted)', marginRight: '0.25rem' }}>{sign}</span>
+        )}
         {formatMoney(value)}
       </span>
     </div>
@@ -673,10 +726,16 @@ function TaxPayableWaterfall({ taxPayable: t }: { taxPayable: TaxPayable }) {
       <ReconRow label="Taxable income" value={t.taxable_income_cents} />
       <ReconRow
         label="Income tax"
-        hint={t.rate_basis.rate != null ? `${(t.rate_basis.rate * 100).toFixed(t.rate_basis.rate < 0.1 ? 1 : 0)}% ${t.rate_basis.kind}` : t.rate_basis.kind}
+        hint={
+          t.rate_basis.rate != null
+            ? `${(t.rate_basis.rate * 100).toFixed(t.rate_basis.rate < 0.1 ? 1 : 0)}% ${t.rate_basis.kind}`
+            : t.rate_basis.kind
+        }
         value={t.income_tax_cents}
       />
-      {t.medicare_levy_cents > 0 && <ReconRow label="Medicare levy" value={t.medicare_levy_cents} sign="+" />}
+      {t.medicare_levy_cents > 0 && (
+        <ReconRow label="Medicare levy" value={t.medicare_levy_cents} sign="+" />
+      )}
       {nonRef.total_cents > 0 && (
         <ReconRow
           label="Non-refundable offsets"
@@ -685,7 +744,11 @@ function TaxPayableWaterfall({ taxPayable: t }: { taxPayable: TaxPayable }) {
           sign="−"
         />
       )}
-      <ReconRow label="= Tax after non-refundable offsets" value={t.tax_after_non_refundable_offsets_cents} strong />
+      <ReconRow
+        label="= Tax after non-refundable offsets"
+        value={t.tax_after_non_refundable_offsets_cents}
+        strong
+      />
       <ReconRow label="Total liability (incl. levy)" value={t.total_liability_cents} />
       {ref.total_cents > 0 && (
         <ReconRow
@@ -698,7 +761,13 @@ function TaxPayableWaterfall({ taxPayable: t }: { taxPayable: TaxPayable }) {
         />
       )}
       <ReconRow
-        label={t.result === 'refundable' ? '= Net refund' : t.result === 'payable' ? '= Net tax payable' : '= Net (nil)'}
+        label={
+          t.result === 'refundable'
+            ? '= Net refund'
+            : t.result === 'payable'
+              ? '= Net tax payable'
+              : '= Net (nil)'
+        }
         value={t.result === 'refundable' ? t.net_refund_cents : t.net_tax_payable_cents}
         strong
         highlight
@@ -719,8 +788,14 @@ function CgtSummary({ cgt }: { cgt: CgtCalc }) {
         marginBottom: '1.5rem',
       }}
     >
-      <MiniStat label="Current-year gains" value={formatMoney(cgt.current_year_capital_gains_cents)} />
-      <MiniStat label="Current-year losses" value={formatMoney(cgt.current_year_capital_losses_cents)} />
+      <MiniStat
+        label="Current-year gains"
+        value={formatMoney(cgt.current_year_capital_gains_cents)}
+      />
+      <MiniStat
+        label="Current-year losses"
+        value={formatMoney(cgt.current_year_capital_losses_cents)}
+      />
       <MiniStat
         label="CGT discount"
         value={formatMoney(cgt.cgt_discount_cents)}
@@ -746,12 +821,21 @@ function Card({
 }) {
   return (
     <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: subtitle ? '0.25rem' : '1rem' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          marginBottom: subtitle ? '0.25rem' : '1rem',
+        }}
+      >
         <Icon size={18} style={{ color: 'var(--accent-primary)' }} />
         <h2 style={{ margin: 0, fontSize: '1.1rem' }}>{title}</h2>
       </div>
       {subtitle && (
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 1rem' }}>{subtitle}</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 1rem' }}>
+          {subtitle}
+        </p>
       )}
       {children}
     </div>
@@ -773,7 +857,10 @@ function Kpi({
 }) {
   const accent = `var(--accent-${type === 'neutral' ? 'primary' : type})`;
   return (
-    <div className="card" style={{ padding: '1.25rem', borderLeft: `4px solid ${accent}`, position: 'relative' }}>
+    <div
+      className="card"
+      style={{ padding: '1.25rem', borderLeft: `4px solid ${accent}`, position: 'relative' }}
+    >
       <div
         style={{
           fontSize: '0.675rem',
@@ -796,10 +883,19 @@ function Kpi({
       >
         {value}
       </div>
-      <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)', minHeight: '0.9rem' }}>
+      <div
+        style={{
+          marginTop: '0.25rem',
+          fontSize: '0.725rem',
+          color: 'var(--text-muted)',
+          minHeight: '0.9rem',
+        }}
+      >
         {sub ?? ''}
       </div>
-      <div style={{ position: 'absolute', right: '1rem', bottom: '1rem', color: accent, opacity: 0.7 }}>
+      <div
+        style={{ position: 'absolute', right: '1rem', bottom: '1rem', color: accent, opacity: 0.7 }}
+      >
         <Icon size={18} />
       </div>
     </div>
@@ -835,10 +931,33 @@ function NetTaxKpi({ taxPayable, loading }: { taxPayable: TaxPayable | null; loa
   return <Kpi label="Net tax" value={formatMoney(0)} icon={Scale} type="neutral" sub="nil" />;
 }
 
-function MiniStat({ label, value, sub, strong }: { label: string; value: string; sub?: string; strong?: boolean }) {
+function MiniStat({
+  label,
+  value,
+  sub,
+  strong,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  strong?: boolean;
+}) {
   return (
-    <div style={{ background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', padding: '0.75rem' }}>
-      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+    <div
+      style={{
+        background: 'var(--bg-hover)',
+        borderRadius: 'var(--radius-sm)',
+        padding: '0.75rem',
+      }}
+    >
+      <div
+        style={{
+          fontSize: '0.7rem',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+        }}
+      >
         {label}
       </div>
       <div
@@ -851,7 +970,11 @@ function MiniStat({ label, value, sub, strong }: { label: string; value: string;
       >
         {value}
       </div>
-      {sub && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>{sub}</div>}
+      {sub && (
+        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+          {sub}
+        </div>
+      )}
     </div>
   );
 }
@@ -932,12 +1055,27 @@ function FinalisationCard({
   onFinalise: () => void;
   onRefreshStatus: () => void;
 }) {
-  const status = finalised ? 'Finalised' : approved ? 'Approved' : pending ? 'Pending approval' : 'Draft';
-  const badge = finalised || approved ? 'badge-success' : pending ? 'badge-warning' : 'badge-neutral';
+  const status = finalised
+    ? 'Finalised'
+    : approved
+      ? 'Approved'
+      : pending
+        ? 'Pending approval'
+        : 'Draft';
+  const badge =
+    finalised || approved ? 'badge-success' : pending ? 'badge-warning' : 'badge-neutral';
 
   return (
     <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.75rem',
+          flexWrap: 'wrap',
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <ShieldCheck size={18} style={{ color: 'var(--accent-primary)' }} />
           <h2 style={{ margin: 0, fontSize: '1.1rem' }}>Finalisation</h2>
@@ -946,7 +1084,14 @@ function FinalisationCard({
           {status}
         </span>
       </div>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.5rem 0 1rem', lineHeight: '1.5' }}>
+      <p
+        style={{
+          color: 'var(--text-muted)',
+          fontSize: '0.8rem',
+          margin: '0.5rem 0 1rem',
+          lineHeight: '1.5',
+        }}
+      >
         A tax return is a Tier-2 approve-first artifact. Approve it to open a Tier-2 sign-off, then
         finalise once an admin approves — finalising locks the draft. Lodgement to the ATO is a
         separate, later step.
@@ -1007,21 +1152,48 @@ function FinalisationCard({
       )}
 
       {pending && !approved && !finalised && (
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.75rem', marginBottom: 0 }}>
+        <p
+          style={{
+            color: 'var(--text-muted)',
+            fontSize: '0.8rem',
+            marginTop: '0.75rem',
+            marginBottom: 0,
+          }}
+        >
           Awaiting sign-off — an admin can approve it in the{' '}
-          <Link to="/approvals" style={{ color: 'var(--accent-primary)', textDecoration: 'underline', fontWeight: 600 }}>
+          <Link
+            to="/approvals"
+            style={{ color: 'var(--accent-primary)', textDecoration: 'underline', fontWeight: 600 }}
+          >
             Approvals queue
           </Link>
           .
         </p>
       )}
       {approved && !finalised && (
-        <p style={{ color: 'var(--text-success)', fontSize: '0.8rem', marginTop: '0.75rem', marginBottom: 0, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+        <p
+          style={{
+            color: 'var(--text-success)',
+            fontSize: '0.8rem',
+            marginTop: '0.75rem',
+            marginBottom: 0,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+          }}
+        >
           <CheckCircle2 size={14} /> Approved — ready to finalise.
         </p>
       )}
       {actionError && (
-        <p style={{ color: 'var(--text-danger)', fontSize: '0.8rem', marginTop: '0.75rem', marginBottom: 0 }}>
+        <p
+          style={{
+            color: 'var(--text-danger)',
+            fontSize: '0.8rem',
+            marginTop: '0.75rem',
+            marginBottom: 0,
+          }}
+        >
           {actionError}
         </p>
       )}

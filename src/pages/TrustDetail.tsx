@@ -9,7 +9,18 @@ import { SkeletonTable } from '@/components/Skeleton';
 import { titleCase, formatDay, currentFyStartYear } from '@/lib/formatting';
 import { formatMoney } from '@/lib/money';
 import { downloadBlob } from '@/lib/download';
-import { ChevronLeft, Landmark, FileText, Plus, Save, Edit3, Trash2, Coins, AlertTriangle, Banknote } from 'lucide-react';
+import {
+  ChevronLeft,
+  Landmark,
+  FileText,
+  Plus,
+  Save,
+  Edit3,
+  Trash2,
+  Coins,
+  AlertTriangle,
+  Banknote,
+} from 'lucide-react';
 
 const cardStyle: CSSProperties = {
   background: 'var(--bg-card)',
@@ -32,7 +43,11 @@ const sectionTitleStyle: CSSProperties = {
 };
 
 // Icon + label button content alignment, shared by the action buttons.
-const btnIconStyle: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '0.25rem' };
+const btnIconStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '0.25rem',
+};
 
 // A blank beneficiary draft for the add form.
 const EMPTY_BENEFICIARY = {
@@ -142,7 +157,13 @@ export function TrustDetailPage() {
     <section className="animated-fade-in">
       <Link
         to="/trusts"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-muted)', marginBottom: '1rem' }}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.25rem',
+          color: 'var(--text-muted)',
+          marginBottom: '1rem',
+        }}
       >
         <ChevronLeft size={16} /> Trusts
       </Link>
@@ -150,15 +171,23 @@ export function TrustDetailPage() {
       {loading ? (
         <SkeletonTable rows={4} cols={3} />
       ) : error || !trust ? (
-        <div className="badge badge-danger" style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}>
+        <div
+          className="badge badge-danger"
+          style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}
+        >
           {error ?? 'Trust not found.'}
         </div>
       ) : (
         <>
-          <h1 style={{ margin: '0 0 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h1
+            style={{ margin: '0 0 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          >
             <Landmark size={24} style={{ color: 'var(--accent-primary)' }} />
             {trust.name}
-            <span className="badge badge-neutral" style={{ fontSize: '11px', textTransform: 'none' }}>
+            <span
+              className="badge badge-neutral"
+              style={{ fontSize: '11px', textTransform: 'none' }}
+            >
               {titleCase(trust.trust_type)}
             </span>
           </h1>
@@ -168,12 +197,24 @@ export function TrustDetailPage() {
             <div style={sectionTitleStyle}>
               <Landmark size={14} style={{ color: 'var(--accent-primary)' }} /> Trust
             </div>
-            <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '0.5rem 1.5rem', margin: 0 }}>
+            <dl
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'auto 1fr',
+                gap: '0.5rem 1.5rem',
+                margin: 0,
+              }}
+            >
               <dt style={{ color: 'var(--text-muted)' }}>Trustee</dt>
               <dd style={{ margin: 0 }}>
                 {trust.trustee_name ?? '—'}
                 {trust.is_corporate_trustee ? ' (corporate)' : ''}
-                {trust.trustee_abn ? <> · <code>{trust.trustee_abn}</code></> : null}
+                {trust.trustee_abn ? (
+                  <>
+                    {' '}
+                    · <code>{trust.trustee_abn}</code>
+                  </>
+                ) : null}
               </dd>
               <dt style={{ color: 'var(--text-muted)' }}>ABN</dt>
               <dd style={{ margin: 0 }}>{trust.abn ? <code>{trust.abn}</code> : '—'}</dd>
@@ -188,7 +229,14 @@ export function TrustDetailPage() {
               <FileText size={14} style={{ color: 'var(--accent-primary)' }} /> Deed
             </div>
             {deed ? (
-              <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '0.5rem 1.5rem', margin: 0 }}>
+              <dl
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'auto 1fr',
+                  gap: '0.5rem 1.5rem',
+                  margin: 0,
+                }}
+              >
                 <dt style={{ color: 'var(--text-muted)' }}>Deed date</dt>
                 <dd style={{ margin: 0 }}>{formatDay(deed.deed_date)}</dd>
                 <dt style={{ color: 'var(--text-muted)' }}>Vesting date</dt>
@@ -198,7 +246,14 @@ export function TrustDetailPage() {
                 <dt style={{ color: 'var(--text-muted)' }}>Parsed terms</dt>
                 <dd style={{ margin: 0 }}>
                   {deed.parsed_terms && Object.keys(deed.parsed_terms).length > 0 ? (
-                    <pre style={{ margin: 0, fontSize: '0.8rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    <pre
+                      style={{
+                        margin: 0,
+                        fontSize: '0.8rem',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                      }}
+                    >
                       {JSON.stringify(deed.parsed_terms, null, 2)}
                     </pre>
                   ) : (
@@ -228,7 +283,9 @@ export function TrustDetailPage() {
             <div style={{ ...sectionTitleStyle, justifyContent: 'space-between' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Landmark size={14} style={{ color: 'var(--accent-primary)' }} /> Beneficiaries
-                <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({beneficiaries.length})</span>
+                <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
+                  ({beneficiaries.length})
+                </span>
               </span>
               {!adding && (
                 <button
@@ -246,7 +303,15 @@ export function TrustDetailPage() {
             </div>
 
             {formError && (
-              <div className="badge badge-danger" style={{ display: 'block', padding: '0.5rem', marginBottom: '0.75rem', textTransform: 'none' }}>
+              <div
+                className="badge badge-danger"
+                style={{
+                  display: 'block',
+                  padding: '0.5rem',
+                  marginBottom: '0.75rem',
+                  textTransform: 'none',
+                }}
+              >
                 {formError}
               </div>
             )}
@@ -262,7 +327,9 @@ export function TrustDetailPage() {
             )}
 
             {beneficiaries.length === 0 && !adding ? (
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No beneficiaries yet.</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                No beneficiaries yet.
+              </span>
             ) : (
               <div className="table-premium-container">
                 <table className="table-premium">
@@ -294,12 +361,27 @@ export function TrustDetailPage() {
                         <tr key={b.id}>
                           <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{b.name}</td>
                           <td>
-                            <span className="badge badge-neutral" style={{ fontSize: '11px', textTransform: 'none' }}>
+                            <span
+                              className="badge badge-neutral"
+                              style={{ fontSize: '11px', textTransform: 'none' }}
+                            >
                               {titleCase(b.beneficiary_type)}
                             </span>
                           </td>
-                          <td>{b.relationship ? titleCase(b.relationship) : <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
-                          <td>{b.abn ? <code>{b.abn}</code> : <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
+                          <td>
+                            {b.relationship ? (
+                              titleCase(b.relationship)
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)' }}>—</span>
+                            )}
+                          </td>
+                          <td>
+                            {b.abn ? (
+                              <code>{b.abn}</code>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)' }}>—</span>
+                            )}
+                          </td>
                           <td>{formatDay(b.date_of_birth)}</td>
                           <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                             <button
@@ -378,14 +460,29 @@ function Div7aPanel() {
           <Banknote size={14} style={{ color: 'var(--accent-primary)' }} /> Division 7A
         </span>
         {scan && (
-          <span style={{ fontWeight: 400, color: scan.breach_count > 0 ? 'var(--text-danger)' : 'var(--text-success)' }}>
-            {scan.breach_count > 0 ? `${scan.breach_count} issue${scan.breach_count === 1 ? '' : 's'}` : 'No issues'}
+          <span
+            style={{
+              fontWeight: 400,
+              color: scan.breach_count > 0 ? 'var(--text-danger)' : 'var(--text-success)',
+            }}
+          >
+            {scan.breach_count > 0
+              ? `${scan.breach_count} issue${scan.breach_count === 1 ? '' : 's'}`
+              : 'No issues'}
           </span>
         )}
       </div>
 
       {error && (
-        <div className="badge badge-danger" style={{ display: 'block', padding: '0.5rem', marginBottom: '0.75rem', textTransform: 'none' }}>
+        <div
+          className="badge badge-danger"
+          style={{
+            display: 'block',
+            padding: '0.5rem',
+            marginBottom: '0.75rem',
+            textTransform: 'none',
+          }}
+        >
           {error}
         </div>
       )}
@@ -393,7 +490,9 @@ function Div7aPanel() {
       {loading ? (
         <SkeletonTable rows={3} cols={4} />
       ) : loans.length === 0 ? (
-        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No Division 7A loans recorded.</span>
+        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+          No Division 7A loans recorded.
+        </span>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">
@@ -416,23 +515,41 @@ function Div7aPanel() {
                     <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>
                       {l.lender_company_name} → {l.borrower_name}
                     </td>
-                    <td>FY{l.loan_year}-{l.loan_year + 1}</td>
+                    <td>
+                      FY{l.loan_year}-{l.loan_year + 1}
+                    </td>
                     <td style={{ textAlign: 'right' }}>{formatMoney(l.principal_cents)}</td>
                     <td>{l.term_years}yr</td>
                     <td>
                       {flags.length > 0 ? (
                         <span
                           className="badge badge-danger"
-                          style={{ fontSize: '11px', textTransform: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                          style={{
+                            fontSize: '11px',
+                            textTransform: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                          }}
                           title={flags.map((f) => f.detail ?? f.kind).join('\n')}
                         >
                           <AlertTriangle size={12} />
                           {hasShortfall ? 'Shortfall' : 'Over term'}
                         </span>
                       ) : l.has_complying_agreement ? (
-                        <span className="badge badge-success" style={{ fontSize: '11px', textTransform: 'none' }}>Complying</span>
+                        <span
+                          className="badge badge-success"
+                          style={{ fontSize: '11px', textTransform: 'none' }}
+                        >
+                          Complying
+                        </span>
                       ) : (
-                        <span className="badge badge-neutral" style={{ fontSize: '11px', textTransform: 'none' }}>No agreement</span>
+                        <span
+                          className="badge badge-neutral"
+                          style={{ fontSize: '11px', textTransform: 'none' }}
+                        >
+                          No agreement
+                        </span>
                       )}
                     </td>
                     <td style={{ textAlign: 'right' }}>
@@ -442,7 +559,8 @@ function Div7aPanel() {
                         onClick={() => void generateAgreement(l.id)}
                         style={btnIconStyle}
                       >
-                        <FileText size={14} /> {agreementBusyId === l.id ? 'Generating…' : 'Agreement'}
+                        <FileText size={14} />{' '}
+                        {agreementBusyId === l.id ? 'Generating…' : 'Agreement'}
                       </button>
                     </td>
                   </tr>
@@ -456,13 +574,31 @@ function Div7aPanel() {
       {/* Stale UPEs (not tied to a loan row) */}
       {upeBreaches.length > 0 && (
         <div style={{ marginTop: '1rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-danger)', fontWeight: 600, marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <div
+            style={{
+              fontSize: '0.8rem',
+              color: 'var(--text-danger)',
+              fontWeight: 600,
+              marginBottom: '0.4rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+            }}
+          >
             <AlertTriangle size={13} /> Unpaid present entitlements at risk
           </div>
-          <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.85rem', color: 'var(--text-body)' }}>
+          <ul
+            style={{
+              margin: 0,
+              paddingLeft: '1.1rem',
+              fontSize: '0.85rem',
+              color: 'var(--text-body)',
+            }}
+          >
             {upeBreaches.map((u) => (
               <li key={u.upe_id}>
-                {u.beneficiary} — {formatMoney(u.unpaid_amount_cents)} unpaid from FY{u.year_arose}-{(u.year_arose ?? 0) + 1}, still unmanaged
+                {u.beneficiary} — {formatMoney(u.unpaid_amount_cents)} unpaid from FY{u.year_arose}-
+                {(u.year_arose ?? 0) + 1}, still unmanaged
               </li>
             ))}
           </ul>
@@ -517,30 +653,47 @@ function DistributionWizard({ trustId }: { trustId: string }) {
               style={{ width: 90, marginLeft: '0.4rem' }}
             />
           </label>
-          <button className="btn btn-primary btn-sm" disabled={loading} onClick={() => void runProposal(trustId, fy)}>
+          <button
+            className="btn btn-primary btn-sm"
+            disabled={loading}
+            onClick={() => void runProposal(trustId, fy)}
+          >
             {loading ? 'Optimising…' : 'Run proposal'}
           </button>
         </span>
       </div>
 
       {error && (
-        <div className="badge badge-danger" style={{ display: 'block', padding: '0.5rem', marginBottom: '0.75rem', textTransform: 'none' }}>
+        <div
+          className="badge badge-danger"
+          style={{
+            display: 'block',
+            padding: '0.5rem',
+            marginBottom: '0.75rem',
+            textTransform: 'none',
+          }}
+        >
           {error}
         </div>
       )}
 
       {!proposal && !loading && !error && (
         <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          Run the optimiser to propose how FY{fy}-{fy + 1} net income is distributed across beneficiaries.
+          Run the optimiser to propose how FY{fy}-{fy + 1} net income is distributed across
+          beneficiaries.
         </span>
       )}
 
       {proposal && (
         <>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-            {proposal.method === 'specific_streaming' ? 'Streaming allowed' : 'Proportional (no streaming)'} ·
-            net income {formatMoney(proposal.net_income_cents)}
-            {t && t.trustee_retained_cents > 0 ? <> · trustee retained {formatMoney(t.trustee_retained_cents)}</> : null}
+            {proposal.method === 'specific_streaming'
+              ? 'Streaming allowed'
+              : 'Proportional (no streaming)'}{' '}
+            · net income {formatMoney(proposal.net_income_cents)}
+            {t && t.trustee_retained_cents > 0 ? (
+              <> · trustee retained {formatMoney(t.trustee_retained_cents)}</>
+            ) : null}
           </div>
           <div className="table-premium-container">
             <table className="table-premium">
@@ -560,14 +713,19 @@ function DistributionWizard({ trustId }: { trustId: string }) {
                     <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>
                       {s.name}
                       {!s.eligible && s.exclusion_reason ? (
-                        <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> · {s.exclusion_reason}</span>
+                        <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
+                          {' '}
+                          · {s.exclusion_reason}
+                        </span>
                       ) : null}
                     </td>
                     <td style={{ textAlign: 'right' }}>{formatMoney(s.capital_gain_cents)}</td>
                     <td style={{ textAlign: 'right' }}>{formatMoney(s.franked_dividend_cents)}</td>
                     <td style={{ textAlign: 'right' }}>{formatMoney(s.franking_credits_cents)}</td>
                     <td style={{ textAlign: 'right' }}>{formatMoney(s.other_cents)}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatMoney(s.amount_cents)}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                      {formatMoney(s.amount_cents)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -575,11 +733,19 @@ function DistributionWizard({ trustId }: { trustId: string }) {
                 <tfoot>
                   <tr style={{ fontWeight: 600 }}>
                     <td>Total distributed</td>
-                    <td style={{ textAlign: 'right' }}>{formatMoney(t.streamed_capital_gain_cents)}</td>
-                    <td style={{ textAlign: 'right' }}>{formatMoney(t.streamed_franked_dividend_cents)}</td>
-                    <td style={{ textAlign: 'right' }}>{formatMoney(t.streamed_franking_credits_cents)}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      {formatMoney(t.streamed_capital_gain_cents)}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      {formatMoney(t.streamed_franked_dividend_cents)}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      {formatMoney(t.streamed_franking_credits_cents)}
+                    </td>
                     <td style={{ textAlign: 'right' }}>{formatMoney(t.other_cents)}</td>
-                    <td style={{ textAlign: 'right' }}>{formatMoney(t.distributed_amount_cents)}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      {formatMoney(t.distributed_amount_cents)}
+                    </td>
                   </tr>
                 </tfoot>
               )}
@@ -587,7 +753,15 @@ function DistributionWizard({ trustId }: { trustId: string }) {
           </div>
 
           {/* Actions */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '1rem', alignItems: 'center' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '0.5rem',
+              marginTop: '1rem',
+              alignItems: 'center',
+            }}
+          >
             <button
               className="btn btn-secondary btn-sm"
               disabled={persisting}
@@ -605,7 +779,11 @@ function DistributionWizard({ trustId }: { trustId: string }) {
               <FileText size={14} /> {minuteBusy ? 'Generating…' : 'Generate minute'}
             </button>
             {/* Finalise is gated on an approval; approve itself lives in the approvals queue. */}
-            <button className="btn btn-ghost btn-sm" disabled title="Requires a Tier-2 approval (see Approvals)">
+            <button
+              className="btn btn-ghost btn-sm"
+              disabled
+              title="Requires a Tier-2 approval (see Approvals)"
+            >
               Finalise (needs approval)
             </button>
             <Link to="/approvals" style={{ fontSize: '0.85rem', color: 'var(--accent-primary)' }}>
@@ -615,19 +793,31 @@ function DistributionWizard({ trustId }: { trustId: string }) {
 
           {persistResult?.ok && (
             <div style={{ marginTop: '0.6rem', fontSize: '0.85rem', color: 'var(--text-success)' }}>
-              Saved {persistResult.drafts_written} draft row{persistResult.drafts_written === 1 ? '' : 's'}
-              {persistResult.drafts_replaced > 0 ? ` (replaced ${persistResult.drafts_replaced})` : ''}.
+              Saved {persistResult.drafts_written} draft row
+              {persistResult.drafts_written === 1 ? '' : 's'}
+              {persistResult.drafts_replaced > 0
+                ? ` (replaced ${persistResult.drafts_replaced})`
+                : ''}
+              .
             </div>
           )}
           {minuteError && (
-            <div className="badge badge-danger" style={{ display: 'block', padding: '0.5rem', marginTop: '0.6rem', textTransform: 'none' }}>
+            <div
+              className="badge badge-danger"
+              style={{
+                display: 'block',
+                padding: '0.5rem',
+                marginTop: '0.6rem',
+                textTransform: 'none',
+              }}
+            >
               {minuteError}
             </div>
           )}
           {proposal.totals && !proposal.totals.grossed_reconciles && (
             <div style={{ marginTop: '0.6rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Note: the streamed classes do not fully reconcile to net income (e.g. a current-year loss or
-              deduction-heavy year) — review before finalising.
+              Note: the streamed classes do not fully reconcile to net income (e.g. a current-year
+              loss or deduction-heavy year) — review before finalising.
             </div>
           )}
         </>

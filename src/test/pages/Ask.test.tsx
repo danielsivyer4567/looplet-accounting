@@ -75,12 +75,21 @@ const note: AdviceNote = {
   deleted_at: null,
 };
 
-function setAdviceState(notes: AdviceNote[] = [note]) {
+function setAdviceState(
+  notes: AdviceNote[] = [note],
+  overrides: Partial<{
+    backendAvailable: boolean;
+    unavailableMessage: string | null;
+    error: string | null;
+  }> = {},
+) {
   mocks.adviceState.current = {
     notes,
     loading: false,
     actionBusy: false,
-    error: null,
+    error: overrides.error ?? null,
+    backendAvailable: overrides.backendAvailable ?? true,
+    unavailableMessage: overrides.unavailableMessage ?? null,
     refresh: mocks.refreshAdvice,
     createNote: vi.fn(),
     signOff: mocks.signOff,
@@ -103,6 +112,11 @@ describe('AskPage advisor surface', () => {
     Element.prototype.scrollIntoView = vi.fn();
     mocks.getSession.mockReset();
     mocks.fetch.mockReset();
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true }),
+    });
     mocks.refreshAdvice.mockReset();
     mocks.signOff.mockReset();
     mocks.dismiss.mockReset();
@@ -135,17 +149,32 @@ describe('AskPage advisor surface', () => {
   });
 
   it('runs an advisor scenario through the advisor function and opens the returned note', async () => {
-    mocks.fetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({ ok: true, advice_note_id: 'note-1' }),
-    });
+    mocks.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, advice_note_id: 'note-1' }),
+      });
 
     renderAsk();
+    await waitFor(() =>
+      expect(mocks.fetch).toHaveBeenCalledWith(
+        'https://supabase.test/functions/v1/advisor',
+        expect.objectContaining({ method: 'OPTIONS' }),
+      ),
+    );
     fireEvent.click(screen.getByRole('button', { name: /Run Forecast/i }));
 
-    await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(1));
-    const [url, init] = mocks.fetch.mock.calls[0] as [string, RequestInit];
+    await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(2));
+    const postCall = mocks.fetch.mock.calls.find(
+      ([, init]) => (init as RequestInit).method === 'POST',
+    ) as [string, RequestInit];
+    const [url, init] = postCall;
     expect(url).toBe('https://supabase.test/functions/v1/advisor');
     expect(init.method).toBe('POST');
     expect(init.headers).toMatchObject({
@@ -163,26 +192,70 @@ describe('AskPage advisor surface', () => {
     ).toBeInTheDocument();
   });
 
-  it('keeps the existing ask-bot chat flow working', async () => {
-    mocks.fetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        ok: true,
-        route: 'knowledge',
-        answer: 'GST answer from ask-bot.',
-        sonar_citations: [],
-      }),
+  it('disables advisor actions when the advice-note backend is unavailable', () => {
+    setAdviceState([], {
+      backendAvailable: false,
+      unavailableMessage: 'Advisor notes are not deployed in this Supabase project yet.',
     });
 
     renderAsk();
+
+    expect(screen.getByRole('button', { name: /Run Forecast/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Refresh/i })).toBeDisabled();
+    expect(
+      screen.getByText('Advisor notes are not deployed in this Supabase project yet.'),
+    ).toBeInTheDocument();
+  });
+
+  it('disables advisor actions when the advisor edge function is not deployed', async () => {
+    mocks.fetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    renderAsk();
+
+    expect(
+      await screen.findByText(
+        'Advisor edge function is not deployed to this Supabase project yet.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Run Forecast/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Refresh/i })).toBeDisabled();
+  });
+
+  it('keeps the existing ask-bot chat flow working', async () => {
+    mocks.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          ok: true,
+          route: 'knowledge',
+          answer: 'GST answer from ask-bot.',
+          sonar_citations: [],
+        }),
+      });
+
+    renderAsk();
+    await waitFor(() =>
+      expect(mocks.fetch).toHaveBeenCalledWith(
+        'https://supabase.test/functions/v1/advisor',
+        expect.objectContaining({ method: 'OPTIONS' }),
+      ),
+    );
     fireEvent.change(screen.getByPlaceholderText(/Ask anything/i), {
       target: { value: 'What is GST?' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
 
     expect(await screen.findByText('GST answer from ask-bot.')).toBeInTheDocument();
-    const [url, init] = mocks.fetch.mock.calls[0] as [string, RequestInit];
+    const askCall = mocks.fetch.mock.calls.find(
+      ([url]) => url === 'https://supabase.test/functions/v1/ask-bot',
+    ) as [string, RequestInit];
+    const [url, init] = askCall;
     expect(url).toBe('https://supabase.test/functions/v1/ask-bot');
     expect(JSON.parse(init.body as string)).toMatchObject({
       organization_id: 'org-1',

@@ -34,7 +34,9 @@ vi.mock('@/hooks/useSuperBatch', () => ({
 vi.mock('@/hooks/useTaxCalendar', () => ({
   markObligationStatus: (a: unknown) => h.markObligationStatus(a),
 }));
-vi.mock('@/hooks/useOrg', () => ({ useOrg: () => ({ currentOrg: { id: 'org-1', name: 'Test Org' } }) }));
+vi.mock('@/hooks/useOrg', () => ({
+  useOrg: () => ({ currentOrg: { id: 'org-1', name: 'Test Org' } }),
+}));
 vi.mock('@/lib/supabase', () => import('@/test/mocks/supabase'));
 
 import { SuperBatchSection } from '@/pages/Payroll';
