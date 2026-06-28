@@ -10,9 +10,28 @@
  * body, plus `X-Looplet-Timestamp` (unix seconds) to let receivers reject replays.
  */
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
-// NOTE: this is a type-only import (erased at runtime), so the module is safe to
-// import from both the Deno edge runtime and a Node/vitest test context.
+// Minimal structural type for the one query this adapter runs. Declared locally
+// (rather than importing SupabaseClient from the esm.sh URL) so the module has
+// ZERO external type deps and can be imported from both the Deno edge runtime
+// AND the Node/vitest test context (tsc -b can't resolve a URL import).
+// The adapter only needs `from(...)`; the query builder it returns is treated
+// opaquely (the real Deno SupabaseClient satisfies this, and so does a test
+// double) and its row result is narrowed with an explicit type at the call
+// site. Declared locally so there is NO URL import for tsc -b to choke on.
+interface SupabaseLike {
+  from: (table: string) => unknown;
+}
+
+interface EndpointRow {
+  endpoint_url?: string;
+  signing_secret?: string;
+  is_enabled?: boolean;
+}
+type EndpointQuery = {
+  select: (cols: string) => EndpointQuery;
+  eq: (col: string, val: unknown) => EndpointQuery;
+  maybeSingle: () => Promise<{ data: EndpointRow | null }>;
+};
 
 export interface GenericApiBill {
   id: string;
@@ -36,7 +55,7 @@ export interface GenericApiBill {
 }
 
 export interface GenericApiArgs {
-  admin: SupabaseClient;
+  admin: SupabaseLike;
   organizationId: string;
   bill: GenericApiBill;
   job: { id: string; job_number: string; name: string };
@@ -102,8 +121,8 @@ export function buildGenericApiBody(args: GenericApiArgs): string {
 }
 
 export async function pushBillToGenericApi(args: GenericApiArgs): Promise<GenericApiResult> {
-  const { data: endpoint } = await args.admin
-    .from('receipt_sync_endpoints')
+  const query = args.admin.from('receipt_sync_endpoints') as EndpointQuery;
+  const { data: endpoint } = await query
     .select('endpoint_url, signing_secret, is_enabled')
     .eq('organization_id', args.organizationId)
     .eq('provider', 'generic_api')

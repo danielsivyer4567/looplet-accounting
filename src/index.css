@@ -2140,3 +2140,49 @@ code {
     min-height: 420px;
   }
 }
+
+/* Phone widths (≤430px): stack the newer Receipt Hub panels so nothing clips. */
+@media (max-width: 430px) {
+  .receipt-hub-page {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  /* The manual-capture two-up rows and the in-drawer line/identity grids
+     collapse to a single column so labels and amounts don't overflow. */
+  .receipt-manual-row {
+    flex-direction: column;
+  }
+
+  .receipt-identity-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas: 'meta meta' 'status action';
+    gap: 0.4rem 0.6rem;
+  }
+
+  .receipt-identity-meta {
+    grid-area: meta;
+  }
+
+  .receipt-line-row {
+    grid-template-columns: 1fr auto;
+  }
+
+  /* Full-bleed drawer on a phone — 92vw of 440px still left a sliver; take the
+     whole width and keep the audit JSON horizontally scrollable, not clipped. */
+  .receipt-drawer {
+    width: 100vw;
+    max-width: 100vw;
+  }
+
+  .receipt-decision-path {
+    max-height: 160px;
+  }
+
+  /* The Code128 pass barcode and bridge env block must scroll, never overflow. */
+  .receipt-pass-card svg,
+  .receipt-env-panel pre {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}

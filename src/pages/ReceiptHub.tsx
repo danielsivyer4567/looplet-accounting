@@ -2079,7 +2079,11 @@ export function ReceiptHubPage() {
             </div>
           </div>
           <div className="receipt-table" aria-label="Recent receipt events">
-            {events.length === 0 ? (
+            {loading ? (
+              <div className="receipt-loading">
+                <Loader2 size={16} className="spin" /> Loading receipt events
+              </div>
+            ) : events.length === 0 ? (
               <div className="receipt-empty">
                 Run the POS simulator to create a receipt event, bill, GST classification, audit
                 package, and sync queue.
@@ -2151,7 +2155,11 @@ export function ReceiptHubPage() {
             </button>
           </div>
           <div className="receipt-sync-list">
-            {syncJobs.length === 0 ? (
+            {loading ? (
+              <div className="receipt-loading">
+                <Loader2 size={16} className="spin" /> Loading sync queue
+              </div>
+            ) : syncJobs.length === 0 ? (
               <div className="receipt-empty">No provider jobs queued yet.</div>
             ) : (
               syncJobs.map((job) => {
@@ -2277,6 +2285,11 @@ function ReceiptEventDrawer({
           </div>
         ) : (
           <div className="receipt-drawer-body">
+            {error ? (
+              <div className="receipt-alert" role="alert">
+                {error}
+              </div>
+            ) : null}
             <dl className="receipt-core-status">
               <div className="receipt-core-metric">
                 <dt>Total / GST</dt>
@@ -2361,12 +2374,6 @@ function ReceiptEventDrawer({
                 />
               )}
             </div>
-
-            {error ? (
-              <div className="receipt-alert" role="alert">
-                {error}
-              </div>
-            ) : null}
           </div>
         )}
       </aside>
