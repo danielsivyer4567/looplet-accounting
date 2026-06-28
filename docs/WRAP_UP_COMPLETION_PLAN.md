@@ -87,6 +87,17 @@ Completed:
 - No `advisor-scheduled-daily` cron is scheduled.
 - One `advice_notes` draft exists live, but there is no signed-in browser trace
   tying it to the Ask/on-demand workflow.
+- `tests/advisor-live-smoke.test.ts` now captures the missing live proof once a
+  signed-in `TEST_USER_JWT`, `TEST_ORG_ID`, and service-role cleanup key are
+  supplied.
+
+Blocked prerequisites:
+
+- Provide a signed-in test user JWT and accessible org, or run the smoke from a
+  browser session the user explicitly authorizes. Public sign-up was rate-limited
+  during the 2026-06-29 wrap-up pass, local `SUPABASE_SERVICE_ROLE_KEY` is empty,
+  and direct SQL auth-user minting did not produce a valid GoTrue password
+  session.
 
 Exit criteria:
 

@@ -40,7 +40,10 @@ scorecard. Current wrap-up evidence changes these conclusions:
   built or the provided-text path is used intentionally.
 - **Advisor:** deployed with JWT enabled and local Deno/model tests passing, but
   still needs a signed-in Ask/on-demand smoke proving a live `advice_notes` draft
-  row is created.
+  row is created. A deploy-gated `tests/advisor-live-smoke.test.ts` now encodes
+  that proof path, but it requires a real `TEST_USER_JWT`, `TEST_ORG_ID`, and
+  service-role cleanup key. Public sign-up was rate-limited during the
+  2026-06-29 wrap-up pass, so this was not completed unattended.
 - **Migration state:** missing live DDL for `0181`-`0187` was applied and verified
   on 2026-06-29. The timestamp-version drift for known-applied rows was repaired
   afterwards, then the remaining local-only ranges `0138`-`0150` and
