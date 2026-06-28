@@ -13,7 +13,7 @@ scorecard. Current wrap-up evidence changes these conclusions:
 
 - **Reconciliation invoice-side:** code and live DB hardening are done. The UI
   matches bank inflows to invoices and caps settlement at `min(bank inflow,
-  invoice balance)`. Live `0196_harden_invoice_reconciliation.sql` proof shows
+invoice balance)`. Live `0196_harden_invoice_reconciliation.sql` proof shows
   hardened AR grants, invoice-payment validation, triggers, and a
   security-invoker invoice match view. Remaining proof is a signed-in live
   invoice/payment smoke with real AR data.
@@ -38,6 +38,16 @@ scorecard. Current wrap-up evidence changes these conclusions:
   records many local migrations under timestamp versions, while the CLI still
   reports numeric local files `0089`-`0196` as local-only. Do not run
   `supabase db push` blind.
+- **Fresh local gates:** after the wrap-up DB/doc work, `npm run format:check`,
+  `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build` all
+  passed on 2026-06-29. The build still emits the pre-existing pdfjs dynamic
+  import warning and a large main-chunk warning.
+- **Fresh live blocker counts:** `legal_sources=7`, `legal_corpus=0`,
+  `legal_change_events=0`, `legal_horizon=0`, `advice_notes=1`,
+  `receipt_events=0`, enabled `receipt_sync_endpoints=0`, and enabled
+  `xero_integrations=0`. The one advice note is a `structuring` draft created
+  2026-06-28; without a signed-in Ask/browser trace, it narrows but does not
+  complete the advisor workflow proof.
 
 ## TL;DR
 
@@ -61,33 +71,33 @@ The "subscriptions empty" complaint is correct: detection ran, but only 5 bank t
 
 Score: 0=missing, 1=stub, 2=partial, 3=working, 4=polished. Cells with `—` are not applicable. ✓ ≥3, ⚠ =2, ✗ ≤1.
 
-| Module | Schema | Pipeline | List | Detail | Create | Edit | Del | Multi-org | Empty | Error | Loading | Mobile |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1. Auth | 4✓ | — | 4✓ | — | 4✓ | — | — | — | 3✓ | 3✓ | 3✓ | 2⚠ |
-| 2. Onboarding (AutoSetup+Triage) | 3✓ | 3✓ | 3✓ | 3✓ | — | — | — | 3✓ | 2⚠ | 2⚠ | 3✓ | 1✗ |
-| 3. Dashboard P&L | 4✓ | 4✓ | — | — | — | — | — | 3✓ | 3✓ | 3✓ | 3✓ | 2⚠ |
-| 4. Bills | 4✓ | 4✓ | 4✓ | 4✓ | 4✓ | 1✗ | 3✓ | 4✓ | 3✓ | 3✓ | 4✓ | 2⚠ |
-| 5. Allocations | 4✓ | 4✓ | 4✓ | — | — | — | — | — | 3✓ | 2⚠ | 3✓ | 2⚠ |
-| 6. Suppliers | 4✓ | 4✓ | 4✓ | 4✓ | 0✗ | 4✓ | 3✓ | 0✗ | 3✓ | 2⚠ | 3✓ | 2⚠ |
-| 7. Customers | 4✓ | 0✗ | 4✓ | 4✓ | 0✗ | 4✓ | 2⚠ | 0✗ | 2⚠ | 2⚠ | 3✓ | 2⚠ |
-| 8. Jobs | 4✓ | 2⚠ | 4✓ | 4✓ | 0✗ | 4✓ | 3✓ | 0✗ | 3✓ | 2⚠ | 3✓ | 2⚠ |
-| 9. Invoices | 4✓ | 4✓ | 4✓ | 4✓ | 4✓ | 4✓ | 3✓ | 0✗ | 3✓ | 2⚠ | 3✓ | 2⚠ |
-| 10. Bank — Basiq Connect | 4✓ | 2⚠ | 3✓ | 1✗ | 3✓ | — | 1✗ | — | 3✓ | 2⚠ | 2⚠ | 1✗ |
-| 11. Bank — CSV import | 4✓ | 4✓ | 3✓ | — | 4✓ | — | — | — | 3✓ | 3✓ | 3✓ | 1✗ |
-| 12. Bank — PDF parser | 4✓ | 3✓ | 3✓ | — | 4✓ | — | — | — | 2⚠ | 3✓ | 3✓ | 1✗ |
-| 13. Bank — Reconciliation | 4✓ | 3✓ | 4✓ | — | — | — | — | — | 3✓ | 3✓ | 3✓ | 2⚠ |
-| 14. Bank — Subscription detect | 4✓ | 4✓ | — | — | — | — | — | — | 3✓ | 3✓ | 3✓ | — |
-| 15. Subscriptions | 4✓ | 4✓ | 4✓ | 0✗ | — | 3✓ | 0✗ | 4✓ | 3✓ | 2⚠ | 3✓ | 1✗ |
-| 16. Debts | 4✓ | 0✗ | 4✓ | 0✗ | 4✓ | 0✗ | 0✗ | 0✗ | 3✓ | 2⚠ | 3✓ | 2⚠ |
-| 17. Employees+Timesheets | 4✓ | 1✗ | 4✓ | 0✗ | 4✓ | 0✗ | 0✗ | 0✗ | 3✓ | 2⚠ | 3✓ | 2⚠ |
-| 18. Reports — BAS | 4✓ | 4✓ | 4✓ | — | — | — | — | — | 3✓ | 2⚠ | 3✓ | 2⚠ |
-| 19. Reports — Cash flow | 4✓ | 4✓ | 4✓ | — | — | — | — | — | 3✓ | 1✗ | 3✓ | 2⚠ |
-| 20. Settings — Org profile | 4✓ | 3✓ | — | 3✓ | 4✓ | 4✓ | — | — | — | 2⚠ | 3✓ | 2⚠ |
-| 21. Settings — Gmail | 3✓ | 4✓ | 3✓ | — | 4✓ | — | 3✓ | — | 3✓ | 3✓ | 3✓ | 1✗ |
-| 22. Settings — Xero | 1⚠ | 0✗ | — | — | 1⚠ | — | — | — | — | 0✗ | 0✗ | 0✗ |
-| 23. Quality | 4✓ | 4✓ | 4✓ | — | — | — | — | — | 4✓ | 3✓ | 3✓ | 2⚠ |
-| 24. Personal/Business split | 4✓ | 3✓ | — | 4✓ | — | 4✓ | — | — | — | 3✓ | — | 2⚠ |
-| 25. Multi-org allocation | 4✓ | 3✓ | — | 4✓ | — | — | — | 4✓ | — | 3✓ | — | 1✗ |
+| Module                           | Schema | Pipeline | List | Detail | Create | Edit | Del | Multi-org | Empty | Error | Loading | Mobile |
+| -------------------------------- | ------ | -------- | ---- | ------ | ------ | ---- | --- | --------- | ----- | ----- | ------- | ------ |
+| 1. Auth                          | 4✓     | —        | 4✓   | —      | 4✓     | —    | —   | —         | 3✓    | 3✓    | 3✓      | 2⚠     |
+| 2. Onboarding (AutoSetup+Triage) | 3✓     | 3✓       | 3✓   | 3✓     | —      | —    | —   | 3✓        | 2⚠    | 2⚠    | 3✓      | 1✗     |
+| 3. Dashboard P&L                 | 4✓     | 4✓       | —    | —      | —      | —    | —   | 3✓        | 3✓    | 3✓    | 3✓      | 2⚠     |
+| 4. Bills                         | 4✓     | 4✓       | 4✓   | 4✓     | 4✓     | 1✗   | 3✓  | 4✓        | 3✓    | 3✓    | 4✓      | 2⚠     |
+| 5. Allocations                   | 4✓     | 4✓       | 4✓   | —      | —      | —    | —   | —         | 3✓    | 2⚠    | 3✓      | 2⚠     |
+| 6. Suppliers                     | 4✓     | 4✓       | 4✓   | 4✓     | 0✗     | 4✓   | 3✓  | 0✗        | 3✓    | 2⚠    | 3✓      | 2⚠     |
+| 7. Customers                     | 4✓     | 0✗       | 4✓   | 4✓     | 0✗     | 4✓   | 2⚠  | 0✗        | 2⚠    | 2⚠    | 3✓      | 2⚠     |
+| 8. Jobs                          | 4✓     | 2⚠       | 4✓   | 4✓     | 0✗     | 4✓   | 3✓  | 0✗        | 3✓    | 2⚠    | 3✓      | 2⚠     |
+| 9. Invoices                      | 4✓     | 4✓       | 4✓   | 4✓     | 4✓     | 4✓   | 3✓  | 0✗        | 3✓    | 2⚠    | 3✓      | 2⚠     |
+| 10. Bank — Basiq Connect         | 4✓     | 2⚠       | 3✓   | 1✗     | 3✓     | —    | 1✗  | —         | 3✓    | 2⚠    | 2⚠      | 1✗     |
+| 11. Bank — CSV import            | 4✓     | 4✓       | 3✓   | —      | 4✓     | —    | —   | —         | 3✓    | 3✓    | 3✓      | 1✗     |
+| 12. Bank — PDF parser            | 4✓     | 3✓       | 3✓   | —      | 4✓     | —    | —   | —         | 2⚠    | 3✓    | 3✓      | 1✗     |
+| 13. Bank — Reconciliation        | 4✓     | 3✓       | 4✓   | —      | —      | —    | —   | —         | 3✓    | 3✓    | 3✓      | 2⚠     |
+| 14. Bank — Subscription detect   | 4✓     | 4✓       | —    | —      | —      | —    | —   | —         | 3✓    | 3✓    | 3✓      | —      |
+| 15. Subscriptions                | 4✓     | 4✓       | 4✓   | 0✗     | —      | 3✓   | 0✗  | 4✓        | 3✓    | 2⚠    | 3✓      | 1✗     |
+| 16. Debts                        | 4✓     | 0✗       | 4✓   | 0✗     | 4✓     | 0✗   | 0✗  | 0✗        | 3✓    | 2⚠    | 3✓      | 2⚠     |
+| 17. Employees+Timesheets         | 4✓     | 1✗       | 4✓   | 0✗     | 4✓     | 0✗   | 0✗  | 0✗        | 3✓    | 2⚠    | 3✓      | 2⚠     |
+| 18. Reports — BAS                | 4✓     | 4✓       | 4✓   | —      | —      | —    | —   | —         | 3✓    | 2⚠    | 3✓      | 2⚠     |
+| 19. Reports — Cash flow          | 4✓     | 4✓       | 4✓   | —      | —      | —    | —   | —         | 3✓    | 1✗    | 3✓      | 2⚠     |
+| 20. Settings — Org profile       | 4✓     | 3✓       | —    | 3✓     | 4✓     | 4✓   | —   | —         | —     | 2⚠    | 3✓      | 2⚠     |
+| 21. Settings — Gmail             | 3✓     | 4✓       | 3✓   | —      | 4✓     | —    | 3✓  | —         | 3✓    | 3✓    | 3✓      | 1✗     |
+| 22. Settings — Xero              | 1⚠     | 0✗       | —    | —      | 1⚠     | —    | —   | —         | —     | 0✗    | 0✗      | 0✗     |
+| 23. Quality                      | 4✓     | 4✓       | 4✓   | —      | —      | —    | —   | —         | 4✓    | 3✓    | 3✓      | 2⚠     |
+| 24. Personal/Business split      | 4✓     | 3✓       | —    | 4✓     | —      | 4✓   | —   | —         | —     | 3✓    | —       | 2⚠     |
+| 25. Multi-org allocation         | 4✓     | 3✓       | —    | 4✓     | —      | —    | —   | 4✓        | —     | 3✓    | —       | 1✗     |
 
 **Average score across cells with content:** ~2.8 / 4 = **70% complete**.
 
@@ -95,17 +105,17 @@ Score: 0=missing, 1=stub, 2=partial, 3=working, 4=polished. Cells with `—` are
 
 ## Pipeline trace results (Phase D)
 
-| Flow | Result | Evidence |
-|---|---|---|
-| **Email → Bill → Supplier auto-link** | ✅ working | 150 bills ingested; supplier-autolink trigger created 9 suppliers; 14 bills got supplier_id linked |
-| **Bills extract → suggested_job** | ✅ working | 22 bills have job_id from suggestions, all attached to J0001 |
-| **gmail-mine → AI classify → Triage** | ⚠ user-blocked | 449 staged_entities exist + classified; **399 still pending** because user hasn't run through Triage. Code works; user behaviour gap. |
-| **Bank txn → Reconciliation candidates** | ⚠ no data | View `v_bank_match_candidates` exists; 0 matches because no real bills have totals matching the 5 fake txns |
-| **Bank txn → subscriptions-detect** | ⚠ no data | Edge fn deployed; runs after every bank-sync/CSV/PDF; 0 subs detected because only 5 debit txns total (need ≥3 of same merchant) |
-| **Bill marked personal → excluded from BAS** | ⚠ untested | View filters on `is_personal=false`; 0 bills tagged personal so excluded but not exercised |
-| **MoveToOrgButton → row moved** | ⚠ user-blocked | Wired to bills+subs; user has only 1 org so dropdown is empty. Need a 2nd org to validate. |
-| **Timesheet entry → v_job_pnl wages** | ⚠ untested | 0 timesheets exist; view computes from timesheet_entries.total_cost_cents |
-| **PDF statement → bank txns + subs** | ⚠ user-blocked | Pipeline deployed; user hasn't uploaded the 7 queued PDFs |
+| Flow                                         | Result         | Evidence                                                                                                                              |
+| -------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Email → Bill → Supplier auto-link**        | ✅ working     | 150 bills ingested; supplier-autolink trigger created 9 suppliers; 14 bills got supplier_id linked                                    |
+| **Bills extract → suggested_job**            | ✅ working     | 22 bills have job_id from suggestions, all attached to J0001                                                                          |
+| **gmail-mine → AI classify → Triage**        | ⚠ user-blocked | 449 staged_entities exist + classified; **399 still pending** because user hasn't run through Triage. Code works; user behaviour gap. |
+| **Bank txn → Reconciliation candidates**     | ⚠ no data      | View `v_bank_match_candidates` exists; 0 matches because no real bills have totals matching the 5 fake txns                           |
+| **Bank txn → subscriptions-detect**          | ⚠ no data      | Edge fn deployed; runs after every bank-sync/CSV/PDF; 0 subs detected because only 5 debit txns total (need ≥3 of same merchant)      |
+| **Bill marked personal → excluded from BAS** | ⚠ untested     | View filters on `is_personal=false`; 0 bills tagged personal so excluded but not exercised                                            |
+| **MoveToOrgButton → row moved**              | ⚠ user-blocked | Wired to bills+subs; user has only 1 org so dropdown is empty. Need a 2nd org to validate.                                            |
+| **Timesheet entry → v_job_pnl wages**        | ⚠ untested     | 0 timesheets exist; view computes from timesheet_entries.total_cost_cents                                                             |
+| **PDF statement → bank txns + subs**         | ⚠ user-blocked | Pipeline deployed; user hasn't uploaded the 7 queued PDFs                                                                             |
 
 ---
 
@@ -149,6 +159,7 @@ ORPHANS                          ORG SETTINGS
 ## Gaps — P0 (broken on arrival)
 
 None. The earlier subagent flagged some but they were false positives:
+
 - ~~`Bills.tsx` joins non-existent `attached_job`~~ — actually present in `useBills.ts:36`
 - ~~Triage page is a placeholder~~ — actually fully implemented
 - ~~OrgSelector has no Create-org button~~ — actually present at `OrgSelector.tsx:126`
@@ -214,6 +225,7 @@ These are big enough to warrant their own sprint, not lumped in here:
 ## Pipeline / function inventory
 
 **Wired and working:**
+
 - `bills-extract`, `bills-extract-batch`, `bills-attach`
 - `gmail-oauth-start`, `gmail-oauth-callback`, `gmail-mine`, `gmail-classify-ai`, `gmail-watch-renew`, `gmail-pubsub-push` (handler stub)
 - `bank-link-token`, `bank-exchange`, `bank-sync`, `bank-sync-all`, `bank-webhook`, `bank-csv-import`, `bank-statement-extract`
@@ -221,6 +233,7 @@ These are big enough to warrant their own sprint, not lumped in here:
 - `xero-oauth-start`, `xero-oauth-callback` (deployed but UI never invokes)
 
 **Triggers / DB-side automation:**
+
 - `bills_autolink_supplier` — auto-creates + links supplier on bill insert/update (working)
 - `invoices_assign_number` — auto-numbers invoices `INV-NNNN`
 - `invoices_recompute_totals` — line items → invoice totals
@@ -228,6 +241,7 @@ These are big enough to warrant their own sprint, not lumped in here:
 - `timesheet_recompute_cost` — hours × rate
 
 **Views:**
+
 - `v_organization_realtime_pnl`, `v_job_pnl`, `v_customer_pnl`
 - `v_bas_quarterly`, `v_cash_flow_weekly`
 - `v_bank_match_candidates`
@@ -238,19 +252,19 @@ These are big enough to warrant their own sprint, not lumped in here:
 
 ## Migration ledger
 
-| File | Purpose |
-|---|---|
-| `0001_initial_schema.sql` | Core tables, enums, RLS scaffold |
-| `0002_bill_content_hash.sql` | `bills.content_sha256` + dedupe index |
-| `0003_financial_views.sql` | `v_organization_realtime_pnl`, `v_job_pnl` |
-| `0004_bill_routing.sql` | `bills.suggested_job_id`, `suggested_match_score`, `job_reference_raw` |
-| `0028_suppliers_backfill_and_autocreate.sql` | `suppliers.contact_phone` + `current_balance_owing_cents`, normalised-name unique idx, backfill from `bills.supplier_name_raw`, autolink trigger |
-| `0029_bank_reconciliation_match_view.sql` | `v_bank_match_candidates` (amount + date + supplier-substring match) |
-| `0030_invoices.sql` | `invoices`, `invoice_line_items`, `invoice_payments`, `invoice_number_counters`; auto-number, recompute-totals, apply-payment triggers; `invoice_gst_treatment` enum; `v_customer_pnl` |
-| `0031_personal_business_split.sql` | `bills.is_personal`, `bank_transactions.is_personal` + indexes; `v_personal_expenses`, `v_personal_bank_expenses` |
-| `0032_bas_and_cash_flow_views.sql` | `au_bas_quarter()` helper; `v_bas_quarterly`, `v_cash_flow_weekly` |
-| `0033_timesheet_entries.sql` | `timesheet_entries` table + RLS + auto-cost trigger |
-| `0034_quality_views.sql` | `v_duplicate_bills`, `v_low_confidence_bills` |
+| File                                         | Purpose                                                                                                                                                                                |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0001_initial_schema.sql`                    | Core tables, enums, RLS scaffold                                                                                                                                                       |
+| `0002_bill_content_hash.sql`                 | `bills.content_sha256` + dedupe index                                                                                                                                                  |
+| `0003_financial_views.sql`                   | `v_organization_realtime_pnl`, `v_job_pnl`                                                                                                                                             |
+| `0004_bill_routing.sql`                      | `bills.suggested_job_id`, `suggested_match_score`, `job_reference_raw`                                                                                                                 |
+| `0028_suppliers_backfill_and_autocreate.sql` | `suppliers.contact_phone` + `current_balance_owing_cents`, normalised-name unique idx, backfill from `bills.supplier_name_raw`, autolink trigger                                       |
+| `0029_bank_reconciliation_match_view.sql`    | `v_bank_match_candidates` (amount + date + supplier-substring match)                                                                                                                   |
+| `0030_invoices.sql`                          | `invoices`, `invoice_line_items`, `invoice_payments`, `invoice_number_counters`; auto-number, recompute-totals, apply-payment triggers; `invoice_gst_treatment` enum; `v_customer_pnl` |
+| `0031_personal_business_split.sql`           | `bills.is_personal`, `bank_transactions.is_personal` + indexes; `v_personal_expenses`, `v_personal_bank_expenses`                                                                      |
+| `0032_bas_and_cash_flow_views.sql`           | `au_bas_quarter()` helper; `v_bas_quarterly`, `v_cash_flow_weekly`                                                                                                                     |
+| `0033_timesheet_entries.sql`                 | `timesheet_entries` table + RLS + auto-cost trigger                                                                                                                                    |
+| `0034_quality_views.sql`                     | `v_duplicate_bills`, `v_low_confidence_bills`                                                                                                                                          |
 
 ---
 
