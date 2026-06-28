@@ -97,8 +97,11 @@ scorecard. Current wrap-up evidence changes these conclusions:
   secret from Supabase Vault; a DB-side `pg_net` probe returned HTTP 200 with
   `ok=true`, `sent=0`, `failed=0`. The first scheduled post-fix run at
   `2026-06-28T20:00:00Z` also returned HTTP 200 with `sent=0`, `failed=0`.
-  `cron_health_summary()` still contains historical 24-hour HTTP failures, so
-  clean-window cron health remains a separate follow-up.
+  A fresh `cron_health_summary()` query at `2026-06-28T20:19:13Z` showed
+  `http_failures_24h=41` (`401=35`, `403=6`) from historical failures while
+  current cron `last_run_pg_status` values were succeeding where jobs had fired;
+  clean-window cron health remains a separate follow-up until that 24-hour
+  window ages out.
 - **Core cron registration:** the live `bank-sync-all`,
   `notifications-cron-nightly`, and `accountant-digest-cron` schedules are now
   tracked by `0197_track_vault_backed_cron_schedules.sql`. `NOTIFICATIONS_CRON_SECRET`

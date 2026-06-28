@@ -70,7 +70,7 @@ work and re-checking the live project. It intentionally separates:
   audit proves unsigned POSTs fail closed with HTTP 401.
 - `bank-sync`, `bank-sync-all`, and `notifications-cron` have had the
   forgeable service-role branch removed. Live versions after deploy:
-  `bank-sync` 28, `bank-sync-all` 26, and `notifications-cron` 23. The live
+  `bank-sync` 29, `bank-sync-all` 27, and `notifications-cron` 24. The live
   audit proves forged `bank-sync` service-role JWTs fail closed with HTTP 401,
   unsigned `bank-sync-all` and `notifications-cron` POSTs fail closed with HTTP
   403, both cron runtime secret names exist in Supabase, and all three
@@ -258,9 +258,10 @@ dxoikltymmknxqpkpyhi --no-verify-jwt` deployed the self-authenticating digest
   `2026-06-28T20:00:00Z`; `net._http_response` request id 7935 returned status
   200, `timed_out=false`, and `{"ok":true,"sent":0,"failed":0}`.
 - `public.cron_health_summary()` after the fix shows
-  `accountant-digest-cron.last_run_pg_status=succeeded`; the 24-hour HTTP
-  failure count is still 42 from historical 401/403 responses and must age out
-  before being used as clean-window proof.
+  `accountant-digest-cron.last_run_pg_status=succeeded`; a fresh
+  2026-06-28T20:19:13Z query still reported `http_failures_24h=41`
+  (`401=35`, `403=6`) from historical failures, so the heartbeat/no-failure
+  window must age out before being used as clean-window proof.
 - Added and applied `supabase/migrations/0197_track_vault_backed_cron_schedules.sql`.
   Because `supabase db push --linked --dry-run` is unavailable in this
   environment without `SUPABASE_DB_PASSWORD`, the migration SQL was applied via
