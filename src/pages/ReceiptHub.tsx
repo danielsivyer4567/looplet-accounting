@@ -70,6 +70,16 @@ interface IdentityRpcRow {
   token_prefix: string;
 }
 
+interface ReceiptIdentityRow {
+  id: string;
+  label: string | null;
+  channel: string | null;
+  token_prefix: string | null;
+  status: string;
+  last_used_at: string | null;
+  created_at: string;
+}
+
 interface ApiKeyRpcRow {
   id: string;
   api_key: string;
@@ -171,7 +181,9 @@ export function ReceiptHubPage() {
 
   const [events, setEvents] = useState<ReceiptEventRow[]>([]);
   const [syncJobs, setSyncJobs] = useState<ReceiptSyncJobRow[]>([]);
+  const [identities, setIdentities] = useState<ReceiptIdentityRow[]>([]);
   const [identityCount, setIdentityCount] = useState(0);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
   const [identityToken, setIdentityToken] = useState<string | null>(null);
   const [bridgeEnv, setBridgeEnv] = useState<string | null>(null);
   const [bridgeApiKeyPrefix, setBridgeApiKeyPrefix] = useState<string | null>(null);
@@ -210,6 +222,7 @@ export function ReceiptHubPage() {
     if (!currentOrg) {
       setEvents([]);
       setSyncJobs([]);
+      setIdentities([]);
       setIdentityCount(0);
       setLoading(false);
       return;
@@ -220,8 +233,12 @@ export function ReceiptHubPage() {
     const [identityRes, eventRes, syncRes] = await Promise.all([
       supabase
         .from('receipt_identities')
-        .select('id', { count: 'exact', head: true })
-        .eq('organization_id', currentOrg.id),
+        .select('id,label,channel,token_prefix,status,last_used_at,created_at', {
+          count: 'exact',
+        })
+        .eq('organization_id', currentOrg.id)
+        .order('created_at', { ascending: false })
+        .limit(6),
       supabase
         .from('receipt_events')
         .select(
@@ -247,6 +264,7 @@ export function ReceiptHubPage() {
 
     setEvents((eventRes.data ?? []) as ReceiptEventRow[]);
     setSyncJobs((syncRes.data ?? []) as ReceiptSyncJobRow[]);
+    setIdentities((identityRes.data ?? []) as ReceiptIdentityRow[]);
     setIdentityCount(identityRes.count ?? 0);
     setLoading(false);
   }, [currentOrg]);
@@ -293,6 +311,26 @@ export function ReceiptHubPage() {
     await refreshReceiptHub();
     return issued.receipt_token;
   }, [activeChannel, channel.title, currentOrg, refreshReceiptHub]);
+
+  const revokeIdentity = useCallback(
+    async (identityId: string) => {
+      if (!currentOrg) return;
+      setRevokingId(identityId);
+      setError(null);
+      const { error: updateError } = await supabase
+        .from('receipt_identities')
+        .update({ status: 'revoked', revoked_at: new Date().toISOString() })
+        .eq('id', identityId)
+        .eq('organization_id', currentOrg.id);
+      setRevokingId(null);
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+      await refreshReceiptHub();
+    },
+    [currentOrg, refreshReceiptHub],
+  );
 
   const provisionPosBridge = useCallback(async () => {
     if (!currentOrg) {
@@ -1475,6 +1513,65 @@ export function ReceiptHubPage() {
                 </dd>
               </div>
             </dl>
+          )}
+        </section>
+
+        <section className="receipt-flow-panel">
+          <div className="receipt-panel-heading">
+            <KeyRound size={18} style={{ color: 'var(--accent-info)' }} />
+            <div>
+              <span>Issued identities</span>
+              <h2>Receipt Pass tokens</h2>
+            </div>
+          </div>
+          {loading ? (
+            <div className="receipt-loading">
+              <Loader2 size={16} className="spin" /> Loading identities
+            </div>
+          ) : identities.length === 0 ? (
+            <div className="receipt-empty">No receipt identities issued yet.</div>
+          ) : (
+            <div className="receipt-identity-list">
+              {identities.map((identity) => {
+                const revoked = identity.status === 'revoked';
+                return (
+                  <div className="receipt-identity-row" key={identity.id}>
+                    <div className="receipt-identity-meta">
+                      <strong>{identity.label || 'Receipt identity'}</strong>
+                      <small>
+                        {identity.channel ?? 'unknown'} ·{' '}
+                        {identity.token_prefix ? `${identity.token_prefix}…` : 'no prefix'} ·{' '}
+                        {identity.last_used_at
+                          ? `used ${formatReceiptTime(identity.last_used_at)}`
+                          : 'never used'}
+                      </small>
+                    </div>
+                    <span
+                      className="receipt-identity-status"
+                      style={revoked ? { color: 'var(--text-muted)' } : undefined}
+                    >
+                      {identity.status}
+                    </span>
+                    <button
+                      type="button"
+                      className="receipt-panel-action"
+                      onClick={() => void revokeIdentity(identity.id)}
+                      disabled={revoked || revokingId === identity.id}
+                    >
+                      {revokingId === identity.id ? (
+                        <Loader2 size={14} className="spin" />
+                      ) : null}
+                      {revoked ? 'Revoked' : 'Revoke'}
+                    </button>
+                  </div>
+                );
+              })}
+              {identityCount > identities.length ? (
+                <small className="receipt-identity-more">
+                  Showing {identities.length} of {identityCount} identities.
+                </small>
+              ) : null}
+            </div>
           )}
         </section>
 

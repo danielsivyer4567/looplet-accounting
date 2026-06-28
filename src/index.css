@@ -1688,6 +1688,49 @@ code {
   color: var(--text-muted);
 }
 
+.receipt-identity-list {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.receipt-identity-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.receipt-identity-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.receipt-identity-meta strong {
+  font-size: 0.9rem;
+  color: var(--text-body);
+}
+
+.receipt-identity-meta small {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.receipt-identity-status {
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-success);
+}
+
+.receipt-identity-more {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
 .receipt-loading,
 .receipt-empty {
   margin-top: 1rem;
