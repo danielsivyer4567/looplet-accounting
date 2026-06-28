@@ -6,6 +6,39 @@
 
 ---
 
+## 2026-06-29 Wrap-up Addendum
+
+This document is now a historical May 6 baseline, not the current release
+scorecard. Current wrap-up evidence changes these conclusions:
+
+- **Reconciliation invoice-side:** code and live DB hardening are done. The UI
+  matches bank inflows to invoices and caps settlement at `min(bank inflow,
+  invoice balance)`. Live `0196_harden_invoice_reconciliation.sql` proof shows
+  hardened AR grants, invoice-payment validation, triggers, and a
+  security-invoker invoice match view. Remaining proof is a signed-in live
+  invoice/payment smoke with real AR data.
+- **Receipt Hub:** the Receipt Tag/Web NFC carrier and WhatsApp delivery scope
+  have landed. The NFC read path was later corrected to wait for the `reading`
+  event or timeout, and Chromium/Firefox desktop/mobile smoke passed with no
+  console/page errors or horizontal overflow. Receipt functions and sync cron
+  are deployed; the remaining SC-13 blocker is live data/integration setup
+  (generic API endpoint row, usable Xero integration or accepted stub proof,
+  signed-in end-to-end run).
+- **Legal RAG / Horizon:** schema and edge-function surfaces are live, including
+  legal corpus/reference tables, advice-note RPCs, `legal-horizon-run`, and
+  hardened legal table grants. The corpus is still unseeded
+  (`legal_corpus=0` at audit time), Legal Horizon still needs a real scanner run
+  with valid Sonar secret, and Ask still needs a signed-in proof that a real
+  answer returns corpus `citations[]`.
+- **Advisor:** deployed with JWT enabled and local Deno/model tests passing, but
+  still needs a signed-in Ask/on-demand smoke proving a live `advice_notes` draft
+  row is created.
+- **Migration state:** missing live DDL for `0181`-`0187` was applied and verified
+  on 2026-06-29. Migration history is still not canonicalised: the remote table
+  records many local migrations under timestamp versions, while the CLI still
+  reports numeric local files `0089`-`0196` as local-only. Do not run
+  `supabase db push` blind.
+
 ## TL;DR
 
 **Code: ~70% complete.** The skeleton is whole and correct. RLS, multi-org, intake pipelines, and reconciliation infrastructure all work. The remaining 30% is split across:
