@@ -44,9 +44,14 @@ scorecard. Current wrap-up evidence changes these conclusions:
   resolves official `/latest/text` EPUB HTML documents, strips markup/table of
   sections noise, and extracts compilation-date/version metadata; a local
   live-source proof against the current ITAA 1997 FRL page produced 5,956
-  chunks and found `s 8-1 General deductions`. The generic ATO legal database
-  landing page remains unsuitable for scheduled sync and is now refused until a
-  specific ATO document/feed URL or provided-text path is used intentionally.
+  chunks and found `s 8-1 General deductions`. The updated bundle is deployed as
+  `legal-corpus-sync` version 3; live smoke showed CORS OPTIONS 200,
+  unauthenticated POST returning the function's own 401 Unauthorized body, zero
+  legal cron jobs scheduled, and unchanged legal row counts
+  (`legal_sources=7`, `legal_corpus=0`, `legal_change_events=0`,
+  `legal_horizon=0`). The generic ATO legal database landing page remains
+  unsuitable for scheduled sync and is now refused until a specific ATO
+  document/feed URL or provided-text path is used intentionally.
 - **Advisor:** deployed with JWT enabled and local Deno/model tests passing, but
   still needs a signed-in Ask/on-demand smoke proving a live `advice_notes` draft
   row is created. A deploy-gated `tests/advisor-live-smoke.test.ts` now encodes

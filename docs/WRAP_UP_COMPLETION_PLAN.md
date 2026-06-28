@@ -42,6 +42,12 @@ work and re-checking the live project. It intentionally separates:
   date metadata instead of passing raw markup to the chunker. Local live-source
   proof against the current ITAA 1997 FRL page extracted 7,758,792 characters,
   produced 5,956 chunks, and found `s 8-1 General deductions`.
+- The updated `legal-corpus-sync` bundle is deployed live as version 3. Live
+  smoke on 2026-06-29: OPTIONS returned 200 with CORS, unauthenticated POST
+  reached the function and returned `{"ok":false,"error":"Unauthorized"}` with
+  HTTP 401, no legal corpus/horizon cron is scheduled, and legal row counts
+  stayed `legal_sources=7`, `legal_corpus=0`, `legal_change_events=0`,
+  `legal_horizon=0`.
 - Supabase secret-name check found the scanner provider key present, but no
   `OPENAI_API_KEY`, `LEGAL_INGEST_SECRET`, `LEGAL_SYNC_SECRET`, or
   `LEGAL_SCAN_SECRET` configured by those names. Do not expose secret values in
@@ -61,6 +67,8 @@ Completed:
   `C2004A05138`-style source URLs resolve to `/latest/text`, EPUB document pages
   are fetched in order, tables of sections/scripts/styles/tags are stripped, and
   FRL effective date/version metadata is captured for the sync cursor.
+- `legal-corpus-sync` version 3 is deployed live and still fails closed without
+  service-role bearer or `LEGAL_SYNC_SECRET`.
 - `legal-horizon-run` is deployed and blocks unauthenticated calls at the
   Supabase gateway.
 - The Legal Horizon UI scan controls passed mocked desktop/mobile browser smoke.
