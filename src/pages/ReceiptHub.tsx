@@ -2153,15 +2153,21 @@ export function ReceiptHubPage() {
             {syncJobs.length === 0 ? (
               <div className="receipt-empty">No provider jobs queued yet.</div>
             ) : (
-              syncJobs.map((job) => (
-                <div className="receipt-sync-job" key={job.id}>
-                  <span>{providerLabel(job.provider)}</span>
-                  <strong>{job.status}</strong>
-                  <small>
-                    {job.bill_id ? `Bill ${job.bill_id.slice(0, 8)}` : 'No bill attached'}
-                  </small>
-                </div>
-              ))
+              syncJobs.map((job) => {
+                const comingSoon = job.provider === 'myob' || job.provider === 'quickbooks';
+                return (
+                  <div className="receipt-sync-job" key={job.id}>
+                    <span>
+                      {providerLabel(job.provider)}
+                      {comingSoon ? <em className="receipt-coming-soon"> coming soon</em> : null}
+                    </span>
+                    <strong>{job.status}</strong>
+                    <small>
+                      {job.bill_id ? `Bill ${job.bill_id.slice(0, 8)}` : 'No bill attached'}
+                    </small>
+                  </div>
+                );
+              })
             )}
           </div>
           {simulatorResult ? (

@@ -9,6 +9,10 @@
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { pushBillToXero } from '../_shared/xero/adapter.ts';
+import {
+  pushBillToGenericApi,
+  GenericApiNotConfigured,
+} from '../_shared/receipt-sync/genericApi.ts';
 import { requireEnv } from '../_shared/env.ts';
 
 type SyncProvider = 'xero' | 'myob' | 'quickbooks' | 'generic_api';
@@ -130,8 +134,10 @@ async function processSyncJob(admin: SupabaseClient, job: ReceiptSyncJob) {
   try {
     if (!job.bill_id) throw new PermanentSyncSkip('No bill was created for this receipt event.');
 
-    if (job.provider !== 'xero') {
-      throw new PermanentSyncSkip(`${providerLabel(job.provider)} sync adapter is not configured yet.`);
+    // MYOB / QuickBooks adapters are not built yet — skip (not fail) so the
+    // queue isn't permanently red while they're "coming soon".
+    if (job.provider === 'myob' || job.provider === 'quickbooks') {
+      throw new PermanentSyncSkip(`${providerLabel(job.provider)} sync is coming soon.`);
     }
 
     const { data: bill, error: billErr } = await admin
@@ -145,7 +151,7 @@ async function processSyncJob(admin: SupabaseClient, job: ReceiptSyncJob) {
 
     const b = bill as unknown as BillForPush;
     if (!b.job_id) {
-      throw new PermanentSyncSkip('Job folder is required before Xero sync. Attach the receipt bill to a job first.');
+      throw new PermanentSyncSkip('Job folder is required before sync. Attach the receipt bill to a job first.');
     }
 
     const { data: jobRow, error: jobErr } = await admin
@@ -156,12 +162,49 @@ async function processSyncJob(admin: SupabaseClient, job: ReceiptSyncJob) {
       .maybeSingle();
     if (jobErr) throw new Error(jobErr.message);
     if (!jobRow) throw new PermanentSyncSkip('Job folder not found for receipt bill.');
+    const jobForPush = jobRow as JobForPush;
 
+    if (job.provider === 'generic_api') {
+      let result;
+      try {
+        result = await pushBillToGenericApi({
+          admin,
+          organizationId: job.organization_id,
+          bill: b,
+          job: jobForPush,
+          receiptEventId: job.receipt_event_id,
+        });
+      } catch (gaErr) {
+        if (gaErr instanceof GenericApiNotConfigured) {
+          throw new PermanentSyncSkip(gaErr.message);
+        }
+        throw gaErr;
+      }
+      await admin
+        .from('receipt_sync_jobs')
+        .update({
+          status: 'synced',
+          last_error: null,
+          payload: {
+            ...job.payload,
+            dispatch_result: {
+              provider: job.provider,
+              endpoint_url: result.endpointUrl,
+              http_status: result.status,
+              synced_at: new Date().toISOString(),
+            },
+          },
+        })
+        .eq('id', job.id);
+      return { id: job.id, provider: job.provider, status: 'synced', http_status: result.status };
+    }
+
+    // Xero
     const result = await pushBillToXero({
       admin,
       organizationId: job.organization_id,
       bill: b,
-      job: jobRow as JobForPush,
+      job: jobForPush,
     });
 
     await admin
