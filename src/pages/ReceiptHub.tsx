@@ -141,14 +141,6 @@ const pipeline = [
   { title: 'Sync', detail: 'Xero, MYOB, QuickBooks, API', icon: Webhook },
 ];
 
-const setupSteps = [
-  'Issue hashed Receipt Pass identity token',
-  'Accept structured POS webhook payloads',
-  'Create receipt event, bill, GST, and line items',
-  'Attach job folder when a job reference matches',
-  'Store audit package and queue Xero/MYOB/QuickBooks sync',
-];
-
 const businessInstallChecks = [
   'POS webhook/API, vendor plugin, cloud connector, or Looplet bridge installed',
   'Node.js 20+ for the local bridge, or an equivalent connector runtime',
@@ -179,6 +171,7 @@ export function ReceiptHubPage() {
 
   const [events, setEvents] = useState<ReceiptEventRow[]>([]);
   const [syncJobs, setSyncJobs] = useState<ReceiptSyncJobRow[]>([]);
+  const [identityCount, setIdentityCount] = useState(0);
   const [identityToken, setIdentityToken] = useState<string | null>(null);
   const [bridgeEnv, setBridgeEnv] = useState<string | null>(null);
   const [bridgeApiKeyPrefix, setBridgeApiKeyPrefix] = useState<string | null>(null);
@@ -197,10 +190,27 @@ export function ReceiptHubPage() {
   );
   const ActiveIcon = channel.icon;
 
+  const coreStatus = useMemo(() => {
+    const latestEvent = events[0] ?? null;
+    const failed = syncJobs.filter((job) => job.status === 'failed').length;
+    const synced = syncJobs.filter((job) => job.status === 'synced').length;
+    const queued = syncJobs.length - failed - synced;
+    return {
+      identityCount,
+      latestEventAt: latestEvent?.purchase_at ?? null,
+      latestMerchant: latestEvent?.merchant_name ?? null,
+      eventCount: events.length,
+      syncSynced: synced,
+      syncQueued: queued,
+      syncFailed: failed,
+    };
+  }, [events, syncJobs, identityCount]);
+
   const refreshReceiptHub = useCallback(async () => {
     if (!currentOrg) {
       setEvents([]);
       setSyncJobs([]);
+      setIdentityCount(0);
       setLoading(false);
       return;
     }
@@ -210,10 +220,8 @@ export function ReceiptHubPage() {
     const [identityRes, eventRes, syncRes] = await Promise.all([
       supabase
         .from('receipt_identities')
-        .select('id,label,channel,token_prefix,status,last_used_at,created_at')
-        .eq('organization_id', currentOrg.id)
-        .order('created_at', { ascending: false })
-        .limit(6),
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', currentOrg.id),
       supabase
         .from('receipt_events')
         .select(
@@ -239,6 +247,7 @@ export function ReceiptHubPage() {
 
     setEvents((eventRes.data ?? []) as ReceiptEventRow[]);
     setSyncJobs((syncRes.data ?? []) as ReceiptSyncJobRow[]);
+    setIdentityCount(identityRes.count ?? 0);
     setLoading(false);
   }, [currentOrg]);
 
@@ -1424,11 +1433,48 @@ export function ReceiptHubPage() {
               <Loader2 size={16} className="spin" /> Loading receipt state
             </div>
           ) : (
-            <ol className="receipt-setup-list">
-              {setupSteps.map((step) => (
-                <li key={step}>{step}</li>
-              ))}
-            </ol>
+            <dl className="receipt-core-status">
+              <div className="receipt-core-metric">
+                <dt>Receipt identities</dt>
+                <dd>{coreStatus.identityCount}</dd>
+              </div>
+              <div className="receipt-core-metric">
+                <dt>Latest receipt</dt>
+                <dd>
+                  {coreStatus.latestEventAt ? (
+                    <>
+                      {formatReceiptTime(coreStatus.latestEventAt)}
+                      {coreStatus.latestMerchant ? (
+                        <small> · {coreStatus.latestMerchant}</small>
+                      ) : null}
+                    </>
+                  ) : (
+                    'No receipts yet'
+                  )}
+                </dd>
+              </div>
+              <div className="receipt-core-metric">
+                <dt>Recent sync jobs</dt>
+                <dd>
+                  {syncJobs.length === 0 ? (
+                    'None queued'
+                  ) : (
+                    <>
+                      {coreStatus.syncSynced} synced · {coreStatus.syncQueued} queued ·{' '}
+                      <span
+                        style={
+                          coreStatus.syncFailed > 0
+                            ? { color: 'var(--accent-danger, #f87171)' }
+                            : undefined
+                        }
+                      >
+                        {coreStatus.syncFailed} failed
+                      </span>
+                    </>
+                  )}
+                </dd>
+              </div>
+            </dl>
           )}
         </section>
 
@@ -1674,6 +1720,17 @@ function ReceiptIdentityPass({ token }: { token: string }) {
       </small>
     </div>
   );
+}
+
+function formatReceiptTime(iso: string): string {
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return iso;
+  return parsed.toLocaleString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 function paymentDescriptor(event: ReceiptEventRow) {
