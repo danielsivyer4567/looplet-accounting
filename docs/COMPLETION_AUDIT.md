@@ -72,8 +72,21 @@ scorecard. Current wrap-up evidence changes these conclusions:
   only advances `last_history_id` after the delta is durably handled. Focused
   Deno tests cover the duplicate guard and retryable-ingest classification, the
   touched Edge modules pass `deno check`, and the hardened function is deployed
-  live as version 31. The live audit also proves the public push endpoint fails
+  live as version 32. The live audit also proves the public push endpoint fails
   closed with HTTP 401 when called without `GMAIL_PUSH_VERIFY_TOKEN`.
+- **Bank/notification cron auth:** the May 6/June ledger finding that cron
+  functions trusted an unverified JWT payload for `role=service_role` is fixed
+  live. A shared exact-match auth helper now gates service-role bearer and cron
+  secrets, with focused Deno tests proving forged JWT rejection. `bank-sync` is
+  deployed as version 27, `bank-sync-all` as version 25, and
+  `notifications-cron` as version 22. The live audit proves forged
+  `bank-sync` service-role JWT returns HTTP 401, unsigned `bank-sync-all` and
+  `notifications-cron` return HTTP 403, both cron secret names exist in
+  Supabase, and the functions are active. `bank-sync-all` was also rescheduled
+  from the old no-auth cron to active cron job 14, which reads a scoped secret
+  from Supabase Vault; direct and DB-side `pg_net` probes returned HTTP 200 with
+  `ok=true`, `orgs=0`. Accountant digest cron remains a separate open item
+  because the Vault `service_role_key` is still absent.
 - **Advisor:** deployed with JWT enabled and local Deno/model tests passing, but
   still needs a signed-in Ask/on-demand smoke proving a live `advice_notes` draft
   row is created. A deploy-gated `tests/advisor-live-smoke.test.ts` now encodes
@@ -135,7 +148,7 @@ scorecard. Current wrap-up evidence changes these conclusions:
 **Code: ~70% complete.** The skeleton is whole and correct. RLS, multi-org, intake pipelines, and reconciliation infrastructure all work. The remaining 30% is split across:
 
 - **Real polish:** mobile, pagination, error specificity, export, edit-modes on a few detail pages.
-- **External integrations:** Xero bidirectional and Basiq Connect callback completion. Gmail Pub/Sub is now code-complete/live-deployed but still needs a real watched-mailbox event trace before being called end-to-end live-proven.
+- **External integrations:** Xero bidirectional and Basiq Connect callback completion. Gmail Pub/Sub is now code-complete/live-deployed but still needs a real watched-mailbox event trace before being called end-to-end live-proven. `bank-sync-all` cron auth/scheduling is live-proven, but real bank-feed proof still needs a Basiq feed with transaction backfill.
 - **Critical onboarding gaps:** no Create-Job UI, no Create-Customer UI, no Create-Employee/Debt is fine but there's no "let me create my first invoice" empty state with guidance.
 
 **Data: ~10% populated.** This is the bigger issue, and not a code bug — most of what looks broken is starvation, not breakage:
@@ -267,7 +280,7 @@ Ordered by original user-visible value:
 10. **No Employee detail / timesheet edit** — same shape. Fix: ~45 min.
 11. **Basiq Connect callback path incomplete** — `bank-link-token` mints; `BankCallback.tsx` is shallow; doesn't reliably fetch initial transaction backfill after first connect. Fix: ~1 h.
 12. **gmail-pubsub-push handler is a stub** — resolved 2026-06-29. The live
-    version 31 handler replays Gmail history deltas, creates bill rows for
+    version 32 handler replays Gmail history deltas, creates bill rows for
     accepted attachments, dispatches extraction, fails closed without the push
     token, dedupes Gmail message IDs across push/backfill overlap, and leaves
     `last_history_id` unchanged on retryable ingest failures so a later push can

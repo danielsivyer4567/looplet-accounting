@@ -21,6 +21,7 @@ import {
   toCents,
   mapBasiqAccountType,
 } from '../_shared/basiq/client.ts';
+import { isExactServiceRoleBearer } from '../_shared/serviceRole.ts';
 
 interface RequestBody {
   organization_id: string;
@@ -46,16 +47,10 @@ Deno.serve(async (req) => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    // Tolerant auth: service-role bypasses, otherwise the caller is the user
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-    let isServiceRole = token === serviceKey;
-    if (!isServiceRole) {
-      try {
-        const payloadB64 = (token.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/');
-        const payload = JSON.parse(atob(payloadB64 + '='.repeat((4 - payloadB64.length % 4) % 4)));
-        isServiceRole = payload?.role === 'service_role';
-      } catch { /* fall through */ }
-    }
+    // Service-role callers must present the exact configured key. Do not trust
+    // a decoded JWT payload role claim here; verify_jwt may be disabled for
+    // server-to-server callers in some deployments.
+    const isServiceRole = isExactServiceRoleBearer(authHeader, serviceKey);
 
     const body = (await req.json()) as RequestBody;
     if (!body.organization_id) return json({ ok: false, error: 'organization_id required' }, 400);
@@ -171,22 +166,20 @@ async function syncOne(
   const accounts = await getAccountsForConnection(basiqUserId, conn.external_item_id);
   let acctUpdated = 0;
   for (const a of accounts) {
-    const { error } = await admin
-      .from('bank_accounts')
-      .upsert(
-        {
-          organization_id: orgId,
-          bank_connection_id: conn.id,
-          external_id: a.id,
-          name: a.name,
-          account_type: mapBasiqAccountType(a.class?.type ?? 'other'),
-          current_balance_cents: toCents(a.balance),
-          available_balance_cents: toCents(a.availableFunds ?? null),
-          currency_code: a.currency ?? 'AUD',
-          is_active: true,
-        },
-        { onConflict: 'organization_id,bank_connection_id,external_id' },
-      );
+    const { error } = await admin.from('bank_accounts').upsert(
+      {
+        organization_id: orgId,
+        bank_connection_id: conn.id,
+        external_id: a.id,
+        name: a.name,
+        account_type: mapBasiqAccountType(a.class?.type ?? 'other'),
+        current_balance_cents: toCents(a.balance),
+        available_balance_cents: toCents(a.availableFunds ?? null),
+        currency_code: a.currency ?? 'AUD',
+        is_active: true,
+      },
+      { onConflict: 'organization_id,bank_connection_id,external_id' },
+    );
     if (!error) acctUpdated += 1;
   }
 
@@ -211,7 +204,10 @@ async function syncOne(
   const insertedTxnIds: string[] = [];
   for (const t of txns) {
     const bankAccountId = acctMap.get(t.account);
-    if (!bankAccountId) { skipped += 1; continue; }
+    if (!bankAccountId) {
+      skipped += 1;
+      continue;
+    }
     // Basiq amounts are signed: negative = money out, positive = money in.
     // That's already our convention (positive = money_in), so no inversion.
     const amount = toCents(t.amount);

@@ -26,6 +26,7 @@ const gmailRuntimeNames = [
   'GMAIL_PUSH_VERIFY_TOKEN',
   'GMAIL_WATCH_RENEW_CRON_SECRET',
 ];
+const cronRuntimeNames = ['BANK_SYNC_ALL_CRON_SECRET', 'NOTIFICATIONS_CRON_SECRET'];
 const signedInSmokeNames = [
   'VITE_SUPABASE_URL',
   'VITE_SUPABASE_ANON_KEY',
@@ -43,6 +44,7 @@ const report = {
     signed_in_smoke: presence(signedInSmokeNames),
     legal_runtime: presence(secretNames),
     gmail_runtime: presence(gmailRuntimeNames),
+    cron_runtime: presence(cronRuntimeNames),
   },
   signed_in_smokes: {
     advisor: smokeReadiness(),
@@ -104,6 +106,8 @@ async function liveProbe() {
     'receipt-webhook',
     'legal-corpus-sync',
     'gmail-pubsub-push',
+    'bank-sync-all',
+    'notifications-cron',
   ]) {
     probes[functionName] = await probeFunction(functionName);
   }
@@ -115,11 +119,22 @@ async function liveProbe() {
       probe.cors?.allow_methods,
   );
   const gmailPushFailClosed = await probeGmailPushFailClosed();
+  const bankSyncAllFailClosed = await probePostStatus('bank-sync-all', {}, 403);
+  const notificationsCronFailClosed = await probePostStatus('notifications-cron', {}, 403);
+  const bankSyncForgedRoleFailClosed = await probeBankSyncForgedRoleFailClosed();
   return {
-    ok: ok && gmailPushFailClosed.ok,
+    ok:
+      ok &&
+      gmailPushFailClosed.ok &&
+      bankSyncAllFailClosed.ok &&
+      notificationsCronFailClosed.ok &&
+      bankSyncForgedRoleFailClosed.ok,
     functions: probes,
     auth_fail_closed: {
       'gmail-pubsub-push': gmailPushFailClosed,
+      'bank-sync-all': bankSyncAllFailClosed,
+      'notifications-cron': notificationsCronFailClosed,
+      'bank-sync forged service-role jwt': bankSyncForgedRoleFailClosed,
     },
   };
 }
@@ -184,6 +199,59 @@ async function probeGmailPushFailClosed() {
   }
 }
 
+async function probePostStatus(functionName, body, expectedStatus) {
+  const url = `${supabaseUrl.replace(/\/$/, '')}/functions/v1/${functionName}`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    return {
+      ok: response.status === expectedStatus,
+      status: response.status,
+      expected_status: expectedStatus,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+async function probeBankSyncForgedRoleFailClosed() {
+  const payload = Buffer.from(JSON.stringify({ role: 'service_role' }))
+    .toString('base64url')
+    .replace(/=+$/, '');
+  const forgedJwt = `header.${payload}.signature`;
+  const url = `${supabaseUrl.replace(/\/$/, '')}/functions/v1/bank-sync`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${forgedJwt}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        organization_id: '00000000-0000-0000-0000-000000000000',
+      }),
+    });
+    return {
+      ok: response.status === 401 || response.status === 403,
+      status: response.status,
+      expected_status: '401 or 403',
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 async function cliProbe(ref) {
   if (!ref) {
     return {
@@ -205,6 +273,9 @@ async function cliProbe(ref) {
     'legal-horizon-run',
     'legal-horizon-scan',
     'gmail-pubsub-push',
+    'bank-sync',
+    'bank-sync-all',
+    'notifications-cron',
     'xero-push-bill',
     'xero-push-invoice',
     'xero-sync-payments',
@@ -225,6 +296,7 @@ async function cliProbe(ref) {
         'PERPLEXITY_API_KEY',
         'SUPABASE_SERVICE_ROLE_KEY',
         ...gmailRuntimeNames,
+        ...cronRuntimeNames,
       ].map((name) => [name, liveSecretNames.has(name)]),
     ),
     commands: {

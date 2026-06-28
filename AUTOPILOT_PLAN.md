@@ -21,8 +21,13 @@ Cross-tenant view leak closed, `system_defaults` locked, anon definer-fn execute
 
 - [x] **A3** Cron health monitor (`cron_health_summary()`, migration 0057) — live; surfaced 37 hidden HTTP failures/24h.
 - [x] **A4** Remove forgeable-JWT branch in `bank-sync-all` + `notifications-cron` (constant-time auth).
+- [x] **A2a** Fix `bank-sync-all` cron auth — live cron job 14 reads a scoped
+      Vault-held secret and a DB-side `pg_net` probe returned HTTP 200.
 - [x] **A1** Gmail dead-integration handling — disable + flag on fatal `invalid_grant` (mirrors Xero).
-- [ ] **A2** Fix the two failing crons — **needs you** (CLI secrets): see `RUNBOOK_EPIC_A.md` (bank-sync-all `?secret=`, accountant-digest Vault secret, Gmail reconnect).
+- [ ] **A2b** Fix `accountant-digest-cron` — needs the Vault
+      `service_role_key` or a scoped `?secret=` auth path.
+- [ ] **A1 follow-up** Reconnect Gmail and capture a real watched-mailbox event
+      trace.
 - [ ] **A1 follow-up** emit a notification on disconnect (after notifications schema confirmed).
 - _Done when:_ `cron_health_summary().http_failures_24h` → 0 and Gmail ingests again.
 

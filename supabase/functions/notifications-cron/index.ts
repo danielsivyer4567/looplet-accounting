@@ -35,11 +35,9 @@
  * param matching NOTIFICATIONS_CRON_SECRET env.
  */
 
-import {
-  createClient,
-  type SupabaseClient,
-} from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
+import { isExactSecret, isExactServiceRoleBearer } from '../_shared/serviceRole.ts';
 
 type SupabaseAdmin = SupabaseClient;
 
@@ -50,23 +48,23 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const cronSecret = Deno.env.get('NOTIFICATIONS_CRON_SECRET');
-    const orchestratorSecret = Deno.env.get(
-      'ACCOUNTANT_ORCHESTRATOR_CRON_SECRET',
-    );
+    const orchestratorSecret = Deno.env.get('ACCOUNTANT_ORCHESTRATOR_CRON_SECRET');
     if (!supabaseUrl || !serviceKey || !cronSecret) {
-      return json({ ok: false, error: 'Server config missing (need NOTIFICATIONS_CRON_SECRET)' }, 500);
+      return json(
+        { ok: false, error: 'Server config missing (need NOTIFICATIONS_CRON_SECRET)' },
+        500,
+      );
     }
 
     // Auth gate: ?secret=... OR service-role bearer.
     const url = new URL(req.url);
     const urlSecret = url.searchParams.get('secret');
     const authHeader = req.headers.get('Authorization') ?? '';
-    const bearer = authHeader.replace(/^Bearer\s+/i, '').trim();
     // Exact service-role key OR ?secret= — both constant-time. The previous
     // "base64-decode the JWT and trust its role claim" path was forgeable. Removed.
     // See AUDIT.md §3d.
-    const isServiceRole = safeEqual(bearer, serviceKey);
-    const secretOk = safeEqual(urlSecret ?? '', cronSecret);
+    const isServiceRole = isExactServiceRoleBearer(authHeader, serviceKey);
+    const secretOk = isExactSecret(urlSecret, cronSecret);
     if (!isServiceRole && !secretOk) {
       return json({ ok: false, error: 'forbidden' }, 403);
     }
@@ -146,11 +144,7 @@ interface EmitInput {
  * Insert a notification only if there isn't already a row for
  * (org, category, resource_id) created today. Returns 1 if emitted, 0 if skipped.
  */
-async function emitOnce(
-  admin: SupabaseAdmin,
-  orgId: string,
-  input: EmitInput,
-): Promise<number> {
+async function emitOnce(admin: SupabaseAdmin, orgId: string, input: EmitInput): Promise<number> {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
@@ -191,7 +185,11 @@ async function emitOnce(
 // Category checks — each returns # of notifications emitted
 // ---------------------------------------------------------------------------
 
-async function checkBillsOverdue(admin: SupabaseAdmin, orgId: string, errors: string[]): Promise<number> {
+async function checkBillsOverdue(
+  admin: SupabaseAdmin,
+  orgId: string,
+  errors: string[],
+): Promise<number> {
   try {
     const today = new Date().toISOString().slice(0, 10);
     const { data, error } = await admin
@@ -223,7 +221,11 @@ async function checkBillsOverdue(admin: SupabaseAdmin, orgId: string, errors: st
   }
 }
 
-async function checkInvoicesOverdue(admin: SupabaseAdmin, orgId: string, errors: string[]): Promise<number> {
+async function checkInvoicesOverdue(
+  admin: SupabaseAdmin,
+  orgId: string,
+  errors: string[],
+): Promise<number> {
   try {
     const today = new Date().toISOString().slice(0, 10);
     const { data, error } = await admin
@@ -287,7 +289,11 @@ async function checkBasDue(admin: SupabaseAdmin, orgId: string, errors: string[]
         body: `Net GST: ${(Number(row.net_gst_cents) / 100).toFixed(2)} AUD.`,
         link: '/reports/bas',
         resource_id: null,
-        metadata: { fy_start_year: row.fy_start_year, quarter_num: row.quarter_num, due_date: row.due_date },
+        metadata: {
+          fy_start_year: row.fy_start_year,
+          quarter_num: row.quarter_num,
+          due_date: row.due_date,
+        },
       });
     }
     return emitted;
@@ -297,7 +303,11 @@ async function checkBasDue(admin: SupabaseAdmin, orgId: string, errors: string[]
   }
 }
 
-async function checkConnectionsExpiring(admin: SupabaseAdmin, orgId: string, errors: string[]): Promise<number> {
+async function checkConnectionsExpiring(
+  admin: SupabaseAdmin,
+  orgId: string,
+  errors: string[],
+): Promise<number> {
   try {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -343,7 +353,11 @@ async function checkConnectionsExpiring(admin: SupabaseAdmin, orgId: string, err
   }
 }
 
-async function checkLowConfidence(admin: SupabaseAdmin, orgId: string, errors: string[]): Promise<number> {
+async function checkLowConfidence(
+  admin: SupabaseAdmin,
+  orgId: string,
+  errors: string[],
+): Promise<number> {
   try {
     const { data, error } = await admin
       .from('v_low_confidence_bills')
@@ -369,7 +383,11 @@ async function checkLowConfidence(admin: SupabaseAdmin, orgId: string, errors: s
   }
 }
 
-async function checkSubscriptionAlerts(admin: SupabaseAdmin, orgId: string, errors: string[]): Promise<number> {
+async function checkSubscriptionAlerts(
+  admin: SupabaseAdmin,
+  orgId: string,
+  errors: string[],
+): Promise<number> {
   try {
     const today = new Date();
     const in3 = new Date();
@@ -423,9 +441,9 @@ async function checkAccountantOrchestrator(
   try {
     const today = new Date().toISOString().slice(0, 10);
     const response = await fetch(
-      `${supabaseUrl}/functions/v1/accountant-orchestrator?secret=${
-        encodeURIComponent(orchestratorSecret)
-      }`,
+      `${supabaseUrl}/functions/v1/accountant-orchestrator?secret=${encodeURIComponent(
+        orchestratorSecret,
+      )}`,
       {
         method: 'POST',
         headers: {
@@ -435,15 +453,12 @@ async function checkAccountantOrchestrator(
         body: JSON.stringify({ organization_id: orgId, as_at_date: today }),
       },
     );
-    const detail = await response.json().catch(() => ({})) as Record<
-      string,
-      unknown
-    >;
+    const detail = (await response.json().catch(() => ({}))) as Record<string, unknown>;
     if (!response.ok || detail.ok === false) {
       errors.push(
-        `accountant_orchestrator: ${response.status} ${
-          String(detail.error ?? response.statusText)
-        }`,
+        `accountant_orchestrator: ${response.status} ${String(
+          detail.error ?? response.statusText,
+        )}`,
       );
       return 0;
     }
@@ -461,14 +476,6 @@ async function checkAccountantOrchestrator(
     errors.push(`accountant_orchestrator: ${err instanceof Error ? err.message : String(err)}`);
     return 0;
   }
-}
-
-/** Constant-time string compare; false on length mismatch. */
-function safeEqual(a: string, b: string): boolean {
-  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
-  let out = 0;
-  for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return out === 0;
 }
 
 function json(body: unknown, status = 200): Response {

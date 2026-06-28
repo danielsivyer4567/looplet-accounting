@@ -15,7 +15,9 @@ The repo migrations are **numbered** (`0001…0080`); the live migration history
 ## 1. Secrets to set first (only you can)
 
 - `SUPABASE_JWT_SECRET` — **required** for F's `api-gateway` (mints the org-scoped JWT). Without it the function throws on boot.
-- `BANK_SYNC_ALL_CRON_SECRET` + the `accountant-session-digest` vault secret — for #10's crons (see `RUNBOOK_EPIC_A.md`). Verify #10's `safeEqual` path is NOT auth-open when the secret is unset before relying on it.
+- `BANK_SYNC_ALL_CRON_SECRET` is already set live for `bank-sync-all` cron job 14. Only rotate it via `RUNBOOK_EPIC_A.md` if needed. The remaining cron
+  secret blocker is the `accountant-session-digest` Vault `service_role_key`
+  or a replacement scoped `?secret=` auth path.
 - GitHub Actions secret `SUPABASE_SERVICE_ROLE_KEY` — else the now-real tenant-isolation CI gate (E) fails red on every PR.
 
 ## 2. Apply migrations (in this order; verify the ⚠ ones immediately after)

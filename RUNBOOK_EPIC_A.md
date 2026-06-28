@@ -18,24 +18,37 @@ supabase db push        # applies 0055 (P0 security), 0056 (api_keys), 0057 (cro
 ## 2. Deploy the changed functions
 
 ```bash
-supabase functions deploy bank-sync-all notifications-cron gmail-watch-renew
+supabase functions deploy bank-sync --project-ref dxoikltymmknxqpkpyhi
+supabase functions deploy bank-sync-all --project-ref dxoikltymmknxqpkpyhi --no-verify-jwt
+supabase functions deploy notifications-cron --project-ref dxoikltymmknxqpkpyhi --no-verify-jwt
+supabase functions deploy gmail-watch-renew --project-ref dxoikltymmknxqpkpyhi
 ```
 
 These now use constant-time auth and drop the forgeable "trust the JWT's role claim" path.
 
-## 3. Fix `bank-sync-all` (currently 403 every run — no secret in the cron)
+## 3. Fix `bank-sync-all`
+
+Status 2026-06-29: completed live. `bank-sync-all` is active as cron job 14,
+uses a scoped secret stored in Supabase Vault as `bank_sync_all_cron_secret`,
+and a DB-side `pg_net` probe returned HTTP 200 with `ok=true`, `orgs=0`.
+
+Use this only if rotating/recreating the scoped cron secret:
 
 ```bash
 openssl rand -hex 24                       # generate a scoped secret (NOT the service-role key)
 supabase secrets set BANK_SYNC_ALL_CRON_SECRET=<paste> --project-ref dxoikltymmknxqpkpyhi
 ```
 
-Then in the Supabase SQL editor:
+Then store the same value in Vault and schedule the cron without embedding the
+secret in `cron.job.command`:
 
 ```sql
+select vault.create_secret('<paste>', 'bank_sync_all_cron_secret');
+
 select cron.schedule('bank-sync-all', '0 0,6,12,18 * * *', $$
   select net.http_post(
-    url := 'https://dxoikltymmknxqpkpyhi.supabase.co/functions/v1/bank-sync-all?secret=<paste>',
+    url := 'https://dxoikltymmknxqpkpyhi.supabase.co/functions/v1/bank-sync-all?secret='
+      || (select decrypted_secret from vault.decrypted_secrets where name = 'bank_sync_all_cron_secret' limit 1),
     headers := jsonb_build_object('Content-Type','application/json')
   ); $$);
 ```

@@ -17,21 +17,36 @@
   - Supabase security advisor: **0 critical** remaining (only `WARN` search_path + `INFO` crm_sync_log no-policy left → P2).
 - **Connector scaffold (review + finish on main machine):** `migrations/0056_api_keys.sql`, `functions/_shared/apiKeys.ts`, `functions/api-gateway/index.ts`, `functions/ingest/index.ts`.
 - **Gmail Pub/Sub push hardened live (2026-06-29):** `gmail-pubsub-push`
-  version 31 is deployed with `verify_jwt=false`, mandatory
+  version 32 is deployed with `verify_jwt=false`, mandatory
   `GMAIL_PUSH_VERIFY_TOKEN`, shared Gmail message-id dedupe, and delayed
   `last_history_id` advancement until each history delta is durably handled.
   Redacted live audit proves CORS OPTIONS 200, all Gmail runtime secret names
   present in the linked project, and unsigned POST fail-closed status 401.
+- **Bank/cron service-role auth hardened live (2026-06-29):** `bank-sync`
+  version 27, `bank-sync-all` version 25, and `notifications-cron` version 22
+  are deployed. The forgeable "decode JWT payload and trust `role`" path is
+  removed in favour of exact constant-time service-role/cron-secret checks.
+  Redacted live audit proves forged `bank-sync` service-role JWT returns 401,
+  unsigned `bank-sync-all` and `notifications-cron` return 403, both cron
+  secrets exist in the linked project, and `bank-sync-all` is rescheduled as
+  active cron job 14 using a Vault-held cron secret. A DB-side `pg_net` probe of
+  that Vault path returned HTTP 200 with `ok=true`, `orgs=0`.
 
 ---
 
 ## Verdict (at audit time)
 
-| Goal                                      | Status        | Summary                                                                                                                                                                           |
-| ----------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| (a) Runs now on autopilot                 | **NOT READY** | Crons/intake live, but Gmail dead since 2026-05-09, `bank-sync-all` 403s every run, `accountant-session-digest` 401s every 10 min (all reported "succeeded"), no auto-reconciler. |
-| (b) REST/connector API                    | **NOT READY** | No API-key mechanism, no ingestion endpoint, no docs; every endpoint needs a human JWT. (Scaffold added in this PR.)                                                              |
-| (c) Complete enough to need no accountant | **NOT READY** | No double-entry GL/journals/trial-balance/COA; P&L mixes GST-inc revenue with ex-GST costs; no GST/BAS or STP/super lodgement; no credit notes, fixed assets, accruals.           |
+| Goal                                      | Status        | Summary                                                                                                                                                                                                                                                                        |
+| ----------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| (a) Runs now on autopilot                 | **NOT READY** | Crons/intake live. Gmail Pub/Sub replay and `bank-sync-all` cron auth/scheduling are now fixed live, but `accountant-session-digest` still lacks its Vault auth secret, Gmail still needs a real reconnect/event trace, and no auto-reconciler/heartbeat release proof exists. |
+| (b) REST/connector API                    | **NOT READY** | No API-key mechanism, no ingestion endpoint, no docs; every endpoint needs a human JWT. (Scaffold added in this PR.)                                                                                                                                                           |
+| (c) Complete enough to need no accountant | **NOT READY** | No double-entry GL/journals/trial-balance/COA; P&L mixes GST-inc revenue with ex-GST costs; no GST/BAS or STP/super lodgement; no credit notes, fixed assets, accruals.                                                                                                        |
+
+2026-06-29 update: the Gmail Pub/Sub replay path and `bank-sync-all` cron auth
+issue above are now fixed/deployed. The overall autopilot verdict remains **NOT
+READY** because `accountant-session-digest` still needs the Vault
+`service_role_key`, Gmail still needs real reconnect/event proof, and no
+auto-reconciler/heartbeat release proof has been captured yet.
 
 ---
 
@@ -52,21 +67,33 @@
 
 ### (a) Autopilot / background
 
-- [ ] `bank-sync-all` cron sends no auth → **403 every run** (omits the `?secret=` other crons use). Fix command + add heartbeat (don't trust pg_cron "succeeded"). **(high)**
+- [x] `bank-sync-all` cron auth fixed live (2026-06-29): endpoint requires exact
+      service-role bearer or `BANK_SYNC_ALL_CRON_SECRET`, live unsigned POST returns
+      403, active cron job 14 reads a Vault-held scoped secret, and DB-side `pg_net`
+      returned HTTP 200 with `ok=true`, `orgs=0`.
 - [ ] `accountant-session-digest` **401 every 10 min** — builds bearer from `vault.decrypted_secrets WHERE name='service_role_key'` which doesn't exist. Create the vault secret or switch to `?secret=`. **(high)**
 - [ ] No end-to-end cron alerting — nothing reads `net._http_response`. Add monitor / per-function heartbeat + "no success in window" notification. **(high)**
 - [ ] No Xero push retry/backfill — `bills-attach` awaits `pushBillToXero` inline; `callXeroWithRetry` only retries 401. Add backoff + re-drive cron for `xero_status in ('error','pending')`. **(medium)**
 - [ ] Cron registration lives in untracked `SCHEDULE.sql` with `<PROJECT_REF>`/`<SECRET>` placeholders; move all `cron.schedule(...)` into tracked migrations. **(medium)**
 - [ ] Webhook reliability: `bank-webhook` returns 200 on internal error with no event log. Persist events before acking and expose replay/heartbeat evidence. **(medium)**
-- [x] Gmail Pub/Sub cursor safety: `gmail-pubsub-push` advanced `last_history_id` before ingest completed. **FIXED 2026-06-29** in live version 31; successful messages are deduped by Gmail message ID and retryable ingest failures leave the cursor unchanged for replay.
+- [x] Gmail Pub/Sub cursor safety: `gmail-pubsub-push` advanced `last_history_id` before ingest completed. **FIXED 2026-06-29** in live version 32; successful messages are deduped by Gmail message ID and retryable ingest failures leave the cursor unchanged for replay.
 - [ ] Extend confidence-tiered auto-accept beyond exact job-ref match (`_shared/bills/router.ts:62-71`) to LLM-classified entities. **(low/med)**
 
 ### (b) REST API / connectivity
 
 - [ ] `api_keys` table + issue/revoke UI. **(Scaffold: 0056 + Settings UI TODO)**
 - [ ] Generic `POST /ingest` + per-entity push (bills/transactions/invoices). **(Scaffold: functions/ingest)**
-- [ ] Webhook/cron auth weak — single global URL `?secret=`, no HMAC, no per-org scoping (`bank-webhook:36-43`). Verify provider HMAC, move secrets to headers, scope per org. Gmail Pub/Sub now fails closed on missing/mismatched `GMAIL_PUSH_VERIFY_TOKEN`, but Pub/Sub OIDC verification remains a defence-in-depth follow-up. **(high)**
-- [ ] **Cron functions trust an UNVERIFIED JWT as service-role** (`notifications-cron:57-64`, `bank-sync-all:43-50` base64-decode + trust `role`). Remove; rely on constant-time `?secret=`. **(high)**
+- [ ] Webhook auth weak — some provider/webhook paths still rely on shared URL
+      secrets rather than provider HMAC/per-org scoping (`bank-webhook:36-43`).
+      Verify provider HMAC, move webhook secrets to headers, scope per org. Gmail
+      Pub/Sub now fails closed on missing/mismatched `GMAIL_PUSH_VERIFY_TOKEN`, and
+      bank/notification cron endpoints now use exact constant-time service-role or
+      cron-secret checks; Pub/Sub OIDC verification remains a defence-in-depth
+      follow-up. **(high)**
+- [x] **Cron functions trusted an UNVERIFIED JWT as service-role** in
+      `notifications-cron` and `bank-sync-all`. **FIXED 2026-06-29** with shared
+      exact-match auth helper, Deno tests, live deployment, forged-JWT fail-closed
+      proof, and `bank-sync-all` cron rescheduled through a Vault-held secret.
 - [ ] PostgREST is the de-facto API but undocumented — publish OpenAPI + integration guide. **(high)**
 
 ### (c) Accounting completeness (internal capability target)
@@ -93,7 +120,7 @@
 
 ## Roadmap
 
-**P0 — safely usable now** (✅ security done): close leak ✅, lock system_defaults ✅, revoke anon notify/orphans ✅ · then [ ] Gmail dead-integration handling (B3) · [ ] fix the 2 failing crons + heartbeats · [ ] remove forgeable-JWT service-role branches · [ ] make the CI tenant-isolation gate real.
+**P0 — safely usable now** (✅ security done): close leak ✅, lock system_defaults ✅, revoke anon notify/orphans ✅ · Gmail Pub/Sub replay hardening ✅ · bank-sync-all cron auth/schedule ✅ · then [ ] accountant-session-digest cron secret + heartbeat proof · [ ] Gmail real reconnect/event proof · [ ] make the CI tenant-isolation gate real.
 
 **P1 — make autopilot actually do accounting:** auto-reconcile (B4) · OCR fix + GST backfill (B7) · live Basiq feed (B8) · Xero retry cron · tracked cron migrations + durable webhook/ingest · extend period locks + audit triggers · finish API/ingestion layer (B5) · HMAC webhooks + OpenAPI docs.
 
@@ -116,4 +143,4 @@
 
 ## §6 — Security note
 
-Foundations are sound (Xero/Gmail/Basiq tokens AES-256-GCM encrypted, service-role key not committed/shipped, RLS on 49/50 base tables, broad append-only audit log). The audit's criticals were the **view/grant bypass and anon-reachable definer surface** on top of correct base-table RLS — **now fixed (0055)**. Remaining: deeper `notify()` org-guard, search_path hardening on definer functions, HMAC webhook auth, and removing the forgeable cron service-role branches (tracked above).
+Foundations are sound (Xero/Gmail/Basiq tokens AES-256-GCM encrypted, service-role key not committed/shipped, RLS on 49/50 base tables, broad append-only audit log). The audit's criticals were the **view/grant bypass and anon-reachable definer surface** on top of correct base-table RLS — **now fixed (0055)**. The forgeable cron service-role branches are also fixed live. Remaining: deeper `notify()` org-guard, search_path hardening on definer functions, HMAC webhook auth, accountant digest cron secret proof, and cron heartbeat monitoring.

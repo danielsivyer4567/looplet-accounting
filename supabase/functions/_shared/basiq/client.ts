@@ -29,9 +29,7 @@ export async function getBasiqServerToken(): Promise<string> {
   //   2. Raw "client_id:client_secret" — needs base64
   // Detect which we have. Pre-encoded keys end in '=' padding or have no colon.
   const looksPreEncoded = !BASIQ_API_KEY.includes(':') || BASIQ_API_KEY.endsWith('=');
-  const authHeader = looksPreEncoded
-    ? `Basic ${BASIQ_API_KEY}`
-    : `Basic ${btoa(BASIQ_API_KEY)}`;
+  const authHeader = looksPreEncoded ? `Basic ${BASIQ_API_KEY}` : `Basic ${btoa(BASIQ_API_KEY)}`;
 
   const resp = await fetch(`${BASIQ_BASE}/token`, {
     method: 'POST',
@@ -56,10 +54,7 @@ export async function getBasiqServerToken(): Promise<string> {
   return data.access_token;
 }
 
-async function basiqFetch<T = unknown>(
-  path: string,
-  init: RequestInit = {},
-): Promise<T> {
+async function basiqFetch<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
   const token = await getBasiqServerToken();
   const resp = await fetch(`${BASIQ_BASE}${path}`, {
     ...init,
@@ -78,8 +73,7 @@ async function basiqFetch<T = unknown>(
 }
 
 /** Minimal subset of the Supabase client surface used by this module. */
-interface SupabaseQueryBuilder
-  extends PromiseLike<{ data: unknown; error: unknown }> {
+interface SupabaseQueryBuilder extends PromiseLike<{ data: unknown; error: unknown }> {
   select(columns: string): SupabaseQueryBuilder;
   update(values: Record<string, unknown>): SupabaseQueryBuilder;
   eq(column: string, value: unknown): SupabaseQueryBuilder;
@@ -115,10 +109,7 @@ export async function getOrCreateBasiqUser(
     }),
   });
 
-  await admin
-    .from('organizations')
-    .update({ basiq_user_id: created.id })
-    .eq('id', organizationId);
+  await admin.from('organizations').update({ basiq_user_id: created.id }).eq('id', organizationId);
 
   return created.id;
 }
@@ -176,9 +167,7 @@ export async function getConnection(
     institution?: { id: string; name?: string; shortName?: string };
     lastUsed?: string;
     expiryDate?: string;
-  }>(
-    `/users/${basiqUserId}/connections/${connectionId}`,
-  );
+  }>(`/users/${basiqUserId}/connections/${connectionId}`);
   return {
     id: conn.id,
     status: conn.status,
@@ -210,14 +199,14 @@ export async function listConnections(basiqUserId: string): Promise<BasiqConnect
 
 export interface BasiqAccount {
   id: string;
-  accountNo?: string;          // last digits or full
+  accountNo?: string; // last digits or full
   name: string;
   balance: string | number;
   availableFunds?: string | number;
   accountHolder?: string;
-  class: { type: string };     // "transaction" | "savings" | "credit-card" | "loan" | "investment" | "term-deposit" | "mortgage"
+  class: { type: string }; // "transaction" | "savings" | "credit-card" | "loan" | "investment" | "term-deposit" | "mortgage"
   currency?: string;
-  connection?: string;          // connection id
+  connection?: string; // connection id
   status?: string;
 }
 
@@ -245,11 +234,16 @@ export interface BasiqTransaction {
   raw?: unknown;
 }
 
+interface BasiqTransactionsResponse {
+  data?: BasiqTransaction[];
+  links?: { next?: string };
+}
+
 /** Fetch all transactions for a connection, paging through Basiq's `next` links. */
 export async function getAllTransactionsForConnection(
   basiqUserId: string,
   connectionId: string,
-  fromDate?: string,         // ISO date, e.g. "2025-11-01"
+  fromDate?: string, // ISO date, e.g. "2025-11-01"
 ): Promise<BasiqTransaction[]> {
   const all: BasiqTransaction[] = [];
   const filterParts = [`account.connection.id.eq('${connectionId}')`];
@@ -258,7 +252,7 @@ export async function getAllTransactionsForConnection(
     `/users/${basiqUserId}/transactions?limit=500&filter=${filterParts.join(',')}`;
   let page = 0;
   while (url && page < 20) {
-    const resp = await basiqFetch<{ data: BasiqTransaction[]; links: { next?: string } }>(url);
+    const resp: BasiqTransactionsResponse = await basiqFetch<BasiqTransactionsResponse>(url);
     if (resp.data) all.push(...resp.data);
     url = resp.links?.next ? resp.links.next.replace(BASIQ_BASE, '') : null;
     page += 1;
