@@ -27,7 +27,7 @@ work and re-checking the live project. It intentionally separates:
   `0196`; `supabase db push --linked --dry-run` returned
   `Remote database is up to date.`
 - Fresh live blocker counts checked on 2026-06-29:
-  `legal_sources=7`, `legal_corpus=3565`, `legal_change_events=2882`,
+  `legal_sources=7`, `legal_corpus=11440`, `legal_change_events=10757`,
   `legal_horizon=0`, `advice_notes=1`, `receipt_events=0`,
   enabled `receipt_sync_endpoints=0`, enabled `xero_integrations=0`, and
   pending-ish `receipt_sync_jobs=0`.
@@ -43,8 +43,9 @@ work and re-checking the live project. It intentionally separates:
   date metadata instead of passing raw markup to the chunker. Local live-source
   proof against the current ITAA 1997 FRL page extracted 7,758,792 characters,
   produced 5,956 chunks, and found `s 8-1 General deductions`.
-- The updated `legal-corpus-sync` bundle is deployed live as version 17. Live
-  smoke on 2026-06-29: OPTIONS returned 200 with CORS and unauthenticated POST
+- The updated `legal-corpus-sync` bundle is deployed live as version 23, with
+  `legal-corpus-ingest` active as version 24. Live smoke on 2026-06-29: OPTIONS
+  returned 200 with CORS and unauthenticated POST
   reached the function and returned `{"ok":false,"error":"Unauthorized"}` with
   HTTP 401. The sync path now supports resumable `chunk_offset`/`chunk_limit`
   windows for large Acts. The FBT source synced successfully over the
@@ -52,8 +53,9 @@ work and re-checking the live project. It intentionally separates:
   `unchanged=6`, and all 391 current FBT corpus rows have embeddings. The GST
   source completed across 14 windows with `processed=1042`, `inserted=365`,
   `unchanged=677`, and all 1,042 current GST corpus rows have embeddings. The
-  SIS Act and ITAA 1936 sources are also synced live with all current rows
-  embedded: 798 SIS rows and 1,334 ITAA 1936 rows.
+  SIS Act, ITAA 1936, TAA 1953, and ITAA 1997 sources are also synced live with
+  all current rows embedded: 798 SIS rows, 1,334 ITAA 1936 rows, 1,692 TAA rows,
+  and 6,183 ITAA 1997 rows.
 - Supabase secret-name check found the scanner provider key, `OPENAI_API_KEY`,
   and `LEGAL_SYNC_SECRET` present, but no `LEGAL_INGEST_SECRET` or
   `LEGAL_SCAN_SECRET` configured by those names. Do not expose secret values in
@@ -69,13 +71,13 @@ work and re-checking the live project. It intentionally separates:
   `NOTIFICATIONS_CRON_SECRET`, `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET`, and
   `OPENAI_API_KEY` and `LEGAL_SYNC_SECRET`, and false for
   `LEGAL_INGEST_SECRET` and `LEGAL_SCAN_SECRET`.
-- `gmail-pubsub-push` is deployed live as version 42. It now shares the Gmail
+- `gmail-pubsub-push` is deployed live as version 48. It now shares the Gmail
   message-id duplicate guard with backfill, leaves `last_history_id` unchanged
   on retryable ingest failures so future pushes can replay safely, and the live
   audit proves unsigned POSTs fail closed with HTTP 401.
 - `bank-sync`, `bank-sync-all`, and `notifications-cron` have had the
   forgeable service-role branch removed. Live versions after deploy:
-  `bank-sync` 37, `bank-sync-all` 35, and `notifications-cron` 32. The live
+  `bank-sync` 43, `bank-sync-all` 41, and `notifications-cron` 38. The live
   audit proves forged `bank-sync` service-role JWTs fail closed with HTTP 401,
   unsigned `bank-sync-all` and `notifications-cron` POSTs fail closed with HTTP
   403, both cron runtime secret names exist in Supabase, and all three
@@ -87,7 +89,7 @@ work and re-checking the live project. It intentionally separates:
   `orgs=0`, and a DB-side `pg_net` probe through the same Vault path returned
   HTTP 200 with `{"ok":true,"orgs":0,"results":[]}`.
 - `accountant-session-digest` cron auth is fixed live. The function is active
-  as version 27 with `verify_jwt=false`, cron mode now requires exact
+  as version 33 with `verify_jwt=false`, cron mode now requires exact
   `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET` or service-role bearer, and
   browser/on-demand modes still verify the caller JWT internally. The active
   cron is job 15 and reads a scoped `accountant_session_digest_cron_secret` from
@@ -168,10 +170,10 @@ Remaining execution order:
    service-role secret configured, but the local test harness still needs a
    non-secret test org ID plus a signed-in JWT. Capture UI screenshots,
    console/network status, and non-secret row metadata.
-4. **Finish Legal RAG/Horizon proof.** Seed or formally defer the remaining
-   registered FRL/ATO sources, verify corpus search/citations from a signed-in
-   Ask flow, then run Horizon with a real scanner path before any cron is
-   enabled.
+4. **Finish Legal RAG/Horizon proof.** Register specific ATO Legal Database
+   document/feed URLs or formally defer ATO rulings/determinations, verify corpus
+   search/citations from a signed-in Ask flow, then run Horizon with a real
+   scanner path before any cron is enabled.
 5. **Finish data-starvation ledgers.** Import the queued bank statement PDFs,
    run subscription detection, process pending triage classifications into
    `intake_rules`, and populate at least one real customer/invoice/payment path.
@@ -220,7 +222,7 @@ supabase/functions/gmail-pubsub-push/index.ts` passed.
 - `supabase functions deploy gmail-pubsub-push --project-ref
 dxoikltymmknxqpkpyhi --no-verify-jwt` deployed the hardened Gmail Pub/Sub
   handler. The follow-up `npm run wrap:live-audit` passed with
-  `gmail-pubsub-push` active as version 42, CORS OPTIONS 200, live Gmail
+  `gmail-pubsub-push` active as version 48, CORS OPTIONS 200, live Gmail
   runtime secret-name presence, and unsigned POST fail-closed status 401.
 - `deno test supabase/functions/_shared/serviceRole.test.ts` passed: 3 tests.
   It proves exact service-role bearer matching, exact cron secret matching, and
@@ -236,8 +238,8 @@ dxoikltymmknxqpkpyhi --no-verify-jwt`, and `supabase functions deploy
 notifications-cron --project-ref dxoikltymmknxqpkpyhi --no-verify-jwt`
   deployed the hardened bank/cron handlers.
 - The follow-up `npm run wrap:live-audit` passed with `bank-sync` active as
-  version 37, `bank-sync-all` as version 35, `notifications-cron` as version
-  32, CORS OPTIONS 200 for both cron endpoints, live cron secret-name presence,
+  version 43, `bank-sync-all` as version 41, `notifications-cron` as version
+  38, CORS OPTIONS 200 for both cron endpoints, live cron secret-name presence,
   forged `bank-sync` service-role JWT fail-closed status 401, and unsigned
   `bank-sync-all`/`notifications-cron` fail-closed status 403.
 - Live cron inspection showed `bank-sync-all` was still scheduled without auth.
@@ -252,7 +254,7 @@ supabase/functions/accountant-session-digest/index.ts` passed.
 - `supabase functions deploy accountant-session-digest --project-ref
 dxoikltymmknxqpkpyhi --no-verify-jwt` deployed the self-authenticating digest
   handler. The follow-up `npm run wrap:live-audit` passed with
-  `accountant-session-digest` active as version 27, CORS OPTIONS 200, live
+  `accountant-session-digest` active as version 33, CORS OPTIONS 200, live
   `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET` name presence, and unsigned cron-mode
   POST fail-closed status 403.
 - The live digest cron was rescheduled from the missing `service_role_key`
@@ -293,19 +295,32 @@ dxoikltymmknxqpkpyhi --no-verify-jwt` deployed the self-authenticating digest
   warnings.
 - `git diff --check` passed.
 - `npm run test -- tests/legal-chunk.test.ts` passed: 13 tests.
+- `npm run test -- tests/legal-upsert.test.ts tests/legal-chunk.test.ts`
+  passed: 2 files, 14 tests.
 - `deno check supabase/functions/legal-corpus-sync/index.ts
+supabase/functions/_shared/legal/currentVersions.ts
 supabase/functions/_shared/legal/chunk.ts
 supabase/functions/_shared/legal/upsert.ts` passed.
-- Legal corpus live proof after the resumable sync work: four current official
-  FRL sources have embeddings (`FBT=391`, `GST=1,042`, `SIS=798`,
-  `ITAA 1936=1,334`). `match_legal_corpus` returned the expected source section
-  at similarity `1.0000` for FBT `s 47 [1]`, GST `s 9-5`, SIS `s 62`, and ITAA
-  1936 `s 109N`.
+- Added and applied `supabase/migrations/0198_fix_taa_legal_source_url.sql`.
+  The live TAA source row now points to the principal FRL series
+  `C1953A00001`, and version `0198` is recorded in
+  `supabase_migrations.schema_migrations` as `fix_taa_legal_source_url`.
+- `legal-corpus-sync` and `legal-corpus-ingest` were redeployed after fixing the
+  shared large-source upsert path to page current corpus rows beyond the
+  PostgREST 1,000-row cap. The regression test proves a current row on page 2
+  is loaded.
+- Legal corpus live proof after the resumable sync work: all six registered FRL
+  Acts have current embeddings (`FBT=391`, `GST=1,042`, `SIS=798`,
+  `ITAA 1936=1,334`, `TAA=1,692`, `ITAA 1997=6,183`). `match_legal_corpus`
+  returned the expected source section at similarity `1.0000` for FBT
+  `s 47 [1]`, GST `s 9-5`, SIS `s 62`, ITAA 1936 `s 109N`, TAA `s 284-75`,
+  and ITAA 1997 `s 8-1`.
 
 ## Workstream 1: Legal RAG And Horizon
 
-**Current status:** four official FRL sources are live-proven; the remaining
-registered source set, Horizon, and signed-in Ask citation proof remain open.
+**Current status:** all six registered official FRL Acts are live-proven; the
+generic ATO Legal Database source, Horizon, and signed-in Ask citation proof
+remain open.
 
 Completed:
 
@@ -317,8 +332,15 @@ Completed:
   `C2004A05138`-style source URLs resolve to `/latest/text`, EPUB document pages
   are fetched in order, tables of sections/scripts/styles/tags are stripped, and
   FRL effective date/version metadata is captured for the sync cursor.
-- `legal-corpus-sync` version 17 is deployed live and still fails closed without
-  service-role bearer or `LEGAL_SYNC_SECRET`.
+- `legal-corpus-sync` version 23 and `legal-corpus-ingest` version 24 are
+  deployed live and still fail closed without service-role bearer or
+  `LEGAL_SYNC_SECRET`.
+- The TAA registered source URL is corrected live and durably tracked by
+  migration `0198`: `C2004A07377` returned an FRL "requested title could not be
+  loaded" shell, while `C1953A00001` resolves to the current TAA compilation.
+- The shared legal upsert now pages current corpus rows with an explicit
+  `section_ref` order so resumable large-source sync can recover after worker
+  resource limits without duplicate inserts.
 - The FBT Act source is synced live: 391 current `legal_corpus` rows, 391
   embeddings, 385 legal change events, source cursor stamped, and
   `match_legal_corpus` returns `s 47 [1] Exempt residual benefits` at
@@ -332,14 +354,21 @@ Completed:
 - The ITAA 1936 source is synced live through resumable windows: 1,334 current
   `legal_corpus` rows, 1,334 embeddings, source cursor stamped, and
   `match_legal_corpus` returns `s 109N` at similarity `1.0000`.
+- The TAA 1953 source is synced live through resumable windows: 1,692 current
+  `legal_corpus` rows, 1,692 embeddings, source cursor stamped, and
+  `match_legal_corpus` returns `s 284-75 Liability to penalty` at similarity
+  `1.0000`.
+- The ITAA 1997 source is synced live through resumable windows: 6,183 current
+  `legal_corpus` rows, 6,183 embeddings, source cursor stamped, missing
+  `legal_change_events` from partial worker-limit writes reconciled to zero for
+  ITAA 1997, and `match_legal_corpus` returns `s 8-1 General deductions` at
+  similarity `1.0000`.
 - `legal-horizon-run` is deployed and blocks unauthenticated calls at the
   Supabase gateway.
 - The Legal Horizon UI scan controls passed mocked desktop/mobile browser smoke.
 
 Blocked prerequisites:
 
-- Seed the remaining registered official FRL sources, or formally defer the very
-  large ITAA 1997/TAA corpus expansion for the release ledger.
 - Provide specific ATO Legal Database document/feed URLs, or NotebookLM/legal
   `.txt` exports, before enabling ATO rulings/determinations corpus sync.
 - Configure operator secrets if driving non-service-role seed/sync/scan paths:
@@ -351,10 +380,10 @@ Blocked prerequisites:
 
 Exit criteria:
 
-- Seed the remaining registered source names, or the approved smaller source
-  set, through `legal-corpus-sync`/`legal-corpus-ingest`.
-- Extend the current proof to any newly seeded source by verifying embeddings
-  and `match_legal_corpus` for known sections across the remaining source set.
+- Register specific ATO Legal Database source documents/feeds, or explicitly
+  defer ATO rulings/determinations for release.
+- Extend proof to any newly registered ATO source by verifying embeddings and
+  `match_legal_corpus` for known rulings/determinations.
 - Ask a signed-in tax question and capture UI evidence that corpus
   `citations[]` render and open the quoted law panel.
 - Run `legal-horizon-run` as a signed-in accepted accountant/admin/owner and
