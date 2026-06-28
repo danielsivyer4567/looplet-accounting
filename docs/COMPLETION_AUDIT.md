@@ -202,7 +202,7 @@ Score: 0=missing, 1=stub, 2=partial, 3=working, 4=polished. Cells with `—` are
 | 1. Auth                          | 4✓     | —        | 4✓   | —      | 4✓     | —    | —   | —         | 3✓    | 3✓    | 3✓      | 2⚠     |
 | 2. Onboarding (AutoSetup+Triage) | 3✓     | 3✓       | 3✓   | 3✓     | —      | —    | —   | 3✓        | 2⚠    | 2⚠    | 3✓      | 1✗     |
 | 3. Dashboard P&L                 | 4✓     | 4✓       | —    | —      | —      | —    | —   | 3✓        | 3✓    | 3✓    | 3✓      | 2⚠     |
-| 4. Bills                         | 4✓     | 4✓       | 4✓   | 4✓     | 4✓     | 1✗   | 3✓  | 4✓        | 3✓    | 3✓    | 4✓      | 2⚠     |
+| 4. Bills                         | 4✓     | 4✓       | 4✓   | 4✓     | 4✓     | 3✓   | 3✓  | 4✓        | 3✓    | 3✓    | 4✓      | 2⚠     |
 | 5. Allocations                   | 4✓     | 4✓       | 4✓   | —      | —      | —    | —   | —         | 3✓    | 2⚠    | 3✓      | 2⚠     |
 | 6. Suppliers                     | 4✓     | 4✓       | 4✓   | 4✓     | 0✗     | 4✓   | 3✓  | 0✗        | 3✓    | 2⚠    | 3✓      | 2⚠     |
 | 7. Customers                     | 4✓     | 0✗       | 4✓   | 4✓     | 3✓     | 4✓   | 2⚠  | 0✗        | 2⚠    | 2⚠    | 3✓      | 2⚠     |
@@ -213,9 +213,9 @@ Score: 0=missing, 1=stub, 2=partial, 3=working, 4=polished. Cells with `—` are
 | 12. Bank — PDF parser            | 4✓     | 3✓       | 3✓   | —      | 4✓     | —    | —   | —         | 2⚠    | 3✓    | 3✓      | 1✗     |
 | 13. Bank — Reconciliation        | 4✓     | 3✓       | 4✓   | —      | —      | —    | —   | —         | 3✓    | 3✓    | 3✓      | 2⚠     |
 | 14. Bank — Subscription detect   | 4✓     | 4✓       | —    | —      | —      | —    | —   | —         | 3✓    | 3✓    | 3✓      | —      |
-| 15. Subscriptions                | 4✓     | 4✓       | 4✓   | 0✗     | —      | 3✓   | 0✗  | 4✓        | 3✓    | 2⚠    | 3✓      | 1✗     |
-| 16. Debts                        | 4✓     | 0✗       | 4✓   | 0✗     | 4✓     | 0✗   | 0✗  | 0✗        | 3✓    | 2⚠    | 3✓      | 2⚠     |
-| 17. Employees+Timesheets         | 4✓     | 1✗       | 4✓   | 0✗     | 4✓     | 0✗   | 0✗  | 0✗        | 3✓    | 2⚠    | 3✓      | 2⚠     |
+| 15. Subscriptions                | 4✓     | 4✓       | 4✓   | 3✓     | —      | 3✓   | 0✗  | 4✓        | 3✓    | 2⚠    | 3✓      | 1✗     |
+| 16. Debts                        | 4✓     | 0✗       | 4✓   | 3✓     | 4✓     | 3✓   | 0✗  | 3✓        | 3✓    | 2⚠    | 3✓      | 2⚠     |
+| 17. Employees+Timesheets         | 4✓     | 1✗       | 4✓   | 3✓     | 4✓     | 3✓   | 0✗  | 0✗        | 3✓    | 2⚠    | 3✓      | 2⚠     |
 | 18. Reports — BAS                | 4✓     | 4✓       | 4✓   | —      | —      | —    | —   | —         | 3✓    | 2⚠    | 3✓      | 2⚠     |
 | 19. Reports — Cash flow          | 4✓     | 4✓       | 4✓   | —      | —      | —    | —   | —         | 3✓    | 1✗    | 3✓      | 2⚠     |
 | 20. Settings — Org profile       | 4✓     | 3✓       | —    | 3✓     | 4✓     | 4✓   | —   | —         | —     | 2⚠    | 3✓      | 2⚠     |
@@ -225,7 +225,7 @@ Score: 0=missing, 1=stub, 2=partial, 3=working, 4=polished. Cells with `—` are
 | 24. Personal/Business split      | 4✓     | 3✓       | —    | 4✓     | —      | 4✓   | —   | —         | —     | 3✓    | —       | 2⚠     |
 | 25. Multi-org allocation         | 4✓     | 3✓       | —    | 4✓     | —      | —    | —   | 4✓        | —     | 3✓    | —       | 1✗     |
 
-**Average score across cells with content:** ~2.8 / 4 = **70% complete**.
+**Average score across cells with content:** ~2.9 / 4 = **72% complete**.
 
 ---
 
@@ -239,8 +239,8 @@ Score: 0=missing, 1=stub, 2=partial, 3=working, 4=polished. Cells with `—` are
 | **Bank txn → Reconciliation candidates**     | ⚠ no data      | View `v_bank_match_candidates` exists; 0 matches because no real bills have totals matching the 5 fake txns                           |
 | **Bank txn → subscriptions-detect**          | ⚠ no data      | Edge fn deployed; runs after every bank-sync/CSV/PDF; 0 subs detected because only 5 debit txns total (need ≥3 of same merchant)      |
 | **Bill marked personal → excluded from BAS** | ⚠ untested     | View filters on `is_personal=false`; 0 bills tagged personal so excluded but not exercised                                            |
-| **MoveToOrgButton → row moved**              | ⚠ user-blocked | Wired to bills+subs; user has only 1 org so dropdown is empty. Need a 2nd org to validate.                                            |
-| **Timesheet entry → v_job_pnl wages**        | ⚠ untested     | 0 timesheets exist; view computes from timesheet_entries.total_cost_cents                                                             |
+| **MoveToOrgButton → row moved**              | ⚠ live-blocked | Local component proof covers update payloads, FK clearing, and debt-row moves; live proof still needs a signed-in user with 2 orgs.   |
+| **Timesheet entry → v_job_pnl wages**        | ⚠ no live data | Employee detail tests cover timesheet edit/log-time payloads; live proof still needs real timesheet rows flowing into `v_job_pnl`.    |
 | **PDF statement → bank txns + subs**         | ⚠ user-blocked | Pipeline deployed; user hasn't uploaded the 7 queued PDFs                                                                             |
 
 ---
