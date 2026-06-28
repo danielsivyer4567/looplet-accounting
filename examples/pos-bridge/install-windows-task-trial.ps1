@@ -67,6 +67,7 @@ $InstalledFiles = @(
   'status.mjs',
   'pilot-pass.mjs',
   'sample-fingerprint.mjs',
+  'field-sample-capture.mjs',
   'field-sample-reconciliation.mjs',
   'reconcile-pilot-evidence.mjs',
   'pilot-evidence.mjs',
@@ -108,6 +109,8 @@ Assert-True ($checklist -match 'Go-live requires `ok: true`') 'installed pilot c
 Assert-True ($checklist -match '--preflight-only') 'installed pilot checklist must include non-sending go-live preflight command'
 Assert-True ($checklist -match 'pos-pilot-preflight\.json') 'installed pilot checklist must save go-live preflight evidence'
 Assert-True ($checklist -match 'summary\.acceptance_skipped: true') 'installed pilot checklist must require preflight acceptance skip proof'
+Assert-True ($checklist -match 'field-sample-capture\.mjs') 'installed pilot checklist must include raw field-sample capture staging command'
+Assert-True ($checklist -match 'field-sample-capture\.json') 'installed pilot checklist must save raw field-sample capture manifest'
 Assert-True ($checklist -match 'unresolved refund/void original sale references rejected') 'installed pilot checklist must include unresolved original-sale negative control'
 Assert-True ($checklist -match 'same idempotency key with changed receipt facts rejected') 'installed pilot checklist must include idempotency mismatch negative control'
 Assert-True ($checklist -match 'conflicting `Idempotency-Key` header/body values rejected') 'installed pilot checklist must include idempotency source mismatch negative control'
@@ -224,6 +227,9 @@ Assert-True ($LASTEXITCODE -eq 0) 'installed reconcile-pilot-evidence should par
 
 & node --check (Join-Path $InstallRoot 'field-sample-reconciliation.mjs') | Out-Null
 Assert-True ($LASTEXITCODE -eq 0) 'installed field-sample-reconciliation should parse'
+
+& node --check (Join-Path $InstallRoot 'field-sample-capture.mjs') | Out-Null
+Assert-True ($LASTEXITCODE -eq 0) 'installed field-sample-capture should parse'
 
 & node --check (Join-Path $InstallRoot 'go-live.mjs') | Out-Null
 Assert-True ($LASTEXITCODE -eq 0) 'installed go-live runner should parse'

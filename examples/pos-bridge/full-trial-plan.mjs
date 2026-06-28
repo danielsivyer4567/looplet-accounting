@@ -9,6 +9,7 @@ export const posTrials = [
   ['syntax:completion-audit', process.execPath, ['--check', 'examples/pos-bridge/completion-audit.mjs']],
   ['syntax:pilot-kit', process.execPath, ['--check', 'examples/pos-bridge/pilot-kit.mjs']],
   ['syntax:integration-fit', process.execPath, ['--check', 'examples/pos-bridge/integration-fit.mjs']],
+  ['syntax:field-sample-capture', process.execPath, ['--check', 'examples/pos-bridge/field-sample-capture.mjs']],
   [
     'syntax:field-sample-reconciliation',
     process.execPath,
@@ -42,6 +43,7 @@ export const posTrials = [
   ['completion-audit-trial', process.execPath, ['examples/pos-bridge/completion-audit-trial.mjs']],
   ['pilot-pass-trial', process.execPath, ['examples/pos-bridge/pilot-pass-trial.mjs']],
   ['sample-fingerprint-trial', process.execPath, ['examples/pos-bridge/sample-fingerprint-trial.mjs']],
+  ['field-sample-capture-trial', process.execPath, ['examples/pos-bridge/field-sample-capture-trial.mjs']],
   ['reconcile-pilot-evidence-trial', process.execPath, ['examples/pos-bridge/reconcile-pilot-evidence-trial.mjs']],
   ['status-trial', process.execPath, ['examples/pos-bridge/status-trial.mjs']],
   [

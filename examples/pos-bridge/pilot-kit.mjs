@@ -161,10 +161,11 @@ EFTPOS-only data is not enough unless it is matched back to the POS basket, rece
 
 ## 5. Go-Live Evidence
 
-Run \`go-live-command.ps1\` from the installed bridge machine after filling the site manifest and placing the real field samples beside it. The command first runs a non-sending \`go-live.mjs --preflight-only\` pass with the same inputs, then runs the real acceptance send only if that preflight succeeds.
+Run \`go-live-command.ps1\` from the installed bridge machine after filling the site manifest and placing the real raw POS sale/refund/void samples beside it. The command first stages those raw captures into standard \`field-*.json\` files, then runs a non-sending \`go-live.mjs --preflight-only\` pass with the same inputs, then runs the real acceptance send only if that preflight succeeds.
 
 Go-live requires:
 
+- \`field-sample-capture.json\` with \`ok: true\` and no bundled samples
 - \`pos-pilot-preflight.json\` with \`ok: true\` and \`non_sending: true\`
 - \`pos-pilot-evidence.json\` with \`ok: true\`
 - strict verifier pass with field-file reconciliation
@@ -200,9 +201,13 @@ $BridgeRoot = 'C:\\ProgramData\\Looplet\\pos-bridge'
 $EnvFile = 'C:\\ProgramData\\Looplet\\pos-bridge.env'
 $SiteFile = 'C:\\ProgramData\\Looplet\\pos-pilot-site.json'
 $FitProfile = 'C:\\ProgramData\\Looplet\\pos-integration-profile.json'
+$RawSale = 'C:\\ProgramData\\Looplet\\raw-sale.json'
+$RawRefund = 'C:\\ProgramData\\Looplet\\raw-refund.json'
+$RawVoid = 'C:\\ProgramData\\Looplet\\raw-void.json'
 $Sale = 'C:\\ProgramData\\Looplet\\field-sale.json'
 $Refund = 'C:\\ProgramData\\Looplet\\field-refund.json'
 $Void = 'C:\\ProgramData\\Looplet\\field-void.json'
+$CaptureManifest = 'C:\\ProgramData\\Looplet\\field-sample-capture.json'
 $PreflightEvidence = 'C:\\ProgramData\\Looplet\\pos-pilot-preflight.json'
 $Evidence = 'C:\\ProgramData\\Looplet\\pos-pilot-evidence.json'
 $ReportJson = 'C:\\ProgramData\\Looplet\\pos-pilot-report.json'
@@ -216,9 +221,9 @@ $RequiredInputs = @(
   $EnvFile,
   $SiteFile,
   $FitProfile,
-  $Sale,
-  $Refund,
-  $Void,
+  $RawSale,
+  $RawRefund,
+  $RawVoid,
   $LocalFullTrial
 )
 foreach ($Path in $RequiredInputs) {
@@ -226,6 +231,14 @@ foreach ($Path in $RequiredInputs) {
     throw "Required go-live input is missing: $Path"
   }
 }
+
+node "$BridgeRoot\\field-sample-capture.mjs" \`
+  --site-file $SiteFile \`
+  --sale $RawSale \`
+  --refund $RawRefund \`
+  --void $RawVoid \`
+  --output-dir 'C:\\ProgramData\\Looplet' \`
+  --manifest $CaptureManifest
 
 node "$BridgeRoot\\go-live.mjs" \`
   --preflight-only \`

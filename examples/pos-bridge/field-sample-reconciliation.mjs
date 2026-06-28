@@ -9,7 +9,7 @@ import {
 
 export const requiredFieldSampleEventTypes = ['sale', 'refund', 'void'];
 
-const bundledSampleContentFingerprints = new Set([
+export const bundledSampleContentFingerprints = new Set([
   'c1f7ec8c3aa665899639046306ef3b78c7fa603e8751f5bf58d27a739978cc6c',
   '1f91db564f57ff0c7e756e48510b3aa72ef3bd6d5bcfc2f565eba40d40ed35fe',
   '1ded54d83ce273447eb15f7b1c91e6862cbb1ed43703a393d15e0ab66aab4195',
@@ -172,16 +172,20 @@ function compareField(failures, name, expected, actual) {
   if (expected !== actual) failures.push(`${name} mismatch`);
 }
 
-function redactedSampleSha256(receipt) {
+export function redactedSampleSha256(receipt) {
   return createHash('sha256')
     .update(JSON.stringify(redactDeep(receipt)))
     .digest('hex');
 }
 
-function sampleContentSha256WithoutIdentity(receipt) {
+export function sampleContentSha256WithoutIdentity(receipt) {
   return createHash('sha256')
     .update(JSON.stringify(stripReceiptIdentities(receipt)))
     .digest('hex');
+}
+
+export function isBundledSampleContent(receipt) {
+  return bundledSampleContentFingerprints.has(sampleContentSha256WithoutIdentity(receipt));
 }
 
 function stripReceiptIdentities(value) {

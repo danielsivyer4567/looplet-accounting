@@ -159,6 +159,17 @@ the verifier summary:
 node C:\ProgramData\Looplet\pos-bridge\sample-fingerprint.mjs C:\ProgramData\Looplet\field-sale.json --expected <sale-fingerprint-from-verifier-summary>
 ```
 
+Stage raw sale/refund/void POS exports into the standard go-live filenames
+before preflight. This writes `field-sale.json`, `field-refund.json`,
+`field-void.json`, and a redacted `field-sample-capture.json` manifest:
+
+```powershell
+node C:\ProgramData\Looplet\pos-bridge\field-sample-capture.mjs --site-file C:\ProgramData\Looplet\pos-pilot-site.json --sale C:\ProgramData\Looplet\raw-sale.json --refund C:\ProgramData\Looplet\raw-refund.json --void C:\ProgramData\Looplet\raw-void.json --output-dir C:\ProgramData\Looplet
+```
+
+Expected capture result: `ok: true`, `all_identities_present: true`,
+`refund_void_link_sale: true`, and `no_bundled_samples: true`.
+
 Before go-live, run the same command in non-sending preflight mode. It validates
 the install, site manifest, fit profile, and real sale/refund/void field files
 without sending acceptance receipts:

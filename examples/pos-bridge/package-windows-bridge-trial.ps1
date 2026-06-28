@@ -72,6 +72,7 @@ $required = @(
   'status.mjs',
   'pilot-pass.mjs',
   'sample-fingerprint.mjs',
+  'field-sample-capture.mjs',
   'field-sample-reconciliation.mjs',
   'reconcile-pilot-evidence.mjs',
   'pilot-evidence.mjs',
@@ -112,6 +113,8 @@ Assert-True ($checklist -match 'Go-live requires `ok: true`') 'pilot checklist m
 Assert-True ($checklist -match '--preflight-only') 'pilot checklist must include non-sending go-live preflight command'
 Assert-True ($checklist -match 'pos-pilot-preflight\.json') 'pilot checklist must save go-live preflight evidence'
 Assert-True ($checklist -match 'summary\.acceptance_skipped: true') 'pilot checklist must require preflight acceptance skip proof'
+Assert-True ($checklist -match 'field-sample-capture\.mjs') 'pilot checklist must include raw field-sample capture staging command'
+Assert-True ($checklist -match 'field-sample-capture\.json') 'pilot checklist must save raw field-sample capture manifest'
 Assert-True ($checklist -match 'unresolved refund/void original sale references rejected') 'pilot checklist must include unresolved original-sale negative control'
 Assert-True ($checklist -match 'same idempotency key with changed receipt facts rejected') 'pilot checklist must include idempotency mismatch negative control'
 Assert-True ($checklist -match 'conflicting `Idempotency-Key` header/body values rejected') 'pilot checklist must include idempotency source mismatch negative control'
@@ -289,6 +292,9 @@ Assert-True ($LASTEXITCODE -eq 0) 'expanded package reconcile-pilot-evidence sho
 
 & node --check (Join-Path $ExpandedRoot 'field-sample-reconciliation.mjs') | Out-Null
 Assert-True ($LASTEXITCODE -eq 0) 'expanded package field-sample-reconciliation should parse'
+
+& node --check (Join-Path $ExpandedRoot 'field-sample-capture.mjs') | Out-Null
+Assert-True ($LASTEXITCODE -eq 0) 'expanded package field-sample-capture should parse'
 
 & node --check (Join-Path $ExpandedRoot 'go-live.mjs') | Out-Null
 Assert-True ($LASTEXITCODE -eq 0) 'expanded package go-live runner should parse'

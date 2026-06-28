@@ -360,6 +360,25 @@ The packaged
 accepted for local trials only; go-live evidence rejects those filenames as
 field samples.
 
+Stage raw POS field captures into the standard go-live filenames before running
+preflight. This catches the most common pilot mistakes early: missing scanned
+identity, sample merchant not matching the site manifest, purchase time outside
+the pilot window, refund/void not pointing back to the sale, and accidentally
+using bundled sample content:
+
+```powershell
+node C:\ProgramData\Looplet\pos-bridge\field-sample-capture.mjs `
+  --site-file C:\ProgramData\Looplet\pos-pilot-site.json `
+  --sale C:\ProgramData\Looplet\raw-sale.json `
+  --refund C:\ProgramData\Looplet\raw-refund.json `
+  --void C:\ProgramData\Looplet\raw-void.json `
+  --output-dir C:\ProgramData\Looplet
+```
+
+Expected capture result: `ok: true`, staged `field-sale.json`,
+`field-refund.json`, and `field-void.json`, plus
+`field-sample-capture.json` with only redacted fingerprints.
+
 Before the sending acceptance run, use the same one-command runner in non-sending
 preflight mode:
 

@@ -23,6 +23,7 @@ const requiredBridgeFiles = [
   'status.mjs',
   'pilot-pass.mjs',
   'sample-fingerprint.mjs',
+  'field-sample-capture.mjs',
   'field-sample-reconciliation.mjs',
   'reconcile-pilot-evidence.mjs',
   'credential-probe.mjs',

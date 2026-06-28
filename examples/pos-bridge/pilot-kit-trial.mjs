@@ -101,6 +101,11 @@ async function main() {
   assert(runbook.includes('pos-pilot-report.md'), 'runbook should require redacted report archive');
   assert(runbook.includes('pos-integration-profile.json'), 'runbook should archive the source integration profile');
   assert(command.includes('go-live.mjs'), 'go-live command should call go-live');
+  assert(command.includes('field-sample-capture.mjs'), 'go-live command should stage raw POS field samples first');
+  assert(command.includes('$RawSale'), 'go-live command should require raw sale input');
+  assert(command.includes('$RawRefund'), 'go-live command should require raw refund input');
+  assert(command.includes('$RawVoid'), 'go-live command should require raw void input');
+  assert(command.includes('field-sample-capture.json'), 'go-live command should save field-sample capture manifest');
   assert(command.includes('--preflight-only'), 'go-live command should run non-sending preflight first');
   assert(command.includes('pilot-report.mjs'), 'go-live command should generate pilot report');
   assert(command.includes('pilot-bundle.mjs'), 'go-live command should verify the final bundle');
@@ -138,6 +143,7 @@ async function main() {
     site_template_has_connector_recommendation: site.connector_mode === 'bridge_watch_folder',
     runbook_requires_real_pos_samples: runbook.includes('Capture these from the real POS path'),
     command_generates_report: command.includes('pilot-report.mjs'),
+    command_stages_raw_field_samples: command.includes('field-sample-capture.mjs'),
     command_runs_non_sending_preflight: command.includes('--preflight-only'),
     command_verifies_bundle: command.includes('pilot-bundle.mjs'),
     command_runs_completion_audit: command.includes('completion-audit.mjs'),

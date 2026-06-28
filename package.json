@@ -36,6 +36,7 @@
     "pos:completion-audit-trial": "node examples/pos-bridge/completion-audit-trial.mjs",
     "pos:pilot-pass-trial": "node examples/pos-bridge/pilot-pass-trial.mjs",
     "pos:sample-fingerprint-trial": "node examples/pos-bridge/sample-fingerprint-trial.mjs",
+    "pos:field-sample-capture-trial": "node examples/pos-bridge/field-sample-capture-trial.mjs",
     "pos:reconcile-pilot-evidence-trial": "node examples/pos-bridge/reconcile-pilot-evidence-trial.mjs",
     "pos:status-trial": "node examples/pos-bridge/status-trial.mjs",
     "pos:install-trial": "powershell -NoProfile -ExecutionPolicy Bypass -File examples/pos-bridge/install-windows-task-trial.ps1",

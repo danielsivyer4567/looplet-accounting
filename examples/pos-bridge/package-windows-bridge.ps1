@@ -25,6 +25,7 @@ $Files = @(
   'status.mjs',
   'pilot-pass.mjs',
   'sample-fingerprint.mjs',
+  'field-sample-capture.mjs',
   'field-sample-reconciliation.mjs',
   'reconcile-pilot-evidence.mjs',
   'pilot-evidence.mjs',
