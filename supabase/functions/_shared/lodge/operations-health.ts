@@ -8,7 +8,7 @@
 // DEPLOY-GATED: All three components require deploy-time verification.
 // This gate provides aggregate status for feature flags and routing decisions.
 
-import { atoConfigHealth } from "../ato/config.ts";
+import { atoConfigHealth, type EnvReader } from "../ato/config.ts";
 import { dspConfigHealth } from "../ato/dsp-config.ts";
 import { sbrTaxonomyHealth } from "../sbr/taxonomy-config.ts";
 
@@ -26,7 +26,9 @@ export interface LodgeOperationsHealth {
   environment: "production";
 }
 
-export function lodgeOperationsHealth(env = Deno.env): LodgeOperationsHealth {
+export function lodgeOperationsHealth(
+  env: EnvReader = Deno.env,
+): LodgeOperationsHealth {
   const evte = atoConfigHealth(env);
   const dsp = dspConfigHealth(env);
   const sbr = sbrTaxonomyHealth(env);

@@ -30,6 +30,7 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
 import { requireEnv } from "../_shared/env.ts";
+import { requireSbrReady } from "../_shared/lodge/gate.ts";
 import { renderWorksheetPdf } from "../_shared/pdf/worksheet.ts";
 import {
   type AuditPackBundle,
@@ -86,6 +87,11 @@ Deno.serve(async (req: Request) => {
     if (typeof fy !== "number" || !Number.isInteger(fy)) {
       return json({ ok: false, error: "fy_start_year (integer) is required" }, 400);
     }
+
+    // Fail-closed (SC-DEPLOY-04): the auditor pack must not be emitted against an
+    // unconfigured SBR taxonomy (bundled-subset fallback satisfies the gate).
+    const gate = requireSbrReady("smsf_audit_pack");
+    if (gate) return json(gate, 403);
 
     // Caller-scoped client: the user's JWT rides every RPC, so RLS scopes the pack to the
     // caller's orgs. The composed RPCs are all SECURITY INVOKER.

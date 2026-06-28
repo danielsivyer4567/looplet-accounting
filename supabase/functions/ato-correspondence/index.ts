@@ -23,6 +23,7 @@ import {
 } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
 import { requireEnv } from "../_shared/env.ts";
+import { requireLodgeReady } from "../_shared/lodge/gate.ts";
 import {
   type AskBotDraftGrounding,
   type AtoCorrespondenceRow,
@@ -262,6 +263,13 @@ async function handleSendGate(
       error: "organization_id and draft_id are required",
     }, 400);
   }
+
+  // Fail-closed (SC-DEPLOY-04): no send can proceed in production until the ATO
+  // EVTE/DSP/SBR gates are all green — verified BEFORE the approval flow so a
+  // blocked attempt never consumes an approval. Returns FORBIDDEN + the audit
+  // trail (block_reason / missing) without exposing any secret value.
+  const gate = requireLodgeReady("ato_correspondence_send");
+  if (gate) return json(gate, 403);
 
   const draft = await loadDraft(client, organizationId, draftId);
   if (!draft) {

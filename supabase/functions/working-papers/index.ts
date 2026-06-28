@@ -21,6 +21,7 @@ import {
 } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
 import { requireEnv } from "../_shared/env.ts";
+import { requireSbrReady } from "../_shared/lodge/gate.ts";
 import { renderWorksheetPdf } from "../_shared/pdf/worksheet.ts";
 import {
   buildWorkingPapersBundle,
@@ -129,6 +130,12 @@ export async function handleWorkingPapers(req: Request): Promise<Response> {
         error: "valid period_start and period_end are required",
       }, 400);
     }
+
+    // Fail-closed (SC-DEPLOY-04): the auditor hand-off bundle must not be emitted
+    // against an unconfigured SBR taxonomy. The bundled-subset fallback satisfies
+    // the gate; full prod taxonomy is provisioned by SC-DEPLOY-03.
+    const gate = requireSbrReady("working_papers_bundle");
+    if (gate) return json(gate, 403);
 
     const supabaseUrl = requireEnv("SUPABASE_URL");
     const anonKey = requireEnv("SUPABASE_ANON_KEY");
