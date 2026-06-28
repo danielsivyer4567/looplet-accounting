@@ -7,8 +7,8 @@
 
 ## 2026-06-29 Wrap-up Addendum
 
-The live project `dxoikltymmknxqpkpyhi` is much closer to migration-history
-parity, but it is still not safe for a blind `supabase db push`.
+The live project `dxoikltymmknxqpkpyhi` now has migration-history parity with
+the current local migration set through `0196`.
 
 Current evidence:
 
@@ -19,7 +19,7 @@ Current evidence:
   timestamp versions and reported local `0089`-`0196` as local-only, even though
   raw `supabase_migrations.schema_migrations` rows mapped many timestamp
   versions to the same local migration names.
-- That timestamp-history drift has now been repaired: 54 timestamp-version rows
+- That timestamp-history drift was repaired: 54 timestamp-version rows
   whose `name` matched a local migration prefix were rewritten to the matching
   numeric `version` (`0089`, `0090`-`0137`, `0108`-`0115`, `0151`-`0153`,
   `0178`, and `0179`).
@@ -37,18 +37,18 @@ Current evidence:
   `0188` was not replayed because live `write_audit_log()` already includes the
   organizations special case and has a stricter `search_path = public, pg_temp`
   than the local file. The other rows in that range have live DDL evidence.
-- Post-repair `supabase migration list --linked` shows local/remote parity
-  through `0137`, then for `0151`-`0153`, and again for `0178`-`0196`.
-- The remaining local-only ranges are `0138`-`0150` and `0154`-`0177`. These were
-  deliberately left unmarked because their live DDL has not been proven in this
-  wrap-up pass.
+- The previously local-only ranges `0138`-`0150` and `0154`-`0177` were then
+  applied to live in order. `0175`/`0176` were not replayed because advice-note
+  table/RPC objects already existed via the later `0194` hardening migration;
+  their live objects were verified before recording history.
+- Post-repair `supabase migration list --linked` shows local/remote parity for
+  every local migration version through `0196`.
+- `supabase db push --linked --dry-run` returned `Remote database is up to date.`
 
 Remaining migration-history work:
 
-- Audit and either apply or intentionally defer the remaining local-only
-  migrations `0138`-`0150` and `0154`-`0177`.
-- Do not mark those remaining ranges as applied without live object/function
-  evidence for each file.
+- No current local migration file is pending on the linked remote. Continue to
+  verify live object/function evidence before any future manual history repair.
 
 ## Problem
 

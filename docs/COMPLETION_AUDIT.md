@@ -35,10 +35,10 @@ scorecard. Current wrap-up evidence changes these conclusions:
   row is created.
 - **Migration state:** missing live DDL for `0181`-`0187` was applied and verified
   on 2026-06-29. The timestamp-version drift for known-applied rows was repaired
-  afterwards: `supabase migration list --linked` now lines up through `0137`,
-  then `0151`-`0153`, and `0178`-`0196`. The remaining local-only ranges are
-  `0138`-`0150` and `0154`-`0177`; do not run `supabase db push` blind until
-  those are audited.
+  afterwards, then the remaining local-only ranges `0138`-`0150` and
+  `0154`-`0177` were applied/verified live and recorded in history. The Supabase
+  migration list now lines up for every local migration through `0196`, and a
+  dry run of `supabase db push` returns `Remote database is up to date.`
 - **Fresh local gates:** after the wrap-up DB/doc work, `npm run format:check`,
   `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build` all
   passed on 2026-06-29. The build still emits the pre-existing pdfjs dynamic
