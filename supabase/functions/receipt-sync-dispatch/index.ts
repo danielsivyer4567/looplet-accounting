@@ -17,6 +17,11 @@ import { requireEnv } from '../_shared/env.ts';
 
 type SyncProvider = 'xero' | 'myob' | 'quickbooks' | 'generic_api';
 
+// A permanently-failing job (e.g. a dead generic_api endpoint) stops being
+// retried by the cron once it reaches this many attempts; it stays `failed`
+// with its last error for an operator to inspect.
+const MAX_SYNC_ATTEMPTS = 8;
+
 interface RequestBody {
   organization_id?: string;
   receipt_sync_job_id?: string;
@@ -99,11 +104,19 @@ export async function handleReceiptSyncDispatchRequest(req: Request): Promise<Re
   }
 
   const limit = Math.max(1, Math.min(50, Math.round(body.limit ?? 10)));
+  const nowIso = new Date().toISOString();
   let query = admin
     .from('receipt_sync_jobs')
     .select('id, organization_id, receipt_event_id, bill_id, provider, status, attempts, payload')
     .eq('organization_id', body.organization_id)
-    .in('status', ['pending', 'queued'])
+    // Drain fresh work (pending/queued) AND failed jobs whose backoff window has
+    // elapsed and that are still under the attempt cap. `skipped` and `synced`
+    // are terminal and never re-selected, so a permanently-skipped job (e.g.
+    // unconfigured provider) can't infinite-retry. attempts gates a permanently
+    // FAILING job (a dead endpoint) so it stops after MAX_SYNC_ATTEMPTS.
+    .or(
+      `status.in.(pending,queued),and(status.eq.failed,attempts.lt.${MAX_SYNC_ATTEMPTS},next_attempt_at.lte.${nowIso})`,
+    )
     .order('created_at', { ascending: true })
     .limit(limit);
   if (body.receipt_sync_job_id) query = query.eq('id', body.receipt_sync_job_id);

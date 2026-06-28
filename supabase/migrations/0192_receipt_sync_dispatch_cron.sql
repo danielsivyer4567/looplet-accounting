@@ -1,0 +1,64 @@
+-- 0192_receipt_sync_dispatch_cron.sql - SC-09
+--
+-- TRACKED FOR LATER — the cron.schedule() call is intentionally inert (kept as
+-- a commented block) because enabling it requires the function to be deployed
+-- and a cron secret set first. Mirrors the 0185 orchestrator-cron shape.
+--
+-- Purpose: drain pending/queued receipt_sync_jobs per org on an interval so a
+-- receipt left alone gets synced without a manual "Dispatch" click. The
+-- receipt-sync-dispatch function itself now also retries `failed` jobs whose
+-- next_attempt_at backoff has elapsed, capped at MAX_SYNC_ATTEMPTS, so a
+-- permanently-failing endpoint stops retrying and a `skipped` job (unconfigured
+-- provider) is never retried — no infinite-retry loop.
+--
+-- Before enabling:
+--   1. supabase functions deploy receipt-sync-dispatch
+--   2. supabase secrets set RECEIPT_SYNC_DISPATCH_CRON_SECRET=<random-32-char>
+--      (and have receipt-sync-dispatch accept it; today it authenticates via the
+--       service_role bearer — if calling via net.http_post use the service key in
+--       the Authorization header instead of a query secret).
+--   3. Replace <PROJECT_REF> below and run the cron.schedule() statement once.
+--
+-- The function does not lodge, pay, or send to the ATO; generic_api only POSTs a
+-- signed bill payload to an org-configured endpoint, and Xero pushes an ACCPAY
+-- bill the user already attached to a job.
+
+-- ----------------------------------------------------------------------------
+-- SELECT cron.schedule(
+--   'receipt-sync-dispatch-drain',
+--   '*/15 * * * *',  -- every 15 minutes
+--   $cron$
+--     SELECT net.http_post(
+--       url := 'https://<PROJECT_REF>.supabase.co/functions/v1/receipt-sync-dispatch',
+--       headers := jsonb_build_object(
+--         'Content-Type', 'application/json',
+--         'Authorization', 'Bearer ' || current_setting('app.service_role_key', true)
+--       ),
+--       body := jsonb_build_object(
+--         'organization_id', o.id,
+--         'limit', 25
+--       )
+--     )
+--     FROM public.organizations o
+--     WHERE o.deleted_at IS NULL
+--       AND EXISTS (
+--         SELECT 1 FROM public.receipt_sync_jobs j
+--         WHERE j.organization_id = o.id
+--           AND (
+--             j.status IN ('pending', 'queued')
+--             OR (j.status = 'failed' AND j.attempts < 8
+--                 AND (j.next_attempt_at IS NULL OR j.next_attempt_at <= now()))
+--           )
+--       );
+--   $cron$
+-- );
+-- ----------------------------------------------------------------------------
+
+-- To inspect:
+--   SELECT * FROM cron.job WHERE jobname = 'receipt-sync-dispatch-drain';
+--   SELECT * FROM cron.job_run_details
+--    WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'receipt-sync-dispatch-drain')
+--    ORDER BY start_time DESC LIMIT 10;
+--
+-- To unschedule:
+--   SELECT cron.unschedule('receipt-sync-dispatch-drain');
