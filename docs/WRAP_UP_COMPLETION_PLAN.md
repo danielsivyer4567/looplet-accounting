@@ -15,11 +15,12 @@ work and re-checking the live project. It intentionally separates:
 
 ## Evidence Baseline
 
-- Local gates passed on 2026-06-29 after the wrap-up DB/doc work:
+- Local gates passed on 2026-06-29 after the Gmail Pub/Sub hardening and
+  wrap-up audit work:
   `npm run format:check`, `npm run typecheck`, `npm run lint`, `npm run test`,
   and `npm run build`.
-- Full Vitest result from that pass: 32 passed / 14 skipped files, 161 passed /
-  31 skipped tests.
+- Full Vitest result from that pass: 36 passed / 16 skipped files, 171 passed /
+  33 skipped tests.
 - Build warnings remain known and pre-existing: pdfjs dynamic-import warning and
   a main chunk larger than 500 kB.
 - Live migration parity is closed for every current local migration through
@@ -54,11 +55,17 @@ work and re-checking the live project. It intentionally separates:
   follow-up reports.
 - `npm run wrap:live-audit` now provides a repeatable redacted blocker audit.
   On 2026-06-29 it passed against project `dxoikltymmknxqpkpyhi`: `advisor`,
-  `receipt-webhook`, and `legal-corpus-sync` all returned CORS-capable OPTIONS
-  200; selected live Edge Functions were active; live secret-name presence was
-  true for `PERPLEXITY_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY`, and false for
-  `OPENAI_API_KEY`, `LEGAL_INGEST_SECRET`, `LEGAL_SYNC_SECRET`, and
-  `LEGAL_SCAN_SECRET`.
+  `receipt-webhook`, `legal-corpus-sync`, and `gmail-pubsub-push` all returned
+  CORS-capable OPTIONS 200; selected live Edge Functions were active; live
+  secret-name presence was true for `PERPLEXITY_API_KEY`,
+  `SUPABASE_SERVICE_ROLE_KEY`, `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`,
+  `GMAIL_PUBSUB_TOPIC`, `GMAIL_PUSH_VERIFY_TOKEN`, and
+  `GMAIL_WATCH_RENEW_CRON_SECRET`, and false for `OPENAI_API_KEY`,
+  `LEGAL_INGEST_SECRET`, `LEGAL_SYNC_SECRET`, and `LEGAL_SCAN_SECRET`.
+- `gmail-pubsub-push` is deployed live as version 31. It now shares the Gmail
+  message-id duplicate guard with backfill, leaves `last_history_id` unchanged
+  on retryable ingest failures so future pushes can replay safely, and the live
+  audit proves unsigned POSTs fail closed with HTTP 401.
 
 ## Execution Control Plan
 
@@ -93,6 +100,11 @@ Current repo re-checks against the May 6 P1 audit:
 - Multi-org move behavior is covered by focused component tests that verify the
   exact `organization_id` update payload, FK-null clearing where requested, and
   debt-row moves without FK clearing.
+- Gmail Pub/Sub replay is no longer a stub: the live function reads Gmail
+  history deltas, downloads accepted attachments, applies intake rules, creates
+  `bills`, dispatches `bills-extract`, guards duplicate Gmail message IDs across
+  backfill/push overlap, and only advances the Gmail history cursor after the
+  delta is durably handled.
 - A deterministic Chromium visual smoke now mounts the changed local UX surfaces
   with mocks, performs the key interactions, captures screenshots, and verifies
   zero browser console/page errors. This is local browser proof, not signed-in
@@ -121,9 +133,10 @@ Remaining execution order:
    run subscription detection, process pending triage classifications into
    `intake_rules`, and populate at least one real customer/invoice/payment path.
 6. **Resolve remaining integration ledgers.** Complete or explicitly defer
-   Basiq callback backfill, Gmail Pub/Sub replay, Xero settings/sync, and ATO
-   lodgement enablement. External credentials stay `external-blocked` until
-   supplied and proven.
+   Basiq callback backfill, Xero settings/sync, and ATO lodgement enablement.
+   Gmail Pub/Sub is code-complete and live-deployed; it still needs real watched
+   mailbox event evidence before being marked end-to-end live-proven. External
+   credentials stay `external-blocked` until supplied and proven.
 7. **Final release pass.** Re-run all local gates, browser smoke the critical
    UI surfaces, re-check live row counts, update final labels, and commit only
    evidence-backed changes.
@@ -149,6 +162,17 @@ tests/receipt-hub-live-smoke.test.ts` was skipped by design because local
   selected active function versions, CORS-capable OPTIONS responses for the
   deployed blocker functions, and live secret-name presence without printing
   secret values or digests.
+- `deno test supabase/functions/_shared/gmail/dedupe.test.ts
+supabase/functions/_shared/gmail/pubsub.test.ts` passed: 5 tests.
+- `deno check supabase/functions/_shared/gmail/dedupe.test.ts
+supabase/functions/_shared/gmail/pubsub.test.ts
+supabase/functions/_shared/gmail/ingest.ts
+supabase/functions/gmail-pubsub-push/index.ts` passed.
+- `supabase functions deploy gmail-pubsub-push --project-ref
+dxoikltymmknxqpkpyhi --no-verify-jwt` deployed the hardened Gmail Pub/Sub
+  handler. The follow-up `npm run wrap:live-audit` passed with
+  `gmail-pubsub-push` active as version 31, CORS OPTIONS 200, live Gmail
+  runtime secret-name presence, and unsigned POST fail-closed status 401.
 - `npm run typecheck` passed.
 - `npm run lint` passed.
 - `npx prettier --check ...` passed on the changed source/test/doc files.

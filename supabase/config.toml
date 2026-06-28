@@ -19,6 +19,11 @@ verify_jwt = false
 [functions.receipt-sync-dispatch]
 verify_jwt = false
 
+# Gmail Pub/Sub push does not carry a Supabase JWT. It fails closed on the
+# GMAIL_PUSH_VERIFY_TOKEN query secret before processing the Google payload.
+[functions.gmail-pubsub-push]
+verify_jwt = false
+
 # Cron-driven functions (EPIC C2 / Phase 1.G/1.I). pg_cron drives these via
 # net.http_post and authenticates with the service-role bearer or a ?secret=
 # cron secret that the function checks itself, so the platform JWT gate is off.

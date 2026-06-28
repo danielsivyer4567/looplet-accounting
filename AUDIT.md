@@ -16,6 +16,12 @@
   - **notify() / orphan fns** — anon/PUBLIC `EXECUTE` revoked.
   - Supabase security advisor: **0 critical** remaining (only `WARN` search_path + `INFO` crm_sync_log no-policy left → P2).
 - **Connector scaffold (review + finish on main machine):** `migrations/0056_api_keys.sql`, `functions/_shared/apiKeys.ts`, `functions/api-gateway/index.ts`, `functions/ingest/index.ts`.
+- **Gmail Pub/Sub push hardened live (2026-06-29):** `gmail-pubsub-push`
+  version 31 is deployed with `verify_jwt=false`, mandatory
+  `GMAIL_PUSH_VERIFY_TOKEN`, shared Gmail message-id dedupe, and delayed
+  `last_history_id` advancement until each history delta is durably handled.
+  Redacted live audit proves CORS OPTIONS 200, all Gmail runtime secret names
+  present in the linked project, and unsigned POST fail-closed status 401.
 
 ---
 
@@ -51,14 +57,15 @@
 - [ ] No end-to-end cron alerting — nothing reads `net._http_response`. Add monitor / per-function heartbeat + "no success in window" notification. **(high)**
 - [ ] No Xero push retry/backfill — `bills-attach` awaits `pushBillToXero` inline; `callXeroWithRetry` only retries 401. Add backoff + re-drive cron for `xero_status in ('error','pending')`. **(medium)**
 - [ ] Cron registration lives in untracked `SCHEDULE.sql` with `<PROJECT_REF>`/`<SECRET>` placeholders; move all `cron.schedule(...)` into tracked migrations. **(medium)**
-- [ ] Webhook reliability: `bank-webhook` returns 200 on internal error with no event log; `gmail-pubsub-push:172-197` advances `last_history_id` before ingest completes. Persist events; advance pointer only after durable ingest. **(medium)**
+- [ ] Webhook reliability: `bank-webhook` returns 200 on internal error with no event log. Persist events before acking and expose replay/heartbeat evidence. **(medium)**
+- [x] Gmail Pub/Sub cursor safety: `gmail-pubsub-push` advanced `last_history_id` before ingest completed. **FIXED 2026-06-29** in live version 31; successful messages are deduped by Gmail message ID and retryable ingest failures leave the cursor unchanged for replay.
 - [ ] Extend confidence-tiered auto-accept beyond exact job-ref match (`_shared/bills/router.ts:62-71`) to LLM-classified entities. **(low/med)**
 
 ### (b) REST API / connectivity
 
 - [ ] `api_keys` table + issue/revoke UI. **(Scaffold: 0056 + Settings UI TODO)**
 - [ ] Generic `POST /ingest` + per-entity push (bills/transactions/invoices). **(Scaffold: functions/ingest)**
-- [ ] Webhook/cron auth weak — single global URL `?secret=`, no HMAC, no per-org scoping (`bank-webhook:36-43`, `gmail-pubsub-push:69-79`). Verify provider HMAC, move secrets to headers, scope per org. **(high)**
+- [ ] Webhook/cron auth weak — single global URL `?secret=`, no HMAC, no per-org scoping (`bank-webhook:36-43`). Verify provider HMAC, move secrets to headers, scope per org. Gmail Pub/Sub now fails closed on missing/mismatched `GMAIL_PUSH_VERIFY_TOKEN`, but Pub/Sub OIDC verification remains a defence-in-depth follow-up. **(high)**
 - [ ] **Cron functions trust an UNVERIFIED JWT as service-role** (`notifications-cron:57-64`, `bank-sync-all:43-50` base64-decode + trust `role`). Remove; rely on constant-time `?secret=`. **(high)**
 - [ ] PostgREST is the de-facto API but undocumented — publish OpenAPI + integration guide. **(high)**
 

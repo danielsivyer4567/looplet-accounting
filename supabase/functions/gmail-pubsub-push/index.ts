@@ -33,7 +33,9 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
+import { hasExistingGmailBill } from '../_shared/gmail/dedupe.ts';
 import { loadAndRefreshGmail } from '../_shared/gmail/auth.ts';
+import { hasRetryableGmailIngestFailure } from '../_shared/gmail/pubsub.ts';
 
 // Deno / Supabase Edge Runtime global — used to keep the isolate alive after
 // we return the 204 response to Pub/Sub.
@@ -176,17 +178,7 @@ async function processNotification(
       historyId?: string;
     };
 
-    // Bump last_history_id early so a concurrent push doesn't reprocess.
     const newHistoryId = hist.historyId ?? notif.historyId;
-    await admin
-      .from('gmail_integrations')
-      .update({
-        last_history_id: newHistoryId,
-        last_synced_at: new Date().toISOString(),
-        last_error: null,
-      })
-      .eq('id', integ.id);
-
     const messageIds = new Set<string>();
     for (const h of hist.history ?? []) {
       for (const m of h.messagesAdded ?? []) {
@@ -194,23 +186,70 @@ async function processNotification(
       }
     }
 
-    if (messageIds.size === 0) return;  // nothing new — done
+    if (messageIds.size === 0) {
+      await markHistoryProcessed(admin, integ.id, newHistoryId);
+      return;
+    }
 
+    let hasIngestFailure = false;
     for (const msgId of messageIds) {
       try {
-        await ingestMessage(admin, supabaseUrl, serviceKey, accessToken, integ, msgId);
+        const result = await ingestMessage(
+          admin,
+          supabaseUrl,
+          serviceKey,
+          accessToken,
+          integ,
+          msgId,
+        );
+        if (hasRetryableGmailIngestFailure(result)) {
+          hasIngestFailure = true;
+          console.warn('gmail-pubsub-push: retryable ingest rejection', msgId, result.rejected);
+        }
       } catch (err) {
+        hasIngestFailure = true;
         console.error('gmail-pubsub-push: ingestMessage error', msgId, err);
       }
     }
+
+    if (hasIngestFailure) {
+      await admin
+        .from('gmail_integrations')
+        .update({
+          last_synced_at: new Date().toISOString(),
+          last_error:
+            `pubsub ingest failed after history ${newHistoryId}; ` +
+            `left last_history_id at ${startHistoryId} for replay`,
+        })
+        .eq('id', integ.id);
+      return;
+    }
+
+    await markHistoryProcessed(admin, integ.id, newHistoryId);
   } catch (err) {
     console.error('gmail-pubsub-push: processNotification error:', err);
   }
 }
 
+async function markHistoryProcessed(
+  admin: SupabaseClient,
+  integrationId: string,
+  historyId: string,
+): Promise<void> {
+  await admin
+    .from('gmail_integrations')
+    .update({
+      last_history_id: historyId,
+      last_synced_at: new Date().toISOString(),
+      last_error: null,
+    })
+    .eq('id', integrationId);
+}
+
 interface IngestResult {
   bills: { bill_id: string; filename: string }[];
   rejected: { message_id: string; reason: string }[];
+  duplicates: number;
 }
 
 interface IntegRow {
@@ -237,7 +276,12 @@ async function ingestMessage(
   integ: IntegRow,
   messageId: string,
 ): Promise<IngestResult> {
-  const result: IngestResult = { bills: [], rejected: [] };
+  const result: IngestResult = { bills: [], rejected: [], duplicates: 0 };
+
+  if (await hasExistingGmailBill(admin, integ.organization_id, messageId)) {
+    result.duplicates = 1;
+    return result;
+  }
 
   const msgResp = await fetch(
     `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`,
@@ -261,14 +305,17 @@ async function ingestMessage(
   const fromAddress = extractEmail(fromHeader);
 
   // Allowlist filter (skip if list is empty == allow all)
-  if (integ.allowlist?.length > 0) {
+  if ((integ.allowlist?.length ?? 0) > 0) {
     const lower = fromAddress.toLowerCase();
-    const ok = integ.allowlist.some((a: string) => {
+    const ok = (integ.allowlist ?? []).some((a: string) => {
       const allow = a.toLowerCase();
       return lower === allow || lower.endsWith('@' + allow.replace(/^@/, ''));
     });
     if (!ok) {
-      result.rejected.push({ message_id: messageId, reason: `sender ${fromAddress} not in allowlist` });
+      result.rejected.push({
+        message_id: messageId,
+        reason: `sender ${fromAddress} not in allowlist`,
+      });
       return result;
     }
   }
@@ -291,7 +338,8 @@ async function ingestMessage(
 
   // Walk parts looking for accepted attachments. Filter out obvious email
   // assets (logos, icons, footers) BEFORE we even download them.
-  const NOISE_FILENAME = /(logo|icon|footer|header|signature|banner|outlook[-_]o|image00[0-9]|email[-_]\d|spacer)/i;
+  const NOISE_FILENAME =
+    /(logo|icon|footer|header|signature|banner|outlook[-_]o|image00[0-9]|email[-_]\d|spacer)/i;
   const parts = flattenParts(msg.payload);
   const attachments = parts.filter((p) => {
     if (!p.body?.attachmentId || !p.mimeType) return false;
@@ -305,7 +353,10 @@ async function ingestMessage(
   });
 
   if (attachments.length === 0) {
-    result.rejected.push({ message_id: messageId, reason: 'no real PDF/image invoice attachments (filtered logos/icons)' });
+    result.rejected.push({
+      message_id: messageId,
+      reason: 'no real PDF/image invoice attachments (filtered logos/icons)',
+    });
     return result;
   }
 
@@ -329,13 +380,11 @@ async function ingestMessage(
     const rand = crypto.randomUUID().slice(0, 8);
     const storagePath = `org-${integ.organization_id}/${today}/${rand}-${cleanName}`;
 
-    const upErr = await admin.storage
-      .from('bills')
-      .upload(storagePath, bytes, {
-        contentType: part.mimeType,
-        cacheControl: '3600',
-        upsert: false,
-      });
+    const upErr = await admin.storage.from('bills').upload(storagePath, bytes, {
+      contentType: part.mimeType,
+      cacheControl: '3600',
+      upsert: false,
+    });
 
     if (upErr.error) {
       result.rejected.push({ message_id: messageId, reason: `storage ${upErr.error.message}` });
@@ -379,9 +428,7 @@ async function ingestMessage(
 
     // Skip OCR entirely if rule says we already know the answer.
     if (rule?.skip_ocr) {
-      await admin.from('bills')
-        .update({ status: 'verified' })
-        .eq('id', bill.id);
+      await admin.from('bills').update({ status: 'verified' }).eq('id', bill.id);
       result.bills.push({ bill_id: bill.id as string, filename });
       continue;
     }

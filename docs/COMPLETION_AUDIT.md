@@ -54,15 +54,26 @@ scorecard. Current wrap-up evidence changes these conclusions:
   document/feed URL or provided-text path is used intentionally.
 - **Repeatable live blocker audit:** `npm run wrap:live-audit` now checks the
   linked project without printing secret values or Supabase secret digests. On
-  2026-06-29 it passed: `advisor`, `receipt-webhook`, and `legal-corpus-sync`
-  returned CORS-capable OPTIONS 200; selected functions including Advisor,
-  Receipt Hub, Legal Corpus, Legal Horizon, Gmail Pub/Sub, and Xero push/sync
-  paths were active; live secret-name presence was true for
-  `PERPLEXITY_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY`, and false for
-  `OPENAI_API_KEY`, `LEGAL_INGEST_SECRET`, `LEGAL_SYNC_SECRET`, and
-  `LEGAL_SCAN_SECRET`. The signed-in Advisor and Receipt Hub smoke tests remain
-  locally unrunnable until `SUPABASE_SERVICE_ROLE_KEY`, `TEST_USER_JWT`, and
-  `TEST_ORG_ID` are supplied to the test environment.
+  2026-06-29 it passed: `advisor`, `receipt-webhook`, `legal-corpus-sync`, and
+  `gmail-pubsub-push` returned CORS-capable OPTIONS 200; selected functions
+  including Advisor, Receipt Hub, Legal Corpus, Legal Horizon, Gmail Pub/Sub,
+  and Xero push/sync paths were active; live secret-name presence was true for
+  `PERPLEXITY_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `GMAIL_CLIENT_ID`,
+  `GMAIL_CLIENT_SECRET`, `GMAIL_PUBSUB_TOPIC`, `GMAIL_PUSH_VERIFY_TOKEN`, and
+  `GMAIL_WATCH_RENEW_CRON_SECRET`, and false for `OPENAI_API_KEY`,
+  `LEGAL_INGEST_SECRET`, `LEGAL_SYNC_SECRET`, and `LEGAL_SCAN_SECRET`. The
+  signed-in Advisor and Receipt Hub smoke tests remain locally unrunnable until
+  `SUPABASE_SERVICE_ROLE_KEY`, `TEST_USER_JWT`, and `TEST_ORG_ID` are supplied
+  to the test environment.
+- **Gmail Pub/Sub:** the May 6 "handler stub" finding is no longer current.
+  `gmail-pubsub-push` now replays Gmail history deltas, downloads accepted
+  invoice attachments, applies intake rules, creates `bills`, dispatches
+  `bills-extract`, shares a Gmail message-id duplicate guard with backfill, and
+  only advances `last_history_id` after the delta is durably handled. Focused
+  Deno tests cover the duplicate guard and retryable-ingest classification, the
+  touched Edge modules pass `deno check`, and the hardened function is deployed
+  live as version 31. The live audit also proves the public push endpoint fails
+  closed with HTTP 401 when called without `GMAIL_PUSH_VERIFY_TOKEN`.
 - **Advisor:** deployed with JWT enabled and local Deno/model tests passing, but
   still needs a signed-in Ask/on-demand smoke proving a live `advice_notes` draft
   row is created. A deploy-gated `tests/advisor-live-smoke.test.ts` now encodes
@@ -124,7 +135,7 @@ scorecard. Current wrap-up evidence changes these conclusions:
 **Code: ~70% complete.** The skeleton is whole and correct. RLS, multi-org, intake pipelines, and reconciliation infrastructure all work. The remaining 30% is split across:
 
 - **Real polish:** mobile, pagination, error specificity, export, edit-modes on a few detail pages.
-- **External integrations:** Xero bidirectional, Basiq Connect callback completion, Gmail Pub/Sub push.
+- **External integrations:** Xero bidirectional and Basiq Connect callback completion. Gmail Pub/Sub is now code-complete/live-deployed but still needs a real watched-mailbox event trace before being called end-to-end live-proven.
 - **Critical onboarding gaps:** no Create-Job UI, no Create-Customer UI, no Create-Employee/Debt is fine but there's no "let me create my first invoice" empty state with guidance.
 
 **Data: ~10% populated.** This is the bigger issue, and not a code bug — most of what looks broken is starvation, not breakage:
@@ -255,7 +266,13 @@ Ordered by original user-visible value:
 9. **No Debt detail / payment recording** — list + create exist, no way to record a payment, no amortisation. Fix: ~45 min.
 10. **No Employee detail / timesheet edit** — same shape. Fix: ~45 min.
 11. **Basiq Connect callback path incomplete** — `bank-link-token` mints; `BankCallback.tsx` is shallow; doesn't reliably fetch initial transaction backfill after first connect. Fix: ~1 h.
-12. **gmail-pubsub-push handler is a stub** — registered; no payload-replay logic. New emails arrive but don't auto-trigger gmail-mine for the latest message. Fix: ~1 h.
+12. **gmail-pubsub-push handler is a stub** — resolved 2026-06-29. The live
+    version 31 handler replays Gmail history deltas, creates bill rows for
+    accepted attachments, dispatches extraction, fails closed without the push
+    token, dedupes Gmail message IDs across push/backfill overlap, and leaves
+    `last_history_id` unchanged on retryable ingest failures so a later push can
+    replay safely. Remaining proof: capture a real watched-mailbox Pub/Sub
+    event trace against live Gmail.
 13. **xero-oauth pair coded, not wired** — buttons missing from Settings. Even if wired, no `xero-sync-bills` / `xero-sync-invoices` edge fns exist. Fix: ~4-8 h (deferred, multi-day).
 
 ---
@@ -301,7 +318,7 @@ These are big enough to warrant their own sprint, not lumped in here:
 **Wired and working:**
 
 - `bills-extract`, `bills-extract-batch`, `bills-attach`
-- `gmail-oauth-start`, `gmail-oauth-callback`, `gmail-mine`, `gmail-classify-ai`, `gmail-watch-renew`, `gmail-pubsub-push` (handler stub)
+- `gmail-oauth-start`, `gmail-oauth-callback`, `gmail-mine`, `gmail-classify-ai`, `gmail-watch-renew`, `gmail-pubsub-push`
 - `bank-link-token`, `bank-exchange`, `bank-sync`, `bank-sync-all`, `bank-webhook`, `bank-csv-import`, `bank-statement-extract`
 - `subscriptions-detect` (fires after every bank ingest)
 - `xero-oauth-start`, `xero-oauth-callback` (deployed but UI never invokes)
@@ -360,8 +377,8 @@ Superseded for the 2026-06-29 wrap-up. Use this order now:
 5. **Data-starvation cleanup** — import queued bank statement PDFs, run
    subscription detection, and process pending triage rows into `intake_rules`.
 6. **Integration decisions** — complete or explicitly defer Basiq callback
-   backfill, Gmail Pub/Sub replay, Xero bidirectional sync, and ATO lodgement
-   enablement.
+   backfill, Xero bidirectional sync, and ATO lodgement enablement. Gmail
+   Pub/Sub now needs real watched-mailbox proof rather than implementation work.
 7. **Release gate** — rerun full local gates, browser smoke critical surfaces,
    re-check live row counts, and label every ledger `live-proven`,
    `code-complete`, `external-blocked`, or `deferred`.

@@ -10,6 +10,7 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requireEnv } from '../env.ts';
+import { hasExistingGmailBill } from './dedupe.ts';
 
 const ACCEPTED_MIME = new Set([
   'application/pdf',
@@ -47,14 +48,7 @@ export async function ingestGmailMessage(
   const result: IngestStats = { bills: [], rejected: [], duplicates: 0 };
 
   // Dedup: have we seen this messageId before?
-  const { data: existing } = await admin
-    .from('bills')
-    .select('id')
-    .eq('organization_id', integ.organization_id)
-    .filter('intake_metadata->>gmail_message_id', 'eq', messageId)
-    .limit(1)
-    .maybeSingle();
-  if (existing) {
+  if (await hasExistingGmailBill(admin, integ.organization_id, messageId)) {
     result.duplicates = 1;
     return result;
   }
@@ -95,7 +89,8 @@ export async function ingestGmailMessage(
     }
   }
 
-  const NOISE_FILENAME = /(logo|icon|footer|header|signature|banner|outlook[-_]o|image00[0-9]|email[-_]\d|spacer)/i;
+  const NOISE_FILENAME =
+    /(logo|icon|footer|header|signature|banner|outlook[-_]o|image00[0-9]|email[-_]\d|spacer)/i;
   const parts = flattenParts(msg.payload);
   const attachments = parts.filter((p) => {
     if (!p.body?.attachmentId || !p.mimeType) return false;
@@ -133,13 +128,11 @@ export async function ingestGmailMessage(
     const rand = crypto.randomUUID().slice(0, 8);
     const storagePath = `org-${integ.organization_id}/${dateForFolder}/${rand}-${cleanName}`;
 
-    const upErr = await admin.storage
-      .from('bills')
-      .upload(storagePath, bytes, {
-        contentType: part.mimeType,
-        cacheControl: '3600',
-        upsert: false,
-      });
+    const upErr = await admin.storage.from('bills').upload(storagePath, bytes, {
+      contentType: part.mimeType,
+      cacheControl: '3600',
+      upsert: false,
+    });
 
     if (upErr.error) {
       result.rejected.push({

@@ -19,6 +19,13 @@ const secretNames = [
   'LEGAL_SCAN_SECRET',
   'PERPLEXITY_API_KEY',
 ];
+const gmailRuntimeNames = [
+  'GMAIL_CLIENT_ID',
+  'GMAIL_CLIENT_SECRET',
+  'GMAIL_PUBSUB_TOPIC',
+  'GMAIL_PUSH_VERIFY_TOKEN',
+  'GMAIL_WATCH_RENEW_CRON_SECRET',
+];
 const signedInSmokeNames = [
   'VITE_SUPABASE_URL',
   'VITE_SUPABASE_ANON_KEY',
@@ -35,6 +42,7 @@ const report = {
   env_prerequisites: {
     signed_in_smoke: presence(signedInSmokeNames),
     legal_runtime: presence(secretNames),
+    gmail_runtime: presence(gmailRuntimeNames),
   },
   signed_in_smokes: {
     advisor: smokeReadiness(),
@@ -91,7 +99,12 @@ async function liveProbe() {
   }
 
   const probes = {};
-  for (const functionName of ['advisor', 'receipt-webhook', 'legal-corpus-sync']) {
+  for (const functionName of [
+    'advisor',
+    'receipt-webhook',
+    'legal-corpus-sync',
+    'gmail-pubsub-push',
+  ]) {
     probes[functionName] = await probeFunction(functionName);
   }
   const ok = Object.values(probes).every(
@@ -101,9 +114,13 @@ async function liveProbe() {
       probe.cors?.allow_origin &&
       probe.cors?.allow_methods,
   );
+  const gmailPushFailClosed = await probeGmailPushFailClosed();
   return {
-    ok,
+    ok: ok && gmailPushFailClosed.ok,
     functions: probes,
+    auth_fail_closed: {
+      'gmail-pubsub-push': gmailPushFailClosed,
+    },
   };
 }
 
@@ -129,6 +146,39 @@ async function probeFunction(functionName) {
   } catch (error) {
     return {
       reachable: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+async function probeGmailPushFailClosed() {
+  const url = `${supabaseUrl.replace(/\/$/, '')}/functions/v1/gmail-pubsub-push`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: {
+          data: Buffer.from(
+            JSON.stringify({
+              emailAddress: 'proof@example.invalid',
+              historyId: '0',
+            }),
+          ).toString('base64'),
+          messageId: 'wrap-up-proof',
+        },
+      }),
+    });
+    return {
+      ok: response.status === 401,
+      status: response.status,
+      expected_status: 401,
+    };
+  } catch (error) {
+    return {
+      ok: false,
       error: error instanceof Error ? error.message : String(error),
     };
   }
@@ -174,6 +224,7 @@ async function cliProbe(ref) {
         'LEGAL_SCAN_SECRET',
         'PERPLEXITY_API_KEY',
         'SUPABASE_SERVICE_ROLE_KEY',
+        ...gmailRuntimeNames,
       ].map((name) => [name, liveSecretNames.has(name)]),
     ),
     commands: {

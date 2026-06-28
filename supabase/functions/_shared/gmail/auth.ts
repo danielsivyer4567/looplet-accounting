@@ -27,22 +27,33 @@ interface IntegrationRow {
  * Returns a valid (refreshed if needed) access token. Persists the rotated
  * access token + expiry back to the row.
  */
-interface GmailQueryBuilder
-  extends PromiseLike<{ data: unknown; error: { message?: string } | null }> {
-  select(columns: string): GmailQueryBuilder;
-  update(values: Record<string, unknown>): GmailQueryBuilder;
-  eq(column: string, value: unknown): GmailQueryBuilder;
-  single(): Promise<{ data: unknown; error: { message?: string } | null }>;
+interface GmailSelectQueryBuilder {
+  select(columns: string): GmailFilterQueryBuilder;
+  update(values: Record<string, unknown>): GmailUpdateQueryBuilder;
+}
+interface GmailFilterQueryBuilder extends PromiseLike<{
+  data: unknown;
+  error: { message?: string } | null;
+}> {
+  eq(column: string, value: unknown): GmailFilterQueryBuilder;
+  single(): PromiseLike<{ data: unknown; error: { message?: string } | null }>;
+}
+interface GmailUpdateQueryBuilder extends PromiseLike<{
+  data: unknown;
+  error: { message?: string } | null;
+}> {
+  eq(column: string, value: unknown): GmailUpdateQueryBuilder;
 }
 interface SupabaseLike {
-  from(table: string): GmailQueryBuilder;
+  from(table: string): GmailSelectQueryBuilder;
 }
 
 export async function loadAndRefreshGmail(
-  admin: SupabaseLike,
+  admin: unknown,
   integrationId: string,
 ): Promise<GmailTokens> {
-  const { data, error } = await admin
+  const client = admin as SupabaseLike;
+  const { data, error } = await client
     .from('gmail_integrations')
     .select('id, encrypted_refresh_token, encrypted_access_token, access_token_expires_at')
     .eq('id', integrationId)
@@ -99,7 +110,7 @@ export async function loadAndRefreshGmail(
   const expiresAt = new Date(Date.now() + (tok.expires_in - 60) * 1000);
   const accessEnc = await encryptToken(tok.access_token);
 
-  await admin
+  await client
     .from('gmail_integrations')
     .update({
       encrypted_access_token: accessEnc,
