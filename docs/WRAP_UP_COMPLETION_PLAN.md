@@ -52,6 +52,13 @@ work and re-checking the live project. It intentionally separates:
   `OPENAI_API_KEY`, `LEGAL_INGEST_SECRET`, `LEGAL_SYNC_SECRET`, or
   `LEGAL_SCAN_SECRET` configured by those names. Do not expose secret values in
   follow-up reports.
+- `npm run wrap:live-audit` now provides a repeatable redacted blocker audit.
+  On 2026-06-29 it passed against project `dxoikltymmknxqpkpyhi`: `advisor`,
+  `receipt-webhook`, and `legal-corpus-sync` all returned CORS-capable OPTIONS
+  200; selected live Edge Functions were active; live secret-name presence was
+  true for `PERPLEXITY_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY`, and false for
+  `OPENAI_API_KEY`, `LEGAL_INGEST_SECRET`, `LEGAL_SYNC_SECRET`, and
+  `LEGAL_SCAN_SECRET`.
 
 ## Execution Control Plan
 
@@ -103,8 +110,10 @@ Remaining execution order:
    the app release as live-proven.
 3. **Finish signed-in live proof.** Run the Advisor and Receipt Hub live smoke
    tests once `TEST_USER_JWT`, `TEST_ORG_ID`, and service-role cleanup
-   credentials are available. Capture UI screenshots, console/network status,
-   and non-secret row metadata.
+   credentials are available locally. The live audit confirms the project has a
+   service-role secret configured, but the local test harness still needs a
+   non-secret test org ID plus a signed-in JWT. Capture UI screenshots,
+   console/network status, and non-secret row metadata.
 4. **Finish Legal RAG/Horizon proof.** Seed approved legal source text, configure
    embedding/operator secrets, verify corpus search/citations, then run Horizon
    with a real scanner path before any cron is enabled.
@@ -132,6 +141,14 @@ src/test/components/MoveToOrgButton.test.tsx` passed: 2 files, 12 tests.
   `.claude/scratch/wrap-up-local-visual-smoke/2026-06-28T19-21-08-902Z/screenshots/dashboard.png`,
   `org-profile.png`, `debt-payment-dialog.png`, `subscription-edit.png`,
   `employee-log-time.png`, and `move.png`.
+- `npm run test -- tests/advisor-live-smoke.test.ts
+tests/receipt-hub-live-smoke.test.ts` was skipped by design because local
+  signed-in proof prerequisites are missing: `SUPABASE_SERVICE_ROLE_KEY`,
+  `TEST_USER_JWT`, and `TEST_ORG_ID`.
+- `npm run wrap:live-audit` passed. It verified non-secret project metadata,
+  selected active function versions, CORS-capable OPTIONS responses for the
+  deployed blocker functions, and live secret-name presence without printing
+  secret values or digests.
 - `npm run typecheck` passed.
 - `npm run lint` passed.
 - `npx prettier --check ...` passed on the changed source/test/doc files.

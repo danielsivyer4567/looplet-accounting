@@ -52,6 +52,17 @@ scorecard. Current wrap-up evidence changes these conclusions:
   `legal_horizon=0`). The generic ATO legal database landing page remains
   unsuitable for scheduled sync and is now refused until a specific ATO
   document/feed URL or provided-text path is used intentionally.
+- **Repeatable live blocker audit:** `npm run wrap:live-audit` now checks the
+  linked project without printing secret values or Supabase secret digests. On
+  2026-06-29 it passed: `advisor`, `receipt-webhook`, and `legal-corpus-sync`
+  returned CORS-capable OPTIONS 200; selected functions including Advisor,
+  Receipt Hub, Legal Corpus, Legal Horizon, Gmail Pub/Sub, and Xero push/sync
+  paths were active; live secret-name presence was true for
+  `PERPLEXITY_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY`, and false for
+  `OPENAI_API_KEY`, `LEGAL_INGEST_SECRET`, `LEGAL_SYNC_SECRET`, and
+  `LEGAL_SCAN_SECRET`. The signed-in Advisor and Receipt Hub smoke tests remain
+  locally unrunnable until `SUPABASE_SERVICE_ROLE_KEY`, `TEST_USER_JWT`, and
+  `TEST_ORG_ID` are supplied to the test environment.
 - **Advisor:** deployed with JWT enabled and local Deno/model tests passing, but
   still needs a signed-in Ask/on-demand smoke proving a live `advice_notes` draft
   row is created. A deploy-gated `tests/advisor-live-smoke.test.ts` now encodes
