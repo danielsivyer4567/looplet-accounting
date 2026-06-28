@@ -3,7 +3,7 @@ import {
   type LegalHorizonRow,
   type LegalChangeStage,
 } from '@/hooks/useLegalHorizon';
-import { CalendarClock } from 'lucide-react';
+import { CalendarClock, RefreshCw } from 'lucide-react';
 
 const MUTED = 'var(--text-muted, #6b7280)';
 
@@ -134,30 +134,84 @@ function HorizonCard({ item }: { item: LegalHorizonRow }) {
 }
 
 export function LegalHorizonPage() {
-  const { items, loading, error } = useLegalHorizon();
+  const { items, loading, error, scanBusy, scanStatus, refresh, runSonarScan } = useLegalHorizon();
 
   return (
     <section className="animated-fade-in">
       <div
-        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          marginBottom: '0.75rem',
+        }}
       >
-        <CalendarClock size={22} />
-        <h1 style={{ margin: 0 }}>Upcoming changes</h1>
+        <div style={{ minWidth: 0, flex: '1 1 24rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginBottom: '0.25rem',
+            }}
+          >
+            <CalendarClock size={22} />
+            <h1 style={{ margin: 0 }}>Upcoming changes</h1>
+          </div>
+          <p style={{ color: MUTED, margin: 0 }}>
+            Proposed and in-progress Australian tax and super changes detected from official
+            sources, so you can plan ahead. These are <strong>not settled law</strong> — each is
+            stage-labelled and confidence-scored until it’s enacted and confirmed against the law.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => void refresh()}
+            disabled={loading || scanBusy}
+            title="Refresh upcoming changes"
+          >
+            <RefreshCw size={15} />
+            Refresh
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => void runSonarScan()}
+            disabled={loading || scanBusy}
+            title="Run a Sonar scan of Australian tax and super changes"
+          >
+            <RefreshCw size={15} />
+            {scanBusy ? 'Scanning...' : 'Scan with Sonar'}
+          </button>
+        </div>
       </div>
-      <p style={{ color: MUTED, marginTop: 0 }}>
-        Proposed and in-progress Australian tax and super changes detected from official sources, so
-        you can plan ahead. These are <strong>not settled law</strong> — each is stage-labelled and
-        confidence-scored until it’s enacted and confirmed against the law.
-      </p>
 
       {error && <ErrorBadge message={error} />}
+      {scanStatus && !error && (
+        <div
+          className="badge badge-success"
+          style={{
+            display: 'block',
+            padding: '0.75rem',
+            textTransform: 'none',
+            marginTop: '0.5rem',
+          }}
+        >
+          {scanStatus}
+        </div>
+      )}
 
       {loading ? (
         <div style={{ color: MUTED }}>Loading…</div>
       ) : items.length === 0 ? (
         <div className="card" style={{ padding: '1.5rem', textAlign: 'center', color: MUTED }}>
-          No upcoming changes on the radar right now. Proposed measures (budget announcements,
-          exposure drafts, bills before Parliament) appear here as they’re detected.
+          No upcoming changes on the radar right now. Run a Sonar scan to sweep official sources
+          now. Proposed measures (budget announcements, exposure drafts, bills before Parliament)
+          appear here as they’re detected.
         </div>
       ) : (
         items.map((item) => <HorizonCard key={item.id} item={item} />)

@@ -330,6 +330,7 @@ export function Layout() {
             borderBottom: '1px solid var(--border-subtle)',
             background: 'var(--bg-app)',
             gap: '0.75rem',
+            flexWrap: isMobile ? 'wrap' : 'nowrap',
             position: 'sticky',
             top: 0,
             zIndex: 10,
@@ -363,7 +364,16 @@ export function Layout() {
             </h1>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: isMobile ? '0.5rem' : '0.75rem',
+              alignItems: 'center',
+              flex: isMobile ? '1 1 100%' : '0 0 auto',
+              justifyContent: isMobile ? 'space-between' : 'flex-start',
+              minWidth: 0,
+            }}
+          >
             {/* OrgSelector in header */}
             <div style={{ marginRight: '0.25rem' }}>
               <OrgSelector />

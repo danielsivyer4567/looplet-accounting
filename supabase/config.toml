@@ -43,6 +43,11 @@ verify_jwt = false
 [functions.legal-horizon-scan]
 verify_jwt = false
 
+# legal-horizon-run: user-invoked scan trigger. JWT stays on; the function verifies
+# accountant/admin/owner membership before proxying to the backend-only scanner.
+[functions.legal-horizon-run]
+verify_jwt = true
+
 # advisor (SC-6.B.02): user-invoked proactive advisory engine. JWT stays on;
 # the function forwards the caller token into Supabase so RLS/RPC org checks apply.
 [functions.advisor]
