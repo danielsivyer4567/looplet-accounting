@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
 import { code128Bars } from '@/lib/code128';
@@ -211,6 +211,13 @@ export function ReceiptHubPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [attaching, setAttaching] = useState(false);
+  const [manualMerchant, setManualMerchant] = useState('');
+  const [manualTotal, setManualTotal] = useState('');
+  const [manualGst, setManualGst] = useState('');
+  const [manualDate, setManualDate] = useState('');
+  const [manualJobRef, setManualJobRef] = useState('');
+  const [manualSubmitting, setManualSubmitting] = useState(false);
+  const [manualMessage, setManualMessage] = useState<string | null>(null);
   const [identityToken, setIdentityToken] = useState<string | null>(null);
   const [bridgeEnv, setBridgeEnv] = useState<string | null>(null);
   const [bridgeApiKeyPrefix, setBridgeApiKeyPrefix] = useState<string | null>(null);
@@ -568,42 +575,16 @@ export function ReceiptHubPage() {
         }
       }
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (session) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
-
       const sourceChannel = activeChannel === 'phone-pass' ? 'pos' : activeChannel;
       const payload = buildDemoReceiptPayload(currentOrg.id);
-      const idempotencyKey = `demo:${payload.receipt.number}`;
-      headers['Idempotency-Key'] = idempotencyKey;
 
-      apiPromise = fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/receipt-webhook`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          organization_id: currentOrg.id,
-          identity_token: token,
-          idempotency_key: idempotencyKey,
-          event_type: 'sale',
-          source_channel: sourceChannel,
-          payload,
-          sync_targets: ['xero', 'myob', 'quickbooks', 'generic_api'],
-        }),
-      })
-        .then(async (response) => {
-          const body = (await response.json()) as {
-            ok?: boolean;
-            error?: string;
-          } & SimulatorResult;
-          if (!response.ok || !body.ok) throw new Error(body.error ?? 'Receipt webhook failed');
-          return body;
-        });
+      apiPromise = postReceiptWebhook({
+        organizationId: currentOrg.id,
+        identityToken: token,
+        idempotencyKey: `demo:${payload.receipt.number}`,
+        sourceChannel,
+        payload,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setSimStage('idle');
@@ -685,6 +666,82 @@ export function ReceiptHubPage() {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setDispatching(false);
+    }
+  };
+
+  const submitManualCapture = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!currentOrg) {
+      setManualMessage('Pick an organisation before capturing a receipt.');
+      return;
+    }
+    const totalDollars = Number.parseFloat(manualTotal);
+    if (!manualMerchant.trim() || !Number.isFinite(totalDollars) || totalDollars <= 0) {
+      setManualMessage('Enter a merchant and a positive total.');
+      return;
+    }
+    setManualSubmitting(true);
+    setManualMessage(null);
+    setError(null);
+    try {
+      let token = identityToken;
+      if (!token) {
+        token = await issueIdentity();
+        if (!token) throw new Error('Receipt identity could not be issued.');
+      }
+      const totalCents = Math.round(totalDollars * 100);
+      const gstDollars = Number.parseFloat(manualGst);
+      const gstCents = Number.isFinite(gstDollars)
+        ? Math.round(gstDollars * 100)
+        : Math.round(totalCents / 11); // default AU GST = 1/11 of GST-inclusive total
+      const purchaseAt = manualDate ? new Date(manualDate).toISOString() : new Date().toISOString();
+      const receiptNumber = `MAN-${Date.now().toString().slice(-8)}`;
+      const payload = {
+        merchant: { name: manualMerchant.trim() },
+        receipt: {
+          number: receiptNumber,
+          event_type: 'sale',
+          purchase_at: purchaseAt,
+          currency: 'AUD',
+          subtotal_ex_gst_cents: totalCents - gstCents,
+          gst_cents: gstCents,
+          total_inc_gst_cents: totalCents,
+          tender_status: 'completed',
+        },
+        classification: {
+          business_use: 'business',
+          job_reference: manualJobRef.trim(),
+          sync_targets: ['xero', 'myob', 'quickbooks', 'generic_api'],
+          source_org_id: currentOrg.id,
+        },
+        line_items: [
+          {
+            description: manualMerchant.trim(),
+            quantity: 1,
+            unit_price_cents: totalCents,
+            total_inc_gst_cents: totalCents,
+            gst_cents: gstCents,
+          },
+        ],
+      };
+      const result = await postReceiptWebhook({
+        organizationId: currentOrg.id,
+        identityToken: token,
+        idempotencyKey: `manual:${receiptNumber}`,
+        sourceChannel: 'epost',
+        payload,
+      });
+      setManualMessage(`Captured receipt event ${result.receipt_event_id.slice(0, 8)}.`);
+      setManualMerchant('');
+      setManualTotal('');
+      setManualGst('');
+      setManualDate('');
+      setManualJobRef('');
+      await refreshReceiptHub();
+    } catch (err) {
+      setManualMessage(err instanceof Error ? err.message : String(err));
+    } finally {
+      setManualSubmitting(false);
     }
   };
 
@@ -1787,6 +1844,91 @@ export function ReceiptHubPage() {
       <div className="receipt-live-grid">
         <section className="receipt-flow-panel">
           <div className="receipt-panel-heading">
+            <ReceiptText size={18} style={{ color: 'var(--accent-success)' }} />
+            <div>
+              <span>Manual capture (epost)</span>
+              <h2>Type a receipt in</h2>
+            </div>
+          </div>
+          <form className="receipt-manual-form" onSubmit={(e) => void submitManualCapture(e)}>
+            <label>
+              <span>Merchant</span>
+              <input
+                type="text"
+                value={manualMerchant}
+                onChange={(e) => setManualMerchant(e.target.value)}
+                placeholder="Bunnings Trade"
+                disabled={manualSubmitting}
+                required
+              />
+            </label>
+            <div className="receipt-manual-row">
+              <label>
+                <span>Total (inc GST)</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={manualTotal}
+                  onChange={(e) => setManualTotal(e.target.value)}
+                  placeholder="360.00"
+                  disabled={manualSubmitting}
+                  required
+                />
+              </label>
+              <label>
+                <span>GST (optional)</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={manualGst}
+                  onChange={(e) => setManualGst(e.target.value)}
+                  placeholder="auto 1/11"
+                  disabled={manualSubmitting}
+                />
+              </label>
+            </div>
+            <div className="receipt-manual-row">
+              <label>
+                <span>Date</span>
+                <input
+                  type="date"
+                  value={manualDate}
+                  onChange={(e) => setManualDate(e.target.value)}
+                  disabled={manualSubmitting}
+                />
+              </label>
+              <label>
+                <span>Job reference (optional)</span>
+                <input
+                  type="text"
+                  value={manualJobRef}
+                  onChange={(e) => setManualJobRef(e.target.value)}
+                  placeholder="JOB-1024"
+                  disabled={manualSubmitting}
+                />
+              </label>
+            </div>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={!currentOrg || manualSubmitting}
+            >
+              {manualSubmitting ? <Loader2 size={16} className="spin" /> : <ReceiptText size={16} />}
+              {manualSubmitting ? 'Capturing' : 'Capture receipt'}
+            </button>
+            {manualMessage ? (
+              <div className="receipt-result" role="status">
+                <FileCheck2 size={16} />
+                <span>{manualMessage}</span>
+              </div>
+            ) : null}
+          </form>
+        </section>
+
+        <section className="receipt-flow-panel">
+          <div className="receipt-panel-heading">
             <ReceiptText size={18} style={{ color: 'var(--accent-info)' }} />
             <div>
               <span>Mobile capture to bills</span>
@@ -2113,6 +2255,44 @@ function paymentDescriptor(event: ReceiptEventRow) {
   const last4 = event.payment_last4?.trim();
   if (!method && !last4) return null;
   return [method, last4 ? `**** ${last4}` : null].filter(Boolean).join(' ');
+}
+
+interface ReceiptWebhookArgs {
+  organizationId: string;
+  identityToken: string;
+  idempotencyKey: string;
+  sourceChannel: string;
+  payload: unknown;
+  syncTargets?: SyncProvider[];
+}
+
+async function postReceiptWebhook(args: ReceiptWebhookArgs): Promise<SimulatorResult> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Idempotency-Key': args.idempotencyKey,
+  };
+  if (session) {
+    headers['Authorization'] = `Bearer ${session.access_token}`;
+  }
+  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/receipt-webhook`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      organization_id: args.organizationId,
+      identity_token: args.identityToken,
+      idempotency_key: args.idempotencyKey,
+      event_type: 'sale',
+      source_channel: args.sourceChannel,
+      payload: args.payload,
+      sync_targets: args.syncTargets ?? ['xero', 'myob', 'quickbooks', 'generic_api'],
+    }),
+  });
+  const body = (await response.json()) as { ok?: boolean; error?: string } & SimulatorResult;
+  if (!response.ok || !body.ok) throw new Error(body.error ?? 'Receipt webhook failed');
+  return body;
 }
 
 function buildDemoReceiptPayload(orgId: string) {

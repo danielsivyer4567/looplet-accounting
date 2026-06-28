@@ -1842,6 +1842,42 @@ code {
   color: var(--text-body);
 }
 
+.receipt-manual-form {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.receipt-manual-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+}
+
+.receipt-manual-form label span {
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.receipt-manual-form input {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.5rem;
+  background: var(--bg-input, rgba(2, 6, 16, 0.4));
+  color: var(--text-body);
+  font: inherit;
+}
+
+.receipt-manual-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
 .receipt-decision-path {
   margin: 0;
   padding: 0.75rem;
