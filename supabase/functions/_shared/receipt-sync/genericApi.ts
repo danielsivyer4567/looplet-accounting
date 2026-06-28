@@ -27,11 +27,11 @@ interface EndpointRow {
   signing_secret?: string;
   is_enabled?: boolean;
 }
-type EndpointQuery = {
+interface EndpointQuery {
   select: (cols: string) => EndpointQuery;
   eq: (col: string, val: unknown) => EndpointQuery;
   maybeSingle: () => Promise<{ data: EndpointRow | null }>;
-};
+}
 
 export interface GenericApiBill {
   id: string;
