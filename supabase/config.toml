@@ -34,6 +34,12 @@ verify_jwt = false
 [functions.notifications-cron]
 verify_jwt = false
 
+# Accountant activity digest cron is called by pg_cron with a scoped
+# ACCOUNTANT_SESSION_DIGEST_CRON_SECRET. Browser/on-demand paths still verify
+# the caller JWT inside the function before reading sessions or activity.
+[functions.accountant-session-digest]
+verify_jwt = false
+
 # Cron-driven functions (EPIC C2 / Phase 1.G/1.I). pg_cron drives these via
 # net.http_post and authenticates with the service-role bearer or a ?secret=
 # cron secret that the function checks itself, so the platform JWT gate is off.

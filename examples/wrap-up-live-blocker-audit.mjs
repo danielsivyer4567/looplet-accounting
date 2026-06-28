@@ -26,7 +26,11 @@ const gmailRuntimeNames = [
   'GMAIL_PUSH_VERIFY_TOKEN',
   'GMAIL_WATCH_RENEW_CRON_SECRET',
 ];
-const cronRuntimeNames = ['BANK_SYNC_ALL_CRON_SECRET', 'NOTIFICATIONS_CRON_SECRET'];
+const cronRuntimeNames = [
+  'BANK_SYNC_ALL_CRON_SECRET',
+  'NOTIFICATIONS_CRON_SECRET',
+  'ACCOUNTANT_SESSION_DIGEST_CRON_SECRET',
+];
 const signedInSmokeNames = [
   'VITE_SUPABASE_URL',
   'VITE_SUPABASE_ANON_KEY',
@@ -108,6 +112,7 @@ async function liveProbe() {
     'gmail-pubsub-push',
     'bank-sync-all',
     'notifications-cron',
+    'accountant-session-digest',
   ]) {
     probes[functionName] = await probeFunction(functionName);
   }
@@ -121,6 +126,7 @@ async function liveProbe() {
   const gmailPushFailClosed = await probeGmailPushFailClosed();
   const bankSyncAllFailClosed = await probePostStatus('bank-sync-all', {}, 403);
   const notificationsCronFailClosed = await probePostStatus('notifications-cron', {}, 403);
+  const accountantDigestFailClosed = await probePostStatus('accountant-session-digest', {}, 403);
   const bankSyncForgedRoleFailClosed = await probeBankSyncForgedRoleFailClosed();
   return {
     ok:
@@ -128,12 +134,14 @@ async function liveProbe() {
       gmailPushFailClosed.ok &&
       bankSyncAllFailClosed.ok &&
       notificationsCronFailClosed.ok &&
+      accountantDigestFailClosed.ok &&
       bankSyncForgedRoleFailClosed.ok,
     functions: probes,
     auth_fail_closed: {
       'gmail-pubsub-push': gmailPushFailClosed,
       'bank-sync-all': bankSyncAllFailClosed,
       'notifications-cron': notificationsCronFailClosed,
+      'accountant-session-digest': accountantDigestFailClosed,
       'bank-sync forged service-role jwt': bankSyncForgedRoleFailClosed,
     },
   };
@@ -276,6 +284,7 @@ async function cliProbe(ref) {
     'bank-sync',
     'bank-sync-all',
     'notifications-cron',
+    'accountant-session-digest',
     'xero-push-bill',
     'xero-push-invoice',
     'xero-sync-payments',

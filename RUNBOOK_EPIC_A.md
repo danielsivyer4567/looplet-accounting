@@ -53,21 +53,41 @@ select cron.schedule('bank-sync-all', '0 0,6,12,18 * * *', $$
   ); $$);
 ```
 
-## 4. Fix `accountant-digest-cron` (currently 401 every 10 min — empty bearer)
+## 4. Fix `accountant-digest-cron`
 
-The cron builds its bearer from a Vault secret named `service_role_key` that doesn't
-exist. Create it (your service-role key goes straight into encrypted Vault — never
-into chat, a file, or the cron command):
+Status 2026-06-29: completed live. `accountant-session-digest` is deployed with
+`verify_jwt=false`, cron mode requires `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET`
+or the exact service-role bearer, and the active cron job 15 reads a scoped
+secret stored in Supabase Vault as `accountant_session_digest_cron_secret`.
+A DB-side `pg_net` probe returned HTTP 200 with `ok=true`, `sent=0`,
+`failed=0`.
 
-```sql
-select vault.create_secret(
-  '<YOUR_SERVICE_ROLE_KEY>',   -- from Supabase Dashboard → Settings → API
-  'service_role_key'
-);
+Use this only if rotating/recreating the scoped cron secret:
+
+```bash
+openssl rand -hex 24
+supabase secrets set ACCOUNTANT_SESSION_DIGEST_CRON_SECRET=<paste> --project-ref dxoikltymmknxqpkpyhi
 ```
 
-> Alternatively, rotate the service-role key first if you're unsure it's clean, then
-> store the fresh one here.
+Then store the same value in Vault and schedule the cron without embedding the
+secret in `cron.job.command`:
+
+```sql
+select vault.create_secret('<paste>', 'accountant_session_digest_cron_secret');
+
+select cron.schedule(
+  'accountant-digest-cron',
+  '*/10 * * * *',
+  $$
+    select net.http_post(
+      url := 'https://dxoikltymmknxqpkpyhi.supabase.co/functions/v1/accountant-session-digest?secret='
+        || (select decrypted_secret from vault.decrypted_secrets where name = 'accountant_session_digest_cron_secret' limit 1),
+      headers := jsonb_build_object('Content-Type','application/json'),
+      body := '{}'::jsonb
+    );
+  $$
+);
+```
 
 ## 5. Re-connect Gmail (dead since 2026-05-09, `invalid_grant`)
 

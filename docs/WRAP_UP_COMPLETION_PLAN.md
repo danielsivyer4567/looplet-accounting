@@ -60,15 +60,17 @@ work and re-checking the live project. It intentionally separates:
   secret-name presence was true for `PERPLEXITY_API_KEY`,
   `SUPABASE_SERVICE_ROLE_KEY`, `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`,
   `GMAIL_PUBSUB_TOPIC`, `GMAIL_PUSH_VERIFY_TOKEN`, and
-  `GMAIL_WATCH_RENEW_CRON_SECRET`, and false for `OPENAI_API_KEY`,
-  `LEGAL_INGEST_SECRET`, `LEGAL_SYNC_SECRET`, and `LEGAL_SCAN_SECRET`.
-- `gmail-pubsub-push` is deployed live as version 32. It now shares the Gmail
+  `GMAIL_WATCH_RENEW_CRON_SECRET`, `BANK_SYNC_ALL_CRON_SECRET`,
+  `NOTIFICATIONS_CRON_SECRET`, and `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET`, and
+  false for `OPENAI_API_KEY`, `LEGAL_INGEST_SECRET`, `LEGAL_SYNC_SECRET`, and
+  `LEGAL_SCAN_SECRET`.
+- `gmail-pubsub-push` is deployed live as version 33. It now shares the Gmail
   message-id duplicate guard with backfill, leaves `last_history_id` unchanged
   on retryable ingest failures so future pushes can replay safely, and the live
   audit proves unsigned POSTs fail closed with HTTP 401.
 - `bank-sync`, `bank-sync-all`, and `notifications-cron` have had the
   forgeable service-role branch removed. Live versions after deploy:
-  `bank-sync` 27, `bank-sync-all` 25, and `notifications-cron` 22. The live
+  `bank-sync` 28, `bank-sync-all` 26, and `notifications-cron` 23. The live
   audit proves forged `bank-sync` service-role JWTs fail closed with HTTP 401,
   unsigned `bank-sync-all` and `notifications-cron` POSTs fail closed with HTTP
   403, both cron runtime secret names exist in Supabase, and all three
@@ -79,6 +81,16 @@ work and re-checking the live project. It intentionally separates:
   URL. A direct authorized function probe returned HTTP 200 with `ok=true`,
   `orgs=0`, and a DB-side `pg_net` probe through the same Vault path returned
   HTTP 200 with `{"ok":true,"orgs":0,"results":[]}`.
+- `accountant-session-digest` cron auth is fixed live. The function is deployed
+  as version 18 with `verify_jwt=false`, cron mode now requires exact
+  `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET` or service-role bearer, and
+  browser/on-demand modes still verify the caller JWT internally. The active
+  cron is job 15 and reads a scoped `accountant_session_digest_cron_secret` from
+  Supabase Vault. The live audit proves unsigned cron-mode POSTs fail closed
+  with HTTP 403, and a DB-side `pg_net` probe through the Vault path returned
+  HTTP 200 with `{"ok":true,"sent":0,"failed":0}`. The first scheduled post-fix
+  run at `2026-06-28T20:00:00Z` also returned HTTP 200 with `sent=0`,
+  `failed=0`.
 
 ## Execution Control Plan
 
@@ -146,11 +158,11 @@ Remaining execution order:
    run subscription detection, process pending triage classifications into
    `intake_rules`, and populate at least one real customer/invoice/payment path.
 6. **Resolve remaining integration ledgers.** Complete or explicitly defer
-   Basiq callback backfill, Xero settings/sync, accountant digest cron,
-   heartbeat monitoring, and ATO lodgement enablement. Gmail Pub/Sub and
-   bank-sync-all cron auth are code-complete and live-deployed; Gmail still
-   needs real watched-mailbox event evidence, and bank sync still needs a real
-   Basiq feed/backfill before being marked end-to-end live-proven. External
+   Basiq callback backfill, Xero settings/sync, heartbeat monitoring, and ATO
+   lodgement enablement. Gmail Pub/Sub, bank-sync-all cron auth, and accountant
+   digest cron auth are code-complete and live-deployed; Gmail still needs real
+   watched-mailbox event evidence, and bank sync still needs a real Basiq
+   feed/backfill before being marked end-to-end live-proven. External
    credentials stay `external-blocked` until supplied and proven.
 7. **Final release pass.** Re-run all local gates, browser smoke the critical
    UI surfaces, re-check live row counts, update final labels, and commit only
@@ -186,7 +198,7 @@ supabase/functions/gmail-pubsub-push/index.ts` passed.
 - `supabase functions deploy gmail-pubsub-push --project-ref
 dxoikltymmknxqpkpyhi --no-verify-jwt` deployed the hardened Gmail Pub/Sub
   handler. The follow-up `npm run wrap:live-audit` passed with
-  `gmail-pubsub-push` active as version 32, CORS OPTIONS 200, live Gmail
+  `gmail-pubsub-push` active as version 33, CORS OPTIONS 200, live Gmail
   runtime secret-name presence, and unsigned POST fail-closed status 401.
 - `deno test supabase/functions/_shared/serviceRole.test.ts` passed: 3 tests.
   It proves exact service-role bearer matching, exact cron secret matching, and
@@ -202,8 +214,8 @@ dxoikltymmknxqpkpyhi --no-verify-jwt`, and `supabase functions deploy
 notifications-cron --project-ref dxoikltymmknxqpkpyhi --no-verify-jwt`
   deployed the hardened bank/cron handlers.
 - The follow-up `npm run wrap:live-audit` passed with `bank-sync` active as
-  version 27, `bank-sync-all` as version 25, `notifications-cron` as version
-  22, CORS OPTIONS 200 for both cron endpoints, live cron secret-name presence,
+  version 28, `bank-sync-all` as version 26, `notifications-cron` as version
+  23, CORS OPTIONS 200 for both cron endpoints, live cron secret-name presence,
   forged `bank-sync` service-role JWT fail-closed status 401, and unsigned
   `bank-sync-all`/`notifications-cron` fail-closed status 403.
 - Live cron inspection showed `bank-sync-all` was still scheduled without auth.
@@ -213,6 +225,26 @@ notifications-cron --project-ref dxoikltymmknxqpkpyhi --no-verify-jwt`
   200 with `ok=true`, `orgs=0`; DB-side `pg_net` through the Vault-held secret
   returned request id 7932 with status 200, `timed_out=false`, and
   `{"ok":true,"orgs":0,"results":[]}`.
+- `deno check supabase/functions/_shared/serviceRole.test.ts
+supabase/functions/accountant-session-digest/index.ts` passed.
+- `supabase functions deploy accountant-session-digest --project-ref
+dxoikltymmknxqpkpyhi --no-verify-jwt` deployed the self-authenticating digest
+  handler. The follow-up `npm run wrap:live-audit` passed with
+  `accountant-session-digest` active as version 18, CORS OPTIONS 200, live
+  `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET` name presence, and unsigned cron-mode
+  POST fail-closed status 403.
+- The live digest cron was rescheduled from the missing `service_role_key`
+  bearer form to active job 15 with a Vault-held scoped secret. Verification:
+  pending digest count was 0 before the authorized probe; DB-side `pg_net` through
+  the Vault-held secret returned request id 7934 with status 200,
+  `timed_out=false`, and `{"ok":true,"sent":0,"failed":0}`.
+- The actual scheduled `accountant-digest-cron` job then fired at
+  `2026-06-28T20:00:00Z`; `net._http_response` request id 7935 returned status
+  200, `timed_out=false`, and `{"ok":true,"sent":0,"failed":0}`.
+- `public.cron_health_summary()` after the fix shows
+  `accountant-digest-cron.last_run_pg_status=succeeded`; the 24-hour HTTP
+  failure count is still 42 from historical 401/403 responses and must age out
+  before being used as clean-window proof.
 - `npm run typecheck` passed.
 - `npm run lint` passed.
 - `npx prettier --check ...` passed on the changed source/test/doc files.
