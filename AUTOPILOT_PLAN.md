@@ -55,7 +55,10 @@ Cross-tenant view leak closed, `system_defaults` locked, anon definer-fn execute
 
 ### EPIC E — Make it trustworthy _(start early; gates merges)_
 
-- [ ] **E1** Real CI tenant-isolation gate (two seeded orgs) + fix 8 lint errors.
+- [x] **E1** Real CI tenant-isolation gate is code-complete: two seeded orgs,
+      cross-tenant RLS assertions, CI hard-fail on missing Supabase env, and no
+      stale `describe.skip`/`expect(true)` gate. Live PR-run proof still depends on
+      GitHub test secrets being present.
 - [ ] **E2** Accounting-engine tests (GST split, BAS, reconciliation, PAYG, ABA, Xero push).
 - [ ] **E3** Remaining hardening: `notify()` org-guard, `search_path` on definer fns, 61 FK indexes, audit triggers on money tables.
 

@@ -138,14 +138,14 @@ and no auto-reconciler/heartbeat release proof has been captured yet.
 - [ ] Drop orphaned cross-product functions `deduct_credits` / `check_rate_limit` / `is_agency_user` (anon execute already revoked in 0055). **(medium)**
 - [ ] Add audit triggers to `bank_transactions` / `invoice_payments` / `payment_runs`. **(medium)**
 - [ ] 61 unindexed FKs incl. `bank_transactions.matched_*`, `invoices.job_id/customer_id`, 5 line-item `organization_id`. **(medium, non-functional)**
-- [ ] **CI gate is inert**: `tests/tenant-isolation.test.ts:24` is `describe.skip` with `expect(true).toBe(true)` yet labeled "Deploy Blocker"; 8 `any` tokens fail `no-explicit-any:'error'`. Make the isolation suite real (two seeded orgs, cross-tenant assertions) + fix lint. Core accounting (GST split, reconciliation, payroll, ABA, Xero push) has **zero tests**. **(blocker for the gate)**
+- [x] **Tenant-isolation CI gate is now real/code-complete**: `tests/tenant-isolation.test.ts` self-seeds two orgs and asserts cross-tenant RLS through anon-key/JWT clients; `.github/workflows/ci.yml` runs it as a dedicated deploy-blocker job and the test hard-fails in CI when required Supabase env is missing. Local no-secret proof on 2026-06-29: `npm run test:tenant-isolation` skipped 1 file / 6 tests by design. Remaining test gap: core accounting coverage for GST split, reconciliation, payroll, ABA, and Xero push is still not complete. **(gate fixed; accounting tests remain high priority)**
 - [ ] `organizations_insert` RLS `WITH CHECK true`; enable leaked-password protection; constant-time secret compares. **(low)**
 
 ---
 
 ## Roadmap
 
-**P0 — safely usable now** (✅ security done): close leak ✅, lock system_defaults ✅, revoke anon notify/orphans ✅ · Gmail Pub/Sub replay hardening ✅ · bank-sync-all cron auth/schedule ✅ · accountant digest cron auth/schedule ✅ · then [ ] heartbeat/no-failure-window proof · [ ] Gmail real reconnect/event proof · [ ] make the CI tenant-isolation gate real.
+**P0 — safely usable now** (✅ security done): close leak ✅, lock system_defaults ✅, revoke anon notify/orphans ✅ · Gmail Pub/Sub replay hardening ✅ · bank-sync-all cron auth/schedule ✅ · accountant digest cron auth/schedule ✅ · CI tenant-isolation deploy gate ✅ · then [ ] heartbeat/no-failure-window proof · [ ] Gmail real reconnect/event proof.
 
 **P1 — make autopilot actually do accounting:** auto-reconcile (B4) · OCR fix + GST backfill (B7) · live Basiq feed (B8) · Xero retry cron · tracked cron migrations + durable webhook/ingest · extend period locks + audit triggers · finish API/ingestion layer (B5) · HMAC webhooks + OpenAPI docs.
 

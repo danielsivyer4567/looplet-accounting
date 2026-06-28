@@ -132,6 +132,10 @@ Current repo re-checks against the May 6 P1 audit:
 - Multi-org move behavior is covered by focused component tests that verify the
   exact `organization_id` update payload, FK-null clearing where requested, and
   debt-row moves without FK clearing.
+- Tenant isolation is no longer an inert deploy gate: the suite self-seeds two
+  orgs, signs in as each tenant through anon-key clients, asserts cross-tenant
+  invisibility, and `.github/workflows/ci.yml` runs it as a deploy-blocker job
+  that fails hard in CI if Supabase test env is missing.
 - Gmail Pub/Sub replay is no longer a stub: the live function reads Gmail
   history deltas, downloads accepted attachments, applies intake rules, creates
   `bills`, dispatches `bills-extract`, guards duplicate Gmail message IDs across
@@ -146,7 +150,8 @@ Remaining execution order:
 
 1. **Close stale audit bookkeeping.** Keep the historical May 6 audit intact,
    but annotate which P1 items are now code-complete and which still require
-   live proof.
+   live proof. The tenant-isolation gate should now be treated as
+   code-complete/CI-wired, not rebuilt.
 2. **Verify local app UX ledgers.** Org profile settings write-through,
    Dashboard-to-Triage discoverability, debt payment behavior, subscription
    detail editing, employee timesheet behavior, and multi-org move behavior now
@@ -183,6 +188,10 @@ src/test/pages/Dashboard.test.tsx` passed: 2 files, 4 tests.
 src/test/pages/SubscriptionDetail.test.tsx` passed: 2 files, 2 tests.
 - `npm run test -- src/test/pages/EmployeeDetail.test.tsx
 src/test/components/MoveToOrgButton.test.tsx` passed: 2 files, 12 tests.
+- `npm run test:tenant-isolation` ran locally and skipped 1 file / 6 tests
+  because this shell does not have `VITE_SUPABASE_URL`,
+  `VITE_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`; the suite is
+  intentionally a hard failure in CI when those values are missing.
 - `npm run wrap:visual-smoke` passed in Chromium with no console/page errors and
   all interaction checks true. Screenshot evidence:
   `.claude/scratch/wrap-up-local-visual-smoke/2026-06-28T19-21-08-902Z/screenshots/dashboard.png`,

@@ -141,6 +141,13 @@ scorecard. Current wrap-up evidence changes these conclusions:
   pages, and subscription, debt/payment, and employee detail pages exist. These
   still need normal release proof where they touch UI or live data, but they
   should no longer drive rebuild work.
+- **Tenant-isolation gate correction:** the May 6 audit item that described
+  `tests/tenant-isolation.test.ts` as an inert `describe.skip` is now stale.
+  The suite self-seeds two orgs, signs in through anon-key clients, asserts
+  cross-tenant invisibility, and `.github/workflows/ci.yml` runs it as a
+  dedicated deploy-blocker job. Local no-secret verification on 2026-06-29
+  skipped 1 file / 6 tests by design; in CI the test throws before collection if
+  the required Supabase env is missing.
 - **Local UX proof added:** Dashboard now has a pending onboarding-triage CTA
   backed by a progress-only `onboarding_progress` hook, and OrgProfile has a
   focused component test proving ABN plus `organizations.settings` are written
@@ -171,7 +178,10 @@ scorecard. Current wrap-up evidence changes these conclusions:
 
 - **Real polish:** mobile, pagination, error specificity, export, edit-modes on a few detail pages.
 - **External integrations:** Xero bidirectional and Basiq Connect callback completion. Gmail Pub/Sub is now code-complete/live-deployed but still needs a real watched-mailbox event trace before being called end-to-end live-proven. `bank-sync-all` cron auth/scheduling is live-proven, but real bank-feed proof still needs a Basiq feed with transaction backfill.
-- **Critical onboarding gaps:** no Create-Job UI, no Create-Customer UI, no Create-Employee/Debt is fine but there's no "let me create my first invoice" empty state with guidance.
+- **Critical onboarding gaps:** Create-Customer and Create-Job are no longer
+  missing; the remaining onboarding gap is guided first-invoice/first-customer
+  empty-state flow and signed-in proof that a new user can get from onboarding
+  through customer, job, invoice, and payment without SQL.
 
 **Data: ~10% populated.** This is the bigger issue, and not a code bug — most of what looks broken is starvation, not breakage:
 
@@ -195,8 +205,8 @@ Score: 0=missing, 1=stub, 2=partial, 3=working, 4=polished. Cells with `—` are
 | 4. Bills                         | 4✓     | 4✓       | 4✓   | 4✓     | 4✓     | 1✗   | 3✓  | 4✓        | 3✓    | 3✓    | 4✓      | 2⚠     |
 | 5. Allocations                   | 4✓     | 4✓       | 4✓   | —      | —      | —    | —   | —         | 3✓    | 2⚠    | 3✓      | 2⚠     |
 | 6. Suppliers                     | 4✓     | 4✓       | 4✓   | 4✓     | 0✗     | 4✓   | 3✓  | 0✗        | 3✓    | 2⚠    | 3✓      | 2⚠     |
-| 7. Customers                     | 4✓     | 0✗       | 4✓   | 4✓     | 0✗     | 4✓   | 2⚠  | 0✗        | 2⚠    | 2⚠    | 3✓      | 2⚠     |
-| 8. Jobs                          | 4✓     | 2⚠       | 4✓   | 4✓     | 0✗     | 4✓   | 3✓  | 0✗        | 3✓    | 2⚠    | 3✓      | 2⚠     |
+| 7. Customers                     | 4✓     | 0✗       | 4✓   | 4✓     | 3✓     | 4✓   | 2⚠  | 0✗        | 2⚠    | 2⚠    | 3✓      | 2⚠     |
+| 8. Jobs                          | 4✓     | 2⚠       | 4✓   | 4✓     | 3✓     | 4✓   | 3✓  | 0✗        | 3✓    | 2⚠    | 3✓      | 2⚠     |
 | 9. Invoices                      | 4✓     | 4✓       | 4✓   | 4✓     | 4✓     | 4✓   | 3✓  | 0✗        | 3✓    | 2⚠    | 3✓      | 2⚠     |
 | 10. Bank — Basiq Connect         | 4✓     | 2⚠       | 3✓   | 1✗     | 3✓     | —    | 1✗  | —         | 3✓    | 2⚠    | 2⚠      | 1✗     |
 | 11. Bank — CSV import            | 4✓     | 4✓       | 3✓   | —      | 4✓     | —    | —   | —         | 3✓    | 3✓    | 3✓      | 1✗     |
@@ -290,8 +300,8 @@ item below as still missing.
 
 Ordered by original user-visible value:
 
-1. **No "+ New customer" button on `/customers`** — list page exists, detail page exists, but no way to create a customer from the UI. Have to use SQL. Blocks invoicing because invoices need a customer. Fix: add button + form (~15 min).
-2. **No "+ New job" button on `/jobs`** — same shape. Blocks Allocations from being useful, blocks customer-side invoicing flow. Fix: ~15 min.
+1. **Resolved 2026-06-29: "+ New customer" button on `/customers`** — `src/pages/Customers.tsx` now exposes a New customer flow, and `src/test/pages/Customers.test.tsx` covers the button, form opening, submit path, and cancel path. Remaining proof: signed-in browser flow against live data.
+2. **Resolved 2026-06-29: "+ New job" button on `/jobs`** — `src/pages/Jobs.tsx` now exposes a New job flow. Remaining proof: focused page test coverage and signed-in browser flow against live data.
 3. **399 staged entities pending Triage** — onboarding stalled. Need a "complete onboarding" CTA on Dashboard pointing to `/onboarding/triage`. Or a one-shot "Approve all AI-confident classifications" bulk action. Fix: ~30 min.
 4. **No bill detail Edit mode** — OCR fails on 96% of bills (totals missing). User can't fix the extracted fields. Currently re-OCR is the only repair. Add inline edit for supplier_name_raw / invoice_number / invoice_date / total_inc_gst_cents / gst_cents. Fix: ~30 min.
 5. **Org settings (ABN, tax %) form doesn't write through** — `OrgProfileForm` saves to `organizations.settings`, but the org has `settings_keys=null` in DB. Either form is broken or user hasn't clicked Save. Need to verify. Fix: ~15 min to verify, ~15 to repair.
@@ -399,7 +409,9 @@ These are big enough to warrant their own sprint, not lumped in here:
 Superseded for the 2026-06-29 wrap-up. Use this order now:
 
 1. **Ledger cleanup** — update audit/status docs so stale May 6 P1 items are
-   marked code-complete instead of rebuilt.
+   marked code-complete instead of rebuilt. Tenant isolation is now a
+   CI-wired/code-complete gate; it still needs a real GitHub run with secrets
+   before being called live-proven.
 2. **Focused local proof** — verify org settings write-through,
    Dashboard-to-Triage discoverability, debt payment recording, employee detail,
    subscription detail, and multi-org move behavior. These local UX ledgers now
