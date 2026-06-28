@@ -30,6 +30,14 @@ scorecard. Current wrap-up evidence changes these conclusions:
   (`legal_corpus=0` at audit time), Legal Horizon still needs a real scanner run
   with valid Sonar secret, and Ask still needs a signed-in proof that a real
   answer returns corpus `citations[]`.
+- **Legal RAG seed blocker:** a fresh source-material/secret check on
+  2026-06-29 found no local NotebookLM/legal source text bundle, and the linked
+  project does not have `OPENAI_API_KEY`, `LEGAL_INGEST_SECRET`,
+  `LEGAL_SYNC_SECRET`, or `LEGAL_SCAN_SECRET` configured by those names. The
+  scanner provider key is present, but corpus seeding still requires clean legal
+  text plus the OpenAI embedding key. The `legal-corpus-sync` fetch path remains
+  a raw-markup stub and must not be scheduled until real FRL/ATO extraction is
+  built or the provided-text path is used intentionally.
 - **Advisor:** deployed with JWT enabled and local Deno/model tests passing, but
   still needs a signed-in Ask/on-demand smoke proving a live `advice_notes` draft
   row is created.
