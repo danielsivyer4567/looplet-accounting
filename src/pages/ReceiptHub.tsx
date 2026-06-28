@@ -26,8 +26,10 @@ import {
   Smartphone,
   WalletCards,
   Webhook,
+  X,
   type LucideIcon,
 } from 'lucide-react';
+import { JobPicker } from '@/components/JobPicker';
 
 type CaptureChannel = 'phone-pass' | 'tag' | 'pos' | 'eftpos';
 type SyncProvider = 'xero' | 'myob' | 'quickbooks' | 'generic_api';
@@ -78,6 +80,25 @@ interface ReceiptIdentityRow {
   status: string;
   last_used_at: string | null;
   created_at: string;
+}
+
+interface ReceiptLineItemRow {
+  id: string;
+  line_number: number;
+  description: string;
+  quantity: number;
+  unit_price_cents: number;
+  total_inc_gst_cents: number;
+  gst_cents: number;
+  category: string | null;
+}
+
+interface ReceiptAuditPackageRow {
+  id: string;
+  bill_id: string | null;
+  gst_status: string;
+  deductibility_status: string;
+  decision_path: Record<string, unknown>;
 }
 
 interface ApiKeyRpcRow {
@@ -184,6 +205,12 @@ export function ReceiptHubPage() {
   const [identities, setIdentities] = useState<ReceiptIdentityRow[]>([]);
   const [identityCount, setIdentityCount] = useState(0);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [detailEventId, setDetailEventId] = useState<string | null>(null);
+  const [detailLines, setDetailLines] = useState<ReceiptLineItemRow[]>([]);
+  const [detailAudit, setDetailAudit] = useState<ReceiptAuditPackageRow | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [attaching, setAttaching] = useState(false);
   const [identityToken, setIdentityToken] = useState<string | null>(null);
   const [bridgeEnv, setBridgeEnv] = useState<string | null>(null);
   const [bridgeApiKeyPrefix, setBridgeApiKeyPrefix] = useState<string | null>(null);
@@ -217,6 +244,11 @@ export function ReceiptHubPage() {
       syncFailed: failed,
     };
   }, [events, syncJobs, identityCount]);
+
+  const detailEvent = useMemo(
+    () => events.find((event) => event.id === detailEventId) ?? null,
+    [events, detailEventId],
+  );
 
   const refreshReceiptHub = useCallback(async () => {
     if (!currentOrg) {
@@ -330,6 +362,83 @@ export function ReceiptHubPage() {
       await refreshReceiptHub();
     },
     [currentOrg, refreshReceiptHub],
+  );
+
+  const openEventDetail = useCallback(
+    async (eventId: string) => {
+      if (!currentOrg) return;
+      setDetailEventId(eventId);
+      setDetailLines([]);
+      setDetailAudit(null);
+      setDetailError(null);
+      setDetailLoading(true);
+      const [lineRes, auditRes] = await Promise.all([
+        supabase
+          .from('receipt_event_line_items')
+          .select('id,line_number,description,quantity,unit_price_cents,total_inc_gst_cents,gst_cents,category')
+          .eq('organization_id', currentOrg.id)
+          .eq('receipt_event_id', eventId)
+          .order('line_number', { ascending: true }),
+        supabase
+          .from('receipt_audit_packages')
+          .select('id,bill_id,gst_status,deductibility_status,decision_path')
+          .eq('organization_id', currentOrg.id)
+          .eq('receipt_event_id', eventId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      setDetailLoading(false);
+      const firstError = lineRes.error ?? auditRes.error;
+      if (firstError) {
+        setDetailError(firstError.message);
+        return;
+      }
+      setDetailLines((lineRes.data ?? []) as ReceiptLineItemRow[]);
+      setDetailAudit((auditRes.data ?? null) as ReceiptAuditPackageRow | null);
+    },
+    [currentOrg],
+  );
+
+  const closeEventDetail = useCallback(() => {
+    setDetailEventId(null);
+    setDetailLines([]);
+    setDetailAudit(null);
+    setDetailError(null);
+  }, []);
+
+  const attachEventToJob = useCallback(
+    async (billId: string, jobId: string) => {
+      setAttaching(true);
+      setDetailError(null);
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not signed in');
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bills-attach`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ bill_id: billId, job_id: jobId }),
+          },
+        );
+        const body = (await response.json()) as { ok?: boolean; error?: string };
+        if (!response.ok || !body.ok) {
+          throw new Error(body.error ?? `Attach failed (${response.status})`);
+        }
+        await refreshReceiptHub();
+      } catch (err) {
+        setDetailError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setAttaching(false);
+      }
+    },
+    [refreshReceiptHub],
   );
 
   const provisionPosBridge = useCallback(async () => {
@@ -1676,9 +1785,11 @@ export function ReceiptHubPage() {
                 const paymentLabel = paymentDescriptor(event);
                 const provenance = [event.store_id, event.terminal_id].filter(Boolean).join(' · ');
                 return (
-                  <div
-                    className={`receipt-table-row receipt-event-${eventType} ${isNew ? 'is-new' : ''}`}
+                  <button
+                    type="button"
+                    className={`receipt-table-row receipt-table-row-button receipt-event-${eventType} ${isNew ? 'is-new' : ''} ${event.id === detailEventId ? 'is-active' : ''}`}
                     key={event.id}
+                    onClick={() => void openEventDetail(event.id)}
                   >
                     <div>
                       <strong>
@@ -1708,7 +1819,7 @@ export function ReceiptHubPage() {
                         <span>{event.deductibility_status.replaceAll('_', ' ')}</span>
                       ) : null}
                     </div>
-                  </div>
+                  </button>
                 );
               })
             )}
@@ -1780,7 +1891,152 @@ export function ReceiptHubPage() {
           );
         })}
       </div>
+
+      {detailEventId ? (
+        <ReceiptEventDrawer
+          event={detailEvent}
+          lines={detailLines}
+          audit={detailAudit}
+          loading={detailLoading}
+          error={detailError}
+          attaching={attaching}
+          onClose={closeEventDetail}
+          onAttach={attachEventToJob}
+        />
+      ) : null}
     </section>
+  );
+}
+
+interface ReceiptEventDrawerProps {
+  event: ReceiptEventRow | null;
+  lines: ReceiptLineItemRow[];
+  audit: ReceiptAuditPackageRow | null;
+  loading: boolean;
+  error: string | null;
+  attaching: boolean;
+  onClose: () => void;
+  onAttach: (billId: string, jobId: string) => void | Promise<void>;
+}
+
+function ReceiptEventDrawer({
+  event,
+  lines,
+  audit,
+  loading,
+  error,
+  attaching,
+  onClose,
+  onAttach,
+}: ReceiptEventDrawerProps) {
+  const billId = event?.bill_id ?? audit?.bill_id ?? null;
+  const classificationReason =
+    typeof audit?.decision_path?.['reason'] === 'string'
+      ? (audit.decision_path['reason'] as string)
+      : null;
+  return (
+    <>
+      <div className="receipt-drawer-backdrop" onClick={onClose} aria-hidden="true" />
+      <aside className="receipt-drawer" role="dialog" aria-label="Receipt event detail">
+        <div className="receipt-drawer-head">
+          <div>
+            <span>Receipt event</span>
+            <h3>{event?.merchant_name ?? 'Receipt'}</h3>
+          </div>
+          <button type="button" className="receipt-panel-action" onClick={onClose}>
+            <X size={16} />
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="receipt-loading">
+            <Loader2 size={16} className="spin" /> Loading receipt detail
+          </div>
+        ) : (
+          <div className="receipt-drawer-body">
+            <dl className="receipt-core-status">
+              <div className="receipt-core-metric">
+                <dt>Total / GST</dt>
+                <dd>
+                  {event ? formatMoney(event.total_inc_gst_cents) : '—'}
+                  <small> · GST {event ? formatMoney(event.gst_cents) : '—'}</small>
+                </dd>
+              </div>
+              <div className="receipt-core-metric">
+                <dt>GST status</dt>
+                <dd>{(audit?.gst_status ?? 'unknown').replaceAll('_', ' ')}</dd>
+              </div>
+              <div className="receipt-core-metric">
+                <dt>Deductibility</dt>
+                <dd>
+                  {(audit?.deductibility_status ?? event?.deductibility_status ?? 'unknown').replaceAll(
+                    '_',
+                    ' ',
+                  )}
+                </dd>
+              </div>
+              {classificationReason ? (
+                <div className="receipt-core-metric">
+                  <dt>Classification reason</dt>
+                  <dd>{classificationReason}</dd>
+                </div>
+              ) : null}
+            </dl>
+
+            <div className="receipt-drawer-section">
+              <h4>Line items</h4>
+              {lines.length === 0 ? (
+                <div className="receipt-empty">No line items captured.</div>
+              ) : (
+                <div className="receipt-line-list">
+                  {lines.map((line) => (
+                    <div className="receipt-line-row" key={line.id}>
+                      <span>{line.description}</span>
+                      <small>
+                        {line.quantity}× · GST {formatMoney(line.gst_cents)}
+                      </small>
+                      <strong>{formatMoney(line.total_inc_gst_cents)}</strong>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="receipt-drawer-section">
+              <h4>Audit decision path</h4>
+              {audit && Object.keys(audit.decision_path).length > 0 ? (
+                <pre className="receipt-decision-path">
+                  {JSON.stringify(audit.decision_path, null, 2)}
+                </pre>
+              ) : (
+                <div className="receipt-empty">No decision path recorded.</div>
+              )}
+            </div>
+
+            <div className="receipt-drawer-section">
+              <h4>Attach to job</h4>
+              {!billId ? (
+                <div className="receipt-empty">
+                  This event has no bill yet, so it cannot be attached to a job.
+                </div>
+              ) : (
+                <JobPicker
+                  onPick={(job) => void onAttach(billId, job.id)}
+                  busy={attaching}
+                  placeholder="Search jobs to attach this receipt's bill…"
+                />
+              )}
+            </div>
+
+            {error ? (
+              <div className="receipt-alert" role="alert">
+                {error}
+              </div>
+            ) : null}
+          </div>
+        )}
+      </aside>
+    </>
   );
 }
 
