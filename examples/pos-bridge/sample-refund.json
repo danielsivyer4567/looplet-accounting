@@ -1,0 +1,44 @@
+{
+  "event_type": "refund",
+  "idempotency_key": "pos-refund-evt-100043",
+  "source_channel": "pos",
+  "payload": {
+    "merchant": {
+      "name": "Bunnings Trade",
+      "abn": "12123456789",
+      "external_id": "store-017"
+    },
+    "receipt": {
+      "number": "POS-2026-0001-R",
+      "event_type": "refund",
+      "external_event_id": "pos-refund-evt-100043",
+      "original_receipt_number": "POS-2026-0001",
+      "original_external_event_id": "pos-payment-evt-100042",
+      "purchase_at": "2026-06-28T03:20:00Z",
+      "currency": "AUD",
+      "subtotal_ex_gst_cents": 5455,
+      "gst_cents": 545,
+      "total_inc_gst_cents": 6000,
+      "tender_status": "refunded",
+      "payment_method": "card",
+      "payment_last4": "1234",
+      "payment_reference": "eftpos-refund-777332",
+      "terminal_id": "TERM-04",
+      "store_id": "STORE-017"
+    },
+    "classification": {
+      "business_use": "business",
+      "deductibility": "requires_review",
+      "job_reference": "JOB-1042"
+    },
+    "line_items": [
+      {
+        "description": "Fasteners returned",
+        "quantity": 1,
+        "unit_price_cents": 6000,
+        "total_inc_gst_cents": 6000,
+        "gst_cents": 545
+      }
+    ]
+  }
+}

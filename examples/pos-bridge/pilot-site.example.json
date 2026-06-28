@@ -1,0 +1,21 @@
+{
+  "business_name": "Example Trade Pty Ltd",
+  "merchant_name": "Example Trade",
+  "pilot_id": "pilot-2026-06-28-example-trade",
+  "pilot_window_start": "2026-06-28T13:00:00+10:00",
+  "pilot_window_end": "2026-06-28T13:40:00+10:00",
+  "pos_vendor": "Example POS",
+  "pos_product": "Example POS Back Office",
+  "pos_version": "2026.6",
+  "connector_mode": "bridge_watch_folder",
+  "identity_capture_method": "barcode_scan",
+  "receipt_trigger": "pos_completed_tender",
+  "receipt_source_format": "pos_json_export",
+  "field_sample_capture_method": "pos_native_json_export",
+  "integration_owner": "Looplet / business IT / POS vendor",
+  "install_machine_id": "BACKOFFICE-01",
+  "operator_name": "Installer Name",
+  "operator_role": "Store manager",
+  "looplet_organization_id": "00000000-0000-0000-0000-000000000000",
+  "notes": "Use the real pilot organization id and the real POS/export machine identifier. merchant_name must match payload.merchant.name in sale/refund/void field samples."
+}

@@ -36,14 +36,14 @@ export interface EvidenceLink {
 }
 
 export interface WorkingPapersBundleLike {
-  source_files?: Array<{
+  source_files?: {
     storage_key?: string | null;
     signed_url?: string | null;
     resolved?: boolean;
     source?: string | null;
     source_id?: string | null;
     original_filename?: string | null;
-  }>;
+  }[];
   manifest?: {
     manifest?: {
       audit_log?: unknown[];

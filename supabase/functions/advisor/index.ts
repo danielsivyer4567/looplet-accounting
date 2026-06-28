@@ -78,9 +78,35 @@ export interface CreateAdviceNoteArgs {
   p_disclaimer: string;
 }
 
-type SupabaseClientLike = {
-  from(relation: string): any;
-};
+interface SupabaseErrorLike {
+  message: string;
+}
+
+interface SupabaseQueryResultLike {
+  data: unknown;
+  error: SupabaseErrorLike | null;
+}
+
+interface SupabaseQueryFilterLike extends PromiseLike<SupabaseQueryResultLike> {
+  select(columns: string): SupabaseQueryFilterLike;
+  eq(column: string, value: unknown): SupabaseQueryFilterLike;
+  contains(column: string, value: Record<string, unknown>): SupabaseQueryFilterLike;
+  is(column: string, value: unknown): SupabaseQueryFilterLike;
+  order(column: string, options?: { ascending?: boolean }): SupabaseQueryFilterLike;
+  limit(count: number): SupabaseQueryFilterLike;
+  single(): Promise<SupabaseQueryResultLike>;
+  maybeSingle(): Promise<SupabaseQueryResultLike>;
+}
+
+interface SupabaseQueryBuilderLike {
+  select(columns: string): SupabaseQueryFilterLike;
+  update(values: Record<string, unknown>): SupabaseQueryFilterLike;
+  insert(values: Record<string, unknown>): SupabaseQueryFilterLike;
+}
+
+interface SupabaseClientLike {
+  from(relation: string): SupabaseQueryBuilderLike;
+}
 
 interface ExistingAdviceNoteRow {
   id: string;
@@ -920,7 +946,7 @@ async function upsertScheduledAdviceNote(
       kind: noteArgs.p_kind,
       period,
       action: "updated_draft",
-      advice_note_id: String(data?.id ?? existing.id ?? ""),
+      advice_note_id: rowId(data) || String(existing.id ?? ""),
     };
   }
 
@@ -935,8 +961,14 @@ async function upsertScheduledAdviceNote(
     kind: noteArgs.p_kind,
     period,
     action: "inserted",
-    advice_note_id: String(data?.id ?? ""),
+    advice_note_id: rowId(data),
   };
+}
+
+function rowId(row: unknown): string {
+  if (!row || typeof row !== "object" || !("id" in row)) return "";
+  const id = (row as { id?: unknown }).id;
+  return id == null ? "" : String(id);
 }
 
 async function runScheduledAdvisor(
@@ -1068,7 +1100,7 @@ async function handleAdvisor(req: Request): Promise<Response> {
         requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
         { auth: { persistSession: false, autoRefreshToken: false } },
       );
-      const scheduled = await runScheduledAdvisor(admin, orgId, {
+      const scheduled = await runScheduledAdvisor(admin as unknown as SupabaseClientLike, orgId, {
         ...body,
         as_at_date: isoDate(asAt),
       });
@@ -1086,12 +1118,13 @@ async function handleAdvisor(req: Request): Promise<Response> {
       { global: { headers: { Authorization: authHeader } } },
     );
 
-    const facts = await loadAdvisoryFacts(advisoryFactsClient(client), orgId);
+    const clientLike = client as unknown as SupabaseClientLike;
+    const facts = await loadAdvisoryFacts(advisoryFactsClient(clientLike), orgId);
     const noteArgs = await buildAdviceNoteForMode({
       mode: mode as ScenarioAdvisorMode,
       orgId,
       facts,
-      client,
+      client: clientLike,
       body,
       cgtDisposal,
       asAt,

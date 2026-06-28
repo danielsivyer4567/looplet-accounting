@@ -81,14 +81,15 @@
     "packageJson": {
       "dependencies": [
         "npm:@eslint/js@^9.13.0",
-        "npm:@supabase/supabase-js@^2.45.4",
+        "npm:@supabase/supabase-js@^2.108.2",
         "npm:@testing-library/jest-dom@^6.9.1",
         "npm:@testing-library/react@^16.3.2",
         "npm:@testing-library/user-event@^14.6.1",
+        "npm:@types/node@^26.0.1",
         "npm:@types/react-dom@^18.3.1",
         "npm:@types/react@^18.3.12",
-        "npm:@vitejs/plugin-react@^4.3.3",
-        "npm:@vitest/ui@^2.1.4",
+        "npm:@vitejs/plugin-react@^5.2.0",
+        "npm:@vitest/ui@^4.1.9",
         "npm:eslint-plugin-react-hooks@5",
         "npm:eslint-plugin-react-refresh@~0.4.14",
         "npm:eslint@^9.13.0",
@@ -96,16 +97,25 @@
         "npm:jsdom@^29.1.1",
         "npm:lucide-react@^1.21.0",
         "npm:pdfjs-dist@^4.10.38",
+        "npm:playwright@^1.57.0",
         "npm:prettier@^3.3.3",
         "npm:react-dom@^18.3.1",
-        "npm:react-router-dom@^6.27.0",
+        "npm:react-router-dom@^6.30.4",
         "npm:react@^18.3.1",
-        "npm:supabase@^1.207.9",
+        "npm:supabase@^2.108.0",
         "npm:typescript-eslint@^8.11.0",
         "npm:typescript@^5.6.3",
-        "npm:vite@^5.4.10",
-        "npm:vitest@^2.1.4"
-      ]
+        "npm:vite@^8.1.0",
+        "npm:vitest@^4.1.9"
+      ],
+      "overrides": {
+        "@babel/core": "7.29.7",
+        "minimatch@10.2.5": {
+          "brace-expansion": "5.0.6"
+        },
+        "js-yaml": "4.3.0",
+        "undici": "7.28.0"
+      }
     }
   }
 }

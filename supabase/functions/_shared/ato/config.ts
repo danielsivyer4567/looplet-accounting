@@ -46,6 +46,15 @@ function readTrimmed(
   return value && value.length > 0 ? value : null;
 }
 
+function requiredValue(
+  values: Map<AtoRequiredConfigName, string>,
+  name: AtoRequiredConfigName,
+): string {
+  const value = values.get(name);
+  if (!value) throw new Error(`${name} is required`);
+  return value;
+}
+
 export function readAtoEvteConfig(
   env: EnvReader = Deno.env,
 ): AtoConfigReadResult {
@@ -69,11 +78,11 @@ export function readAtoEvteConfig(
     configured: true,
     missing: [],
     config: {
-      evteEndpoint: values.get("ATO_EVTE_ENDPOINT")!,
-      dspAbn: values.get("ATO_DSP_ABN")!,
-      softwareId: values.get("ATO_SOFTWARE_ID")!,
-      stin: values.get("ATO_STIN")!,
-      m2mKeystoreRef: values.get("ATO_M2M_KEYSTORE_REF")!,
+      evteEndpoint: requiredValue(values, "ATO_EVTE_ENDPOINT"),
+      dspAbn: requiredValue(values, "ATO_DSP_ABN"),
+      softwareId: requiredValue(values, "ATO_SOFTWARE_ID"),
+      stin: requiredValue(values, "ATO_STIN"),
+      m2mKeystoreRef: requiredValue(values, "ATO_M2M_KEYSTORE_REF"),
     },
   };
 }

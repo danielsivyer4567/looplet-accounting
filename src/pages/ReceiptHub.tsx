@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
+import { code128Bars } from '@/lib/code128';
+import {
+  buildPosBridgeEnv,
+  loopletSecretPrefix,
+  receiptWebhookUrlFromSupabaseUrl,
+} from '@/lib/receiptBridgeSetup';
 import { useOrg } from '@/hooks/useOrg';
 import { BrandLogo } from '@/components/BrandLogo';
 import {
@@ -23,12 +29,15 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-type CaptureChannel = 'phone-pass' | 'tag' | 'pos' | 'epost';
+type CaptureChannel = 'phone-pass' | 'tag' | 'pos' | 'eftpos';
 type SyncProvider = 'xero' | 'myob' | 'quickbooks' | 'generic_api';
+type ReceiptEventType = 'sale' | 'refund' | 'void';
 
 interface ReceiptEventRow {
   id: string;
   bill_id: string | null;
+  related_receipt_event_id: string | null;
+  event_type: ReceiptEventType | null;
   merchant_name: string;
   receipt_number: string | null;
   purchase_at: string | null;
@@ -38,6 +47,11 @@ interface ReceiptEventRow {
   deductibility_status: string;
   gst_cents: number | null;
   total_inc_gst_cents: number;
+  payment_method: string | null;
+  payment_last4: string | null;
+  payment_reference: string | null;
+  terminal_id: string | null;
+  store_id: string | null;
 }
 
 interface ReceiptSyncJobRow {
@@ -56,8 +70,16 @@ interface IdentityRpcRow {
   token_prefix: string;
 }
 
+interface ApiKeyRpcRow {
+  id: string;
+  api_key: string;
+  key_prefix: string;
+}
+
 interface SimulatorResult {
   receipt_event_id: string;
+  event_type?: ReceiptEventType;
+  related_receipt_event_id?: string | null;
   bill_id: string | null;
   audit_package_id?: string;
   classification?: {
@@ -103,9 +125,9 @@ const channels: Channel[] = [
     tone: 'var(--accent-warning)',
   },
   {
-    id: 'epost',
-    title: 'E-post machine',
-    detail: 'Email, paper, and upload fallback inbox.',
+    id: 'eftpos',
+    title: 'EFTPOS signal',
+    detail: 'Tender proof only; itemised receipts still come from POS data.',
     icon: RadioTower,
     tone: 'var(--accent-primary)',
   },
@@ -127,6 +149,30 @@ const setupSteps = [
   'Store audit package and queue Xero/MYOB/QuickBooks sync',
 ];
 
+const businessInstallChecks = [
+  'POS webhook/API, vendor plugin, cloud connector, or Looplet bridge installed',
+  'Node.js 20+ for the local bridge, or an equivalent connector runtime',
+  'Outbound HTTPS access to the Looplet Supabase functions endpoint',
+  'Local bridge scheduled task enabled with healthy run logs',
+  'Scoped POS API key with write:receipts stored outside source code',
+  'Stable POS receipt/payment event id used as the Idempotency-Key',
+  'Customer-scanned Looplet identity_token captured on each receipt',
+  'Site manifest records POS merchant_name, identity capture method, completed POS trigger, source format, and field capture method',
+  'Integration profile passes integration-fit.mjs and proves the POS path is not EFTPOS-only',
+  'Final itemised sale/refund/void payloads include GST, subtotal, total, payment reference, and refund/void original sale references',
+];
+
+const pilotEvidenceChecks = [
+  'Run readiness and credential probe without storing a receipt',
+  'Keep pos-integration-profile.json for --fit-profile and archive pos-integration-fit.json as the fit result',
+  'Capture real POS sale, refund, and void field samples from the business',
+  'Run acceptance with duplicate retry, refund/void linking, and negative controls',
+  'Connector mode, receipt source format, and field capture method match before any acceptance send',
+  'Refund and void field samples point back to the sale field sample before any acceptance send',
+  'Run go-live.mjs with --fit-profile pos-integration-profile.json for acceptance plus strict verification with original POS files',
+  'Verifier field-file reconciliation matches redacted and identity-stripped fingerprints',
+];
+
 export function ReceiptHubPage() {
   const { currentOrg } = useOrg();
   const [activeChannel, setActiveChannel] = useState<CaptureChannel>('phone-pass');
@@ -134,10 +180,14 @@ export function ReceiptHubPage() {
   const [events, setEvents] = useState<ReceiptEventRow[]>([]);
   const [syncJobs, setSyncJobs] = useState<ReceiptSyncJobRow[]>([]);
   const [identityToken, setIdentityToken] = useState<string | null>(null);
+  const [bridgeEnv, setBridgeEnv] = useState<string | null>(null);
+  const [bridgeApiKeyPrefix, setBridgeApiKeyPrefix] = useState<string | null>(null);
+  const [bridgeIdentityPrefix, setBridgeIdentityPrefix] = useState<string | null>(null);
   const [simulatorResult, setSimulatorResult] = useState<SimulatorResult | null>(null);
   const [dispatchMessage, setDispatchMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [issuing, setIssuing] = useState(false);
+  const [provisioningBridge, setProvisioningBridge] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const [dispatching, setDispatching] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -167,7 +217,7 @@ export function ReceiptHubPage() {
       supabase
         .from('receipt_events')
         .select(
-          'id,bill_id,merchant_name,receipt_number,purchase_at,source_channel,status,business_use,deductibility_status,gst_cents,total_inc_gst_cents',
+          'id,bill_id,related_receipt_event_id,event_type,merchant_name,receipt_number,purchase_at,source_channel,status,business_use,deductibility_status,gst_cents,total_inc_gst_cents,payment_method,payment_last4,payment_reference,terminal_id,store_id',
         )
         .eq('organization_id', currentOrg.id)
         .order('created_at', { ascending: false })
@@ -235,6 +285,85 @@ export function ReceiptHubPage() {
     return issued.receipt_token;
   }, [activeChannel, channel.title, currentOrg, refreshReceiptHub]);
 
+  const provisionPosBridge = useCallback(async () => {
+    if (!currentOrg) {
+      setError('Pick an organisation before provisioning the POS bridge.');
+      return;
+    }
+
+    setProvisioningBridge(true);
+    setBridgeEnv(null);
+    setBridgeApiKeyPrefix(null);
+    setBridgeIdentityPrefix(null);
+    setError(null);
+
+    try {
+      const identityRes = await supabase.rpc('issue_receipt_identity', {
+        p_organization_id: currentOrg.id,
+        p_label: 'POS receipt bridge',
+        p_channel: 'pos',
+      });
+
+      if (identityRes.error) {
+        const schemaCacheMiss =
+          identityRes.error.message.toLowerCase().includes('schema cache') ||
+          identityRes.error.message.toLowerCase().includes('could not find the function');
+        throw new Error(
+          schemaCacheMiss
+            ? 'Receipt Hub database migrations are not applied yet, or Supabase needs a schema-cache reload for the setup RPCs.'
+            : identityRes.error.message,
+        );
+      }
+
+      const apiKeyRes = await supabase.rpc('issue_api_key', {
+        p_organization_id: currentOrg.id,
+        p_name: 'POS receipt bridge',
+        p_scopes: ['write:receipts'],
+        p_expires_at: null,
+        p_rate_limit_per_min: 120,
+      });
+
+      if (apiKeyRes.error) {
+        const schemaCacheMiss =
+          apiKeyRes.error.message.toLowerCase().includes('schema cache') ||
+          apiKeyRes.error.message.toLowerCase().includes('could not find the function');
+        throw new Error(
+          schemaCacheMiss
+            ? 'Receipt Hub database migrations are not applied yet, or Supabase needs a schema-cache reload for the setup RPCs.'
+            : apiKeyRes.error.message,
+        );
+      }
+
+      const apiKeyRows = Array.isArray(apiKeyRes.data) ? apiKeyRes.data : [apiKeyRes.data];
+      const identityRows = Array.isArray(identityRes.data) ? identityRes.data : [identityRes.data];
+      const apiKey = apiKeyRows[0] as ApiKeyRpcRow | null | undefined;
+      const identity = identityRows[0] as IdentityRpcRow | null | undefined;
+
+      if (!apiKey?.api_key || !apiKey.key_prefix) {
+        throw new Error('POS API key was not returned by the database.');
+      }
+      if (!identity?.receipt_token) {
+        throw new Error('POS receipt identity was not returned by the database.');
+      }
+
+      const env = buildPosBridgeEnv({
+        supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+        apiKey: apiKey.api_key,
+        receiptIdentityToken: identity.receipt_token,
+      });
+
+      setIdentityToken(identity.receipt_token);
+      setBridgeApiKeyPrefix(apiKey.key_prefix);
+      setBridgeIdentityPrefix(identity.token_prefix || loopletSecretPrefix(identity.receipt_token));
+      setBridgeEnv(env);
+      await refreshReceiptHub();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setProvisioningBridge(false);
+    }
+  }, [currentOrg, refreshReceiptHub]);
+
   const [simStage, setSimStage] = useState<
     'idle' | 'tap' | 'pulse' | 'print' | 'fly-to-phone' | 'success-flash' | 'fly-to-app'
   >('idle');
@@ -257,11 +386,9 @@ export function ReceiptHubPage() {
       if (!token) {
         token = await issueIdentity();
         if (!token) {
-          setError(null); // Clear database error to allow smooth local animation demo
+          throw new Error('Receipt identity could not be issued.');
         }
       }
-
-      const activeToken = token ?? 'rhp_mocktoken12345.mocksecret987654321';
 
       const {
         data: { session },
@@ -275,13 +402,17 @@ export function ReceiptHubPage() {
 
       const sourceChannel = activeChannel === 'phone-pass' ? 'pos' : activeChannel;
       const payload = buildDemoReceiptPayload(currentOrg.id);
+      const idempotencyKey = `demo:${payload.receipt.number}`;
+      headers['Idempotency-Key'] = idempotencyKey;
 
       apiPromise = fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/receipt-webhook`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
           organization_id: currentOrg.id,
-          identity_token: activeToken,
+          identity_token: token,
+          idempotency_key: idempotencyKey,
+          event_type: 'sale',
           source_channel: sourceChannel,
           payload,
           sync_targets: ['xero', 'myob', 'quickbooks', 'generic_api'],
@@ -294,28 +425,12 @@ export function ReceiptHubPage() {
           } & SimulatorResult;
           if (!response.ok || !body.ok) throw new Error(body.error ?? 'Receipt webhook failed');
           return body;
-        })
-        .catch((err) => {
-          console.warn('Webhook failed, using mock result for animation demonstration:', err);
-          return {
-            receipt_event_id: 'mock-event-' + Math.random().toString(36).slice(2, 9),
-            bill_id: 'mock-bill-' + Math.random().toString(36).slice(2, 9),
-            classification: {
-              deductibility_status: 'deductible',
-              business_use: 'business',
-            },
-          };
         });
     } catch (err) {
-      console.warn('Simulator initialization error, using mock fallback:', err);
-      apiPromise = Promise.resolve({
-        receipt_event_id: 'mock-event-' + Math.random().toString(36).slice(2, 9),
-        bill_id: 'mock-bill-' + Math.random().toString(36).slice(2, 9),
-        classification: {
-          deductibility_status: 'deductible',
-          business_use: 'business',
-        },
-      });
+      setError(err instanceof Error ? err.message : String(err));
+      setSimStage('idle');
+      setSimulating(false);
+      return;
     }
 
     // Sequence the animation steps
@@ -328,36 +443,16 @@ export function ReceiptHubPage() {
     await new Promise((resolve) => setTimeout(resolve, 1200));
     setSimStage('fly-to-phone');
 
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    setSimStage('success-flash');
-
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    setSimStage('fly-to-app');
-
     try {
+      if (!apiPromise) throw new Error('Receipt webhook was not started.');
       const body = await apiPromise;
+      setSimStage('success-flash');
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      setSimStage('fly-to-app');
       await new Promise((resolve) => setTimeout(resolve, 800));
       if (!body) return;
       setSimulatorResult(body);
-
-      if (body.receipt_event_id.startsWith('mock-event')) {
-        const mockEvent: ReceiptEventRow = {
-          id: body.receipt_event_id,
-          bill_id: body.bill_id,
-          merchant_name: 'Bunnings Trade (Demo)',
-          receipt_number: 'RH-' + Date.now().toString().slice(-4),
-          purchase_at: new Date().toISOString(),
-          source_channel: activeChannel,
-          status: 'processed',
-          business_use: 'business',
-          deductibility_status: 'deductible',
-          gst_cents: 3273,
-          total_inc_gst_cents: 36000,
-        };
-        setEvents((prev) => [mockEvent, ...prev]);
-      } else {
-        await refreshReceiptHub();
-      }
+      await refreshReceiptHub();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -452,10 +547,7 @@ export function ReceiptHubPage() {
             </div>
           ) : null}
           {identityToken ? (
-            <div className="receipt-token-strip">
-              <span>New receipt identity</span>
-              <code>{identityToken}</code>
-            </div>
+            <ReceiptIdentityPass token={identityToken} />
           ) : null}
         </div>
 
@@ -1339,6 +1431,83 @@ export function ReceiptHubPage() {
             </ol>
           )}
         </section>
+
+        <section className="receipt-flow-panel receipt-bridge-setup-panel">
+          <div className="receipt-panel-heading">
+            <KeyRound size={18} style={{ color: 'var(--accent-info)' }} />
+            <div>
+              <span>Business install</span>
+              <h2>POS bridge setup</h2>
+            </div>
+            <button
+              type="button"
+              className="receipt-panel-action receipt-panel-action-info"
+              onClick={() => void provisionPosBridge()}
+              disabled={!currentOrg || provisioningBridge}
+            >
+              {provisioningBridge ? (
+                <Loader2 size={14} className="spin" />
+              ) : (
+                <KeyRound size={14} />
+              )}
+              Generate config
+            </button>
+          </div>
+          <p>
+            Use this when the POS cannot call Looplet directly. It creates the scoped
+            `write:receipts` API key and a fallback/readiness receipt identity token; production
+            POS exports should include the customer's scanned Looplet identity per receipt.
+          </p>
+          <div className="receipt-bridge-endpoint">
+            <span>Webhook endpoint</span>
+            <code>{receiptWebhookUrlFromSupabaseUrl(import.meta.env.VITE_SUPABASE_URL)}</code>
+          </div>
+          <div className="receipt-ops-grid" aria-label="POS pilot readiness">
+            <div className="receipt-ops-panel">
+              <div className="receipt-ops-heading">
+                <Store size={16} />
+                <strong>Business side must have</strong>
+              </div>
+              <ul>
+                {businessInstallChecks.map((check) => (
+                  <li key={check}>{check}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="receipt-ops-panel">
+              <div className="receipt-ops-heading">
+                <FileCheck2 size={16} />
+                <strong>Go-live evidence must prove</strong>
+              </div>
+              <ul>
+                {pilotEvidenceChecks.map((check) => (
+                  <li key={check}>{check}</li>
+                ))}
+              </ul>
+              <p>
+                EFTPOS-only data can confirm payment, but Looplet still needs the POS basket,
+                receipt lines, GST split, and scanned customer identity.
+              </p>
+            </div>
+          </div>
+          {bridgeEnv ? (
+            <div className="receipt-env-panel">
+              <div className="receipt-env-heading">
+                <span>Save once</span>
+                <strong>
+                  Key {bridgeApiKeyPrefix} · Identity {bridgeIdentityPrefix}
+                </strong>
+              </div>
+              <pre>{bridgeEnv}</pre>
+            </div>
+          ) : (
+            <div className="receipt-empty">
+              Generate config after the bridge package is installed on the POS/back-office
+              machine, then save it into the installer-created protected env file. The API
+              secret is only visible immediately after creation.
+            </div>
+          )}
+        </section>
       </div>
 
       <div className="receipt-live-grid">
@@ -1360,23 +1529,41 @@ export function ReceiptHubPage() {
               events.map((event, index) => {
                 const isNew =
                   simulatorResult && index === 0 && event.id === simulatorResult.receipt_event_id;
+                const eventType = event.event_type ?? 'sale';
+                const paymentLabel = paymentDescriptor(event);
+                const provenance = [event.store_id, event.terminal_id].filter(Boolean).join(' · ');
                 return (
-                  <div className={`receipt-table-row ${isNew ? 'is-new' : ''}`} key={event.id}>
+                  <div
+                    className={`receipt-table-row receipt-event-${eventType} ${isNew ? 'is-new' : ''}`}
+                    key={event.id}
+                  >
                     <div>
-                      <strong>{event.merchant_name}</strong>
+                      <strong>
+                        <span className={`receipt-event-chip ${eventType}`}>{eventType}</span>
+                        {event.merchant_name}
+                      </strong>
                       <span>
                         {event.receipt_number ?? event.id.slice(0, 8)} · {event.source_channel}
                       </span>
+                      {event.related_receipt_event_id ? (
+                        <span>Original {event.related_receipt_event_id.slice(0, 8)}</span>
+                      ) : null}
                     </div>
                     <div>
                       <strong>{formatMoney(event.total_inc_gst_cents)}</strong>
                       <span>GST {formatMoney(event.gst_cents)}</span>
+                      {paymentLabel ? <span>{paymentLabel}</span> : null}
                     </div>
                     <div>
-                      <strong>{event.deductibility_status.replaceAll('_', ' ')}</strong>
+                      <strong>{event.status.replaceAll('_', ' ')}</strong>
                       <span>
                         {event.bill_id ? `Bill ${event.bill_id.slice(0, 8)}` : event.business_use}
                       </span>
+                      {event.payment_reference ? <span>Ref {event.payment_reference}</span> : null}
+                      {provenance ? <span>{provenance}</span> : null}
+                      {!event.payment_reference && !provenance ? (
+                        <span>{event.deductibility_status.replaceAll('_', ' ')}</span>
+                      ) : null}
                     </div>
                   </div>
                 );
@@ -1422,6 +1609,7 @@ export function ReceiptHubPage() {
               <FileCheck2 size={16} />
               <span>
                 Event {simulatorResult.receipt_event_id.slice(0, 8)} ·{' '}
+                {simulatorResult.event_type ?? 'sale'} ·{' '}
                 {simulatorResult.classification?.deductibility_status ?? 'classified'} ·{' '}
                 {simulatorResult.sync_jobs?.length ?? 0} sync jobs
               </span>
@@ -1458,6 +1646,43 @@ function providerLabel(provider: SyncProvider) {
   return provider.toUpperCase();
 }
 
+function ReceiptIdentityPass({ token }: { token: string }) {
+  const barcode = useMemo(() => code128Bars(token), [token]);
+
+  return (
+    <div className="receipt-pass-card">
+      <div className="receipt-pass-heading">
+        <span>New receipt identity</span>
+        <strong>Scan this at POS</strong>
+      </div>
+      <svg
+        role="img"
+        aria-label="POS scannable receipt identity barcode"
+        className="receipt-pass-barcode"
+        viewBox={`0 0 ${barcode.width} 72`}
+        preserveAspectRatio="none"
+      >
+        <rect width={barcode.width} height="72" fill="#ffffff" />
+        {barcode.bars.map((bar) => (
+          <rect key={`${bar.x}-${bar.width}`} x={bar.x} y="8" width={bar.width} height="44" />
+        ))}
+      </svg>
+      <code>{token}</code>
+      <small>
+        Cashier scans this Looplet identity before tender; the POS attaches it to the itemised
+        sale/refund/void receipt.
+      </small>
+    </div>
+  );
+}
+
+function paymentDescriptor(event: ReceiptEventRow) {
+  const method = event.payment_method?.trim();
+  const last4 = event.payment_last4?.trim();
+  if (!method && !last4) return null;
+  return [method, last4 ? `**** ${last4}` : null].filter(Boolean).join(' ');
+}
+
 function buildDemoReceiptPayload(orgId: string) {
   const receiptStamp = Date.now().toString().slice(-8);
   return {
@@ -1468,13 +1693,18 @@ function buildDemoReceiptPayload(orgId: string) {
     },
     receipt: {
       number: `RH-${receiptStamp}`,
+      event_type: 'sale',
       purchase_at: new Date().toISOString(),
       currency: 'AUD',
       subtotal_ex_gst_cents: 32727,
       gst_cents: 3273,
       total_inc_gst_cents: 36000,
+      tender_status: 'completed',
       payment_method: 'card',
       payment_last4: '9815',
+      payment_reference: `demo-auth-${receiptStamp}`,
+      terminal_id: 'DEMO-TERM-01',
+      store_id: 'DEMO-STORE-QLD',
       location: {
         store: 'Coomera Trade Desk',
         suburb: 'Coomera',

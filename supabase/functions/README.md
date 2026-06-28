@@ -9,6 +9,8 @@ with `index.ts`. Shared modules live under `_shared/`.
 |---|---|---|
 | `bills-extract` | ✅ wired | OCR an uploaded bill, persist extracted fields |
 | `bills-attach` | 🟡 wired, Xero stub | Attach a bill to a job + push to Xero ACCPAY |
+| `receipt-webhook` | ✅ wired | Structured POS/Receipt Hub receipt ingestion |
+| `receipt-sync-dispatch` | ✅ wired, provider stubs | Dispatch queued receipt sync jobs |
 | `xero-oauth-start` | 🟡 stub | Build the Xero OAuth authorize URL |
 | `xero-oauth-callback` | ❌ not implemented | Token exchange + tenant fetch + encrypted store |
 

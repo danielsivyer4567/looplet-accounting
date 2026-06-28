@@ -1,9 +1,10 @@
 /**
  * receipt-sync-dispatch — processes queued Receipt Hub accounting sync jobs.
  *
- * Xero uses the existing server-side adapter. MYOB, QuickBooks, and generic API
- * jobs are moved to failed with a clear not-configured error until their
- * provider credentials/adapters exist.
+ * Xero uses the existing server-side adapter. Permanent preconditions (missing
+ * job attachment, unconfigured provider adapters) are marked skipped with a
+ * clear operator-facing message; transient provider/API failures stay failed
+ * and receive a retry timestamp.
  */
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
@@ -60,7 +61,9 @@ interface JobForPush {
   name: string;
 }
 
-Deno.serve(async (req) => {
+class PermanentSyncSkip extends Error {}
+
+export async function handleReceiptSyncDispatchRequest(req: Request): Promise<Response> {
   const pre = preflight(req);
   if (pre) return pre;
   if (req.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405);
@@ -111,7 +114,11 @@ Deno.serve(async (req) => {
   }
 
   return json({ ok: true, processed: results.length, results });
-});
+}
+
+if (import.meta.main) {
+  Deno.serve(handleReceiptSyncDispatchRequest);
+}
 
 async function processSyncJob(admin: SupabaseClient, job: ReceiptSyncJob) {
   const attempts = (job.attempts ?? 0) + 1;
@@ -121,10 +128,10 @@ async function processSyncJob(admin: SupabaseClient, job: ReceiptSyncJob) {
     .eq('id', job.id);
 
   try {
-    if (!job.bill_id) throw new Error('No bill was created for this receipt event.');
+    if (!job.bill_id) throw new PermanentSyncSkip('No bill was created for this receipt event.');
 
     if (job.provider !== 'xero') {
-      throw new Error(`${providerLabel(job.provider)} sync adapter is not configured yet.`);
+      throw new PermanentSyncSkip(`${providerLabel(job.provider)} sync adapter is not configured yet.`);
     }
 
     const { data: bill, error: billErr } = await admin
@@ -138,7 +145,7 @@ async function processSyncJob(admin: SupabaseClient, job: ReceiptSyncJob) {
 
     const b = bill as unknown as BillForPush;
     if (!b.job_id) {
-      throw new Error('Job folder is required before Xero sync. Attach the receipt bill to a job first.');
+      throw new PermanentSyncSkip('Job folder is required before Xero sync. Attach the receipt bill to a job first.');
     }
 
     const { data: jobRow, error: jobErr } = await admin
@@ -148,7 +155,7 @@ async function processSyncJob(admin: SupabaseClient, job: ReceiptSyncJob) {
       .eq('organization_id', job.organization_id)
       .maybeSingle();
     if (jobErr) throw new Error(jobErr.message);
-    if (!jobRow) throw new Error('Job folder not found for receipt bill.');
+    if (!jobRow) throw new PermanentSyncSkip('Job folder not found for receipt bill.');
 
     const result = await pushBillToXero({
       admin,
@@ -192,15 +199,18 @@ async function processSyncJob(admin: SupabaseClient, job: ReceiptSyncJob) {
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    const skipped = err instanceof PermanentSyncSkip;
     await admin
       .from('receipt_sync_jobs')
       .update({
-        status: 'failed',
+        status: skipped ? 'skipped' : 'failed',
         last_error: message.slice(0, 500),
-        next_attempt_at: new Date(Date.now() + Math.min(attempts, 12) * 5 * 60_000).toISOString(),
+        next_attempt_at: skipped
+          ? null
+          : new Date(Date.now() + Math.min(attempts, 12) * 5 * 60_000).toISOString(),
       })
       .eq('id', job.id);
-    return { id: job.id, provider: job.provider, status: 'failed', error: message };
+    return { id: job.id, provider: job.provider, status: skipped ? 'skipped' : 'failed', error: message };
   }
 }
 
@@ -211,14 +221,15 @@ function providerLabel(provider: SyncProvider): string {
 
 function isServiceRole(authHeader: string, serviceKey: string): boolean {
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-  if (token === serviceKey) return true;
-  try {
-    const payloadB64 = (token.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/');
-    const payload = JSON.parse(atob(payloadB64 + '='.repeat((4 - payloadB64.length % 4) % 4)));
-    return payload?.role === 'service_role';
-  } catch {
-    return false;
-  }
+  return safeEqual(token, serviceKey);
+}
+
+/** Constant-time string compare; false on length mismatch. */
+function safeEqual(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  let out = 0;
+  for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return out === 0;
 }
 
 function json(body: unknown, status = 200): Response {

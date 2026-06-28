@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Looplet">
+  <rect width="64" height="64" rx="14" fill="#07111f"/>
+  <circle cx="32" cy="32" r="20" fill="none" stroke="#0ea5e9" stroke-width="4"/>
+  <path d="M20 34c9-18 20-18 24 0M20 30c9 18 20 18 24 0" fill="none" stroke="#22c55e" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="32" cy="32" r="4" fill="#facc15"/>
+</svg>

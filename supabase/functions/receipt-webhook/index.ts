@@ -22,8 +22,28 @@ import {
 } from '../_shared/apiKeys.ts';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { requireEnv } from '../_shared/env.ts';
+import {
+  assertReceiptTenderIsFinal,
+  assertReceiptPaymentReferencePresent,
+  assertReceiptIdempotencySourcesConsistent,
+  assertReceiptIsRetrySafe,
+  assertReceiptLinesReliable,
+  assertReceiptOriginalReferencePresent,
+  assertReceiptOriginalReferenceResolved,
+  assertReceiptPayloadSize,
+  buildReceiptIdempotencyKey,
+  isLoopletApiKeyAuthorization,
+  isUniqueViolation,
+  normalizeReceiptPaymentLast4,
+  normalizeReceiptPurchaseAt,
+  normalizeReceiptTaxBreakdown,
+  parseReceiptEventType,
+  parseReceiptSource,
+  ReceiptValidationError,
+  type ReceiptEventType,
+  type ReceiptSource,
+} from './posReliability.ts';
 
-type ReceiptSource = 'phone-pass' | 'tag' | 'pos' | 'epost' | 'email' | 'photo' | 'manual';
 type SyncProvider = 'xero' | 'myob' | 'quickbooks' | 'generic_api';
 
 interface ReceiptLine {
@@ -43,6 +63,12 @@ interface ReceiptPayload {
   };
   receipt?: {
     number?: unknown;
+    idempotency_key?: unknown;
+    external_id?: unknown;
+    external_event_id?: unknown;
+    event_type?: unknown;
+    original_receipt_number?: unknown;
+    original_external_event_id?: unknown;
     purchase_at?: unknown;
     currency?: unknown;
     subtotal_ex_gst_cents?: unknown;
@@ -50,6 +76,10 @@ interface ReceiptPayload {
     total_inc_gst_cents?: unknown;
     payment_method?: unknown;
     payment_last4?: unknown;
+    payment_reference?: unknown;
+    terminal_id?: unknown;
+    store_id?: unknown;
+    tender_status?: unknown;
     location?: unknown;
   };
   classification?: {
@@ -60,15 +90,36 @@ interface ReceiptPayload {
     category?: unknown;
     sync_targets?: unknown;
   };
+  external_event_id?: unknown;
   line_items?: ReceiptLine[];
 }
 
 interface RequestBody {
   organization_id?: string;
   identity_token?: string;
+  idempotency_key?: unknown;
+  event_type?: unknown;
   source_channel?: ReceiptSource;
   payload?: ReceiptPayload;
   sync_targets?: SyncProvider[];
+}
+
+interface ExistingReceipt {
+  id: string;
+  bill_id: string | null;
+  event_type: ReceiptEventType;
+  related_receipt_event_id: string | null;
+  idempotency_key: string | null;
+  merchant_name: string | null;
+  receipt_number: string | null;
+  subtotal_ex_gst_cents: number | null;
+  gst_cents: number | null;
+  total_inc_gst_cents: number | null;
+  payment_reference: string | null;
+  payment_last4: string | null;
+  purchase_at: string | null;
+  terminal_id: string | null;
+  store_id: string | null;
 }
 
 interface ReceiptIdentity {
@@ -80,7 +131,7 @@ interface ReceiptIdentity {
 
 class ValidationError extends Error {}
 
-Deno.serve(async (req) => {
+export async function handleReceiptWebhookRequest(req: Request): Promise<Response> {
   const pre = preflight(req);
   if (pre) return pre;
   if (req.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405);
@@ -97,21 +148,26 @@ Deno.serve(async (req) => {
   if ('response' in auth) return auth.response;
 
   try {
-    const result = await ingestReceipt(admin, auth.organizationId, body);
+    const result = await ingestReceipt(admin, auth.organizationId, body, req);
     await writeLog(admin, auth, 200);
     return json({ ok: true, ...result });
   } catch (err) {
-    const msg = err instanceof ValidationError ? err.message : 'receipt_ingest_failed';
-    if (!(err instanceof ValidationError)) {
+    const validationError = err instanceof ValidationError || err instanceof ReceiptValidationError;
+    const msg = validationError ? err.message : 'receipt_ingest_failed';
+    if (!validationError) {
       console.error('[receipt-webhook] failed', {
         organizationId: auth.organizationId,
         detail: err instanceof Error ? err.message : String(err),
       });
     }
-    await writeLog(admin, auth, err instanceof ValidationError ? 400 : 500);
-    return json({ ok: false, error: msg }, err instanceof ValidationError ? 400 : 500);
+    await writeLog(admin, auth, validationError ? 400 : 500);
+    return json({ ok: false, error: msg }, validationError ? 400 : 500);
   }
-});
+}
+
+if (import.meta.main) {
+  Deno.serve(handleReceiptWebhookRequest);
+}
 
 async function resolveCaller(
   req: Request,
@@ -158,6 +214,22 @@ async function resolveCaller(
     };
   }
 
+  if (isLoopletApiKeyAuthorization(authHeader)) {
+    if (!allowAnonRequest(ip)) return { response: json({ ok: false, error: 'rate_limited' }, 429) };
+    if (shouldLogAnon(ip)) {
+      await logApiRequest(admin, {
+        organizationId: null,
+        apiKeyId: null,
+        keyPrefix: null,
+        endpoint: 'receipt-webhook',
+        method: req.method,
+        ingestType: 'receipt',
+        status: 401,
+      });
+    }
+    return { response: json({ ok: false, error: 'invalid_api_key' }, 401) };
+  }
+
   if (!authHeader) {
     if (!allowAnonRequest(ip)) return { response: json({ ok: false, error: 'rate_limited' }, 429) };
     if (shouldLogAnon(ip)) {
@@ -191,49 +263,121 @@ async function resolveCaller(
   return { mode: 'user_jwt', organizationId: body.organization_id };
 }
 
-async function ingestReceipt(admin: SupabaseClient, organizationId: string, body: RequestBody) {
+async function ingestReceipt(admin: SupabaseClient, organizationId: string, body: RequestBody, req: Request) {
   if (!body.identity_token) throw new ValidationError('identity_token required');
   if (!body.payload) throw new ValidationError('payload required');
 
+  assertReceiptPayloadSize(body.payload, req.headers.get('content-length'));
   const identity = await resolveReceiptIdentity(admin, organizationId, body.identity_token);
   const payload = body.payload;
-  const merchantName = asText(payload.merchant?.name) ?? 'Unknown merchant';
+  stripReceiptIdentitySecrets(payload);
+  const eventType = parseReceiptEventType(body.event_type ?? payload.receipt?.event_type);
+  const sourceChannel = parseReceiptSource(body.source_channel);
+  const merchantNameRaw = asText(payload.merchant?.name);
+  if (sourceChannel === 'pos' && (!merchantNameRaw || merchantNameRaw.length < 2)) {
+    throw new ValidationError('merchant.name required for POS receipt ingestion');
+  }
+  const merchantName = merchantNameRaw ?? 'Unknown merchant';
   if (merchantName.length < 2) throw new ValidationError('merchant.name required');
 
-  const totalCents = asCents(payload.receipt?.total_inc_gst_cents);
-  if (totalCents == null || totalCents <= 0) {
-    throw new ValidationError('receipt.total_inc_gst_cents must be greater than zero');
+  assertReceiptTenderIsFinal(eventType, payload.receipt?.tender_status, {
+    required: sourceChannel === 'pos',
+  });
+  assertReceiptPaymentReferencePresent(payload.receipt?.payment_reference, {
+    required: sourceChannel === 'pos',
+  });
+  const paymentLast4 = normalizeReceiptPaymentLast4(payload.receipt?.payment_last4);
+  if (payload.receipt) {
+    if (paymentLast4) {
+      payload.receipt.payment_last4 = paymentLast4;
+    } else {
+      delete payload.receipt.payment_last4;
+    }
   }
-  const suppliedGst = asCents(payload.receipt?.gst_cents);
-  const suppliedSubtotal = asCents(payload.receipt?.subtotal_ex_gst_cents);
-  const gstCents = suppliedGst ?? (suppliedSubtotal != null ? Math.max(totalCents - suppliedSubtotal, 0) : Math.round(totalCents / 11));
-  const subtotalCents = suppliedSubtotal ?? Math.max(totalCents - gstCents, 0);
-  const gstEstimated = suppliedGst == null;
-  const purchaseAt = asIsoDate(payload.receipt?.purchase_at) ?? new Date().toISOString();
+  const totalCents = asCents(payload.receipt?.total_inc_gst_cents);
+  if (totalCents == null || totalCents < 0 || (eventType !== 'void' && totalCents === 0)) {
+    throw new ValidationError(
+      eventType === 'void'
+        ? 'receipt.total_inc_gst_cents must be zero or greater'
+        : 'receipt.total_inc_gst_cents must be greater than zero',
+    );
+  }
+  const { gstCents, subtotalCents, gstEstimated } = normalizeReceiptTaxBreakdown(
+    totalCents,
+    payload.receipt?.gst_cents,
+    payload.receipt?.subtotal_ex_gst_cents,
+    { requireBothSupplied: sourceChannel === 'pos' },
+  );
+  const purchaseAt = normalizeReceiptPurchaseAt(payload.receipt?.purchase_at, {
+    required: sourceChannel === 'pos',
+  }) ?? new Date().toISOString();
+  if (payload.receipt) payload.receipt.purchase_at = purchaseAt;
   const receiptNumber = asText(payload.receipt?.number);
-  const sourceChannel = body.source_channel ?? 'pos';
+  assertReceiptIdempotencySourcesConsistent(req.headers.get('idempotency-key'), body.idempotency_key, payload);
+  const idempotencyKey = buildReceiptIdempotencyKey({
+    headerValue: req.headers.get('idempotency-key'),
+    bodyValue: body.idempotency_key,
+    payload,
+    merchantName,
+    receiptNumber,
+    eventType,
+  });
+  assertReceiptIsRetrySafe(idempotencyKey);
+  assertReceiptLinesReliable(payload.line_items, totalCents, {
+    requireItemised: sourceChannel === 'pos',
+    requireLineGst: sourceChannel === 'pos',
+    expectedGstCents: gstCents,
+  });
   const classification = classifyReceipt(payload, merchantName, totalCents);
   const job = await resolveJob(admin, organizationId, classification.jobId, classification.jobReference);
+  const originalReceiptNumber = asText(payload.receipt?.original_receipt_number);
+  const originalExternalEventId = asText(payload.receipt?.original_external_event_id);
+  assertReceiptOriginalReferencePresent(eventType, originalReceiptNumber, originalExternalEventId, {
+    required: sourceChannel === 'pos',
+  });
+  const relatedReceipt = await findRelatedReceipt(admin, {
+    organizationId,
+    merchantName,
+    originalReceiptNumber,
+    originalExternalEventId,
+  });
+  assertReceiptOriginalReferenceResolved(eventType, Boolean(relatedReceipt), {
+    required: sourceChannel === 'pos',
+  });
 
-  if (receiptNumber) {
-    const { data: existing } = await admin
-      .from('receipt_events')
-      .select('id, bill_id')
-      .eq('organization_id', organizationId)
-      .eq('merchant_name', merchantName)
-      .eq('receipt_number', receiptNumber)
-      .maybeSingle();
-    if (existing) {
-      await markIdentityUsed(admin, identity.id);
-      return { duplicate: true, receipt_event_id: existing.id, bill_id: existing.bill_id ?? null };
-    }
+  const existing = await findExistingReceipt(admin, {
+    organizationId,
+    sourceChannel,
+    eventType,
+    idempotencyKey,
+    merchantName,
+    receiptNumber,
+  });
+  if (existing) {
+    assertExistingReceiptMatchesRetry(existing, {
+      idempotencyKey,
+      merchantName,
+      receiptNumber,
+      subtotalCents,
+      gstCents,
+      totalCents,
+      paymentReference: asText(payload.receipt?.payment_reference),
+      paymentLast4,
+      purchaseAt,
+      terminalId: asText(payload.receipt?.terminal_id),
+      storeId: asText(payload.receipt?.store_id),
+    });
+    return existingReceiptResult(admin, identity.id, existing);
   }
 
   const eventInsert = {
     organization_id: organizationId,
     receipt_identity_id: identity.id,
+    idempotency_key: idempotencyKey,
+    event_type: eventType,
+    related_receipt_event_id: relatedReceipt?.id ?? null,
     source_channel: sourceChannel,
-    status: classification.businessUse === 'personal' ? 'personal' : 'received',
+    status: initialReceiptStatus(eventType, classification.businessUse),
     merchant_name: merchantName,
     merchant_abn: asText(payload.merchant?.abn),
     merchant_external_id: asText(payload.merchant?.external_id),
@@ -245,7 +389,10 @@ async function ingestReceipt(admin: SupabaseClient, organizationId: string, body
     total_inc_gst_cents: totalCents,
     currency_code: asCurrency(payload.receipt?.currency),
     payment_method: asText(payload.receipt?.payment_method),
-    payment_last4: asText(payload.receipt?.payment_last4),
+    payment_last4: paymentLast4,
+    payment_reference: asText(payload.receipt?.payment_reference),
+    terminal_id: asText(payload.receipt?.terminal_id),
+    store_id: asText(payload.receipt?.store_id),
     business_use: classification.businessUse,
     deductibility_status: classification.deductibility,
     job_reference_raw: classification.jobReference,
@@ -260,76 +407,330 @@ async function ingestReceipt(admin: SupabaseClient, organizationId: string, body
   const { data: receiptEvent, error: eventErr } = await admin
     .from('receipt_events')
     .insert(eventInsert)
-    .select('id')
+    .select('id, bill_id')
     .single();
-  if (eventErr || !receiptEvent) throw new Error(eventErr?.message ?? 'receipt event insert failed');
-
-  const eventId = receiptEvent.id as string;
-  const lineItems = normalizeLines(payload.line_items, totalCents, gstCents, classification.category);
-  await insertReceiptLines(admin, organizationId, eventId, lineItems);
-
-  let billId: string | null = null;
-  if (classification.businessUse !== 'personal') {
-    billId = await createBillFromReceipt(admin, {
-      organizationId,
-      eventId,
-      jobId: job?.id ?? null,
-      merchantName,
-      merchantAbn: asText(payload.merchant?.abn),
-      receiptNumber,
-      purchaseAt,
-      totalCents,
-      gstCents,
-      subtotalCents,
-      gstEstimated,
-      currency: asCurrency(payload.receipt?.currency),
-      jobReference: classification.jobReference,
-      payload,
-      sourceChannel,
-      lineItems,
-    });
+  if (eventErr || !receiptEvent) {
+    if (isUniqueViolation(eventErr)) {
+      const duplicate = await findExistingReceipt(admin, {
+        organizationId,
+        sourceChannel,
+        eventType,
+        idempotencyKey,
+        merchantName,
+        receiptNumber,
+      });
+      if (duplicate) {
+        assertExistingReceiptMatchesRetry(duplicate, {
+          idempotencyKey,
+          merchantName,
+          receiptNumber,
+          subtotalCents,
+          gstCents,
+          totalCents,
+          paymentReference: asText(payload.receipt?.payment_reference),
+          paymentLast4,
+          purchaseAt,
+          terminalId: asText(payload.receipt?.terminal_id),
+          storeId: asText(payload.receipt?.store_id),
+        });
+        return existingReceiptResult(admin, identity.id, duplicate);
+      }
+    }
+    throw new Error(eventErr?.message ?? 'receipt event insert failed');
   }
 
-  const auditPackageId = await createAuditPackage(admin, {
-    organizationId,
-    eventId,
-    billId,
-    storageKey: `receipt-hub/${organizationId}/${eventId}.json`,
-    payload,
-    classification,
-    gstEstimated,
-    sourceChannel,
-  });
-  const syncJobs = await queueSyncJobs(admin, {
-    organizationId,
-    eventId,
-    billId,
-    targets: syncTargets(body, payload),
-    payload,
-  });
+  const eventId = receiptEvent.id as string;
+  let billId: string | null = null;
+  try {
+    const lineItems = normalizeLines(payload.line_items, totalCents, gstCents, classification.category);
+    await insertReceiptLines(admin, organizationId, eventId, lineItems);
 
-  await admin.from('receipt_events').update({
-    bill_id: billId,
-    job_id: job?.id ?? null,
-    status: classification.businessUse === 'personal' ? 'personal' : classification.deductibility === 'requires_review' ? 'flagged' : 'processed',
-  }).eq('id', eventId);
-  await markIdentityUsed(admin, identity.id);
+    if (eventType === 'sale' && classification.businessUse !== 'personal') {
+      billId = await createBillFromReceipt(admin, {
+        organizationId,
+        eventId,
+        jobId: job?.id ?? null,
+        merchantName,
+        merchantAbn: asText(payload.merchant?.abn),
+        receiptNumber,
+        purchaseAt,
+        totalCents,
+        gstCents,
+        subtotalCents,
+        gstEstimated,
+        currency: asCurrency(payload.receipt?.currency),
+        jobReference: classification.jobReference,
+        payload,
+        sourceChannel,
+        lineItems,
+      });
+    }
 
-  return {
-    duplicate: false,
-    receipt_event_id: eventId,
-    bill_id: billId,
-    audit_package_id: auditPackageId,
-    sync_jobs: syncJobs,
-    classification: {
-      business_use: classification.businessUse,
-      deductibility_status: classification.deductibility,
+    const auditPackageId = await createAuditPackage(admin, {
+      organizationId,
+      eventId,
+      billId,
+      storageKey: `receipt-hub/${organizationId}/${eventId}.json`,
+      payload,
+      classification,
+      gstEstimated,
+      sourceChannel,
+      eventType,
+      relatedReceiptEventId: relatedReceipt?.id ?? null,
+    });
+    const syncJobs = await queueSyncJobs(admin, {
+      organizationId,
+      eventId,
+      billId,
+      targets: eventType === 'sale' ? syncTargets(body, payload) : [],
+      payload,
+    });
+
+    const { error: updateErr } = await admin.from('receipt_events').update({
+      bill_id: billId,
       job_id: job?.id ?? null,
-      job_reference: classification.jobReference,
-      gst_estimated: gstEstimated,
-      reason: classification.reason,
-    },
+      status: finalReceiptStatus(eventType, classification.businessUse, classification.deductibility),
+    }).eq('id', eventId);
+    if (updateErr) throw new Error(updateErr.message);
+
+    await markIdentityUsed(admin, identity.id);
+
+    return {
+      duplicate: false,
+      event_type: eventType,
+      receipt_event_id: eventId,
+      related_receipt_event_id: relatedReceipt?.id ?? null,
+      bill_id: billId,
+      audit_package_id: auditPackageId,
+      sync_jobs: syncJobs,
+      classification: {
+        business_use: classification.businessUse,
+        deductibility_status: classification.deductibility,
+        job_id: job?.id ?? null,
+        job_reference: classification.jobReference,
+        gst_estimated: gstEstimated,
+        reason: classification.reason,
+      },
+    };
+  } catch (error) {
+    await cleanupFailedReceiptIngest(admin, { organizationId, eventId, billId });
+    throw error;
+  }
+}
+
+async function findExistingReceipt(
+  admin: SupabaseClient,
+  args: {
+    organizationId: string;
+    sourceChannel: ReceiptSource;
+    eventType: ReceiptEventType;
+    idempotencyKey: string;
+    merchantName: string;
+    receiptNumber: string | null;
+  },
+): Promise<ExistingReceipt | null> {
+  const { data: byKey } = await admin
+    .from('receipt_events')
+    .select('id, bill_id, event_type, related_receipt_event_id, idempotency_key, merchant_name, receipt_number, subtotal_ex_gst_cents, gst_cents, total_inc_gst_cents, payment_reference, payment_last4, purchase_at, terminal_id, store_id')
+    .eq('organization_id', args.organizationId)
+    .eq('source_channel', args.sourceChannel)
+    .eq('event_type', args.eventType)
+    .eq('idempotency_key', args.idempotencyKey)
+    .maybeSingle();
+  if (byKey) return byKey as ExistingReceipt;
+
+  if (!args.receiptNumber) return null;
+  const { data: byReceiptNumber } = await admin
+    .from('receipt_events')
+    .select('id, bill_id, event_type, related_receipt_event_id, idempotency_key, merchant_name, receipt_number, subtotal_ex_gst_cents, gst_cents, total_inc_gst_cents, payment_reference, payment_last4, purchase_at, terminal_id, store_id')
+    .eq('organization_id', args.organizationId)
+    .eq('source_channel', args.sourceChannel)
+    .eq('event_type', args.eventType)
+    .eq('merchant_name', args.merchantName)
+    .eq('receipt_number', args.receiptNumber)
+    .maybeSingle();
+  return (byReceiptNumber as ExistingReceipt | null) ?? null;
+}
+
+function assertExistingReceiptMatchesRetry(
+  receipt: ExistingReceipt,
+  expected: {
+    idempotencyKey: string;
+    merchantName: string;
+    receiptNumber: string | null;
+    subtotalCents: number;
+    gstCents: number;
+    totalCents: number;
+    paymentReference: string | null;
+    paymentLast4: string | null;
+    purchaseAt: string;
+    terminalId: string | null;
+    storeId: string | null;
+  },
+) {
+  const mismatches: string[] = [];
+  if (receipt.idempotency_key && receipt.idempotency_key !== expected.idempotencyKey) {
+    mismatches.push('idempotency_key');
+  }
+  if (receipt.merchant_name && receipt.merchant_name !== expected.merchantName) {
+    mismatches.push('merchant.name');
+  }
+  if (receipt.receipt_number && expected.receiptNumber && receipt.receipt_number !== expected.receiptNumber) {
+    mismatches.push('receipt.number');
+  }
+  if (receipt.subtotal_ex_gst_cents != null && Number(receipt.subtotal_ex_gst_cents) !== expected.subtotalCents) {
+    mismatches.push('receipt.subtotal_ex_gst_cents');
+  }
+  if (receipt.gst_cents != null && Number(receipt.gst_cents) !== expected.gstCents) {
+    mismatches.push('receipt.gst_cents');
+  }
+  if (Number(receipt.total_inc_gst_cents) !== expected.totalCents) {
+    mismatches.push('receipt.total_inc_gst_cents');
+  }
+  if (receipt.payment_reference && expected.paymentReference && receipt.payment_reference !== expected.paymentReference) {
+    mismatches.push('receipt.payment_reference');
+  }
+  if (receipt.payment_last4 && expected.paymentLast4 && receipt.payment_last4 !== expected.paymentLast4) {
+    mismatches.push('receipt.payment_last4');
+  }
+  if (receipt.purchase_at && toIsoDate(receipt.purchase_at) !== expected.purchaseAt) {
+    mismatches.push('receipt.purchase_at');
+  }
+  if (receipt.terminal_id && expected.terminalId && receipt.terminal_id !== expected.terminalId) {
+    mismatches.push('receipt.terminal_id');
+  }
+  if (receipt.store_id && expected.storeId && receipt.store_id !== expected.storeId) {
+    mismatches.push('receipt.store_id');
+  }
+  if (mismatches.length > 0) {
+    throw new ValidationError(
+      `idempotency key reused with different receipt payload fields: ${mismatches.join(', ')}`,
+    );
+  }
+}
+
+async function findRelatedReceipt(
+  admin: SupabaseClient,
+  args: {
+    organizationId: string;
+    merchantName: string;
+    originalReceiptNumber: string | null;
+    originalExternalEventId: string | null;
+  },
+): Promise<{ id: string; bill_id: string | null } | null> {
+  if (args.originalExternalEventId) {
+    const { data } = await admin
+      .from('receipt_events')
+      .select('id, bill_id')
+      .eq('organization_id', args.organizationId)
+      .eq('event_type', 'sale')
+      .eq('idempotency_key', `explicit:${args.originalExternalEventId}`)
+      .maybeSingle();
+    if (data) return data as { id: string; bill_id: string | null };
+  }
+
+  if (!args.originalReceiptNumber) return null;
+  const { data } = await admin
+    .from('receipt_events')
+    .select('id, bill_id')
+    .eq('organization_id', args.organizationId)
+    .eq('event_type', 'sale')
+    .eq('merchant_name', args.merchantName)
+    .eq('receipt_number', args.originalReceiptNumber)
+    .maybeSingle();
+  return (data as { id: string; bill_id: string | null } | null) ?? null;
+}
+
+async function existingReceiptResult(
+  admin: SupabaseClient,
+  identityId: string,
+  receipt: ExistingReceipt,
+) {
+  await assertExistingReceiptComplete(admin, receipt);
+  const { data: syncJobs } = await admin
+    .from('receipt_sync_jobs')
+    .select('id, provider, status')
+    .eq('receipt_event_id', receipt.id)
+    .order('created_at', { ascending: true });
+
+  await markIdentityUsed(admin, identityId);
+  return {
+    duplicate: true,
+    event_type: receipt.event_type,
+    receipt_event_id: receipt.id,
+    related_receipt_event_id: receipt.related_receipt_event_id,
+    bill_id: receipt.bill_id,
+    sync_jobs: syncJobs ?? [],
   };
+}
+
+async function assertExistingReceiptComplete(admin: SupabaseClient, receipt: ExistingReceipt) {
+  const [lineCount, auditPackageCount] = await Promise.all([
+    countRows(admin, 'receipt_event_line_items', 'receipt_event_id', receipt.id),
+    countRows(admin, 'receipt_audit_packages', 'receipt_event_id', receipt.id),
+  ]);
+  const missing: string[] = [];
+  if (lineCount < 1) missing.push('receipt_event_line_items');
+  if (auditPackageCount < 1) missing.push('receipt_audit_packages');
+  if (missing.length > 0) {
+    throw new Error(`duplicate receipt retry found incomplete prior write: missing ${missing.join(', ')}`);
+  }
+}
+
+async function countRows(admin: SupabaseClient, table: string, column: string, value: string): Promise<number> {
+  const { count, error } = await admin
+    .from(table)
+    .select('id', { count: 'exact', head: true })
+    .eq(column, value);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+async function cleanupFailedReceiptIngest(
+  admin: SupabaseClient,
+  args: { organizationId: string; eventId: string; billId: string | null },
+) {
+  const failures: string[] = [];
+  for (const table of ['receipt_sync_jobs', 'receipt_audit_packages', 'receipt_event_line_items']) {
+    const { error } = await admin
+      .from(table)
+      .delete()
+      .eq('organization_id', args.organizationId)
+      .eq('receipt_event_id', args.eventId);
+    if (error) failures.push(`${table}: ${error.message}`);
+  }
+
+  const { error: eventErr } = await admin
+    .from('receipt_events')
+    .delete()
+    .eq('organization_id', args.organizationId)
+    .eq('id', args.eventId);
+  if (eventErr) failures.push(`receipt_events: ${eventErr.message}`);
+
+  if (args.billId) {
+    const { error: billLinesErr } = await admin
+      .from('bill_line_items')
+      .delete()
+      .eq('organization_id', args.organizationId)
+      .eq('bill_id', args.billId);
+    if (billLinesErr) failures.push(`bill_line_items: ${billLinesErr.message}`);
+
+    const { error: billErr } = await admin
+      .from('bills')
+      .delete()
+      .eq('organization_id', args.organizationId)
+      .eq('id', args.billId);
+    if (billErr) failures.push(`bills: ${billErr.message}`);
+  }
+
+  if (failures.length > 0) {
+    console.error('[receipt-webhook] failed to clean up incomplete receipt ingest', {
+      organizationId: args.organizationId,
+      eventId: args.eventId,
+      billId: args.billId,
+      failures,
+    });
+  }
 }
 
 async function resolveReceiptIdentity(admin: SupabaseClient, organizationId: string, token: string): Promise<ReceiptIdentity> {
@@ -387,6 +788,26 @@ function classifyReceipt(payload: ReceiptPayload, merchantName: string, totalCen
   }
 
   return { businessUse, deductibility, jobReference, jobId, category, reason };
+}
+
+function initialReceiptStatus(
+  eventType: ReceiptEventType,
+  businessUse: 'business' | 'personal' | 'mixed' | 'review',
+): 'received' | 'personal' | 'refunded' | 'voided' {
+  if (eventType === 'refund') return 'refunded';
+  if (eventType === 'void') return 'voided';
+  return businessUse === 'personal' ? 'personal' : 'received';
+}
+
+function finalReceiptStatus(
+  eventType: ReceiptEventType,
+  businessUse: 'business' | 'personal' | 'mixed' | 'review',
+  deductibility: 'deductible' | 'non_deductible' | 'requires_review' | 'personal',
+): 'processed' | 'flagged' | 'personal' | 'refunded' | 'voided' {
+  if (eventType === 'refund') return 'refunded';
+  if (eventType === 'void') return 'voided';
+  if (businessUse === 'personal') return 'personal';
+  return deductibility === 'requires_review' ? 'flagged' : 'processed';
 }
 
 async function resolveJob(admin: SupabaseClient, organizationId: string, explicitJobId: string | null, jobReference: string | null) {
@@ -512,6 +933,8 @@ async function createAuditPackage(admin: SupabaseClient, args: {
   classification: ReturnType<typeof classifyReceipt>;
   gstEstimated: boolean;
   sourceChannel: ReceiptSource;
+  eventType: ReceiptEventType;
+  relatedReceiptEventId: string | null;
 }) {
   const { data, error } = await admin
     .from('receipt_audit_packages')
@@ -522,6 +945,8 @@ async function createAuditPackage(admin: SupabaseClient, args: {
       storage_key: args.storageKey,
       evidence: {
         source_channel: args.sourceChannel,
+        event_type: args.eventType,
+        related_receipt_event_id: args.relatedReceiptEventId,
         merchant: args.payload.merchant ?? {},
         receipt: args.payload.receipt ?? {},
         line_count: Array.isArray(args.payload.line_items) ? args.payload.line_items.length : 0,
@@ -533,7 +958,14 @@ async function createAuditPackage(admin: SupabaseClient, args: {
           { title: 'GST', detail: args.gstEstimated ? 'GST was estimated from total using AU 1/11 rule.' : 'GST was supplied by POS payload.' },
           { title: 'Business use', detail: args.classification.businessUse },
           { title: 'Deductibility', detail: args.classification.deductibility },
-          { title: 'Next sync', detail: args.billId ? 'Bill created and sync jobs queued.' : 'Stored as personal/review evidence.' },
+          {
+            title: 'Next sync',
+            detail: args.billId
+              ? 'Bill created and sync jobs queued.'
+              : args.eventType === 'sale'
+                ? 'Stored as personal/review evidence.'
+                : 'Stored as refund/void evidence; accounting credit handling is a separate workflow.',
+          },
         ],
       },
       gst_status: args.gstEstimated ? 'estimated' : 'supplied',
@@ -617,13 +1049,14 @@ function normalizeLines(lines: ReceiptLine[] | undefined, totalCents: number, gs
     }];
   }
   return lines.map((line, index) => {
-    const lineTotal = asCents(line.total_inc_gst_cents) ?? 0;
     const quantity = asNumber(line.quantity) ?? 1;
+    const unitPrice = asCents(line.unit_price_cents);
+    const lineTotal = asCents(line.total_inc_gst_cents) ?? (unitPrice != null ? Math.round(quantity * unitPrice) : 0);
     return {
       lineNumber: index + 1,
       description: asText(line.description) ?? `Receipt line ${index + 1}`,
       quantity,
-      unitPriceCents: asCents(line.unit_price_cents) ?? (quantity > 0 ? Math.round(lineTotal / quantity) : lineTotal),
+      unitPriceCents: unitPrice ?? (quantity > 0 ? Math.round(lineTotal / quantity) : lineTotal),
       totalIncGstCents: lineTotal,
       gstCents: asCents(line.gst_cents) ?? Math.round(lineTotal / 11),
       category: asText(line.category) ?? category,
@@ -667,7 +1100,7 @@ function asNumber(value: unknown): number | null {
 
 function asCents(value: unknown): number | null {
   const n = asNumber(value);
-  return n == null ? null : Math.round(n);
+  return n != null && Number.isInteger(n) ? n : null;
 }
 
 function asCurrency(value: unknown): string {
@@ -679,15 +1112,24 @@ function asObject(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
-function asIsoDate(value: unknown): string | null {
-  const text = asText(value);
-  if (!text) return null;
-  const date = new Date(text);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+function stripReceiptIdentitySecrets(payload: ReceiptPayload): void {
+  if (payload.receipt && typeof payload.receipt === 'object' && !Array.isArray(payload.receipt)) {
+    delete (payload.receipt as Record<string, unknown>).identity_token;
+  }
+  const payloadRecord = payload as Record<string, unknown>;
+  const customer = payloadRecord.customer;
+  if (customer && typeof customer === 'object' && !Array.isArray(customer)) {
+    delete (customer as Record<string, unknown>).looplet_identity_token;
+  }
 }
 
 function escapePostgrestValue(value: string): string {
   return value.replace(/[(),]/g, ' ').trim();
+}
+
+function toIsoDate(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toISOString();
 }
 
 function json(body: unknown, status = 200): Response {

@@ -1,0 +1,50 @@
+{
+  "event_type": "sale",
+  "idempotency_key": "pos-payment-evt-100042",
+  "source_channel": "pos",
+  "payload": {
+    "merchant": {
+      "name": "Bunnings Trade",
+      "abn": "12123456789",
+      "external_id": "store-017"
+    },
+    "receipt": {
+      "number": "POS-2026-0001",
+      "event_type": "sale",
+      "external_event_id": "pos-payment-evt-100042",
+      "purchase_at": "2026-06-28T03:00:00Z",
+      "currency": "AUD",
+      "subtotal_ex_gst_cents": 32727,
+      "gst_cents": 3273,
+      "total_inc_gst_cents": 36000,
+      "tender_status": "completed",
+      "payment_method": "card",
+      "payment_last4": "1234",
+      "payment_reference": "eftpos-auth-777331",
+      "terminal_id": "TERM-04",
+      "store_id": "STORE-017"
+    },
+    "classification": {
+      "business_use": "business",
+      "deductibility": "deductible",
+      "job_reference": "JOB-1042",
+      "sync_targets": ["xero", "myob"]
+    },
+    "line_items": [
+      {
+        "description": "Timber",
+        "quantity": 2,
+        "unit_price_cents": 15000,
+        "total_inc_gst_cents": 30000,
+        "gst_cents": 2727
+      },
+      {
+        "description": "Fasteners",
+        "quantity": 1,
+        "unit_price_cents": 6000,
+        "total_inc_gst_cents": 6000,
+        "gst_cents": 546
+      }
+    ]
+  }
+}

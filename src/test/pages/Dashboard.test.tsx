@@ -141,7 +141,8 @@ describe('Dashboard advice cards', () => {
 
     const firstOpenButton = screen.getAllByRole('button', { name: /open/i })[0];
     expect(firstOpenButton).toBeDefined();
-    fireEvent.click(firstOpenButton!);
+    if (!firstOpenButton) throw new Error('Expected an advice-card open button');
+    fireEvent.click(firstOpenButton);
     expect(screen.getByRole('heading', { name: 'Year-end planning levers' })).toBeInTheDocument();
     expect(screen.getByText('General information only.')).toBeInTheDocument();
   });

@@ -127,6 +127,7 @@ interface QueryChain {
 
 export const supabase = {
   from: vi.fn(() => makeBuilder()),
+  rpc: vi.fn(() => Promise.resolve(_pendingResponse)),
 
   auth: {
     getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),

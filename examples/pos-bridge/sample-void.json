@@ -1,0 +1,44 @@
+{
+  "event_type": "void",
+  "idempotency_key": "pos-void-evt-100044",
+  "source_channel": "pos",
+  "payload": {
+    "merchant": {
+      "name": "Bunnings Trade",
+      "abn": "12123456789",
+      "external_id": "store-017"
+    },
+    "receipt": {
+      "number": "POS-2026-0001-V",
+      "event_type": "void",
+      "external_event_id": "pos-void-evt-100044",
+      "original_receipt_number": "POS-2026-0001",
+      "original_external_event_id": "pos-payment-evt-100042",
+      "purchase_at": "2026-06-28T03:25:00Z",
+      "currency": "AUD",
+      "subtotal_ex_gst_cents": 0,
+      "gst_cents": 0,
+      "total_inc_gst_cents": 0,
+      "tender_status": "voided",
+      "payment_method": "card",
+      "payment_last4": "1234",
+      "payment_reference": "eftpos-void-777333",
+      "terminal_id": "TERM-04",
+      "store_id": "STORE-017"
+    },
+    "classification": {
+      "business_use": "business",
+      "deductibility": "requires_review",
+      "job_reference": "JOB-1042"
+    },
+    "line_items": [
+      {
+        "description": "Sale voided before settlement",
+        "quantity": 0,
+        "unit_price_cents": 0,
+        "total_inc_gst_cents": 0,
+        "gst_cents": 0
+      }
+    ]
+  }
+}

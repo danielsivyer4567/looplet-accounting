@@ -1,0 +1,34 @@
+{
+  "business_name": "Example Trade Pty Ltd",
+  "pos_vendor": "Example POS",
+  "pos_product": "Example POS Back Office",
+  "capabilities": {
+    "identity_capture_methods": ["barcode_scan", "qr_scan"],
+    "receipt_triggers": ["pos_completed_tender"],
+    "custom_webhooks": false,
+    "custom_headers": false,
+    "json_body_mapping": false,
+    "json_export": true,
+    "csv_export": false,
+    "pos_plugin_sdk": false,
+    "vendor_cloud_events": false,
+    "vendor_api_polling": false,
+    "custom_middleware_available": false,
+    "middleware_can_store_secrets": false,
+    "middleware_outbound_https": false,
+    "itemised_lines": true,
+    "gst_breakdown": true,
+    "integer_cents": true,
+    "stable_event_id": true,
+    "payment_reference": true,
+    "refund_void_events": true,
+    "refund_void_original_reference": true,
+    "eftpos_only": false,
+    "bridge_machine": {
+      "available": true,
+      "node20_or_plugin_runtime": true,
+      "outbound_https": true,
+      "protected_secret_store": true
+    }
+  }
+}

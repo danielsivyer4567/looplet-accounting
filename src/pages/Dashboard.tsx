@@ -286,6 +286,7 @@ function AdviceCardsSection({
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function orderAdviceNotesForSeason(
   notes: AdviceNote[],
   obligations: TaxObligation[],
