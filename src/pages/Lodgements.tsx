@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { FileCheck2, RefreshCw } from 'lucide-react';
 import { SkeletonTable } from '@/components/Skeleton';
+import { LodgeReadinessChecklist } from '@/components/lodge/LodgeReadinessChecklist';
 import { useLodgements, type LodgementRow, type LodgementStatus } from '@/hooks/useLodgements';
 
 const MUTED = 'var(--text-muted)';
@@ -157,6 +158,8 @@ export function LodgementsPage() {
           Refresh
         </button>
       </div>
+
+      <LodgeReadinessChecklist />
 
       <div
         style={{
