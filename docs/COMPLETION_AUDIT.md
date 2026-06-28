@@ -31,10 +31,11 @@ scorecard. Current wrap-up evidence changes these conclusions:
   data/integration setup plus a real signed-in test JWT/org.
 - **Legal RAG / Horizon:** schema and edge-function surfaces are live, including
   legal corpus/reference tables, advice-note RPCs, `legal-horizon-run`, and
-  hardened legal table grants. The corpus now has two live-proven official FRL
-  sources, the FBT Act and GST Act, with embeddings and search proof; Legal
-  Horizon still needs a real scanner run with valid scanner secret, and Ask
-  still needs a signed-in proof that a real answer returns corpus `citations[]`.
+  hardened legal table grants. The corpus now has four live-proven official FRL
+  sources, the FBT Act, GST Act, SIS Act, and ITAA 1936, with embeddings and
+  search proof; Legal Horizon still needs a real scanner run with valid scanner
+  secret, and Ask still needs a signed-in proof that a real answer returns
+  corpus `citations[]`.
 - **Legal RAG seed proof:** a fresh source-material/secret check on 2026-06-29
   found no local NotebookLM/legal source text bundle. The linked project now has
   `OPENAI_API_KEY` and `LEGAL_SYNC_SECRET` configured, but still does not have
@@ -44,14 +45,15 @@ scorecard. Current wrap-up evidence changes these conclusions:
   sections noise, and extracts compilation-date/version metadata; a local
   live-source proof against the current ITAA 1997 FRL page produced 5,956
   chunks and found `s 8-1 General deductions`. The updated bundle is deployed as
-  `legal-corpus-sync` version 16 with resumable `chunk_offset`/`chunk_limit`
+  `legal-corpus-sync` version 17 with resumable `chunk_offset`/`chunk_limit`
   processing for large Acts. The live FBT sync returned HTTP 200 with
   `chunks=391`, `inserted=385`, `unchanged=6`, and all 391 current FBT corpus
   rows have embeddings. The live GST sync completed across 14 windows:
   `processed=1042`, `inserted=365`, `unchanged=677`, with all 1,042 current GST
-  corpus rows embedded. `match_legal_corpus` returned `s 47 [1] Exempt residual
-benefits` at similarity `1.0000` for FBT and `s 9-5 Taxable supplies` at
-  similarity `1.0000` for GST. The generic ATO legal database landing page
+  corpus rows embedded. The SIS Act has 798 current embedded rows, and ITAA 1936
+  has 1,334 current embedded rows. `match_legal_corpus` returned the expected
+  section at similarity `1.0000` for FBT `s 47 [1]`, GST `s 9-5`, SIS `s 62`,
+  and ITAA 1936 `s 109N`. The generic ATO legal database landing page
   remains unsuitable for scheduled sync and is now refused until a specific ATO
   document URL, feed URL, or provided-text path is used intentionally.
 - **Repeatable live blocker audit:** `npm run wrap:live-audit` now checks the
@@ -76,14 +78,14 @@ benefits` at similarity `1.0000` for FBT and `s 9-5 Taxable supplies` at
   only advances `last_history_id` after the delta is durably handled. Focused
   Deno tests cover the duplicate guard and retryable-ingest classification, the
   touched Edge modules pass `deno check`, and the hardened function is active
-  live as version 41. The live audit also proves the public push endpoint fails
+  live as version 42. The live audit also proves the public push endpoint fails
   closed with HTTP 401 when called without `GMAIL_PUSH_VERIFY_TOKEN`.
 - **Bank/notification cron auth:** the May 6/June ledger finding that cron
   functions trusted an unverified JWT payload for `role=service_role` is fixed
   live. A shared exact-match auth helper now gates service-role bearer and cron
   secrets, with focused Deno tests proving forged JWT rejection. `bank-sync` is
-  active as version 36, `bank-sync-all` as version 34, and
-  `notifications-cron` as version 31. The live audit proves forged
+  active as version 37, `bank-sync-all` as version 35, and
+  `notifications-cron` as version 32. The live audit proves forged
   `bank-sync` service-role JWT returns HTTP 401, unsigned `bank-sync-all` and
   `notifications-cron` return HTTP 403, both cron secret names exist in
   Supabase, and the functions are active. `bank-sync-all` was also rescheduled
@@ -91,7 +93,7 @@ benefits` at similarity `1.0000` for FBT and `s 9-5 Taxable supplies` at
   from Supabase Vault; direct and DB-side `pg_net` probes returned HTTP 200 with
   `ok=true`, `orgs=0`.
 - **Accountant digest cron auth:** the prior 10-minute 401 loop is fixed live.
-  `accountant-session-digest` is active as version 26 with `verify_jwt=false`;
+  `accountant-session-digest` is active as version 27 with `verify_jwt=false`;
   cron mode now requires exact `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET` or
   service-role bearer, while browser/on-demand modes still verify the caller JWT
   inside the function before reading sessions or activity. The live audit proves
@@ -131,8 +133,8 @@ benefits` at similarity `1.0000` for FBT and `s 9-5 Taxable supplies` at
   `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build` all
   passed on 2026-06-29. The build still emits the pre-existing pdfjs dynamic
   import warning and a large main-chunk warning.
-- **Fresh live blocker counts:** `legal_sources=7`, `legal_corpus=1433`,
-  `legal_change_events=750`, `legal_horizon=0`, `advice_notes=1`,
+- **Fresh live blocker counts:** `legal_sources=7`, `legal_corpus=3565`,
+  `legal_change_events=2882`, `legal_horizon=0`, `advice_notes=1`,
   `receipt_events=0`, enabled `receipt_sync_endpoints=0`, and enabled
   `xero_integrations=0`. A focused Receipt Hub check also found
   `receipt_identities=3` and `receipt_sync_jobs=0`; the receipt sync drain cron
@@ -318,7 +320,7 @@ Ordered by original user-visible value:
 10. **Resolved 2026-06-29: Employee detail/timesheet edit** — employee detail now supports inline timesheet edits and new log-time entries; `src/test/pages/EmployeeDetail.test.tsx` proves cost recomputation, loaded rate, job, entry type, notes, and org/employee IDs. Remaining proof: signed-in browser edit against live employee/timesheet data.
 11. **Basiq Connect callback path incomplete** — `bank-link-token` mints; `BankCallback.tsx` is shallow; doesn't reliably fetch initial transaction backfill after first connect. Fix: ~1 h.
 12. **gmail-pubsub-push handler is a stub** — resolved 2026-06-29. The live
-    version 41 handler replays Gmail history deltas, creates bill rows for
+    version 42 handler replays Gmail history deltas, creates bill rows for
     accepted attachments, dispatches extraction, fails closed without the push
     token, dedupes Gmail message IDs across push/backfill overlap, and leaves
     `last_history_id` unchanged on retryable ingest failures so a later push can
@@ -425,8 +427,8 @@ Superseded for the 2026-06-29 wrap-up. Use this order now:
    blockers.
 3. **Signed-in live proof** — run Advisor and Receipt Hub smoke tests with
    `TEST_USER_JWT`, `TEST_ORG_ID`, and service-role cleanup credentials.
-4. **Legal proof** — seed approved legal source text, configure the required
-   secrets, prove corpus citations in Ask, then run Legal Horizon.
+4. **Legal proof** — seed or formally defer the remaining registered FRL/ATO
+   sources, prove corpus citations in Ask, then run Legal Horizon.
 5. **Data-starvation cleanup** — import queued bank statement PDFs, run
    subscription detection, and process pending triage rows into `intake_rules`.
 6. **Integration decisions** — complete or explicitly defer Basiq callback
