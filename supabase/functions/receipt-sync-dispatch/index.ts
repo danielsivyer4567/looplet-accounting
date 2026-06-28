@@ -77,8 +77,20 @@ export async function handleReceiptSyncDispatchRequest(req: Request): Promise<Re
   if (pre) return pre;
   if (req.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405);
 
+  // Cron auth: a ?secret= URL param (or x-cron-secret header) that matches the
+  // RECEIPT_SYNC_DISPATCH_CRON_SECRET env grants service-role-equivalent access —
+  // the same pattern the xero-sync / notifications crons use. This lets pg_cron
+  // drive the drain without the project's exact SUPABASE_SERVICE_ROLE_KEY, which
+  // can diverge from the dashboard key under JWT signing-key rotation.
+  const cronSecret = Deno.env.get('RECEIPT_SYNC_DISPATCH_CRON_SECRET');
+  const providedCronSecret =
+    new URL(req.url).searchParams.get('secret') ?? req.headers.get('x-cron-secret');
+  const cronAuthorized = Boolean(
+    cronSecret && providedCronSecret && safeEqual(providedCronSecret, cronSecret),
+  );
+
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader) return json({ ok: false, error: 'Unauthorized' }, 401);
+  if (!cronAuthorized && !authHeader) return json({ ok: false, error: 'Unauthorized' }, 401);
 
   const supabaseUrl = requireEnv('SUPABASE_URL');
   const serviceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
@@ -89,11 +101,11 @@ export async function handleReceiptSyncDispatchRequest(req: Request): Promise<Re
   const body = (await req.json().catch(() => ({}))) as RequestBody;
   if (!body.organization_id) return json({ ok: false, error: 'organization_id required' }, 400);
 
-  const serviceRole = isServiceRole(authHeader, serviceKey);
+  const serviceRole = cronAuthorized || (authHeader ? isServiceRole(authHeader, serviceKey) : false);
   if (!serviceRole) {
     const anonKey = requireEnv('SUPABASE_ANON_KEY');
     const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
+      global: { headers: { Authorization: authHeader ?? '' } },
     });
     const { data: org } = await userClient
       .from('organizations')
