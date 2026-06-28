@@ -25,6 +25,9 @@ Cross-tenant view leak closed, `system_defaults` locked, anon definer-fn execute
       Vault-held secret and a DB-side `pg_net` probe returned HTTP 200.
 - [x] **A2b** Fix `accountant-digest-cron` auth — live cron job 15 reads a
       scoped Vault-held secret and a DB-side `pg_net` probe returned HTTP 200.
+- [x] **A2c** Track core cron schedules — migration 0197 now owns
+      `bank-sync-all`, `notifications-cron-nightly`, and
+      `accountant-digest-cron` with Vault-backed command strings.
 - [x] **A1** Gmail dead-integration handling — disable + flag on fatal `invalid_grant` (mirrors Xero).
 - [ ] **A1 follow-up** Reconnect Gmail and capture a real watched-mailbox event
       trace.

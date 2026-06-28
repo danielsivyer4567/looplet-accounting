@@ -1,35 +1,26 @@
--- Schedule notifications-cron via pg_cron.
+-- notifications-cron schedule reference.
 --
--- Run this once, manually, AFTER:
---   1. supabase functions deploy notifications-cron --no-verify-jwt
---   2. supabase secrets set NOTIFICATIONS_CRON_SECRET=<random-32-char-string>
+-- The live schedule is tracked by:
+--   supabase/migrations/0197_track_vault_backed_cron_schedules.sql
 --
--- The schedule call uses pg_net.http_post against the public functions URL
--- with ?secret=<…> for the auth gate (mirrors bank-sync-all pattern).
+-- Do not paste NOTIFICATIONS_CRON_SECRET into cron.job.command. Store the
+-- scoped secret in both Supabase Edge Function secrets and Supabase Vault:
 --
--- 02:30 daily is sufficiently after midnight to catch newly-overdue items but
--- before users start checking their morning numbers.
-
--- IMPORTANT: replace <PROJECT_REF> and <NOTIFICATIONS_CRON_SECRET> with the
--- real values before running. The secret should match the env var on the
--- deployed function.
-
-SELECT cron.schedule(
-  'notifications-cron-daily',
-  '30 2 * * *',  -- 02:30 every day
-  $$
-    SELECT net.http_post(
-      url := 'https://<PROJECT_REF>.supabase.co/functions/v1/notifications-cron?secret=<NOTIFICATIONS_CRON_SECRET>',
-      headers := jsonb_build_object('Content-Type', 'application/json')
-    );
-  $$
-);
-
--- To inspect:
---   SELECT * FROM cron.job WHERE jobname = 'notifications-cron-daily';
---   SELECT * FROM cron.job_run_details
---    WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'notifications-cron-daily')
---    ORDER BY start_time DESC LIMIT 10;
-
--- To unschedule:
---   SELECT cron.unschedule('notifications-cron-daily');
+--   supabase secrets set NOTIFICATIONS_CRON_SECRET=<scoped-secret> --project-ref dxoikltymmknxqpkpyhi
+--   select vault.create_secret('<scoped-secret>', 'notifications_cron_secret');
+--
+-- Then apply/re-run migration 0197. The scheduled command reads the secret at
+-- runtime from vault.decrypted_secrets and calls:
+--
+--   https://dxoikltymmknxqpkpyhi.supabase.co/functions/v1/notifications-cron?secret=<vault value>
+--
+-- Current tracked schedule:
+--   jobname:  notifications-cron-nightly
+--   schedule: 30 2 * * *
+--
+-- To inspect without exposing secrets:
+--   select jobid, jobname, schedule, active,
+--          position('vault.decrypted_secrets' in command) > 0 as uses_vault,
+--          position('<' in command) = 0 as no_placeholders
+--   from cron.job
+--   where jobname = 'notifications-cron-nightly';

@@ -26,7 +26,10 @@
  *     'notifications-cron',
  *     '30 2 * * *',
  *     $$ SELECT net.http_post(
- *          url := 'https://<project>.supabase.co/functions/v1/notifications-cron?secret=<NOTIFICATIONS_CRON_SECRET>'
+ *          url := 'https://<project>.supabase.co/functions/v1/notifications-cron?secret='
+ *            || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'notifications_cron_secret' LIMIT 1),
+ *          headers := jsonb_build_object('Content-Type','application/json'),
+ *          body := '{}'::jsonb
  *        ); $$
  *   );
  *

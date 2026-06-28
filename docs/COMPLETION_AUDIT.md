@@ -73,14 +73,14 @@ scorecard. Current wrap-up evidence changes these conclusions:
   only advances `last_history_id` after the delta is durably handled. Focused
   Deno tests cover the duplicate guard and retryable-ingest classification, the
   touched Edge modules pass `deno check`, and the hardened function is deployed
-  live as version 33. The live audit also proves the public push endpoint fails
+  live as version 34. The live audit also proves the public push endpoint fails
   closed with HTTP 401 when called without `GMAIL_PUSH_VERIFY_TOKEN`.
 - **Bank/notification cron auth:** the May 6/June ledger finding that cron
   functions trusted an unverified JWT payload for `role=service_role` is fixed
   live. A shared exact-match auth helper now gates service-role bearer and cron
   secrets, with focused Deno tests proving forged JWT rejection. `bank-sync` is
-  deployed as version 28, `bank-sync-all` as version 26, and
-  `notifications-cron` as version 23. The live audit proves forged
+  deployed as version 29, `bank-sync-all` as version 27, and
+  `notifications-cron` as version 24. The live audit proves forged
   `bank-sync` service-role JWT returns HTTP 401, unsigned `bank-sync-all` and
   `notifications-cron` return HTTP 403, both cron secret names exist in
   Supabase, and the functions are active. `bank-sync-all` was also rescheduled
@@ -88,7 +88,7 @@ scorecard. Current wrap-up evidence changes these conclusions:
   from Supabase Vault; direct and DB-side `pg_net` probes returned HTTP 200 with
   `ok=true`, `orgs=0`.
 - **Accountant digest cron auth:** the prior 10-minute 401 loop is fixed live.
-  `accountant-session-digest` is deployed as version 18 with `verify_jwt=false`;
+  `accountant-session-digest` is deployed as version 19 with `verify_jwt=false`;
   cron mode now requires exact `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET` or
   service-role bearer, while browser/on-demand modes still verify the caller JWT
   inside the function before reading sessions or activity. The live audit proves
@@ -99,6 +99,16 @@ scorecard. Current wrap-up evidence changes these conclusions:
   `2026-06-28T20:00:00Z` also returned HTTP 200 with `sent=0`, `failed=0`.
   `cron_health_summary()` still contains historical 24-hour HTTP failures, so
   clean-window cron health remains a separate follow-up.
+- **Core cron registration:** the live `bank-sync-all`,
+  `notifications-cron-nightly`, and `accountant-digest-cron` schedules are now
+  tracked by `0197_track_vault_backed_cron_schedules.sql`. `NOTIFICATIONS_CRON_SECRET`
+  was rotated into a fresh scoped value stored in both Edge Function secrets and
+  Supabase Vault as `notifications_cron_secret`. Live verification shows all
+  three core cron commands are active, use `vault.decrypted_secrets`, use a
+  `secret=` parameter, and contain no `<...>` placeholders. Version `0197` is
+  recorded in `supabase_migrations.schema_migrations`; the CLI
+  `supabase migration list --linked` path remains unavailable locally without
+  `SUPABASE_DB_PASSWORD`.
 - **Advisor:** deployed with JWT enabled and local Deno/model tests passing, but
   still needs a signed-in Ask/on-demand smoke proving a live `advice_notes` draft
   row is created. A deploy-gated `tests/advisor-live-smoke.test.ts` now encodes
@@ -292,7 +302,7 @@ Ordered by original user-visible value:
 10. **No Employee detail / timesheet edit** — same shape. Fix: ~45 min.
 11. **Basiq Connect callback path incomplete** — `bank-link-token` mints; `BankCallback.tsx` is shallow; doesn't reliably fetch initial transaction backfill after first connect. Fix: ~1 h.
 12. **gmail-pubsub-push handler is a stub** — resolved 2026-06-29. The live
-    version 33 handler replays Gmail history deltas, creates bill rows for
+    version 34 handler replays Gmail history deltas, creates bill rows for
     accepted attachments, dispatches extraction, fails closed without the push
     token, dedupes Gmail message IDs across push/backfill overlap, and leaves
     `last_history_id` unchanged on retryable ingest failures so a later push can

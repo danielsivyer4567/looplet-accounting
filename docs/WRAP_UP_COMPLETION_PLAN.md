@@ -64,7 +64,7 @@ work and re-checking the live project. It intentionally separates:
   `NOTIFICATIONS_CRON_SECRET`, and `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET`, and
   false for `OPENAI_API_KEY`, `LEGAL_INGEST_SECRET`, `LEGAL_SYNC_SECRET`, and
   `LEGAL_SCAN_SECRET`.
-- `gmail-pubsub-push` is deployed live as version 33. It now shares the Gmail
+- `gmail-pubsub-push` is deployed live as version 34. It now shares the Gmail
   message-id duplicate guard with backfill, leaves `last_history_id` unchanged
   on retryable ingest failures so future pushes can replay safely, and the live
   audit proves unsigned POSTs fail closed with HTTP 401.
@@ -82,7 +82,7 @@ work and re-checking the live project. It intentionally separates:
   `orgs=0`, and a DB-side `pg_net` probe through the same Vault path returned
   HTTP 200 with `{"ok":true,"orgs":0,"results":[]}`.
 - `accountant-session-digest` cron auth is fixed live. The function is deployed
-  as version 18 with `verify_jwt=false`, cron mode now requires exact
+  as version 19 with `verify_jwt=false`, cron mode now requires exact
   `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET` or service-role bearer, and
   browser/on-demand modes still verify the caller JWT internally. The active
   cron is job 15 and reads a scoped `accountant_session_digest_cron_secret` from
@@ -91,6 +91,13 @@ work and re-checking the live project. It intentionally separates:
   HTTP 200 with `{"ok":true,"sent":0,"failed":0}`. The first scheduled post-fix
   run at `2026-06-28T20:00:00Z` also returned HTTP 200 with `sent=0`,
   `failed=0`.
+- Core autopilot cron registration is now tracked in
+  `0197_track_vault_backed_cron_schedules.sql`: `bank-sync-all`,
+  `notifications-cron-nightly`, and `accountant-digest-cron` all use
+  Vault-backed command strings in live `cron.job`, contain no `<...>`
+  placeholders, and avoid embedding scoped secret values in the cron command.
+  Live migration history includes version `0197` with name
+  `track_vault_backed_cron_schedules`.
 
 ## Execution Control Plan
 
@@ -198,7 +205,7 @@ supabase/functions/gmail-pubsub-push/index.ts` passed.
 - `supabase functions deploy gmail-pubsub-push --project-ref
 dxoikltymmknxqpkpyhi --no-verify-jwt` deployed the hardened Gmail Pub/Sub
   handler. The follow-up `npm run wrap:live-audit` passed with
-  `gmail-pubsub-push` active as version 33, CORS OPTIONS 200, live Gmail
+  `gmail-pubsub-push` active as version 34, CORS OPTIONS 200, live Gmail
   runtime secret-name presence, and unsigned POST fail-closed status 401.
 - `deno test supabase/functions/_shared/serviceRole.test.ts` passed: 3 tests.
   It proves exact service-role bearer matching, exact cron secret matching, and
@@ -214,8 +221,8 @@ dxoikltymmknxqpkpyhi --no-verify-jwt`, and `supabase functions deploy
 notifications-cron --project-ref dxoikltymmknxqpkpyhi --no-verify-jwt`
   deployed the hardened bank/cron handlers.
 - The follow-up `npm run wrap:live-audit` passed with `bank-sync` active as
-  version 28, `bank-sync-all` as version 26, `notifications-cron` as version
-  23, CORS OPTIONS 200 for both cron endpoints, live cron secret-name presence,
+  version 29, `bank-sync-all` as version 27, `notifications-cron` as version
+  24, CORS OPTIONS 200 for both cron endpoints, live cron secret-name presence,
   forged `bank-sync` service-role JWT fail-closed status 401, and unsigned
   `bank-sync-all`/`notifications-cron` fail-closed status 403.
 - Live cron inspection showed `bank-sync-all` was still scheduled without auth.
@@ -230,7 +237,7 @@ supabase/functions/accountant-session-digest/index.ts` passed.
 - `supabase functions deploy accountant-session-digest --project-ref
 dxoikltymmknxqpkpyhi --no-verify-jwt` deployed the self-authenticating digest
   handler. The follow-up `npm run wrap:live-audit` passed with
-  `accountant-session-digest` active as version 18, CORS OPTIONS 200, live
+  `accountant-session-digest` active as version 19, CORS OPTIONS 200, live
   `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET` name presence, and unsigned cron-mode
   POST fail-closed status 403.
 - The live digest cron was rescheduled from the missing `service_role_key`
@@ -245,6 +252,21 @@ dxoikltymmknxqpkpyhi --no-verify-jwt` deployed the self-authenticating digest
   `accountant-digest-cron.last_run_pg_status=succeeded`; the 24-hour HTTP
   failure count is still 42 from historical 401/403 responses and must age out
   before being used as clean-window proof.
+- Added and applied `supabase/migrations/0197_track_vault_backed_cron_schedules.sql`.
+  Because `supabase db push --linked --dry-run` is unavailable in this
+  environment without `SUPABASE_DB_PASSWORD`, the migration SQL was applied via
+  `supabase db query --linked -f`, and version `0197` was recorded in
+  `supabase_migrations.schema_migrations` as
+  `track_vault_backed_cron_schedules`.
+- Rotated `NOTIFICATIONS_CRON_SECRET` into a fresh scoped value stored in
+  Supabase Edge Function secrets and Supabase Vault as `notifications_cron_secret`.
+  Live cron verification showed `bank-sync-all`, `notifications-cron-nightly`,
+  and `accountant-digest-cron` are active, use `vault.decrypted_secrets`, use
+  a `secret=` parameter, and contain no `<...>` placeholders.
+- `supabase migration list --linked` could not be used for verification because
+  the local environment lacks a valid `SUPABASE_DB_PASSWORD`; direct
+  `supabase_migrations.schema_migrations` query verified the 0197 history row
+  instead.
 - `npm run typecheck` passed.
 - `npm run lint` passed.
 - `npx prettier --check ...` passed on the changed source/test/doc files.

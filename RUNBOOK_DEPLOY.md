@@ -11,6 +11,9 @@ The repo migrations are **numbered** (`0001…0080`); the live migration history
 - EPIC B (OCR→GST): MiniMax-M3, PDF rasterize, GST derivation, `bills.gst_estimated`, `v_bas_gst_coverage` (allocation-based), `bills-extract` + `bills-extract-batch`. Migrations 0058/0059.
 - EPIC E hardening: **0061** (FK indexes) + **0062** (audit triggers on invoice_payments / payment_runs / payment_run_items / bank_transactions) — applied + verified.
 - 0057 (cron health monitor) — applied during EPIC A.
+- 0197 (Vault-backed core cron schedules) — applied live and recorded in
+  migration history; `bank-sync-all`, `notifications-cron-nightly`, and
+  `accountant-digest-cron` read scoped secrets from Supabase Vault.
 
 ## 1. Secrets to set first (only you can)
 

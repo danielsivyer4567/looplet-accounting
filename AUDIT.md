@@ -17,13 +17,13 @@
   - Supabase security advisor: **0 critical** remaining (only `WARN` search_path + `INFO` crm_sync_log no-policy left → P2).
 - **Connector scaffold (review + finish on main machine):** `migrations/0056_api_keys.sql`, `functions/_shared/apiKeys.ts`, `functions/api-gateway/index.ts`, `functions/ingest/index.ts`.
 - **Gmail Pub/Sub push hardened live (2026-06-29):** `gmail-pubsub-push`
-  version 33 is deployed with `verify_jwt=false`, mandatory
+  version 34 is deployed with `verify_jwt=false`, mandatory
   `GMAIL_PUSH_VERIFY_TOKEN`, shared Gmail message-id dedupe, and delayed
   `last_history_id` advancement until each history delta is durably handled.
   Redacted live audit proves CORS OPTIONS 200, all Gmail runtime secret names
   present in the linked project, and unsigned POST fail-closed status 401.
 - **Bank/cron service-role auth hardened live (2026-06-29):** `bank-sync`
-  version 28, `bank-sync-all` version 26, and `notifications-cron` version 23
+  version 29, `bank-sync-all` version 27, and `notifications-cron` version 24
   are deployed. The forgeable "decode JWT payload and trust `role`" path is
   removed in favour of exact constant-time service-role/cron-secret checks.
   Redacted live audit proves forged `bank-sync` service-role JWT returns 401,
@@ -32,7 +32,7 @@
   active cron job 14 using a Vault-held cron secret. A DB-side `pg_net` probe of
   that Vault path returned HTTP 200 with `ok=true`, `orgs=0`.
 - **Accountant digest cron auth fixed live (2026-06-29):**
-  `accountant-session-digest` version 18 is deployed with `verify_jwt=false`
+  `accountant-session-digest` version 19 is deployed with `verify_jwt=false`
   and self-authenticates cron mode with `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET`
   or the exact service-role bearer. Browser/on-demand modes still verify the
   caller JWT inside the function before reading sessions or activity. The live
@@ -41,6 +41,12 @@
   returned HTTP 200 with `ok=true`, `sent=0`, `failed=0`. The first scheduled
   post-fix run at `2026-06-28T20:00:00Z` also returned HTTP 200 with `sent=0`,
   `failed=0`.
+- **Core cron schedule registration tracked (2026-06-29):**
+  `0197_track_vault_backed_cron_schedules.sql` now tracks the live
+  `bank-sync-all`, `notifications-cron-nightly`, and `accountant-digest-cron`
+  schedules. Live cron commands for all three use `vault.decrypted_secrets`,
+  contain no `<...>` placeholders, and avoid embedding scoped secret values in
+  `cron.job.command`.
 
 ---
 
@@ -89,9 +95,13 @@ and no auto-reconciler/heartbeat release proof has been captured yet.
       `2026-06-28T20:00:00Z` also returned HTTP 200.
 - [ ] No end-to-end cron alerting — nothing reads `net._http_response`. Add monitor / per-function heartbeat + "no success in window" notification. **(high)**
 - [ ] No Xero push retry/backfill — `bills-attach` awaits `pushBillToXero` inline; `callXeroWithRetry` only retries 401. Add backoff + re-drive cron for `xero_status in ('error','pending')`. **(medium)**
-- [ ] Cron registration lives in untracked `SCHEDULE.sql` with `<PROJECT_REF>`/`<SECRET>` placeholders; move all `cron.schedule(...)` into tracked migrations. **(medium)**
+- [ ] Cron registration cleanup: core autopilot schedules
+      (`bank-sync-all`, `notifications-cron-nightly`, `accountant-digest-cron`)
+      are now tracked by migration 0197 and live commands use Vault lookups with
+      no placeholders. Remaining cleanup: audit/move legacy Xero and other
+      `SCHEDULE.sql` references or explicitly mark them deferred. **(medium)**
 - [ ] Webhook reliability: `bank-webhook` returns 200 on internal error with no event log. Persist events before acking and expose replay/heartbeat evidence. **(medium)**
-- [x] Gmail Pub/Sub cursor safety: `gmail-pubsub-push` advanced `last_history_id` before ingest completed. **FIXED 2026-06-29** in live version 33; successful messages are deduped by Gmail message ID and retryable ingest failures leave the cursor unchanged for replay.
+- [x] Gmail Pub/Sub cursor safety: `gmail-pubsub-push` advanced `last_history_id` before ingest completed. **FIXED 2026-06-29** in live version 34; successful messages are deduped by Gmail message ID and retryable ingest failures leave the cursor unchanged for replay.
 - [ ] Extend confidence-tiered auto-accept beyond exact job-ref match (`_shared/bills/router.ts:62-71`) to LLM-classified entities. **(low/med)**
 
 ### (b) REST API / connectivity
