@@ -305,6 +305,28 @@ export function ReceiptHubPage() {
     void refreshReceiptHub();
   }, [refreshReceiptHub]);
 
+  useEffect(() => {
+    if (!currentOrg) return;
+    const channel = supabase
+      .channel(`receipt-events-${currentOrg.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'receipt_events',
+          filter: `organization_id=eq.${currentOrg.id}`,
+        },
+        () => {
+          void refreshReceiptHub();
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [currentOrg, refreshReceiptHub]);
+
   const issueIdentity = useCallback(async (): Promise<string | null> => {
     if (!currentOrg) {
       setError('Pick an organisation before issuing a receipt identity.');
