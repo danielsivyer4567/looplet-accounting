@@ -5,6 +5,45 @@
 **Branch:** `chore-migration-reconciliation`
 **Author:** automated reconciliation pass
 
+## 2026-06-29 Wrap-up Addendum
+
+The live project `dxoikltymmknxqpkpyhi` is still not safe for a blind
+`supabase db push`.
+
+Current evidence:
+
+- `supabase db query --linked` works through the Management API.
+- `supabase migration list --linked` works when the stale
+  `SUPABASE_DB_PASSWORD` environment variable is removed, but it compares local
+  numeric files against remote timestamp versions. It reports local `0089`-
+  `0196` as local-only while remote has timestamp rows whose `name` values map
+  to many of those same migrations.
+- Raw `supabase_migrations.schema_migrations` rows map these timestamp versions
+  to local migration names: `0089`, `0090`-`0137`, `0108`-`0115`, `0151`-
+  `0153`, `0178`, and `0179`.
+- Missing live DDL for `0181`-`0187` was applied on 2026-06-29 after checking
+  target objects/columns were absent and existing data would not violate the new
+  constraints. Verified live after apply: `lodgements`, `ato_correspondence`,
+  `ato_correspondence_drafts`, `lodgement_type`, `lodgement_status`,
+  `compile_working_papers(uuid,date,date)`,
+  `distribution_finalise(uuid,uuid,integer,text)`,
+  `distribution_finalise_payload(uuid,uuid,integer,text)`,
+  `obligation_status.lodgement_id`, `obligation_status.lodged_at`, receipt POS
+  reliability columns, and the expected lodgement/receipt indexes all exist.
+- `0180` and `0185` are inert/commented cron notes. `0188` was not replayed
+  because live `write_audit_log()` already includes the organizations special
+  case and has a stricter `search_path = public, pg_temp` than the local file.
+
+Remaining migration-history work:
+
+- Decide and execute one canonical repair path before using `supabase db push`.
+  The likely repair is to convert timestamp history rows whose `name` matches a
+  local file into the corresponding numeric `version`, then add numeric history
+  rows only for manually applied migrations whose live DDL has been verified.
+- Do not insert duplicate numeric rows beside timestamp rows without deciding
+  how to handle the timestamp rows; that would trade a local-only warning for a
+  remote-only warning and still leave history ambiguous.
+
 ## Problem
 
 The repo's `supabase/migrations/` folder is missing several migration files that
