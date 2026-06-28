@@ -29,10 +29,19 @@ import { NON_FINANCIAL_KINDS } from '../_shared/ocr/prompt.ts';
 import { routeBill, type RouterResult } from '../_shared/bills/router.ts';
 
 interface RequestBody {
-  bill_id: string;
+  bill_id?: string;
   // force: skip the SHA-256 dedup cache and re-run real OCR. Used by the
   // repair backfill so a bill can't copy a failed duplicate's null values.
   force?: boolean;
+  // extract_only: OCR a stored file and RETURN the structured data WITHOUT
+  // creating/updating any bill row (no cache, no persist, no routing). Used by
+  // the Receipt Hub photo capture, which feeds the result into receipt-webhook
+  // (which owns the single bill). Requires storage_key + mime_type +
+  // organization_id instead of bill_id.
+  extract_only?: boolean;
+  storage_key?: string;
+  mime_type?: string;
+  organization_id?: string;
 }
 
 interface DocMetadata {
@@ -92,6 +101,70 @@ Deno.serve(async (req) => {
     }
 
     const body = (await req.json()) as RequestBody;
+
+    // extract_only: OCR a stored file and return structured data, no bill row.
+    if (body.extract_only) {
+      if (!body.storage_key || !body.mime_type || !body.organization_id) {
+        return json(
+          { ok: false, error: 'extract_only requires storage_key, mime_type, organization_id' },
+          400,
+        );
+      }
+      // Authorize: the caller must be able to access organization_id, and the
+      // storage path must live under that org's prefix (the bills bucket RLS
+      // enforces org-<id>/ — re-checking here blocks a member of org A from
+      // OCR'ing org B's object via the service-role download below).
+      if (!body.storage_key.startsWith(`org-${body.organization_id}/`)) {
+        return json({ ok: false, error: 'storage_key does not belong to organization_id' }, 403);
+      }
+      if (!isServiceRole) {
+        const { data: orgIds } = await dbClient.rpc('get_accessible_org_ids');
+        const accessible = (orgIds ?? []) as string[];
+        if (!accessible.includes(body.organization_id)) {
+          return json({ ok: false, error: 'Forbidden' }, 403);
+        }
+      }
+
+      const { data: fileBlob, error: storageErr } = await admin.storage
+        .from('bills')
+        .download(body.storage_key);
+      if (storageErr || !fileBlob) {
+        return json({ ok: false, error: `Storage read failed: ${storageErr?.message}` }, 500);
+      }
+      const bytes = new Uint8Array(await fileBlob.arrayBuffer());
+
+      // Text-first for born-digital PDFs, else vision — same routing as the
+      // bill path, but nothing is persisted.
+      if (body.mime_type === 'application/pdf') {
+        const textRes = await extractTextFromPdf(bytes);
+        if (!textRes.empty) {
+          const headers = parseBillHeaders(textRes.fullText);
+          if (headers.confidence >= TEXT_CONFIDENCE_THRESHOLD) {
+            const extracted = headers.data as ExtractedBill;
+            extracted._extraction_method = 'text';
+            return json({
+              ok: true,
+              method: 'text',
+              cache_hit: false,
+              provider: 'text-only',
+              extracted,
+              confidence_score: headers.confidence,
+            });
+          }
+        }
+      }
+      const { data: extracted, raw, provider } = await extractBillData(bytes, body.mime_type);
+      extracted._extraction_method = 'vision';
+      return json({
+        ok: true,
+        method: 'vision',
+        cache_hit: false,
+        provider,
+        extracted,
+        raw_length: raw.length,
+      });
+    }
+
     if (!body.bill_id) return json({ ok: false, error: 'bill_id required' }, 400);
 
     const { data: bill, error: billErr } = await dbClient

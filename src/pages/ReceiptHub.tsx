@@ -82,6 +82,24 @@ interface ReceiptIdentityRow {
   created_at: string;
 }
 
+interface ExtractedBillData {
+  supplier_name: string | null;
+  supplier_abn: string | null;
+  invoice_number: string | null;
+  invoice_date: string | null;
+  subtotal_ex_gst: number | null;
+  gst_amount: number | null;
+  total_inc_gst: number | null;
+  currency: string;
+  job_reference: string | null;
+  line_items: {
+    description: string;
+    quantity: number;
+    unit_price: number;
+    total: number;
+  }[];
+}
+
 interface ReceiptLineItemRow {
   id: string;
   line_number: number;
@@ -218,6 +236,8 @@ export function ReceiptHubPage() {
   const [manualJobRef, setManualJobRef] = useState('');
   const [manualSubmitting, setManualSubmitting] = useState(false);
   const [manualMessage, setManualMessage] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoMessage, setPhotoMessage] = useState<string | null>(null);
   const [identityToken, setIdentityToken] = useState<string | null>(null);
   const [bridgeEnv, setBridgeEnv] = useState<string | null>(null);
   const [bridgeApiKeyPrefix, setBridgeApiKeyPrefix] = useState<string | null>(null);
@@ -742,6 +762,103 @@ export function ReceiptHubPage() {
       setManualMessage(err instanceof Error ? err.message : String(err));
     } finally {
       setManualSubmitting(false);
+    }
+  };
+
+  const captureFromPhoto = async (file: File) => {
+    if (!currentOrg) {
+      setPhotoMessage('Pick an organisation before uploading a receipt.');
+      return;
+    }
+    const allowed = new Set([
+      'application/pdf',
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+      'image/heic',
+      'image/webp',
+    ]);
+    if (!allowed.has(file.type)) {
+      setPhotoMessage(`Unsupported file type: ${file.type || 'unknown'}. Use PDF, PNG, JPG, HEIC, or WEBP.`);
+      return;
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      setPhotoMessage('File too large (max 25 MB).');
+      return;
+    }
+    setPhotoUploading(true);
+    setPhotoMessage('Uploading…');
+    setError(null);
+    try {
+      // 1. Store the original file (provenance) in the bills bucket.
+      const today = new Date().toISOString().slice(0, 10);
+      const rand = crypto.randomUUID().slice(0, 8);
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-80);
+      const storageKey = `org-${currentOrg.id}/${today}/${rand}-${safeName}`;
+      const { error: uploadErr } = await supabase.storage.from('bills').upload(storageKey, file, {
+        contentType: file.type,
+        cacheControl: '3600',
+        upsert: false,
+      });
+      if (uploadErr) throw new Error(`Upload failed: ${uploadErr.message}`);
+
+      // 2. OCR the stored file WITHOUT creating a bill (extract_only) — the
+      //    receipt-webhook owns the single bill the structured payload creates.
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in');
+      setPhotoMessage('Reading receipt…');
+      const extractRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bills-extract`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            extract_only: true,
+            storage_key: storageKey,
+            mime_type: file.type,
+            organization_id: currentOrg.id,
+          }),
+        },
+      );
+      const extractBody = (await extractRes.json()) as {
+        ok?: boolean;
+        error?: string;
+        extracted?: ExtractedBillData;
+      };
+      if (!extractRes.ok || !extractBody.ok || !extractBody.extracted) {
+        throw new Error(extractBody.error ?? `OCR failed (${extractRes.status})`);
+      }
+
+      // 3. Issue an identity if needed, then feed the OCR result into the webhook.
+      let token = identityToken;
+      if (!token) {
+        token = await issueIdentity();
+        if (!token) throw new Error('Receipt identity could not be issued.');
+      }
+      setPhotoMessage('Creating receipt…');
+      const payload = buildReceiptPayloadFromExtraction(
+        extractBody.extracted,
+        currentOrg.id,
+        storageKey,
+      );
+      const result = await postReceiptWebhook({
+        organizationId: currentOrg.id,
+        identityToken: token,
+        idempotencyKey: `photo:${storageKey}`,
+        sourceChannel: 'photo',
+        payload,
+      });
+      setPhotoMessage(`Captured receipt event ${result.receipt_event_id.slice(0, 8)}.`);
+      await refreshReceiptHub();
+    } catch (err) {
+      setPhotoMessage(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPhotoUploading(false);
     }
   };
 
@@ -1925,6 +2042,31 @@ export function ReceiptHubPage() {
               </div>
             ) : null}
           </form>
+
+          <div className="receipt-photo-capture">
+            <label className="btn btn-secondary receipt-photo-button">
+              {photoUploading ? <Loader2 size={16} className="spin" /> : <ReceiptText size={16} />}
+              {photoUploading ? 'Reading photo' : 'Upload receipt photo / PDF'}
+              <input
+                type="file"
+                accept="application/pdf,image/png,image/jpeg,image/jpg,image/heic,image/webp"
+                disabled={!currentOrg || photoUploading}
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (file) void captureFromPhoto(file);
+                }}
+              />
+            </label>
+            <small>OCR reads merchant, total, GST and line items, then files the receipt.</small>
+            {photoMessage ? (
+              <div className="receipt-result" role="status">
+                <FileCheck2 size={16} />
+                <span>{photoMessage}</span>
+              </div>
+            ) : null}
+          </div>
         </section>
 
         <section className="receipt-flow-panel">
@@ -2293,6 +2435,63 @@ async function postReceiptWebhook(args: ReceiptWebhookArgs): Promise<SimulatorRe
   const body = (await response.json()) as { ok?: boolean; error?: string } & SimulatorResult;
   if (!response.ok || !body.ok) throw new Error(body.error ?? 'Receipt webhook failed');
   return body;
+}
+
+function dollarsToCents(value: number | null | undefined): number | null {
+  return value == null || !Number.isFinite(value) ? null : Math.round(value * 100);
+}
+
+function buildReceiptPayloadFromExtraction(
+  extracted: ExtractedBillData,
+  orgId: string,
+  originalStorageKey: string,
+) {
+  const totalCents = dollarsToCents(extracted.total_inc_gst);
+  const gstFromDoc = dollarsToCents(extracted.gst_amount);
+  const subtotalFromDoc = dollarsToCents(extracted.subtotal_ex_gst);
+  // Mirror the manual form's AU GST default: 1/11 of the inclusive total when
+  // the document didn't itemise GST and we have a total to derive from.
+  const gstCents = gstFromDoc ?? (totalCents != null ? Math.round(totalCents / 11) : 0);
+  const subtotalCents =
+    subtotalFromDoc ?? (totalCents != null ? totalCents - gstCents : null);
+  const receiptNumber = extracted.invoice_number || `PHOTO-${Date.now().toString().slice(-8)}`;
+  return {
+    merchant: {
+      name: extracted.supplier_name || 'Unknown merchant',
+      abn: extracted.supplier_abn || undefined,
+    },
+    receipt: {
+      number: receiptNumber,
+      event_type: 'sale',
+      purchase_at: extracted.invoice_date
+        ? new Date(extracted.invoice_date).toISOString()
+        : new Date().toISOString(),
+      currency: extracted.currency || 'AUD',
+      subtotal_ex_gst_cents: subtotalCents ?? undefined,
+      gst_cents: gstCents,
+      total_inc_gst_cents: totalCents ?? 0,
+      tender_status: 'completed',
+      // Preserve the original uploaded file for provenance — receipt-webhook
+      // keeps the full payload in raw_extracted, so the link survives.
+      original_storage_key: originalStorageKey,
+    },
+    classification: {
+      business_use: 'business',
+      job_reference: extracted.job_reference || '',
+      sync_targets: ['xero', 'myob', 'quickbooks', 'generic_api'],
+      source_org_id: orgId,
+    },
+    line_items: (extracted.line_items ?? []).map((line) => {
+      const lineTotalCents = dollarsToCents(line.total) ?? 0;
+      return {
+        description: line.description,
+        quantity: line.quantity,
+        unit_price_cents: dollarsToCents(line.unit_price) ?? 0,
+        total_inc_gst_cents: lineTotalCents,
+        gst_cents: Math.round(lineTotalCents / 11),
+      };
+    }),
+  };
 }
 
 function buildDemoReceiptPayload(orgId: string) {
