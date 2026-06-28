@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+} from 'react';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
 import { code128Bars } from '@/lib/code128';
@@ -21,6 +28,7 @@ import {
   RadioTower,
   ReceiptText,
   Route,
+  ScanLine,
   ShieldCheck,
   Store,
   Smartphone,
@@ -183,6 +191,23 @@ const channels: Channel[] = [
   },
 ];
 
+// Web NFC (NDEFReader) is experimental and Android-Chrome only; presence does not
+// change at runtime, so a module-level const keeps the check out of render.
+const nfcSupported = typeof window !== 'undefined' && 'NDEFReader' in window;
+
+// Narrows the unknown NFC failure to a friendly message without any `any`.
+function nfcErrorMessage(err: unknown): string {
+  if (err instanceof DOMException) {
+    if (err.name === 'AbortError')
+      return 'Tag not detected — hold the tag to the phone and try again.';
+    if (err.name === 'NotAllowedError')
+      return 'NFC permission denied. Allow NFC and tap the button again.';
+    if (err.name === 'NotSupportedError') return 'This tag type is not supported.';
+  }
+  if (err instanceof Error) return err.message;
+  return 'NFC operation failed.';
+}
+
 const pipeline = [
   { title: 'Capture', detail: 'Pass, tag, POS, email, or photo', icon: Nfc },
   { title: 'Normalize', detail: 'Merchant, total, GST, line items', icon: ReceiptText },
@@ -240,6 +265,10 @@ export function ReceiptHubPage() {
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoMessage, setPhotoMessage] = useState<string | null>(null);
   const [identityToken, setIdentityToken] = useState<string | null>(null);
+  const [tagWriting, setTagWriting] = useState(false);
+  const [tagScanning, setTagScanning] = useState(false);
+  const [tagMessage, setTagMessage] = useState<string | null>(null);
+  const [tagError, setTagError] = useState<string | null>(null);
   const [bridgeEnv, setBridgeEnv] = useState<string | null>(null);
   const [bridgeApiKeyPrefix, setBridgeApiKeyPrefix] = useState<string | null>(null);
   const [bridgeIdentityPrefix, setBridgeIdentityPrefix] = useState<string | null>(null);
@@ -394,6 +423,82 @@ export function ReceiptHubPage() {
     return issued.receipt_token;
   }, [activeChannel, channel.title, currentOrg, refreshReceiptHub]);
 
+  // Receipt Tag — write the current rhp_ token to a tapped blank tag. If no pass
+  // has been issued yet, issue one first (same pattern the capture flows use).
+  const programTag = useCallback(async () => {
+    if (!nfcSupported) return;
+    setTagError(null);
+    setTagMessage(null);
+
+    let token = identityToken;
+    if (!token) {
+      token = await issueIdentity();
+    }
+    if (!token) {
+      setTagError('Issue a receipt pass first, then tap a blank tag to program it.');
+      return;
+    }
+
+    setTagWriting(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const reader = new NDEFReader();
+      await reader.write(
+        { records: [{ recordType: 'text', data: token, encoding: 'utf-8', lang: 'en' }] },
+        { signal: controller.signal },
+      );
+      setTagMessage('Tag programmed. Tap it at the counter to identify yourself.');
+    } catch (err) {
+      setTagError(nfcErrorMessage(err));
+    } finally {
+      clearTimeout(timeout);
+      controller.abort();
+      setTagWriting(false);
+    }
+  }, [identityToken, issueIdentity]);
+
+  // Receipt Tag — scan a programmed tag, validate the rhp_<…>.<…> shape (same
+  // check the webhook's resolveReceiptIdentity uses), and reuse it as the pass.
+  const tapToIdentify = useCallback(async () => {
+    if (!nfcSupported) return;
+    setTagError(null);
+    setTagMessage(null);
+    setTagScanning(true);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+
+    const cleanup = () => {
+      clearTimeout(timeout);
+      controller.abort();
+      setTagScanning(false);
+    };
+
+    try {
+      const reader = new NDEFReader();
+      reader.addEventListener('reading', (event: NDEFReadingEvent) => {
+        for (const record of event.message.records) {
+          if (record.recordType !== 'text' || !record.data) continue;
+          const decoder = new TextDecoder(record.encoding ?? 'utf-8');
+          const value = decoder.decode(record.data).trim();
+          if (value.startsWith('rhp_') && value.includes('.')) {
+            setIdentityToken(value);
+            setTagMessage('Tag identified. Capture a receipt and it will use this pass.');
+            cleanup();
+            return;
+          }
+        }
+        setTagError('That tag is not a Looplet Receipt Tag.');
+        cleanup();
+      });
+      await reader.scan({ signal: controller.signal });
+    } catch (err) {
+      setTagError(nfcErrorMessage(err));
+      cleanup();
+    }
+  }, []);
+
   const revokeIdentity = useCallback(
     async (identityId: string) => {
       if (!currentOrg) return;
@@ -425,7 +530,9 @@ export function ReceiptHubPage() {
       const [lineRes, auditRes] = await Promise.all([
         supabase
           .from('receipt_event_line_items')
-          .select('id,line_number,description,quantity,unit_price_cents,total_inc_gst_cents,gst_cents,category')
+          .select(
+            'id,line_number,description,quantity,unit_price_cents,total_inc_gst_cents,gst_cents,category',
+          )
           .eq('organization_id', currentOrg.id)
           .eq('receipt_event_id', eventId)
           .order('line_number', { ascending: true }),
@@ -780,7 +887,9 @@ export function ReceiptHubPage() {
       'image/webp',
     ]);
     if (!allowed.has(file.type)) {
-      setPhotoMessage(`Unsupported file type: ${file.type || 'unknown'}. Use PDF, PNG, JPG, HEIC, or WEBP.`);
+      setPhotoMessage(
+        `Unsupported file type: ${file.type || 'unknown'}. Use PDF, PNG, JPG, HEIC, or WEBP.`,
+      );
       return;
     }
     if (file.size > 25 * 1024 * 1024) {
@@ -899,9 +1008,7 @@ export function ReceiptHubPage() {
               {error}
             </div>
           ) : null}
-          {identityToken ? (
-            <ReceiptIdentityPass token={identityToken} />
-          ) : null}
+          {identityToken ? <ReceiptIdentityPass token={identityToken} /> : null}
         </div>
 
         <div className="receipt-sim-stage">
@@ -1864,9 +1971,7 @@ export function ReceiptHubPage() {
                       onClick={() => void revokeIdentity(identity.id)}
                       disabled={revoked || revokingId === identity.id}
                     >
-                      {revokingId === identity.id ? (
-                        <Loader2 size={14} className="spin" />
-                      ) : null}
+                      {revokingId === identity.id ? <Loader2 size={14} className="spin" /> : null}
                       {revoked ? 'Revoked' : 'Revoke'}
                     </button>
                   </div>
@@ -1883,6 +1988,56 @@ export function ReceiptHubPage() {
 
         <section className="receipt-flow-panel receipt-bridge-setup-panel">
           <div className="receipt-panel-heading">
+            <Nfc size={18} style={{ color: 'var(--accent-info)' }} />
+            <div>
+              <span>Tap to identify</span>
+              <h2>Receipt Tag</h2>
+            </div>
+          </div>
+          <p>
+            Carry your receipt pass on a $0.20 NFC tag — like a gym fob. It is an identity, not a
+            payment card: a lost tag is harmless and can be revoked above. Program a blank tag with
+            your current pass, then tap it to identify yourself for the next capture.
+          </p>
+
+          {nfcSupported ? (
+            <div className="receipt-tag-actions">
+              <button
+                type="button"
+                className="receipt-panel-action receipt-panel-action-info"
+                onClick={() => void programTag()}
+                disabled={!currentOrg || tagWriting || tagScanning || issuing}
+              >
+                {tagWriting ? <Loader2 size={14} className="spin" /> : <Nfc size={14} />}
+                {tagWriting ? 'Hold tag to phone' : 'Program tag'}
+              </button>
+              <button
+                type="button"
+                className="receipt-panel-action receipt-panel-action-info"
+                onClick={() => void tapToIdentify()}
+                disabled={tagWriting || tagScanning}
+              >
+                {tagScanning ? <Loader2 size={14} className="spin" /> : <ScanLine size={14} />}
+                {tagScanning ? 'Tap a tag…' : 'Tap to identify'}
+              </button>
+            </div>
+          ) : (
+            <div className="receipt-tag-fallback">
+              Tap-to-tag needs Android Chrome. On iPhone or desktop, use the scannable barcode pass
+              shown after “Generate pass”.
+            </div>
+          )}
+
+          {tagMessage ? <div className="receipt-tag-message">{tagMessage}</div> : null}
+          {tagError ? (
+            <div className="receipt-alert" role="alert">
+              {tagError}
+            </div>
+          ) : null}
+        </section>
+
+        <section className="receipt-flow-panel receipt-bridge-setup-panel">
+          <div className="receipt-panel-heading">
             <KeyRound size={18} style={{ color: 'var(--accent-info)' }} />
             <div>
               <span>Business install</span>
@@ -1894,18 +2049,14 @@ export function ReceiptHubPage() {
               onClick={() => void provisionPosBridge()}
               disabled={!currentOrg || provisioningBridge}
             >
-              {provisioningBridge ? (
-                <Loader2 size={14} className="spin" />
-              ) : (
-                <KeyRound size={14} />
-              )}
+              {provisioningBridge ? <Loader2 size={14} className="spin" /> : <KeyRound size={14} />}
               Generate config
             </button>
           </div>
           <p>
             Use this when the POS cannot call Looplet directly. It creates the scoped
-            `write:receipts` API key and a fallback/readiness receipt identity token; production
-            POS exports should include the customer's scanned Looplet identity per receipt.
+            `write:receipts` API key and a fallback/readiness receipt identity token; production POS
+            exports should include the customer's scanned Looplet identity per receipt.
           </p>
           <div className="receipt-bridge-endpoint">
             <span>Webhook endpoint</span>
@@ -1951,9 +2102,9 @@ export function ReceiptHubPage() {
             </div>
           ) : (
             <div className="receipt-empty">
-              Generate config after the bridge package is installed on the POS/back-office
-              machine, then save it into the installer-created protected env file. The API
-              secret is only visible immediately after creation.
+              Generate config after the bridge package is installed on the POS/back-office machine,
+              then save it into the installer-created protected env file. The API secret is only
+              visible immediately after creation.
             </div>
           )}
         </section>
@@ -2033,7 +2184,11 @@ export function ReceiptHubPage() {
               className="btn btn-primary"
               disabled={!currentOrg || manualSubmitting}
             >
-              {manualSubmitting ? <Loader2 size={16} className="spin" /> : <ReceiptText size={16} />}
+              {manualSubmitting ? (
+                <Loader2 size={16} className="spin" />
+              ) : (
+                <ReceiptText size={16} />
+              )}
               {manualSubmitting ? 'Capturing' : 'Capture receipt'}
             </button>
             {manualMessage ? (
@@ -2305,10 +2460,11 @@ function ReceiptEventDrawer({
               <div className="receipt-core-metric">
                 <dt>Deductibility</dt>
                 <dd>
-                  {(audit?.deductibility_status ?? event?.deductibility_status ?? 'unknown').replaceAll(
-                    '_',
-                    ' ',
-                  )}
+                  {(
+                    audit?.deductibility_status ??
+                    event?.deductibility_status ??
+                    'unknown'
+                  ).replaceAll('_', ' ')}
                 </dd>
               </div>
               {classificationReason ? (
@@ -2454,19 +2610,22 @@ async function postReceiptWebhook(args: ReceiptWebhookArgs): Promise<SimulatorRe
   if (session) {
     headers['Authorization'] = `Bearer ${session.access_token}`;
   }
-  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/receipt-webhook`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      organization_id: args.organizationId,
-      identity_token: args.identityToken,
-      idempotency_key: args.idempotencyKey,
-      event_type: 'sale',
-      source_channel: args.sourceChannel,
-      payload: args.payload,
-      sync_targets: args.syncTargets ?? ['xero', 'myob', 'quickbooks', 'generic_api'],
-    }),
-  });
+  const response = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/receipt-webhook`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        organization_id: args.organizationId,
+        identity_token: args.identityToken,
+        idempotency_key: args.idempotencyKey,
+        event_type: 'sale',
+        source_channel: args.sourceChannel,
+        payload: args.payload,
+        sync_targets: args.syncTargets ?? ['xero', 'myob', 'quickbooks', 'generic_api'],
+      }),
+    },
+  );
   const body = (await response.json()) as { ok?: boolean; error?: string } & SimulatorResult;
   if (!response.ok || !body.ok) throw new Error(body.error ?? 'Receipt webhook failed');
   return body;
@@ -2487,8 +2646,7 @@ function buildReceiptPayloadFromExtraction(
   // Mirror the manual form's AU GST default: 1/11 of the inclusive total when
   // the document didn't itemise GST and we have a total to derive from.
   const gstCents = gstFromDoc ?? (totalCents != null ? Math.round(totalCents / 11) : 0);
-  const subtotalCents =
-    subtotalFromDoc ?? (totalCents != null ? totalCents - gstCents : null);
+  const subtotalCents = subtotalFromDoc ?? (totalCents != null ? totalCents - gstCents : null);
   const receiptNumber = extracted.invoice_number || `PHOTO-${Date.now().toString().slice(-8)}`;
   return {
     merchant: {
