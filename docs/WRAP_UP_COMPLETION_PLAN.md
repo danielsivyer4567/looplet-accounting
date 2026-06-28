@@ -30,6 +30,10 @@ work and re-checking the live project. It intentionally separates:
   `legal_horizon=0`, `advice_notes=1`, `receipt_events=0`,
   enabled `receipt_sync_endpoints=0`, enabled `xero_integrations=0`, and
   pending-ish `receipt_sync_jobs=0`.
+- Receipt Hub live service check on 2026-06-29: `bills-extract`,
+  `receipt-webhook`, and `receipt-sync-dispatch` are active Edge Functions, and
+  the `receipt-sync-dispatch-drain` cron is active on
+  `3,18,33,48 * * * *`.
 - Legal RAG source-material check found no local NotebookLM/legal source bundle.
   Only scratch ledgers and generic planning docs matched the legal-source file
   search.
@@ -119,9 +123,20 @@ Completed:
 - Receipt Hub Chromium/Firefox desktop/mobile smoke passed with screenshots, no
   console/page errors, and no horizontal overflow.
 - Receipt sync cron is active.
+- Live data/setup check on 2026-06-29 found `receipt_identities=3`,
+  `receipt_events=0`, `receipt_sync_jobs=0`, enabled
+  `receipt_sync_endpoints=0`, and enabled `xero_integrations=0`.
+- `tests/receipt-hub-live-smoke.test.ts` now captures the signed-in SC-13 proof
+  path once `TEST_USER_JWT`, `TEST_ORG_ID`, and service-role cleanup credentials
+  are supplied. It issues an identity, ingests an `epost` receipt through the
+  deployed `receipt-webhook`, verifies the event, bill, line item, audit JSON,
+  generic API sync job, and user RLS visibility, then deletes smoke-created rows
+  and the audit object.
 
 Blocked prerequisites:
 
+- Provide a signed-in test user JWT, accessible test org, and service-role
+  cleanup key to run the live smoke.
 - Configure at least one enabled `receipt_sync_endpoints` generic API receiver.
 - Provide a usable Xero integration, or explicitly accept stub-mode proof for the
   remaining wrap-up.

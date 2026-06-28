@@ -21,9 +21,14 @@ scorecard. Current wrap-up evidence changes these conclusions:
   have landed. The NFC read path was later corrected to wait for the `reading`
   event or timeout, and Chromium/Firefox desktop/mobile smoke passed with no
   console/page errors or horizontal overflow. Receipt functions and sync cron
-  are deployed; the remaining SC-13 blocker is live data/integration setup
-  (generic API endpoint row, usable Xero integration or accepted stub proof,
-  signed-in end-to-end run).
+  are deployed. A deploy-gated `tests/receipt-hub-live-smoke.test.ts` now
+  encodes the signed-in SC-13 proof path: issue a receipt identity, call the
+  deployed `receipt-webhook`, verify the persisted event, bill, line item, audit
+  JSON, generic API sync job, and user RLS visibility, then clean up smoke data.
+  Fresh live counts still show no end-to-end receipt data
+  (`receipt_events=0`, `receipt_sync_jobs=0`) and no enabled
+  `receipt_sync_endpoints`/`xero_integrations`, so the remaining blocker is live
+  data/integration setup plus a real signed-in test JWT/org.
 - **Legal RAG / Horizon:** schema and edge-function surfaces are live, including
   legal corpus/reference tables, advice-note RPCs, `legal-horizon-run`, and
   hardened legal table grants. The corpus is still unseeded
@@ -57,9 +62,11 @@ scorecard. Current wrap-up evidence changes these conclusions:
 - **Fresh live blocker counts:** `legal_sources=7`, `legal_corpus=0`,
   `legal_change_events=0`, `legal_horizon=0`, `advice_notes=1`,
   `receipt_events=0`, enabled `receipt_sync_endpoints=0`, and enabled
-  `xero_integrations=0`. The one advice note is a `structuring` draft created
-  2026-06-28; without a signed-in Ask/browser trace, it narrows but does not
-  complete the advisor workflow proof.
+  `xero_integrations=0`. A focused Receipt Hub check also found
+  `receipt_identities=3` and `receipt_sync_jobs=0`; the receipt sync drain cron
+  is active, but there is no live receipt chain data yet. The one advice note is
+  a `structuring` draft created 2026-06-28; without a signed-in Ask/browser
+  trace, it narrows but does not complete the advisor workflow proof.
 
 ## TL;DR
 
