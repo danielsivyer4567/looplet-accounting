@@ -29,6 +29,14 @@ let _pendingResponse: { data: unknown; error: { message: string } | null } = {
   error: null,
 };
 
+interface SupabaseOperation {
+  table: string;
+  method: 'insert' | 'update' | 'delete' | 'upsert';
+  payload?: unknown;
+}
+
+let _operations: SupabaseOperation[] = [];
+
 /**
  * Call this before rendering to control what the next Supabase query returns.
  * @example
@@ -41,15 +49,23 @@ export function mockSupabaseResponse(response: {
   _pendingResponse = response;
 }
 
+export function clearSupabaseOperations() {
+  _operations = [];
+}
+
+export function getSupabaseOperations(): SupabaseOperation[] {
+  return _operations.slice();
+}
+
 // ---------------------------------------------------------------------------
 // Chainable builder — mirrors PostgREST fluent API surface
 // ---------------------------------------------------------------------------
 
-function makeBuilder(): ReturnType<typeof buildChain> {
-  return buildChain();
+function makeBuilder(table: string): ReturnType<typeof buildChain> {
+  return buildChain(table);
 }
 
-function buildChain() {
+function buildChain(table: string) {
   const chain: Record<string, unknown> = {};
 
   // All terminal methods resolve to the pending response.
@@ -58,12 +74,24 @@ function buildChain() {
   // Non-terminal methods return the same chain so calls can continue.
   const passthrough = () => chain;
 
+  ['insert', 'update', 'upsert'].forEach((method) => {
+    chain[method] = (payload: unknown) => {
+      _operations.push({
+        table,
+        method: method as SupabaseOperation['method'],
+        payload,
+      });
+      return chain;
+    };
+  });
+
+  chain['delete'] = () => {
+    _operations.push({ table, method: 'delete' });
+    return chain;
+  };
+
   [
     'select',
-    'insert',
-    'update',
-    'delete',
-    'upsert',
     'eq',
     'neq',
     'gt',
@@ -126,7 +154,7 @@ interface QueryChain {
 // ---------------------------------------------------------------------------
 
 export const supabase = {
-  from: vi.fn(() => makeBuilder()),
+  from: vi.fn((table: string) => makeBuilder(table)),
   rpc: vi.fn(() => Promise.resolve(_pendingResponse)),
 
   auth: {

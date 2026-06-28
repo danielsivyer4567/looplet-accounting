@@ -1258,6 +1258,7 @@ function TimesheetRow({
       <td style={{ textAlign: 'right' }}>
         {editing ? (
           <input
+            aria-label="Timesheet hours"
             type="number"
             step="0.25"
             value={hours}
@@ -1283,6 +1284,7 @@ function TimesheetRow({
       <td>
         {editing ? (
           <input
+            aria-label="Timesheet notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             className="form-input"
@@ -1297,6 +1299,7 @@ function TimesheetRow({
           <div style={{ display: 'inline-flex', gap: '0.25rem' }}>
             <button
               onClick={save}
+              aria-label="Save timesheet"
               className="btn btn-primary"
               style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
             >
@@ -1308,6 +1311,7 @@ function TimesheetRow({
                 setHours(Number(ts.hours));
                 setNotes(ts.notes ?? '');
               }}
+              aria-label="Cancel timesheet edit"
               className="btn btn-secondary"
               style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
             >
@@ -1318,6 +1322,7 @@ function TimesheetRow({
           <div style={{ display: 'inline-flex', gap: '0.25rem' }}>
             <button
               onClick={() => setEditing(true)}
+              aria-label="Edit timesheet"
               className="btn btn-secondary"
               style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
             >
@@ -1325,6 +1330,7 @@ function TimesheetRow({
             </button>
             <button
               onClick={onDelete}
+              aria-label="Delete timesheet"
               className="btn btn-secondary"
               style={{
                 padding: '0.25rem 0.5rem',
@@ -1406,6 +1412,7 @@ function LogTimeForm({
       >
         <Field label="Date">
           <input
+            aria-label="Work date"
             type="date"
             value={workDate}
             onChange={(e) => setWorkDate(e.target.value)}
@@ -1414,6 +1421,7 @@ function LogTimeForm({
         </Field>
         <Field label="Hours">
           <input
+            aria-label="Hours worked"
             type="number"
             step="0.25"
             value={hours}
@@ -1432,6 +1440,7 @@ function LogTimeForm({
       >
         <Field label="Entry type">
           <select
+            aria-label="Entry type"
             value={entryType}
             onChange={(e) => setEntryType(e.target.value as typeof entryType)}
             className="form-select"
@@ -1444,7 +1453,12 @@ function LogTimeForm({
           </select>
         </Field>
         <Field label="Job (optional)">
-          <select value={jobId} onChange={(e) => setJobId(e.target.value)} className="form-select">
+          <select
+            aria-label="Job"
+            value={jobId}
+            onChange={(e) => setJobId(e.target.value)}
+            className="form-select"
+          >
             <option value="">— unassigned —</option>
             {jobs.map((j) => (
               <option key={j.id} value={j.id}>
@@ -1457,6 +1471,7 @@ function LogTimeForm({
 
       <Field label="Notes">
         <input
+          aria-label="Time entry notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="What was worked on"

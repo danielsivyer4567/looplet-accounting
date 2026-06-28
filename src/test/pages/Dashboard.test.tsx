@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import { DashboardPage, orderAdviceNotesForSeason } from '@/pages/Dashboard';
 import type { AdviceNote } from '@/hooks/useAdviceNotes';
 import type { RealtimePnl } from '@/hooks/useRealtimePnl';
@@ -8,6 +9,15 @@ import type { TaxObligation } from '@/hooks/useTaxCalendar';
 const mocks = vi.hoisted(() => ({
   adviceNotes: [] as AdviceNote[],
   obligations: [] as TaxObligation[],
+  onboardingProgress: {
+    total_entities: 0,
+    pending_count: 0,
+    needs_review_count: 0,
+    approved_count: 0,
+    dismissed_count: 0,
+    pct_complete: 100,
+    is_complete: true,
+  },
   signOff: vi.fn(),
   dismiss: vi.fn(),
 }));
@@ -65,6 +75,22 @@ vi.mock('@/hooks/useTaxCalendar', () => ({
   }),
 }));
 
+vi.mock('@/hooks/onboarding/useStagedEntities', () => ({
+  useOnboardingProgress: () => ({
+    progress: mocks.onboardingProgress,
+    loading: false,
+    refresh: vi.fn(),
+  }),
+}));
+
+function renderDashboard() {
+  return render(
+    <MemoryRouter>
+      <DashboardPage />
+    </MemoryRouter>,
+  );
+}
+
 function note(kind: AdviceNote['kind'], title: string, updated_at: string): AdviceNote {
   return {
     id: `${kind}-note`,
@@ -112,6 +138,15 @@ describe('Dashboard advice cards', () => {
     mocks.signOff.mockReset();
     mocks.dismiss.mockReset();
     mocks.obligations = [june30Obligation];
+    mocks.onboardingProgress = {
+      total_entities: 0,
+      pending_count: 0,
+      needs_review_count: 0,
+      approved_count: 0,
+      dismissed_count: 0,
+      pct_complete: 100,
+      is_complete: true,
+    };
     mocks.adviceNotes = [
       note('forecast', 'Cash-flow forecast', '2026-06-27T03:00:00Z'),
       note('structuring', 'Structuring tax comparison', '2026-06-27T02:00:00Z'),
@@ -131,7 +166,7 @@ describe('Dashboard advice cards', () => {
   });
 
   it('renders seasonal advice cards and opens the detail view', () => {
-    render(<DashboardPage />);
+    renderDashboard();
 
     const cards = screen.getAllByLabelText(/Advice card:/i);
     expect(cards[0]).toHaveTextContent('Year-end planning levers');
@@ -145,5 +180,27 @@ describe('Dashboard advice cards', () => {
     fireEvent.click(firstOpenButton);
     expect(screen.getByRole('heading', { name: 'Year-end planning levers' })).toBeInTheDocument();
     expect(screen.getByText('General information only.')).toBeInTheDocument();
+  });
+
+  it('surfaces pending onboarding triage with a direct link', () => {
+    mocks.onboardingProgress = {
+      total_entities: 20,
+      pending_count: 9,
+      needs_review_count: 3,
+      approved_count: 8,
+      dismissed_count: 0,
+      pct_complete: 40,
+      is_complete: false,
+    };
+
+    renderDashboard();
+
+    expect(screen.getByLabelText(/onboarding triage prompt/i)).toHaveTextContent(
+      '12 staged senders need approval',
+    );
+    expect(screen.getByRole('link', { name: /review 12 staged senders/i })).toHaveAttribute(
+      'href',
+      '/onboarding/triage',
+    );
   });
 });

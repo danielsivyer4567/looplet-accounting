@@ -82,3 +82,24 @@ export function useStagedEntities() {
 
   return { entities, progress, loading, refresh };
 }
+
+export function useOnboardingProgress() {
+  const { currentOrg } = useOrg();
+  const [progress, setProgress] = useState<OnboardingProgress | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const refresh = useCallback(async () => {
+    if (!currentOrg) {
+      setProgress(null);
+      return;
+    }
+    setLoading(true);
+    const { data } = await supabase.rpc('onboarding_progress', { p_org_id: currentOrg.id });
+    setProgress(((data as OnboardingProgress[] | null)?.[0] as OnboardingProgress) ?? null);
+    setLoading(false);
+  }, [currentOrg]);
+
+  useEffect(() => void refresh(), [refresh]);
+
+  return { progress, loading, refresh };
+}

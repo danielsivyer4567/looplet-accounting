@@ -53,6 +53,95 @@ work and re-checking the live project. It intentionally separates:
   `LEGAL_SCAN_SECRET` configured by those names. Do not expose secret values in
   follow-up reports.
 
+## Execution Control Plan
+
+Rule: do not mark a ledger finished until the matching evidence is captured.
+Use these statuses consistently in `docs/COMPLETION_AUDIT.md` and this plan:
+`live-proven`, `code-complete`, `external-blocked`, or `deferred`.
+
+Current repo re-checks against the May 6 P1 audit:
+
+- Customer create UI is now present on `/customers`.
+- Job create UI is now present on `/jobs`.
+- Triage now has bulk approval/dismissal controls, including high-confidence AI
+  and Sonar picks.
+- Bill detail has inline edit/save for extracted fields.
+- `MoveToOrgButton` is wired on bill, invoice, job, customer, and supplier
+  detail pages.
+- Subscription detail, debt detail/payment recording, and employee detail pages
+  now exist.
+- Dashboard now surfaces pending onboarding triage via a direct
+  `/onboarding/triage` CTA without loading the full staged-entity list.
+- Org profile write-through for `abn` and `organizations.settings` is covered by
+  a focused component test.
+- Debt detail payment recording is covered by a focused page test that verifies
+  `debt_payments` insert payloads and principal balance reduction.
+- Subscription detail editing is covered by a focused page test that verifies
+  status, cadence, notes, and mutually exclusive personal/business
+  classification save payloads.
+- Employee detail timesheet behavior is covered by focused page tests that
+  verify inline timesheet updates recompute total cost from loaded rate and new
+  log-time entries include job, entry type, notes, loaded rate, and org/employee
+  IDs.
+- Multi-org move behavior is covered by focused component tests that verify the
+  exact `organization_id` update payload, FK-null clearing where requested, and
+  debt-row moves without FK clearing.
+- A deterministic Chromium visual smoke now mounts the changed local UX surfaces
+  with mocks, performs the key interactions, captures screenshots, and verifies
+  zero browser console/page errors. This is local browser proof, not signed-in
+  production proof.
+
+Remaining execution order:
+
+1. **Close stale audit bookkeeping.** Keep the historical May 6 audit intact,
+   but annotate which P1 items are now code-complete and which still require
+   live proof.
+2. **Verify local app UX ledgers.** Org profile settings write-through,
+   Dashboard-to-Triage discoverability, debt payment behavior, subscription
+   detail editing, employee timesheet behavior, and multi-org move behavior now
+   have focused tests. Signed-in browser proof is still required before marking
+   the app release as live-proven.
+3. **Finish signed-in live proof.** Run the Advisor and Receipt Hub live smoke
+   tests once `TEST_USER_JWT`, `TEST_ORG_ID`, and service-role cleanup
+   credentials are available. Capture UI screenshots, console/network status,
+   and non-secret row metadata.
+4. **Finish Legal RAG/Horizon proof.** Seed approved legal source text, configure
+   embedding/operator secrets, verify corpus search/citations, then run Horizon
+   with a real scanner path before any cron is enabled.
+5. **Finish data-starvation ledgers.** Import the queued bank statement PDFs,
+   run subscription detection, process pending triage classifications into
+   `intake_rules`, and populate at least one real customer/invoice/payment path.
+6. **Resolve remaining integration ledgers.** Complete or explicitly defer
+   Basiq callback backfill, Gmail Pub/Sub replay, Xero settings/sync, and ATO
+   lodgement enablement. External credentials stay `external-blocked` until
+   supplied and proven.
+7. **Final release pass.** Re-run all local gates, browser smoke the critical
+   UI surfaces, re-check live row counts, update final labels, and commit only
+   evidence-backed changes.
+
+Local verification added during this pass:
+
+- `npm run test -- src/test/components/OrgProfile.test.tsx
+src/test/pages/Dashboard.test.tsx` passed: 2 files, 4 tests.
+- `npm run test -- src/test/pages/DebtDetail.test.tsx
+src/test/pages/SubscriptionDetail.test.tsx` passed: 2 files, 2 tests.
+- `npm run test -- src/test/pages/EmployeeDetail.test.tsx
+src/test/components/MoveToOrgButton.test.tsx` passed: 2 files, 12 tests.
+- `npm run wrap:visual-smoke` passed in Chromium with no console/page errors and
+  all interaction checks true. Screenshot evidence:
+  `.claude/scratch/wrap-up-local-visual-smoke/2026-06-28T19-21-08-902Z/screenshots/dashboard.png`,
+  `org-profile.png`, `debt-payment-dialog.png`, `subscription-edit.png`,
+  `employee-log-time.png`, and `move.png`.
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+- `npx prettier --check ...` passed on the changed source/test/doc files.
+- `npm run format:check` passed.
+- `npm run test` passed: 36 passed / 16 skipped files, 171 passed / 33 skipped
+  tests.
+- `npm run build` passed with the known pdfjs dynamic-import and large chunk
+  warnings.
+- `git diff --check` passed.
+
 ## Workstream 1: Legal RAG And Horizon
 
 **Current status:** code-complete surfaces exist; production proof is blocked.

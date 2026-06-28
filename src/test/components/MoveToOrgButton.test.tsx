@@ -9,8 +9,13 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import type { ComponentProps } from 'react';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
-import { mockSupabaseResponse } from '@/test/mocks/supabase';
+import {
+  clearSupabaseOperations,
+  getSupabaseOperations,
+  mockSupabaseResponse,
+} from '@/test/mocks/supabase';
 import type { Organization } from '@/contexts/OrgContext';
 
 // ---------------------------------------------------------------------------
@@ -49,7 +54,7 @@ const DEFAULT_PROPS = {
 };
 
 interface ButtonProps {
-  table?: (typeof DEFAULT_PROPS)['table'];
+  table?: ComponentProps<typeof MoveToOrgButton>['table'];
   rowId?: string;
   currentOrgId?: string;
   fkColumnsToNull?: string[];
@@ -75,6 +80,7 @@ describe('MoveToOrgButton', () => {
     ];
     // Default: update succeeds
     mockSupabaseResponse({ data: [{ id: 'row-123' }], error: null });
+    clearSupabaseOperations();
     // Auto-accept browser confirm dialogs
     vi.spyOn(window, 'confirm').mockReturnValue(true);
   });
@@ -108,6 +114,33 @@ describe('MoveToOrgButton', () => {
 
     await waitFor(() => {
       expect(supabase.from).toHaveBeenCalledWith('bills');
+      expect(getSupabaseOperations()).toContainEqual({
+        table: 'bills',
+        method: 'update',
+        payload: {
+          organization_id: 'org-b',
+          supplier_id: null,
+          job_id: null,
+          suggested_job_id: null,
+        },
+      });
+    });
+  });
+
+  it('moves debt rows without foreign-key clearing when no FK list is supplied', async () => {
+    render(<MoveToOrgButton table="debts" rowId="debt-1" currentOrgId="org-a" />);
+
+    fireEvent.click(screen.getByRole('button', { name: /move to business/i }));
+    fireEvent.click(screen.getByText('Gamma Roofing'));
+
+    await waitFor(() => {
+      expect(getSupabaseOperations()).toContainEqual({
+        table: 'debts',
+        method: 'update',
+        payload: {
+          organization_id: 'org-c',
+        },
+      });
     });
   });
 

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
 import { useRealtimePnl } from '@/hooks/useRealtimePnl';
 import { useAdviceNotes, type AdviceNote, type AdviceNoteKind } from '@/hooks/useAdviceNotes';
 import { useTaxCalendar, type TaxObligation } from '@/hooks/useTaxCalendar';
+import { useOnboardingProgress } from '@/hooks/onboarding/useStagedEntities';
 import { AdviceCard } from '@/components/AdviceCard';
 import { AdviceNoteView } from '@/components/AdviceNoteView';
 import { SkeletonCard } from '@/components/Skeleton';
@@ -286,6 +288,45 @@ function AdviceCardsSection({
   );
 }
 
+function OnboardingTriagePrompt({ remaining }: { remaining: number }) {
+  if (remaining <= 0) return null;
+
+  const senderLabel = remaining === 1 ? 'sender' : 'senders';
+  return (
+    <section
+      aria-label="Onboarding triage prompt"
+      style={{
+        gridColumn: '1 / -1',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '1rem',
+        padding: '1rem',
+        background: 'var(--bg-panel)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-md)',
+        boxShadow: 'var(--shadow-sm)',
+        flexWrap: 'wrap',
+      }}
+    >
+      <div>
+        <h2 style={{ margin: 0, color: 'var(--text-title)', fontSize: '1rem', letterSpacing: 0 }}>
+          Onboarding triage
+        </h2>
+        <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+          {remaining} staged {senderLabel} need approval before future emails auto-route.
+        </p>
+      </div>
+      <Link to="/onboarding/triage" className="btn btn-primary">
+        <span>
+          Review {remaining} staged {senderLabel}
+        </span>
+        <ChevronRight size={16} />
+      </Link>
+    </section>
+  );
+}
+
 // eslint-disable-next-line react-refresh/only-export-components
 export function orderAdviceNotesForSeason(
   notes: AdviceNote[],
@@ -340,6 +381,8 @@ export function DashboardPage() {
     dismiss,
   } = useAdviceNotes();
   const { obligations } = useTaxCalendar();
+  const { progress: onboardingProgress, loading: onboardingProgressLoading } =
+    useOnboardingProgress();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'local' | 'international'>('local');
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -352,6 +395,10 @@ export function DashboardPage() {
     selectedAdviceNoteId != null
       ? (adviceNotes.find((note) => note.id === selectedAdviceNoteId) ?? null)
       : null;
+  const onboardingRemaining =
+    onboardingProgressLoading || onboardingProgress == null
+      ? 0
+      : onboardingProgress.pending_count + onboardingProgress.needs_review_count;
 
   useEffect(() => {
     if (selectedAdviceNoteId && !adviceNotes.some((note) => note.id === selectedAdviceNoteId)) {
@@ -582,6 +629,7 @@ export function DashboardPage() {
           marginBottom: '1.5rem',
         }}
       >
+        <OnboardingTriagePrompt remaining={onboardingRemaining} />
         <AdviceCardsSection
           notes={seasonalAdviceNotes}
           loading={adviceLoading}

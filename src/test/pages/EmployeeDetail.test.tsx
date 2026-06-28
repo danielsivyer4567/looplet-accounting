@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
 /**
@@ -13,18 +13,20 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
 const h = vi.hoisted(() => ({
   tables: {} as Record<string, { data: unknown; error: { message: string } | null }>,
+  inserts: [] as { table: string; payload: unknown }[],
+  updates: [] as { table: string; payload: unknown }[],
 }));
 
 vi.mock('@/lib/supabase', () => {
   const builder = (table: string) => {
+    let operation: 'select' | 'insert' | 'update' | 'delete' = 'select';
     const resolved = () => h.tables[table] ?? { data: [], error: null };
+    const terminal = () =>
+      Promise.resolve(operation === 'select' ? resolved() : { data: null, error: null });
     const chain: Record<string, unknown> = {};
     const pass = () => chain;
     [
       'select',
-      'insert',
-      'update',
-      'delete',
       'upsert',
       'eq',
       'neq',
@@ -47,6 +49,20 @@ vi.mock('@/lib/supabase', () => {
     ].forEach((m) => {
       chain[m] = pass;
     });
+    chain['insert'] = (payload: unknown) => {
+      operation = 'insert';
+      h.inserts.push({ table, payload });
+      return chain;
+    };
+    chain['update'] = (payload: unknown) => {
+      operation = 'update';
+      h.updates.push({ table, payload });
+      return chain;
+    };
+    chain['delete'] = () => {
+      operation = 'delete';
+      return chain;
+    };
     const single = () => {
       const r = resolved();
       return Promise.resolve({
@@ -56,7 +72,7 @@ vi.mock('@/lib/supabase', () => {
     };
     chain['single'] = single;
     chain['maybeSingle'] = single;
-    chain['then'] = (res: (v: unknown) => unknown) => Promise.resolve(resolved()).then(res);
+    chain['then'] = (res: (v: unknown) => unknown) => terminal().then(res);
     return chain;
   };
   return {
@@ -92,8 +108,27 @@ const EMP = {
     super_pct: 11.5,
     workcover_pct: 1.5,
     leave_loading_pct: 8,
+    loaded_hourly_rate_cents: 10000,
   },
   created_at: '2024-01-01T00:00:00Z',
+};
+const TIMESHEET = {
+  id: 'ts-1',
+  employee_id: 'emp-1',
+  job_id: 'job-1',
+  work_date: '2026-06-20',
+  hours: 4,
+  loaded_hourly_rate_cents: 10000,
+  total_cost_cents: 40000,
+  is_billable: true,
+  notes: 'Initial install',
+  entry_type: 'ordinary',
+  job: { job_number: 'J-001', name: 'Fence repair' },
+};
+const JOB = {
+  id: 'job-1',
+  job_number: 'J-001',
+  name: 'Fence repair',
 };
 const EXC = {
   modern_award: 'MA000003',
@@ -104,10 +139,12 @@ const EXC = {
 };
 
 beforeEach(() => {
+  h.inserts = [];
+  h.updates = [];
   h.tables = {
     employees: { data: [EMP], error: null },
-    timesheet_entries: { data: [], error: null },
-    jobs: { data: [], error: null },
+    timesheet_entries: { data: [TIMESHEET], error: null },
+    jobs: { data: [JOB], error: null },
     leave_balances: { data: [], error: null },
     pay_slips: { data: [], error: null },
     v_award_rate_exceptions: { data: [EXC], error: null },
@@ -155,5 +192,58 @@ describe('EmployeeDetail award underpayment badge (SC-3.K.03)', () => {
     await renderLoaded();
     expect(screen.getByText('Jane Doe')).toBeInTheDocument();
     expect(screen.queryByText(/Possible award underpayment/i)).not.toBeInTheDocument();
+  });
+
+  it('updates inline timesheet hours and recomputes total cost from the loaded rate', async () => {
+    await renderLoaded();
+
+    fireEvent.click(screen.getByRole('button', { name: /edit timesheet/i }));
+    fireEvent.change(screen.getByLabelText(/timesheet hours/i), { target: { value: '6.5' } });
+    fireEvent.change(screen.getByLabelText(/timesheet notes/i), {
+      target: { value: 'Updated install' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /save timesheet/i }));
+
+    await waitFor(() => {
+      expect(h.updates).toContainEqual({
+        table: 'timesheet_entries',
+        payload: {
+          hours: 6.5,
+          notes: 'Updated install',
+          total_cost_cents: 65000,
+        },
+      });
+    });
+  });
+
+  it('logs new job-attached time with the employee loaded rate', async () => {
+    await renderLoaded();
+
+    fireEvent.click(screen.getByRole('button', { name: /^log time$/i }));
+    fireEvent.change(screen.getByLabelText(/work date/i), { target: { value: '2026-06-21' } });
+    fireEvent.change(screen.getByLabelText(/hours worked/i), { target: { value: '3.5' } });
+    fireEvent.change(screen.getByLabelText(/entry type/i), { target: { value: 'overtime' } });
+    fireEvent.change(screen.getByLabelText(/^job$/i), { target: { value: 'job-1' } });
+    fireEvent.change(screen.getByLabelText(/time entry notes/i), {
+      target: { value: 'Overtime install' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /log entry/i }));
+
+    await waitFor(() => {
+      expect(h.inserts).toContainEqual({
+        table: 'timesheet_entries',
+        payload: {
+          organization_id: 'org-1',
+          employee_id: 'emp-1',
+          job_id: 'job-1',
+          work_date: '2026-06-21',
+          hours: 3.5,
+          loaded_hourly_rate_cents: 10000,
+          notes: 'Overtime install',
+          is_billable: true,
+          entry_type: 'overtime',
+        },
+      });
+    });
   });
 });

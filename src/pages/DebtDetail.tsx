@@ -239,7 +239,7 @@ export function DebtDetailPage() {
                 <Plus className="w-4 h-4" /> Record Payment
               </button>
               <MoveToOrgButton
-                table={'debts' as 'subscriptions'}
+                table="debts"
                 rowId={debt.id}
                 currentOrgId={currentOrg.id}
                 onMoved={() => navigate('/debts')}
@@ -709,6 +709,9 @@ function RecordPaymentModal({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Record debt payment"
       style={{
         position: 'fixed',
         top: 0,
@@ -758,8 +761,11 @@ function RecordPaymentModal({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
-              <label className="form-label">Payment Date</label>
+              <label className="form-label" htmlFor="debt-payment-date">
+                Payment Date
+              </label>
               <input
+                id="debt-payment-date"
                 type="date"
                 className="form-input"
                 value={paidAt}
@@ -767,8 +773,11 @@ function RecordPaymentModal({
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Total Amount ($)</label>
+              <label className="form-label" htmlFor="debt-payment-total">
+                Total Amount ($)
+              </label>
               <input
+                id="debt-payment-total"
                 type="number"
                 step="0.01"
                 className="form-input"
@@ -781,8 +790,11 @@ function RecordPaymentModal({
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
-              <label className="form-label">Principal portion ($)</label>
+              <label className="form-label" htmlFor="debt-payment-principal">
+                Principal portion ($)
+              </label>
               <input
+                id="debt-payment-principal"
                 type="number"
                 step="0.01"
                 className="form-input"
@@ -792,8 +804,11 @@ function RecordPaymentModal({
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Interest portion ($)</label>
+              <label className="form-label" htmlFor="debt-payment-interest">
+                Interest portion ($)
+              </label>
               <input
+                id="debt-payment-interest"
                 type="number"
                 step="0.01"
                 className="form-input"
@@ -805,8 +820,11 @@ function RecordPaymentModal({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Fees portion ($)</label>
+            <label className="form-label" htmlFor="debt-payment-fees">
+              Fees portion ($)
+            </label>
             <input
+              id="debt-payment-fees"
               type="number"
               step="0.01"
               className="form-input"
@@ -817,8 +835,11 @@ function RecordPaymentModal({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Notes / Description</label>
+            <label className="form-label" htmlFor="debt-payment-notes">
+              Notes / Description
+            </label>
             <input
+              id="debt-payment-notes"
               className="form-input"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}

@@ -76,6 +76,37 @@ scorecard. Current wrap-up evidence changes these conclusions:
   is active, but there is no live receipt chain data yet. The one advice note is
   a `structuring` draft created 2026-06-28; without a signed-in Ask/browser
   trace, it narrows but does not complete the advisor workflow proof.
+- **Stale P1 corrections from repo inspection:** the original May 6 P1 list
+  still contains several items that are now code-complete. `/customers` has a
+  New customer flow, `/jobs` has a New job flow, Triage has bulk
+  high-confidence approval/dismissal controls, bill detail has inline edit/save,
+  `MoveToOrgButton` is wired on the bill/invoice/job/customer/supplier detail
+  pages, and subscription, debt/payment, and employee detail pages exist. These
+  still need normal release proof where they touch UI or live data, but they
+  should no longer drive rebuild work.
+- **Local UX proof added:** Dashboard now has a pending onboarding-triage CTA
+  backed by a progress-only `onboarding_progress` hook, and OrgProfile has a
+  focused component test proving ABN plus `organizations.settings` are written
+  back on save. Debt detail now has focused proof for `debt_payments` insert
+  payloads plus principal balance reduction, and subscription detail has focused
+  proof for status/cadence/notes/personal-classification save payloads. Employee
+  detail now has focused proof for inline timesheet updates and new log-time
+  inserts, and `MoveToOrgButton` now has focused proof for exact cross-org update
+  payloads including FK clearing. Focused tests passed for `OrgProfile.test.tsx`,
+  `Dashboard.test.tsx`, `DebtDetail.test.tsx`, `SubscriptionDetail.test.tsx`,
+  `EmployeeDetail.test.tsx`, and `MoveToOrgButton.test.tsx` on 2026-06-29; full
+  `npm run test` then passed at 36 passed / 16 skipped files and 171 passed / 33
+  skipped tests. `npm run build` also passed with the known pdfjs dynamic-import
+  and large chunk warnings.
+- **Local browser proof added:** `npm run wrap:visual-smoke` now mounts the
+  changed local UX surfaces in a deterministic Chromium harness, performs the
+  Dashboard triage, OrgProfile save, debt payment, subscription edit, employee
+  timesheet/log-time, and multi-org move interactions, and captures screenshots
+  under
+  `.claude/scratch/wrap-up-local-visual-smoke/2026-06-28T19-21-08-902Z/screenshots/`.
+  The run returned all checks true with no browser console or page errors. This
+  is local mocked browser proof; signed-in production/browser proof remains
+  separate.
 
 ## TL;DR
 
@@ -196,7 +227,11 @@ None. The earlier subagent flagged some but they were false positives:
 
 ## Gaps — P1 (missing core)
 
-Ordered by user-visible value:
+Historical May 6 list, kept for context. Current wrap-up work should use the
+2026-06-29 addendum and `docs/WRAP_UP_COMPLETION_PLAN.md` before treating any
+item below as still missing.
+
+Ordered by original user-visible value:
 
 1. **No "+ New customer" button on `/customers`** — list page exists, detail page exists, but no way to create a customer from the UI. Have to use SQL. Blocks invoicing because invoices need a customer. Fix: add button + form (~15 min).
 2. **No "+ New job" button on `/jobs`** — same shape. Blocks Allocations from being useful, blocks customer-side invoicing flow. Fix: ~15 min.
@@ -298,12 +333,26 @@ These are big enough to warrant their own sprint, not lumped in here:
 
 ## Recommended next-sprint order
 
-1. **Triage cleanup** — bulk-approve high-confidence AI classifications. Unblocks the 399 pending entities + populates intake_rules so future intake auto-routes. (~30 min)
-2. **Customer + Job create UIs** — unblocks invoicing. Currently you can't even raise an invoice because there's no customer. (~30 min)
-3. **Bill detail edit mode** — repair the 96% of bills with missing totals so reports become meaningful. (~30 min)
-4. **Wire MoveToOrgButton onto remaining detail pages** + create a 2nd org so the multi-tenancy can be exercised. (~30 min)
-5. **Reconciliation invoice-side** — once invoices exist, match bank inflows. (~30 min)
-6. **Mobile layout pass** — global responsive sweep. (~2 h)
-7. **Xero bidirectional sync** — biggest user-visible deferred item. (~1-2 days)
+Superseded for the 2026-06-29 wrap-up. Use this order now:
+
+1. **Ledger cleanup** — update audit/status docs so stale May 6 P1 items are
+   marked code-complete instead of rebuilt.
+2. **Focused local proof** — verify org settings write-through,
+   Dashboard-to-Triage discoverability, debt payment recording, employee detail,
+   subscription detail, and multi-org move behavior. These local UX ledgers now
+   have focused test proof; continue with signed-in browser proof and live
+   blockers.
+3. **Signed-in live proof** — run Advisor and Receipt Hub smoke tests with
+   `TEST_USER_JWT`, `TEST_ORG_ID`, and service-role cleanup credentials.
+4. **Legal proof** — seed approved legal source text, configure the required
+   secrets, prove corpus citations in Ask, then run Legal Horizon.
+5. **Data-starvation cleanup** — import queued bank statement PDFs, run
+   subscription detection, and process pending triage rows into `intake_rules`.
+6. **Integration decisions** — complete or explicitly defer Basiq callback
+   backfill, Gmail Pub/Sub replay, Xero bidirectional sync, and ATO lodgement
+   enablement.
+7. **Release gate** — rerun full local gates, browser smoke critical surfaces,
+   re-check live row counts, and label every ledger `live-proven`,
+   `code-complete`, `external-blocked`, or `deferred`.
 
 After (1-5) the app is usefully end-to-end on real data.
