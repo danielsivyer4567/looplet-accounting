@@ -40,9 +40,13 @@ scorecard. Current wrap-up evidence changes these conclusions:
   project does not have `OPENAI_API_KEY`, `LEGAL_INGEST_SECRET`,
   `LEGAL_SYNC_SECRET`, or `LEGAL_SCAN_SECRET` configured by those names. The
   scanner provider key is present, but corpus seeding still requires clean legal
-  text plus the OpenAI embedding key. The `legal-corpus-sync` fetch path remains
-  a raw-markup stub and must not be scheduled until real FRL/ATO extraction is
-  built or the provided-text path is used intentionally.
+  text plus the OpenAI embedding key. The `legal-corpus-sync` FRL fetch path now
+  resolves official `/latest/text` EPUB HTML documents, strips markup/table of
+  sections noise, and extracts compilation-date/version metadata; a local
+  live-source proof against the current ITAA 1997 FRL page produced 5,956
+  chunks and found `s 8-1 General deductions`. The generic ATO legal database
+  landing page remains unsuitable for scheduled sync and is now refused until a
+  specific ATO document/feed URL or provided-text path is used intentionally.
 - **Advisor:** deployed with JWT enabled and local Deno/model tests passing, but
   still needs a signed-in Ask/on-demand smoke proving a live `advice_notes` draft
   row is created. A deploy-gated `tests/advisor-live-smoke.test.ts` now encodes

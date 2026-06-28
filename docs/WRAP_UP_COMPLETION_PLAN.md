@@ -37,6 +37,11 @@ work and re-checking the live project. It intentionally separates:
 - Legal RAG source-material check found no local NotebookLM/legal source bundle.
   Only scratch ledgers and generic planning docs matched the legal-source file
   search.
+- `legal-corpus-sync` now resolves FRL sources through the official
+  `/latest/text` EPUB HTML pages and extracts clean legal text plus compilation
+  date metadata instead of passing raw markup to the chunker. Local live-source
+  proof against the current ITAA 1997 FRL page extracted 7,758,792 characters,
+  produced 5,956 chunks, and found `s 8-1 General deductions`.
 - Supabase secret-name check found the scanner provider key present, but no
   `OPENAI_API_KEY`, `LEGAL_INGEST_SECRET`, `LEGAL_SYNC_SECRET`, or
   `LEGAL_SCAN_SECRET` configured by those names. Do not expose secret values in
@@ -52,6 +57,10 @@ Completed:
   schema are live with hardened grants.
 - `legal-corpus-ingest`, `legal-corpus-sync`, `legal-horizon-scan`, and
   `legal-horizon-run` code paths exist.
+- `legal-corpus-sync` now has a tested official FRL source-fetch path:
+  `C2004A05138`-style source URLs resolve to `/latest/text`, EPUB document pages
+  are fetched in order, tables of sections/scripts/styles/tags are stripped, and
+  FRL effective date/version metadata is captured for the sync cursor.
 - `legal-horizon-run` is deployed and blocks unauthenticated calls at the
   Supabase gateway.
 - The Legal Horizon UI scan controls passed mocked desktop/mobile browser smoke.
@@ -64,8 +73,9 @@ Blocked prerequisites:
 - Configure `OPENAI_API_KEY` for `text-embedding-3-small` embeddings.
 - Configure operator secrets if driving non-service-role seed/sync/scan paths:
   `LEGAL_INGEST_SECRET`, `LEGAL_SYNC_SECRET`, and `LEGAL_SCAN_SECRET`.
-- Replace the `legal-corpus-sync` raw-HTML fetch stub with real FRL/ATO text and
-  compilation-date extraction before any corpus sync cron is enabled.
+- Register specific ATO Legal Database document/feed URLs, or provide exported
+  text, before enabling ATO corpus sync. The generic ATO legal database landing
+  page is now refused rather than ingested as source text.
 
 Exit criteria:
 
