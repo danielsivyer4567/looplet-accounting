@@ -36,16 +36,17 @@ scorecard. Current wrap-up evidence changes these conclusions:
   with valid Sonar secret, and Ask still needs a signed-in proof that a real
   answer returns corpus `citations[]`.
 - **Legal RAG seed blocker:** a fresh source-material/secret check on
-  2026-06-29 found no local NotebookLM/legal source text bundle, and the linked
-  project does not have `OPENAI_API_KEY`, `LEGAL_INGEST_SECRET`,
-  `LEGAL_SYNC_SECRET`, or `LEGAL_SCAN_SECRET` configured by those names. The
-  scanner provider key is present, but corpus seeding still requires clean legal
-  text plus the OpenAI embedding key. The `legal-corpus-sync` FRL fetch path now
+  2026-06-29 found no local NotebookLM/legal source text bundle. The linked
+  project now has `OPENAI_API_KEY` configured, but still does not have
+  `LEGAL_INGEST_SECRET`, `LEGAL_SYNC_SECRET`, or `LEGAL_SCAN_SECRET`
+  configured by those names. The scanner provider key is present, but corpus
+  seeding still requires clean legal source text and a seed/sync invocation. The
+  `legal-corpus-sync` FRL fetch path now
   resolves official `/latest/text` EPUB HTML documents, strips markup/table of
   sections noise, and extracts compilation-date/version metadata; a local
   live-source proof against the current ITAA 1997 FRL page produced 5,956
   chunks and found `s 8-1 General deductions`. The updated bundle is deployed as
-  `legal-corpus-sync` version 3; live smoke showed CORS OPTIONS 200,
+  `legal-corpus-sync` version 7; live smoke showed CORS OPTIONS 200,
   unauthenticated POST returning the function's own 401 Unauthorized body, zero
   legal cron jobs scheduled, and unchanged legal row counts
   (`legal_sources=7`, `legal_corpus=0`, `legal_change_events=0`,
@@ -61,9 +62,9 @@ scorecard. Current wrap-up evidence changes these conclusions:
   `PERPLEXITY_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `GMAIL_CLIENT_ID`,
   `GMAIL_CLIENT_SECRET`, `GMAIL_PUBSUB_TOPIC`, `GMAIL_PUSH_VERIFY_TOKEN`, and
   `GMAIL_WATCH_RENEW_CRON_SECRET`, `BANK_SYNC_ALL_CRON_SECRET`,
-  `NOTIFICATIONS_CRON_SECRET`, and `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET`, and
-  false for `OPENAI_API_KEY`, `LEGAL_INGEST_SECRET`, `LEGAL_SYNC_SECRET`, and
-  `LEGAL_SCAN_SECRET`. The signed-in Advisor and Receipt Hub smoke tests remain
+  `NOTIFICATIONS_CRON_SECRET`, `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET`, and
+  `OPENAI_API_KEY`, and false for `LEGAL_INGEST_SECRET`, `LEGAL_SYNC_SECRET`,
+  and `LEGAL_SCAN_SECRET`. The signed-in Advisor and Receipt Hub smoke tests remain
   locally unrunnable until `SUPABASE_SERVICE_ROLE_KEY`, `TEST_USER_JWT`, and
   `TEST_ORG_ID` are supplied to the test environment.
 - **Gmail Pub/Sub:** the May 6 "handler stub" finding is no longer current.
@@ -72,15 +73,15 @@ scorecard. Current wrap-up evidence changes these conclusions:
   `bills-extract`, shares a Gmail message-id duplicate guard with backfill, and
   only advances `last_history_id` after the delta is durably handled. Focused
   Deno tests cover the duplicate guard and retryable-ingest classification, the
-  touched Edge modules pass `deno check`, and the hardened function is deployed
-  live as version 34. The live audit also proves the public push endpoint fails
+  touched Edge modules pass `deno check`, and the hardened function is active
+  live as version 35. The live audit also proves the public push endpoint fails
   closed with HTTP 401 when called without `GMAIL_PUSH_VERIFY_TOKEN`.
 - **Bank/notification cron auth:** the May 6/June ledger finding that cron
   functions trusted an unverified JWT payload for `role=service_role` is fixed
   live. A shared exact-match auth helper now gates service-role bearer and cron
   secrets, with focused Deno tests proving forged JWT rejection. `bank-sync` is
-  deployed as version 29, `bank-sync-all` as version 27, and
-  `notifications-cron` as version 24. The live audit proves forged
+  active as version 30, `bank-sync-all` as version 28, and
+  `notifications-cron` as version 25. The live audit proves forged
   `bank-sync` service-role JWT returns HTTP 401, unsigned `bank-sync-all` and
   `notifications-cron` return HTTP 403, both cron secret names exist in
   Supabase, and the functions are active. `bank-sync-all` was also rescheduled
@@ -88,7 +89,7 @@ scorecard. Current wrap-up evidence changes these conclusions:
   from Supabase Vault; direct and DB-side `pg_net` probes returned HTTP 200 with
   `ok=true`, `orgs=0`.
 - **Accountant digest cron auth:** the prior 10-minute 401 loop is fixed live.
-  `accountant-session-digest` is deployed as version 19 with `verify_jwt=false`;
+  `accountant-session-digest` is active as version 20 with `verify_jwt=false`;
   cron mode now requires exact `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET` or
   service-role bearer, while browser/on-demand modes still verify the caller JWT
   inside the function before reading sessions or activity. The live audit proves
@@ -315,7 +316,7 @@ Ordered by original user-visible value:
 10. **Resolved 2026-06-29: Employee detail/timesheet edit** — employee detail now supports inline timesheet edits and new log-time entries; `src/test/pages/EmployeeDetail.test.tsx` proves cost recomputation, loaded rate, job, entry type, notes, and org/employee IDs. Remaining proof: signed-in browser edit against live employee/timesheet data.
 11. **Basiq Connect callback path incomplete** — `bank-link-token` mints; `BankCallback.tsx` is shallow; doesn't reliably fetch initial transaction backfill after first connect. Fix: ~1 h.
 12. **gmail-pubsub-push handler is a stub** — resolved 2026-06-29. The live
-    version 34 handler replays Gmail history deltas, creates bill rows for
+    version 35 handler replays Gmail history deltas, creates bill rows for
     accepted attachments, dispatches extraction, fails closed without the push
     token, dedupes Gmail message IDs across push/backfill overlap, and leaves
     `last_history_id` unchanged on retryable ingest failures so a later push can
