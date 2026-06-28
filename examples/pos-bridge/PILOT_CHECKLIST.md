@@ -159,9 +159,20 @@ the verifier summary:
 node C:\ProgramData\Looplet\pos-bridge\sample-fingerprint.mjs C:\ProgramData\Looplet\field-sale.json --expected <sale-fingerprint-from-verifier-summary>
 ```
 
-Before go-live, run the one-command evidence flow. It collects acceptance
-evidence and immediately verifies it with all local field files so the evidence
-bundle is tied back to the actual captured POS payloads:
+Before go-live, run the same command in non-sending preflight mode. It validates
+the install, site manifest, fit profile, and real sale/refund/void field files
+without sending acceptance receipts:
+
+```powershell
+node C:\ProgramData\Looplet\pos-bridge\go-live.mjs --preflight-only --env-file C:\ProgramData\Looplet\pos-bridge.env --site-file C:\ProgramData\Looplet\pos-pilot-site.json --fit-profile C:\ProgramData\Looplet\pos-integration-profile.json --sale C:\ProgramData\Looplet\field-sale.json --refund C:\ProgramData\Looplet\field-refund.json --void C:\ProgramData\Looplet\field-void.json --output C:\ProgramData\Looplet\pos-pilot-preflight.json
+```
+
+Expected result: `ok: true`, `preflight_only: true`, `summary.non_sending:
+true`, and `summary.acceptance_skipped: true`.
+
+Then run the one-command evidence flow. It collects acceptance evidence and
+immediately verifies it with all local field files so the evidence bundle is
+tied back to the actual captured POS payloads:
 
 ```powershell
 node C:\ProgramData\Looplet\pos-bridge\go-live.mjs --env-file C:\ProgramData\Looplet\pos-bridge.env --site-file C:\ProgramData\Looplet\pos-pilot-site.json --fit-profile C:\ProgramData\Looplet\pos-integration-profile.json --sale C:\ProgramData\Looplet\field-sale.json --refund C:\ProgramData\Looplet\field-refund.json --void C:\ProgramData\Looplet\field-void.json --output C:\ProgramData\Looplet\pos-pilot-evidence.json
@@ -216,6 +227,15 @@ evidence against the same local field files.
 
 ```powershell
 set LOOPLET_ACCEPTANCE_CONFIRM_LIVE=1
+node C:\ProgramData\Looplet\pos-bridge\go-live.mjs --preflight-only `
+  --env-file C:\ProgramData\Looplet\pos-bridge.env `
+  --site-file C:\ProgramData\Looplet\pos-pilot-site.json `
+  --fit-profile C:\ProgramData\Looplet\pos-integration-profile.json `
+  --sale C:\ProgramData\Looplet\field-sale.json `
+  --refund C:\ProgramData\Looplet\field-refund.json `
+  --void C:\ProgramData\Looplet\field-void.json `
+  --output C:\ProgramData\Looplet\pos-pilot-preflight.json
+
 node C:\ProgramData\Looplet\pos-bridge\go-live.mjs `
   --env-file C:\ProgramData\Looplet\pos-bridge.env `
   --site-file C:\ProgramData\Looplet\pos-pilot-site.json `

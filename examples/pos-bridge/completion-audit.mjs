@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
+import { requiredLocalTrialNames } from './full-trial-manifest.mjs';
 
 const requiredLocalEdgeChecks = [
   'duplicate_returned_same_event',
@@ -29,7 +30,6 @@ const requiredLocalEdgeChecks = [
   'cleanup_ok',
   'cleanup_no_leak',
 ];
-
 async function main() {
   const args = process.argv.slice(2);
   const options = parseOptions(args);
@@ -82,6 +82,8 @@ function assessLocalTrial(local) {
   if (!local || local.ok !== true) {
     failures.push('local full POS trial must pass');
   }
+  const trialAssessment = assessLocalPosTrials(local?.pos_trials);
+  failures.push(...trialAssessment.failures);
   const localEdge = local?.local_edge ?? {};
   for (const key of requiredLocalEdgeChecks) {
     if (localEdge[key] !== true) failures.push(`local_edge.${key} must be true`);
@@ -107,6 +109,39 @@ function assessLocalTrial(local) {
       refund_void_linked: localEdge.refund_linked === true && localEdge.void_linked === true,
       api_logs: localEdge.api_request_log_ok === true,
       no_leak: localEdge.cleanup_no_leak === true,
+      pos_trials: trialAssessment.summary,
+    },
+  };
+}
+
+function assessLocalPosTrials(posTrials) {
+  const failures = [];
+  const rows = Array.isArray(posTrials) ? posTrials : [];
+  const byName = new Map(rows.map((row) => [row?.name, row]));
+  const missing = [];
+  const failed = [];
+
+  for (const name of requiredLocalTrialNames) {
+    const row = byName.get(name);
+    if (!row) {
+      missing.push(name);
+    } else if (row.ok !== true) {
+      failed.push(name);
+    }
+  }
+
+  if (!Array.isArray(posTrials)) failures.push('local full POS trial artifact must include pos_trials');
+  for (const name of missing) failures.push(`local pos trial ${name} must be present`);
+  for (const name of failed) failures.push(`local pos trial ${name} must pass`);
+
+  return {
+    failures,
+    summary: {
+      required_count: requiredLocalTrialNames.length,
+      present_count: requiredLocalTrialNames.length - missing.length,
+      passed_count: requiredLocalTrialNames.length - missing.length - failed.length,
+      missing,
+      failed,
     },
   };
 }

@@ -12,6 +12,7 @@ $PackageRoot = Join-Path $OutputDir $PackageName
 $ZipPath = Join-Path $OutputDir "$PackageName.zip"
 $Files = @(
   'README.md',
+  'MERCHANT_INTEGRATION_DESIGN.md',
   'PILOT_CHECKLIST.md',
   '.env.example',
   'bridge.mjs',
@@ -32,6 +33,7 @@ $Files = @(
   'pilot-report.mjs',
   'pilot-bundle.mjs',
   'completion-audit.mjs',
+  'full-trial-manifest.mjs',
   'credential-probe.mjs',
   'configure-env.mjs',
   'validate.mjs',

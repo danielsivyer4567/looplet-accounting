@@ -59,6 +59,11 @@ Use the profile file for go-live commands; keep the fit result for archive
 readback. Fill the template placeholders with real business/POS/operator
 values before capturing field samples.
 
+For the high-level merchant/POS vendor design, read
+`MERCHANT_INTEGRATION_DESIGN.md`. It explains the direct webhook, local bridge,
+CSV bridge, middleware, and EFTPOS/rewards-style identity flows in one handover
+sheet.
+
 Build a merchant-facing ZIP package from this folder:
 
 ```powershell
@@ -66,8 +71,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\package-windows-bridge.ps1
 ```
 
 The ZIP contains the bridge runtime, installer, pilot-kit generator, samples,
-acceptance runner, README, env template, and `MANIFEST.json` with file hashes. It intentionally
-excludes local-only trial harnesses.
+acceptance runner, README, merchant integration design, env template, and
+`MANIFEST.json` with file hashes. It intentionally excludes local-only trial
+harnesses.
 The Windows installer preserves `MANIFEST.json`, so `readiness.mjs` can verify
 the installed files as well as the expanded ZIP and fail if operator tooling is
 missing or modified after install.
@@ -354,6 +360,23 @@ The packaged
 accepted for local trials only; go-live evidence rejects those filenames as
 field samples.
 
+Before the sending acceptance run, use the same one-command runner in non-sending
+preflight mode:
+
+```powershell
+node C:\ProgramData\Looplet\pos-bridge\go-live.mjs --preflight-only `
+  --env-file C:\ProgramData\Looplet\pos-bridge.env `
+  --site-file C:\ProgramData\Looplet\pos-pilot-site.json `
+  --fit-profile C:\ProgramData\Looplet\pos-integration-profile.json `
+  --sale C:\ProgramData\Looplet\field-sale.json `
+  --refund C:\ProgramData\Looplet\field-refund.json `
+  --void C:\ProgramData\Looplet\field-void.json `
+  --output C:\ProgramData\Looplet\pos-pilot-preflight.json
+```
+
+Expected preflight result: `ok: true`, `preflight_only: true`,
+`summary.non_sending: true`, and `summary.acceptance_skipped: true`.
+
 The one-command go-live runner verifies the evidence immediately after
 acceptance. To verify an existing evidence file directly:
 
@@ -594,6 +617,7 @@ Run the one-command go-live evidence flow against a real staging/pilot Looplet e
 ```powershell
 set LOOPLET_ACCEPTANCE_CONFIRM_LIVE=1
 set LOOPLET_ACCEPTANCE_RUN_ID=pilot-001
+node go-live.mjs --preflight-only --env-file C:\ProgramData\Looplet\pos-bridge.env --site-file C:\ProgramData\Looplet\pos-pilot-site.json --fit-profile C:\ProgramData\Looplet\pos-integration-profile.json --sale C:\ProgramData\Looplet\field-sale.json --refund C:\ProgramData\Looplet\field-refund.json --void C:\ProgramData\Looplet\field-void.json --output C:\ProgramData\Looplet\pos-pilot-preflight.json
 node go-live.mjs --env-file C:\ProgramData\Looplet\pos-bridge.env --site-file C:\ProgramData\Looplet\pos-pilot-site.json --fit-profile C:\ProgramData\Looplet\pos-integration-profile.json --sale C:\ProgramData\Looplet\field-sale.json --refund C:\ProgramData\Looplet\field-refund.json --void C:\ProgramData\Looplet\field-void.json --output C:\ProgramData\Looplet\pos-pilot-evidence.json
 ```
 

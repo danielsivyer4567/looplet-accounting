@@ -17,6 +17,7 @@ $ErrorActionPreference = 'Stop'
 $SourceDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RequiredFiles = @(
   'README.md',
+  'MERCHANT_INTEGRATION_DESIGN.md',
   'PILOT_CHECKLIST.md',
   'bridge.mjs',
   'bridge-retry-drill.mjs',
@@ -36,6 +37,7 @@ $RequiredFiles = @(
   'pilot-report.mjs',
   'pilot-bundle.mjs',
   'completion-audit.mjs',
+  'full-trial-manifest.mjs',
   'credential-probe.mjs',
   'configure-env.mjs',
   'validate.mjs',
@@ -230,7 +232,8 @@ if (-not $NoRegister) {
     "Run the fit check: $ResolvedNodePath `"$InstallRoot\integration-fit.mjs`" `"C:\ProgramData\Looplet\pos-integration-profile.json`"",
     "Generate the pilot kit after the fit check passes: $ResolvedNodePath `"$InstallRoot\pilot-kit.mjs`" `"C:\ProgramData\Looplet\pos-integration-profile.json`" --output-dir `"C:\ProgramData\Looplet\pilot-kit`"",
     "Copy: `"C:\ProgramData\Looplet\pilot-kit\pos-pilot-site.template.json`" to `"C:\ProgramData\Looplet\pos-pilot-site.json`" and replace every placeholder with real business/POS pilot details.",
-    "After exporting real POS sale/refund/void JSON files, run the one-command go-live evidence flow: $ResolvedNodePath `"$InstallRoot\go-live.mjs`" --env-file `"$EnvFile`" --site-file `"C:\ProgramData\Looplet\pos-pilot-site.json`" --fit-profile `"C:\ProgramData\Looplet\pos-integration-profile.json`" --sale `"C:\ProgramData\Looplet\field-sale.json`" --refund `"C:\ProgramData\Looplet\field-refund.json`" --void `"C:\ProgramData\Looplet\field-void.json`" --output `"C:\ProgramData\Looplet\pos-pilot-evidence.json`"",
+    "After exporting real POS sale/refund/void JSON files, run the non-sending go-live preflight first: $ResolvedNodePath `"$InstallRoot\go-live.mjs`" --preflight-only --env-file `"$EnvFile`" --site-file `"C:\ProgramData\Looplet\pos-pilot-site.json`" --fit-profile `"C:\ProgramData\Looplet\pos-integration-profile.json`" --sale `"C:\ProgramData\Looplet\field-sale.json`" --refund `"C:\ProgramData\Looplet\field-refund.json`" --void `"C:\ProgramData\Looplet\field-void.json`" --output `"C:\ProgramData\Looplet\pos-pilot-preflight.json`"",
+    "If preflight passes, run the sending go-live evidence flow: $ResolvedNodePath `"$InstallRoot\go-live.mjs`" --env-file `"$EnvFile`" --site-file `"C:\ProgramData\Looplet\pos-pilot-site.json`" --fit-profile `"C:\ProgramData\Looplet\pos-integration-profile.json`" --sale `"C:\ProgramData\Looplet\field-sale.json`" --refund `"C:\ProgramData\Looplet\field-refund.json`" --void `"C:\ProgramData\Looplet\field-void.json`" --output `"C:\ProgramData\Looplet\pos-pilot-evidence.json`"",
     "Generate a redacted support report after go-live evidence passes: $ResolvedNodePath `"$InstallRoot\pilot-report.mjs`" `"C:\ProgramData\Looplet\pos-pilot-evidence.json`" --output `"C:\ProgramData\Looplet\pos-pilot-report.json`" --markdown `"C:\ProgramData\Looplet\pos-pilot-report.md`"",
     "Verify the final archive bundle before handover: $ResolvedNodePath `"$InstallRoot\pilot-bundle.mjs`" --evidence `"C:\ProgramData\Looplet\pos-pilot-evidence.json`" --site `"C:\ProgramData\Looplet\pos-pilot-site.json`" --fit `"C:\ProgramData\Looplet\pos-integration-profile.json`" --sale `"C:\ProgramData\Looplet\field-sale.json`" --refund `"C:\ProgramData\Looplet\field-refund.json`" --void `"C:\ProgramData\Looplet\field-void.json`" --report-json `"C:\ProgramData\Looplet\pos-pilot-report.json`" --report-markdown `"C:\ProgramData\Looplet\pos-pilot-report.md`" --output `"C:\ProgramData\Looplet\pos-pilot-bundle.json`"",
     "Final production-readiness gate: $ResolvedNodePath `"$InstallRoot\completion-audit.mjs`" --require-production --local-json `"C:\ProgramData\Looplet\pos-full-trial.json`" --evidence `"C:\ProgramData\Looplet\pos-pilot-evidence.json`" --site `"C:\ProgramData\Looplet\pos-pilot-site.json`" --fit `"C:\ProgramData\Looplet\pos-integration-profile.json`" --sale `"C:\ProgramData\Looplet\field-sale.json`" --refund `"C:\ProgramData\Looplet\field-refund.json`" --void `"C:\ProgramData\Looplet\field-void.json`" --report-json `"C:\ProgramData\Looplet\pos-pilot-report.json`" --report-markdown `"C:\ProgramData\Looplet\pos-pilot-report.md`" --output `"C:\ProgramData\Looplet\completion-audit.json`"",

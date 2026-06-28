@@ -8,6 +8,7 @@ import { buildWebhookBody, validateReceiptContract } from './contract.mjs';
 const defaultSample = new URL('sample-receipt.json', import.meta.url).pathname.replace(/^\/([A-Za-z]:\/)/, '$1');
 const requiredBridgeFiles = [
   'README.md',
+  'MERCHANT_INTEGRATION_DESIGN.md',
   'PILOT_CHECKLIST.md',
   '.env.example',
   'bridge.mjs',
@@ -31,6 +32,7 @@ const requiredBridgeFiles = [
   'pilot-report.mjs',
   'pilot-bundle.mjs',
   'completion-audit.mjs',
+  'full-trial-manifest.mjs',
   'acceptance.mjs',
   'sample-receipt.json',
   'sample-refund.json',

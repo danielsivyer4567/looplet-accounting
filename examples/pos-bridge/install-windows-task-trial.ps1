@@ -55,6 +55,7 @@ Assert-True ($install.env_acl.protected -eq $true) 'installer must disable inher
 
 $InstalledFiles = @(
   'README.md',
+  'MERCHANT_INTEGRATION_DESIGN.md',
   'PILOT_CHECKLIST.md',
   'bridge.mjs',
   'bridge-retry-drill.mjs',
@@ -74,6 +75,7 @@ $InstalledFiles = @(
   'pilot-report.mjs',
   'pilot-bundle.mjs',
   'completion-audit.mjs',
+  'full-trial-manifest.mjs',
   'credential-probe.mjs',
   'configure-env.mjs',
   'validate.mjs',
@@ -93,8 +95,19 @@ $InstalledFiles = @(
 foreach ($file in $InstalledFiles) {
   Assert-True (Test-Path -LiteralPath (Join-Path $InstallRoot $file)) "missing installed file $file"
 }
+Assert-True (-not (Test-Path -LiteralPath (Join-Path $InstallRoot 'full-trial-plan.mjs'))) 'installer should not copy local-only full trial command plan'
 $checklist = Get-Content -LiteralPath (Join-Path $InstallRoot 'PILOT_CHECKLIST.md') -Raw
+$design = Get-Content -LiteralPath (Join-Path $InstallRoot 'MERCHANT_INTEGRATION_DESIGN.md') -Raw
+Assert-True ($design -match 'Direct POS Webhook/API') 'installed merchant design must describe direct POS webhook/API mode'
+Assert-True ($design -match 'Looplet Bridge Watch Folder') 'installed merchant design must describe bridge watch-folder mode'
+Assert-True ($design -match 'Node\.js 20\+') 'installed merchant design must name Node.js 20+ bridge runtime'
+Assert-True ($design -match 'EFTPOS terminal events alone are not enough') 'installed merchant design must explain EFTPOS limitation'
+Assert-True ($design -match 'customer-scanned `identity_token`') 'installed merchant design must require scanned identity token'
+Assert-True ($design -match 'Idempotency-Key') 'installed merchant design must require idempotency header/key'
 Assert-True ($checklist -match 'Go-live requires `ok: true`') 'installed pilot checklist must include go-live verifier requirement'
+Assert-True ($checklist -match '--preflight-only') 'installed pilot checklist must include non-sending go-live preflight command'
+Assert-True ($checklist -match 'pos-pilot-preflight\.json') 'installed pilot checklist must save go-live preflight evidence'
+Assert-True ($checklist -match 'summary\.acceptance_skipped: true') 'installed pilot checklist must require preflight acceptance skip proof'
 Assert-True ($checklist -match 'unresolved refund/void original sale references rejected') 'installed pilot checklist must include unresolved original-sale negative control'
 Assert-True ($checklist -match 'same idempotency key with changed receipt facts rejected') 'installed pilot checklist must include idempotency mismatch negative control'
 Assert-True ($checklist -match 'conflicting `Idempotency-Key` header/body values rejected') 'installed pilot checklist must include idempotency source mismatch negative control'
@@ -223,6 +236,11 @@ Assert-True ($LASTEXITCODE -eq 0) 'installed pilot-bundle should parse'
 
 & node --check (Join-Path $InstallRoot 'completion-audit.mjs') | Out-Null
 Assert-True ($LASTEXITCODE -eq 0) 'installed completion-audit should parse'
+$completionAuditSmokeJson = & node (Join-Path $InstallRoot 'completion-audit.mjs') --skip-local
+Assert-True ($LASTEXITCODE -eq 1) 'installed completion-audit runtime smoke should fail expected local proof gate'
+$completionAuditSmoke = $completionAuditSmokeJson | ConvertFrom-Json
+Assert-True ($completionAuditSmoke.ok -eq $false) 'installed completion-audit runtime smoke should emit failure JSON'
+Assert-True (($completionAuditSmoke.failures -join ' ') -match 'local full POS trial must pass') 'installed completion-audit runtime smoke should prove local gate ran'
 
 & node --check (Join-Path $InstallRoot 'integration-fit.mjs') | Out-Null
 Assert-True ($LASTEXITCODE -eq 0) 'installed integration fit should parse'
@@ -300,6 +318,7 @@ Assert-True ($LASTEXITCODE -eq 0) 'installed acceptance runner should parse'
   pilot_report_parse_ok = $true
   pilot_bundle_parse_ok = $true
   completion_audit_parse_ok = $true
+  completion_audit_runtime_smoke_ok = ($completionAuditSmoke.ok -eq $false)
   integration_fit_ok = $fit.ok
   integration_fit_parse_ok = $true
   pilot_kit_ok = $pilotKit.ok

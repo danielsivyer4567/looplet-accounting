@@ -59,6 +59,7 @@ Expand-Archive -LiteralPath $package.zip_path -DestinationPath $ExpandedRoot -Fo
 
 $required = @(
   'README.md',
+  'MERCHANT_INTEGRATION_DESIGN.md',
   'PILOT_CHECKLIST.md',
   '.env.example',
   'bridge.mjs',
@@ -79,6 +80,7 @@ $required = @(
   'pilot-report.mjs',
   'pilot-bundle.mjs',
   'completion-audit.mjs',
+  'full-trial-manifest.mjs',
   'credential-probe.mjs',
   'configure-env.mjs',
   'validate.mjs',
@@ -99,7 +101,17 @@ foreach ($file in $required) {
   Assert-True (Test-Path -LiteralPath (Join-Path $ExpandedRoot $file)) "expanded package missing $file"
 }
 $checklist = Get-Content -LiteralPath (Join-Path $ExpandedRoot 'PILOT_CHECKLIST.md') -Raw
+$design = Get-Content -LiteralPath (Join-Path $ExpandedRoot 'MERCHANT_INTEGRATION_DESIGN.md') -Raw
+Assert-True ($design -match 'Direct POS Webhook/API') 'merchant design must describe direct POS webhook/API mode'
+Assert-True ($design -match 'Looplet Bridge Watch Folder') 'merchant design must describe bridge watch-folder mode'
+Assert-True ($design -match 'Node\.js 20\+') 'merchant design must name Node.js 20+ bridge runtime'
+Assert-True ($design -match 'EFTPOS terminal events alone are not enough') 'merchant design must explain EFTPOS limitation'
+Assert-True ($design -match 'customer-scanned `identity_token`') 'merchant design must require scanned identity token'
+Assert-True ($design -match 'Idempotency-Key') 'merchant design must require idempotency header/key'
 Assert-True ($checklist -match 'Go-live requires `ok: true`') 'pilot checklist must include go-live verifier requirement'
+Assert-True ($checklist -match '--preflight-only') 'pilot checklist must include non-sending go-live preflight command'
+Assert-True ($checklist -match 'pos-pilot-preflight\.json') 'pilot checklist must save go-live preflight evidence'
+Assert-True ($checklist -match 'summary\.acceptance_skipped: true') 'pilot checklist must require preflight acceptance skip proof'
 Assert-True ($checklist -match 'unresolved refund/void original sale references rejected') 'pilot checklist must include unresolved original-sale negative control'
 Assert-True ($checklist -match 'same idempotency key with changed receipt facts rejected') 'pilot checklist must include idempotency mismatch negative control'
 Assert-True ($checklist -match 'conflicting `Idempotency-Key` header/body values rejected') 'pilot checklist must include idempotency source mismatch negative control'
@@ -116,6 +128,7 @@ Assert-True ($checklist -match 'renaming `sample-receipt\.json`') 'pilot checkli
 Assert-True (-not (Test-Path -LiteralPath (Join-Path $ExpandedRoot 'status-trial.mjs'))) 'package should not include local-only status trial'
 Assert-True (-not (Test-Path -LiteralPath (Join-Path $ExpandedRoot 'local-edge-trial.mjs'))) 'package should not include local-only edge trial'
 Assert-True (-not (Test-Path -LiteralPath (Join-Path $ExpandedRoot 'local-edge-server.ts'))) 'package should not include local-only edge server'
+Assert-True (-not (Test-Path -LiteralPath (Join-Path $ExpandedRoot 'full-trial-plan.mjs'))) 'package should not include local-only full trial command plan'
 
 $fitJson = & node (Join-Path $ExpandedRoot 'integration-fit.mjs') (Join-Path $ExpandedRoot 'integration-fit.example.json')
 $fit = $fitJson | ConvertFrom-Json
@@ -288,6 +301,11 @@ Assert-True ($LASTEXITCODE -eq 0) 'expanded package pilot-bundle should parse'
 
 & node --check (Join-Path $ExpandedRoot 'completion-audit.mjs') | Out-Null
 Assert-True ($LASTEXITCODE -eq 0) 'expanded package completion-audit should parse'
+$completionAuditSmokeJson = & node (Join-Path $ExpandedRoot 'completion-audit.mjs') --skip-local
+Assert-True ($LASTEXITCODE -eq 1) 'expanded package completion-audit runtime smoke should fail expected local proof gate'
+$completionAuditSmoke = $completionAuditSmokeJson | ConvertFrom-Json
+Assert-True ($completionAuditSmoke.ok -eq $false) 'expanded package completion-audit runtime smoke should emit failure JSON'
+Assert-True (($completionAuditSmoke.failures -join ' ') -match 'local full POS trial must pass') 'expanded package completion-audit runtime smoke should prove local gate ran'
 
 & node --check (Join-Path $ExpandedRoot 'integration-fit.mjs') | Out-Null
 Assert-True ($LASTEXITCODE -eq 0) 'expanded package integration fit should parse'
@@ -344,6 +362,7 @@ Assert-True (($verify.failures -join ' ') -match 'acceptance') 'expanded package
   pilot_report_parse_ok = $true
   pilot_bundle_parse_ok = $true
   completion_audit_parse_ok = $true
+  completion_audit_runtime_smoke_ok = ($completionAuditSmoke.ok -eq $false)
   integration_fit_ok = $fit.ok
   integration_fit_parse_ok = $true
   pilot_kit_ok = $pilotKit.ok

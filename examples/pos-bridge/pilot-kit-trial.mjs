@@ -101,12 +101,16 @@ async function main() {
   assert(runbook.includes('pos-pilot-report.md'), 'runbook should require redacted report archive');
   assert(runbook.includes('pos-integration-profile.json'), 'runbook should archive the source integration profile');
   assert(command.includes('go-live.mjs'), 'go-live command should call go-live');
+  assert(command.includes('--preflight-only'), 'go-live command should run non-sending preflight first');
   assert(command.includes('pilot-report.mjs'), 'go-live command should generate pilot report');
   assert(command.includes('pilot-bundle.mjs'), 'go-live command should verify the final bundle');
   assert(command.includes('completion-audit.mjs'), 'go-live command should run the final completion audit');
   assert(command.includes('--require-production'), 'go-live command should require production audit evidence');
   assert(command.includes('pos-pilot-bundle.json'), 'go-live command should save bundle verification output');
   assert(command.includes('completion-audit.json'), 'go-live command should save completion audit output');
+  assert(command.includes('pos-pilot-preflight.json'), 'go-live command should save preflight output');
+  assert(command.includes('$LocalFullTrial'), 'go-live command should require the local full-trial artifact');
+  assert(command.includes('Required go-live input is missing'), 'go-live command should fail clearly when an input is missing');
   assert(command.includes('pos-integration-profile.json'), 'go-live command should use the original integration profile');
   assert(!command.includes('pos-integration-fit.json'), 'go-live command should not feed the computed fit result back into integration-fit');
   assert(!/llp_[^\s]+|rhp_[^\s]+/.test(`${kitRun.stdout}\n${runbook}\n${command}`), 'pilot kit should not emit secrets');
@@ -134,10 +138,13 @@ async function main() {
     site_template_has_connector_recommendation: site.connector_mode === 'bridge_watch_folder',
     runbook_requires_real_pos_samples: runbook.includes('Capture these from the real POS path'),
     command_generates_report: command.includes('pilot-report.mjs'),
+    command_runs_non_sending_preflight: command.includes('--preflight-only'),
     command_verifies_bundle: command.includes('pilot-bundle.mjs'),
     command_runs_completion_audit: command.includes('completion-audit.mjs'),
     command_saves_bundle_output: command.includes('pos-pilot-bundle.json'),
     command_saves_completion_audit_output: command.includes('completion-audit.json'),
+    command_saves_preflight_output: command.includes('pos-pilot-preflight.json'),
+    command_preflights_local_full_trial: command.includes('$LocalFullTrial'),
     eftpos_only_rejected: badResult.ok === false,
     secrets_redacted: !/llp_[^\s]+|rhp_[^\s]+/.test(`${kitRun.stdout}\n${runbook}\n${command}`),
   }, null, 2));

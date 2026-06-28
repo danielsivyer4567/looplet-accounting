@@ -17,6 +17,7 @@ const siteFile = join(rootDir, 'pilot-site.json');
 const fitProfileFile = join(rootDir, 'pos-integration-profile.json');
 const invalidSiteFile = join(rootDir, 'pilot-site-invalid.json');
 const mismatchedSiteFile = join(rootDir, 'pilot-site-mismatched-source.json');
+const preflightEvidenceFile = join(rootDir, 'pos-pilot-preflight.json');
 const evidenceFile = join(rootDir, 'pos-pilot-evidence.json');
 const reportFile = join(rootDir, 'pos-pilot-report.json');
 const reportMarkdownFile = join(rootDir, 'pos-pilot-report.md');
@@ -222,6 +223,39 @@ try {
     receipt_source_format: 'pos_csv_export',
     field_sample_capture_method: 'pos_native_csv_export',
   }, null, 2)}\n`);
+
+  const receiptEventsBeforeGoLivePreflight = receiptEvents.length;
+  const goLivePreflightRun = await runNode([
+    join(installedBridgeRoot, 'go-live.mjs'),
+    '--preflight-only',
+    '--env-file',
+    envFile,
+    '--site-file',
+    siteFile,
+    '--fit-profile',
+    fitProfileFile,
+    '--sale',
+    fieldSaleFile,
+    '--refund',
+    fieldRefundFile,
+    '--void',
+    fieldVoidFile,
+    '--output',
+    preflightEvidenceFile,
+  ], 0, staleLoopletEnv());
+  const goLivePreflight = JSON.parse(goLivePreflightRun.stdout);
+  const preflightEvidence = JSON.parse(await readFile(preflightEvidenceFile, 'utf8'));
+  assert(goLivePreflight.ok === true, 'go-live preflight should pass with valid field files');
+  assert(goLivePreflight.preflight_only === true, 'go-live preflight should report preflight_only');
+  assert(goLivePreflight.summary.non_sending === true, 'go-live preflight should be non-sending');
+  assert(goLivePreflight.summary.acceptance_skipped === true, 'go-live preflight should skip acceptance');
+  assert(goLivePreflight.commands.verify_pilot_evidence.skipped === true, 'go-live preflight should skip strict evidence verifier');
+  assert(preflightEvidence.non_sending === true, 'preflight evidence should be non-sending');
+  assert(preflightEvidence.acceptance.skipped === true, 'preflight evidence should skip acceptance');
+  assert(
+    receiptEvents.length === receiptEventsBeforeGoLivePreflight,
+    'go-live preflight must not persist acceptance receipts',
+  );
 
   const goLiveRun = await runNode([
     join(installedBridgeRoot, 'go-live.mjs'),
@@ -629,6 +663,8 @@ try {
     missing_purchase_at_rejected: verify.summary.missing_purchase_at_rejected,
     bad_purchase_at_rejected: verify.summary.bad_purchase_at_rejected,
     api_request_log_ok: verify.summary.api_request_log_ok,
+    go_live_preflight_ok: goLivePreflight.ok,
+    go_live_preflight_non_sending: goLivePreflight.summary.non_sending,
     pilot_report_api_log_key_prefix_matches: report.api_request_log.key_prefix_matches,
     pilot_report_markdown_written: reportMarkdown.includes('Verdict: go-live-evidence-ready'),
     persistence_checked: verify.summary.persistence_checked,

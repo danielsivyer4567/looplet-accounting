@@ -161,10 +161,11 @@ EFTPOS-only data is not enough unless it is matched back to the POS basket, rece
 
 ## 5. Go-Live Evidence
 
-Run \`go-live-command.ps1\` from the installed bridge machine after filling the site manifest and placing the real field samples beside it.
+Run \`go-live-command.ps1\` from the installed bridge machine after filling the site manifest and placing the real field samples beside it. The command first runs a non-sending \`go-live.mjs --preflight-only\` pass with the same inputs, then runs the real acceptance send only if that preflight succeeds.
 
 Go-live requires:
 
+- \`pos-pilot-preflight.json\` with \`ok: true\` and \`non_sending: true\`
 - \`pos-pilot-evidence.json\` with \`ok: true\`
 - strict verifier pass with field-file reconciliation
 - duplicate sale/refund/void idempotency controls
@@ -202,6 +203,7 @@ $FitProfile = 'C:\\ProgramData\\Looplet\\pos-integration-profile.json'
 $Sale = 'C:\\ProgramData\\Looplet\\field-sale.json'
 $Refund = 'C:\\ProgramData\\Looplet\\field-refund.json'
 $Void = 'C:\\ProgramData\\Looplet\\field-void.json'
+$PreflightEvidence = 'C:\\ProgramData\\Looplet\\pos-pilot-preflight.json'
 $Evidence = 'C:\\ProgramData\\Looplet\\pos-pilot-evidence.json'
 $ReportJson = 'C:\\ProgramData\\Looplet\\pos-pilot-report.json'
 $ReportMarkdown = 'C:\\ProgramData\\Looplet\\pos-pilot-report.md'
@@ -210,6 +212,31 @@ $CompletionAuditJson = 'C:\\ProgramData\\Looplet\\completion-audit.json'
 $LocalFullTrial = 'C:\\ProgramData\\Looplet\\pos-full-trial.json'
 
 # Site defaults generated for ${site.business_name}; replace TODOs in $SiteFile before running.
+$RequiredInputs = @(
+  $EnvFile,
+  $SiteFile,
+  $FitProfile,
+  $Sale,
+  $Refund,
+  $Void,
+  $LocalFullTrial
+)
+foreach ($Path in $RequiredInputs) {
+  if (-not (Test-Path -LiteralPath $Path)) {
+    throw "Required go-live input is missing: $Path"
+  }
+}
+
+node "$BridgeRoot\\go-live.mjs" \`
+  --preflight-only \`
+  --env-file $EnvFile \`
+  --site-file $SiteFile \`
+  --fit-profile $FitProfile \`
+  --sale $Sale \`
+  --refund $Refund \`
+  --void $Void \`
+  --output $PreflightEvidence
+
 node "$BridgeRoot\\go-live.mjs" \`
   --env-file $EnvFile \`
   --site-file $SiteFile \`

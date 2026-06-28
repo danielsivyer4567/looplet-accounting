@@ -3,12 +3,14 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import process from 'node:process';
+import { requiredLocalTrialNames } from './full-trial-manifest.mjs';
 
 const rootDir = join('.claude', 'scratch', 'pos-completion-audit-trial');
 const goLiveRoot = process.env.LOOPLET_COMPLETION_AUDIT_GO_LIVE_TRIAL_DIR ||
   join('.claude', 'scratch', 'pos-completion-audit-go-live-trial');
 const localOkFile = join(rootDir, 'local-ok.json');
 const localWeakFile = join(rootDir, 'local-weak.json');
+const localMissingTrialFile = join(rootDir, 'local-missing-trial.json');
 const localOnlyOutputFile = join(rootDir, 'local-only-audit.json');
 const productionOutputFile = join(rootDir, 'production-audit.json');
 const evidenceFile = join(goLiveRoot, 'pos-pilot-evidence.json');
@@ -24,6 +26,10 @@ async function main() {
   await mkdir(rootDir, { recursive: true });
   await writeFile(localOkFile, `${JSON.stringify(localTrial({}), null, 2)}\n`);
   await writeFile(localWeakFile, `${JSON.stringify(localTrial({ bad_line_quantity_rejected: false }), null, 2)}\n`);
+  await writeFile(
+    localMissingTrialFile,
+    `${JSON.stringify(localTrial({}, { omitTrial: 'receipt-hub-visual-smoke' }), null, 2)}\n`,
+  );
 
   const localOnly = await runAudit(['--local-json', localOkFile, '--output', localOnlyOutputFile], 0);
   assert(localOnly.ok === true, 'local-only audit should pass when local proof is complete');
@@ -48,6 +54,12 @@ async function main() {
   assert(
     weakLocal.failures.some((failure) => failure.includes('bad_line_quantity_rejected')),
     'weak local proof should name the missing bad-line-quantity proof',
+  );
+  const missingTrial = await runAudit(['--local-json', localMissingTrialFile], 1);
+  assert(missingTrial.local_ready === false, 'missing local sub-trial should fail local readiness');
+  assert(
+    missingTrial.failures.some((failure) => failure.includes('local pos trial receipt-hub-visual-smoke must be present')),
+    'missing local sub-trial should name the missing receipt hub smoke',
   );
 
   await runNode(['examples/pos-bridge/pilot-go-live-trial.mjs'], 0, {
@@ -92,6 +104,7 @@ async function main() {
     local_only_output_written: localOnlyOutput.ok === true,
     require_production_rejected_without_bundle: requireProduction.ok === false,
     weak_local_rejected: weakLocal.ok === false,
+    missing_local_trial_rejected: missingTrial.ok === false,
     synthetic_production_bundle_passed: productionReady.production_ready === true,
     synthetic_production_output_written: productionOutput.production_ready === true,
   }, null, 2));
@@ -130,9 +143,14 @@ function runProcess(command, args, env = {}) {
   });
 }
 
-function localTrial(overrides) {
+function localTrial(overrides, options = {}) {
+  const posTrials = requiredLocalTrialNames
+    .filter((name) => name !== options.omitTrial)
+    .map((name) => ({ name, ok: true, duration_ms: 1 }));
+
   return {
     ok: true,
+    pos_trials: posTrials,
     isolated_supabase: {
       reset_to_latest_migration: true,
       remaining_running_containers: 0,

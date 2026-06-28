@@ -12,6 +12,8 @@ async function main() {
   const siteFile = readOption(args, '--site-file');
   const fitProfile = readOption(args, '--fit-profile');
   const outputFile = readOption(args, '--output') ?? process.env.LOOPLET_PILOT_EVIDENCE_FILE ?? null;
+  const preflightOnly = args.includes('--preflight-only');
+  removeFlag(args, '--preflight-only');
   const fieldSamples = {
     sale: readOption(args, '--sale'),
     refund: readOption(args, '--refund'),
@@ -48,12 +50,19 @@ async function main() {
     '--fit-profile',
     fitProfile,
     ...commonFieldArgs,
-    '--acceptance',
+    ...(preflightOnly ? [] : ['--acceptance']),
     '--output',
     outputFile,
   ]);
 
-  const verifier = pilotEvidence.exit_code === 0 && pilotEvidence.ok === true
+  const verifier = preflightOnly
+    ? {
+        command: 'verify_pilot_evidence',
+        skipped: true,
+        ok: true,
+        reason: 'preflight-only mode validates install, fit, site manifest, and field files without acceptance sends',
+      }
+    : pilotEvidence.exit_code === 0 && pilotEvidence.ok === true
     ? await runJsonCommand('verify_pilot_evidence', [
         'verify-pilot-evidence.mjs',
         outputFile,
@@ -69,9 +78,11 @@ async function main() {
   const result = redactDeep({
     ok: pilotEvidence.ok === true &&
       pilotEvidence.exit_code === 0 &&
-      verifier.ok === true &&
-      verifier.exit_code === 0,
+      (preflightOnly
+        ? pilotEvidence.non_sending === true && pilotEvidence.acceptance?.skipped === true
+        : verifier.ok === true && verifier.exit_code === 0),
     checked_at: new Date().toISOString(),
+    preflight_only: preflightOnly,
     evidence_file: outputFile,
     run_id: process.env.LOOPLET_ACCEPTANCE_RUN_ID ?? null,
     commands: {
@@ -89,7 +100,12 @@ async function main() {
       readiness_ok: pilotEvidence.readiness?.ok === true,
       integration_fit_ok: pilotEvidence.integration_fit?.ok === true,
       credential_probe_ok: pilotEvidence.credential_probe?.ok === true,
+      non_sending: pilotEvidence.non_sending === true,
+      field_samples_ok: pilotEvidence.field_samples?.ok === true,
+      bridge_retry_drill_ok: pilotEvidence.bridge_retry_drill?.skipped === true ||
+        pilotEvidence.bridge_retry_drill?.ok === true,
       acceptance_ok: pilotEvidence.acceptance?.ok === true,
+      acceptance_skipped: pilotEvidence.acceptance?.skipped === true,
       verifier_ok: verifier.ok === true,
       verifier_integration_fit_ok: verifier.summary?.integration_fit_ok === true,
       field_file_reconciliation_ok: verifier.summary?.field_file_reconciliation_ok === true,
@@ -106,7 +122,11 @@ async function main() {
     verifier,
     failures: [
       ...(pilotEvidence.ok === true ? [] : [`pilot evidence failed: ${pilotEvidence.error ?? 'see evidence details'}`]),
-      ...(verifier.ok === true ? [] : [`verifier failed: ${verifier.error ?? verifier.reason ?? 'see verifier details'}`]),
+      ...(preflightOnly && pilotEvidence.non_sending !== true ? ['preflight-only evidence must be non-sending'] : []),
+      ...(preflightOnly && pilotEvidence.acceptance?.skipped !== true ? ['preflight-only evidence must skip acceptance'] : []),
+      ...(!preflightOnly && verifier.ok !== true
+        ? [`verifier failed: ${verifier.error ?? verifier.reason ?? 'see verifier details'}`]
+        : []),
     ],
   });
 
@@ -167,6 +187,11 @@ function readOption(args, name) {
   if (!value) throw new Error(`${name} requires a value`);
   args.splice(index, 2);
   return value;
+}
+
+function removeFlag(args, name) {
+  const index = args.indexOf(name);
+  if (index !== -1) args.splice(index, 1);
 }
 
 async function loadEnvFile(file) {
