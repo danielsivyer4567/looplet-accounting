@@ -39,9 +39,7 @@ interface TagDropProviderProps {
 
 export function TagDropProvider({ children }: TagDropProviderProps) {
   const [isTagDropActive, setIsTagDropActive] = useState(false);
-  const [tagCreatedCallbacks, setTagCreatedCallbacks] = useState<
-    ((tagId: string) => void)[]
-  >([]);
+  const [tagCreatedCallbacks, setTagCreatedCallbacks] = useState<((tagId: string) => void)[]>([]);
 
   const activateTagDrop = useCallback(() => {
     setIsTagDropActive(true);
@@ -66,7 +64,7 @@ export function TagDropProvider({ children }: TagDropProviderProps) {
     (tagId: string) => {
       tagCreatedCallbacks.forEach((cb) => cb(tagId));
     },
-    [tagCreatedCallbacks]
+    [tagCreatedCallbacks],
   );
 
   const value: TagDropContextType = {
@@ -78,9 +76,7 @@ export function TagDropProvider({ children }: TagDropProviderProps) {
     triggerTagCreated,
   };
 
-  return (
-    <TagDropContext.Provider value={value}>{children}</TagDropContext.Provider>
-  );
+  return <TagDropContext.Provider value={value}>{children}</TagDropContext.Provider>;
 }
 
 export default useTagDrop;

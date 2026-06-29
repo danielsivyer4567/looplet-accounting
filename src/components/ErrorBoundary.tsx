@@ -47,10 +47,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             background: 'var(--bg-app)',
           }}
         >
-          <div
-            className="card"
-            style={{ maxWidth: '460px', width: '100%', textAlign: 'center' }}
-          >
+          <div className="card" style={{ maxWidth: '460px', width: '100%', textAlign: 'center' }}>
             <h2 style={{ marginBottom: '0.75rem' }}>Something went wrong</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
               An unexpected error stopped this view from loading. You can try again — if it keeps

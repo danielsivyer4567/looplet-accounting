@@ -2,8 +2,14 @@ import { useState, type FormEvent } from 'react';
 import { useOrg } from '@/hooks/useOrg';
 
 export function OrgSelector() {
-  const { organizations, currentOrg, setCurrentOrg, createOrganization, loading, isAccountantOnly } =
-    useOrg();
+  const {
+    organizations,
+    currentOrg,
+    setCurrentOrg,
+    createOrganization,
+    loading,
+    isAccountantOnly,
+  } = useOrg();
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);

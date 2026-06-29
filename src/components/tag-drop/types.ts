@@ -8,7 +8,17 @@ export interface Point {
   timestamp?: number;
 }
 
-export type DrawingTool = 'pencil' | 'eraser' | 'line' | 'arrow' | 'rectangle' | 'circle' | 'star' | 'smart_shape' | 'job_tag' | 'ruler';
+export type DrawingTool =
+  | 'pencil'
+  | 'eraser'
+  | 'line'
+  | 'arrow'
+  | 'rectangle'
+  | 'circle'
+  | 'star'
+  | 'smart_shape'
+  | 'job_tag'
+  | 'ruler';
 
 export interface DrawingState {
   isActive: boolean;
@@ -41,9 +51,26 @@ export interface DrawingAction {
 
 export type PanelSize = 'quarter' | 'half' | 'custom' | 'minimized';
 
-export type ActiveTab = 'ai' | 'team' | 'trades' | 'tasks' | 'calendar' | 'comments' | 'ai-buis' | 'settings';
+export type ActiveTab =
+  | 'ai'
+  | 'team'
+  | 'trades'
+  | 'tasks'
+  | 'calendar'
+  | 'comments'
+  | 'ai-buis'
+  | 'settings';
 
-export type PanelDrawingTool = 'pencil' | 'circle' | 'rectangle' | 'arrow' | 'highlight' | 'eraser' | 'text' | 'magic' | 'lasso';
+export type PanelDrawingTool =
+  | 'pencil'
+  | 'circle'
+  | 'rectangle'
+  | 'arrow'
+  | 'highlight'
+  | 'eraser'
+  | 'text'
+  | 'magic'
+  | 'lasso';
 
 export interface TagMarker {
   id: string;

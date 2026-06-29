@@ -163,7 +163,10 @@ export function AcceptInvitePage() {
           Choose a password to finish setting up your account.
         </p>
 
-        <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form
+          onSubmit={onSubmit}
+          style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+        >
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label" htmlFor="accept-password">
               Password

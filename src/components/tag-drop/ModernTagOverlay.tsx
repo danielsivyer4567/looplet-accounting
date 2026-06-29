@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   ShieldX,
-  Loader2
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTagState } from '@/hooks/useTagState';
@@ -53,7 +53,10 @@ const getMediaIcon = (type?: string) => {
   }
 };
 
-const getApprovalStatusInfo = (status?: 'pending' | 'approved' | 'rejected', requiresApproval?: boolean) => {
+const getApprovalStatusInfo = (
+  status?: 'pending' | 'approved' | 'rejected',
+  requiresApproval?: boolean,
+) => {
   if (!requiresApproval) return null;
 
   switch (status) {
@@ -62,14 +65,14 @@ const getApprovalStatusInfo = (status?: 'pending' | 'approved' | 'rejected', req
         icon: <ShieldCheck className="h-4 w-4" />,
         text: 'Approved',
         className: 'bg-green-50 border-green-200 text-green-700',
-        iconClass: 'text-green-600'
+        iconClass: 'text-green-600',
       };
     case 'rejected':
       return {
         icon: <ShieldX className="h-4 w-4" />,
         text: 'Rejected',
         className: 'bg-red-50 border-red-200 text-red-700',
-        iconClass: 'text-red-600'
+        iconClass: 'text-red-600',
       };
     case 'pending':
     default:
@@ -77,12 +80,16 @@ const getApprovalStatusInfo = (status?: 'pending' | 'approved' | 'rejected', req
         icon: <ShieldAlert className="h-4 w-4" />,
         text: 'Pending Approval',
         className: 'bg-amber-50 border-amber-200 text-amber-700',
-        iconClass: 'text-amber-600'
+        iconClass: 'text-amber-600',
       };
   }
 };
 
-export const ModernTagOverlay: React.FC<ModernTagOverlayProps> = ({ onReply, onDelete, className }) => {
+export const ModernTagOverlay: React.FC<ModernTagOverlayProps> = ({
+  onReply,
+  onDelete,
+  className,
+}) => {
   const { activeTag, setActiveTag, isTagOverlayVisible, hideTagOverlay } = useTagState();
   const { user } = useAuth();
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -102,7 +109,10 @@ export const ModernTagOverlay: React.FC<ModernTagOverlayProps> = ({ onReply, onD
       setActiveTag({ ...activeTag, approvalStatus: status });
     } catch (error) {
       console.error('Approval error:', error);
-      toast({ title: `Failed to ${status === 'approved' ? 'approve' : 'reject'} tag`, variant: 'destructive' });
+      toast({
+        title: `Failed to ${status === 'approved' ? 'approve' : 'reject'} tag`,
+        variant: 'destructive',
+      });
     } finally {
       setApprovalLoading(null);
     }
@@ -175,10 +185,12 @@ export const ModernTagOverlay: React.FC<ModernTagOverlayProps> = ({ onReply, onD
   }
 
   const coordinates = activeTag.coordinates;
-  const adjustedCoords = coordinates ? {
-    x: Math.max(60, Math.min(window.innerWidth - 350, coordinates.x)),
-    y: Math.max(60, Math.min(window.innerHeight - 300, coordinates.y))
-  } : { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  const adjustedCoords = coordinates
+    ? {
+        x: Math.max(60, Math.min(window.innerWidth - 350, coordinates.x)),
+        y: Math.max(60, Math.min(window.innerHeight - 300, coordinates.y)),
+      }
+    : { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 
   const approvalInfo = getApprovalStatusInfo(activeTag.approvalStatus, activeTag.requiresApproval);
   const drawingSource = activeTag.drawingUrl || activeTag.drawingData;
@@ -194,7 +206,7 @@ export const ModernTagOverlay: React.FC<ModernTagOverlayProps> = ({ onReply, onD
         style={{
           left: `${coordinates?.x || adjustedCoords.x}px`,
           top: `${coordinates?.y || adjustedCoords.y}px`,
-          transform: 'translate(-50%, -50%)'
+          transform: 'translate(-50%, -50%)',
         }}
       >
         <div className="w-4 h-4 rounded-full bg-blue-500 animate-ping opacity-75" />
@@ -247,10 +259,9 @@ export const ModernTagOverlay: React.FC<ModernTagOverlayProps> = ({ onReply, onD
 
           {/* Approval Status Banner */}
           {approvalInfo && (
-            <div className={cn(
-              'px-4 py-2 border-b flex items-center gap-2',
-              approvalInfo.className
-            )}>
+            <div
+              className={cn('px-4 py-2 border-b flex items-center gap-2', approvalInfo.className)}
+            >
               <span className={approvalInfo.iconClass}>{approvalInfo.icon}</span>
               <span className="text-sm font-medium">{approvalInfo.text}</span>
               {activeTag.requiresApproval && activeTag.approvalStatus === 'pending' && (
@@ -309,7 +320,10 @@ export const ModernTagOverlay: React.FC<ModernTagOverlayProps> = ({ onReply, onD
                       className="h-6 text-xs px-2"
                       onClick={() => {
                         // XSS-safe: use Blob URL + DOM API instead of document.write() with string interpolation
-                        const safeTitle = (activeTag.senderName || 'Unknown').replace(/[<>&"']/g, '');
+                        const safeTitle = (activeTag.senderName || 'Unknown').replace(
+                          /[<>&"']/g,
+                          '',
+                        );
                         const html = `<!DOCTYPE html><html><head><title>Drawing - ${safeTitle}</title></head><body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f3f4f6;"></body></html>`;
                         const blob = new Blob([html], { type: 'text/html' });
                         const blobUrl = URL.createObjectURL(blob);
@@ -321,7 +335,8 @@ export const ModernTagOverlay: React.FC<ModernTagOverlayProps> = ({ onReply, onD
                             const img = win.document.createElement('img');
                             img.src = drawingSource;
                             img.alt = 'Full size drawing attachment';
-                            img.style.cssText = 'max-width:100%;max-height:100vh;object-fit:contain;';
+                            img.style.cssText =
+                              'max-width:100%;max-height:100vh;object-fit:contain;';
                             win.document.body.appendChild(img);
                           });
                         } else {
@@ -357,14 +372,16 @@ export const ModernTagOverlay: React.FC<ModernTagOverlayProps> = ({ onReply, onD
               ))}
 
             {/* Non-image / non-drawing attachments — keep the label indicator */}
-            {activeTag.mediaType && activeTag.mediaType !== 'drawing' && activeTag.mediaType !== 'image' && (
-              <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                <div className="flex items-center gap-2 text-sm text-slate-700">
-                  {getMediaIcon(activeTag.mediaType)}
-                  <span className="capitalize font-medium">{activeTag.mediaType} attached</span>
+            {activeTag.mediaType &&
+              activeTag.mediaType !== 'drawing' &&
+              activeTag.mediaType !== 'image' && (
+                <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                  <div className="flex items-center gap-2 text-sm text-slate-700">
+                    {getMediaIcon(activeTag.mediaType)}
+                    <span className="capitalize font-medium">{activeTag.mediaType} attached</span>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Actions */}
             <div className="flex gap-2 pt-2 border-t border-gray-100">
@@ -382,7 +399,9 @@ export const ModernTagOverlay: React.FC<ModernTagOverlayProps> = ({ onReply, onD
                 className="border-slate-300 text-slate-600 hover:bg-slate-50"
                 onClick={handleReply}
                 disabled={!onReply}
-                title={onReply ? 'Open tag thread' : 'Thread view is available when replies are enabled'}
+                title={
+                  onReply ? 'Open tag thread' : 'Thread view is available when replies are enabled'
+                }
               >
                 Thread
               </Button>

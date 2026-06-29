@@ -136,6 +136,6 @@ export function isAccountant(member: { role?: string | null }): boolean {
   return !!member.role && ACCOUNTANT_MATCH.test(member.role);
 }
 
-export type TagApprovalStatus = typeof TAG_APPROVAL_STATUS[keyof typeof TAG_APPROVAL_STATUS];
-export type AttachmentType = typeof TAG_ATTACHMENT_TYPES[keyof typeof TAG_ATTACHMENT_TYPES];
-export type DrawingTool = typeof DRAWING_TOOLS[keyof typeof DRAWING_TOOLS];
+export type TagApprovalStatus = (typeof TAG_APPROVAL_STATUS)[keyof typeof TAG_APPROVAL_STATUS];
+export type AttachmentType = (typeof TAG_ATTACHMENT_TYPES)[keyof typeof TAG_ATTACHMENT_TYPES];
+export type DrawingTool = (typeof DRAWING_TOOLS)[keyof typeof DRAWING_TOOLS];

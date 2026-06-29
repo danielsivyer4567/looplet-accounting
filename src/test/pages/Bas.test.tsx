@@ -118,7 +118,9 @@ describe('BasPrepCard (SC-3.E.01)', () => {
     expect(screen.getByText('9 Net amount')).toBeInTheDocument();
     expect(screen.getByText('No GST-treatment exceptions')).toBeInTheDocument();
     expect(screen.getByText(/GL reconciles to the BAS/)).toBeInTheDocument();
-    expect(screen.getByText(/Source evidence: 1 sales line, 2 purchases, 1 PAYG row/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Source evidence: 1 sales line, 2 purchases, 1 PAYG row/),
+    ).toBeInTheDocument();
 
     const lodge = screen.getByRole('button', { name: /Request lodge approval/i });
     expect(lodge).not.toBeDisabled();

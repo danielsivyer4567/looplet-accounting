@@ -26,8 +26,12 @@ describe('0216 AP reconciliation parity migration', () => {
   });
 
   it('keeps the AP candidate view RLS-safe and filters only outstanding business bills', () => {
-    expect(flat).toMatch(/CREATE OR REPLACE VIEW public\.v_bank_match_candidates WITH \(security_invoker = on\)/);
-    expect(flat).toMatch(/b\.status NOT IN \('paid'::public\.bill_status, 'void'::public\.bill_status\)/);
+    expect(flat).toMatch(
+      /CREATE OR REPLACE VIEW public\.v_bank_match_candidates WITH \(security_invoker = on\)/,
+    );
+    expect(flat).toMatch(
+      /b\.status NOT IN \('paid'::public\.bill_status, 'void'::public\.bill_status\)/,
+    );
     expect(flat).toMatch(/b\.is_personal IS NOT TRUE/);
     expect(flat).toMatch(/b\.is_probable_bill = true/);
     expect(flat).toMatch(/bt\.amount_cents < 0/);
@@ -37,13 +41,17 @@ describe('0216 AP reconciliation parity migration', () => {
   });
 
   it('locks the bank transaction and bill rows before applying an AP match', () => {
-    expect(matchBillFn).toMatch(/FROM public\.bank_transactions WHERE id = p_bank_transaction_id FOR UPDATE/);
+    expect(matchBillFn).toMatch(
+      /FROM public\.bank_transactions WHERE id = p_bank_transaction_id FOR UPDATE/,
+    );
     expect(matchBillFn).toMatch(/FROM public\.bills WHERE id = p_bill_id FOR UPDATE/);
   });
 
   it('preserves org access checks while allowing service-role cron callers', () => {
     expect(matchBillFn).toMatch(/auth\.role\(\) = 'service_role'/);
-    expect(matchBillFn).toMatch(/NOT v_is_service AND v_org_txn NOT IN \(SELECT public\.get_accessible_org_ids\(\)\)/);
+    expect(matchBillFn).toMatch(
+      /NOT v_is_service AND v_org_txn NOT IN \(SELECT public\.get_accessible_org_ids\(\)\)/,
+    );
   });
 
   it('rejects unsafe bill matches before mutating rows', () => {
@@ -61,7 +69,9 @@ describe('0216 AP reconciliation parity migration', () => {
 
   it('uses the same 50-cent tolerance as the candidate view', () => {
     expect(matchBillFn).toMatch(/c_tolerance_cents constant bigint := 50/);
-    expect(matchBillFn).toMatch(/abs\(abs\(v_txn_amount_cents\) - v_bill_amount_cents\) > c_tolerance_cents/);
+    expect(matchBillFn).toMatch(
+      /abs\(abs\(v_txn_amount_cents\) - v_bill_amount_cents\) > c_tolerance_cents/,
+    );
   });
 
   it('updates the bank transaction and bill atomically after validation', () => {
@@ -75,7 +85,9 @@ describe('0216 AP reconciliation parity migration', () => {
   it('hardens undo so void or deleted bills are not forced back to attached', () => {
     expect(undoFn).toMatch(/transaction is not matched/);
     expect(undoFn).toMatch(/DELETE FROM public\.invoice_payments/);
-    expect(undoFn).toMatch(/status = CASE WHEN status = 'paid'::public\.bill_status THEN 'attached'::public\.bill_status ELSE status END/);
+    expect(undoFn).toMatch(
+      /status = CASE WHEN status = 'paid'::public\.bill_status THEN 'attached'::public\.bill_status ELSE status END/,
+    );
     expect(undoFn).toMatch(/deleted_at IS NULL/);
     expect(undoFn).toMatch(/status <> 'void'::public\.bill_status/);
   });

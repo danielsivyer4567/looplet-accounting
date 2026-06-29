@@ -64,9 +64,7 @@ describe('OperatorHealth — cron no-success-window monitor', () => {
 
     render(<OperatorHealth />);
 
-    await waitFor(() =>
-      expect(screen.getByText('notifications-cron')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('notifications-cron')).toBeInTheDocument());
     expect(mockRpc).toHaveBeenCalledWith('cron_no_success_windows');
     expect(screen.getByText('Nightly notification sweep')).toBeInTheDocument();
     expect(screen.getByText('No success in window')).toBeInTheDocument();

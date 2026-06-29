@@ -57,12 +57,24 @@ describe('0221 source posting completion migration', () => {
       expect(fn).toMatch(/FROM public\.create_and_post_journal\(/);
     }
 
-    expect(depreciationFn).toMatch(/CREATE OR REPLACE FUNCTION public\.post_depreciation_schedule_journal\( p_schedule_id uuid, p_period date \)/);
-    expect(openingFn).toMatch(/CREATE OR REPLACE FUNCTION public\.post_opening_balance_journal\( p_organization_id uuid, p_opening_date date, p_opening_key text, p_lines jsonb, p_memo text DEFAULT NULL, p_source_metadata jsonb DEFAULT '\{\}'::jsonb \)/);
-    expect(manualFn).toMatch(/CREATE OR REPLACE FUNCTION public\.post_manual_journal\( p_organization_id uuid, p_entry_date date, p_manual_key text, p_lines jsonb, p_memo text, p_reason text DEFAULT NULL, p_source_metadata jsonb DEFAULT '\{\}'::jsonb \)/);
-    expect(reversalFn).toMatch(/CREATE OR REPLACE FUNCTION public\.reverse_journal_entry\( p_journal_entry_id uuid, p_reversal_date date DEFAULT CURRENT_DATE, p_reversal_key text DEFAULT NULL, p_reason text DEFAULT NULL \)/);
-    expect(customerCreditNoteFn).toMatch(/CREATE OR REPLACE FUNCTION public\.post_customer_credit_note_journal\( p_organization_id uuid, p_credit_note_key text, p_credit_note_date date, p_subtotal_ex_gst_cents bigint, p_gst_cents bigint, p_invoice_id uuid DEFAULT NULL, p_revenue_account_code text DEFAULT '4000', p_reason text DEFAULT NULL \)/);
-    expect(supplierCreditNoteFn).toMatch(/CREATE OR REPLACE FUNCTION public\.post_supplier_credit_note_journal\( p_organization_id uuid, p_credit_note_key text, p_credit_note_date date, p_subtotal_ex_gst_cents bigint, p_gst_cents bigint, p_counter_account_code text, p_counter_account_type public\.account_type, p_bill_id uuid DEFAULT NULL, p_reason text DEFAULT NULL \)/);
+    expect(depreciationFn).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.post_depreciation_schedule_journal\( p_schedule_id uuid, p_period date \)/,
+    );
+    expect(openingFn).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.post_opening_balance_journal\( p_organization_id uuid, p_opening_date date, p_opening_key text, p_lines jsonb, p_memo text DEFAULT NULL, p_source_metadata jsonb DEFAULT '\{\}'::jsonb \)/,
+    );
+    expect(manualFn).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.post_manual_journal\( p_organization_id uuid, p_entry_date date, p_manual_key text, p_lines jsonb, p_memo text, p_reason text DEFAULT NULL, p_source_metadata jsonb DEFAULT '\{\}'::jsonb \)/,
+    );
+    expect(reversalFn).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.reverse_journal_entry\( p_journal_entry_id uuid, p_reversal_date date DEFAULT CURRENT_DATE, p_reversal_key text DEFAULT NULL, p_reason text DEFAULT NULL \)/,
+    );
+    expect(customerCreditNoteFn).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.post_customer_credit_note_journal\( p_organization_id uuid, p_credit_note_key text, p_credit_note_date date, p_subtotal_ex_gst_cents bigint, p_gst_cents bigint, p_invoice_id uuid DEFAULT NULL, p_revenue_account_code text DEFAULT '4000', p_reason text DEFAULT NULL \)/,
+    );
+    expect(supplierCreditNoteFn).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.post_supplier_credit_note_journal\( p_organization_id uuid, p_credit_note_key text, p_credit_note_date date, p_subtotal_ex_gst_cents bigint, p_gst_cents bigint, p_counter_account_code text, p_counter_account_type public\.account_type, p_bill_id uuid DEFAULT NULL, p_reason text DEFAULT NULL \)/,
+    );
   });
 
   it('posts depreciation schedules with legacy idempotency protection', () => {
@@ -114,7 +126,9 @@ describe('0221 source posting completion migration', () => {
 
   it('posts customer credit notes by reversing revenue and GST against AR', () => {
     expect(customerCreditNoteFn).toMatch(/FROM public\.invoices/);
-    expect(customerCreditNoteFn).toMatch(/v_invoice\.status IN \('draft'::public\.invoice_status, 'void'::public\.invoice_status\)/);
+    expect(customerCreditNoteFn).toMatch(
+      /v_invoice\.status IN \('draft'::public\.invoice_status, 'void'::public\.invoice_status\)/,
+    );
     expect(customerCreditNoteFn).toMatch(/PERFORM public\.post_invoice_journal\(v_invoice\.id\)/);
     expect(customerCreditNoteFn).toMatch(/coa\.code = v_revenue_code/);
     expect(customerCreditNoteFn).toMatch(/coa\.account_type = 'income'::public\.account_type/);

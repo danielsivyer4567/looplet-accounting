@@ -94,9 +94,7 @@ describe('ClientsPage', () => {
 
     fireEvent.click(screen.getByText('Acme Plumbing'));
 
-    expect(mockSetCurrentOrg).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'org-acme' }),
-    );
+    expect(mockSetCurrentOrg).toHaveBeenCalledWith(expect.objectContaining({ id: 'org-acme' }));
     expect(mockNavigate).toHaveBeenCalledWith('/');
   });
 

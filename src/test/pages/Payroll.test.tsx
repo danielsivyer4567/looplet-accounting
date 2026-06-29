@@ -107,13 +107,11 @@ describe('SuperBatchSection (SC-3.H.01)', () => {
 
   it('exports a successful clearing-house file without marking the obligation paid', async () => {
     h.batch = BATCH;
-    h.send = vi
-      .fn()
-      .mockResolvedValue({
-        ok: true,
-        sent: true,
-        payload: { schema_version: 'build_superstream_payload:v1' },
-      });
+    h.send = vi.fn().mockResolvedValue({
+      ok: true,
+      sent: true,
+      payload: { schema_version: 'build_superstream_payload:v1' },
+    });
     const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:superstream');
     const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
     renderSection();

@@ -38,7 +38,9 @@ describe('0217 invoice GL posting migration', () => {
   });
 
   it('defines invoice and invoice-payment posting RPCs as invoker functions', () => {
-    expect(invoiceFn).toMatch(/CREATE OR REPLACE FUNCTION public\.post_invoice_journal\(p_invoice_id uuid\)/);
+    expect(invoiceFn).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.post_invoice_journal\(p_invoice_id uuid\)/,
+    );
     expect(paymentFn).toMatch(
       /CREATE OR REPLACE FUNCTION public\.post_invoice_payment_journal\(p_invoice_payment_id uuid\)/,
     );
@@ -78,7 +80,9 @@ describe('0217 invoice GL posting migration', () => {
     expect(invoiceFn).toMatch(/missing, inactive, or non-income revenue account code/);
     expect(invoiceFn).toMatch(/sa\.role = 'gst_collected'/);
     expect(invoiceFn).toMatch(/coa\.code = '2100'/);
-    expect(invoiceFn).toMatch(/gst_collected system account or active liability account 2100 is missing/);
+    expect(invoiceFn).toMatch(
+      /gst_collected system account or active liability account 2100 is missing/,
+    );
   });
 
   it('builds balanced invoice journal lines from AR, revenue, and GST', () => {
@@ -86,7 +90,9 @@ describe('0217 invoice GL posting migration', () => {
     expect(invoiceFn).toMatch(/'credit_cents', r\.amount_cents/);
     expect(invoiceFn).toMatch(/'credit_cents', v_invoice\.gst_cents/);
     expect(invoiceFn).toMatch(/v_lines := v_lines \|\| jsonb_build_array/);
-    expect(invoiceFn).toMatch(/'description', 'Accounts receivable ' \|\| v_invoice\.invoice_number/);
+    expect(invoiceFn).toMatch(
+      /'description', 'Accounts receivable ' \|\| v_invoice\.invoice_number/,
+    );
     expect(invoiceFn).toMatch(/'description', 'Invoice revenue ' \|\| r\.code/);
     expect(invoiceFn).toMatch(/'description', 'GST collected ' \|\| v_invoice\.invoice_number/);
   });
@@ -134,8 +140,12 @@ describe('0217 invoice GL posting migration', () => {
   });
 
   it('revoke/grants the RPCs and reloads PostgREST schema cache', () => {
-    expect(flat).toMatch(/REVOKE ALL ON FUNCTION public\.post_invoice_journal\(uuid\) FROM PUBLIC, anon/);
-    expect(flat).toMatch(/GRANT EXECUTE ON FUNCTION public\.post_invoice_journal\(uuid\) TO authenticated, service_role/);
+    expect(flat).toMatch(
+      /REVOKE ALL ON FUNCTION public\.post_invoice_journal\(uuid\) FROM PUBLIC, anon/,
+    );
+    expect(flat).toMatch(
+      /GRANT EXECUTE ON FUNCTION public\.post_invoice_journal\(uuid\) TO authenticated, service_role/,
+    );
     expect(flat).toMatch(
       /REVOKE ALL ON FUNCTION public\.post_invoice_payment_journal\(uuid\) FROM PUBLIC, anon/,
     );

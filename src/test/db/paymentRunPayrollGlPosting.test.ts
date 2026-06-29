@@ -109,7 +109,9 @@ describe('0219 payment-run/payroll GL posting migration', () => {
     expect(payrollFn).toMatch(/v_slip_tax_cents <> v_run\.total_tax_cents/);
     expect(payrollFn).toMatch(/v_slip_super_cents <> v_run\.total_super_cents/);
     expect(payrollFn).toMatch(/v_slip_net_cents <> v_run\.total_net_cents/);
-    expect(payrollFn).toMatch(/v_run\.total_gross_cents <> v_run\.total_tax_cents \+ v_run\.total_net_cents/);
+    expect(payrollFn).toMatch(
+      /v_run\.total_gross_cents <> v_run\.total_tax_cents \+ v_run\.total_net_cents/,
+    );
   });
 
   it('resolves required payroll accounts fail-closed', () => {
@@ -139,8 +141,12 @@ describe('0219 payment-run/payroll GL posting migration', () => {
   });
 
   it('revoke/grants the RPCs and reloads PostgREST schema cache', () => {
-    expect(flat).toMatch(/REVOKE ALL ON FUNCTION public\.post_payment_run_journal\(uuid\) FROM PUBLIC, anon/);
-    expect(flat).toMatch(/GRANT EXECUTE ON FUNCTION public\.post_payment_run_journal\(uuid\) TO authenticated, service_role/);
+    expect(flat).toMatch(
+      /REVOKE ALL ON FUNCTION public\.post_payment_run_journal\(uuid\) FROM PUBLIC, anon/,
+    );
+    expect(flat).toMatch(
+      /GRANT EXECUTE ON FUNCTION public\.post_payment_run_journal\(uuid\) TO authenticated, service_role/,
+    );
     expect(flat).toMatch(
       /REVOKE ALL ON FUNCTION public\.post_payroll_pay_run_journal\(uuid\) FROM PUBLIC, anon/,
     );

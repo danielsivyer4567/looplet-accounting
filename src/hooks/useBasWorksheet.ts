@@ -28,11 +28,13 @@ export interface BasWorksheetPayload {
   due_date: string | null;
   gst: Record<string, number>;
   payg_withholding: Record<string, number>;
-  payg_instalment: (Record<string, number | string | null> & {
-    source_status?: string;
-    source_id?: string | null;
-    source_reference?: string | null;
-  }) | null;
+  payg_instalment:
+    | (Record<string, number | string | null> & {
+        source_status?: string;
+        source_id?: string | null;
+        source_reference?: string | null;
+      })
+    | null;
   summary: Record<string, number>;
   source_drilldown?: {
     sales?: { rows?: unknown[]; totals?: Record<string, number> };

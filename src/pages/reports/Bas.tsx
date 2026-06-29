@@ -627,9 +627,18 @@ export function BasPrepCard({
             <LabelStat label="4 PAYG withheld" value={num(worksheet.payg_withholding?.['4'])} />
             {worksheet.payg_instalment && (
               <>
-                <LabelStat label="T7 PAYG instalment income" value={num(worksheet.payg_instalment['T7'])} />
-                <LabelStat label="5A PAYG instalment" value={num(worksheet.payg_instalment['5A'])} />
-                <LabelStat label="5B PAYG instalment credit" value={num(worksheet.payg_instalment['5B'])} />
+                <LabelStat
+                  label="T7 PAYG instalment income"
+                  value={num(worksheet.payg_instalment['T7'])}
+                />
+                <LabelStat
+                  label="5A PAYG instalment"
+                  value={num(worksheet.payg_instalment['5A'])}
+                />
+                <LabelStat
+                  label="5B PAYG instalment credit"
+                  value={num(worksheet.payg_instalment['5B'])}
+                />
               </>
             )}
             <LabelStat
@@ -670,8 +679,8 @@ export function BasPrepCard({
             <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.5rem' }}>
               Source evidence: {sourceCount('sales')} sales line
               {sourceCount('sales') === 1 ? '' : 's'}, {sourceCount('purchases')} purchase
-              {sourceCount('purchases') === 1 ? '' : 's'}, {sourceCount('payg_withholding')}{' '}
-              PAYG row{sourceCount('payg_withholding') === 1 ? '' : 's'}
+              {sourceCount('purchases') === 1 ? '' : 's'}, {sourceCount('payg_withholding')} PAYG
+              row{sourceCount('payg_withholding') === 1 ? '' : 's'}
             </div>
           </div>
 

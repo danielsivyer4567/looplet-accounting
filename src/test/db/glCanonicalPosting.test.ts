@@ -37,7 +37,9 @@ describe('0215 GL canonical posting migration', () => {
   it('adds durable journal source-event/idempotency columns and a per-org unique key', () => {
     expect(flat).toMatch(/ADD COLUMN IF NOT EXISTS idempotency_key text/);
     expect(flat).toMatch(/ADD COLUMN IF NOT EXISTS source_event_key text/);
-    expect(flat).toMatch(/ADD COLUMN IF NOT EXISTS source_metadata jsonb NOT NULL DEFAULT '\{\}'::jsonb/);
+    expect(flat).toMatch(
+      /ADD COLUMN IF NOT EXISTS source_metadata jsonb NOT NULL DEFAULT '\{\}'::jsonb/,
+    );
     expect(flat).toMatch(/journal_entries_source_event_key_requires_source/);
     expect(flat).toMatch(/journal_entries_source_event_key_matches_fields/);
     expect(flat).toMatch(
@@ -81,16 +83,24 @@ describe('0215 GL canonical posting migration', () => {
     expect(createPostingFn).toMatch(/SUM\(credit_cents\)/);
     expect(createPostingFn).toMatch(/v_debits <> v_credits/);
     expect(createPostingFn).toMatch(/journal entry is unbalanced/);
-    expect(createPostingFn).toMatch(/\(debit_cents > 0\)::integer \+ \(credit_cents > 0\)::integer\) <> 1/);
+    expect(createPostingFn).toMatch(
+      /\(debit_cents > 0\)::integer \+ \(credit_cents > 0\)::integer\) <> 1/,
+    );
   });
 
   it('dedupes retries by source_event_key instead of duplicating journal entries', () => {
-    expect(createPostingFn).toMatch(/v_source_event_key := v_source_type \|\| ':' \|\| COALESCE\(p_source_id::text, 'no-source-id'\) \|\| ':' \|\| v_idempotency_key/);
-    expect(createPostingFn).toMatch(/source_type, source_id, idempotency_key, source_event_key, source_metadata, status/);
+    expect(createPostingFn).toMatch(
+      /v_source_event_key := v_source_type \|\| ':' \|\| COALESCE\(p_source_id::text, 'no-source-id'\) \|\| ':' \|\| v_idempotency_key/,
+    );
+    expect(createPostingFn).toMatch(
+      /source_type, source_id, idempotency_key, source_event_key, source_metadata, status/,
+    );
     expect(createPostingFn).toMatch(
       /ON CONFLICT \(organization_id, source_event_key\) WHERE source_event_key IS NOT NULL DO NOTHING/,
     );
-    expect(createPostingFn).toMatch(/WHERE organization_id = p_organization_id AND source_event_key = v_source_event_key FOR UPDATE/);
+    expect(createPostingFn).toMatch(
+      /WHERE organization_id = p_organization_id AND source_event_key = v_source_event_key FOR UPDATE/,
+    );
   });
 
   it('delegates final posting to the existing post_journal_entry primitive', () => {
@@ -117,7 +127,9 @@ describe('0215 GL canonical posting migration', () => {
 
   it('trial_balance_by_period supports opening, period movement, and as-of closing balances', () => {
     expect(trialBalanceFn).toMatch(/je\.status = 'posted'/);
-    expect(trialBalanceFn).toMatch(/p\.period_start IS NOT NULL AND je\.entry_date < p\.period_start/);
+    expect(trialBalanceFn).toMatch(
+      /p\.period_start IS NOT NULL AND je\.entry_date < p\.period_start/,
+    );
     expect(trialBalanceFn).toMatch(
       /\(p\.period_start IS NULL OR je\.entry_date >= p\.period_start\) AND je\.entry_date <= p\.period_end/,
     );

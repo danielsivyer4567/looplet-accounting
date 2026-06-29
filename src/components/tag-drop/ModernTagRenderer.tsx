@@ -61,9 +61,10 @@ const calculatePositions = (markers: TagMarker[]): PositionedMarker[] => {
 
     // Find all markers within cluster distance
     const nearbyMarkers = sorted.filter(
-      m => !processed.has(m.id) &&
+      (m) =>
+        !processed.has(m.id) &&
         m.id !== marker.id &&
-        distance(marker.x, marker.y, m.x, m.y) < clusterDistance
+        distance(marker.x, marker.y, m.x, m.y) < clusterDistance,
     );
 
     if (nearbyMarkers.length === 0) {
@@ -135,7 +136,7 @@ const TagMarkerComponent = memo<TagMarkerComponentProps>(({ marker }) => {
       mediaType: marker.mediaType as AttachmentType | undefined,
       drawingData: marker.drawingData,
       drawingUrl: marker.drawingUrl,
-      attachments: marker.attachments?.map(a => ({ ...a, type: a.type as AttachmentType })),
+      attachments: marker.attachments?.map((a) => ({ ...a, type: a.type as AttachmentType })),
       approvalStatus: marker.approvalStatus,
       requiresApproval: marker.requiresApproval,
       creatorId: marker.creatorId,
@@ -145,7 +146,10 @@ const TagMarkerComponent = memo<TagMarkerComponentProps>(({ marker }) => {
   };
 
   const isNew = Date.now() - marker.timestamp < TAG_CONSTANTS.NEW_TAG_THRESHOLD_MS;
-  const hasDrawing = marker.drawingData || marker.drawingUrl || marker.attachments?.some(a => a.type === 'drawing');
+  const hasDrawing =
+    marker.drawingData ||
+    marker.drawingUrl ||
+    marker.attachments?.some((a) => a.type === 'drawing');
   const isPendingApproval = marker.requiresApproval && marker.approvalStatus === 'pending';
   const isApproved = marker.requiresApproval && marker.approvalStatus === 'approved';
   const isRejected = marker.requiresApproval && marker.approvalStatus === 'rejected';
@@ -156,10 +160,10 @@ const TagMarkerComponent = memo<TagMarkerComponentProps>(({ marker }) => {
   const statusBorder = isPendingApproval
     ? 'border-amber-400'
     : isApproved
-    ? 'border-emerald-400'
-    : isRejected
-    ? 'border-rose-400'
-    : 'border-white';
+      ? 'border-emerald-400'
+      : isRejected
+        ? 'border-rose-400'
+        : 'border-white';
 
   return (
     <div
@@ -183,10 +187,12 @@ const TagMarkerComponent = memo<TagMarkerComponentProps>(({ marker }) => {
       >
         {/* Drawing preview or avatar */}
         {hasDrawing ? (
-          <div className={cn(
-            "w-12 h-12 rounded-full border-3 shadow-lg overflow-hidden bg-white transition-transform group-hover:scale-110",
-            statusBorder,
-          )}>
+          <div
+            className={cn(
+              'w-12 h-12 rounded-full border-3 shadow-lg overflow-hidden bg-white transition-transform group-hover:scale-110',
+              statusBorder,
+            )}
+          >
             {drawingSource ? (
               <img
                 src={drawingSource}
@@ -204,15 +210,17 @@ const TagMarkerComponent = memo<TagMarkerComponentProps>(({ marker }) => {
             src={marker.senderAvatar}
             alt={marker.senderName}
             className={cn(
-              "w-12 h-12 rounded-full border-3 shadow-lg transition-transform group-hover:scale-110",
+              'w-12 h-12 rounded-full border-3 shadow-lg transition-transform group-hover:scale-110',
               statusBorder,
             )}
           />
         ) : (
-          <div className={cn(
-            "w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-slate-800 text-white border-3 shadow-lg flex items-center justify-center font-bold transition-transform group-hover:scale-110",
-            statusBorder,
-          )}>
+          <div
+            className={cn(
+              'w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-slate-800 text-white border-3 shadow-lg flex items-center justify-center font-bold transition-transform group-hover:scale-110',
+              statusBorder,
+            )}
+          >
             {marker.senderName?.charAt(0) || 'T'}
           </div>
         )}
@@ -255,7 +263,9 @@ const TagMarkerComponent = memo<TagMarkerComponentProps>(({ marker }) => {
         {/* Hover tooltip */}
         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 max-w-[200px] truncate">
           {isPendingApproval && <span className="text-amber-400 mr-1">-</span>}
-          {marker.comment ? marker.comment.substring(0, 50) + (marker.comment.length > 50 ? '...' : '') : 'Click to view details'}
+          {marker.comment
+            ? marker.comment.substring(0, 50) + (marker.comment.length > 50 ? '...' : '')
+            : 'Click to view details'}
           {marker.isClusterHead && marker.clusterCount && marker.clusterCount > 1 && (
             <span className="ml-1 text-blue-300">+{marker.clusterCount - 1} more</span>
           )}

@@ -79,9 +79,7 @@ describe('TagDropPopup — media attachment scope (fresh tag)', () => {
     const onImageUpload = vi.fn();
     const onAudioRecord = vi.fn();
     const onToggleScreenRecord = vi.fn();
-    render(
-      <TagDropPopup {...makeProps({ onImageUpload, onAudioRecord, onToggleScreenRecord })} />,
-    );
+    render(<TagDropPopup {...makeProps({ onImageUpload, onAudioRecord, onToggleScreenRecord })} />);
 
     // Disabled buttons swallow the click — no fake/unpersisted media is created.
     fireEvent.click(screen.getByRole('button', { name: /Image/i }));
@@ -134,7 +132,9 @@ describe('TagDropPopup — media attachment scope (reply bar)', () => {
   it('disables the deferred media chips and keeps Paint clickable', () => {
     const onPaintClick = vi.fn();
     const onImageUpload = vi.fn();
-    render(<TagDropPopup {...replyProps()} onPaintClick={onPaintClick} onImageUpload={onImageUpload} />);
+    render(
+      <TagDropPopup {...replyProps()} onPaintClick={onPaintClick} onImageUpload={onImageUpload} />,
+    );
 
     for (const label of ['Screen', 'Image', 'Voice']) {
       expect(screen.getByRole('button', { name: new RegExp(label, 'i') })).toBeDisabled();

@@ -60,7 +60,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       return;
     }
-    const orgs: Organization[] = (data as MembershipRow[] | null ?? [])
+    const orgs: Organization[] = ((data as MembershipRow[] | null) ?? [])
       .map((row): Organization | null => {
         // Defense in depth: never surface a pending (un-accepted) membership,
         // even if the server filter above is bypassed. accepted_at IS NULL =

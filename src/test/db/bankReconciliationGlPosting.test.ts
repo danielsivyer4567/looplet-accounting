@@ -59,7 +59,9 @@ describe('0218 bank/reconciliation GL posting migration', () => {
 
   it('rejects standalone rows that belong to other posting flows', () => {
     expect(bankTxnFn).toMatch(/is_personal IS TRUE/);
-    expect(bankTxnFn).toMatch(/matched_bill_id IS NOT NULL OR v_tx\.matched_invoice_id IS NOT NULL/);
+    expect(bankTxnFn).toMatch(
+      /matched_bill_id IS NOT NULL OR v_tx\.matched_invoice_id IS NOT NULL/,
+    );
     expect(bankTxnFn).toMatch(/amount_cents = 0/);
     expect(bankTxnFn).toMatch(/amount_cents > 0/);
     expect(bankTxnFn).toMatch(/has no auto_category_code/);
@@ -97,12 +99,16 @@ describe('0218 bank/reconciliation GL posting migration', () => {
     expect(reconciledFn).toMatch(/ip\.bank_transaction_id = p_bank_transaction_id/);
     expect(reconciledFn).toMatch(/ip\.invoice_id = v_tx\.matched_invoice_id/);
     expect(reconciledFn).toMatch(/is invoice-matched but has no invoice_payments row/);
-    expect(reconciledFn).toMatch(/FROM public\.post_invoice_payment_journal\(v_invoice_payment_id\)/);
+    expect(reconciledFn).toMatch(
+      /FROM public\.post_invoice_payment_journal\(v_invoice_payment_id\)/,
+    );
   });
 
   it('delegates unmatched transactions back to standalone bank posting', () => {
     expect(reconciledFn).toMatch(/v_tx\.matched_bill_id IS NULL/);
-    expect(reconciledFn).toMatch(/FROM public\.post_bank_transaction_journal\(p_bank_transaction_id\)/);
+    expect(reconciledFn).toMatch(
+      /FROM public\.post_bank_transaction_journal\(p_bank_transaction_id\)/,
+    );
   });
 
   it('rejects unsafe AP settlement states before posting', () => {
@@ -140,8 +146,12 @@ describe('0218 bank/reconciliation GL posting migration', () => {
   });
 
   it('revoke/grants the RPCs and reloads PostgREST schema cache', () => {
-    expect(flat).toMatch(/REVOKE ALL ON FUNCTION public\.post_bank_transaction_journal\(uuid\) FROM PUBLIC, anon/);
-    expect(flat).toMatch(/GRANT EXECUTE ON FUNCTION public\.post_bank_transaction_journal\(uuid\) TO authenticated, service_role/);
+    expect(flat).toMatch(
+      /REVOKE ALL ON FUNCTION public\.post_bank_transaction_journal\(uuid\) FROM PUBLIC, anon/,
+    );
+    expect(flat).toMatch(
+      /GRANT EXECUTE ON FUNCTION public\.post_bank_transaction_journal\(uuid\) TO authenticated, service_role/,
+    );
     expect(flat).toMatch(
       /REVOKE ALL ON FUNCTION public\.post_reconciled_bank_transaction_journal\(uuid\) FROM PUBLIC, anon/,
     );

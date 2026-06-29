@@ -90,7 +90,12 @@ export function InviteAccountant() {
       {result && (
         <div
           className="badge badge-success"
-          style={{ display: 'block', padding: '0.5rem', marginBottom: '1rem', textTransform: 'none' }}
+          style={{
+            display: 'block',
+            padding: '0.5rem',
+            marginBottom: '1rem',
+            textTransform: 'none',
+          }}
         >
           {result}
         </div>
@@ -98,7 +103,12 @@ export function InviteAccountant() {
       {error && (
         <div
           className="badge badge-danger"
-          style={{ display: 'block', padding: '0.5rem', marginBottom: '1rem', textTransform: 'none' }}
+          style={{
+            display: 'block',
+            padding: '0.5rem',
+            marginBottom: '1rem',
+            textTransform: 'none',
+          }}
         >
           {error}
         </div>
@@ -111,7 +121,11 @@ export function InviteAccountant() {
         style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}
       >
         <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: 220 }}>
-          <label className="form-label" htmlFor="invite-accountant-email" style={{ fontSize: '0.725rem' }}>
+          <label
+            className="form-label"
+            htmlFor="invite-accountant-email"
+            style={{ fontSize: '0.725rem' }}
+          >
             Accountant email
           </label>
           <input

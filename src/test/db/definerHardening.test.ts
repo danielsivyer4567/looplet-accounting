@@ -52,22 +52,16 @@ describe('0206 definer + notify org-guard hardening', () => {
   });
 
   it('revokes PUBLIC and anon EXECUTE on notify() (defence in depth over the body guard)', () => {
-    expect(flat).toMatch(
-      /REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon;/,
-    );
+    expect(flat).toMatch(/REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon;/);
     // notify() must remain callable by both authenticated and service_role.
     expect(flat).toMatch(/GRANT EXECUTE ON FUNCTION %s TO authenticated, service_role;/);
     // The notify signature is the one being hardened.
-    expect(flat).toMatch(
-      /public\.notify\(uuid,text,text,text,text,text,uuid,text,uuid,jsonb\)/,
-    );
+    expect(flat).toMatch(/public\.notify\(uuid,text,text,text,text,text,uuid,text,uuid,jsonb\)/);
   });
 
   it('locks close_idle_accountant_sessions() down to service_role only (cron sweep)', () => {
     expect(flat).toMatch(/public\.close_idle_accountant_sessions\(\)/);
-    expect(flat).toMatch(
-      /REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated;/,
-    );
+    expect(flat).toMatch(/REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated;/);
     expect(flat).toMatch(/GRANT EXECUTE ON FUNCTION %s TO service_role;/);
   });
 
@@ -82,14 +76,16 @@ describe('0206 definer + notify org-guard hardening', () => {
 
   it('does not weaken any authenticated-facing guarded RPC (no blanket REVOKE FROM authenticated on notify/approval/receipt RPCs)', () => {
     // Sanity: the only function we revoke from `authenticated` is the cron sweep.
-    const authRevokes = [...flat.matchAll(/REVOKE EXECUTE ON FUNCTION (\S+) FROM[^;]*authenticated/g)];
+    const authRevokes = [
+      ...flat.matchAll(/REVOKE EXECUTE ON FUNCTION (\S+) FROM[^;]*authenticated/g),
+    ];
     // We use the %s placeholder form, so the captured target is the format() arg
     // name — assert the only authenticated-revoke statement is the close-sig one.
-    expect(flat).toMatch(
-      /REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated;/,
-    );
+    expect(flat).toMatch(/REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated;/);
     // notify's revoke must NOT include authenticated.
-    expect(flat).not.toMatch(/REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role/);
+    expect(flat).not.toMatch(
+      /REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role/,
+    );
     expect(authRevokes.length).toBeGreaterThanOrEqual(1);
   });
 });

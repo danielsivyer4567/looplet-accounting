@@ -18,12 +18,7 @@ import {
   clearSupabaseOperations,
   getSupabaseOperations,
 } from '@/test/mocks/supabase';
-import {
-  createTag,
-  getTaggableStaff,
-  fetchTags,
-  type TagData,
-} from '@/services/tags/tag-service';
+import { createTag, getTaggableStaff, fetchTags, type TagData } from '@/services/tags/tag-service';
 import { isAccountant, ACCOUNTANT_MATCH, TAG_CONSTANTS } from '@/constants/tags';
 
 beforeEach(() => {

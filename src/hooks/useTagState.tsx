@@ -19,10 +19,12 @@ export interface TagOverlayData {
   mediaType?: AttachmentType | undefined;
   drawingData?: string | undefined;
   drawingUrl?: string | undefined;
-  attachments?: {
-    type: AttachmentType;
-    url: string;
-  }[] | undefined;
+  attachments?:
+    | {
+        type: AttachmentType;
+        url: string;
+      }[]
+    | undefined;
   creatorId?: string | undefined;
   approvalStatus?: 'pending' | 'approved' | 'rejected' | undefined;
   requiresApproval?: boolean | undefined;
@@ -75,7 +77,13 @@ interface TagStateProviderProps {
 const TAGS_HIDDEN_KEY = 'looplet:tags_hidden';
 const TAGS_FILTER_KEY = 'looplet:tags_filter';
 const TAGS_MINE_KEY = 'looplet:tags_mine_only';
-const VALID_FILTERS: readonly TagStatusFilter[] = ['all', 'pending', 'approved', 'rejected', 'no_approval'];
+const VALID_FILTERS: readonly TagStatusFilter[] = [
+  'all',
+  'pending',
+  'approved',
+  'rejected',
+  'no_approval',
+];
 
 export const TagStateProvider: React.FC<TagStateProviderProps> = ({ children }) => {
   const [activeTag, setActiveTag] = useState<TagOverlayData | null>(null);
@@ -102,7 +110,9 @@ export const TagStateProvider: React.FC<TagStateProviderProps> = ({ children }) 
     try {
       const raw = localStorage.getItem(TAGS_FILTER_KEY);
       if (raw && (VALID_FILTERS as readonly string[]).includes(raw)) return raw as TagStatusFilter;
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
     return 'all';
   });
 
@@ -111,7 +121,9 @@ export const TagStateProvider: React.FC<TagStateProviderProps> = ({ children }) 
     try {
       if (filter === 'all') localStorage.removeItem(TAGS_FILTER_KEY);
       else localStorage.setItem(TAGS_FILTER_KEY, filter);
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
   }, []);
 
   const [tagsMineOnly, setTagsMineOnlyState] = useState<boolean>(() => {
@@ -127,7 +139,9 @@ export const TagStateProvider: React.FC<TagStateProviderProps> = ({ children }) 
     try {
       if (mineOnly) localStorage.setItem(TAGS_MINE_KEY, '1');
       else localStorage.removeItem(TAGS_MINE_KEY);
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
   }, []);
 
   // Fix memory leak: store timeout ref for cleanup
@@ -179,11 +193,7 @@ export const TagStateProvider: React.FC<TagStateProviderProps> = ({ children }) 
     setTagsMineOnly,
   };
 
-  return (
-    <TagStateContext.Provider value={value}>
-      {children}
-    </TagStateContext.Provider>
-  );
+  return <TagStateContext.Provider value={value}>{children}</TagStateContext.Provider>;
 };
 
 export default TagStateProvider;

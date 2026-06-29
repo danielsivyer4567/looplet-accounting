@@ -81,7 +81,7 @@ export interface TaggableStaff {
  */
 export async function checkRateLimit(
   userId: string,
-  pageUrl?: string
+  pageUrl?: string,
 ): Promise<ServiceResult<{ allowed: boolean; message?: string; remaining_hourly?: number }>> {
   try {
     const { data, error } = await supabase.rpc('check_tag_rate_limit', {
@@ -102,10 +102,16 @@ export async function checkRateLimit(
 /**
  * Create a new tag
  */
-export async function createTag(payload: CreateTagPayload): Promise<ServiceResult<{ id: string; timestamp: number; drawingData?: string }>> {
+export async function createTag(
+  payload: CreateTagPayload,
+): Promise<ServiceResult<{ id: string; timestamp: number; drawingData?: string }>> {
   try {
     // Validate payload
-    if (!payload.coords || typeof payload.coords.x !== 'number' || typeof payload.coords.y !== 'number') {
+    if (
+      !payload.coords ||
+      typeof payload.coords.x !== 'number' ||
+      typeof payload.coords.y !== 'number'
+    ) {
       return { data: null, error: { message: 'Invalid coordinates' } };
     }
 
@@ -114,14 +120,25 @@ export async function createTag(payload: CreateTagPayload): Promise<ServiceResul
     }
 
     if (payload.comment && payload.comment.length > TAG_CONSTANTS.MAX_COMMENT_LENGTH) {
-      return { data: null, error: { message: `Comment exceeds maximum length of ${TAG_CONSTANTS.MAX_COMMENT_LENGTH} characters` } };
+      return {
+        data: null,
+        error: {
+          message: `Comment exceeds maximum length of ${TAG_CONSTANTS.MAX_COMMENT_LENGTH} characters`,
+        },
+      };
     }
 
     if (payload.taggedStaffIds && payload.taggedStaffIds.length > TAG_CONSTANTS.MAX_TAGGED_STAFF) {
-      return { data: null, error: { message: `Cannot tag more than ${TAG_CONSTANTS.MAX_TAGGED_STAFF} staff members` } };
+      return {
+        data: null,
+        error: { message: `Cannot tag more than ${TAG_CONSTANTS.MAX_TAGGED_STAFF} staff members` },
+      };
     }
 
-    if (payload.drawingData && payload.drawingData.length > TAG_CONSTANTS.MAX_DRAWING_SIZE_BYTES * 1.4) {
+    if (
+      payload.drawingData &&
+      payload.drawingData.length > TAG_CONSTANTS.MAX_DRAWING_SIZE_BYTES * 1.4
+    ) {
       return { data: null, error: { message: 'Drawing data exceeds maximum size' } };
     }
 
@@ -152,9 +169,7 @@ export async function createTag(payload: CreateTagPayload): Promise<ServiceResul
         storage_url: att.url,
       }));
 
-      const { error: attError } = await supabase
-        .from('tag_attachments')
-        .insert(attachmentRecords);
+      const { error: attError } = await supabase.from('tag_attachments').insert(attachmentRecords);
 
       if (attError) {
         console.error('Error adding attachments:', attError);
@@ -180,20 +195,16 @@ export async function createTag(payload: CreateTagPayload): Promise<ServiceResul
  */
 export async function fetchTags(
   filters: { pageUrl?: string; organizationId?: string },
-  options: Omit<FetchTagsOptions, 'pageUrl' | 'organizationId'> = {}
+  options: Omit<FetchTagsOptions, 'pageUrl' | 'organizationId'> = {},
 ): Promise<ServiceResult<TagData[]>> {
   try {
-    const {
-      limit = 50,
-      offset = 0,
-      orderBy = 'created_at',
-      orderDirection = 'desc',
-    } = options;
+    const { limit = 50, offset = 0, orderBy = 'created_at', orderDirection = 'desc' } = options;
 
     // Build query
     let query = supabase
       .from('tags')
-      .select(`
+      .select(
+        `
         id,
         organization_id,
         creator_id,
@@ -217,7 +228,8 @@ export async function fetchTags(
           storage_url,
           file_name
         )
-      `)
+      `,
+      )
       .is('deleted_at', null);
 
     if (filters.pageUrl) {
@@ -246,10 +258,13 @@ export async function fetchTags(
     if (filters.organizationId) {
       const { data: staff } = await getTaggableStaff(filters.organizationId);
       if (staff) {
-        creatorProfiles = staff.reduce((acc, s) => {
-          acc[s.id] = s;
-          return acc;
-        }, {} as Record<string, TaggableStaff>);
+        creatorProfiles = staff.reduce(
+          (acc, s) => {
+            acc[s.id] = s;
+            return acc;
+          },
+          {} as Record<string, TaggableStaff>,
+        );
       }
     }
 
@@ -294,7 +309,10 @@ export async function deleteTag(tagId: string): Promise<ServiceResult<{ success:
 /**
  * Mark a tag notification as read
  */
-export async function markTagAsRead(tagId: string, staffId: string): Promise<ServiceResult<{ success: boolean }>> {
+export async function markTagAsRead(
+  tagId: string,
+  staffId: string,
+): Promise<ServiceResult<{ success: boolean }>> {
   try {
     const { error } = await supabase
       .from('tag_staff')
@@ -316,7 +334,9 @@ export async function markTagAsRead(tagId: string, staffId: string): Promise<Ser
 /**
  * Get unread tag count for a user
  */
-export async function getUnreadTagCount(staffId: string): Promise<ServiceResult<{ count: number }>> {
+export async function getUnreadTagCount(
+  staffId: string,
+): Promise<ServiceResult<{ count: number }>> {
   try {
     const { count, error } = await supabase
       .from('tag_staff')
@@ -342,7 +362,9 @@ export async function getUnreadTagCount(staffId: string): Promise<ServiceResult<
  * `organization_memberships` + `auth.users` and is caller-org-gated, so there
  * is no client-side fallback to fall back to.
  */
-export async function getTaggableStaff(organizationId?: string): Promise<ServiceResult<TaggableStaff[]>> {
+export async function getTaggableStaff(
+  organizationId?: string,
+): Promise<ServiceResult<TaggableStaff[]>> {
   try {
     const { data, error } = await supabase.rpc('get_taggable_staff', {
       p_organization_id: organizationId || null,
@@ -364,7 +386,7 @@ export async function getTaggableStaff(organizationId?: string): Promise<Service
  */
 export async function updateApprovalStatus(
   tagId: string,
-  status: 'approved' | 'rejected'
+  status: 'approved' | 'rejected',
 ): Promise<ServiceResult<{ success: boolean }>> {
   try {
     const { error } = await supabase
@@ -400,19 +422,22 @@ export async function saveTagDraft(draft: {
   try {
     const { data, error } = await supabase
       .from('tag_drafts')
-      .upsert({
-        user_id: draft.userId,
-        organization_id: draft.organizationId,
-        page_url: draft.pageUrl,
-        comment: draft.comment,
-        drawing_data: draft.drawingData,
-        tagged_staff_ids: draft.taggedStaffIds || [],
-        requires_approval: draft.requiresApproval || false,
-        job_id: draft.jobId,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'user_id,organization_id,page_url',
-      })
+      .upsert(
+        {
+          user_id: draft.userId,
+          organization_id: draft.organizationId,
+          page_url: draft.pageUrl,
+          comment: draft.comment,
+          drawing_data: draft.drawingData,
+          tagged_staff_ids: draft.taggedStaffIds || [],
+          requires_approval: draft.requiresApproval || false,
+          job_id: draft.jobId,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'user_id,organization_id,page_url',
+        },
+      )
       .select('id')
       .single();
 
@@ -430,19 +455,21 @@ export async function saveTagDraft(draft: {
 /**
  * Load a tag draft
  */
-export async function loadTagDraft(userId: string, pageUrl?: string): Promise<ServiceResult<{
-  id: string;
-  comment?: string;
-  drawingData?: string;
-  taggedStaffIds?: string[];
-  requiresApproval?: boolean;
-  jobId?: string;
-} | null>> {
+export async function loadTagDraft(
+  userId: string,
+  pageUrl?: string,
+): Promise<
+  ServiceResult<{
+    id: string;
+    comment?: string;
+    drawingData?: string;
+    taggedStaffIds?: string[];
+    requiresApproval?: boolean;
+    jobId?: string;
+  } | null>
+> {
   try {
-    let query = supabase
-      .from('tag_drafts')
-      .select('*')
-      .eq('user_id', userId);
+    let query = supabase.from('tag_drafts').select('*').eq('user_id', userId);
 
     if (pageUrl) {
       query = query.eq('page_url', pageUrl);
@@ -450,7 +477,8 @@ export async function loadTagDraft(userId: string, pageUrl?: string): Promise<Se
 
     const { data, error } = await query.order('updated_at', { ascending: false }).limit(1).single();
 
-    if (error && error.code !== 'PGRST116') { // Not found is OK
+    if (error && error.code !== 'PGRST116') {
+      // Not found is OK
       return { data: null, error: { message: error.message } };
     }
 

@@ -59,7 +59,9 @@ describe('0220 GST/BAS control GL posting migration', () => {
   });
 
   it('derives BAS settlement amounts from the generated BAS worksheet', () => {
-    expect(basSettlementFn).toMatch(/public\.generate_bas_worksheet\(v_tx\.organization_id, p_fy_start_year, p_quarter\)/);
+    expect(basSettlementFn).toMatch(
+      /public\.generate_bas_worksheet\(v_tx\.organization_id, p_fy_start_year, p_quarter\)/,
+    );
     expect(basSettlementFn).toMatch(/v_worksheet #>> ARRAY\['gst', '1A'\]/);
     expect(basSettlementFn).toMatch(/v_worksheet #>> ARRAY\['gst', '1B'\]/);
     expect(basSettlementFn).toMatch(/v_worksheet #>> ARRAY\['payg_withholding', '4'\]/);
@@ -72,7 +74,9 @@ describe('0220 GST/BAS control GL posting migration', () => {
     expect(basSettlementFn).toMatch(/FROM public\.bank_transactions/);
     expect(basSettlementFn).toMatch(/FOR UPDATE/);
     expect(basSettlementFn).toMatch(/is_personal IS TRUE/);
-    expect(basSettlementFn).toMatch(/matched_bill_id IS NOT NULL OR v_tx\.matched_invoice_id IS NOT NULL/);
+    expect(basSettlementFn).toMatch(
+      /matched_bill_id IS NOT NULL OR v_tx\.matched_invoice_id IS NOT NULL/,
+    );
     expect(basSettlementFn).toMatch(/amount_cents = 0/);
     expect(basSettlementFn).toMatch(/auto_category_code, ''\) <> 'ato_bas_super'/);
     expect(basSettlementFn).toMatch(/v_net_cents = 0/);
@@ -81,12 +85,16 @@ describe('0220 GST/BAS control GL posting migration', () => {
   it('resolves BAS control accounts with system-account fallback and seeded codes', () => {
     expect(basSettlementFn).toMatch(/sa\.role = 'gst_collected'/);
     expect(basSettlementFn).toMatch(/coa\.code = '2100'/);
-    expect(basSettlementFn).toMatch(/gst_collected system account or active liability account 2100 is missing/);
+    expect(basSettlementFn).toMatch(
+      /gst_collected system account or active liability account 2100 is missing/,
+    );
     expect(basSettlementFn).toMatch(/coa\.code = '2200'/);
     expect(basSettlementFn).toMatch(/active liability account 2200 is missing/);
     expect(basSettlementFn).toMatch(/sa\.role = 'gst_paid'/);
     expect(basSettlementFn).toMatch(/coa\.code = '1200'/);
-    expect(basSettlementFn).toMatch(/gst_paid system account or active asset account 1200 is missing/);
+    expect(basSettlementFn).toMatch(
+      /gst_paid system account or active asset account 1200 is missing/,
+    );
     expect(basSettlementFn).toMatch(/coa\.code = '1000'/);
     expect(basSettlementFn).toMatch(/active asset account 1000 is missing/);
   });

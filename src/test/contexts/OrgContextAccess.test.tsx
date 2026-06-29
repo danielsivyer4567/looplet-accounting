@@ -50,10 +50,12 @@ const sb = vi.hoisted(() => {
 vi.mock('@/lib/supabase', () => {
   const makeChain = () => {
     const chain: Record<string, unknown> = {};
-    const record = (name: string) => (...args: unknown[]) => {
-      sb.filterCalls.push([name, ...args]);
-      return chain;
-    };
+    const record =
+      (name: string) =>
+      (...args: unknown[]) => {
+        sb.filterCalls.push([name, ...args]);
+        return chain;
+      };
     chain.select = record('select');
     chain.eq = record('eq');
     chain.not = record('not');

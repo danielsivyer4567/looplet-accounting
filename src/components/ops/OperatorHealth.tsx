@@ -58,7 +58,10 @@ function formatWhen(iso: string | null): string {
 function statusLabel(job: StaleCronJob): { label: string; tone: 'danger' | 'warning' } {
   if (job.last_run_at && job.last_run_success === false) {
     const soft = job.last_run_http_status === 200;
-    return { label: soft ? 'Ran, reported failure (HTTP 200)' : 'Ran, reported failure', tone: 'danger' };
+    return {
+      label: soft ? 'Ran, reported failure (HTTP 200)' : 'Ran, reported failure',
+      tone: 'danger',
+    };
   }
   if (!job.last_run_at) return { label: 'Never ran', tone: 'danger' };
   return { label: 'No success in window', tone: 'warning' };
@@ -105,8 +108,8 @@ export function OperatorHealth() {
           Cron health
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.25rem 0 0' }}>
-          Jobs with no successful run inside their expected window. A job can be HTTP-200
-          yet have failed — those appear here too.
+          Jobs with no successful run inside their expected window. A job can be HTTP-200 yet have
+          failed — those appear here too.
         </p>
       </div>
 
@@ -128,7 +131,11 @@ export function OperatorHealth() {
         >
           <CheckCircle2
             size={36}
-            style={{ margin: '0 auto 0.75rem', opacity: 0.5, color: 'var(--accent-success, #4ade80)' }}
+            style={{
+              margin: '0 auto 0.75rem',
+              opacity: 0.5,
+              color: 'var(--accent-success, #4ade80)',
+            }}
           />
           <p style={{ margin: 0, fontSize: '0.9rem' }}>All monitored cron jobs are healthy.</p>
           <p style={{ margin: '0.4rem 0 0', fontSize: '0.8rem' }}>
@@ -176,9 +183,13 @@ export function OperatorHealth() {
                         {status.label}
                       </span>
                     </td>
-                    <td style={{ color: 'var(--text-muted)' }}>{formatWhen(job.last_success_at)}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>
+                      {formatWhen(job.last_success_at)}
+                    </td>
                     <td style={{ color: 'var(--text-muted)' }}>{formatWhen(job.last_run_at)}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--accent-danger)' }}>
+                    <td
+                      style={{ textAlign: 'right', fontWeight: 600, color: 'var(--accent-danger)' }}
+                    >
                       {formatOverdue(job.seconds_overdue)}
                     </td>
                   </tr>
