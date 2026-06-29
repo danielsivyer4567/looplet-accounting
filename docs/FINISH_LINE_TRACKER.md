@@ -3,9 +3,9 @@
 > The live cross-off list for finishing the app. Updated by the orchestrator after
 > every slice verifies. Branch: `feat/finish-line` (off `feat/accountant-portal`).
 
-**Progress: 44 / 51 complete (86%)** · deploy-gated: 1 (P0-05) · blocked-external: 0
+**Progress: 47 / 51 complete (92%)** · deploy-gated: 1 (P0-05) · blocked-external: 3 (ATO TODO)
 **Current wave:** F — compliance output
-**Last updated:** Wave F P2-06 complete (route-level lazy loading, merchant WebP assets, production sourcemaps off, CSP headers, configurable Edge Function CORS; build/type/lint/Vitest/Deno/product-smoke clean; report `.claude/scratch/product-ux-smoke/2026-06-29T14-04-59-103Z/report.json`; ATO lodgement TODOs left pending/external-gated)
+**Last updated:** Wave F P2-07 in-repo reconciliation complete (migration baseline/rollback runbook, manual staging deploy workflow, source-controlled function inventory from live CLI: 66 local/51 live-active/15 holdbacks, docs index, ATO backlog; focused reconciliation test/typecheck/lint/diff-check clean; production migration dry-run remains operator proof because local DB password was rejected)
 **Note:** +1 slice discovered in Wave B — P1-14 require_role() accepted_at gate (total now 51).
 
 Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocked-on-deploy]` · `[!]` external-blocked (cannot finish here)
@@ -43,7 +43,7 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [x] P1-13 Cron secrets + SITE_URL provisioning
 - [x] P1-14 require_role() accepted_at gate _(discovered in Wave B)_
 
-## P2 — Source posting + compliance output + product completion (20/26)
+## P2 — Source posting + compliance output + product completion (23/26)
 
 - [x] P2-01a Source posting: invoices + invoice payments
 - [x] P2-01b Source posting: bank transactions + reconciliation
@@ -68,9 +68,9 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [x] P2-05c Keyboard/focus a11y across main workflows
 - [x] P2-06a Route-level code splitting + large-asset optimisation
 - [x] P2-06b Production security polish (sourcemaps off, CSP, CORS narrowing)
-- [ ] P2-07a Migration baseline repair + rollback runbook
-- [ ] P2-07b Staging/deploy workflow + function-inventory reconciliation
-- [ ] P2-07c Docs index + remaining-compliance backlog stub
+- [x] P2-07a Migration baseline repair + rollback runbook
+- [x] P2-07b Staging/deploy workflow + function-inventory reconciliation
+- [x] P2-07c Docs index + remaining-compliance backlog stub
 
 ---
 

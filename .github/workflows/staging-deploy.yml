@@ -1,0 +1,89 @@
+name: Staging Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: GitHub environment to use
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      project_ref:
+        description: Supabase project ref
+        required: true
+        default: dxoikltymmknxqpkpyhi
+      deploy_edge_functions:
+        description: Deploy default edge-function inventory after gates pass
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+env:
+  NODE_VERSION: '20'
+  SUPABASE_PROJECT_REF: ${{ inputs.project_ref }}
+
+jobs:
+  preflight:
+    name: Gates, Migration Dry Run, Optional Functions
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Accounting tests
+        run: npm run test:accounting
+
+      - name: Deployment docs reconciliation
+        run: npx vitest run src/test/db/deploymentDocsReconciliation.test.ts
+
+      - name: Build
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://dxoikltymmknxqpkpyhi.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: npm run build
+
+      - name: Migration dry run
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          npx supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+          npx supabase migration list --linked
+          npx supabase db push --linked --dry-run
+
+      - name: Deploy default edge functions
+        if: ${{ inputs.deploy_edge_functions == 'true' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          node -e "const fs=require('fs'); const inv=JSON.parse(fs.readFileSync('supabase/functions-inventory.json','utf8')); for (const fn of inv.functions.filter((item)=>item.deploy_by_default)) console.log(fn.name)" > /tmp/edge-functions.txt
+          while read -r fn; do
+            echo "Deploying $fn"
+            npx supabase functions deploy "$fn" --use-api --project-ref "$SUPABASE_PROJECT_REF"
+          done < /tmp/edge-functions.txt
