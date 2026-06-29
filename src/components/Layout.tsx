@@ -39,6 +39,7 @@ import {
   ListChecks,
   Boxes,
   ShieldCheck,
+  Send,
 } from 'lucide-react';
 
 const navItems = [
@@ -54,6 +55,7 @@ const navItems = [
   { to: '/allocations', label: 'Allocations', icon: GitCommit },
   { to: '/coding-review', label: 'Coding', icon: ListChecks },
   { to: '/approvals', label: 'Approvals', icon: ShieldCheck },
+  { to: '/lodgements', label: 'Lodgements', icon: Send },
   { to: '/reconciliation', label: 'Reconcile', icon: Scale },
   { to: '/fixed-assets', label: 'Assets', icon: Boxes },
   { to: '/jobs', label: 'Jobs', icon: Briefcase },
@@ -328,6 +330,7 @@ export function Layout() {
             borderBottom: '1px solid var(--border-subtle)',
             background: 'var(--bg-app)',
             gap: '0.75rem',
+            flexWrap: isMobile ? 'wrap' : 'nowrap',
             position: 'sticky',
             top: 0,
             zIndex: 10,
@@ -361,7 +364,16 @@ export function Layout() {
             </h1>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: isMobile ? '0.5rem' : '0.75rem',
+              alignItems: 'center',
+              flex: isMobile ? '1 1 100%' : '0 0 auto',
+              justifyContent: isMobile ? 'space-between' : 'flex-start',
+              minWidth: 0,
+            }}
+          >
             {/* OrgSelector in header */}
             <div style={{ marginRight: '0.25rem' }}>
               <OrgSelector />
@@ -480,7 +492,13 @@ export function Layout() {
         {/* Body: route content + right-hand timeline rail. The rail sits beside the
             content (inside main, under the header) so it starts below the header line. */}
         <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-          <div style={{ flex: 1, padding: isMobile ? '1rem' : '2rem', overflowY: 'auto' }}>
+          <div
+            style={{
+              flex: 1,
+              padding: isMobile ? '1rem' : '2rem var(--page-pad-x)',
+              overflowY: 'auto',
+            }}
+          >
             <div style={{ maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
               <Outlet />
             </div>

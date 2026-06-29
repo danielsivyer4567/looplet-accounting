@@ -1,6 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
 import { useRealtimePnl } from '@/hooks/useRealtimePnl';
+import { useAdviceNotes, type AdviceNote, type AdviceNoteKind } from '@/hooks/useAdviceNotes';
+import { useTaxCalendar, type TaxObligation } from '@/hooks/useTaxCalendar';
+import { useOnboardingProgress } from '@/hooks/onboarding/useStagedEntities';
+import { AdviceCard } from '@/components/AdviceCard';
+import { AdviceNoteView } from '@/components/AdviceNoteView';
 import { SkeletonCard } from '@/components/Skeleton';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
 import { formatMoneyCompact } from '@/lib/money';
@@ -204,12 +210,201 @@ const mockTransactions: MockTransaction[] = [
   },
 ];
 
+const YEAR_END_PRIORITY: Partial<Record<AdviceNoteKind, number>> = {
+  year_end: 0,
+  structuring: 1,
+  forecast: 2,
+  profit_extraction: 3,
+  cgt: 4,
+  fbt: 5,
+};
+
+const STANDARD_PRIORITY: Partial<Record<AdviceNoteKind, number>> = {
+  forecast: 0,
+  profit_extraction: 1,
+  structuring: 2,
+  year_end: 3,
+  cgt: 4,
+  fbt: 5,
+};
+
+function AdviceCardsSection({
+  notes,
+  loading,
+  error,
+  onOpen,
+}: {
+  notes: AdviceNote[];
+  loading: boolean;
+  error: string | null;
+  onOpen: (id: string) => void;
+}) {
+  if (loading) {
+    return (
+      <section style={{ display: 'grid', gap: '1rem' }} aria-label="Advice cards loading">
+        <SkeletonCard />
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section
+        className="badge badge-danger"
+        style={{ display: 'block', padding: '0.75rem', textAlign: 'center' }}
+        aria-label="Advice cards error"
+      >
+        {error}
+      </section>
+    );
+  }
+
+  if (notes.length === 0) return null;
+
+  return (
+    <section
+      style={{
+        gridColumn: '1 / -1',
+        display: 'grid',
+        gap: '0.75rem',
+      }}
+      aria-label="Proactive advice"
+    >
+      <h2 style={{ margin: 0, color: 'var(--text-title)', fontSize: '1rem', letterSpacing: 0 }}>
+        Proactive advice
+      </h2>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: '1rem',
+        }}
+      >
+        {notes.map((note) => (
+          <AdviceCard key={note.id} note={note} onOpen={onOpen} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function OnboardingTriagePrompt({ remaining }: { remaining: number }) {
+  if (remaining <= 0) return null;
+
+  const senderLabel = remaining === 1 ? 'sender' : 'senders';
+  return (
+    <section
+      aria-label="Onboarding triage prompt"
+      style={{
+        gridColumn: '1 / -1',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '1rem',
+        padding: '1rem',
+        background: 'var(--bg-panel)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-md)',
+        boxShadow: 'var(--shadow-sm)',
+        flexWrap: 'wrap',
+      }}
+    >
+      <div>
+        <h2 style={{ margin: 0, color: 'var(--text-title)', fontSize: '1rem', letterSpacing: 0 }}>
+          Onboarding triage
+        </h2>
+        <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+          {remaining} staged {senderLabel} need approval before future emails auto-route.
+        </p>
+      </div>
+      <Link to="/onboarding/triage" className="btn btn-primary">
+        <span>
+          Review {remaining} staged {senderLabel}
+        </span>
+        <ChevronRight size={16} />
+      </Link>
+    </section>
+  );
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function orderAdviceNotesForSeason(
+  notes: AdviceNote[],
+  obligations: TaxObligation[],
+  asAt: Date = new Date(),
+): AdviceNote[] {
+  const yearEndSeason = isYearEndSeason(obligations, asAt);
+  const priority = yearEndSeason ? YEAR_END_PRIORITY : STANDARD_PRIORITY;
+  return notes
+    .filter((note) => note.status === 'draft' || note.status === 'issued')
+    .slice()
+    .sort((a, b) => {
+      const priorityDiff = priorityFor(a.kind, priority) - priorityFor(b.kind, priority);
+      if (priorityDiff !== 0) return priorityDiff;
+      return timestamp(b.updated_at) - timestamp(a.updated_at);
+    });
+}
+
+function isYearEndSeason(obligations: TaxObligation[], asAt: Date): boolean {
+  const month = asAt.getMonth();
+  const day = asAt.getDate();
+  if (month === 5 && day <= 30) return true;
+  return obligations.some((obligation) => {
+    const due = new Date(`${obligation.due_date}T00:00:00`);
+    if (Number.isNaN(due.getTime())) return false;
+    const dueIsJune30 = due.getMonth() === 5 && due.getDate() === 30;
+    return dueIsJune30 && obligation.days_until_due >= -7 && obligation.days_until_due <= 45;
+  });
+}
+
+function priorityFor(
+  kind: AdviceNoteKind,
+  priority: Partial<Record<AdviceNoteKind, number>>,
+): number {
+  return priority[kind] ?? 99;
+}
+
+function timestamp(value: string): number {
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
 export function DashboardPage() {
   const { currentOrg } = useOrg();
   const { pnl, loading, error } = useRealtimePnl();
+  const {
+    notes: adviceNotes,
+    loading: adviceLoading,
+    actionBusy: adviceActionBusy,
+    error: adviceError,
+    signOff,
+    dismiss,
+  } = useAdviceNotes();
+  const { obligations } = useTaxCalendar();
+  const { progress: onboardingProgress, loading: onboardingProgressLoading } =
+    useOnboardingProgress();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'local' | 'international'>('local');
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [selectedAdviceNoteId, setSelectedAdviceNoteId] = useState<string | null>(null);
+  const seasonalAdviceNotes = useMemo(
+    () => orderAdviceNotesForSeason(adviceNotes, obligations).slice(0, 3),
+    [adviceNotes, obligations],
+  );
+  const selectedAdviceNote =
+    selectedAdviceNoteId != null
+      ? (adviceNotes.find((note) => note.id === selectedAdviceNoteId) ?? null)
+      : null;
+  const onboardingRemaining =
+    onboardingProgressLoading || onboardingProgress == null
+      ? 0
+      : onboardingProgress.pending_count + onboardingProgress.needs_review_count;
+
+  useEffect(() => {
+    if (selectedAdviceNoteId && !adviceNotes.some((note) => note.id === selectedAdviceNoteId)) {
+      setSelectedAdviceNoteId(null);
+    }
+  }, [adviceNotes, selectedAdviceNoteId]);
 
   if (!currentOrg) {
     return (
@@ -434,6 +629,46 @@ export function DashboardPage() {
           marginBottom: '1.5rem',
         }}
       >
+        <OnboardingTriagePrompt remaining={onboardingRemaining} />
+        <AdviceCardsSection
+          notes={seasonalAdviceNotes}
+          loading={adviceLoading}
+          error={adviceError}
+          onOpen={setSelectedAdviceNoteId}
+        />
+        {selectedAdviceNote && (
+          <section
+            style={{
+              gridColumn: '1 / -1',
+              display: 'grid',
+              gap: '0.75rem',
+              padding: '1rem',
+              background: 'var(--bg-panel)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-md)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+            aria-label="Selected advice note"
+          >
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setSelectedAdviceNoteId(null)}
+                aria-label="Close advice note"
+              >
+                <X size={14} />
+                Close
+              </button>
+            </div>
+            <AdviceNoteView
+              note={selectedAdviceNote}
+              actionBusy={adviceActionBusy}
+              onSignOff={(id) => void signOff(id)}
+              onDismiss={(id) => void dismiss(id)}
+            />
+          </section>
+        )}
         <InsightPanel title="Cash pulse" eyebrow="Live ledger">
           <InsightAreaChart
             title="Transaction drift"

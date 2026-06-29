@@ -386,8 +386,11 @@ export function SubscriptionDetailPage() {
               }}
             >
               <div className="form-group">
-                <label className="form-label">Subscription Status</label>
+                <label className="form-label" htmlFor="subscription-status">
+                  Subscription Status
+                </label>
                 <select
+                  id="subscription-status"
                   className="form-select"
                   value={String(draft.status ?? sub.status)}
                   onChange={(e) => setDraft({ ...draft, status: e.target.value })}
@@ -400,8 +403,11 @@ export function SubscriptionDetailPage() {
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Cadence Override</label>
+                <label className="form-label" htmlFor="subscription-cadence">
+                  Cadence Override
+                </label>
                 <select
+                  id="subscription-cadence"
                   className="form-select"
                   value={String(draft.cadence ?? sub.cadence)}
                   onChange={(e) => setDraft({ ...draft, cadence: e.target.value })}
@@ -458,8 +464,11 @@ export function SubscriptionDetailPage() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Notes</label>
+              <label className="form-label" htmlFor="subscription-notes">
+                Notes
+              </label>
               <textarea
+                id="subscription-notes"
                 className="form-textarea"
                 rows={3}
                 value={String(draft.notes ?? '')}

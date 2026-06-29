@@ -15,6 +15,8 @@ import {
   XCircle,
   Info,
   FileText,
+  UserMinus,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -67,6 +69,7 @@ export function PayRunDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [showTermination, setShowTermination] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!currentOrg || !id || !user) return;
@@ -206,6 +209,7 @@ export function PayRunDetailPage() {
   const canApprove = isAdmin && run.status === 'draft';
   const canFinalise = isOwner && (run.status === 'draft' || run.status === 'approved');
   const canCancel = isAdmin && run.status !== 'paid' && run.status !== 'cancelled';
+  const canTerminate = isAdmin && (run.status === 'draft' || run.status === 'approved');
 
   // Stepper steps configuration
   const steps = [
@@ -342,6 +346,16 @@ export function PayRunDetailPage() {
               <span>{busy === 'approve' ? 'Approving…' : 'Approve'}</span>
             </button>
           )}
+          {canTerminate && (
+            <button
+              onClick={() => setShowTermination(true)}
+              disabled={busy !== null}
+              className="btn btn-secondary"
+            >
+              <UserMinus size={16} />
+              <span>Record termination</span>
+            </button>
+          )}
           {canFinalise && (
             <button onClick={finalise} disabled={busy === 'finalise'} className="btn btn-success">
               <Wallet size={16} />
@@ -378,6 +392,21 @@ export function PayRunDetailPage() {
         >
           {error}
         </div>
+      )}
+
+      {showTermination && (
+        <TerminationWizard
+          run={run}
+          slips={slips}
+          organizationId={currentOrg.id}
+          isOwner={isOwner}
+          onClose={() => setShowTermination(false)}
+          onSaved={() => {
+            setShowTermination(false);
+            void refresh();
+          }}
+          onFinalise={finalise}
+        />
       )}
 
       {/* KPI Cards */}
@@ -520,6 +549,386 @@ export function PayRunDetailPage() {
         </div>
       </div>
     </section>
+  );
+}
+
+interface TermResult {
+  redundancy_tax_free_cents: number;
+  etp_taxable_cents: number;
+  etp_tax_cents: number;
+  unused_leave_tax_cents: number;
+  tax_free_cents: number;
+  total_tax_cents: number;
+  net_cents: number;
+  gross_termination_cents: number;
+}
+
+const TERMINATION_REASONS: { value: string; label: string }[] = [
+  { value: 'genuine_redundancy', label: 'Genuine redundancy' },
+  { value: 'invalidity', label: 'Invalidity' },
+  { value: 'early_retirement', label: 'Early retirement scheme' },
+  { value: 'resignation', label: 'Resignation' },
+  { value: 'retirement', label: 'Retirement' },
+  { value: 'dismissal', label: 'Dismissal' },
+  { value: 'contract_end', label: 'End of contract' },
+];
+
+const WIZARD_STEPS = ['Notice', 'Leave', 'ETP', 'Review'];
+
+/**
+ * Termination wizard (SC-3.L.03) — notice → leave → ETP → review. Calls the
+ * payroll-termination calc (SC-3.L.01) for the breakdown, then on save writes
+ * run.metadata.termination (which the STP export, SC-3.L.02, reads) and optionally
+ * runs the existing Tier-2 finalise path. It does NOT recompute the pay slips' base
+ * amounts — folding the ETP/leave into the slip totals is a documented follow-up.
+ */
+export function TerminationWizard({
+  run,
+  slips,
+  organizationId,
+  isOwner,
+  onClose,
+  onSaved,
+  onFinalise,
+}: {
+  run: PayRun;
+  slips: PaySlip[];
+  organizationId: string;
+  isOwner: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+  onFinalise: () => void | Promise<void>;
+}) {
+  const [step, setStep] = useState(0);
+  const [employeeId, setEmployeeId] = useState(slips[0]?.employee_id ?? '');
+  const [reason, setReason] = useState('genuine_redundancy');
+  const [cessationDate, setCessationDate] = useState(run.pay_date);
+  const [years, setYears] = useState('0');
+  const [noticeDollars, setNoticeDollars] = useState('0');
+  const [annualLeaveDollars, setAnnualLeaveDollars] = useState('0');
+  const [lslDollars, setLslDollars] = useState('0');
+  const [redundancyDollars, setRedundancyDollars] = useState('0');
+  const [otherEtpDollars, setOtherEtpDollars] = useState('0');
+  const [otherIncomeDollars, setOtherIncomeDollars] = useState('0');
+  const [atPreservation, setAtPreservation] = useState(false);
+  const [marginalPct, setMarginalPct] = useState('34.5');
+  const [result, setResult] = useState<TermResult | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const c = (s: string) => Math.round((parseFloat(s) || 0) * 100);
+  // Any input edit invalidates a stale breakdown — forces a re-calc on the review step.
+  const resetResult = () => setResult(null);
+
+  const calculate = async () => {
+    setBusy(true);
+    setErr(null);
+    const input = {
+      reason,
+      years_of_service: parseFloat(years) || 0,
+      at_or_above_preservation_age: atPreservation,
+      unused_annual_leave_cents: c(annualLeaveDollars),
+      unused_long_service_leave_cents: c(lslDollars),
+      redundancy_or_severance_cents: c(redundancyDollars),
+      etp_other_cents: c(noticeDollars) + c(otherEtpDollars),
+      other_taxable_income_cents: c(otherIncomeDollars),
+      leave_marginal_rate: (parseFloat(marginalPct) || 0) / 100,
+    };
+    const { data, error } = await supabase.functions.invoke('payroll-termination', {
+      body: { organization_id: organizationId, employee_id: employeeId, input },
+    });
+    setBusy(false);
+    if (error) {
+      setErr(error.message);
+      return;
+    }
+    const payload = data as { ok?: boolean; result?: TermResult; error?: string };
+    if (!payload?.ok || !payload.result) {
+      setErr(payload?.error ?? 'Calculation failed');
+      return;
+    }
+    setResult(payload.result);
+  };
+
+  const save = async (alsoFinalise: boolean) => {
+    if (!result) return;
+    setBusy(true);
+    setErr(null);
+    const termination = {
+      employee_id: employeeId,
+      cessation_date: cessationDate,
+      reason,
+      etp: {
+        taxable_cents: result.etp_taxable_cents,
+        tax_free_cents: result.tax_free_cents,
+        tax_withheld_cents: result.etp_tax_cents,
+      },
+    };
+    const { error } = await supabase
+      .from('pay_runs')
+      .update({ metadata: { ...run.metadata, termination } })
+      .eq('id', run.id);
+    if (error) {
+      setBusy(false);
+      setErr(error.message);
+      return;
+    }
+    if (alsoFinalise) await onFinalise();
+    setBusy(false);
+    onSaved();
+  };
+
+  const field = (label: string, node: React.ReactNode) => (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.8rem' }}>
+      <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+      {node}
+    </label>
+  );
+  const money = (val: string, set: (s: string) => void) => (
+    <input
+      type="number"
+      step="0.01"
+      value={val}
+      onChange={(e) => {
+        set(e.target.value);
+        resetResult();
+      }}
+      className="form-input"
+    />
+  );
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        padding: '3rem 1rem',
+        zIndex: 50,
+        overflowY: 'auto',
+      }}
+      onClick={onClose}
+    >
+      <div
+        className="card"
+        style={{ maxWidth: '640px', width: '100%', position: 'relative' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            position: 'absolute',
+            right: '1rem',
+            top: '1rem',
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+          }}
+        >
+          <X size={20} />
+        </button>
+        <h2 style={{ margin: '0 0 0.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <UserMinus size={18} style={{ color: 'var(--accent-primary)' }} />
+          Record termination
+        </h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 1rem' }}>
+          Step {step + 1} of {WIZARD_STEPS.length}: {WIZARD_STEPS[step]}. Estimates withholding for
+          review — confirm the figures before finalising.
+        </p>
+
+        {step === 0 && (
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            {field(
+              'Employee',
+              <select
+                value={employeeId}
+                onChange={(e) => {
+                  setEmployeeId(e.target.value);
+                  resetResult();
+                }}
+                className="form-select"
+              >
+                {slips.length === 0 && <option value="">No employees on this run</option>}
+                {slips.map((s) => (
+                  <option key={s.employee_id} value={s.employee_id}>
+                    {s.employee?.full_name ?? s.employee_id}
+                  </option>
+                ))}
+              </select>,
+            )}
+            {field(
+              'Reason',
+              <select
+                value={reason}
+                onChange={(e) => {
+                  setReason(e.target.value);
+                  resetResult();
+                }}
+                className="form-select"
+              >
+                {TERMINATION_REASONS.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>,
+            )}
+            {field(
+              'Cessation date',
+              <input
+                type="date"
+                value={cessationDate}
+                onChange={(e) => {
+                  setCessationDate(e.target.value);
+                  resetResult();
+                }}
+                className="form-input"
+              />,
+            )}
+            {field(
+              'Completed years of service',
+              <input
+                type="number"
+                step="1"
+                value={years}
+                onChange={(e) => {
+                  setYears(e.target.value);
+                  resetResult();
+                }}
+                className="form-input"
+              />,
+            )}
+            {field('Payment in lieu of notice ($)', money(noticeDollars, setNoticeDollars))}
+          </div>
+        )}
+
+        {step === 1 && (
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
+              Unused leave payable on termination (gross $). Enter from the employee&apos;s leave
+              balances × their rate.
+            </p>
+            {field('Unused annual leave ($)', money(annualLeaveDollars, setAnnualLeaveDollars))}
+            {field('Unused long service leave ($)', money(lslDollars, setLslDollars))}
+          </div>
+        )}
+
+        {step === 2 && (
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            {field('Redundancy / severance ($)', money(redundancyDollars, setRedundancyDollars))}
+            {field(
+              'Other ETP — ex gratia / golden handshake ($)',
+              money(otherEtpDollars, setOtherEtpDollars),
+            )}
+            {field(
+              'Other taxable income this FY ($)',
+              money(otherIncomeDollars, setOtherIncomeDollars),
+            )}
+            {field('Unused-leave marginal rate (%)', money(marginalPct, setMarginalPct))}
+            <label
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}
+            >
+              <input
+                type="checkbox"
+                checked={atPreservation}
+                onChange={(e) => {
+                  setAtPreservation(e.target.checked);
+                  resetResult();
+                }}
+              />
+              At or above preservation age
+            </label>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            {!result ? (
+              <button
+                onClick={calculate}
+                disabled={busy || !employeeId}
+                className="btn btn-primary"
+              >
+                {busy ? 'Calculating…' : 'Calculate breakdown'}
+              </button>
+            ) : (
+              <div style={{ display: 'grid', gap: '0.35rem', fontSize: '0.85rem' }}>
+                <Row label="Tax-free (redundancy)" value={result.tax_free_cents} />
+                <Row label="Taxable ETP" value={result.etp_taxable_cents} />
+                <Row label="ETP tax withheld" value={result.etp_tax_cents} />
+                <Row label="Unused-leave tax" value={result.unused_leave_tax_cents} />
+                <Row label="Total tax withheld" value={result.total_tax_cents} strong />
+                <Row label="Gross termination" value={result.gross_termination_cents} />
+                <Row label="Net to pay" value={result.net_cents} strong />
+              </div>
+            )}
+          </div>
+        )}
+
+        {err && (
+          <p style={{ color: 'var(--text-danger)', fontSize: '0.8rem', marginTop: '0.75rem' }}>
+            {err}
+          </p>
+        )}
+
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: '0.5rem',
+            marginTop: '1.25rem',
+          }}
+        >
+          <button
+            onClick={() => setStep((s) => Math.max(0, s - 1))}
+            disabled={step === 0 || busy}
+            className="btn btn-secondary"
+          >
+            Back
+          </button>
+          {step < WIZARD_STEPS.length - 1 ? (
+            <button onClick={() => setStep((s) => s + 1)} className="btn btn-primary">
+              Next
+            </button>
+          ) : (
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                onClick={() => save(false)}
+                disabled={busy || !result}
+                className="btn btn-secondary"
+              >
+                Save details
+              </button>
+              {isOwner && (
+                <button
+                  onClick={() => save(true)}
+                  disabled={busy || !result}
+                  className="btn btn-success"
+                >
+                  {busy ? 'Saving…' : 'Save & finalise'}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
+  return (
+    <div
+      style={{ display: 'flex', justifyContent: 'space-between', fontWeight: strong ? 700 : 400 }}
+    >
+      <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+      <span>{formatMoney(value)}</span>
+    </div>
   );
 }
 

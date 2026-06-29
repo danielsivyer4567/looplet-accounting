@@ -65,7 +65,7 @@ BEGIN
      AND resource_id   = v_resource_id;
   IF v_total > 100 THEN
     RAISE EXCEPTION
-      'Split percentages for %/% sum to %%, exceeds 100',
+      'Split percentages for %/% sum to %, exceeds 100',
       v_resource_type, v_resource_id, v_total;
   END IF;
   RETURN COALESCE(NEW, OLD);

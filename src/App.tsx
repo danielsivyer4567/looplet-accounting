@@ -27,12 +27,18 @@ import { ReportsIndexPage } from '@/pages/reports/Index';
 import { BasReportPage } from '@/pages/reports/Bas';
 import { CashFlowPage } from '@/pages/reports/CashFlow';
 import { BalanceSheetPage } from '@/pages/reports/BalanceSheet';
+import { EofyReportPage } from '@/pages/reports/EOFY';
+import { TaxReturnPage } from '@/pages/reports/TaxReturn';
 import { NotificationsPage } from '@/pages/Notifications';
 import { SuppliersPage } from '@/pages/Suppliers';
 import { SupplierDetailPage } from '@/pages/SupplierDetail';
+import { TrustsPage } from '@/pages/Trusts';
+import { TrustDetailPage } from '@/pages/TrustDetail';
+import { SmsfPage } from '@/pages/SMSF';
 import { EmployeesPage } from '@/pages/Employees';
 import { EmployeeDetailPage } from '@/pages/EmployeeDetail';
 import { SettingsPage } from '@/pages/Settings';
+import { RegistrationsPage } from '@/pages/settings/Registrations';
 import { TeamPage } from '@/pages/Team';
 import { AuditLogPage } from '@/pages/AuditLog';
 import { GmailCallbackPage } from '@/pages/GmailCallback';
@@ -42,6 +48,7 @@ import { AutoSetupPage } from '@/pages/onboarding/AutoSetup';
 import { TriagePage } from '@/pages/onboarding/Triage';
 import { PaymentRunsPage } from '@/pages/PaymentRuns';
 import { ApprovalsPage } from '@/pages/Approvals';
+import { LodgementsPage } from '@/pages/Lodgements';
 import { NewPaymentRunPage } from '@/pages/NewPaymentRun';
 import { PaymentRunDetailPage } from '@/pages/PaymentRunDetail';
 import { PayrollPage } from '@/pages/Payroll';
@@ -81,6 +88,7 @@ export function App() {
             <Route path="allocations" element={<AllocationsPage />} />
             <Route path="coding-review" element={<CodingReviewPage />} />
             <Route path="approvals" element={<ApprovalsPage />} />
+            <Route path="lodgements" element={<LodgementsPage />} />
             <Route path="reconciliation" element={<ReconciliationPage />} />
             <Route path="jobs" element={<JobsPage />} />
             <Route path="jobs/:id" element={<JobDetailPage />} />
@@ -98,13 +106,19 @@ export function App() {
             <Route path="reports/bas" element={<BasReportPage />} />
             <Route path="reports/cash-flow" element={<CashFlowPage />} />
             <Route path="reports/balance-sheet" element={<BalanceSheetPage />} />
+            <Route path="reports/eofy" element={<EofyReportPage />} />
+            <Route path="reports/tax-return" element={<TaxReturnPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="suppliers" element={<SuppliersPage />} />
             <Route path="suppliers/:id" element={<SupplierDetailPage />} />
             <Route path="employees" element={<EmployeesPage />} />
             <Route path="employees/:id" element={<EmployeeDetailPage />} />
             <Route path="fixed-assets" element={<FixedAssetsPage />} />
+            <Route path="trusts" element={<TrustsPage />} />
+            <Route path="trusts/:id" element={<TrustDetailPage />} />
+            <Route path="smsf" element={<SmsfPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="settings/registrations" element={<RegistrationsPage />} />
             <Route path="settings/team" element={<TeamPage />} />
             <Route path="settings/audit-log" element={<AuditLogPage />} />
             <Route path="settings/gmail-callback" element={<GmailCallbackPage />} />

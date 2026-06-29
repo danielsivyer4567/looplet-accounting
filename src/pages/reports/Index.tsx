@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FileSpreadsheet, Layers, TrendingUp, Coins, Calendar } from 'lucide-react';
+import { FileSpreadsheet, Layers, TrendingUp, Coins, Calendar, Archive } from 'lucide-react';
 
 const REPORTS = [
   {
@@ -35,11 +35,19 @@ const REPORTS = [
     icon: Coins,
   },
   {
-    to: null,
+    to: '/reports/eofy',
+    title: 'EOFY Pack',
+    description:
+      'End-of-financial-year true-up and statutory pack: P&L, balance sheet, changes in equity, cash flow and notes, bundled to PDF + data for the annual return.',
+    status: 'live',
+    icon: Archive,
+  },
+  {
+    to: '/reports/tax-return',
     title: 'Tax Summary (Annual)',
     description:
-      'Annual income, deductible expenses, GST summary, depreciation. Aligned to AU tax-return categories.',
-    status: 'planned',
+      'Entity-aware draft return: GL mapped to tax-return labels, book-to-tax reconciliation to taxable income, offsets/credits to net tax, and the CGT schedule.',
+    status: 'live',
     icon: Layers,
   },
 ];

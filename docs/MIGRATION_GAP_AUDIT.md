@@ -5,6 +5,51 @@
 **Branch:** `chore-migration-reconciliation`
 **Author:** automated reconciliation pass
 
+## 2026-06-29 Wrap-up Addendum
+
+The live project `dxoikltymmknxqpkpyhi` now has migration-history parity with
+the current local migration set through `0196`.
+
+Current evidence:
+
+- `supabase db query --linked` works through the Management API.
+- `supabase migration list --linked` works when the stale
+  `SUPABASE_DB_PASSWORD` environment variable is removed.
+- Earlier on 2026-06-29, it compared local numeric files against remote
+  timestamp versions and reported local `0089`-`0196` as local-only, even though
+  raw `supabase_migrations.schema_migrations` rows mapped many timestamp
+  versions to the same local migration names.
+- That timestamp-history drift was repaired: 54 timestamp-version rows
+  whose `name` matched a local migration prefix were rewritten to the matching
+  numeric `version` (`0089`, `0090`-`0137`, `0108`-`0115`, `0151`-`0153`,
+  `0178`, and `0179`).
+- Missing live DDL for `0181`-`0187` was applied on 2026-06-29 after checking
+  target objects/columns were absent and existing data would not violate the new
+  constraints. Verified live after apply: `lodgements`, `ato_correspondence`,
+  `ato_correspondence_drafts`, `lodgement_type`, `lodgement_status`,
+  `compile_working_papers(uuid,date,date)`,
+  `distribution_finalise(uuid,uuid,integer,text)`,
+  `distribution_finalise_payload(uuid,uuid,integer,text)`,
+  `obligation_status.lodgement_id`, `obligation_status.lodged_at`, receipt POS
+  reliability columns, and the expected lodgement/receipt indexes all exist.
+- Numeric history rows were added for known-applied or intentionally no-op
+  migrations `0180`-`0196`. `0180`, `0185`, and `0192` are inert/commented notes.
+  `0188` was not replayed because live `write_audit_log()` already includes the
+  organizations special case and has a stricter `search_path = public, pg_temp`
+  than the local file. The other rows in that range have live DDL evidence.
+- The previously local-only ranges `0138`-`0150` and `0154`-`0177` were then
+  applied to live in order. `0175`/`0176` were not replayed because advice-note
+  table/RPC objects already existed via the later `0194` hardening migration;
+  their live objects were verified before recording history.
+- Post-repair `supabase migration list --linked` shows local/remote parity for
+  every local migration version through `0196`.
+- `supabase db push --linked --dry-run` returned `Remote database is up to date.`
+
+Remaining migration-history work:
+
+- No current local migration file is pending on the linked remote. Continue to
+  verify live object/function evidence before any future manual history repair.
+
 ## Problem
 
 The repo's `supabase/migrations/` folder is missing several migration files that
@@ -35,36 +80,36 @@ Determined by scanning `supabase/migrations/*.sql` (created objects),
 
 #### Tables (no `CREATE TABLE` in any migration)
 
-| Object | Evidence of use | Smoking gun |
-| --- | --- | --- |
-| `intake_categories` | `gmail-classify-ai`, `staged-entities-enrich-sonar`, `src/hooks/useIntakeCategories.ts` | FK-referenced by `0049` (`intake_categories(code)`) |
-| `intake_known_senders` | `lookup_known_sender()` function body | required by RPC used in `gmail-mine` |
-| `intake_rules` | `intake-routing-apply`, `gmail-pubsub-push`, `xero-push-*`, `src/pages/onboarding/Triage.tsx` | indexed by `0036`; FK target of `bank_transactions.applied_intake_rule_id` (`0036`) |
-| `bank_connections` | `bank-exchange`, `bank-sync*`, `bank-csv-import`, `notifications-cron`, `src/components/settings/BankConnect.tsx` | — |
-| `bank_accounts` | `bank-exchange`, `bank-sync`, `bank-csv-import`, `src/pages/reports/CashFlow.tsx` | — |
-| `bank_transactions` | `bank-sync`, `bank-csv-import`, `intake-routing-apply`, `subscriptions-detect`, `src/pages/Reconciliation.tsx`, `SubscriptionDetail.tsx` | `ALTER`ed by `0030`, `0031`, `0036`; indexed by `0043` — table never created |
-| `subscriptions` | `subscriptions-detect`, `notifications-cron`, `src/pages/Subscriptions*.tsx` | referenced by `0047` `split_resource_type` enum + `v_subscription_effective_allocations` |
-| `staged_entities` | `gmail-classify-ai`, `gmail-mine`, `staged-entities-enrich-sonar`, `src/hooks/onboarding/useStagedEntities.ts` | `ALTER`ed by `0049` (adds `sonar_*`) — table never created |
-| `gmail_integrations` | all `gmail-*` functions, `src/hooks/useGmailIntegrations.ts` | — |
-| `debts` | `src/pages/Debts.tsx`, `DebtDetail.tsx` | — |
-| `debt_payments` | `src/pages/Debts.tsx`, `DebtDetail.tsx` | — |
+| Object                 | Evidence of use                                                                                                                          | Smoking gun                                                                              |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `intake_categories`    | `gmail-classify-ai`, `staged-entities-enrich-sonar`, `src/hooks/useIntakeCategories.ts`                                                  | FK-referenced by `0049` (`intake_categories(code)`)                                      |
+| `intake_known_senders` | `lookup_known_sender()` function body                                                                                                    | required by RPC used in `gmail-mine`                                                     |
+| `intake_rules`         | `intake-routing-apply`, `gmail-pubsub-push`, `xero-push-*`, `src/pages/onboarding/Triage.tsx`                                            | indexed by `0036`; FK target of `bank_transactions.applied_intake_rule_id` (`0036`)      |
+| `bank_connections`     | `bank-exchange`, `bank-sync*`, `bank-csv-import`, `notifications-cron`, `src/components/settings/BankConnect.tsx`                        | —                                                                                        |
+| `bank_accounts`        | `bank-exchange`, `bank-sync`, `bank-csv-import`, `src/pages/reports/CashFlow.tsx`                                                        | —                                                                                        |
+| `bank_transactions`    | `bank-sync`, `bank-csv-import`, `intake-routing-apply`, `subscriptions-detect`, `src/pages/Reconciliation.tsx`, `SubscriptionDetail.tsx` | `ALTER`ed by `0030`, `0031`, `0036`; indexed by `0043` — table never created             |
+| `subscriptions`        | `subscriptions-detect`, `notifications-cron`, `src/pages/Subscriptions*.tsx`                                                             | referenced by `0047` `split_resource_type` enum + `v_subscription_effective_allocations` |
+| `staged_entities`      | `gmail-classify-ai`, `gmail-mine`, `staged-entities-enrich-sonar`, `src/hooks/onboarding/useStagedEntities.ts`                           | `ALTER`ed by `0049` (adds `sonar_*`) — table never created                               |
+| `gmail_integrations`   | all `gmail-*` functions, `src/hooks/useGmailIntegrations.ts`                                                                             | —                                                                                        |
+| `debts`                | `src/pages/Debts.tsx`, `DebtDetail.tsx`                                                                                                  | —                                                                                        |
+| `debt_payments`        | `src/pages/Debts.tsx`, `DebtDetail.tsx`                                                                                                  | —                                                                                        |
 
 #### Views (no `CREATE VIEW` in any migration)
 
-| Object | Evidence of use | Smoking gun |
-| --- | --- | --- |
-| `v_bank_match_candidates` | `src/pages/Reconciliation.tsx` (`.from('v_bank_match_candidates')`) | `0035` header comment calls itself a "mirror of v_bank_match_candidates" — the mirrored view is absent |
-| `v_customer_pnl` | `src/pages/CustomerDetail.tsx` (`.from('v_customer_pnl')`) | `0030` comment: *"v_customer_pnl: see migration body in DB"* — explicit admission the DDL lives only in the live DB |
+| Object                    | Evidence of use                                                     | Smoking gun                                                                                                         |
+| ------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `v_bank_match_candidates` | `src/pages/Reconciliation.tsx` (`.from('v_bank_match_candidates')`) | `0035` header comment calls itself a "mirror of v_bank_match_candidates" — the mirrored view is absent              |
+| `v_customer_pnl`          | `src/pages/CustomerDetail.tsx` (`.from('v_customer_pnl')`)          | `0030` comment: _"v_customer_pnl: see migration body in DB"_ — explicit admission the DDL lives only in the live DB |
 
 #### Functions / RPCs (no `CREATE FUNCTION` in any migration)
 
-| Object | Evidence of use |
-| --- | --- |
-| `lookup_known_sender(text)` | `gmail-mine` `.rpc('lookup_known_sender')` |
+| Object                                   | Evidence of use                             |
+| ---------------------------------------- | ------------------------------------------- |
+| `lookup_known_sender(text)`              | `gmail-mine` `.rpc('lookup_known_sender')`  |
 | `match_intake_rule(uuid,text,text,text)` | `gmail-pubsub-push`, `intake-routing-apply` |
-| `record_intake_rule_hit(uuid)` | `gmail-pubsub-push`, `intake-routing-apply` |
-| `onboarding_progress(uuid)` | `src/hooks/onboarding/useStagedEntities.ts` |
-| `business_profile_signals(uuid)` | `src/hooks/useBusinessSignals.ts` |
+| `record_intake_rule_hit(uuid)`           | `gmail-pubsub-push`, `intake-routing-apply` |
+| `onboarding_progress(uuid)`              | `src/hooks/onboarding/useStagedEntities.ts` |
+| `business_profile_signals(uuid)`         | `src/hooks/useBusinessSignals.ts`           |
 
 #### Enum types implied by the above (no `CREATE TYPE` in any migration)
 
@@ -104,19 +149,19 @@ anticipated. **Needs DB password to complete via the CLI path.**
 ### B.2 Reconstruction COMPLETED via read-only MCP path
 
 The authenticated Supabase **MCP** connection (`list_tables`, `execute_sql`) does
-*not* need the DB password and is **read-only**. DDL for every missing object
+_not_ need the DB password and is **read-only**. DDL for every missing object
 was extracted from the live DB using `information_schema`, `pg_constraint`,
 `pg_indexes`, `pg_views`, `pg_get_constraintdef()` and `pg_get_functiondef()`.
 **No DDL was applied and nothing was deployed** — only `SELECT`s were run.
 
 > **On "verbatim".** Earlier notes (and a few migration headers) call these
 > reconstructions "verbatim". That is imprecise: `pg_views` /
-> `pg_get_functiondef()` return the *reparsed and normalized* server-side
+> `pg_get_functiondef()` return the _reparsed and normalized_ server-side
 > representation (re-qualified identifiers, re-cast literals, canonicalized
 > whitespace), not the original source text. The backfills are therefore
 > **semantically equivalent** to the live objects rather than byte-for-byte
 > copies. View `security` settings (e.g. `security_invoker = on`) live in
-> `pg_class.reloptions`, *not* in the `pg_views` body, and must be re-applied
+> `pg_class.reloptions`, _not_ in the `pg_views` body, and must be re-applied
 > explicitly in the `CREATE VIEW` — see B.6.
 
 ### B.3 Backfill migration files created
@@ -126,21 +171,21 @@ WHEN duplicate_object`, so they are idempotent and safe to apply on the live DB.
 RLS is enabled and policies recreated to match live (`get_accessible_org_ids()`
 pattern). Existing migration files were **not** modified or reordered.
 
-| File | Objects |
-| --- | --- |
-| `0005_intake_taxonomy_backfill.sql` | enums `staged_entity_kind`, `staged_entity_status`; tables `intake_categories`, `intake_known_senders` (+RLS) |
-| `0006_intake_rules_backfill.sql` | table `intake_rules` (+indexes, +RLS) |
-| `0007_bank_connections_accounts_backfill.sql` | enums `bank_provider`, `bank_connection_status`, `bank_account_type`; tables `bank_connections`, `bank_accounts` (+RLS) |
-| `0008_bank_transactions_backfill.sql` | table `bank_transactions` (+indexes, +RLS); invoices-FK deferred to 0037 |
-| `0009_gmail_integrations_backfill.sql` | table `gmail_integrations` (+RLS) |
-| `0010_staged_entities_backfill.sql` | table `staged_entities` incl. `sonar_*` cols (+RLS) |
-| `0011_subscriptions_backfill.sql` | enums `subscription_cadence`, `subscription_status`; table `subscriptions` (+RLS) |
-| `0012_debts_backfill.sql` | enum `debt_kind`; tables `debts`, `debt_payments` (+RLS) |
-| `0013_intake_functions_backfill.sql` | `lookup_known_sender`, `match_intake_rule`, `record_intake_rule_hit` |
-| `0029_onboarding_and_signal_functions_backfill.sql` | `onboarding_progress`, `business_profile_signals` |
-| `0038_match_and_customer_pnl_views_backfill.sql` | views `v_bank_match_candidates`, `v_customer_pnl` (both `WITH (security_invoker = on)` — see B.6) |
-| `0014_intake_categories_seed.sql` | seed data: all 24 `intake_categories` rows (`INSERT ... ON CONFLICT (code) DO NOTHING`) |
-| `0015_intake_known_senders_seed.sql` | seed data: all 723 `intake_known_senders` rows (`INSERT ... ON CONFLICT (domain, COALESCE(sender_pattern,'')) DO NOTHING`) |
+| File                                                | Objects                                                                                                                    |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `0005_intake_taxonomy_backfill.sql`                 | enums `staged_entity_kind`, `staged_entity_status`; tables `intake_categories`, `intake_known_senders` (+RLS)              |
+| `0006_intake_rules_backfill.sql`                    | table `intake_rules` (+indexes, +RLS)                                                                                      |
+| `0007_bank_connections_accounts_backfill.sql`       | enums `bank_provider`, `bank_connection_status`, `bank_account_type`; tables `bank_connections`, `bank_accounts` (+RLS)    |
+| `0008_bank_transactions_backfill.sql`               | table `bank_transactions` (+indexes, +RLS); invoices-FK deferred to 0037                                                   |
+| `0009_gmail_integrations_backfill.sql`              | table `gmail_integrations` (+RLS)                                                                                          |
+| `0010_staged_entities_backfill.sql`                 | table `staged_entities` incl. `sonar_*` cols (+RLS)                                                                        |
+| `0011_subscriptions_backfill.sql`                   | enums `subscription_cadence`, `subscription_status`; table `subscriptions` (+RLS)                                          |
+| `0012_debts_backfill.sql`                           | enum `debt_kind`; tables `debts`, `debt_payments` (+RLS)                                                                   |
+| `0013_intake_functions_backfill.sql`                | `lookup_known_sender`, `match_intake_rule`, `record_intake_rule_hit`                                                       |
+| `0029_onboarding_and_signal_functions_backfill.sql` | `onboarding_progress`, `business_profile_signals`                                                                          |
+| `0038_match_and_customer_pnl_views_backfill.sql`    | views `v_bank_match_candidates`, `v_customer_pnl` (both `WITH (security_invoker = on)` — see B.6)                          |
+| `0014_intake_categories_seed.sql`                   | seed data: all 24 `intake_categories` rows (`INSERT ... ON CONFLICT (code) DO NOTHING`)                                    |
+| `0015_intake_known_senders_seed.sql`                | seed data: all 723 `intake_known_senders` rows (`INSERT ... ON CONFLICT (domain, COALESCE(sender_pattern,'')) DO NOTHING`) |
 
 The deferred FK `bank_transactions.matched_invoice_id -> invoices(id)` does **not**
 need its own backfill: the existing migration `0030` already adds it (guarded

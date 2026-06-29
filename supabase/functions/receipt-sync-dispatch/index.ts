@@ -1,16 +1,26 @@
 /**
  * receipt-sync-dispatch — processes queued Receipt Hub accounting sync jobs.
  *
- * Xero uses the existing server-side adapter. MYOB, QuickBooks, and generic API
- * jobs are moved to failed with a clear not-configured error until their
- * provider credentials/adapters exist.
+ * Xero uses the existing server-side adapter. Permanent preconditions (missing
+ * job attachment, unconfigured provider adapters) are marked skipped with a
+ * clear operator-facing message; transient provider/API failures stay failed
+ * and receive a retry timestamp.
  */
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { pushBillToXero } from '../_shared/xero/adapter.ts';
+import {
+  pushBillToGenericApi,
+  GenericApiNotConfigured,
+} from '../_shared/receipt-sync/genericApi.ts';
 import { requireEnv } from '../_shared/env.ts';
 
 type SyncProvider = 'xero' | 'myob' | 'quickbooks' | 'generic_api';
+
+// A permanently-failing job (e.g. a dead generic_api endpoint) stops being
+// retried by the cron once it reaches this many attempts; it stays `failed`
+// with its last error for an operator to inspect.
+const MAX_SYNC_ATTEMPTS = 8;
 
 interface RequestBody {
   organization_id?: string;
@@ -60,13 +70,27 @@ interface JobForPush {
   name: string;
 }
 
-Deno.serve(async (req) => {
+class PermanentSyncSkip extends Error {}
+
+export async function handleReceiptSyncDispatchRequest(req: Request): Promise<Response> {
   const pre = preflight(req);
   if (pre) return pre;
   if (req.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405);
 
+  // Cron auth: a ?secret= URL param (or x-cron-secret header) that matches the
+  // RECEIPT_SYNC_DISPATCH_CRON_SECRET env grants service-role-equivalent access —
+  // the same pattern the xero-sync / notifications crons use. This lets pg_cron
+  // drive the drain without the project's exact SUPABASE_SERVICE_ROLE_KEY, which
+  // can diverge from the dashboard key under JWT signing-key rotation.
+  const cronSecret = Deno.env.get('RECEIPT_SYNC_DISPATCH_CRON_SECRET');
+  const providedCronSecret =
+    new URL(req.url).searchParams.get('secret') ?? req.headers.get('x-cron-secret');
+  const cronAuthorized = Boolean(
+    cronSecret && providedCronSecret && safeEqual(providedCronSecret, cronSecret),
+  );
+
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader) return json({ ok: false, error: 'Unauthorized' }, 401);
+  if (!cronAuthorized && !authHeader) return json({ ok: false, error: 'Unauthorized' }, 401);
 
   const supabaseUrl = requireEnv('SUPABASE_URL');
   const serviceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
@@ -77,11 +101,11 @@ Deno.serve(async (req) => {
   const body = (await req.json().catch(() => ({}))) as RequestBody;
   if (!body.organization_id) return json({ ok: false, error: 'organization_id required' }, 400);
 
-  const serviceRole = isServiceRole(authHeader, serviceKey);
+  const serviceRole = cronAuthorized || (authHeader ? isServiceRole(authHeader, serviceKey) : false);
   if (!serviceRole) {
     const anonKey = requireEnv('SUPABASE_ANON_KEY');
     const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
+      global: { headers: { Authorization: authHeader ?? '' } },
     });
     const { data: org } = await userClient
       .from('organizations')
@@ -92,11 +116,19 @@ Deno.serve(async (req) => {
   }
 
   const limit = Math.max(1, Math.min(50, Math.round(body.limit ?? 10)));
+  const nowIso = new Date().toISOString();
   let query = admin
     .from('receipt_sync_jobs')
     .select('id, organization_id, receipt_event_id, bill_id, provider, status, attempts, payload')
     .eq('organization_id', body.organization_id)
-    .in('status', ['pending', 'queued'])
+    // Drain fresh work (pending/queued) AND failed jobs whose backoff window has
+    // elapsed and that are still under the attempt cap. `skipped` and `synced`
+    // are terminal and never re-selected, so a permanently-skipped job (e.g.
+    // unconfigured provider) can't infinite-retry. attempts gates a permanently
+    // FAILING job (a dead endpoint) so it stops after MAX_SYNC_ATTEMPTS.
+    .or(
+      `status.in.(pending,queued),and(status.eq.failed,attempts.lt.${MAX_SYNC_ATTEMPTS},next_attempt_at.lte.${nowIso})`,
+    )
     .order('created_at', { ascending: true })
     .limit(limit);
   if (body.receipt_sync_job_id) query = query.eq('id', body.receipt_sync_job_id);
@@ -111,7 +143,11 @@ Deno.serve(async (req) => {
   }
 
   return json({ ok: true, processed: results.length, results });
-});
+}
+
+if (import.meta.main) {
+  Deno.serve(handleReceiptSyncDispatchRequest);
+}
 
 async function processSyncJob(admin: SupabaseClient, job: ReceiptSyncJob) {
   const attempts = (job.attempts ?? 0) + 1;
@@ -121,10 +157,12 @@ async function processSyncJob(admin: SupabaseClient, job: ReceiptSyncJob) {
     .eq('id', job.id);
 
   try {
-    if (!job.bill_id) throw new Error('No bill was created for this receipt event.');
+    if (!job.bill_id) throw new PermanentSyncSkip('No bill was created for this receipt event.');
 
-    if (job.provider !== 'xero') {
-      throw new Error(`${providerLabel(job.provider)} sync adapter is not configured yet.`);
+    // MYOB / QuickBooks adapters are not built yet — skip (not fail) so the
+    // queue isn't permanently red while they're "coming soon".
+    if (job.provider === 'myob' || job.provider === 'quickbooks') {
+      throw new PermanentSyncSkip(`${providerLabel(job.provider)} sync is coming soon.`);
     }
 
     const { data: bill, error: billErr } = await admin
@@ -138,7 +176,7 @@ async function processSyncJob(admin: SupabaseClient, job: ReceiptSyncJob) {
 
     const b = bill as unknown as BillForPush;
     if (!b.job_id) {
-      throw new Error('Job folder is required before Xero sync. Attach the receipt bill to a job first.');
+      throw new PermanentSyncSkip('Job folder is required before sync. Attach the receipt bill to a job first.');
     }
 
     const { data: jobRow, error: jobErr } = await admin
@@ -148,13 +186,50 @@ async function processSyncJob(admin: SupabaseClient, job: ReceiptSyncJob) {
       .eq('organization_id', job.organization_id)
       .maybeSingle();
     if (jobErr) throw new Error(jobErr.message);
-    if (!jobRow) throw new Error('Job folder not found for receipt bill.');
+    if (!jobRow) throw new PermanentSyncSkip('Job folder not found for receipt bill.');
+    const jobForPush = jobRow as JobForPush;
 
+    if (job.provider === 'generic_api') {
+      let result;
+      try {
+        result = await pushBillToGenericApi({
+          admin,
+          organizationId: job.organization_id,
+          bill: b,
+          job: jobForPush,
+          receiptEventId: job.receipt_event_id,
+        });
+      } catch (gaErr) {
+        if (gaErr instanceof GenericApiNotConfigured) {
+          throw new PermanentSyncSkip(gaErr.message);
+        }
+        throw gaErr;
+      }
+      await admin
+        .from('receipt_sync_jobs')
+        .update({
+          status: 'synced',
+          last_error: null,
+          payload: {
+            ...job.payload,
+            dispatch_result: {
+              provider: job.provider,
+              endpoint_url: result.endpointUrl,
+              http_status: result.status,
+              synced_at: new Date().toISOString(),
+            },
+          },
+        })
+        .eq('id', job.id);
+      return { id: job.id, provider: job.provider, status: 'synced', http_status: result.status };
+    }
+
+    // Xero
     const result = await pushBillToXero({
       admin,
       organizationId: job.organization_id,
       bill: b,
-      job: jobRow as JobForPush,
+      job: jobForPush,
     });
 
     await admin
@@ -192,15 +267,18 @@ async function processSyncJob(admin: SupabaseClient, job: ReceiptSyncJob) {
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    const skipped = err instanceof PermanentSyncSkip;
     await admin
       .from('receipt_sync_jobs')
       .update({
-        status: 'failed',
+        status: skipped ? 'skipped' : 'failed',
         last_error: message.slice(0, 500),
-        next_attempt_at: new Date(Date.now() + Math.min(attempts, 12) * 5 * 60_000).toISOString(),
+        next_attempt_at: skipped
+          ? null
+          : new Date(Date.now() + Math.min(attempts, 12) * 5 * 60_000).toISOString(),
       })
       .eq('id', job.id);
-    return { id: job.id, provider: job.provider, status: 'failed', error: message };
+    return { id: job.id, provider: job.provider, status: skipped ? 'skipped' : 'failed', error: message };
   }
 }
 
@@ -211,14 +289,15 @@ function providerLabel(provider: SyncProvider): string {
 
 function isServiceRole(authHeader: string, serviceKey: string): boolean {
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-  if (token === serviceKey) return true;
-  try {
-    const payloadB64 = (token.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/');
-    const payload = JSON.parse(atob(payloadB64 + '='.repeat((4 - payloadB64.length % 4) % 4)));
-    return payload?.role === 'service_role';
-  } catch {
-    return false;
-  }
+  return safeEqual(token, serviceKey);
+}
+
+/** Constant-time string compare; false on length mismatch. */
+function safeEqual(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  let out = 0;
+  for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return out === 0;
 }
 
 function json(body: unknown, status = 200): Response {

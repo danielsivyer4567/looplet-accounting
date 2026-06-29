@@ -235,7 +235,11 @@ export function ReconciliationPage() {
     if (candidate.kind === 'bill') {
       await matchToBill(txnId, candidate.bill_id);
     } else {
-      await matchToInvoice(txnId, candidate.invoice_id, txnAmount);
+      await matchToInvoice(
+        txnId,
+        candidate.invoice_id,
+        Math.min(txnAmount, candidate.invoice_balance_due_cents),
+      );
     }
   };
 
@@ -462,8 +466,8 @@ export function ReconciliationPage() {
           >
             <AlertCircle size={16} />
             <span>
-              Future updates: invoice matches (after P4), auto-categorisation rules, partial-match
-              handling, multi-bill splits, and attachable receipt photos.
+              Future updates: auto-categorisation rules, partial-match handling, multi-bill splits,
+              and attachable receipt photos.
             </span>
           </div>
         </>

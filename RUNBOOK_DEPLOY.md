@@ -11,11 +11,17 @@ The repo migrations are **numbered** (`0001…0080`); the live migration history
 - EPIC B (OCR→GST): MiniMax-M3, PDF rasterize, GST derivation, `bills.gst_estimated`, `v_bas_gst_coverage` (allocation-based), `bills-extract` + `bills-extract-batch`. Migrations 0058/0059.
 - EPIC E hardening: **0061** (FK indexes) + **0062** (audit triggers on invoice_payments / payment_runs / payment_run_items / bank_transactions) — applied + verified.
 - 0057 (cron health monitor) — applied during EPIC A.
+- 0197 (Vault-backed core cron schedules) — applied live and recorded in
+  migration history; `bank-sync-all`, `notifications-cron-nightly`, and
+  `accountant-digest-cron` read scoped secrets from Supabase Vault.
 
 ## 1. Secrets to set first (only you can)
 
 - `SUPABASE_JWT_SECRET` — **required** for F's `api-gateway` (mints the org-scoped JWT). Without it the function throws on boot.
-- `BANK_SYNC_ALL_CRON_SECRET` + the `accountant-session-digest` vault secret — for #10's crons (see `RUNBOOK_EPIC_A.md`). Verify #10's `safeEqual` path is NOT auth-open when the secret is unset before relying on it.
+- `BANK_SYNC_ALL_CRON_SECRET` is already set live for `bank-sync-all` cron job
+  14, and `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET` is already set live for
+  `accountant-digest-cron` job 15. Only rotate either via `RUNBOOK_EPIC_A.md`
+  if needed.
 - GitHub Actions secret `SUPABASE_SERVICE_ROLE_KEY` — else the now-real tenant-isolation CI gate (E) fails red on every PR.
 
 ## 2. Apply migrations (in this order; verify the ⚠ ones immediately after)

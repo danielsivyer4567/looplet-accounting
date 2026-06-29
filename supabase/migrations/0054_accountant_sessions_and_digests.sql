@@ -61,7 +61,7 @@ ALTER TABLE public.accountant_activity_log ENABLE ROW LEVEL SECURITY;
 CREATE POLICY accountant_sessions_select ON public.accountant_sessions
   FOR SELECT USING (
     organization_id IN (SELECT public.get_accessible_org_ids())
-    AND (user_id = auth.uid() OR public.has_role_at_least('admin', organization_id))
+    AND (user_id = auth.uid() OR public.require_role(organization_id, 'admin'::public.org_role))
   );
 
 CREATE POLICY accountant_sessions_insert ON public.accountant_sessions
@@ -83,7 +83,7 @@ CREATE POLICY accountant_sessions_update ON public.accountant_sessions
 CREATE POLICY accountant_activity_log_select ON public.accountant_activity_log
   FOR SELECT USING (
     organization_id IN (SELECT public.get_accessible_org_ids())
-    AND (user_id = auth.uid() OR public.has_role_at_least('admin', organization_id))
+    AND (user_id = auth.uid() OR public.require_role(organization_id, 'admin'::public.org_role))
   );
 
 CREATE POLICY accountant_activity_log_insert ON public.accountant_activity_log
@@ -185,9 +185,17 @@ END $$;
 
 GRANT EXECUTE ON FUNCTION public.close_idle_accountant_sessions TO authenticated;
 
--- Cron: every 5 minutes
-SELECT cron.schedule(
-  'close-idle-accountant-sessions',
-  '*/5 * * * *',
-  $cron$ SELECT public.close_idle_accountant_sessions(); $cron$
-);
+-- Cron: every 5 minutes when pg_cron is available. Local reset/test databases
+-- may not expose the cron schema, so keep migration application portable.
+DO $$
+BEGIN
+  IF to_regprocedure('cron.schedule(text,text,text)') IS NOT NULL THEN
+    EXECUTE $schedule$
+      SELECT cron.schedule(
+        'close-idle-accountant-sessions',
+        '*/5 * * * *',
+        $cron$ SELECT public.close_idle_accountant_sessions(); $cron$
+      );
+    $schedule$;
+  END IF;
+END $$;

@@ -137,7 +137,7 @@ CREATE VIEW public.v_xero_pending_pushes AS
     b.organization_id,
     b.total_inc_gst_cents   AS amount_cents,
     b.invoice_date          AS doc_date,
-    b.xero_status,
+    b.xero_status::TEXT,
     b.xero_invoice_id,
     b.supplier_name_raw     AS counterparty_name
   FROM public.bills b
@@ -153,7 +153,7 @@ CREATE VIEW public.v_xero_pending_pushes AS
     i.organization_id,
     i.total_inc_gst_cents   AS amount_cents,
     i.issue_date            AS doc_date,
-    i.xero_status,
+    i.xero_status::TEXT,
     i.xero_invoice_id,
     c.name                  AS counterparty_name
   FROM public.invoices i

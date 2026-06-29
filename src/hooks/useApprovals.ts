@@ -88,5 +88,53 @@ export function useApprovals() {
     [resolve],
   );
 
-  return { pending, loading, error, refresh: fetch, approve, reject };
+  // Open an approval for a gated action (request_approval, 0104). The payload is passed
+  // as jsonb and hashed server-side — never serialise it in JS, so this request and the
+  // matching is_action_approved check below bind to the SAME hash (the 0106 jsonb-overload
+  // contract; avoids the JSON.stringify-vs-jsonb::text parity trap). Refreshes the pending
+  // queue so a freshly-opened request shows up. Throws so the caller can surface the error.
+  const requestApproval = useCallback(
+    async (
+      resourceType: string,
+      resourceId: string,
+      payload: Record<string, unknown>,
+      riskTier: ApprovalRow['risk_tier'] = 'tier2_approve',
+    ): Promise<void> => {
+      if (!currentOrg) throw new Error('No organisation selected.');
+      const { error: err } = await supabase.rpc('request_approval', {
+        p_org: currentOrg.id,
+        p_resource_type: resourceType,
+        p_resource_id: resourceId,
+        p_risk_tier: riskTier,
+        p_payload: payload,
+      });
+      if (err) throw new Error(err.message);
+      await fetch();
+    },
+    [currentOrg, fetch],
+  );
+
+  // The single Tier-2 guard (is_action_approved jsonb overload, 0106): TRUE only when a
+  // live, human-approved tier2 row binds to this EXACT payload — so editing the resource
+  // after approval (a different payload) re-gates it. Same jsonb shape as requestApproval.
+  const isApproved = useCallback(
+    async (
+      resourceType: string,
+      resourceId: string,
+      payload: Record<string, unknown>,
+    ): Promise<boolean> => {
+      if (!currentOrg) return false;
+      const { data, error: err } = await supabase.rpc('is_action_approved', {
+        p_org: currentOrg.id,
+        p_resource_type: resourceType,
+        p_resource_id: resourceId,
+        p_payload: payload,
+      });
+      if (err) throw new Error(err.message);
+      return data === true;
+    },
+    [currentOrg],
+  );
+
+  return { pending, loading, error, refresh: fetch, approve, reject, requestApproval, isApproved };
 }

@@ -120,6 +120,26 @@ describe('chunkLegalText — pinpoint forms', () => {
     // The division line was recognised as a boundary, not folded into s 109.
     expect(s109.text).not.toContain('Division 7A');
   });
+
+  it('disambiguates repeated structural pinpoints within one instrument', () => {
+    const raw = [
+      'Part II—First part',
+      '',
+      'Division 1—Guide to the first part',
+      'This guide applies to the first part.',
+      '',
+      'Part III—Second part',
+      '',
+      'Division 1—Guide to the second part',
+      'This guide applies to the second part.',
+    ].join('\n');
+
+    const chunks = chunkLegalText(raw, { doc_ref: 'FBTAA' });
+
+    expect(refs(chunks)).toEqual(['div 1', 'div 1 #2']);
+    expect(byRef(chunks, 'div 1').text).toContain('first part');
+    expect(byRef(chunks, 'div 1 #2').text).toContain('second part');
+  });
 });
 
 describe('chunkLegalText — false-positive guards', () => {
@@ -134,6 +154,24 @@ describe('chunkLegalText — false-positive guards', () => {
     const chunks = chunkLegalText(raw, { doc_ref: 'ITAA 1936' });
     expect(refs(chunks)).toEqual(['s 6']);
     expect(byRef(chunks, 's 6').text).toContain('June 2021 was the relevant lodgment date');
+  });
+});
+
+describe('chunkLegalText — embedding bounds', () => {
+  it('splits oversized sections into deterministic part anchors', () => {
+    const longParagraphs = Array.from(
+      { length: 8 },
+      (_, i) => `Paragraph ${i + 1}: ${'deductible fringe benefit wording '.repeat(90)}`,
+    );
+    const raw = [head('136', 'Interpretation'), ...longParagraphs].join('\n\n');
+
+    const chunks = chunkLegalText(raw, { doc_ref: 'FBTAA' });
+
+    expect(chunks.length).toBeGreaterThan(1);
+    expect(refs(chunks)).toEqual(chunks.map((_, i) => `s 136 [${i + 1}]`));
+    expect(chunks.every((chunk) => chunk.text.length <= 6000)).toBe(true);
+    expect(chunks.every((chunk) => chunk.heading.startsWith('Interpretation'))).toBe(true);
+    expect(chunkLegalText(raw, { doc_ref: 'FBTAA' })).toEqual(chunks);
   });
 });
 

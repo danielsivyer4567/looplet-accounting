@@ -21,8 +21,16 @@ Cross-tenant view leak closed, `system_defaults` locked, anon definer-fn execute
 
 - [x] **A3** Cron health monitor (`cron_health_summary()`, migration 0057) — live; surfaced 37 hidden HTTP failures/24h.
 - [x] **A4** Remove forgeable-JWT branch in `bank-sync-all` + `notifications-cron` (constant-time auth).
+- [x] **A2a** Fix `bank-sync-all` cron auth — live cron job 14 reads a scoped
+      Vault-held secret and a DB-side `pg_net` probe returned HTTP 200.
+- [x] **A2b** Fix `accountant-digest-cron` auth — live cron job 15 reads a
+      scoped Vault-held secret and a DB-side `pg_net` probe returned HTTP 200.
+- [x] **A2c** Track core cron schedules — migration 0197 now owns
+      `bank-sync-all`, `notifications-cron-nightly`, and
+      `accountant-digest-cron` with Vault-backed command strings.
 - [x] **A1** Gmail dead-integration handling — disable + flag on fatal `invalid_grant` (mirrors Xero).
-- [ ] **A2** Fix the two failing crons — **needs you** (CLI secrets): see `RUNBOOK_EPIC_A.md` (bank-sync-all `?secret=`, accountant-digest Vault secret, Gmail reconnect).
+- [ ] **A1 follow-up** Reconnect Gmail and capture a real watched-mailbox event
+      trace.
 - [ ] **A1 follow-up** emit a notification on disconnect (after notifications schema confirmed).
 - _Done when:_ `cron_health_summary().http_failures_24h` → 0 and Gmail ingests again.
 
@@ -47,7 +55,10 @@ Cross-tenant view leak closed, `system_defaults` locked, anon definer-fn execute
 
 ### EPIC E — Make it trustworthy _(start early; gates merges)_
 
-- [ ] **E1** Real CI tenant-isolation gate (two seeded orgs) + fix 8 lint errors.
+- [x] **E1** Real CI tenant-isolation gate is code-complete: two seeded orgs,
+      cross-tenant RLS assertions, CI hard-fail on missing Supabase env, and no
+      stale `describe.skip`/`expect(true)` gate. Live PR-run proof still depends on
+      GitHub test secrets being present.
 - [ ] **E2** Accounting-engine tests (GST split, BAS, reconciliation, PAYG, ABA, Xero push).
 - [ ] **E3** Remaining hardening: `notify()` org-guard, `search_path` on definer fns, 61 FK indexes, audit triggers on money tables.
 

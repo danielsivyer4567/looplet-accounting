@@ -19,6 +19,27 @@ verify_jwt = false
 [functions.receipt-sync-dispatch]
 verify_jwt = false
 
+# Gmail Pub/Sub push does not carry a Supabase JWT. It fails closed on the
+# GMAIL_PUSH_VERIFY_TOKEN query secret before processing the Google payload.
+[functions.gmail-pubsub-push]
+verify_jwt = false
+
+# Cron fan-out endpoint; self-authenticates with BANK_SYNC_ALL_CRON_SECRET or
+# the exact service-role bearer before reading org IDs.
+[functions.bank-sync-all]
+verify_jwt = false
+
+# Nightly notification worker; self-authenticates with NOTIFICATIONS_CRON_SECRET
+# or the exact service-role bearer before scanning orgs.
+[functions.notifications-cron]
+verify_jwt = false
+
+# Accountant activity digest cron is called by pg_cron with a scoped
+# ACCOUNTANT_SESSION_DIGEST_CRON_SECRET. Browser/on-demand paths still verify
+# the caller JWT inside the function before reading sessions or activity.
+[functions.accountant-session-digest]
+verify_jwt = false
+
 # Cron-driven functions (EPIC C2 / Phase 1.G/1.I). pg_cron drives these via
 # net.http_post and authenticates with the service-role bearer or a ?secret=
 # cron secret that the function checks itself, so the platform JWT gate is off.
@@ -26,6 +47,11 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.accruals-run]
+verify_jwt = false
+
+# legal-corpus-ingest (SC-LC.C.02): operator seed endpoint for global legal reference
+# data. It self-authenticates with the service-role bearer or LEGAL_INGEST_SECRET.
+[functions.legal-corpus-ingest]
 verify_jwt = false
 
 # legal-corpus-sync (SC-LC.E.04): the legal-RAG auto-updater, driven by pg_cron
@@ -37,3 +63,13 @@ verify_jwt = false
 # pg_cron (0114_horizon_cron_reconcile.sql) via net.http_post with a ?secret= cron secret.
 [functions.legal-horizon-scan]
 verify_jwt = false
+
+# legal-horizon-run: user-invoked scan trigger. JWT stays on; the function verifies
+# accountant/admin/owner membership before proxying to the backend-only scanner.
+[functions.legal-horizon-run]
+verify_jwt = true
+
+# advisor (SC-6.B.02): user-invoked proactive advisory engine. JWT stays on;
+# the function forwards the caller token into Supabase so RLS/RPC org checks apply.
+[functions.advisor]
+verify_jwt = true

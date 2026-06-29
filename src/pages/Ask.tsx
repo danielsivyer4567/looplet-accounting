@@ -1,11 +1,26 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { useAdviceNotes, type AdviceNote, type AdviceNoteKind } from '@/hooks/useAdviceNotes';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { AdviceNoteView } from '@/components/AdviceNoteView';
 import { TopDownMindMap, type MindMapBranch } from '@/components/InsightCharts';
 import { DiagramView, type DiagramSpec } from '@/components/DiagramView';
 import { CitedAnswer, type LegalCitation } from '@/components/Citations';
-import { Sparkles, ArrowRight, Terminal, HelpCircle, Code, GitBranch, Eraser } from 'lucide-react';
+import {
+  Sparkles,
+  ArrowRight,
+  Terminal,
+  HelpCircle,
+  Code,
+  GitBranch,
+  Eraser,
+  FileText,
+  RefreshCw,
+  BookOpen,
+  ChevronDown,
+  ExternalLink,
+} from 'lucide-react';
 
 interface AskResponse {
   ok: boolean;
@@ -28,6 +43,17 @@ interface ChatTurn {
   ts: number;
 }
 
+interface AdvisorFunctionResponse {
+  ok?: boolean;
+  advice_note_id?: string | null;
+  error?: string;
+}
+
+interface AdvisorScenario {
+  mode: AdviceNoteKind;
+  label: string;
+}
+
 const SUGGESTED_QUESTIONS = [
   'Can I claim my new ute under instant asset write-off?',
   'Are tools under $300 immediately deductible or do I depreciate?',
@@ -43,22 +69,97 @@ const SUGGESTED_QUESTIONS = [
 const TRANSPARENT_ANSWER_RULE =
   'Always return a written answer that can be mirrored as a top-down mind map: question, books/data checked, law/evidence checked, and final decision.';
 
+// Curated reference material surfaced from the "Knowledge base" dropdown at the
+// top of the page. Add videos, documents, or bucket download links here — the
+// dropdown renders one entry per item.
+interface KnowledgeResource {
+  label: string;
+  description: string;
+  href: string;
+}
+
+const KNOWLEDGE_RESOURCES: KnowledgeResource[] = [
+  {
+    label: 'NotebookLM workspace',
+    description: 'Live, continually-updated notebook — videos, documents & source material.',
+    href: 'https://notebooklm.google.com/notebook/7a7722a5-9a6f-4934-8e7f-37907c30a4f3',
+  },
+];
+
+const ADVISOR_SCENARIOS: AdvisorScenario[] = [
+  { mode: 'structuring', label: 'Structuring' },
+  { mode: 'year_end', label: 'Year-end' },
+  { mode: 'cgt', label: 'CGT' },
+  { mode: 'fbt', label: 'FBT' },
+  { mode: 'profit_extraction', label: 'Profit extraction' },
+  { mode: 'forecast', label: 'Forecast' },
+];
+
+const ADVISOR_FUNCTION_UNDEPLOYED_MESSAGE =
+  'Advisor edge function is not deployed to this Supabase project yet.';
+
+function advisorFunctionUrl(): string {
+  return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/advisor`;
+}
+
+function isBrowserFetchFailure(err: unknown): boolean {
+  return err instanceof TypeError && /failed to fetch|networkerror|load failed/i.test(err.message);
+}
+
 export function AskPage() {
   const { currentOrg } = useOrg();
+  const {
+    notes,
+    loading: adviceLoading,
+    actionBusy: adviceActionBusy,
+    error: adviceError,
+    backendAvailable: adviceBackendAvailable,
+    unavailableMessage: adviceUnavailableMessage,
+    refresh: refreshAdviceNotes,
+    signOff,
+    dismiss,
+  } = useAdviceNotes();
   const location = useLocation();
   const navigate = useNavigate();
   const [question, setQuestion] = useState('');
   const [busy, setBusy] = useState(false);
+  const [advisorBusyMode, setAdvisorBusyMode] = useState<AdviceNoteKind | null>(null);
+  const [advisorError, setAdvisorError] = useState<string | null>(null);
+  const [advisorMessage, setAdvisorMessage] = useState<string | null>(null);
+  const [advisorFunctionAvailable, setAdvisorFunctionAvailable] = useState<boolean | null>(null);
+  const [selectedAdviceNoteId, setSelectedAdviceNoteId] = useState<string | null>(null);
   const [history, setHistory] = useState<ChatTurn[]>([]);
   const [showSql, setShowSql] = useState<Set<number>>(new Set());
   const [showCtx, setShowCtx] = useState<Set<number>>(new Set());
   const [showMap, setShowMap] = useState<Set<number>>(new Set());
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const sortedAdviceNotes = useMemo(() => sortAdviceNotes(notes), [notes]);
+
+  useEffect(() => {
+    if (selectedAdviceNoteId && !notes.some((note) => note.id === selectedAdviceNoteId)) {
+      setSelectedAdviceNoteId(null);
+    }
+  }, [notes, selectedAdviceNoteId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [history]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setAdvisorFunctionAvailable(null);
+    fetch(advisorFunctionUrl(), { method: 'OPTIONS' })
+      .then((res) => {
+        if (!cancelled) setAdvisorFunctionAvailable(res.status !== 404);
+      })
+      .catch(() => {
+        if (!cancelled) setAdvisorFunctionAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const ask = async (q: string) => {
     if (!q.trim() || busy || !currentOrg) return;
@@ -96,6 +197,54 @@ export function AskPage() {
     } finally {
       setBusy(false);
       setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  };
+
+  const runAdvisorScenario = async (mode: AdviceNoteKind) => {
+    if (
+      !currentOrg ||
+      advisorBusyMode ||
+      !adviceBackendAvailable ||
+      advisorFunctionAvailable === false
+    ) {
+      return;
+    }
+    setAdvisorBusyMode(mode);
+    setAdvisorError(null);
+    setAdvisorMessage(null);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in');
+      const url = advisorFunctionUrl();
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          organization_id: currentOrg.id,
+          mode,
+        }),
+      });
+      const body = (await res.json().catch(() => ({}))) as AdvisorFunctionResponse;
+      if (!res.ok || body.ok === false) {
+        throw new Error(body.error ?? `Advisor request failed (${res.status})`);
+      }
+      await refreshAdviceNotes();
+      if (body.advice_note_id) setSelectedAdviceNoteId(body.advice_note_id);
+      setAdvisorMessage('Advisor note created.');
+    } catch (err) {
+      if (isBrowserFetchFailure(err)) {
+        setAdvisorFunctionAvailable(false);
+        setAdvisorError(ADVISOR_FUNCTION_UNDEPLOYED_MESSAGE);
+      } else {
+        setAdvisorError(err instanceof Error ? err.message : 'Failed to run advisor scenario.');
+      }
+    } finally {
+      setAdvisorBusyMode(null);
     }
   };
 
@@ -171,6 +320,13 @@ export function AskPage() {
     setTimeout(() => inputRef.current?.focus(), 50);
   };
 
+  const advisorAvailable = adviceBackendAvailable && advisorFunctionAvailable !== false;
+  const advisorUnavailableMessage = !adviceBackendAvailable
+    ? adviceUnavailableMessage
+    : advisorFunctionAvailable === false
+      ? ADVISOR_FUNCTION_UNDEPLOYED_MESSAGE
+      : null;
+
   return (
     <section
       className="animated-fade-in"
@@ -202,27 +358,60 @@ export function AskPage() {
           background: var(--bg-hover);
           transform: translateY(-1px);
         }
+        .kb-menu-item:hover {
+          background: var(--bg-hover);
+        }
       `}</style>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingBottom: '100px' }}>
         {/* Header */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h1
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              marginBottom: '0.25rem',
-            }}
-          >
-            <Sparkles size={24} style={{ color: 'var(--accent-primary)' }} />
-            Ask AI
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
-            Ask anything about your books or Australian tax regulations. Powered by live accounting
-            records + citation search.
-          </p>
+        <div
+          style={{
+            marginBottom: '1.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: '1rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div>
+            <h1
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                marginBottom: '0.25rem',
+              }}
+            >
+              <Sparkles size={24} style={{ color: 'var(--accent-primary)' }} />
+              Ask AI
+            </h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+              Ask anything about your books or Australian tax regulations. Powered by live accounting
+              records + citation search.
+            </p>
+          </div>
+          <KnowledgeBaseMenu />
         </div>
+
+        <AdvisorPanel
+          scenarios={ADVISOR_SCENARIOS}
+          notes={sortedAdviceNotes}
+          loading={adviceLoading}
+          error={advisorError ?? adviceError}
+          message={advisorMessage}
+          runningMode={advisorBusyMode}
+          actionBusy={adviceActionBusy}
+          backendAvailable={advisorAvailable}
+          unavailableMessage={advisorUnavailableMessage}
+          selectedNoteId={selectedAdviceNoteId}
+          onRunScenario={(mode) => void runAdvisorScenario(mode)}
+          onRefresh={() => void refreshAdviceNotes()}
+          onSelectNote={setSelectedAdviceNoteId}
+          onSignOff={(id) => void signOff(id)}
+          onDismiss={(id) => void dismiss(id)}
+        />
 
         {/* Suggestion Grid */}
         {history.length === 0 && (
@@ -650,6 +839,404 @@ export function AskPage() {
       </div>
     </section>
   );
+}
+
+function KnowledgeBaseMenu() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        type="button"
+        className="btn btn-secondary"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+      >
+        <BookOpen size={15} />
+        Knowledge base
+        <ChevronDown
+          size={14}
+          style={{ transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none' }}
+        />
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 0.4rem)',
+            right: 0,
+            zIndex: 40,
+            width: 320,
+            maxWidth: '90vw',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: 'var(--shadow-md)',
+            padding: '0.5rem',
+            display: 'grid',
+            gap: '0.15rem',
+          }}
+        >
+          <div
+            style={{
+              padding: '0.4rem 0.6rem 0.2rem',
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              color: 'var(--text-muted)',
+            }}
+          >
+            Reference material
+          </div>
+          {KNOWLEDGE_RESOURCES.map((res) => (
+            <a
+              key={res.href}
+              href={res.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="kb-menu-item"
+              style={{
+                display: 'grid',
+                gap: '0.15rem',
+                padding: '0.55rem 0.6rem',
+                borderRadius: 'var(--radius-sm)',
+                textDecoration: 'none',
+                color: 'var(--text-body)',
+              }}
+            >
+              <span
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  color: 'var(--text-title)',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                }}
+              >
+                {res.label}
+                <ExternalLink size={12} style={{ opacity: 0.6 }} />
+              </span>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', lineHeight: 1.4 }}>
+                {res.description}
+              </span>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function AdvisorPanel({
+  scenarios,
+  notes,
+  loading,
+  error,
+  message,
+  runningMode,
+  actionBusy,
+  backendAvailable,
+  unavailableMessage,
+  selectedNoteId,
+  onRunScenario,
+  onRefresh,
+  onSelectNote,
+  onSignOff,
+  onDismiss,
+}: {
+  scenarios: AdvisorScenario[];
+  notes: AdviceNote[];
+  loading: boolean;
+  error: string | null;
+  message: string | null;
+  runningMode: AdviceNoteKind | null;
+  actionBusy: boolean;
+  backendAvailable: boolean;
+  unavailableMessage: string | null;
+  selectedNoteId: string | null;
+  onRunScenario: (mode: AdviceNoteKind) => void;
+  onRefresh: () => void;
+  onSelectNote: (id: string) => void;
+  onSignOff: (id: string) => void | Promise<void>;
+  onDismiss: (id: string) => void | Promise<void>;
+}) {
+  const selectedNote = selectedNoteId
+    ? (notes.find((note) => note.id === selectedNoteId) ?? null)
+    : null;
+
+  return (
+    <div className="advisor-layout">
+      {/* Notes rail — pulled outside the panel so the panel is free for the
+          full-width scenario explanation + reasoning mind map. */}
+      <aside className="advisor-notes-rail" aria-label="Advisor notes">
+        {/* Inner wrapper sticks to the vertical centre of the viewport, so the
+            notes track the scroll position of a long note without moving
+            horizontally out of the gutter. */}
+        <div className="advisor-notes-sticky">
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.75rem',
+            }}
+          >
+            <h3
+              style={{
+                margin: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                color: 'var(--text-title)',
+                fontSize: '0.9rem',
+                letterSpacing: 0,
+              }}
+            >
+              <FileText size={15} />
+              Notes
+            </h3>
+            {loading ? <span className="badge badge-neutral">Loading</span> : null}
+          </div>
+
+          {notes.length === 0 && !loading && backendAvailable ? (
+          <div
+            style={{
+              padding: '0.85rem',
+              border: '1px dashed var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              color: 'var(--text-muted)',
+              fontSize: '0.82rem',
+            }}
+          >
+            No advisor notes yet.
+          </div>
+        ) : null}
+
+        {notes.map((note) => {
+          const selected = selectedNoteId === note.id;
+          return (
+            <button
+              key={note.id}
+              type="button"
+              onClick={() => onSelectNote(note.id)}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                padding: '0.75rem',
+                border: `1px solid ${selected ? 'var(--accent-primary)' : 'var(--border-subtle)'}`,
+                borderRadius: 'var(--radius-sm)',
+                background: selected ? 'var(--bg-hover)' : 'var(--bg-card)',
+                color: 'var(--text-body)',
+                cursor: 'pointer',
+                display: 'grid',
+                gap: '0.45rem',
+              }}
+            >
+              <span style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <span className={`badge ${adviceStatusBadgeClass(note.status)}`}>
+                  {labelFromStatus(note.status)}
+                </span>
+                <span className="badge badge-info">{labelFromAdviceKind(note.kind)}</span>
+              </span>
+              <strong style={{ color: 'var(--text-title)', lineHeight: 1.25 }}>
+                {note.title}
+              </strong>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', lineHeight: 1.4 }}>
+                {compactText(note.summary, 120)}
+              </span>
+            </button>
+          );
+        })}
+        </div>
+      </aside>
+
+      <section
+        aria-label="Advisor"
+        className="advisor-main"
+        style={{
+          display: 'grid',
+          gap: '1rem',
+          padding: '1rem',
+          background: 'var(--bg-panel)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: 'var(--shadow-sm)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: '1rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div>
+            <h2
+              style={{
+                margin: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                color: 'var(--text-title)',
+                fontSize: '1rem',
+                letterSpacing: 0,
+              }}
+            >
+              <Sparkles size={18} style={{ color: 'var(--accent-primary)' }} />
+              Advisor
+            </h2>
+            <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+              {backendAvailable
+                ? `${notes.length} note${notes.length === 1 ? '' : 's'} available`
+                : 'Advisor database unavailable'}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onRefresh}
+            disabled={loading || !backendAvailable}
+          >
+            <RefreshCw size={15} />
+            Refresh
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {scenarios.map((scenario) => (
+            <button
+              key={scenario.mode}
+              type="button"
+              className="btn btn-secondary"
+              disabled={runningMode != null || !backendAvailable}
+              onClick={() => onRunScenario(scenario.mode)}
+            >
+              <ArrowRight size={14} />
+              {runningMode === scenario.mode ? 'Running...' : `Run ${scenario.label}`}
+            </button>
+          ))}
+        </div>
+
+        {!backendAvailable ? (
+          <div className="badge badge-neutral" style={{ display: 'block', padding: '0.6rem' }}>
+            {unavailableMessage}
+          </div>
+        ) : error ? (
+          <div className="badge badge-danger" style={{ display: 'block', padding: '0.6rem' }}>
+            {error}
+          </div>
+        ) : null}
+        {message ? (
+          <div className="badge badge-success" style={{ display: 'block', padding: '0.6rem' }}>
+            {message}
+          </div>
+        ) : null}
+
+        <div style={{ minWidth: 0 }}>
+          {!backendAvailable ? (
+            <div
+              style={{
+                padding: '1rem',
+                border: '1px dashed var(--border-subtle)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--text-muted)',
+                fontSize: '0.85rem',
+                minHeight: '8rem',
+                display: 'grid',
+                placeItems: 'center',
+                textAlign: 'center',
+              }}
+            >
+              Apply the advice-note Supabase migrations to enable advisor notes.
+            </div>
+          ) : selectedNote ? (
+            <AdviceNoteView
+              note={selectedNote}
+              actionBusy={actionBusy}
+              onSignOff={onSignOff}
+              onDismiss={onDismiss}
+            />
+          ) : (
+            <div
+              style={{
+                padding: '1rem',
+                border: '1px dashed var(--border-subtle)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--text-muted)',
+                fontSize: '0.85rem',
+                minHeight: '8rem',
+                display: 'grid',
+                placeItems: 'center',
+                textAlign: 'center',
+              }}
+            >
+              Select a note to inspect it.
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function sortAdviceNotes(notes: AdviceNote[]): AdviceNote[] {
+  return [...notes].sort((a, b) => {
+    const bTime = new Date(b.updated_at).getTime();
+    const aTime = new Date(a.updated_at).getTime();
+    return (Number.isFinite(bTime) ? bTime : 0) - (Number.isFinite(aTime) ? aTime : 0);
+  });
+}
+
+function labelFromAdviceKind(kind: AdviceNoteKind): string {
+  return kind
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+    .replace(/\bCgt\b/g, 'CGT')
+    .replace(/\bFbt\b/g, 'FBT');
+}
+
+function labelFromStatus(status: AdviceNote['status']): string {
+  return status.replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function adviceStatusBadgeClass(status: AdviceNote['status']): string {
+  switch (status) {
+    case 'issued':
+    case 'acted':
+      return 'badge-success';
+    case 'dismissed':
+      return 'badge-neutral';
+    case 'draft':
+    default:
+      return 'badge-warning';
+  }
 }
 
 function compactText(text: string, max = 120): string {

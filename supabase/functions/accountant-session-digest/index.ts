@@ -9,31 +9,41 @@
  *      — generates a digest of activity in date range and emails to caller.
  *
  * Email delivery via Resend (RESEND_API_KEY required).
+ *
+ * Deployed with verify_jwt=false because pg_cron calls cron mode with a scoped
+ * ?secret=. On-demand/browser modes still verify the caller JWT in-function
+ * before reading sessions or activity.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { isExactSecret, isExactServiceRoleBearer } from '../_shared/serviceRole.ts';
 
 const RESEND_URL = 'https://api.resend.com/emails';
 const FROM_ADDR = 'Looplet Accounting <noreply@loopletai.com.au>';
 
+type SupabaseAdmin = SupabaseClient;
+
 interface RequestBody {
   session_id?: string;
   organization_id?: string;
-  since?: string;     // ISO date for on-demand window
+  since?: string; // ISO date for on-demand window
   recipient?: string; // override recipient
 }
 
 Deno.serve(async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
+  if (req.method !== 'POST') return json({ ok: false, error: 'Method not allowed' }, 405);
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const resendKey = Deno.env.get('RESEND_API_KEY');
-    if (!supabaseUrl || !serviceKey) return json({ ok: false, error: 'Server config missing' }, 500);
-    if (!resendKey) return json({ ok: false, error: 'RESEND_API_KEY not set' }, 500);
+    const cronSecret = Deno.env.get('ACCOUNTANT_SESSION_DIGEST_CRON_SECRET');
+    if (!supabaseUrl || !serviceKey) {
+      return json({ ok: false, error: 'Server config missing' }, 500);
+    }
 
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
@@ -41,37 +51,77 @@ Deno.serve(async (req) => {
 
     // CRON MODE (no body or empty body): batch-send all pending digests
     let body: RequestBody = {};
-    try { body = await req.json(); } catch { /* empty */ }
+    try {
+      body = await req.json();
+    } catch {
+      // empty body is valid cron mode
+    }
 
-    if (!body.session_id && !body.organization_id) {
+    const authHeader = req.headers.get('Authorization');
+    const isCronMode = !body.session_id && !body.organization_id;
+
+    if (isCronMode) {
+      const url = new URL(req.url);
+      const secretOk = cronSecret
+        ? isExactSecret(url.searchParams.get('secret'), cronSecret)
+        : false;
+      const serviceRoleOk = isExactServiceRoleBearer(authHeader, serviceKey);
+      if (!secretOk && !serviceRoleOk) {
+        return json({ ok: false, error: 'forbidden' }, 403);
+      }
+      if (!resendKey) return json({ ok: false, error: 'RESEND_API_KEY not set' }, 500);
       return await batchSendDigests(admin, resendKey);
     }
 
-    // ON-DEMAND MODE
-    if (body.session_id) {
-      return await sendSessionDigest(admin, resendKey, body.session_id, body.recipient);
-    }
-
-    // OPEN-SESSION ACTIVITY LOG MODE — needs auth header to identify the caller
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader || !body.organization_id) {
-      return json({ ok: false, error: 'organization_id + auth required for on-demand log' }, 400);
-    }
+    // ON-DEMAND MODES — verify the user's JWT ourselves because pg_cron requires
+    // verify_jwt=false at the platform gateway.
+    if (!resendKey) return json({ ok: false, error: 'RESEND_API_KEY not set' }, 500);
+    if (!authHeader) return json({ ok: false, error: 'Unauthorized' }, 401);
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
     if (!anonKey) return json({ ok: false, error: 'SUPABASE_ANON_KEY not set' }, 500);
-    const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
     const { data: u } = await userClient.auth.getUser();
     if (!u?.user) return json({ ok: false, error: 'Unauthorized' }, 401);
 
-    return await sendOnDemandLog(admin, resendKey, body.organization_id, u.user.id, body.since, body.recipient ?? u.user.email ?? '');
+    if (body.session_id) {
+      const { data: visibleSession, error: visibleErr } = await userClient
+        .from('accountant_sessions')
+        .select('id')
+        .eq('id', body.session_id)
+        .maybeSingle();
+      if (visibleErr) return json({ ok: false, error: visibleErr.message }, 403);
+      if (!visibleSession) return json({ ok: false, error: 'Session not accessible' }, 403);
+      return await sendSessionDigest(admin, resendKey, body.session_id);
+    }
 
+    if (!body.organization_id) {
+      return json({ ok: false, error: 'organization_id required for on-demand log' }, 400);
+    }
+    const { data: visibleOrg, error: orgErr } = await userClient
+      .from('organizations')
+      .select('id')
+      .eq('id', body.organization_id)
+      .maybeSingle();
+    if (orgErr) return json({ ok: false, error: orgErr.message }, 403);
+    if (!visibleOrg) return json({ ok: false, error: 'Organisation not accessible' }, 403);
+
+    return await sendOnDemandLog(
+      admin,
+      resendKey,
+      body.organization_id,
+      u.user.id,
+      body.since,
+      body.recipient ?? u.user.email ?? '',
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return json({ ok: false, error: msg }, 500);
   }
 });
 
-async function batchSendDigests(admin: ReturnType<typeof createClient>, resendKey: string): Promise<Response> {
+async function batchSendDigests(admin: SupabaseAdmin, resendKey: string): Promise<Response> {
   const { data: sessions } = await admin
     .from('accountant_sessions')
     .select('id')
@@ -90,7 +140,7 @@ async function batchSendDigests(admin: ReturnType<typeof createClient>, resendKe
 }
 
 async function sendSessionDigest(
-  admin: ReturnType<typeof createClient>,
+  admin: SupabaseAdmin,
   resendKey: string,
   sessionId: string,
   recipientOverride?: string,
@@ -144,7 +194,7 @@ async function sendSessionDigest(
 }
 
 async function sendOnDemandLog(
-  admin: ReturnType<typeof createClient>,
+  admin: SupabaseAdmin,
   resendKey: string,
   orgId: string,
   userId: string,
@@ -152,7 +202,11 @@ async function sendOnDemandLog(
   recipient: string,
 ): Promise<Response> {
   const cutoff = since ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { data: org } = await admin.from('organizations').select('name').eq('id', orgId).maybeSingle();
+  const { data: org } = await admin
+    .from('organizations')
+    .select('name')
+    .eq('id', orgId)
+    .maybeSingle();
   const { data: activity } = await admin
     .from('accountant_activity_log')
     .select('*')
@@ -167,8 +221,11 @@ async function sendOnDemandLog(
       started_at: cutoff,
       ended_at: new Date().toISOString(),
       total_seconds: null,
-      pageview_count: (activity ?? []).filter((a: ActivityRow) => a.event_type === 'pageview').length,
-      action_count: (activity ?? []).filter((a: ActivityRow) => ['action', 'comment'].includes(a.event_type)).length,
+      pageview_count: (activity ?? []).filter((a: ActivityRow) => a.event_type === 'pageview')
+        .length,
+      action_count: (activity ?? []).filter((a: ActivityRow) =>
+        ['action', 'comment'].includes(a.event_type),
+      ).length,
       end_reason: 'manual',
     },
     (activity ?? []) as ActivityRow[],
@@ -200,8 +257,14 @@ interface ActivityRow {
 }
 
 function renderDigestHtml(session: Record<string, unknown>, activity: ActivityRow[]): string {
-  const startStr = new Date(session.started_at as string).toLocaleString('en-AU', { timeZone: 'Australia/Brisbane' });
-  const endStr = session.ended_at ? new Date(session.ended_at as string).toLocaleString('en-AU', { timeZone: 'Australia/Brisbane' }) : '(open)';
+  const startStr = new Date(session.started_at as string).toLocaleString('en-AU', {
+    timeZone: 'Australia/Brisbane',
+  });
+  const endStr = session.ended_at
+    ? new Date(session.ended_at as string).toLocaleString('en-AU', {
+        timeZone: 'Australia/Brisbane',
+      })
+    : '(open)';
   const totalSec = (session.total_seconds as number | null) ?? 0;
   const totalH = Math.floor(totalSec / 3600);
   const totalM = Math.floor((totalSec % 3600) / 60);
@@ -251,8 +314,16 @@ function renderDigestHtml(session: Record<string, unknown>, activity: ActivityRo
 <table>
   <thead><tr><th>Path</th><th class="r">Visits</th><th class="r">Time on page</th></tr></thead>
   <tbody>
-    ${pages.length === 0 ? '<tr><td colspan="3" style="color:#888;text-align:center">no pageviews recorded</td></tr>' :
-      pages.map(([path, p]) => `<tr><td>${esc(path)}</td><td class="r">${p.count}</td><td class="r">${(p.ms / 1000 / 60).toFixed(1)}m</td></tr>`).join('')}
+    ${
+      pages.length === 0
+        ? '<tr><td colspan="3" style="color:#888;text-align:center">no pageviews recorded</td></tr>'
+        : pages
+            .map(
+              ([path, p]) =>
+                `<tr><td>${esc(path)}</td><td class="r">${p.count}</td><td class="r">${(p.ms / 1000 / 60).toFixed(1)}m</td></tr>`,
+            )
+            .join('')
+    }
   </tbody>
 </table>
 
@@ -260,10 +331,17 @@ function renderDigestHtml(session: Record<string, unknown>, activity: ActivityRo
 <table>
   <thead><tr><th>When (Brisbane)</th><th>Type</th><th>Action</th></tr></thead>
   <tbody>
-    ${writeOps.length === 0 ? '<tr><td colspan="3" style="color:#888;text-align:center">no write actions</td></tr>' :
-      writeOps.slice(0, 100).map((a) =>
-        `<tr><td>${new Date(a.occurred_at).toLocaleTimeString('en-AU', { timeZone: 'Australia/Brisbane' })}</td><td>${esc(a.event_type)}</td><td>${esc(a.description ?? a.path ?? '')}</td></tr>`,
-      ).join('')}
+    ${
+      writeOps.length === 0
+        ? '<tr><td colspan="3" style="color:#888;text-align:center">no write actions</td></tr>'
+        : writeOps
+            .slice(0, 100)
+            .map(
+              (a) =>
+                `<tr><td>${new Date(a.occurred_at).toLocaleTimeString('en-AU', { timeZone: 'Australia/Brisbane' })}</td><td>${esc(a.event_type)}</td><td>${esc(a.description ?? a.path ?? '')}</td></tr>`,
+            )
+            .join('')
+    }
   </tbody>
 </table>
 
@@ -274,7 +352,13 @@ function renderDigestHtml(session: Record<string, unknown>, activity: ActivityRo
 }
 
 function esc(s: string): string {
-  const map: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  };
   return s.replace(/[&<>"']/g, (c) => map[c] ?? c);
 }
 

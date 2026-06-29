@@ -1,0 +1,51 @@
+-- 0180_advisor_cron.sql - SC-6.H.03 (Phase 6, scheduled advice generation)
+--
+-- TRACKED FOR LATER - DO NOT RUN AS-IS. This file documents the intended
+-- pg_cron schedule for the advisor edge function, but the cron.schedule() call
+-- is intentionally inert because enabling it requires:
+--   1. supabase functions deploy advisor --no-verify-jwt
+--   2. supabase secrets set ADVISOR_CRON_SECRET=<random-32-char-string>
+--   3. Replace <PROJECT_REF> and <ADVISOR_CRON_SECRET> below and run the
+--      cron.schedule() statement once, deliberately.
+--
+-- The advisor function accepts a normal user JWT for on-demand advice modes.
+-- The scheduled mode is cron/service-only and accepts either the exact service
+-- role bearer or ?secret=<ADVISOR_CRON_SECRET>, both constant-time compared.
+--
+-- The job posts once per active organization. The edge function selects the
+-- seasonal modes for the date, writes draft advice_notes via service-role, and
+-- dedupes by (organization_id, kind, scheduler_period) recorded in inputs.
+--
+-- MIGRATION NUMBER: ledger planned 0170, already taken by SMSF caps. Reassigned
+-- to 0180 per the drift rule: sequential Phase-6 repo head is 0177, while 0178
+-- and 0179 are late hotfix migrations that already occupy those numbers.
+
+-- ----------------------------------------------------------------------------
+-- SELECT cron.schedule(
+--   'advisor-scheduled-daily',
+--   '45 3 * * *',  -- 03:45 every day (server tz), after sync/reconcile windows
+--   $cron$
+--     SELECT net.http_post(
+--       url := 'https://<PROJECT_REF>.supabase.co/functions/v1/advisor'
+--              || '?secret=<ADVISOR_CRON_SECRET>',
+--       headers := jsonb_build_object('Content-Type', 'application/json'),
+--       body := jsonb_build_object(
+--         'organization_id', o.id,
+--         'mode', 'scheduled',
+--         'as_at_date', current_date::text
+--       )
+--     )
+--     FROM public.organizations o
+--     WHERE o.deleted_at IS NULL;
+--   $cron$
+-- );
+-- ----------------------------------------------------------------------------
+
+-- To inspect:
+--   SELECT * FROM cron.job WHERE jobname = 'advisor-scheduled-daily';
+--   SELECT * FROM cron.job_run_details
+--    WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'advisor-scheduled-daily')
+--    ORDER BY start_time DESC LIMIT 10;
+--
+-- To unschedule:
+--   SELECT cron.unschedule('advisor-scheduled-daily');

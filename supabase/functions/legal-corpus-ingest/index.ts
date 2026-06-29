@@ -28,13 +28,14 @@
 //   - migration 0108 applied live (pgvector + legal_corpus)
 //   - secret OPENAI_API_KEY set (already used by OCR) — required to embed
 //   - secret LEGAL_INGEST_SECRET set if driving via ?secret= (else service-role only)
-//   - deploy: `supabase functions deploy legal-corpus-ingest` (verify_jwt default)
+//   - deploy with config.toml verify_jwt=false so the ?secret= seed path reaches
+//     this function's own fail-closed auth gate.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, preflight } from "../_shared/cors.ts";
-import { requireEnv } from "../_shared/env.ts";
-import { chunkLegalText } from "../_shared/legal/chunk.ts";
-import { upsertVersionedChunks } from "../_shared/legal/upsert.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { requireEnv } from '../_shared/env.ts';
+import { chunkLegalText } from '../_shared/legal/chunk.ts';
+import { upsertVersionedChunks } from '../_shared/legal/upsert.ts';
 
 interface RequestBody {
   doc_ref?: string;
@@ -49,13 +50,13 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 }
 
 /** Constant-time string compare; false on length mismatch. */
 function safeEqual(a: string, b: string): boolean {
-  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
   let out = 0;
   for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return out === 0;
@@ -65,30 +66,30 @@ Deno.serve(async (req: Request) => {
   const pre = preflight(req);
   if (pre) return pre;
   try {
-    const supabaseUrl = requireEnv("SUPABASE_URL");
-    const serviceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const adminSecret = Deno.env.get("LEGAL_INGEST_SECRET");
+    const supabaseUrl = requireEnv('SUPABASE_URL');
+    const serviceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
+    const adminSecret = Deno.env.get('LEGAL_INGEST_SECRET');
 
     // Auth gate: service-role bearer OR ?secret= (operator). Global-write fn, so
     // there is deliberately no authenticated-user path — fail closed.
     const url = new URL(req.url);
-    const urlSecret = url.searchParams.get("secret");
-    const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+    const urlSecret = url.searchParams.get('secret');
+    const bearer = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '').trim();
     const isServiceRole = safeEqual(bearer, serviceKey);
-    const secretOk = !!adminSecret && safeEqual(urlSecret ?? "", adminSecret);
-    if (!isServiceRole && !secretOk) return json({ ok: false, error: "Unauthorized" }, 401);
+    const secretOk = !!adminSecret && safeEqual(urlSecret ?? '', adminSecret);
+    if (!isServiceRole && !secretOk) return json({ ok: false, error: 'Unauthorized' }, 401);
 
     const body = (await req.json().catch(() => ({}))) as RequestBody;
-    const doc_ref = (body.doc_ref ?? "").trim();
-    const rawText = body.text ?? "";
-    const effective_from = (body.effective_from ?? "").trim();
-    const source = (body.source ?? "").trim() || doc_ref;
-    const citation_url = (body.citation_url ?? "").trim() || null;
+    const doc_ref = (body.doc_ref ?? '').trim();
+    const rawText = body.text ?? '';
+    const effective_from = (body.effective_from ?? '').trim();
+    const source = (body.source ?? '').trim() || doc_ref;
+    const citation_url = (body.citation_url ?? '').trim() || null;
 
-    if (!doc_ref) return json({ ok: false, error: "doc_ref is required" }, 400);
-    if (!rawText.trim()) return json({ ok: false, error: "text is required" }, 400);
+    if (!doc_ref) return json({ ok: false, error: 'doc_ref is required' }, 400);
+    if (!rawText.trim()) return json({ ok: false, error: 'text is required' }, 400);
     if (!DATE_RE.test(effective_from)) {
-      return json({ ok: false, error: "effective_from must be YYYY-MM-DD" }, 400);
+      return json({ ok: false, error: 'effective_from must be YYYY-MM-DD' }, 400);
     }
 
     const chunks = chunkLegalText(rawText, { doc_ref });
@@ -97,7 +98,14 @@ Deno.serve(async (req: Request) => {
         ok: true,
         doc_ref,
         effective_from,
-        stats: { chunks: 0, inserted: 0, replaced: 0, versioned: 0, unchanged: 0, skipped_backdated: 0 },
+        stats: {
+          chunks: 0,
+          inserted: 0,
+          replaced: 0,
+          versioned: 0,
+          unchanged: 0,
+          skipped_backdated: 0,
+        },
       });
     }
 

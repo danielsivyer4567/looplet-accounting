@@ -19,6 +19,9 @@
 -- meaningful before that lands. (Note: `bills.category_code` does NOT exist —
 -- the live column is `auto_category_code`.)
 
+ALTER TABLE public.bills
+  ADD COLUMN IF NOT EXISTS auto_category_code text;
+
 CREATE OR REPLACE FUNCTION public.compute_books_health(p_org_id uuid)
 RETURNS TABLE (
   uncoded_count       integer,

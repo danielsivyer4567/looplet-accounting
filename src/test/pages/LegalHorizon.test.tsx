@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { LegalHorizonRow } from '@/hooks/useLegalHorizon';
 
 // Mutable state the mocked hook returns (hoisted so the vi.mock factory can close
@@ -19,7 +19,10 @@ const h = vi.hoisted(() => ({
     items: [] as unknown[],
     loading: false,
     error: null as string | null,
+    scanBusy: false,
+    scanStatus: null as string | null,
     refresh: vi.fn(),
+    runSonarScan: vi.fn(),
   },
 }));
 
@@ -52,6 +55,10 @@ describe('LegalHorizonPage', () => {
     h.state.items = [];
     h.state.loading = false;
     h.state.error = null;
+    h.state.scanBusy = false;
+    h.state.scanStatus = null;
+    h.state.refresh.mockReset();
+    h.state.runSonarScan.mockReset();
   });
 
   it('renders each item as a forward-looking card with stage, confidence and a source link', () => {
@@ -100,7 +107,26 @@ describe('LegalHorizonPage', () => {
     render(<LegalHorizonPage />);
 
     expect(screen.getByText(/No upcoming changes on the radar/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Scan with Sonar/i })).toBeInTheDocument();
     // No card / source link when empty.
     expect(screen.queryByRole('link', { name: /View source/i })).toBeNull();
+  });
+
+  it('lets accountants trigger a Sonar scan from the page', () => {
+    h.state.runSonarScan.mockResolvedValueOnce(true);
+
+    render(<LegalHorizonPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Scan with Sonar/i }));
+
+    expect(h.state.runSonarScan).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows scan completion status returned by the hook', () => {
+    h.state.scanStatus = 'Sonar scan complete: 1 item scanned, 1 new item, 0 refreshed items.';
+
+    render(<LegalHorizonPage />);
+
+    expect(screen.getByText(/Sonar scan complete/i)).toBeInTheDocument();
   });
 });

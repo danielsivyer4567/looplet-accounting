@@ -18,43 +18,64 @@ supabase db push        # applies 0055 (P0 security), 0056 (api_keys), 0057 (cro
 ## 2. Deploy the changed functions
 
 ```bash
-supabase functions deploy bank-sync-all notifications-cron gmail-watch-renew
+supabase functions deploy bank-sync --project-ref dxoikltymmknxqpkpyhi
+supabase functions deploy bank-sync-all --project-ref dxoikltymmknxqpkpyhi --no-verify-jwt
+supabase functions deploy notifications-cron --project-ref dxoikltymmknxqpkpyhi --no-verify-jwt
+supabase functions deploy gmail-watch-renew --project-ref dxoikltymmknxqpkpyhi
 ```
 
 These now use constant-time auth and drop the forgeable "trust the JWT's role claim" path.
 
-## 3. Fix `bank-sync-all` (currently 403 every run — no secret in the cron)
+## 3. Fix `bank-sync-all`
+
+Status 2026-06-29: completed live. `bank-sync-all` is active as cron job 14,
+uses a scoped secret stored in Supabase Vault as `bank_sync_all_cron_secret`,
+and a DB-side `pg_net` probe returned HTTP 200 with `ok=true`, `orgs=0`.
+The schedule is now tracked by
+`supabase/migrations/0197_track_vault_backed_cron_schedules.sql`.
+
+Use this only if rotating/recreating the scoped cron secret:
 
 ```bash
 openssl rand -hex 24                       # generate a scoped secret (NOT the service-role key)
 supabase secrets set BANK_SYNC_ALL_CRON_SECRET=<paste> --project-ref dxoikltymmknxqpkpyhi
 ```
 
-Then in the Supabase SQL editor:
+Then store the same value in Vault and re-run migration 0197 so the cron command
+does not embed the secret:
 
 ```sql
-select cron.schedule('bank-sync-all', '0 0,6,12,18 * * *', $$
-  select net.http_post(
-    url := 'https://dxoikltymmknxqpkpyhi.supabase.co/functions/v1/bank-sync-all?secret=<paste>',
-    headers := jsonb_build_object('Content-Type','application/json')
-  ); $$);
+select vault.create_secret('<paste>', 'bank_sync_all_cron_secret');
+
+-- re-run migration 0197 after the Vault secret exists
 ```
 
-## 4. Fix `accountant-digest-cron` (currently 401 every 10 min — empty bearer)
+## 4. Fix `accountant-digest-cron`
 
-The cron builds its bearer from a Vault secret named `service_role_key` that doesn't
-exist. Create it (your service-role key goes straight into encrypted Vault — never
-into chat, a file, or the cron command):
+Status 2026-06-29: completed live. `accountant-session-digest` is deployed with
+`verify_jwt=false`, cron mode requires `ACCOUNTANT_SESSION_DIGEST_CRON_SECRET`
+or the exact service-role bearer, and the active cron job 15 reads a scoped
+secret stored in Supabase Vault as `accountant_session_digest_cron_secret`.
+A DB-side `pg_net` probe returned HTTP 200 with `ok=true`, `sent=0`,
+`failed=0`.
+The schedule is now tracked by
+`supabase/migrations/0197_track_vault_backed_cron_schedules.sql`.
+
+Use this only if rotating/recreating the scoped cron secret:
+
+```bash
+openssl rand -hex 24
+supabase secrets set ACCOUNTANT_SESSION_DIGEST_CRON_SECRET=<paste> --project-ref dxoikltymmknxqpkpyhi
+```
+
+Then store the same value in Vault and re-run migration 0197 so the cron command
+does not embed the secret:
 
 ```sql
-select vault.create_secret(
-  '<YOUR_SERVICE_ROLE_KEY>',   -- from Supabase Dashboard → Settings → API
-  'service_role_key'
-);
-```
+select vault.create_secret('<paste>', 'accountant_session_digest_cron_secret');
 
-> Alternatively, rotate the service-role key first if you're unsure it's clean, then
-> store the fresh one here.
+-- re-run migration 0197 after the Vault secret exists
+```
 
 ## 5. Re-connect Gmail (dead since 2026-05-09, `invalid_grant`)
 

@@ -15,6 +15,11 @@ info:
          auto-routing as the in-app importers (bill auto-attach/suggest/queue,
          bank-transaction dedupe, intake rules).
 
+      3. **POS Receipt API** — `POST /functions/v1/receipt-webhook` pushes
+         structured merchant receipts from POS webhooks, plugins, or bridge
+         middleware. Authenticated directly with an API key that has
+         `write:receipts`.
+
     All API keys are organization-bound. The raw service-role key is NEVER
     accepted at the edge. Every external call is rate-limited per key and logged
     to `api_request_log`.
@@ -26,6 +31,8 @@ tags:
     description: API-key → JWT exchange
   - name: ingest
     description: Push records in
+  - name: receipts
+    description: Push structured POS receipts in
   - name: read
     description: PostgREST read API (org-scoped by RLS)
 
@@ -140,6 +147,148 @@ components:
         currency_code:         { type: string, default: AUD }
         notes:                 { type: string }
         status:                { type: string, enum: [draft, sent, partially_paid, paid, overdue, void] }
+    ReceiptWebhookRequest:
+      type: object
+      description: >
+        Scope required - write:receipts. The API key pins organization_id. The
+        receipt identity token links the checkout to a Looplet receipt pass/tag.
+      required: [identity_token, payload]
+      properties:
+        organization_id:
+          type: string
+          format: uuid
+          description: Optional for app-simulator JWT calls; ignored for API-key calls.
+        identity_token:
+          type: string
+          example: rhp_1234abcd.0123456789abcdef
+        idempotency_key:
+          type: string
+          description: Stable POS payment/receipt event id. If also sent as the Idempotency-Key header, the values must match.
+        event_type:
+          type: string
+          enum: [sale, refund, void]
+          default: sale
+          description: Completed POS lifecycle event. Only sale events create bills.
+        source_channel:
+          type: string
+          enum: [phone-pass, tag, pos, epost, email, photo, manual]
+          default: pos
+        payload:
+          $ref: '#/components/schemas/ReceiptPayload'
+        sync_targets:
+          type: array
+          items: { type: string, enum: [xero, myob, quickbooks, generic_api] }
+    ReceiptPayload:
+      type: object
+      required: [merchant, receipt, line_items]
+      properties:
+        merchant:
+          type: object
+          required: [name]
+          properties:
+            name: { type: string, example: Bunnings Trade }
+            abn: { type: string, example: "12123456789" }
+            external_id: { type: string, example: store-017 }
+        receipt:
+          type: object
+          description: POS receipts must include purchase_at, total_inc_gst_cents, subtotal_ex_gst_cents, gst_cents, tender_status, and payment_reference; subtotal + GST must reconcile to total_inc_gst_cents.
+          required: [purchase_at, subtotal_ex_gst_cents, gst_cents, total_inc_gst_cents, tender_status, payment_reference]
+          properties:
+            number: { type: string, example: POS-2026-0001 }
+            idempotency_key: { type: string }
+            external_id: { type: string }
+            external_event_id: { type: string, example: payment-evt-100042 }
+            event_type: { type: string, enum: [sale, refund, void], default: sale }
+            original_receipt_number:
+              type: string
+              description: Required for refund/void events unless original_external_event_id is supplied.
+            original_external_event_id:
+              type: string
+              description: Required for refund/void events unless original_receipt_number is supplied.
+            purchase_at:
+              type: string
+              format: date-time
+              description: Required for POS receipts. Use the original POS/EFTPOS completed tender timestamp, not bridge send time.
+            currency: { type: string, default: AUD }
+            subtotal_ex_gst_cents: { type: integer, description: Required for POS receipts. }
+            gst_cents: { type: integer, description: Required for POS receipts. }
+            total_inc_gst_cents: { type: integer, minimum: 0 }
+            tender_status:
+              type: string
+              description: Final tender state, e.g. completed, refunded, or voided.
+            payment_method: { type: string, example: card }
+            payment_last4:
+              type: string
+              example: "1234"
+              description: Optional card last four only. Full card numbers are rejected before storage.
+              pattern: "^[0-9]{4}$"
+            payment_reference:
+              type: string
+              example: eftpos-auth-777331
+              description: Required for POS receipts. Use the EFTPOS/POS authorization id, transaction id, or cash-drawer sequence.
+            terminal_id: { type: string, example: TERM-04 }
+            store_id: { type: string, example: STORE-017 }
+            location: { type: object }
+        classification:
+          type: object
+          properties:
+            business_use: { type: string, enum: [business, personal, mixed] }
+            deductibility: { type: string, enum: [deductible, non_deductible, requires_review] }
+            job_reference: { type: string }
+            job_id: { type: string, format: uuid }
+            category: { type: string }
+            sync_targets:
+              type: array
+              items: { type: string, enum: [xero, myob, quickbooks, generic_api] }
+        external_event_id:
+          type: string
+          description: Fallback idempotency source if header/body key is absent.
+        line_items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/ReceiptLineItem'
+    ReceiptLineItem:
+      type: object
+      required: [total_inc_gst_cents, gst_cents]
+      properties:
+        description: { type: string }
+        quantity: { type: number }
+        unit_price_cents: { type: integer }
+        total_inc_gst_cents: { type: integer }
+        gst_cents: { type: integer, description: Required for POS receipts. Line GST must reconcile to receipt.gst_cents. }
+        category: { type: string }
+    ReceiptWebhookResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        duplicate:
+          type: boolean
+          description: true when the same stable idempotency key was already processed.
+        event_type: { type: string, enum: [sale, refund, void] }
+        receipt_event_id: { type: string, format: uuid }
+        related_receipt_event_id: { type: [string, "null"], format: uuid }
+        bill_id: { type: [string, "null"], format: uuid }
+        audit_package_id: { type: string, format: uuid }
+        sync_jobs:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              provider: { type: string, enum: [xero, myob, quickbooks, generic_api] }
+              status: { type: string }
+        classification:
+          type: object
+          properties:
+            business_use: { type: string }
+            deductibility_status: { type: string }
+            job_id: { type: [string, "null"], format: uuid }
+            job_reference: { type: [string, "null"] }
+            gst_estimated: { type: boolean }
+            reason: { type: string }
+      required: [ok, duplicate, receipt_event_id]
 
 paths:
   /functions/v1/api-gateway:
@@ -200,6 +349,51 @@ paths:
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
         "429":
           description: Per-key rate limit exceeded
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+  /functions/v1/receipt-webhook:
+    post:
+      tags: [receipts]
+      summary: Push a structured POS receipt
+      description: >
+        Authenticated by API key with `write:receipts`. The payload is pinned to
+        the key's organization, validates an active receipt identity token, checks
+        receipt totals, creates receipt/bill/audit rows, and queues downstream
+        sync jobs. Safe retries with the same `Idempotency-Key` return the
+        existing `receipt_event_id` with `duplicate=true`. `sale` events can
+        create bills; `refund` and `void` events are stored as audit evidence
+        until an explicit accounting-credit workflow handles them.
+      security:
+        - ApiKey: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema: { type: string, maxLength: 160 }
+          description: Stable POS payment/receipt event id. Strongly recommended.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReceiptWebhookRequest' }
+      responses:
+        "200":
+          description: Accepted, including idempotent duplicate retries
+          content: { application/json: { schema: { $ref: '#/components/schemas/ReceiptWebhookResponse' } } }
+        "400":
+          description: Invalid JSON, inactive identity token, missing retry key, bad totals, or validation failure
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        "401":
+          description: Missing, malformed, expired, or revoked API key
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        "403":
+          description: Key lacks write:receipts
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        "429":
+          description: Per-key rate limit exceeded
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        "500":
+          description: Receipt ingest failed after authentication and validation
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
 
   /rest/v1/{table}:

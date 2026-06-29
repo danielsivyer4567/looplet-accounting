@@ -3,10 +3,12 @@
  *
  * Splits a plain-text export (NotebookLM `.txt`) of an Australian tax instrument
  * — ITAA 1936/1997, the GST Act, TAA, FBTAA, the SIS Act, ATO rulings, cases —
- * into ordered, citation-anchored chunks. Each chunk is ONE operative section
- * (or a structural division that carries its own guide text), which is the
- * natural pinpoint a citation links to ("click to the line"). Every chunk gets
- * a normalised `section_ref` in AGLC-ish pinpoint form (`s 8-1`, `div 7A`) that
+ * into ordered, citation-anchored chunks. A chunk is normally ONE operative
+ * section (or a structural division that carries its own guide text), which is
+ * the natural pinpoint a citation links to ("click to the line"). Very large
+ * sections are split into deterministic part anchors (`s 136 [1]`, `s 136 [2]`)
+ * so every embedding input stays under the model limit. Every chunk gets a
+ * normalised `section_ref` in AGLC-ish pinpoint form (`s 8-1`, `div 7A`) that
  * the auto-updater (SC-LC.E.03) re-derives identically — so a re-ingested
  * compilation diffs section-by-section by `content_hash` instead of wholesale.
  *
@@ -125,13 +127,80 @@ function detectHeader(line: string): Header | null {
 
 /** Join body lines, squeeze runs of blank lines to one, and trim the ends. */
 function bodyToText(body: string[]): string {
-  return body.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return body
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 // Section_refs that are pure structural containers (a Part/Division/etc. line
 // with no body of its own). A bare container is dropped; one that carries guide
 // text is kept.
 const CONTAINER_RE = /^(?:ch|pt|div|subdiv) /;
+const MAX_EMBED_CHARS = 6000;
+
+function splitLongBlock(block: string): string[] {
+  const parts: string[] = [];
+  let rest = block.trim();
+  while (rest.length > MAX_EMBED_CHARS) {
+    let cut = rest.lastIndexOf('\n', MAX_EMBED_CHARS);
+    if (cut < MAX_EMBED_CHARS * 0.6) cut = rest.lastIndexOf(' ', MAX_EMBED_CHARS);
+    if (cut < MAX_EMBED_CHARS * 0.6) cut = MAX_EMBED_CHARS;
+    parts.push(rest.slice(0, cut).trim());
+    rest = rest.slice(cut).trim();
+  }
+  if (rest) parts.push(rest);
+  return parts;
+}
+
+function splitForEmbedding(text: string): string[] {
+  if (text.length <= MAX_EMBED_CHARS) return [text];
+
+  const parts: string[] = [];
+  let buf: string[] = [];
+  let size = 0;
+  const flush = (): void => {
+    if (buf.length === 0) return;
+    parts.push(buf.join('\n\n').trim());
+    buf = [];
+    size = 0;
+  };
+
+  for (const block of text
+    .split(/\n{2,}/)
+    .map((b) => b.trim())
+    .filter(Boolean)) {
+    if (block.length > MAX_EMBED_CHARS) {
+      flush();
+      parts.push(...splitLongBlock(block));
+      continue;
+    }
+
+    const nextSize = size === 0 ? block.length : size + 2 + block.length;
+    if (nextSize > MAX_EMBED_CHARS) flush();
+    buf.push(block);
+    size = size === 0 ? block.length : size + 2 + block.length;
+  }
+  flush();
+  return parts;
+}
+
+function boundChunkForEmbedding(chunk: LegalChunk): LegalChunk[] {
+  const parts = splitForEmbedding(chunk.text);
+  if (parts.length <= 1) return [chunk];
+  return parts.map((text, index) => ({
+    ...chunk,
+    section_ref: `${chunk.section_ref} [${index + 1}]`,
+    heading: chunk.heading ? `${chunk.heading} (part ${index + 1})` : `Part ${index + 1}`,
+    text,
+  }));
+}
+
+function uniqueSectionRef(sectionRef: string, seen: Map<string, number>): string {
+  const count = (seen.get(sectionRef) ?? 0) + 1;
+  seen.set(sectionRef, count);
+  return count === 1 ? sectionRef : `${sectionRef} #${count}`;
+}
 
 /**
  * Fallback for header-less docs (cases, rulings without numbered headings):
@@ -204,8 +273,18 @@ export function chunkLegalText(raw: string, opts: ChunkOptions): LegalChunk[] {
   }
 
   const result: LegalChunk[] = [];
+  const seenRefs = new Map<string, number>();
+  const pushChunk = (chunk: LegalChunk): void => {
+    result.push(
+      ...boundChunkForEmbedding({
+        ...chunk,
+        section_ref: uniqueSectionRef(chunk.section_ref, seenRefs),
+      }),
+    );
+  };
+
   if (preambleText) {
-    result.push({ doc_ref, section_ref: 'preamble', heading: '', text: preambleText });
+    pushChunk({ doc_ref, section_ref: 'preamble', heading: '', text: preambleText });
   }
   for (const section of sections) {
     // Drop a structural container (Part/Division/…) with no body of its own; one
@@ -214,7 +293,7 @@ export function chunkLegalText(raw: string, opts: ChunkOptions): LegalChunk[] {
     if (CONTAINER_RE.test(section.section_ref) && bodyToText(section.body.slice(1)) === '') {
       continue;
     }
-    result.push({
+    pushChunk({
       doc_ref,
       section_ref: section.section_ref,
       heading: section.heading,
