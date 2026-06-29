@@ -26,6 +26,7 @@ describe('accounting-engine CI gate', () => {
     expect(accountingScript).toContain('apReconciliationParity.test.ts');
     expect(accountingScript).toContain('invoiceGlPosting.test.ts');
     expect(accountingScript).toContain('bankReconciliationGlPosting.test.ts');
+    expect(accountingScript).toContain('paymentRunPayrollGlPosting.test.ts');
     expect(accountingScript).toContain('useRegistrations.test.ts');
     expect(accountingScript).toContain('Bas.test.tsx');
     expect(accountingScript).toContain('invoice-reconciliation-migration.test.ts');
@@ -45,6 +46,9 @@ describe('accounting-engine CI gate', () => {
     const bankReconciliationGlPosting = readRepoFile(
       'supabase/migrations/0218_bank_reconciliation_gl_posting.sql',
     );
+    const paymentRunPayrollGlPosting = readRepoFile(
+      'supabase/migrations/0219_payment_run_payroll_gl_posting.sql',
+    );
 
     expect(gl).toMatch(/CREATE OR REPLACE FUNCTION public\.create_and_post_journal\(/);
     expect(gl).toMatch(/CREATE OR REPLACE FUNCTION public\.trial_balance_by_period\(/);
@@ -63,6 +67,13 @@ describe('accounting-engine CI gate', () => {
       /CREATE OR REPLACE FUNCTION public\.post_reconciled_bank_transaction_journal\(/,
     );
     expect(bankReconciliationGlPosting).toMatch(/create_and_post_journal/);
+    expect(paymentRunPayrollGlPosting).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.post_payment_run_journal\(/,
+    );
+    expect(paymentRunPayrollGlPosting).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.post_payroll_pay_run_journal\(/,
+    );
+    expect(paymentRunPayrollGlPosting).toMatch(/create_and_post_journal/);
   });
 
   it('keeps GST, BAS, PAYG, and reconciliation coverage represented', () => {
