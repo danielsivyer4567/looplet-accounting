@@ -2,7 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { useOrg } from '@/hooks/useOrg';
 
 export function OrgSelector() {
-  const { organizations, currentOrg, setCurrentOrg, createOrganization, loading } = useOrg();
+  const { organizations, currentOrg, setCurrentOrg, createOrganization, loading, isAccountantOnly } =
+    useOrg();
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -116,20 +117,24 @@ export function OrgSelector() {
           </option>
         ))}
       </select>
-      <button
-        onClick={() => setCreating(true)}
-        style={{
-          padding: '0.3rem',
-          fontSize: 12,
-          background: 'transparent',
-          color: '#888',
-          border: '1px dashed #444',
-          borderRadius: 4,
-          cursor: 'pointer',
-        }}
-      >
-        + New organisation
-      </button>
+      {/* Accountants are non-billable client-only users — never nudge them to
+          create their own (billable) org. See docs/ACCOUNTANT_PORTAL.md. */}
+      {!isAccountantOnly && (
+        <button
+          onClick={() => setCreating(true)}
+          style={{
+            padding: '0.3rem',
+            fontSize: 12,
+            background: 'transparent',
+            color: '#888',
+            border: '1px dashed #444',
+            borderRadius: 4,
+            cursor: 'pointer',
+          }}
+        >
+          + New organisation
+        </button>
+      )}
     </div>
   );
 }
