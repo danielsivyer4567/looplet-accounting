@@ -35,6 +35,7 @@ describe('accounting-engine CI gate', () => {
     expect(accountingScript).toContain('frankingRegister.test.ts');
     expect(accountingScript).toContain('sgcStatement.test.ts');
     expect(accountingScript).toContain('stpSecureTfnLifecycle.test.ts');
+    expect(accountingScript).toContain('superstreamTransport.test.ts');
     expect(accountingScript).toContain('useRegistrations.test.ts');
     expect(accountingScript).toContain('Bas.test.tsx');
     expect(accountingScript).toContain('Fbt.test.tsx');
@@ -77,6 +78,7 @@ describe('accounting-engine CI gate', () => {
     const stpSecureTfnLifecycle = readRepoFile(
       'supabase/migrations/0227_stp_secure_tfn_lifecycle.sql',
     );
+    const superstreamTransport = readRepoFile('supabase/migrations/0228_superstream_transport.sql');
 
     expect(gl).toMatch(/CREATE OR REPLACE FUNCTION public\.create_and_post_journal\(/);
     expect(gl).toMatch(/CREATE OR REPLACE FUNCTION public\.trial_balance_by_period\(/);
@@ -161,6 +163,12 @@ describe('accounting-engine CI gate', () => {
     expect(stpSecureTfnLifecycle).toMatch(/CREATE TABLE IF NOT EXISTS public\.employee_tfn_vault/);
     expect(stpSecureTfnLifecycle).toMatch(/CREATE OR REPLACE FUNCTION public\.employee_tfn_status/);
     expect(stpSecureTfnLifecycle).toMatch(/strip_employee_tfn_from_wage_components/);
+    expect(superstreamTransport).toMatch(
+      /CREATE TABLE IF NOT EXISTS public\.employee_super_fund_accounts/,
+    );
+    expect(superstreamTransport).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.build_superstream_payload/,
+    );
   });
 
   it('keeps GST, BAS, PAYG, and reconciliation coverage represented', () => {
