@@ -1,0 +1,76 @@
+# Finish-Line Tracker
+
+> The live cross-off list for finishing the app. Updated by the orchestrator after
+> every slice verifies. Branch: `feat/finish-line` (off `feat/accountant-portal`).
+
+**Progress: 0 / 50 complete (0%)**  ·  deploy-gated: 0  ·  blocked-external: 0
+**Current wave:** A — frontend/config/additive
+**Last updated:** start
+
+Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocked-on-deploy]` · `[!]` external-blocked (cannot finish here)
+
+---
+
+## P0 — Release & security blockers (0/11)
+- [ ] P0-01 Pending membership access gate
+- [ ] P0-02 Tag-draft unique constraint + indexes
+- [ ] P0-03 Invite fallback token redemption
+- [ ] P0-04 Media attachment scope (persist-or-defer)
+- [ ] P0-05 Accountant/tag deploy + live overlay proof  *(deploy-gated)*
+- [ ] P0-06 Connector gateway PostgREST hardening
+- [ ] P0-07 API-key storage + rate-limit hardening
+- [ ] P0-08 Frontend error boundary + login a11y
+- [ ] P0-09 Branch hygiene / gate baseline
+- [ ] P0-10 Email-inbound webhook auth fail-closed + config
+- [ ] P0-11 Edge-function JWT-mode pinning (config.toml)
+
+## P1 — Reliability & accounting foundations (0/13)
+- [ ] P1-01 Cron heartbeat + no-success-window + soft-failure parsing
+- [ ] P1-02 Basiq durability + basiq_user_id migration + webhook persist
+- [ ] P1-03 OCR provider selection + extraction quality + accuracy gate
+- [ ] P1-04 GL canonical posting RPC + date-scoped trial balance
+- [ ] P1-05 Accounting-engine CI tests + test:accounting
+- [ ] P1-06 SECURITY DEFINER + notify() org-guard hardening
+- [ ] P1-07 High-impact FK indexes (+ tag_drafts)
+- [ ] P1-08 Xero retry/backfill + stable idempotency keys
+- [ ] P1-09 Gmail reconnect + disconnect notification
+- [ ] P1-10 AP reconciliation parity
+- [ ] P1-11 Period-lock coverage expansion
+- [ ] P1-12 Audit triggers on money tables
+- [ ] P1-13 Cron secrets + SITE_URL provisioning
+
+## P2 — Source posting + compliance output + product completion (0/26)
+- [ ] P2-01a Source posting: invoices + invoice payments
+- [ ] P2-01b Source posting: bank transactions + reconciliation
+- [ ] P2-01c Source posting: payment runs + payroll
+- [ ] P2-01d Source posting: GST/BAS control + adjustments
+- [ ] P2-01e Source posting: depreciation/opening-bal/manual-journals/credit-notes/reversals
+- [ ] P2-02a BAS labels completion + immutable snapshot + source drilldown
+- [ ] P2-LODGE-1 SBR/AS4 message + envelope builder (behind fail-closed gate)
+- [ ] P2-LODGE-2 Digital-signing integration points + secret wiring  *(external-gated)*
+- [ ] P2-LODGE-3 Lodgement status polling + correspondence ingest  *(external-gated)*
+- [ ] P2-LODGE-4 Lodgement orchestration + audit + retry  *(live external-gated)*
+- [ ] P2-FBT FBT return builder RPC + Fbt.tsx + approval gate
+- [ ] P2-TPAR TPAR builder RPC + Tpar.tsx + export
+- [ ] P2-FRANK Franking register + dividend/distribution statements + reconciliation
+- [ ] P2-SGC SGC statement + SG-on-OTE/12% fix
+- [ ] P2-STP STP Phase 2 correctness + TFN secure store/masking + lifecycle
+- [ ] P2-SUPER SuperStream/clearing-house real dispatch (or documented transport)
+- [ ] P2-CN Credit notes AR/AP (schema + RPC + UI + GL posting)
+- [ ] P2-04 Connector product surface (key UI + scope enforcement + OpenAPI + audit)
+- [ ] P2-05a Cross-browser smoke (Chromium/Firefox) on core routes
+- [ ] P2-05b Mobile/tablet + empty/loading/error states
+- [ ] P2-05c Keyboard/focus a11y across main workflows
+- [ ] P2-06a Route-level code splitting + large-asset optimisation
+- [ ] P2-06b Production security polish (sourcemaps off, CSP, CORS narrowing)
+- [ ] P2-07a Migration baseline repair + rollback runbook
+- [ ] P2-07b Staging/deploy workflow + function-inventory reconciliation
+- [ ] P2-07c Docs index + remaining-compliance backlog stub
+
+---
+
+### External blockers (cannot be finished in-repo)
+Electronic ATO lodgement (P2-LODGE-2/3/4 live) needs ATO **DSP accreditation**, **EVTE**
+certification, and **SBR taxonomy hosting** — a certification/provisioning task outside
+this build. Scaffolding is built behind the existing fail-closed gate; live lodgement
+stays disabled until those are provisioned.
