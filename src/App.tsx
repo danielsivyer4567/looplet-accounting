@@ -20,6 +20,7 @@ import { CustomersPage } from '@/pages/Customers';
 import { CustomerDetailPage } from '@/pages/CustomerDetail';
 import { InvoicesPage } from '@/pages/Invoices';
 import { InvoiceDetailPage } from '@/pages/InvoiceDetail';
+import { CreditNotesPage } from '@/pages/CreditNotes';
 import { SubscriptionsPage } from '@/pages/Subscriptions';
 import { SubscriptionDetailPage } from '@/pages/SubscriptionDetail';
 import { DebtsPage } from '@/pages/Debts';
@@ -115,6 +116,7 @@ export function App() {
             <Route path="invoices" element={<InvoicesPage />} />
             <Route path="invoices/new" element={<InvoiceDetailPage />} />
             <Route path="invoices/:id" element={<InvoiceDetailPage />} />
+            <Route path="credit-notes" element={<CreditNotesPage />} />
             <Route path="subscriptions" element={<SubscriptionsPage />} />
             <Route path="subscriptions/:id" element={<SubscriptionDetailPage />} />
             <Route path="debts" element={<DebtsPage />} />

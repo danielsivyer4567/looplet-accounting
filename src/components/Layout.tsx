@@ -43,6 +43,7 @@ import {
   Send,
   Building2,
   Tag,
+  FileMinus2,
 } from 'lucide-react';
 import { TagDropProvider, useTagDrop } from '@/hooks/useTagDrop';
 import { TagDropManager } from '@/components/tag-drop/TagDropManager';
@@ -66,6 +67,7 @@ const navItems: NavItem[] = [
   { to: '/bills', label: 'Bills', icon: Receipt },
   { to: '/payment-runs', label: 'Payment', icon: DollarSign },
   { to: '/invoices', label: 'Invoices', icon: FileText },
+  { to: '/credit-notes', label: 'Credits', icon: FileMinus2 },
   { to: '/allocations', label: 'Allocations', icon: GitCommit },
   { to: '/coding-review', label: 'Coding', icon: ListChecks },
   { to: '/approvals', label: 'Approvals', icon: ShieldCheck },

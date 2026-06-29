@@ -36,6 +36,7 @@ describe('accounting-engine CI gate', () => {
     expect(accountingScript).toContain('sgcStatement.test.ts');
     expect(accountingScript).toContain('stpSecureTfnLifecycle.test.ts');
     expect(accountingScript).toContain('superstreamTransport.test.ts');
+    expect(accountingScript).toContain('creditNotesProduct.test.ts');
     expect(accountingScript).toContain('useRegistrations.test.ts');
     expect(accountingScript).toContain('Bas.test.tsx');
     expect(accountingScript).toContain('Fbt.test.tsx');
@@ -79,6 +80,7 @@ describe('accounting-engine CI gate', () => {
       'supabase/migrations/0227_stp_secure_tfn_lifecycle.sql',
     );
     const superstreamTransport = readRepoFile('supabase/migrations/0228_superstream_transport.sql');
+    const creditNotesProduct = readRepoFile('supabase/migrations/0229_credit_notes_product.sql');
 
     expect(gl).toMatch(/CREATE OR REPLACE FUNCTION public\.create_and_post_journal\(/);
     expect(gl).toMatch(/CREATE OR REPLACE FUNCTION public\.trial_balance_by_period\(/);
@@ -168,6 +170,14 @@ describe('accounting-engine CI gate', () => {
     );
     expect(superstreamTransport).toMatch(
       /CREATE OR REPLACE FUNCTION public\.build_superstream_payload/,
+    );
+    expect(creditNotesProduct).toMatch(/CREATE TABLE IF NOT EXISTS public\.customer_credit_notes/);
+    expect(creditNotesProduct).toMatch(/CREATE TABLE IF NOT EXISTS public\.supplier_credit_notes/);
+    expect(creditNotesProduct).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.create_customer_credit_note/,
+    );
+    expect(creditNotesProduct).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.create_supplier_credit_note/,
     );
   });
 
