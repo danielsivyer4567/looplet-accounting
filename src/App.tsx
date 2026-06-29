@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { useAuth } from '@/hooks/useAuth';
 import { OrgProvider } from '@/contexts/OrgContext';
+import { useOrg } from '@/hooks/useOrg';
 import { Layout } from '@/components/Layout';
 import { LoginPage } from '@/pages/Login';
 import { SignupPage } from '@/pages/Signup';
@@ -60,12 +61,22 @@ import { ReceiptHubPage } from '@/pages/ReceiptHub';
 import { FixedAssetsPage } from '@/pages/FixedAssets';
 import { MyActivityPage } from '@/pages/MyActivity';
 import { LegalHorizonPage } from '@/pages/LegalHorizon';
+import { ClientsPage } from '@/pages/Clients';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <div style={{ padding: '2rem' }}>Loading…</div>;
   if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
+}
+
+// Role-aware landing: accountant-only users have no books of their own, so the
+// dashboard is empty for them — send them straight to their client picker.
+function HomeRoute() {
+  const { loading, isAccountantOnly } = useOrg();
+  if (loading) return <div style={{ padding: '2rem' }}>Loading…</div>;
+  if (isAccountantOnly) return <Navigate to="/clients" replace />;
+  return <DashboardPage />;
 }
 
 export function App() {
@@ -83,7 +94,8 @@ export function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<DashboardPage />} />
+            <Route index element={<HomeRoute />} />
+            <Route path="clients" element={<ClientsPage />} />
             <Route path="bills" element={<BillsPage />} />
             <Route path="bills/upload" element={<BillUploadPage />} />
             <Route path="bills/:id" element={<BillDetailPage />} />

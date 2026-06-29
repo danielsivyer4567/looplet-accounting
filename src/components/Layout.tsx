@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useOrg } from '@/hooks/useOrg';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useAccountantHeartbeat } from '@/hooks/useAccountantHeartbeat';
 import { useTaxCalendar, buildObligationPrompt } from '@/hooks/useTaxCalendar';
@@ -40,9 +41,18 @@ import {
   Boxes,
   ShieldCheck,
   Send,
+  Building2,
 } from 'lucide-react';
 
-const navItems = [
+interface NavItem {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  end?: boolean;
+  badge?: string;
+}
+
+const navItems: NavItem[] = [
   { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
   { to: '/ask', label: 'Ask AI', icon: MessageSquare, badge: 'NEW' },
   { to: '/legal-horizon', label: 'Upcoming', icon: CalendarClock, badge: 'NEW' },
@@ -71,7 +81,13 @@ const navItems = [
   { to: '/notifications', label: 'Alerts', icon: Bell },
 ];
 
-function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
+function SidebarContent({
+  items,
+  onNavClick,
+}: {
+  items: NavItem[];
+  onNavClick?: () => void;
+}) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', alignItems: 'center' }}>
       {/* Brand Header: Centered Round Square 'L' Logo */}
@@ -102,7 +118,7 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
           padding: '0.25rem',
         }}
       >
-        {navItems.map((item) => {
+        {items.map((item) => {
           const Icon = item.icon;
           return (
             <NavLink
@@ -185,7 +201,17 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
 
 export function Layout() {
   const { user, signOut } = useAuth();
+  const { accountantClientOrgs } = useOrg();
   const isMobile = useIsMobile();
+
+  // Mixed users (own books + accountant clients) get a "Clients" entry so they can
+  // jump to the picker. Accountant-only users land on /clients directly (HomeRoute).
+  const items: NavItem[] = useMemo(() => {
+    if (accountantClientOrgs.length === 0) return navItems;
+    const clientsItem: NavItem = { to: '/clients', label: 'Clients', icon: Building2 };
+    // Insert "Clients" right after Home (the first nav item).
+    return navItems.flatMap((item, i) => (i === 0 ? [item, clientsItem] : [item]));
+  }, [accountantClientOrgs.length]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [appSwitcherOpen, setAppSwitcherOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
@@ -222,7 +248,7 @@ export function Layout() {
   const closeDrawer = () => setDrawerOpen(false);
 
   // Dynamic Page Title
-  const activeItem = navItems.find((item) => {
+  const activeItem = items.find((item) => {
     if (item.to === '/') return location.pathname === '/';
     return location.pathname.startsWith(item.to);
   });
@@ -282,7 +308,7 @@ export function Layout() {
             height: '100vh',
           }}
         >
-          <SidebarContent />
+          <SidebarContent items={items} />
         </aside>
       )}
 
@@ -314,7 +340,7 @@ export function Layout() {
             }}
             className="animated-fade-in"
           >
-            <SidebarContent onNavClick={closeDrawer} />
+            <SidebarContent items={items} onNavClick={closeDrawer} />
           </aside>
         </>
       )}
