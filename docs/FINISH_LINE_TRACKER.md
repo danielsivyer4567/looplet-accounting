@@ -3,9 +3,9 @@
 > The live cross-off list for finishing the app. Updated by the orchestrator after
 > every slice verifies. Branch: `feat/finish-line` (off `feat/accountant-portal`).
 
-**Progress: 30 / 51 complete (59%)**  ·  deploy-gated: 1 (P0-05)  ·  blocked-external: 0
-**Current wave:** F — source posting on GL
-**Last updated:** Wave F P2-02a complete (accounting gate + lint + typecheck + 378 tests + build + browser smoke green)
+**Progress: 31 / 51 complete (61%)**  ·  deploy-gated: 1 (P0-05)  ·  blocked-external: 0
+**Current wave:** F — lodgement scaffolding
+**Last updated:** Wave F P2-LODGE-1 complete (SBR/AS4 draft builder + ato-lodge fail-closed gate + focused Deno checks green)
 **Note:** +1 slice discovered in Wave B — P1-14 require_role() accepted_at gate (total now 51).
 
 Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocked-on-deploy]` · `[!]` external-blocked (cannot finish here)
@@ -41,14 +41,14 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [x] P1-13 Cron secrets + SITE_URL provisioning
 - [x] P1-14 require_role() accepted_at gate *(discovered in Wave B)*
 
-## P2 — Source posting + compliance output + product completion (6/26)
+## P2 — Source posting + compliance output + product completion (7/26)
 - [x] P2-01a Source posting: invoices + invoice payments
 - [x] P2-01b Source posting: bank transactions + reconciliation
 - [x] P2-01c Source posting: payment runs + payroll
 - [x] P2-01d Source posting: GST/BAS control + adjustments
 - [x] P2-01e Source posting: depreciation/opening-bal/manual-journals/credit-notes/reversals
 - [x] P2-02a BAS labels completion + immutable snapshot + source drilldown
-- [ ] P2-LODGE-1 SBR/AS4 message + envelope builder (behind fail-closed gate)
+- [x] P2-LODGE-1 SBR/AS4 message + envelope builder (behind fail-closed gate)
 - [ ] P2-LODGE-2 Digital-signing integration points + secret wiring  *(external-gated)*
 - [ ] P2-LODGE-3 Lodgement status polling + correspondence ingest  *(external-gated)*
 - [ ] P2-LODGE-4 Lodgement orchestration + audit + retry  *(live external-gated)*
