@@ -8,7 +8,7 @@ import { createClient } from '@supabase/supabase-js';
  * Supabase as a real user: POST {organization_id, fy_start_year, quarter} →
  * expects HTTP 200, application/pdf, and a non-empty %PDF body. Also cross-checks
  * that the generate_bas_worksheet payload the PDF is rendered from exposes the
- * 1A / 1B / 9 label totals (the values the worksheet prints).
+ * completed GST/PAYG labels, source drilldown, and 9 total the worksheet prints.
  *
  * Skip-safe (NOT a CI hard-gate, unlike the legal-rag suites): the fn is deployed
  * separately and this needs a real user JWT + an accessible org id, neither of
@@ -51,7 +51,7 @@ describe.skipIf(!HAS_ENV)('bas-worksheet-pdf (integration, deploy-gated)', () =>
     expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe('%PDF-');
   });
 
-  it('renders from a generate_bas_worksheet payload exposing 1A/1B/9 totals', async () => {
+  it('renders from a generate_bas_worksheet payload exposing completed labels and evidence', async () => {
     const client = createClient(SUPABASE_URL, ANON_KEY, {
       global: { headers: { Authorization: `Bearer ${USER_JWT}` } },
     });
@@ -66,8 +66,12 @@ describe.skipIf(!HAS_ENV)('bas-worksheet-pdf (integration, deploy-gated)', () =>
       summary?: Record<string, number>;
     } | null;
     expect(payload).toBeTruthy();
+    expect(typeof payload?.gst?.['G2']).toBe('number');
+    expect(typeof payload?.gst?.['G3']).toBe('number');
+    expect(typeof payload?.gst?.['G10']).toBe('number');
     expect(typeof payload?.gst?.['1A']).toBe('number');
     expect(typeof payload?.gst?.['1B']).toBe('number');
     expect(typeof payload?.summary?.['9_net_amount_cents']).toBe('number');
+    expect(typeof (payload as { source_drilldown?: unknown })?.source_drilldown).toBe('object');
   });
 });

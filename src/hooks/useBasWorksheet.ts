@@ -28,8 +28,36 @@ export interface BasWorksheetPayload {
   due_date: string | null;
   gst: Record<string, number>;
   payg_withholding: Record<string, number>;
-  payg_instalment: Record<string, number> | null;
+  payg_instalment: (Record<string, number | string | null> & {
+    source_status?: string;
+    source_id?: string | null;
+    source_reference?: string | null;
+  }) | null;
   summary: Record<string, number>;
+  source_drilldown?: {
+    sales?: { rows?: unknown[]; totals?: Record<string, number> };
+    purchases?: { rows?: unknown[]; totals?: Record<string, number> };
+    payg_withholding?: { rows?: unknown[]; totals?: Record<string, number> };
+    payg_instalment?: { source_status?: string; totals?: Record<string, number> };
+  };
+  evidence?: {
+    label_source?: string;
+    payg_instalment_source_status?: string;
+    snapshot_rpc?: string;
+  };
+}
+
+export interface BasWorksheetSnapshot {
+  id: string;
+  organization_id: string;
+  fy_start_year: number;
+  quarter_num: number;
+  quarter_start: string;
+  quarter_end: string;
+  due_date: string;
+  snapshot_hash: string;
+  source_version: string;
+  created_at: string;
 }
 
 export interface BasBlockers {
@@ -107,25 +135,45 @@ export function useBasWorksheet(fyStartYear: number | null, quarter: number | nu
    * + net amount ride in the payload so the approval hash pins exactly what was
    * approved. Throws on failure so the page can surface the message.
    */
-  const requestLodgeApproval = useCallback(async (): Promise<void> => {
+  const createSnapshot = useCallback(async (): Promise<BasWorksheetSnapshot> => {
     if (!currentOrg || fyStartYear == null || quarter == null) {
       throw new Error('Select a BAS quarter first.');
     }
+    const { data, error: err } = await supabase.rpc('snapshot_bas_worksheet', {
+      p_org: currentOrg.id,
+      p_fy_start_year: fyStartYear,
+      p_quarter: quarter,
+    });
+    if (err) throw new Error(err.message);
+    if (!data) throw new Error('Snapshot RPC returned no row.');
+    await refresh();
+    return data as unknown as BasWorksheetSnapshot;
+  }, [currentOrg, fyStartYear, quarter, refresh]);
+
+  const requestLodgeApproval = useCallback(async (): Promise<BasWorksheetSnapshot> => {
+    if (!currentOrg || fyStartYear == null || quarter == null) {
+      throw new Error('Select a BAS quarter first.');
+    }
+    const snapshot = await createSnapshot();
     const { error: err } = await supabase.rpc('request_approval', {
       p_org: currentOrg.id,
       p_resource_type: 'bas_lodgement',
-      p_resource_id: currentOrg.id,
+      p_resource_id: snapshot.id,
       p_risk_tier: 'tier2_approve',
       p_payload: {
         kind: 'bas_lodge',
         fy_start_year: fyStartYear,
         quarter,
+        bas_snapshot_id: snapshot.id,
+        bas_snapshot_hash: snapshot.snapshot_hash,
+        source_version: snapshot.source_version,
         net_amount_cents: worksheet?.summary?.['9_net_amount_cents'] ?? null,
       },
     });
     if (err) throw new Error(err.message);
     await refresh();
-  }, [currentOrg, fyStartYear, quarter, worksheet, refresh]);
+    return snapshot;
+  }, [currentOrg, fyStartYear, quarter, worksheet, refresh, createSnapshot]);
 
-  return { worksheet, blockers, loading, error, refresh, requestLodgeApproval };
+  return { worksheet, blockers, loading, error, refresh, createSnapshot, requestLodgeApproval };
 }

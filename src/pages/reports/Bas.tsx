@@ -18,6 +18,7 @@ import {
   ShieldAlert,
   CheckCircle2,
   Loader2,
+  Archive,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -48,6 +49,7 @@ interface CoverageRow {
 }
 
 const QUARTER_NAMES = ['', 'Q1 (Jul-Sep)', 'Q2 (Oct-Dec)', 'Q3 (Jan-Mar)', 'Q4 (Apr-Jun)'];
+type SourceDrilldownKey = 'sales' | 'purchases' | 'payg_withholding';
 
 const coverageKey = (fy: number, q: number) => `${fy}-${q}`;
 
@@ -491,20 +493,26 @@ export function BasPrepCard({
   dueDate: string;
 }) {
   const { currentOrg } = useOrg();
-  const { worksheet, blockers, loading, error, requestLodgeApproval } = useBasWorksheet(
-    fy,
-    quarter,
-  );
-  const [busy, setBusy] = useState<null | 'pdf' | 'lodge'>(null);
+  const { worksheet, blockers, loading, error, createSnapshot, requestLodgeApproval } =
+    useBasWorksheet(fy, quarter);
+  const [busy, setBusy] = useState<null | 'pdf' | 'snapshot' | 'lodge'>(null);
   const [lodgeMsg, setLodgeMsg] = useState<string | null>(null);
+  const [snapshotMsg, setSnapshotMsg] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const hasExceptions = (blockers.treatmentExceptions ?? 0) > 0;
   const hasVariance =
     blockers.reconciliationVarianceCents != null && blockers.reconciliationVarianceCents !== 0;
-  const blocked = hasExceptions || hasVariance || !worksheet;
+  const paygInstalmentMissing =
+    worksheet?.evidence?.payg_instalment_source_status === 'missing' ||
+    worksheet?.payg_instalment?.source_status === 'missing';
+  const blocked = hasExceptions || hasVariance || paygInstalmentMissing || !worksheet;
 
-  const num = (v: number | undefined): string => formatMoney(v ?? 0);
+  const num = (v: unknown): string => formatMoney(typeof v === 'number' ? v : 0);
+  const sourceCount = (key: SourceDrilldownKey) => {
+    const rows = worksheet?.source_drilldown?.[key]?.rows;
+    return Array.isArray(rows) ? rows.length : 0;
+  };
 
   const downloadPdf = async (): Promise<void> => {
     if (!currentOrg) return;
@@ -548,10 +556,25 @@ export function BasPrepCard({
     setLodgeMsg(null);
     setActionError(null);
     try {
-      await requestLodgeApproval();
+      const snapshot = await requestLodgeApproval();
       setLodgeMsg(
-        'Lodge approval requested. The BAS will only be marked lodged after the approved lodge flow completes.',
+        `Lodge approval requested against snapshot ${snapshot.snapshot_hash.slice(0, 12)}. The BAS will only be marked lodged after the approved lodge flow completes.`,
       );
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleSnapshot = async (): Promise<void> => {
+    if (!currentOrg) return;
+    setBusy('snapshot');
+    setSnapshotMsg(null);
+    setActionError(null);
+    try {
+      const snapshot = await createSnapshot();
+      setSnapshotMsg(`Snapshot saved: ${snapshot.snapshot_hash.slice(0, 12)}`);
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -592,9 +615,23 @@ export function BasPrepCard({
               marginBottom: '1.25rem',
             }}
           >
+            <LabelStat label="G1 Total sales" value={num(worksheet.gst?.['G1'])} />
+            <LabelStat label="G2 Export sales" value={num(worksheet.gst?.['G2'])} />
+            <LabelStat label="G3 GST-free sales" value={num(worksheet.gst?.['G3'])} />
+            <LabelStat label="G10 Capital purchases" value={num(worksheet.gst?.['G10'])} />
+            <LabelStat label="G11 Other purchases" value={num(worksheet.gst?.['G11'])} />
             <LabelStat label="1A GST on sales" value={num(worksheet.gst?.['1A'])} />
             <LabelStat label="1B GST on purchases" value={num(worksheet.gst?.['1B'])} />
+            <LabelStat label="W1 Wages" value={num(worksheet.payg_withholding?.['W1'])} />
+            <LabelStat label="W2 PAYG withheld" value={num(worksheet.payg_withholding?.['W2'])} />
             <LabelStat label="4 PAYG withheld" value={num(worksheet.payg_withholding?.['4'])} />
+            {worksheet.payg_instalment && (
+              <>
+                <LabelStat label="T7 PAYG instalment income" value={num(worksheet.payg_instalment['T7'])} />
+                <LabelStat label="5A PAYG instalment" value={num(worksheet.payg_instalment['5A'])} />
+                <LabelStat label="5B PAYG instalment credit" value={num(worksheet.payg_instalment['5B'])} />
+              </>
+            )}
             <LabelStat
               label="9 Net amount"
               value={num(worksheet.summary?.['9_net_amount_cents'])}
@@ -621,12 +658,31 @@ export function BasPrepCard({
               }
               badText={`GL vs BAS variance ${formatMoney(blockers.reconciliationVarianceCents ?? 0)} - reconcile before lodging`}
             />
+            <BlockerRow
+              ok={!paygInstalmentMissing}
+              okText={
+                worksheet.evidence?.payg_instalment_source_status === 'not_registered'
+                  ? 'PAYG instalments not registered'
+                  : 'PAYG instalment source present'
+              }
+              badText="PAYG instalment source missing - enter the ATO-notified amount before lodging"
+            />
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.5rem' }}>
+              Source evidence: {sourceCount('sales')} sales line
+              {sourceCount('sales') === 1 ? '' : 's'}, {sourceCount('purchases')} purchase
+              {sourceCount('purchases') === 1 ? '' : 's'}, {sourceCount('payg_withholding')}{' '}
+              PAYG row{sourceCount('payg_withholding') === 1 ? '' : 's'}
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <button className="btn btn-secondary" onClick={downloadPdf} disabled={busy !== null}>
               {busy === 'pdf' ? <Loader2 size={14} /> : <Download size={14} />}
               <span>Worksheet PDF</span>
+            </button>
+            <button className="btn btn-secondary" onClick={handleSnapshot} disabled={busy !== null}>
+              {busy === 'snapshot' ? <Loader2 size={14} /> : <Archive size={14} />}
+              <span>Snapshot</span>
             </button>
             <button
               className="btn btn-primary"
@@ -638,6 +694,11 @@ export function BasPrepCard({
               <span>Request lodge approval</span>
             </button>
           </div>
+          {snapshotMsg && (
+            <p style={{ color: 'var(--text-success)', fontSize: '0.8rem', marginTop: '0.75rem' }}>
+              {snapshotMsg}
+            </p>
+          )}
           {lodgeMsg && (
             <p style={{ color: 'var(--text-success)', fontSize: '0.8rem', marginTop: '0.75rem' }}>
               {lodgeMsg}

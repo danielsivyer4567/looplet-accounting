@@ -29,6 +29,7 @@ describe('accounting-engine CI gate', () => {
     expect(accountingScript).toContain('paymentRunPayrollGlPosting.test.ts');
     expect(accountingScript).toContain('gstBasControlGlPosting.test.ts');
     expect(accountingScript).toContain('sourcePostingCompletion.test.ts');
+    expect(accountingScript).toContain('basLabelsSnapshotsDrilldown.test.ts');
     expect(accountingScript).toContain('useRegistrations.test.ts');
     expect(accountingScript).toContain('Bas.test.tsx');
     expect(accountingScript).toContain('invoice-reconciliation-migration.test.ts');
@@ -56,6 +57,9 @@ describe('accounting-engine CI gate', () => {
     );
     const sourcePostingCompletion = readRepoFile(
       'supabase/migrations/0221_source_posting_completion.sql',
+    );
+    const basLabelsSnapshotsDrilldown = readRepoFile(
+      'supabase/migrations/0222_bas_labels_snapshots_drilldown.sql',
     );
 
     expect(gl).toMatch(/CREATE OR REPLACE FUNCTION public\.create_and_post_journal\(/);
@@ -108,6 +112,18 @@ describe('accounting-engine CI gate', () => {
       /CREATE OR REPLACE FUNCTION public\.post_supplier_credit_note_journal\(/,
     );
     expect(sourcePostingCompletion).toMatch(/create_and_post_journal/);
+    expect(basLabelsSnapshotsDrilldown).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.generate_bas_worksheet_gst_labels\(/,
+    );
+    expect(basLabelsSnapshotsDrilldown).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.generate_bas_worksheet_source_drilldown\(/,
+    );
+    expect(basLabelsSnapshotsDrilldown).toMatch(
+      /CREATE TABLE IF NOT EXISTS public\.bas_worksheet_snapshots/,
+    );
+    expect(basLabelsSnapshotsDrilldown).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.snapshot_bas_worksheet\(/,
+    );
   });
 
   it('keeps GST, BAS, PAYG, and reconciliation coverage represented', () => {

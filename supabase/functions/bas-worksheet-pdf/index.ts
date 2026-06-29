@@ -36,7 +36,7 @@ interface BasPayload {
   quarter_end?: string | null;
   gst?: Record<string, number>;
   payg_withholding?: Record<string, number>;
-  payg_instalment?: Record<string, number> | null;
+  payg_instalment?: Record<string, number | string | null> | null;
   summary?: Record<string, number>;
 }
 
@@ -70,6 +70,8 @@ function toWorksheetDoc(p: BasPayload, fy: number, quarter: number): WorksheetDo
       caption: "From invoices (sales) and bills (purchases) - v_bas_quarterly",
       rows: [
         { label: "G1   Total sales (inc GST)", value: money(gst["G1"]) },
+        { label: "G2   Export sales", value: money(gst["G2"]) },
+        { label: "G3   GST-free sales", value: money(gst["G3"]) },
         { label: "G10  Capital purchases", value: money(gst["G10"]) },
         { label: "G11  Non-capital purchases (inc GST)", value: money(gst["G11"]) },
         { label: "1A   GST on sales", value: money(gst["1A"]) },
@@ -82,6 +84,7 @@ function toWorksheetDoc(p: BasPayload, fy: number, quarter: number): WorksheetDo
       rows: [
         { label: "W1   Total salary, wages and payments", value: money(payg["W1"]) },
         { label: "W2   Amounts withheld from W1", value: money(payg["W2"]) },
+        { label: "W3   Other amounts withheld", value: money(payg["W3"]) },
         { label: "W4   Amounts withheld (no ABN)", value: money(payg["W4"]) },
         { label: "W5   Total amounts withheld", value: money(payg["W5"]) },
         { label: "4    PAYG tax withheld", value: money(payg["4"]) },
@@ -91,9 +94,10 @@ function toWorksheetDoc(p: BasPayload, fy: number, quarter: number): WorksheetDo
 
   if (p.payg_instalment) {
     const inst = p.payg_instalment;
+    const status = inst["source_status"] ? ` - source ${String(inst["source_status"])}` : "";
     sections.push({
       heading: "PAYG instalment",
-      caption: "PAYG-I registered - instalment amount is ATO-notified (not yet sourced)",
+      caption: `PAYG-I registered - values are sourced from bas_payg_instalment_amounts${status}`,
       rows: [
         { label: "T7   PAYG instalment amount", value: money(inst["T7"]) },
         { label: "5A   PAYG income tax instalment", value: money(inst["5A"]) },
