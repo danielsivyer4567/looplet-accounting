@@ -17,8 +17,10 @@ import {
   CheckCircle,
   Info,
   X,
+  Tag,
   type LucideIcon,
 } from 'lucide-react';
+import { isTagMentionNotification } from '@/lib/notificationMeta';
 
 interface NotificationRow {
   id: string;
@@ -45,6 +47,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   low_confidence_review: 'Quality',
   subscription_alert: 'Subscriptions',
   cron_failed: 'System',
+  mention: 'Mentions',
 };
 
 // Lucide icon mapping instead of raw emojis
@@ -56,6 +59,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   low_confidence_review: Search,
   subscription_alert: RefreshCw,
   cron_failed: AlertTriangle,
+  mention: Tag,
 };
 
 const SEVERITY_COLOURS: Record<string, string> = {
@@ -353,6 +357,7 @@ export function NotificationsPage() {
         >
           {filtered.map((n) => {
             const unread = n.read_at == null;
+            const isTagMention = isTagMentionNotification(n);
             const CategoryIcon = CATEGORY_ICONS[n.category] ?? Bell;
 
             return (
@@ -445,9 +450,13 @@ export function NotificationsPage() {
                           marginLeft: '0.5rem',
                           color: 'var(--accent-primary)',
                           fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
                         }}
                       >
-                        → View details
+                        {isTagMention && <Tag size={12} />}
+                        {isTagMention ? 'View tag' : '→ View details'}
                       </span>
                     )}
                   </div>

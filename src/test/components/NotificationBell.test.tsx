@@ -156,6 +156,42 @@ describe('NotificationBell — cross-tenant accountant view', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/bas');
   });
 
+  it('renders tag mentions with a View tag affordance and follows the deep link', async () => {
+    _organizations = [ACME, BETA];
+    _accountantClientOrgs = [ACME, BETA];
+    _currentOrg = ACME;
+    _rows = [
+      {
+        id: 'n-tag',
+        organization_id: 'org-beta',
+        category: 'mention',
+        severity: 'info',
+        title: 'Alice Accountant tagged you',
+        body: 'Check the GST split',
+        link: '/bills?tag=tag-1',
+        resource_type: 'tag',
+        resource_id: 'tag-1',
+        read_at: '2026-06-19T00:00:00Z',
+        created_at: '2026-06-20T00:00:00Z',
+      },
+    ];
+
+    render(<NotificationBell />);
+    fireEvent.click(screen.getByRole('button', { name: /notifications/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText('Alice Accountant tagged you')).toBeInTheDocument(),
+    );
+    expect(screen.getByText('View tag')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Alice Accountant tagged you'));
+
+    await waitFor(() =>
+      expect(mockSetCurrentOrg).toHaveBeenCalledWith(expect.objectContaining({ id: 'org-beta' })),
+    );
+    expect(mockNavigate).toHaveBeenCalledWith('/bills?tag=tag-1');
+  });
+
   it('keeps the single-org filter and hides org names for a non-accountant', async () => {
     _organizations = [ACME];
     _accountantClientOrgs = []; // not an accountant

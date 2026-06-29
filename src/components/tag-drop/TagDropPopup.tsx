@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Z_INDEX } from '@/constants/z-index';
+import { isAccountant } from '@/constants/tags';
 import {
   X,
   Users,
@@ -133,7 +134,9 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
             className="ml-auto flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             Recipients
-            <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', staffOpen && 'rotate-180')} />
+            <ChevronDown
+              className={cn('h-3.5 w-3.5 transition-transform', staffOpen && 'rotate-180')}
+            />
           </button>
           <Button
             variant="ghost"
@@ -149,23 +152,42 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
         {/* Recipients dropdown (collapsed by default — reply knows its target) */}
         {staffOpen && (
           <div className="mx-4 mt-2 max-h-44 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-900">
-            {availableStaff.map((staff) => (
-              <div
-                key={staff.id}
-                className="flex cursor-pointer items-center justify-between rounded-lg p-1.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
-                onClick={() => onStaffSelect(staff)}
-              >
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-300">{staff.name}</span>
-                <input
-                  type="checkbox"
-                  aria-label={`Select ${staff.name}`}
-                  className="h-4 w-4 rounded border-slate-300 accent-slate-600 dark:border-slate-600"
-                  checked={selectedStaff.some((s) => s.id === staff.id)}
-                  onChange={() => onStaffSelect(staff)}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </div>
-            ))}
+            {availableStaff.map((staff) => {
+              const accountant = isAccountant(staff);
+              const selected = selectedStaff.some((s) => s.id === staff.id);
+              return (
+                <div
+                  key={staff.id}
+                  data-accountant-row={accountant ? 'true' : undefined}
+                  className={cn(
+                    'flex cursor-pointer items-center justify-between rounded-lg p-1.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800',
+                    accountant &&
+                      'border border-blue-200 bg-blue-50/80 hover:bg-blue-100 dark:border-blue-400/30 dark:bg-blue-500/10 dark:hover:bg-blue-500/15',
+                  )}
+                  onClick={() => onStaffSelect(staff)}
+                >
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span className="truncate text-xs font-medium text-slate-600 dark:text-slate-300">
+                      {staff.name}
+                    </span>
+                    {accountant && (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 dark:bg-blue-500/20 dark:text-blue-200">
+                        <Check className="h-2.5 w-2.5" />
+                        Accountant
+                      </span>
+                    )}
+                  </span>
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${staff.name}`}
+                    className="h-4 w-4 rounded border-slate-300 accent-slate-600 dark:border-slate-600"
+                    checked={selected}
+                    onChange={() => onStaffSelect(staff)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -221,7 +243,12 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
         {/* Attachments + actions */}
         <div className="flex items-center gap-1.5 px-4 py-3">
           {[
-            { icon: Monitor, label: 'Screen', onClick: onToggleScreenRecord, active: isRecordingScreen },
+            {
+              icon: Monitor,
+              label: 'Screen',
+              onClick: onToggleScreenRecord,
+              active: isRecordingScreen,
+            },
             { icon: ImageIcon, label: 'Image', onClick: onImageUpload, active: false },
             { icon: Mic, label: 'Voice', onClick: onAudioRecord, active: isRecordingAudio },
             { icon: Palette, label: 'Paint', onClick: onPaintClick, active: false },
@@ -247,7 +274,8 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
               <X className="mr-1 h-3.5 w-3.5" /> Cancel
             </Button>
             <Button size="sm" onClick={onSaveTag} disabled={isUploading} className="rounded-xl">
-              <Send className="mr-1 h-3.5 w-3.5" /> {isUploading ? `Uploading ${uploadProgress}%` : 'Send Reply'}
+              <Send className="mr-1 h-3.5 w-3.5" />{' '}
+              {isUploading ? `Uploading ${uploadProgress}%` : 'Send Reply'}
             </Button>
           </div>
         </div>
@@ -260,8 +288,8 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
   return (
     <div
       className={cn(
-        "tag-popup-content fixed bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-[90vw] sm:w-[580px] flex overflow-hidden pointer-events-auto",
-        isDragging ? "cursor-move" : "cursor-default"
+        'tag-popup-content fixed bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-[90vw] sm:w-[580px] flex overflow-hidden pointer-events-auto',
+        isDragging ? 'cursor-move' : 'cursor-default',
       )}
       style={{
         zIndex: Z_INDEX.NOTIFICATION_PANEL + 50,
@@ -274,8 +302,6 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
         className="w-56 bg-gradient-to-br from-blue-600 via-primary-700 to-slate-900 flex flex-col justify-between relative overflow-hidden text-left shadow-2xl cursor-move"
         onMouseDown={onDragStart}
       >
-        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 brightness-100 mix-blend-overlay" />
-
         <div className="relative z-10 p-6 flex flex-col h-full">
           <div className="relative w-14 h-14 mb-6">
             <div className="w-full h-full bg-white/20 rounded-xl flex items-center justify-center">
@@ -284,11 +310,15 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
           </div>
 
           <div className="mt-auto pb-2">
-            <h3 className="text-white font-bold text-[28px] leading-tight tracking-tight font-sans text-left drop-shadow-md">
-              Tag.<br />
-              Notify.<br />
-              Collaborate.
-              <span className="text-emerald-400 font-normal inline-block ml-1">✓</span>
+            <h3 className="text-white font-bold text-[22px] leading-[1.12] tracking-tight font-sans text-left drop-shadow-md">
+              Tag.
+              <br />
+              Notify.
+              <br />
+              <span className="whitespace-nowrap">
+                Collaborate.
+                <span className="text-emerald-400 font-normal inline-block ml-1">✓</span>
+              </span>
             </h3>
           </div>
         </div>
@@ -304,8 +334,14 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
         <div className="flex justify-between items-center px-5 py-4 border-b border-slate-100 dark:border-slate-800">
           <div>
             <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              <div className={`h-8 w-8 rounded-xl flex items-center justify-center ${isReplyMode ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400' : 'bg-primary/10 text-primary'}`}>
-                {isReplyMode ? <MessageSquare className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}
+              <div
+                className={`h-8 w-8 rounded-xl flex items-center justify-center ${isReplyMode ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400' : 'bg-primary/10 text-primary'}`}
+              >
+                {isReplyMode ? (
+                  <MessageSquare className="h-4 w-4" />
+                ) : (
+                  <MapPin className="h-4 w-4" />
+                )}
               </div>
               {isReplyMode ? 'Reply' : 'Tag Drop'}
             </h3>
@@ -330,7 +366,9 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
             {/* Conversation Context */}
             {isReplyMode && activeConversationId && (
               <div className="bg-blue-900/30 border border-blue-400/50 rounded-lg p-2 backdrop-blur-sm">
-                <div className="text-xs font-semibold text-blue-300 mb-1">Replying to conversation</div>
+                <div className="text-xs font-semibold text-blue-300 mb-1">
+                  Replying to conversation
+                </div>
                 <div className="max-h-10 overflow-y-auto">
                   <div className="text-xs text-blue-200 truncate">
                     {conversationContext || 'Previous message'}
@@ -343,7 +381,7 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
             <div className="space-y-1.5">
               <textarea
                 className="w-full p-3 text-sm text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-xl resize-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400 bg-slate-50 dark:bg-slate-800 transition-all placeholder:text-slate-400"
-                placeholder={isReplyMode ? "Reply to conversation..." : "Add your comment..."}
+                placeholder={isReplyMode ? 'Reply to conversation...' : 'Add your comment...'}
                 rows={3}
                 value={tagComment}
                 onChange={onCommentChange}
@@ -360,7 +398,8 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
               >
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                   <Users className="h-3 w-3" />
-                  {isReplyMode ? 'Sending to' : 'Notify Staff'} <span className="text-red-500">*</span>
+                  {isReplyMode ? 'Sending to' : 'Notify Staff'}{' '}
+                  <span className="text-red-500">*</span>
                 </span>
                 <span className="flex items-center gap-1.5 min-w-0">
                   {!staffOpen && (
@@ -370,31 +409,53 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
                         : 'Choose…'}
                     </span>
                   )}
-                  <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform', staffOpen && 'rotate-180')} />
+                  <ChevronDown
+                    className={cn(
+                      'h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform',
+                      staffOpen && 'rotate-180',
+                    )}
+                  />
                 </span>
               </button>
               {staffOpen && (
                 <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-2 bg-white dark:bg-slate-900">
                   <div className="space-y-1">
-                    {availableStaff.map((staff) => (
-                      <div
-                        key={staff.id}
-                        className="flex items-center justify-between p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-                        onClick={() => onStaffSelect(staff)}
-                      >
-                        <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                          {staff.name}
-                        </span>
-                        <input
-                          type="checkbox"
-                          aria-label={`Select ${staff.name}`}
-                          className="h-4 w-4 text-slate-600 rounded border-slate-300 dark:border-slate-600 focus:ring-slate-400 accent-slate-600"
-                          checked={selectedStaff.some((s) => s.id === staff.id)}
-                          onChange={() => onStaffSelect(staff)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </div>
-                    ))}
+                    {availableStaff.map((staff) => {
+                      const accountant = isAccountant(staff);
+                      const selected = selectedStaff.some((s) => s.id === staff.id);
+                      return (
+                        <div
+                          key={staff.id}
+                          data-accountant-row={accountant ? 'true' : undefined}
+                          className={cn(
+                            'flex items-center justify-between p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer',
+                            accountant &&
+                              'border border-blue-200 bg-blue-50/80 hover:bg-blue-100 dark:border-blue-400/30 dark:bg-blue-500/10 dark:hover:bg-blue-500/15',
+                          )}
+                          onClick={() => onStaffSelect(staff)}
+                        >
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            <span className="truncate text-xs font-medium text-slate-600 dark:text-slate-300">
+                              {staff.name}
+                            </span>
+                            {accountant && (
+                              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 dark:bg-blue-500/20 dark:text-blue-200">
+                                <Check className="h-2.5 w-2.5" />
+                                Accountant
+                              </span>
+                            )}
+                          </span>
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${staff.name}`}
+                            className="h-4 w-4 text-slate-600 rounded border-slate-300 dark:border-slate-600 focus:ring-slate-400 accent-slate-600"
+                            checked={selected}
+                            onChange={() => onStaffSelect(staff)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      );
+                    })}
                     {/* @Looplet AI assistant */}
                     <div
                       className="flex items-center justify-between p-1.5 hover:bg-gradient-to-r hover:from-primary-50 hover:to-primary-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer border-t border-dashed border-slate-200 dark:border-slate-700 mt-1 pt-1.5"
@@ -452,9 +513,9 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
                 />
                 <div
                   className={cn(
-                    "w-8 h-4 rounded-full peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300",
+                    'w-8 h-4 rounded-full peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300',
                     requiresApproval ? 'bg-green-500' : 'bg-red-500',
-                    "peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all"
+                    "peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all",
                   )}
                 />
               </label>
@@ -514,10 +575,10 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
                   variant="outline"
                   size="sm"
                   className={cn(
-                    "flex flex-col items-center justify-center gap-1 h-16 border rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800",
+                    'flex flex-col items-center justify-center gap-1 h-16 border rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800',
                     isRecordingScreen
                       ? 'bg-red-50 border-red-200 text-red-600'
-                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300',
                   )}
                   onClick={onToggleScreenRecord}
                 >
@@ -541,10 +602,10 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
                   variant="outline"
                   size="sm"
                   className={cn(
-                    "flex flex-col items-center justify-center gap-1 h-16 border rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800",
+                    'flex flex-col items-center justify-center gap-1 h-16 border rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800',
                     isRecordingAudio
                       ? 'bg-red-50 border-red-200 text-red-600'
-                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300',
                   )}
                   onClick={onAudioRecord}
                 >
@@ -699,7 +760,9 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
           {/* Help Text */}
           {!isUploading && !isReplyMode && (
             <p className="text-[10px] text-slate-400 text-center leading-relaxed">
-              <span className="font-semibold text-slate-600 dark:text-slate-300">How it works:</span>{' '}
+              <span className="font-semibold text-slate-600 dark:text-slate-300">
+                How it works:
+              </span>{' '}
               <span className="text-slate-400">
                 Think of this like a team mention (@staff). Attach files to jobs, request approvals,
                 share updates, or save drafts for later.

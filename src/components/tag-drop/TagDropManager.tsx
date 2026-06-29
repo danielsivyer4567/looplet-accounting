@@ -35,7 +35,7 @@ import {
   loadTagDraft,
 } from '@/services/tags/tag-service';
 import { toast } from '@/hooks/use-toast';
-import type { AttachmentType } from '@/constants/tags';
+import { isAccountant, type AttachmentType } from '@/constants/tags';
 import type { StaffMember, UploadedFile, TagPopupPosition } from './types';
 
 export interface TagDropManagerProps {
@@ -96,12 +96,7 @@ const JobPickerModal: React.FC<JobPickerModalProps> = ({ organizationId, onSelec
 
   useEffect(() => {
     setLoading(true);
-    let q = supabase
-      .from('jobs')
-      .select('id, name')
-      .is('deleted_at', null)
-      .order('name')
-      .limit(80);
+    let q = supabase.from('jobs').select('id, name').is('deleted_at', null).order('name').limit(80);
     if (organizationId) q = q.eq('organization_id', organizationId);
     q.then((res) => {
       setJobs((res.data ?? []) as { id: string; name: string }[]);
@@ -114,7 +109,12 @@ const JobPickerModal: React.FC<JobPickerModalProps> = ({ organizationId, onSelec
     : jobs;
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -165,12 +165,15 @@ const DrawingModal: React.FC<DrawingModalProps> = ({ onSave, onCancel }) => {
 
   // historyTick is intentionally referenced so the canRedo lookup re-runs on
   // every undo/redo button press without us caching it across renders.
-  void historyTick
+  void historyTick;
   const canRedo = canvasRef.current?.canRedo() ?? false;
 
-  const handleStateChange = useCallback(<K extends keyof DrawingState>(key: K, value: DrawingState[K]) => {
-    setDrawingState((prev) => ({ ...prev, [key]: value }));
-  }, []);
+  const handleStateChange = useCallback(
+    <K extends keyof DrawingState>(key: K, value: DrawingState[K]) => {
+      setDrawingState((prev) => ({ ...prev, [key]: value }));
+    },
+    [],
+  );
 
   const handleSave = useCallback(() => {
     // captureDrawing(), not toDataURL(): the imperative ref is a plain object
@@ -190,7 +193,7 @@ const DrawingModal: React.FC<DrawingModalProps> = ({ onSave, onCancel }) => {
         width={window.innerWidth}
         height={window.innerHeight}
         drawingState={drawingState}
-        onDrawEnd={() => setHistoryTick(t => t + 1)}
+        onDrawEnd={() => setHistoryTick((t) => t + 1)}
         className="absolute inset-0"
         noBg
       />
@@ -208,7 +211,10 @@ const DrawingModal: React.FC<DrawingModalProps> = ({ onSave, onCancel }) => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => { canvasRef.current?.undo(); setHistoryTick(t => t + 1) }}
+            onClick={() => {
+              canvasRef.current?.undo();
+              setHistoryTick((t) => t + 1);
+            }}
             title="Undo last stroke"
           >
             <Undo2 className="h-4 w-4 mr-1" />
@@ -217,7 +223,10 @@ const DrawingModal: React.FC<DrawingModalProps> = ({ onSave, onCancel }) => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => { canvasRef.current?.redo(); setHistoryTick(t => t + 1) }}
+            onClick={() => {
+              canvasRef.current?.redo();
+              setHistoryTick((t) => t + 1);
+            }}
             disabled={!canRedo}
             title="Redo last undone stroke"
           >
@@ -269,12 +278,31 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
   pageUrl,
 }) => {
   const { user } = useAuth();
-  const { activeTag, isTagOverlayVisible, showTagOverlay, hideTagOverlay, tagsHidden, setTagsHidden, tagStatusFilter, setTagStatusFilter, tagsMineOnly, setTagsMineOnly } = useTagState();
+  const {
+    activeTag,
+    isTagOverlayVisible,
+    showTagOverlay,
+    hideTagOverlay,
+    tagsHidden,
+    setTagsHidden,
+    tagStatusFilter,
+    setTagStatusFilter,
+    tagsMineOnly,
+    setTagsMineOnly,
+  } = useTagState();
   const [state, setState] = useState<TagDropManagerState>(initialState);
   const [availableStaff, setAvailableStaff] = useState<StaffMember[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  const getDefaultStaffForFreshTag = useCallback(
+    () =>
+      availableStaff.filter(
+        (staff) => staff.id !== user?.id && !staff.isSystemTag && isAccountant(staff),
+      ),
+    [availableStaff, user?.id],
+  );
 
   // Right-click context menu position — shows "Drop Tag Here" mini menu
   const [rightClickPos, setRightClickPos] = useState<{ x: number; y: number } | null>(null);
@@ -292,12 +320,27 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
             // satisfy exactOptionalPropertyTypes on StaffMember.
             ...(s.avatar_url ? { avatar_url: s.avatar_url } : {}),
             ...(s.role ? { role: s.role } : {}),
-          }))
+          })),
         );
       }
     };
     fetchStaff();
   }, [organizationId]);
+
+  useEffect(() => {
+    setState((prev) => {
+      if (!prev.isPopupOpen || prev.isReplyMode || prev.selectedStaff.length > 0) return prev;
+
+      const defaultStaff = getDefaultStaffForFreshTag();
+      if (defaultStaff.length === 0) return prev;
+
+      return {
+        ...prev,
+        selectedStaff: defaultStaff,
+        staffSelectionError: null,
+      };
+    });
+  }, [getDefaultStaffForFreshTag]);
 
   // Deep link from tag-drop notifications: landing on `<page>?tag=<id>` (the
   // notification's action_url) projects the tag's drawing over the live page
@@ -307,12 +350,17 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
   const [projectedTag, setProjectedTag] = useState<TagOverlayData | null>(null);
   useEffect(() => {
     const tagId = new URLSearchParams(location.search).get('tag');
-    if (!tagId) { setProjectedTag(null); return; }
+    if (!tagId) {
+      setProjectedTag(null);
+      return;
+    }
     let cancelled = false;
     (async () => {
       const { data: tag } = await supabase
         .from('tags')
-        .select('id, organization_id, creator_id, page_url, comment, coords, drawing_data, drawing_url, requires_approval, approval_status, timestamp, tag_attachments ( attachment_type, storage_url )')
+        .select(
+          'id, organization_id, creator_id, page_url, comment, coords, drawing_data, drawing_url, requires_approval, approval_status, timestamp, tag_attachments ( attachment_type, storage_url )',
+        )
         .eq('id', tagId)
         .is('deleted_at', null)
         .maybeSingle();
@@ -323,8 +371,9 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
       const { data: staff } = await getTaggableStaff(tag.organization_id);
       const creator = staff?.find((s) => s.id === tag.creator_id);
 
-      const attachments = ((tag.tag_attachments as { attachment_type: string; storage_url: string }[] | null) ?? [])
-        .map((a) => ({ type: a.attachment_type as AttachmentType, url: a.storage_url }));
+      const attachments = (
+        (tag.tag_attachments as { attachment_type: string; storage_url: string }[] | null) ?? []
+      ).map((a) => ({ type: a.attachment_type as AttachmentType, url: a.storage_url }));
 
       const tagData: TagOverlayData = {
         id: tag.id,
@@ -337,7 +386,8 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
         drawingData: tag.drawing_data ?? undefined,
         drawingUrl: tag.drawing_url ?? undefined,
         attachments,
-        approvalStatus: (tag.approval_status as 'pending' | 'approved' | 'rejected' | null) ?? undefined,
+        approvalStatus:
+          (tag.approval_status as 'pending' | 'approved' | 'rejected' | null) ?? undefined,
         requiresApproval: !!tag.requires_approval,
         creatorId: tag.creator_id,
         organizationId: tag.organization_id,
@@ -347,7 +397,9 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
       showTagOverlay(tagData);
       if (user?.id) void markTagAsRead(tagId, user.id);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
     // location.key (not just .search) so re-clicking "View tag" for the same
     // tag re-opens the overlay after it was dismissed.
   }, [location.key, location.search, user?.id, showTagOverlay]);
@@ -359,7 +411,11 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
     const handlePageClick = (e: MouseEvent) => {
       // Ignore clicks on the popup itself
       const target = e.target as HTMLElement;
-      if (target.closest('.tag-popup-content') || target.closest('.tag-overlay')) {
+      if (
+        target.closest('.tag-popup-content') ||
+        target.closest('.tag-overlay') ||
+        target.closest('[data-no-tag-drop]')
+      ) {
         return;
       }
 
@@ -367,6 +423,11 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
       setState((prev) => ({
         ...prev,
         isPopupOpen: true,
+        isReplyMode: false,
+        activeConversationId: null,
+        conversationContext: undefined,
+        selectedStaff: getDefaultStaffForFreshTag(),
+        staffSelectionError: null,
         popupCoords: {
           x: Math.min(e.clientX, window.innerWidth - 600),
           y: Math.min(e.clientY, window.innerHeight - 500),
@@ -379,7 +440,7 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
 
     document.addEventListener('click', handlePageClick);
     return () => document.removeEventListener('click', handlePageClick);
-  }, [isActive, onModeChange]);
+  }, [getDefaultStaffForFreshTag, isActive, onModeChange]);
 
   // Close popup
   const handleClose = useCallback(() => {
@@ -431,64 +492,72 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
   // open the popup directly at a given position without a second contextmenu handler.
   useEffect(() => {
     const onDropAt = (e: Event) => {
-      const { x, y } = (e as CustomEvent<{ x: number; y: number }>).detail
+      const { x, y } = (e as CustomEvent<{ x: number; y: number }>).detail;
       setState((prev) => ({
         ...prev,
         isPopupOpen: true,
+        isReplyMode: false,
+        activeConversationId: null,
+        conversationContext: undefined,
+        selectedStaff: getDefaultStaffForFreshTag(),
+        staffSelectionError: null,
         popupCoords: {
           x: Math.min(x, window.innerWidth - 600),
           y: Math.min(y, window.innerHeight - 500),
         },
-      }))
-    }
-    window.addEventListener('looplet:drop-tag-at', onDropAt as EventListener)
-    return () => window.removeEventListener('looplet:drop-tag-at', onDropAt as EventListener)
-  }, [])
+      }));
+    };
+    window.addEventListener('looplet:drop-tag-at', onDropAt as EventListener);
+    return () => window.removeEventListener('looplet:drop-tag-at', onDropAt as EventListener);
+  }, [getDefaultStaffForFreshTag]);
 
   // Fallback global right-click → "Drop Tag Here" mini menu.
   // Only fires when no other context menu (FeatureContextMenu, Sidebar, list rows)
   // would handle the click — those menus include "Drop Tag Here" themselves.
   useEffect(() => {
-    const SKIP_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'A', 'BUTTON', 'OPTION'])
+    const SKIP_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'A', 'BUTTON', 'OPTION']);
     const handleContextMenu = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
+      const target = e.target as HTMLElement;
       if (
         SKIP_TAGS.has(target.tagName) ||
         target.isContentEditable ||
-        target.closest('[data-tour]') ||          // FeatureContextMenu owns this
+        target.closest('[data-tour]') || // FeatureContextMenu owns this
         target.closest('[data-sidebar-nav-item]') || // Sidebar UniversalContextMenu owns this
-        target.closest('[data-row-index]') ||     // List rows (ListRow) — RightClickMenu owns this
+        target.closest('[data-row-index]') || // List rows (ListRow) — RightClickMenu owns this
         target.closest('.tag-popup-content') ||
         target.closest('.tag-overlay') ||
         target.closest('[data-no-tag-drop]')
-      ) return
-      e.preventDefault()
-      setRightClickPos({ x: e.clientX, y: e.clientY })
-    }
-    document.addEventListener('contextmenu', handleContextMenu)
-    return () => document.removeEventListener('contextmenu', handleContextMenu)
-  }, [])
+      )
+        return;
+      e.preventDefault();
+      setRightClickPos({ x: e.clientX, y: e.clientY });
+    };
+    document.addEventListener('contextmenu', handleContextMenu);
+    return () => document.removeEventListener('contextmenu', handleContextMenu);
+  }, []);
 
   const handleRightClickDrop = useCallback(() => {
-    if (!rightClickPos) return
+    if (!rightClickPos) return;
     setState((prev) => ({
       ...prev,
       isPopupOpen: true,
+      isReplyMode: false,
+      activeConversationId: null,
+      conversationContext: undefined,
+      selectedStaff: getDefaultStaffForFreshTag(),
+      staffSelectionError: null,
       popupCoords: {
         x: Math.min(rightClickPos.x, window.innerWidth - 600),
         y: Math.min(rightClickPos.y, window.innerHeight - 500),
       },
-    }))
-    setRightClickPos(null)
-  }, [rightClickPos])
+    }));
+    setRightClickPos(null);
+  }, [getDefaultStaffForFreshTag, rightClickPos]);
 
   // Comment change
-  const handleCommentChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      setState((prev) => ({ ...prev, tagComment: e.target.value }));
-    },
-    []
-  );
+  const handleCommentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setState((prev) => ({ ...prev, tagComment: e.target.value }));
+  }, []);
 
   // Staff selection
   const handleStaffSelect = useCallback((staff: StaffMember) => {
@@ -531,10 +600,7 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
           const url = URL.createObjectURL(blob);
           setState((prev) => ({
             ...prev,
-            uploadedFiles: [
-              ...prev.uploadedFiles,
-              { type: 'video', previewUrl: url, file: blob },
-            ],
+            uploadedFiles: [...prev.uploadedFiles, { type: 'video', previewUrl: url, file: blob }],
             isRecordingScreen: false,
           }));
           stream.getTracks().forEach((t) => t.stop());
@@ -555,33 +621,30 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
     fileInputRef.current?.click();
   }, []);
 
-  const handleFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files;
-      if (!files) return;
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
 
-      Array.from(files).forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          setState((prev) => ({
-            ...prev,
-            uploadedFiles: [
-              ...prev.uploadedFiles,
-              {
-                type: 'image',
-                previewUrl: reader.result as string,
-                file,
-              },
-            ],
-          }));
-        };
-        reader.readAsDataURL(file);
-      });
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setState((prev) => ({
+          ...prev,
+          uploadedFiles: [
+            ...prev.uploadedFiles,
+            {
+              type: 'image',
+              previewUrl: reader.result as string,
+              file,
+            },
+          ],
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
 
-      e.target.value = '';
-    },
-    []
-  );
+    e.target.value = '';
+  }, []);
 
   // Audio recording
   const handleAudioRecord = useCallback(async () => {
@@ -600,10 +663,7 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
           const url = URL.createObjectURL(blob);
           setState((prev) => ({
             ...prev,
-            uploadedFiles: [
-              ...prev.uploadedFiles,
-              { type: 'audio', previewUrl: url, file: blob },
-            ],
+            uploadedFiles: [...prev.uploadedFiles, { type: 'audio', previewUrl: url, file: blob }],
             isRecordingAudio: false,
           }));
           stream.getTracks().forEach((t) => t.stop());
@@ -628,10 +688,7 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
     setState((prev) => ({
       ...prev,
       drawingData: dataUrl,
-      uploadedFiles: [
-        ...prev.uploadedFiles,
-        { type: 'drawing', previewUrl: dataUrl },
-      ],
+      uploadedFiles: [...prev.uploadedFiles, { type: 'drawing', previewUrl: dataUrl }],
       isDrawingMode: false,
     }));
   }, []);
@@ -756,23 +813,16 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
   const handleLoadDraft = useCallback(async () => {
     if (!user?.id) return;
 
-    const result = await loadTagDraft(
-      user.id,
-      pageUrl || window.location.pathname
-    );
+    const result = await loadTagDraft(user.id, pageUrl || window.location.pathname);
 
     if (result.data) {
       setState((prev) => ({
         ...prev,
         tagComment: result.data?.comment || '',
         drawingData: result.data?.drawingData || null,
-        selectedStaff: availableStaff.filter((s) =>
-          result.data?.taggedStaffIds?.includes(s.id)
-        ),
+        selectedStaff: availableStaff.filter((s) => result.data?.taggedStaffIds?.includes(s.id)),
         requiresApproval: result.data?.requiresApproval || false,
-        selectedJob: result.data?.jobId
-          ? { id: result.data.jobId, title: 'Loaded Job' }
-          : null,
+        selectedJob: result.data?.jobId ? { id: result.data.jobId, title: 'Loaded Job' } : null,
       }));
       toast({ title: 'Draft loaded' });
     } else if (result.error) {
@@ -788,7 +838,11 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
   }, []);
 
   const handleJobSelected = useCallback((job: { id: string; name: string }) => {
-    setState((prev) => ({ ...prev, selectedJob: { id: job.id, title: job.name }, showJobPicker: false }));
+    setState((prev) => ({
+      ...prev,
+      selectedJob: { id: job.id, title: job.name },
+      showJobPicker: false,
+    }));
   }, []);
 
   const handleJobPickerClose = useCallback(() => {
@@ -809,37 +863,38 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
   }, []);
 
   // Handle tag reply
-  const handleReply = useCallback((tagId: string | number, creator?: { id: string; name: string }) => {
-    setState((prev) => ({
-      ...prev,
-      isReplyMode: true,
-      activeConversationId: String(tagId),
-      isPopupOpen: true,
-      // A reply already knows its recipient — preselect the tag's creator so
-      // the staff picker can stay collapsed (don't notify yourself).
-      selectedStaff: creator && creator.id !== user?.id
-        ? [{ id: creator.id, name: creator.name }]
-        : prev.selectedStaff,
-      popupCoords: {
-        x: window.innerWidth / 2 - 290,
-        y: window.innerHeight / 2 - 250,
-      },
-    }));
-    hideTagOverlay();
-  }, [hideTagOverlay, user?.id]);
+  const handleReply = useCallback(
+    (tagId: string | number, creator?: { id: string; name: string }) => {
+      setState((prev) => ({
+        ...prev,
+        isReplyMode: true,
+        activeConversationId: String(tagId),
+        isPopupOpen: true,
+        // A reply already knows its recipient — preselect the tag's creator so
+        // the staff picker can stay collapsed (don't notify yourself).
+        selectedStaff:
+          creator && creator.id !== user?.id
+            ? [{ id: creator.id, name: creator.name }]
+            : prev.selectedStaff,
+        popupCoords: {
+          x: window.innerWidth / 2 - 290,
+          y: window.innerHeight / 2 - 250,
+        },
+      }));
+      hideTagOverlay();
+    },
+    [hideTagOverlay, user?.id],
+  );
 
   // Handle tag delete
-  const handleDelete = useCallback(
-    async (tagId: string | number) => {
-      const result = await deleteTag(String(tagId));
-      if (result.error) {
-        toast({ title: result.error.message, variant: 'destructive' });
-      } else {
-        toast({ title: 'Tag deleted' });
-      }
-    },
-    []
-  );
+  const handleDelete = useCallback(async (tagId: string | number) => {
+    const result = await deleteTag(String(tagId));
+    if (result.error) {
+      toast({ title: result.error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Tag deleted' });
+    }
+  }, []);
 
   return (
     <>
@@ -857,10 +912,7 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
       {rightClickPos && (
         <>
           {/* Backdrop — click outside to dismiss */}
-          <div
-            className="fixed inset-0 z-[9980]"
-            onMouseDown={() => setRightClickPos(null)}
-          />
+          <div className="fixed inset-0 z-[9980]" onMouseDown={() => setRightClickPos(null)} />
           <div
             className="fixed z-[9981] min-w-[160px] overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 py-1.5 shadow-2xl shadow-slate-900/15 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/95"
             style={{
@@ -882,10 +934,7 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
 
       {/* Cursor indicator when active */}
       {isActive && (
-        <div
-          className="fixed inset-0 z-[9990] pointer-events-none"
-          style={{ cursor: 'crosshair' }}
-        >
+        <div className="fixed inset-0 z-[9990] pointer-events-none" style={{ cursor: 'crosshair' }}>
           <div className="absolute inset-0 bg-blue-500/5" />
           <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 flex-wrap max-w-[95vw] justify-center">
             <div className="bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
@@ -909,14 +958,15 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
                   ? 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800'
                   : 'bg-white/95 hover:bg-white text-slate-700 border-slate-200',
               )}
-              title={tagsMineOnly ? 'Show everyone\'s tags' : 'Show only my tags'}
+              title={tagsMineOnly ? "Show everyone's tags" : 'Show only my tags'}
             >
               <User className="h-3.5 w-3.5" />
               {tagsMineOnly ? 'Mine' : 'All authors'}
             </button>
             <div className="pointer-events-auto bg-white/95 rounded-full shadow-lg border border-slate-200 flex items-center gap-0.5 p-0.5">
               {(['all', 'pending', 'approved', 'rejected', 'no_approval'] as const).map((f) => {
-                const label = f === 'no_approval' ? 'No approval' : f.charAt(0).toUpperCase() + f.slice(1);
+                const label =
+                  f === 'no_approval' ? 'No approval' : f.charAt(0).toUpperCase() + f.slice(1);
                 const active = tagStatusFilter === f;
                 return (
                   <button
@@ -941,13 +991,15 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
 
       {/* Deep-linked tag: drawing projected over the live page while the tag
           card is open — closing the card or replying clears the arrows. */}
-      {projectedTag && isTagOverlayVisible && (projectedTag.drawingUrl || projectedTag.drawingData) && (
-        <img
-          src={projectedTag.drawingUrl || projectedTag.drawingData}
-          alt=""
-          className="pointer-events-none fixed inset-0 z-[9960] h-full w-full select-none"
-        />
-      )}
+      {projectedTag &&
+        isTagOverlayVisible &&
+        (projectedTag.drawingUrl || projectedTag.drawingData) && (
+          <img
+            src={projectedTag.drawingUrl || projectedTag.drawingData}
+            alt=""
+            className="pointer-events-none fixed inset-0 z-[9960] h-full w-full select-none"
+          />
+        )}
 
       {/* Tag Drop Popup — hidden while drawing so the page underneath is fully visible */}
       <TagDropPopup
@@ -987,10 +1039,7 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
 
       {/* Drawing Canvas Modal */}
       {state.isDrawingMode && (
-        <DrawingModal
-          onSave={handleDrawingSave}
-          onCancel={handleDrawingCancel}
-        />
+        <DrawingModal onSave={handleDrawingSave} onCancel={handleDrawingCancel} />
       )}
 
       {/* Job Picker Modal */}
