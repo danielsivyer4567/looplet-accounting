@@ -8,24 +8,27 @@ import type { AttachmentType } from '@/constants/tags';
  */
 export interface TagOverlayData {
   id: string | number;
-  comment?: string;
-  senderName?: string;
-  senderAvatar?: string;
-  time?: string;
-  coordinates?: { x: number; y: number };
-  mediaType?: AttachmentType;
-  drawingData?: string;
-  drawingUrl?: string;
+  // Optionals carry `| undefined` explicitly: under the repo's
+  // `exactOptionalPropertyTypes`, the ported renderer/overlay build these from
+  // nullable DB rows (`x ?? undefined`), which a bare `?:` would reject.
+  comment?: string | undefined;
+  senderName?: string | undefined;
+  senderAvatar?: string | undefined;
+  time?: string | undefined;
+  coordinates?: { x: number; y: number } | undefined;
+  mediaType?: AttachmentType | undefined;
+  drawingData?: string | undefined;
+  drawingUrl?: string | undefined;
   attachments?: {
     type: AttachmentType;
     url: string;
-  }[];
-  creatorId?: string;
-  approvalStatus?: 'pending' | 'approved' | 'rejected';
-  requiresApproval?: boolean;
-  taggedStaffIds?: string[];
-  organizationId?: string;
-  pageUrl?: string;
+  }[] | undefined;
+  creatorId?: string | undefined;
+  approvalStatus?: 'pending' | 'approved' | 'rejected' | undefined;
+  requiresApproval?: boolean | undefined;
+  taggedStaffIds?: string[] | undefined;
+  organizationId?: string | undefined;
+  pageUrl?: string | undefined;
 }
 
 // Keep backward compatibility alias
