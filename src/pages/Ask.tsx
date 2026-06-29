@@ -388,8 +388,8 @@ export function AskPage() {
               Ask AI
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
-              Ask anything about your books or Australian tax regulations. Powered by live accounting
-              records + citation search.
+              Ask anything about your books or Australian tax regulations. Powered by live
+              accounting records + citation search.
             </p>
           </div>
           <KnowledgeBaseMenu />
@@ -1024,54 +1024,54 @@ export function AdvisorPanel({
           </div>
 
           {notes.length === 0 && !loading && backendAvailable ? (
-          <div
-            style={{
-              padding: '0.85rem',
-              border: '1px dashed var(--border-subtle)',
-              borderRadius: 'var(--radius-sm)',
-              color: 'var(--text-muted)',
-              fontSize: '0.82rem',
-            }}
-          >
-            No advisor notes yet.
-          </div>
-        ) : null}
-
-        {notes.map((note) => {
-          const selected = selectedNoteId === note.id;
-          return (
-            <button
-              key={note.id}
-              type="button"
-              onClick={() => onSelectNote(note.id)}
+            <div
               style={{
-                width: '100%',
-                textAlign: 'left',
-                padding: '0.75rem',
-                border: `1px solid ${selected ? 'var(--accent-primary)' : 'var(--border-subtle)'}`,
+                padding: '0.85rem',
+                border: '1px dashed var(--border-subtle)',
                 borderRadius: 'var(--radius-sm)',
-                background: selected ? 'var(--bg-hover)' : 'var(--bg-card)',
-                color: 'var(--text-body)',
-                cursor: 'pointer',
-                display: 'grid',
-                gap: '0.45rem',
+                color: 'var(--text-muted)',
+                fontSize: '0.82rem',
               }}
             >
-              <span style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                <span className={`badge ${adviceStatusBadgeClass(note.status)}`}>
-                  {labelFromStatus(note.status)}
+              No advisor notes yet.
+            </div>
+          ) : null}
+
+          {notes.map((note) => {
+            const selected = selectedNoteId === note.id;
+            return (
+              <button
+                key={note.id}
+                type="button"
+                onClick={() => onSelectNote(note.id)}
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '0.75rem',
+                  border: `1px solid ${selected ? 'var(--accent-primary)' : 'var(--border-subtle)'}`,
+                  borderRadius: 'var(--radius-sm)',
+                  background: selected ? 'var(--bg-hover)' : 'var(--bg-card)',
+                  color: 'var(--text-body)',
+                  cursor: 'pointer',
+                  display: 'grid',
+                  gap: '0.45rem',
+                }}
+              >
+                <span style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  <span className={`badge ${adviceStatusBadgeClass(note.status)}`}>
+                    {labelFromStatus(note.status)}
+                  </span>
+                  <span className="badge badge-info">{labelFromAdviceKind(note.kind)}</span>
                 </span>
-                <span className="badge badge-info">{labelFromAdviceKind(note.kind)}</span>
-              </span>
-              <strong style={{ color: 'var(--text-title)', lineHeight: 1.25 }}>
-                {note.title}
-              </strong>
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', lineHeight: 1.4 }}>
-                {compactText(note.summary, 120)}
-              </span>
-            </button>
-          );
-        })}
+                <strong style={{ color: 'var(--text-title)', lineHeight: 1.25 }}>
+                  {note.title}
+                </strong>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', lineHeight: 1.4 }}>
+                  {compactText(note.summary, 120)}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </aside>
 

@@ -23,8 +23,31 @@ import { type LegalChunk } from './chunk.ts';
 import { loadCurrentVersions, type CurrentVersion } from './currentVersions.ts';
 import { embedTexts, EMBEDDING_MODEL } from '../ocr/openai.ts';
 
+interface SupabaseError {
+  message: string;
+}
+
+interface LegalCorpusInsertQuery {
+  select(columns: string): {
+    single(): Promise<{ data: { id: string } | null; error: SupabaseError | null }>;
+  };
+}
+
+interface LegalCorpusUpdateQuery {
+  eq(column: string, value: string): Promise<{ error: SupabaseError | null }>;
+}
+
+interface LegalCorpusTable {
+  insert(row: Record<string, unknown>): LegalCorpusInsertQuery;
+  update(row: Record<string, unknown>): LegalCorpusUpdateQuery;
+}
+
 interface SupabaseClient {
-  from(table: string): any;
+  from(table: string): unknown;
+}
+
+function legalCorpus(admin: SupabaseClient): LegalCorpusTable {
+  return admin.from('legal_corpus') as LegalCorpusTable;
 }
 
 export interface UpsertParams {
@@ -151,14 +174,14 @@ export async function upsertVersionedChunks(
     };
 
     if (p.action === 'insert') {
-      const { data, error } = await admin.from('legal_corpus').insert(newRow).select('id').single();
+      const { data, error } = await legalCorpus(admin).insert(newRow).select('id').single();
       if (error || !data) throw new Error(`insert ${p.chunk.section_ref}: ${error?.message}`);
       stats.inserted += 1;
       changes.push({
         section_ref: p.chunk.section_ref,
         action: 'insert',
         old_chunk_id: null,
-        new_chunk_id: data.id as string,
+        new_chunk_id: data.id,
         effective_from,
       });
       continue;
@@ -168,7 +191,7 @@ export async function upsertVersionedChunks(
     if (!cur) continue; // unreachable: replace/version only set when cur exists
 
     if (p.action === 'replace') {
-      const { error } = await admin.from('legal_corpus').update(content).eq('id', cur.id);
+      const { error } = await legalCorpus(admin).update(content).eq('id', cur.id);
       if (error) throw new Error(`replace ${p.chunk.section_ref}: ${error.message}`);
       stats.replaced += 1;
       changes.push({
@@ -184,13 +207,11 @@ export async function upsertVersionedChunks(
     // version: close the prior version, then insert the new one. The new row's
     // effective_from differs from the (still live) old row, so the partial-unique
     // (doc_ref, section_ref, effective_from) is not violated.
-    const { error: closeErr } = await admin
-      .from('legal_corpus')
+    const { error: closeErr } = await legalCorpus(admin)
       .update({ effective_to: effective_from })
       .eq('id', cur.id);
     if (closeErr) throw new Error(`close prior ${p.chunk.section_ref}: ${closeErr.message}`);
-    const { data: ins, error: insErr } = await admin
-      .from('legal_corpus')
+    const { data: ins, error: insErr } = await legalCorpus(admin)
       .insert(newRow)
       .select('id')
       .single();
@@ -200,7 +221,7 @@ export async function upsertVersionedChunks(
       section_ref: p.chunk.section_ref,
       action: 'version',
       old_chunk_id: cur.id,
-      new_chunk_id: ins.id as string,
+      new_chunk_id: ins.id,
       effective_from,
     });
   }

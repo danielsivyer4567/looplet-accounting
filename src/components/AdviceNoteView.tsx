@@ -343,9 +343,9 @@ function ObjectMapTable({ map }: { map: Record<string, Record<string, unknown>> 
   // The entry key + its `label` field become the row name, so don't repeat them
   // as their own columns.
   const hidden = new Set(['key', 'label', 'name']);
-  const columns = Array.from(
-    new Set(entries.flatMap(([, row]) => Object.keys(row))),
-  ).filter((column) => !hidden.has(column.toLowerCase()));
+  const columns = Array.from(new Set(entries.flatMap(([, row]) => Object.keys(row)))).filter(
+    (column) => !hidden.has(column.toLowerCase()),
+  );
 
   const isNumericColumn = (column: string) =>
     entries.every(([, row]) => row[column] == null || typeof row[column] === 'number');
