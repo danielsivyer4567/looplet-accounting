@@ -3,9 +3,9 @@
 > The live cross-off list for finishing the app. Updated by the orchestrator after
 > every slice verifies. Branch: `feat/finish-line` (off `feat/accountant-portal`).
 
-**Progress: 39 / 51 complete (76%)** · deploy-gated: 1 (P0-05) · blocked-external: 0
+**Progress: 42 / 51 complete (82%)** · deploy-gated: 1 (P0-05) · blocked-external: 0
 **Current wave:** F — compliance output
-**Last updated:** Wave F P2-04 complete (connector key UI + scope UX + audit surface + OpenAPI role drift fixed; ATO lodgement TODOs left pending/external-gated)
+**Last updated:** Wave F P2-05 complete (Chromium/Firefox desktop/tablet/mobile product UX smoke, empty/error states, keyboard focus, mobile drawer; report `.claude/scratch/product-ux-smoke/2026-06-29T13-55-31-190Z/report.json`; ATO lodgement TODOs left pending/external-gated)
 **Note:** +1 slice discovered in Wave B — P1-14 require_role() accepted_at gate (total now 51).
 
 Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocked-on-deploy]` · `[!]` external-blocked (cannot finish here)
@@ -43,7 +43,7 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [x] P1-13 Cron secrets + SITE_URL provisioning
 - [x] P1-14 require_role() accepted_at gate _(discovered in Wave B)_
 
-## P2 — Source posting + compliance output + product completion (15/26)
+## P2 — Source posting + compliance output + product completion (18/26)
 
 - [x] P2-01a Source posting: invoices + invoice payments
 - [x] P2-01b Source posting: bank transactions + reconciliation
@@ -63,9 +63,9 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [x] P2-SUPER SuperStream/clearing-house real dispatch (or documented transport)
 - [x] P2-CN Credit notes AR/AP (schema + RPC + UI + GL posting)
 - [x] P2-04 Connector product surface (key UI + scope enforcement + OpenAPI + audit)
-- [ ] P2-05a Cross-browser smoke (Chromium/Firefox) on core routes
-- [ ] P2-05b Mobile/tablet + empty/loading/error states
-- [ ] P2-05c Keyboard/focus a11y across main workflows
+- [x] P2-05a Cross-browser smoke (Chromium/Firefox) on core routes
+- [x] P2-05b Mobile/tablet + empty/loading/error states
+- [x] P2-05c Keyboard/focus a11y across main workflows
 - [ ] P2-06a Route-level code splitting + large-asset optimisation
 - [ ] P2-06b Production security polish (sourcemaps off, CSP, CORS narrowing)
 - [ ] P2-07a Migration baseline repair + rollback runbook

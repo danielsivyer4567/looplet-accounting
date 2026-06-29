@@ -23,6 +23,7 @@
     "test:tenant-isolation": "vitest run tests/tenant-isolation.test.ts",
     "wrap:live-audit": "node examples/wrap-up-live-blocker-audit.mjs",
     "wrap:visual-smoke": "node examples/wrap-up-local-visual-smoke.mjs",
+    "product:ux-smoke": "node examples/product-ux-smoke.mjs",
     "pos:validate": "node examples/pos-bridge/validate.mjs examples/pos-bridge/sample-receipt.json examples/pos-bridge/sample-refund.json examples/pos-bridge/sample-void.json",
     "pos:integration-fit-trial": "node examples/pos-bridge/integration-fit-trial.mjs",
     "pos:pilot-kit-trial": "node examples/pos-bridge/pilot-kit-trial.mjs",
