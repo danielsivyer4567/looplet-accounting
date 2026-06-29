@@ -19,7 +19,7 @@
     "test:coverage": "vitest run --coverage",
     "test:unit": "vitest run src/test",
     "test:integration": "vitest run tests",
-    "test:accounting": "vitest run src/test/db/accountingEngineGate.test.ts src/test/db/glCanonicalPosting.test.ts src/test/db/periodLockCoverage.test.ts src/test/db/requireRoleAccepted.test.ts src/test/hooks/useRegistrations.test.ts src/test/pages/Bas.test.tsx tests/invoice-reconciliation-migration.test.ts tests/receipt-webhook.test.ts",
+    "test:accounting": "vitest run src/test/db/accountingEngineGate.test.ts src/test/db/glCanonicalPosting.test.ts src/test/db/periodLockCoverage.test.ts src/test/db/requireRoleAccepted.test.ts src/test/db/apReconciliationParity.test.ts src/test/hooks/useRegistrations.test.ts src/test/pages/Bas.test.tsx tests/invoice-reconciliation-migration.test.ts tests/receipt-webhook.test.ts",
     "test:tenant-isolation": "vitest run tests/tenant-isolation.test.ts",
     "wrap:live-audit": "node examples/wrap-up-live-blocker-audit.mjs",
     "wrap:visual-smoke": "node examples/wrap-up-local-visual-smoke.mjs",

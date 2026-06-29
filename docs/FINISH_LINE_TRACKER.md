@@ -3,9 +3,9 @@
 > The live cross-off list for finishing the app. Updated by the orchestrator after
 > every slice verifies. Branch: `feat/finish-line` (off `feat/accountant-portal`).
 
-**Progress: 23 / 51 complete (45%)**  ·  deploy-gated: 1 (P0-05)  ·  blocked-external: 0
-**Current wave:** E — GL spine
-**Last updated:** Wave E P1-05 verified (accounting gate + lint + typecheck + 303 tests + build green)
+**Progress: 24 / 51 complete (47%)**  ·  deploy-gated: 1 (P0-05)  ·  blocked-external: 0
+**Current wave:** F — source posting on GL
+**Last updated:** Wave E complete (accounting gate + lint + typecheck + 312 tests + build green)
 **Note:** +1 slice discovered in Wave B — P1-14 require_role() accepted_at gate (total now 51).
 
 Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocked-on-deploy]` · `[!]` external-blocked (cannot finish here)
@@ -25,7 +25,7 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [x] P0-10 Email-inbound webhook auth fail-closed + config
 - [x] P0-11 Edge-function JWT-mode pinning (config.toml)
 
-## P1 — Reliability & accounting foundations (13/14)
+## P1 — Reliability & accounting foundations (14/14)
 - [x] P1-01 Cron heartbeat + no-success-window + soft-failure parsing
 - [x] P1-02 Basiq durability + basiq_user_id migration + webhook persist
 - [x] P1-03 OCR provider selection + extraction quality + accuracy gate
@@ -35,7 +35,7 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [x] P1-07 High-impact FK indexes (+ tag_drafts)
 - [x] P1-08 Xero retry/backfill + stable idempotency keys
 - [x] P1-09 Gmail reconnect + disconnect notification
-- [ ] P1-10 AP reconciliation parity
+- [x] P1-10 AP reconciliation parity
 - [x] P1-11 Period-lock coverage expansion
 - [x] P1-12 Audit triggers on money tables
 - [x] P1-13 Cron secrets + SITE_URL provisioning
