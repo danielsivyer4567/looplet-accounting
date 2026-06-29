@@ -17,6 +17,9 @@ import {
   Eraser,
   FileText,
   RefreshCw,
+  BookOpen,
+  ChevronDown,
+  ExternalLink,
 } from 'lucide-react';
 
 interface AskResponse {
@@ -65,6 +68,23 @@ const SUGGESTED_QUESTIONS = [
 
 const TRANSPARENT_ANSWER_RULE =
   'Always return a written answer that can be mirrored as a top-down mind map: question, books/data checked, law/evidence checked, and final decision.';
+
+// Curated reference material surfaced from the "Knowledge base" dropdown at the
+// top of the page. Add videos, documents, or bucket download links here — the
+// dropdown renders one entry per item.
+interface KnowledgeResource {
+  label: string;
+  description: string;
+  href: string;
+}
+
+const KNOWLEDGE_RESOURCES: KnowledgeResource[] = [
+  {
+    label: 'NotebookLM workspace',
+    description: 'Live, continually-updated notebook — videos, documents & source material.',
+    href: 'https://notebooklm.google.com/notebook/7a7722a5-9a6f-4934-8e7f-37907c30a4f3',
+  },
+];
 
 const ADVISOR_SCENARIOS: AdvisorScenario[] = [
   { mode: 'structuring', label: 'Structuring' },
@@ -338,26 +358,41 @@ export function AskPage() {
           background: var(--bg-hover);
           transform: translateY(-1px);
         }
+        .kb-menu-item:hover {
+          background: var(--bg-hover);
+        }
       `}</style>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingBottom: '100px' }}>
         {/* Header */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h1
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              marginBottom: '0.25rem',
-            }}
-          >
-            <Sparkles size={24} style={{ color: 'var(--accent-primary)' }} />
-            Ask AI
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
-            Ask anything about your books or Australian tax regulations. Powered by live accounting
-            records + citation search.
-          </p>
+        <div
+          style={{
+            marginBottom: '1.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: '1rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div>
+            <h1
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                marginBottom: '0.25rem',
+              }}
+            >
+              <Sparkles size={24} style={{ color: 'var(--accent-primary)' }} />
+              Ask AI
+            </h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+              Ask anything about your books or Australian tax regulations. Powered by live accounting
+              records + citation search.
+            </p>
+          </div>
+          <KnowledgeBaseMenu />
         </div>
 
         <AdvisorPanel
@@ -806,6 +841,117 @@ export function AskPage() {
   );
 }
 
+function KnowledgeBaseMenu() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        type="button"
+        className="btn btn-secondary"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+      >
+        <BookOpen size={15} />
+        Knowledge base
+        <ChevronDown
+          size={14}
+          style={{ transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none' }}
+        />
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 0.4rem)',
+            right: 0,
+            zIndex: 40,
+            width: 320,
+            maxWidth: '90vw',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: 'var(--shadow-md)',
+            padding: '0.5rem',
+            display: 'grid',
+            gap: '0.15rem',
+          }}
+        >
+          <div
+            style={{
+              padding: '0.4rem 0.6rem 0.2rem',
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              color: 'var(--text-muted)',
+            }}
+          >
+            Reference material
+          </div>
+          {KNOWLEDGE_RESOURCES.map((res) => (
+            <a
+              key={res.href}
+              href={res.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="kb-menu-item"
+              style={{
+                display: 'grid',
+                gap: '0.15rem',
+                padding: '0.55rem 0.6rem',
+                borderRadius: 'var(--radius-sm)',
+                textDecoration: 'none',
+                color: 'var(--text-body)',
+              }}
+            >
+              <span
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  color: 'var(--text-title)',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                }}
+              >
+                {res.label}
+                <ExternalLink size={12} style={{ opacity: 0.6 }} />
+              </span>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', lineHeight: 1.4 }}>
+                {res.description}
+              </span>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AdvisorPanel({
   scenarios,
   notes,
@@ -844,98 +990,14 @@ export function AdvisorPanel({
     : null;
 
   return (
-    <section
-      aria-label="Advisor"
-      style={{
-        display: 'grid',
-        gap: '1rem',
-        padding: '1rem',
-        background: 'var(--bg-panel)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-md)',
-        boxShadow: 'var(--shadow-sm)',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          gap: '1rem',
-          flexWrap: 'wrap',
-        }}
-      >
-        <div>
-          <h2
-            style={{
-              margin: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              color: 'var(--text-title)',
-              fontSize: '1rem',
-              letterSpacing: 0,
-            }}
-          >
-            <Sparkles size={18} style={{ color: 'var(--accent-primary)' }} />
-            Advisor
-          </h2>
-          <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-            {backendAvailable
-              ? `${notes.length} note${notes.length === 1 ? '' : 's'} available`
-              : 'Advisor database unavailable'}
-          </p>
-        </div>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={onRefresh}
-          disabled={loading || !backendAvailable}
-        >
-          <RefreshCw size={15} />
-          Refresh
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-        {scenarios.map((scenario) => (
-          <button
-            key={scenario.mode}
-            type="button"
-            className="btn btn-secondary"
-            disabled={runningMode != null || !backendAvailable}
-            onClick={() => onRunScenario(scenario.mode)}
-          >
-            <ArrowRight size={14} />
-            {runningMode === scenario.mode ? 'Running...' : `Run ${scenario.label}`}
-          </button>
-        ))}
-      </div>
-
-      {!backendAvailable ? (
-        <div className="badge badge-neutral" style={{ display: 'block', padding: '0.6rem' }}>
-          {unavailableMessage}
-        </div>
-      ) : error ? (
-        <div className="badge badge-danger" style={{ display: 'block', padding: '0.6rem' }}>
-          {error}
-        </div>
-      ) : null}
-      {message ? (
-        <div className="badge badge-success" style={{ display: 'block', padding: '0.6rem' }}>
-          {message}
-        </div>
-      ) : null}
-
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '1rem',
-          alignItems: 'start',
-        }}
-      >
-        <div style={{ display: 'grid', gap: '0.5rem' }}>
+    <div className="advisor-layout">
+      {/* Notes rail — pulled outside the panel so the panel is free for the
+          full-width scenario explanation + reasoning mind map. */}
+      <aside className="advisor-notes-rail" aria-label="Advisor notes">
+        {/* Inner wrapper sticks to the vertical centre of the viewport, so the
+            notes track the scroll position of a long note without moving
+            horizontally out of the gutter. */}
+        <div className="advisor-notes-sticky">
           <div
             style={{
               display: 'flex',
@@ -962,55 +1024,140 @@ export function AdvisorPanel({
           </div>
 
           {notes.length === 0 && !loading && backendAvailable ? (
-            <div
+          <div
+            style={{
+              padding: '0.85rem',
+              border: '1px dashed var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              color: 'var(--text-muted)',
+              fontSize: '0.82rem',
+            }}
+          >
+            No advisor notes yet.
+          </div>
+        ) : null}
+
+        {notes.map((note) => {
+          const selected = selectedNoteId === note.id;
+          return (
+            <button
+              key={note.id}
+              type="button"
+              onClick={() => onSelectNote(note.id)}
               style={{
-                padding: '0.85rem',
-                border: '1px dashed var(--border-subtle)',
+                width: '100%',
+                textAlign: 'left',
+                padding: '0.75rem',
+                border: `1px solid ${selected ? 'var(--accent-primary)' : 'var(--border-subtle)'}`,
                 borderRadius: 'var(--radius-sm)',
-                color: 'var(--text-muted)',
-                fontSize: '0.82rem',
+                background: selected ? 'var(--bg-hover)' : 'var(--bg-card)',
+                color: 'var(--text-body)',
+                cursor: 'pointer',
+                display: 'grid',
+                gap: '0.45rem',
               }}
             >
-              No advisor notes yet.
-            </div>
-          ) : null}
-
-          {notes.map((note) => {
-            const selected = selectedNoteId === note.id;
-            return (
-              <button
-                key={note.id}
-                type="button"
-                onClick={() => onSelectNote(note.id)}
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '0.75rem',
-                  border: `1px solid ${selected ? 'var(--accent-primary)' : 'var(--border-subtle)'}`,
-                  borderRadius: 'var(--radius-sm)',
-                  background: selected ? 'var(--bg-hover)' : 'var(--bg-card)',
-                  color: 'var(--text-body)',
-                  cursor: 'pointer',
-                  display: 'grid',
-                  gap: '0.45rem',
-                }}
-              >
-                <span style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                  <span className={`badge ${adviceStatusBadgeClass(note.status)}`}>
-                    {labelFromStatus(note.status)}
-                  </span>
-                  <span className="badge badge-info">{labelFromAdviceKind(note.kind)}</span>
+              <span style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <span className={`badge ${adviceStatusBadgeClass(note.status)}`}>
+                  {labelFromStatus(note.status)}
                 </span>
-                <strong style={{ color: 'var(--text-title)', lineHeight: 1.25 }}>
-                  {note.title}
-                </strong>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', lineHeight: 1.4 }}>
-                  {compactText(note.summary, 120)}
-                </span>
-              </button>
-            );
-          })}
+                <span className="badge badge-info">{labelFromAdviceKind(note.kind)}</span>
+              </span>
+              <strong style={{ color: 'var(--text-title)', lineHeight: 1.25 }}>
+                {note.title}
+              </strong>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', lineHeight: 1.4 }}>
+                {compactText(note.summary, 120)}
+              </span>
+            </button>
+          );
+        })}
         </div>
+      </aside>
+
+      <section
+        aria-label="Advisor"
+        className="advisor-main"
+        style={{
+          display: 'grid',
+          gap: '1rem',
+          padding: '1rem',
+          background: 'var(--bg-panel)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: 'var(--shadow-sm)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: '1rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div>
+            <h2
+              style={{
+                margin: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                color: 'var(--text-title)',
+                fontSize: '1rem',
+                letterSpacing: 0,
+              }}
+            >
+              <Sparkles size={18} style={{ color: 'var(--accent-primary)' }} />
+              Advisor
+            </h2>
+            <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+              {backendAvailable
+                ? `${notes.length} note${notes.length === 1 ? '' : 's'} available`
+                : 'Advisor database unavailable'}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onRefresh}
+            disabled={loading || !backendAvailable}
+          >
+            <RefreshCw size={15} />
+            Refresh
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {scenarios.map((scenario) => (
+            <button
+              key={scenario.mode}
+              type="button"
+              className="btn btn-secondary"
+              disabled={runningMode != null || !backendAvailable}
+              onClick={() => onRunScenario(scenario.mode)}
+            >
+              <ArrowRight size={14} />
+              {runningMode === scenario.mode ? 'Running...' : `Run ${scenario.label}`}
+            </button>
+          ))}
+        </div>
+
+        {!backendAvailable ? (
+          <div className="badge badge-neutral" style={{ display: 'block', padding: '0.6rem' }}>
+            {unavailableMessage}
+          </div>
+        ) : error ? (
+          <div className="badge badge-danger" style={{ display: 'block', padding: '0.6rem' }}>
+            {error}
+          </div>
+        ) : null}
+        {message ? (
+          <div className="badge badge-success" style={{ display: 'block', padding: '0.6rem' }}>
+            {message}
+          </div>
+        ) : null}
 
         <div style={{ minWidth: 0 }}>
           {!backendAvailable ? (
@@ -1054,8 +1201,8 @@ export function AdvisorPanel({
             </div>
           )}
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
 

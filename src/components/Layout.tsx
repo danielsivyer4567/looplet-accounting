@@ -492,7 +492,13 @@ export function Layout() {
         {/* Body: route content + right-hand timeline rail. The rail sits beside the
             content (inside main, under the header) so it starts below the header line. */}
         <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-          <div style={{ flex: 1, padding: isMobile ? '1rem' : '2rem', overflowY: 'auto' }}>
+          <div
+            style={{
+              flex: 1,
+              padding: isMobile ? '1rem' : '2rem var(--page-pad-x)',
+              overflowY: 'auto',
+            }}
+          >
             <div style={{ maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
               <Outlet />
             </div>

@@ -265,6 +265,12 @@ function ValueCell({ value, fieldName }: { value: unknown; fieldName: string }):
   if (isRecord(value)) {
     const entries = Object.entries(value);
     if (entries.length === 0) return <span style={mutedTextStyle}>Empty object</span>;
+    // A map of uniform objects (e.g. structuring options keyed by company /
+    // sole_trader / …) reads far better as one row per entry than as a tall
+    // stack of label/value pairs.
+    if (entries.every(([, item]) => isRecord(item))) {
+      return <ObjectMapTable map={value as Record<string, Record<string, unknown>>} />;
+    }
     return (
       <dl style={{ display: 'grid', gap: '0.35rem', margin: 0 }}>
         {entries.map(([key, item]) => (
@@ -272,7 +278,9 @@ function ValueCell({ value, fieldName }: { value: unknown; fieldName: string }):
             <dt style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>
               {labelFromKey(key)}
             </dt>
-            <dd style={{ margin: 0 }}>{formatScalar(item, key)}</dd>
+            <dd style={{ margin: 0 }}>
+              <ValueCell value={item} fieldName={key} />
+            </dd>
           </div>
         ))}
       </dl>
@@ -326,6 +334,79 @@ function NestedRows({ rows }: { rows: Record<string, unknown>[] }) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function ObjectMapTable({ map }: { map: Record<string, Record<string, unknown>> }) {
+  const entries = Object.entries(map);
+  // The entry key + its `label` field become the row name, so don't repeat them
+  // as their own columns.
+  const hidden = new Set(['key', 'label', 'name']);
+  const columns = Array.from(
+    new Set(entries.flatMap(([, row]) => Object.keys(row))),
+  ).filter((column) => !hidden.has(column.toLowerCase()));
+
+  const isNumericColumn = (column: string) =>
+    entries.every(([, row]) => row[column] == null || typeof row[column] === 'number');
+
+  const headStyle: CSSProperties = {
+    ...cellStyle,
+    borderTop: 0,
+    color: 'var(--text-muted)',
+    fontSize: '0.75rem',
+    fontWeight: 700,
+  };
+
+  return (
+    <div className="table-premium-container">
+      <table style={tableStyle}>
+        <thead>
+          <tr>
+            <th scope="col" style={{ ...headStyle, textAlign: 'left' }} />
+            {columns.map((column) => (
+              <th
+                key={column}
+                scope="col"
+                style={{ ...headStyle, textAlign: isNumericColumn(column) ? 'right' : 'left' }}
+              >
+                {labelFromKey(column)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map(([key, row]) => (
+            <tr key={key}>
+              <th
+                scope="row"
+                style={{
+                  ...cellStyle,
+                  textAlign: 'left',
+                  color: 'var(--text-title)',
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {stringFrom(row.label) ?? labelFromKey(key)}
+              </th>
+              {columns.map((column) => (
+                <td
+                  key={column}
+                  style={{
+                    ...cellStyle,
+                    textAlign: isNumericColumn(column) ? 'right' : 'left',
+                    color: 'var(--text-body)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {formatScalar(row[column], column)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -417,9 +498,11 @@ function formatScalar(value: unknown, fieldName: string): string {
   if (value == null) return '-';
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   if (typeof value === 'number') {
-    return fieldName.toLowerCase().includes('cents')
-      ? moneyFormatter.format(value / 100)
-      : integerFormatter.format(value);
+    const lowerField = fieldName.toLowerCase();
+    if (lowerField.includes('cents')) return moneyFormatter.format(value / 100);
+    // Basis points → percentage (e.g. effective_tax_rate_bps: 2500 → "25.00%").
+    if (lowerField.includes('bps')) return `${(value / 100).toFixed(2)}%`;
+    return integerFormatter.format(value);
   }
   if (typeof value === 'string') return value;
   return JSON.stringify(value);
@@ -459,6 +542,7 @@ function stringFrom(value: unknown): string | null {
 function labelFromKey(key: string): string {
   return key
     .replace(/_cents$/i, '')
+    .replace(/_bps$/i, '')
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
     .replace(/\bFy\b/g, 'FY')

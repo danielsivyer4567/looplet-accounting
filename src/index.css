@@ -11,6 +11,12 @@
 
   --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-bounce: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Horizontal breathing room between page content and the left nav / right
+     timeline rails. Scales with viewport, capped so ultra-wide screens stay
+     sane. Used by the main content padding AND the advisor breakout so the two
+     stay in sync. */
+  --page-pad-x: clamp(2rem, 8vw, 14rem);
 }
 
 /* Light mode styles */
@@ -1126,6 +1132,64 @@ code {
   color: var(--text-body);
   font-size: 0.74rem;
   line-height: 1.4;
+}
+
+/* Advisor: the panel keeps (close to) its full width and the notes rail lives
+   in the page's empty side-gutters. The route content is capped at 1200px and
+   centred, so this layout breaks OUT of that column into the surrounding space
+   instead of stealing width from the panel.
+   806px = half of (sidebar 72 + timeline rail 340 + 1200px column); the page's
+   horizontal padding is subtracted separately via --page-pad-x so the breakout
+   stops at the padding edge (keeping the gutter space) rather than running up to
+   the rails. max(0px, …) keeps the breakout a no-op when there is no room
+   (narrow viewport / timeline collapsed) so it can never force a horizontal
+   scrollbar. */
+.advisor-layout {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-inline: calc(-1 * max(0px, 50vw - 806px - var(--page-pad-x)));
+}
+
+/* The rail is a full-height track in the gutter; its inner content sticks to
+   the vertical centre of the viewport so the notes follow the scroll of a long
+   note while staying put horizontally. */
+.advisor-notes-rail {
+  flex: 0 0 260px;
+  align-self: stretch;
+}
+
+.advisor-notes-sticky {
+  position: sticky;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+}
+
+.advisor-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Below the breakout threshold there is no usable gutter — stack the rail on
+   top and reset the breakout so nothing overflows. */
+@media (max-width: 1100px) {
+  .advisor-layout {
+    flex-direction: column;
+    margin-inline: 0;
+  }
+
+  .advisor-notes-rail {
+    flex-basis: auto;
+    width: 100%;
+  }
+
+  .advisor-notes-sticky {
+    position: static;
+    transform: none;
+  }
 }
 
 @media (max-width: 720px) {
