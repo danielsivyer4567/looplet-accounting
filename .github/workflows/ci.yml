@@ -40,6 +40,9 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: Accounting engine tests
+        run: npm run test:accounting
+
       - name: Build
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://dxoikltymmknxqpkpyhi.supabase.co' }}
