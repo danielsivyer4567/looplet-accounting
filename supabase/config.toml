@@ -67,6 +67,11 @@ verify_jwt = false
 [functions.payroll-termination]
 verify_jwt = false
 
+# TFN vault writer. Self-authenticates via getUser + org membership so it can
+# encrypt before writing service-role-only employee_tfn_vault rows.
+[functions.employee-tfn-save]
+verify_jwt = false
+
 # Quarterly super batch send (Tier-2 approval gated). Self-authenticates via
 # getUser + membership (like payment-runs-aba-export), so the platform JWT gate is off.
 [functions.super-batch-send]

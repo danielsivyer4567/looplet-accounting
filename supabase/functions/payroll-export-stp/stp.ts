@@ -18,6 +18,8 @@ export interface StpEmployee {
   full_name: string;
   email: string | null;
   wage_components: Record<string, unknown> | null;
+  tfn: string | null;
+  tfn_masked?: string | null;
 }
 
 export interface StpSlip {
@@ -68,18 +70,42 @@ export interface TerminationContext {
 }
 
 const CESSATION_TYPE_CODES: Record<string, string> = {
-  genuine_redundancy: "R",
-  early_retirement: "R",
-  invalidity: "I",
-  resignation: "V",
-  retirement: "V",
-  dismissal: "F",
-  contract_end: "C",
-  deceased: "D",
-  transfer: "T",
+  genuine_redundancy: 'R',
+  early_retirement: 'R',
+  invalidity: 'I',
+  resignation: 'V',
+  retirement: 'V',
+  dismissal: 'F',
+  contract_end: 'C',
+  deceased: 'D',
+  transfer: 'T',
 };
 
-const EXCLUDED_ETP_REASONS = new Set(["genuine_redundancy", "invalidity", "early_retirement"]);
+const EXCLUDED_ETP_REASONS = new Set(['genuine_redundancy', 'invalidity', 'early_retirement']);
+
+export function normaliseTfn(value: string | null | undefined): string | null {
+  const digits = (value ?? '').replace(/\D/g, '');
+  return digits.length > 0 ? digits : null;
+}
+
+export function maskTfn(value: string | null | undefined): string | null {
+  const tfn = normaliseTfn(value);
+  if (!tfn) return null;
+  return `*****${tfn.slice(-4)}`;
+}
+
+function requireTfn(emp: StpEmployee): string {
+  const tfn = normaliseTfn(emp.tfn);
+  if (!tfn || !/^\d{8,9}$/.test(tfn)) {
+    throw new Error(`missing or invalid TFN for employee ${emp.full_name}`);
+  }
+  return tfn;
+}
+
+function stringSetting(wage: Record<string, unknown>, key: string): string | null {
+  const value = wage[key];
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
 
 /**
  * STP cessation type code for a termination reason. An unknown reason DELIBERATELY
@@ -87,30 +113,30 @@ const EXCLUDED_ETP_REASONS = new Set(["genuine_redundancy", "invalidity", "early
  * output notes tell the tax agent to confirm the code before lodgement.
  */
 export function cessationTypeCode(reason: string): string {
-  return CESSATION_TYPE_CODES[reason] ?? "V";
+  return CESSATION_TYPE_CODES[reason] ?? 'V';
 }
 
 /** Life-benefit ETP code: R for excluded (redundancy/invalidity/early-retirement), else O. */
 export function etpCode(reason: string): string {
-  return EXCLUDED_ETP_REASONS.has(reason) ? "R" : "O";
+  return EXCLUDED_ETP_REASONS.has(reason) ? 'R' : 'O';
 }
 
 function parseTermination(metadata: Record<string, unknown> | null): TerminationContext | null {
-  const t = metadata?.["termination"] as Record<string, unknown> | undefined;
-  if (!t || typeof t["employee_id"] !== "string" || typeof t["cessation_date"] !== "string") {
+  const t = metadata?.['termination'] as Record<string, unknown> | undefined;
+  if (!t || typeof t['employee_id'] !== 'string' || typeof t['cessation_date'] !== 'string') {
     return null;
   }
-  const etp = (t["etp"] as Record<string, unknown> | undefined) ?? undefined;
+  const etp = (t['etp'] as Record<string, unknown> | undefined) ?? undefined;
   return {
-    employee_id: t["employee_id"],
-    cessation_date: t["cessation_date"],
-    reason: typeof t["reason"] === "string" ? (t["reason"] as string) : "resignation",
+    employee_id: t['employee_id'],
+    cessation_date: t['cessation_date'],
+    reason: typeof t['reason'] === 'string' ? (t['reason'] as string) : 'resignation',
     etp: etp
       ? {
-        taxable_cents: Number(etp["taxable_cents"]) || 0,
-        tax_free_cents: Number(etp["tax_free_cents"]) || 0,
-        tax_withheld_cents: Number(etp["tax_withheld_cents"]) || 0,
-      }
+          taxable_cents: Number(etp['taxable_cents']) || 0,
+          tax_free_cents: Number(etp['tax_free_cents']) || 0,
+          tax_withheld_cents: Number(etp['tax_withheld_cents']) || 0,
+        }
       : undefined,
   };
 }
@@ -123,17 +149,95 @@ export function buildStpEvent(args: {
 }): Record<string, unknown> {
   const { run, org, slips, generatedBy } = args;
   const termination = parseTermination(run.metadata);
+  const blockers: string[] = [];
+  const employees = slips.map((s) => {
+    const emp = s.employee;
+    const wage = (emp.wage_components ?? {}) as Record<string, unknown>;
+    const tfn = requireTfn(emp);
+    const taxTreatmentCode = stringSetting(wage, 'stp_tax_treatment_code');
+    if (!taxTreatmentCode) {
+      blockers.push(`${emp.full_name}: missing STP tax treatment code`);
+    }
+
+    // OTE = Ordinary Time Earnings. Overtime is excluded from OTE for super.
+    const ote = Number(s.gross_ordinary_cents) + Number(s.gross_leave_cents);
+    const isTerminated = termination?.employee_id === emp.id;
+
+    return {
+      tfn,
+      tfn_masked: emp.tfn_masked ?? maskTfn(tfn),
+      employee_id: emp.id,
+      payroll_id: emp.id,
+      name: emp.full_name,
+      email: emp.email,
+      employment: {
+        income_type: stringSetting(wage, 'stp_income_type') ?? 'SAW',
+        country_code: stringSetting(wage, 'stp_country_code') ?? 'AU',
+        employment_basis: stringSetting(wage, 'stp_employment_basis') ?? 'F',
+        tax_treatment_code: taxTreatmentCode,
+      },
+      address: {
+        line1: (wage['address_line1'] as string | undefined) ?? null,
+        line2: (wage['address_line2'] as string | undefined) ?? null,
+        suburb: (wage['suburb'] as string | undefined) ?? null,
+        state: (wage['state'] as string | undefined) ?? null,
+        postcode: (wage['postcode'] as string | undefined) ?? null,
+        country: 'AU',
+      },
+      ytd: {
+        gross_cents: Number(s.ytd_gross_cents),
+        payg_tax_cents: Number(s.ytd_tax_cents),
+        super_cents: Number(s.ytd_super_cents),
+      },
+      pay: {
+        hours: {
+          ordinary: Number(s.hours_ordinary),
+          overtime: Number(s.hours_overtime),
+          leave: Number(s.hours_leave),
+        },
+        gross_ordinary_cents: Number(s.gross_ordinary_cents),
+        gross_overtime_cents: Number(s.gross_overtime_cents),
+        gross_leave_cents: Number(s.gross_leave_cents),
+        gross_total_cents: Number(s.gross_total_cents),
+        ote_cents: ote,
+        payg_tax_cents: Number(s.payg_tax_cents),
+        super_guarantee_cents: Number(s.super_guarantee_cents),
+        super_rate_pct: Number(s.super_rate_pct),
+        net_pay_cents: Number(s.net_pay_cents),
+        disaggregation: {
+          salary_and_wages_cents: Number(s.gross_ordinary_cents),
+          overtime_cents: Number(s.gross_overtime_cents),
+          paid_leave_cents: Number(s.gross_leave_cents),
+          bonuses_commissions_cents: Number(wage['stp_bonuses_commissions_cents'] ?? 0),
+          directors_fees_cents: Number(wage['stp_directors_fees_cents'] ?? 0),
+          allowances: Array.isArray(wage['stp_allowances']) ? wage['stp_allowances'] : [],
+          deductions: Array.isArray(wage['stp_deductions']) ? wage['stp_deductions'] : [],
+          child_support: Array.isArray(wage['stp_child_support']) ? wage['stp_child_support'] : [],
+        },
+      },
+      // Employment Termination Payment (life benefit) for the terminated employee.
+      etp:
+        isTerminated && termination
+          ? {
+              code: etpCode(termination.reason),
+              taxable_cents: termination.etp?.taxable_cents ?? 0,
+              tax_free_cents: termination.etp?.tax_free_cents ?? 0,
+              tax_withheld_cents: termination.etp?.tax_withheld_cents ?? 0,
+            }
+          : null,
+    };
+  });
 
   return {
-    schema: "stp_phase2_v1",
+    schema: 'stp_phase2_v1',
     generated_at: new Date().toISOString(),
     generated_by: generatedBy,
     header: {
-      employer_abn: (org?.settings as Record<string, unknown> | null)?.["abn"] ?? null,
+      employer_abn: (org?.settings as Record<string, unknown> | null)?.['abn'] ?? null,
       employer_name: org?.name ?? null,
-      bms_id: `looplet-${org?.id ?? "unknown"}`,
-      software_name: "Looplet Accounting",
-      software_version: "0.1",
+      bms_id: `looplet-${org?.id ?? 'unknown'}`,
+      software_name: 'Looplet Accounting',
+      software_version: '0.1',
       run_date: new Date().toISOString().slice(0, 10),
     },
     pay_event: {
@@ -143,10 +247,10 @@ export function buildStpEvent(args: {
       // Termination/cessation for the run (STP Phase 2). null for an ordinary run.
       termination: termination
         ? {
-          employee_id: termination.employee_id,
-          cessation_date: termination.cessation_date,
-          cessation_type_code: cessationTypeCode(termination.reason),
-        }
+            employee_id: termination.employee_id,
+            cessation_date: termination.cessation_date,
+            cessation_type_code: cessationTypeCode(termination.reason),
+          }
         : null,
       totals: {
         gross_cents: Number(run.total_gross_cents),
@@ -154,67 +258,29 @@ export function buildStpEvent(args: {
         super_cents: Number(run.total_super_cents),
         net_cents: Number(run.total_net_cents),
       },
-      employees: slips.map((s) => {
-        const emp = s.employee;
-        const wage = (emp.wage_components ?? {}) as Record<string, unknown>;
-        // OTE = Ordinary Time Earnings. Overtime is excluded from OTE for super.
-        const ote = Number(s.gross_ordinary_cents) + Number(s.gross_leave_cents);
-        const isTerminated = termination?.employee_id === emp.id;
-        return {
-          // TFN intentionally not stored in our schema — placeholder for the
-          // tax agent to fill from the TFN-declaration form on file.
-          tfn: (wage["tfn"] as string | undefined) ?? "000000000",
-          employee_id: emp.id,
-          name: emp.full_name,
-          email: emp.email,
-          address: {
-            line1: (wage["address_line1"] as string | undefined) ?? null,
-            line2: (wage["address_line2"] as string | undefined) ?? null,
-            suburb: (wage["suburb"] as string | undefined) ?? null,
-            state: (wage["state"] as string | undefined) ?? null,
-            postcode: (wage["postcode"] as string | undefined) ?? null,
-            country: "AU",
-          },
-          ytd: {
-            gross_cents: Number(s.ytd_gross_cents),
-            payg_tax_cents: Number(s.ytd_tax_cents),
-            super_cents: Number(s.ytd_super_cents),
-          },
-          pay: {
-            hours: {
-              ordinary: Number(s.hours_ordinary),
-              overtime: Number(s.hours_overtime),
-              leave: Number(s.hours_leave),
-            },
-            gross_ordinary_cents: Number(s.gross_ordinary_cents),
-            gross_overtime_cents: Number(s.gross_overtime_cents),
-            gross_leave_cents: Number(s.gross_leave_cents),
-            gross_total_cents: Number(s.gross_total_cents),
-            ote_cents: ote,
-            payg_tax_cents: Number(s.payg_tax_cents),
-            super_guarantee_cents: Number(s.super_guarantee_cents),
-            super_rate_pct: Number(s.super_rate_pct),
-            net_pay_cents: Number(s.net_pay_cents),
-          },
-          // Employment Termination Payment (life benefit) for the terminated employee.
-          etp: isTerminated && termination
-            ? {
-              code: etpCode(termination.reason),
-              taxable_cents: termination.etp?.taxable_cents ?? 0,
-              tax_free_cents: termination.etp?.tax_free_cents ?? 0,
-              tax_withheld_cents: termination.etp?.tax_withheld_cents ?? 0,
-            }
-            : null,
-          deductions: [],
-        };
-      }),
+      employees,
+    },
+    readiness: {
+      phase2_components: [
+        'encrypted_tfn',
+        'income_type',
+        'employment_basis',
+        'tax_treatment_code',
+        'disaggregated_gross',
+        'termination_event',
+      ],
+      blockers,
+      ready_for_external_review: blockers.length === 0,
     },
     notes: [
-      "STP Phase 2 file. Lodgement to ATO requires SBR-gateway integration " +
-      "(out of scope) — hand to your registered tax/BAS agent.",
-      "TFN, address, and BMS_ID fields default to placeholders if not stored.",
+      'STP Phase 2 file. Lodgement to ATO requires SBR-gateway integration ' +
+        '(out of scope) — hand to your registered tax/BAS agent.',
+      'TFNs are sourced from encrypted employee_tfn_vault rows; redacted copies are stored in the lodgement ledger.',
+      'Address and BMS_ID fields default from employee/org profile settings where available.',
       ...(termination
-        ? ["Termination event — cessation type + ETP codes are simplified; confirm against the actual award/ATO before lodgement."]
+        ? [
+            'Termination event — cessation type + ETP codes are simplified; confirm against the actual award/ATO before lodgement.',
+          ]
         : []),
     ],
   };

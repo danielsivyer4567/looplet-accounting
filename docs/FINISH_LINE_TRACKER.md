@@ -3,9 +3,9 @@
 > The live cross-off list for finishing the app. Updated by the orchestrator after
 > every slice verifies. Branch: `feat/finish-line` (off `feat/accountant-portal`).
 
-**Progress: 35 / 51 complete (69%)**  ·  deploy-gated: 1 (P0-05)  ·  blocked-external: 0
+**Progress: 36 / 51 complete (71%)**  ·  deploy-gated: 1 (P0-05)  ·  blocked-external: 0
 **Current wave:** F — compliance output
-**Last updated:** Wave F P2-SGC complete (SGC statement builder + SG-on-OTE/12% payroll fix + browser smoke + gates green; ATO lodgement TODOs left pending/external-gated)
+**Last updated:** Wave F P2-STP complete (Phase 2 disaggregation + encrypted TFN vault/masking + redacted draft lifecycle ledger + gates green; ATO lodgement TODOs left pending/external-gated)
 **Note:** +1 slice discovered in Wave B — P1-14 require_role() accepted_at gate (total now 51).
 
 Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocked-on-deploy]` · `[!]` external-blocked (cannot finish here)
@@ -41,7 +41,7 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [x] P1-13 Cron secrets + SITE_URL provisioning
 - [x] P1-14 require_role() accepted_at gate *(discovered in Wave B)*
 
-## P2 — Source posting + compliance output + product completion (11/26)
+## P2 — Source posting + compliance output + product completion (12/26)
 - [x] P2-01a Source posting: invoices + invoice payments
 - [x] P2-01b Source posting: bank transactions + reconciliation
 - [x] P2-01c Source posting: payment runs + payroll
@@ -56,7 +56,7 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [x] P2-TPAR TPAR builder RPC + Tpar.tsx + export
 - [x] P2-FRANK Franking register + dividend/distribution statements + reconciliation
 - [x] P2-SGC SGC statement + SG-on-OTE/12% fix
-- [ ] P2-STP STP Phase 2 correctness + TFN secure store/masking + lifecycle
+- [x] P2-STP STP Phase 2 correctness + TFN secure store/masking + lifecycle
 - [ ] P2-SUPER SuperStream/clearing-house real dispatch (or documented transport)
 - [ ] P2-CN Credit notes AR/AP (schema + RPC + UI + GL posting)
 - [ ] P2-04 Connector product surface (key UI + scope enforcement + OpenAPI + audit)

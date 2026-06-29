@@ -543,9 +543,9 @@ export function PayRunDetailPage() {
           >
             ATO Single Touch Payroll (STP) Phase 2
           </span>
-          STP file is generated in Phase 2 JSON format ready for secure handoff to your registered
-          tax/BAS agent. Direct ATO lodgement requires SBR-gateway infrastructure configured on your
-          organization profile.
+          STP file is generated in Phase 2 JSON format from encrypted TFN vault records and a
+          redacted draft lifecycle row is stored in the lodgement ledger. Direct ATO lodgement
+          remains disabled until SBR-gateway infrastructure is provisioned.
         </div>
       </div>
     </section>
