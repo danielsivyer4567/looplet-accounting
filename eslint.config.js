@@ -24,4 +24,13 @@ export default tseslint.config(
       '@typescript-eslint/consistent-type-imports': 'error',
     },
   },
+  {
+    // shadcn UI primitives co-locate a component with its cva variant helper
+    // (e.g. Button + buttonVariants); that mixed export is the canonical shadcn
+    // shape, so opt these vendored files out of the fast-refresh export rule.
+    files: ['src/components/ui/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 );

@@ -1,3 +1,11 @@
+/* Tailwind (preflight OFF — see tailwind.config.js). Utilities land in
+   @layer utilities; the unlayered legacy rules below always win, so existing
+   pages stay byte-for-byte unchanged. New tag-drop/shadcn UI opts in via
+   utility classes. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   /* Common variables */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
