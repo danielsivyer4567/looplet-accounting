@@ -9,6 +9,7 @@ import {
   Calculator,
   ClipboardList,
   Landmark,
+  PiggyBank,
 } from 'lucide-react';
 
 const REPORTS = [
@@ -83,6 +84,14 @@ const REPORTS = [
       'Company franking account movements, member dividend statements, benchmark percentage, and GL reconciliation.',
     status: 'live',
     icon: Landmark,
+  },
+  {
+    to: '/reports/sgc',
+    title: 'SGC Statement',
+    description:
+      'Quarterly super guarantee charge review with OTE recalculation, statutory 12% SG, shortfall rows, and draft SGC components.',
+    status: 'live',
+    icon: PiggyBank,
   },
 ];
 

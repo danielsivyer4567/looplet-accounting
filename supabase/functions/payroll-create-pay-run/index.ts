@@ -16,7 +16,7 @@
  *   2. Sum hours per entry_type.
  *   3. Compute gross_* from employee.wage_components.loaded_hourly_rate_cents
  *      (split: ordinary/overtime/leave).
- *   4. Call calc_payg_tax + calc_super.
+ *   4. Call calc_payg_tax + calc_super_ote.
  *   5. Pull YTD totals from prior pay_slips this fiscal year (1 July → 30 June).
  *   6. Insert pay_slips row.
  *
@@ -56,6 +56,15 @@ function fyStartFor(date: string): string {
   return `${fyYear}-07-01`;
 }
 
+function statutorySuperRatePct(payDate: string): number {
+  if (payDate >= '2025-07-01') return 12;
+  if (payDate >= '2024-07-01') return 11.5;
+  if (payDate >= '2023-07-01') return 11;
+  if (payDate >= '2022-07-01') return 10.5;
+  if (payDate >= '2021-07-01') return 10;
+  return 9.5;
+}
+
 Deno.serve(async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
@@ -74,7 +83,10 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { headers: { Authorization: authHeader } },
   });
-  const { data: { user }, error: authErr } = await userClient.auth.getUser();
+  const {
+    data: { user },
+    error: authErr,
+  } = await userClient.auth.getUser();
   if (authErr || !user) return json({ ok: false, error: 'Unauthorized' }, 401);
 
   const admin = createClient(supabaseUrl, serviceKey, {
@@ -99,10 +111,21 @@ Deno.serve(async (req) => {
     claims_threshold = true,
   } = body;
 
-  if (!organization_id || !period_start || !period_end || !pay_date
-      || !Array.isArray(employee_ids) || employee_ids.length === 0) {
-    return json({ ok: false, error:
-      'organization_id, period_start, period_end, pay_date, employee_ids[] are required' }, 400);
+  if (
+    !organization_id ||
+    !period_start ||
+    !period_end ||
+    !pay_date ||
+    !Array.isArray(employee_ids) ||
+    employee_ids.length === 0
+  ) {
+    return json(
+      {
+        ok: false,
+        error: 'organization_id, period_start, period_end, pay_date, employee_ids[] are required',
+      },
+      400,
+    );
   }
 
   if (!['weekly', 'fortnightly', 'monthly'].includes(frequency)) {
@@ -151,9 +174,25 @@ Deno.serve(async (req) => {
   }
 
   const fyStart = fyStartFor(pay_date);
+  const { data: orgRow } = await admin
+    .from('organizations')
+    .select('settings')
+    .eq('id', organization_id)
+    .maybeSingle();
+  const orgSettings = (orgRow?.settings ?? {}) as { super_rate_pct?: number | string };
+  const orgSuperPct =
+    orgSettings.super_rate_pct == null || orgSettings.super_rate_pct === ''
+      ? null
+      : Number(orgSettings.super_rate_pct);
+  const defaultSuperPct = Number.isFinite(orgSuperPct)
+    ? Number(orgSuperPct)
+    : statutorySuperRatePct(pay_date);
 
   // ---- For each employee, build a payslip -----------------------------------
-  let totalGross = 0, totalTax = 0, totalSuper = 0, totalNet = 0;
+  let totalGross = 0,
+    totalTax = 0,
+    totalSuper = 0,
+    totalNet = 0;
   const slipResults: { employee_id: string; slip_id?: string; error?: string }[] = [];
 
   for (const emp of employees) {
@@ -174,23 +213,26 @@ Deno.serve(async (req) => {
         .gte('work_date', period_start)
         .lte('work_date', period_end)
         .is('deleted_at', null)
-        .not('approved_at', 'is', null);   // only approved time enters payroll
+        .not('approved_at', 'is', null); // only approved time enters payroll
       if (tsErr) throw new Error(`timesheet fetch: ${tsErr.message}`);
 
-      let hOrd = 0, hOt = 0, hLeave = 0;
+      let hOrd = 0,
+        hOt = 0,
+        hLeave = 0;
       for (const row of ts ?? []) {
         const h = Number(row.hours);
         const et = (row.entry_type ?? 'ordinary') as EntryType;
         if (et === 'ordinary' || et === 'public_holiday') hOrd += h;
-        else if (et === 'overtime')                       hOt  += h;
+        else if (et === 'overtime') hOt += h;
         else if (et === 'annual_leave' || et === 'sick_leave') hLeave += h;
       }
 
       // Gross splits (overtime gets 1.5x as a default loading; tweakable).
-      const grossOrd   = Math.round(hOrd   * loadedRate);
-      const grossOt    = Math.round(hOt    * loadedRate * 1.5);
+      const grossOrd = Math.round(hOrd * loadedRate);
+      const grossOt = Math.round(hOt * loadedRate * 1.5);
       const grossLeave = Math.round(hLeave * loadedRate);
       const grossTotal = grossOrd + grossOt + grossLeave;
+      const ordinaryTimeEarnings = grossOrd + grossLeave;
 
       // PAYG tax via DB function.
       const { data: taxRes, error: taxErr } = await admin.rpc('calc_payg_tax', {
@@ -201,33 +243,35 @@ Deno.serve(async (req) => {
       if (taxErr) throw new Error(`calc_payg_tax: ${taxErr.message}`);
       const paygTax = Number(taxRes ?? 0);
 
-      // Super guarantee. Use employee's super_pct if set, else org default.
+      // Super guarantee. Use OTE (ordinary + leave), excluding overtime.
       const empSuperPct = wage.super_pct ?? null;
-      const { data: supRes, error: supErr } = await admin.rpc('calc_super', {
-        p_gross_cents: grossTotal,
-        p_rate_pct: empSuperPct,
+      const effectiveSuperPct = empSuperPct ?? defaultSuperPct;
+      const { data: supRes, error: supErr } = await admin.rpc('calc_super_ote', {
+        p_ote_cents: ordinaryTimeEarnings,
+        p_rate_pct: effectiveSuperPct,
         p_org_id: organization_id,
       });
-      if (supErr) throw new Error(`calc_super: ${supErr.message}`);
+      if (supErr) throw new Error(`calc_super_ote: ${supErr.message}`);
       const superGuarantee = Number(supRes ?? 0);
-      const effectiveSuperPct = empSuperPct ?? 11.5;
 
       const netPay = grossTotal - paygTax;
 
       // YTD aggregates from prior pay_slips this fiscal year.
       const { data: priorSlips } = await admin
         .from('pay_slips')
-        .select('gross_total_cents, payg_tax_cents, super_guarantee_cents, pay_run:pay_runs!inner(pay_date)')
+        .select(
+          'gross_total_cents, payg_tax_cents, super_guarantee_cents, pay_run:pay_runs!inner(pay_date)',
+        )
         .eq('organization_id', organization_id)
         .eq('employee_id', emp.id)
         .gte('pay_run.pay_date', fyStart)
         .lt('pay_run.pay_date', pay_date);
       let ytdGross = grossTotal;
-      let ytdTax   = paygTax;
+      let ytdTax = paygTax;
       let ytdSuper = superGuarantee;
       for (const ps of priorSlips ?? []) {
         ytdGross += Number(ps.gross_total_cents);
-        ytdTax   += Number(ps.payg_tax_cents);
+        ytdTax += Number(ps.payg_tax_cents);
         ytdSuper += Number(ps.super_guarantee_cents);
       }
 
@@ -255,6 +299,9 @@ Deno.serve(async (req) => {
             frequency,
             claims_threshold,
             loaded_hourly_rate_cents: loadedRate,
+            ordinary_time_earnings_cents: ordinaryTimeEarnings,
+            super_basis: 'ordinary_time_earnings',
+            overtime_excluded_from_super_cents: grossOt,
           },
         })
         .select('id')
@@ -262,9 +309,9 @@ Deno.serve(async (req) => {
       if (slipErr || !slip) throw new Error(`pay_slips insert: ${slipErr?.message ?? 'unknown'}`);
 
       totalGross += grossTotal;
-      totalTax   += paygTax;
+      totalTax += paygTax;
       totalSuper += superGuarantee;
-      totalNet   += netPay;
+      totalNet += netPay;
       slipResults.push({ employee_id: emp.id, slip_id: slip.id });
     } catch (e) {
       const err = e instanceof Error ? e.message : String(e);
@@ -278,9 +325,9 @@ Deno.serve(async (req) => {
     .from('pay_runs')
     .update({
       total_gross_cents: totalGross,
-      total_tax_cents:   totalTax,
+      total_tax_cents: totalTax,
       total_super_cents: totalSuper,
-      total_net_cents:   totalNet,
+      total_net_cents: totalNet,
     })
     .eq('id', payRun.id);
   if (updErr) {
@@ -292,9 +339,9 @@ Deno.serve(async (req) => {
     run_id: payRun.id,
     totals: {
       gross_cents: totalGross,
-      tax_cents:   totalTax,
+      tax_cents: totalTax,
       super_cents: totalSuper,
-      net_cents:   totalNet,
+      net_cents: totalNet,
     },
     slips: slipResults,
   });
