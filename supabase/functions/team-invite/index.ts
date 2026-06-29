@@ -235,10 +235,15 @@ Deno.serve(async (req) => {
 
   // --------------------------------------------------------------------------
   // 8. Send invite email via Supabase Admin API
+  //    redirectTo lands the invitee on /accept-invite, where they set a
+  //    password (new user) and accept_pending_invites() grants the membership.
   // --------------------------------------------------------------------------
+  const siteUrl = Deno.env.get('SITE_URL') ?? supabaseUrl.replace('/rest/v1', '');
+
   const { error: adminInviteErr } = await adminClient.auth.admin.inviteUserByEmail(
     normalizedEmail,
     {
+      redirectTo: `${siteUrl}/accept-invite`,
       data: {
         organization_id,
         invite_role: normalizedRole,
@@ -251,7 +256,6 @@ Deno.serve(async (req) => {
     // Email send failed — still return success with a fallback copy-paste link.
     console.warn('inviteUserByEmail failed (non-fatal):', adminInviteErr.message);
 
-    const siteUrl = Deno.env.get('SITE_URL') ?? supabaseUrl.replace('/rest/v1', '');
     const fallbackLink = `${siteUrl}/accept-invite?token=${token}`;
 
     return json({
