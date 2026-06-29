@@ -3,9 +3,9 @@
 > The live cross-off list for finishing the app. Updated by the orchestrator after
 > every slice verifies. Branch: `feat/finish-line` (off `feat/accountant-portal`).
 
-**Progress: 21 / 51 complete (41%)**  ·  deploy-gated: 1 (P0-05)  ·  blocked-external: 0
+**Progress: 22 / 51 complete (43%)**  ·  deploy-gated: 1 (P0-05)  ·  blocked-external: 0
 **Current wave:** E — GL spine
-**Last updated:** Wave D verified (lint + typecheck + 236 tests + build green)
+**Last updated:** Wave E P1-04 verified (lint + typecheck + 298 tests + build green)
 **Note:** +1 slice discovered in Wave B — P1-14 require_role() accepted_at gate (total now 51).
 
 Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocked-on-deploy]` · `[!]` external-blocked (cannot finish here)
@@ -25,11 +25,11 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [x] P0-10 Email-inbound webhook auth fail-closed + config
 - [x] P0-11 Edge-function JWT-mode pinning (config.toml)
 
-## P1 — Reliability & accounting foundations (11/14)
+## P1 — Reliability & accounting foundations (12/14)
 - [x] P1-01 Cron heartbeat + no-success-window + soft-failure parsing
 - [x] P1-02 Basiq durability + basiq_user_id migration + webhook persist
 - [x] P1-03 OCR provider selection + extraction quality + accuracy gate
-- [ ] P1-04 GL canonical posting RPC + date-scoped trial balance
+- [x] P1-04 GL canonical posting RPC + date-scoped trial balance
 - [ ] P1-05 Accounting-engine CI tests + test:accounting
 - [x] P1-06 SECURITY DEFINER + notify() org-guard hardening
 - [x] P1-07 High-impact FK indexes (+ tag_drafts)
