@@ -4,6 +4,13 @@
 // A key is presented as `Authorization: Bearer llp_<prefix>.<secret>`.
 // Only the SHA-256 hash of the secret is stored; lookup is by the public prefix,
 // then a constant-time compare of the hash. Org + scopes ride on the key row.
+//
+// SECURITY (migration 0208 — api-key hardening): hashed_key is readable ONLY by
+// the service role — interactive (authenticated) and connector tokens have the
+// SELECT privilege on that column revoked. The rate-limit RPC is service_role-
+// only EXECUTE. Every DB call here therefore MUST go through serviceClient()
+// (service-role key); switching to a user/anon client would break the
+// hashed_key read, the last_used_at touch, and the api_key_rate_limit() call.
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireEnv } from "./env.ts";
 

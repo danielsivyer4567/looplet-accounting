@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrg } from '@/hooks/useOrg';
@@ -18,6 +18,11 @@ import { BrandHeader } from '@/components/BrandHeader';
  * which matches pending, unexpired invitations to the caller's verified email
  * and creates/accepts the membership rows. An empty result means there was
  * nothing to accept — i.e. the invite already lapsed or was already used.
+ *
+ * There is intentionally no `?token=<uuid>` fallback: redemption is gated on a
+ * *verified* email (the JWT the invite link grants), so a raw URL token would
+ * grant nothing safely. The team-invite edge fn fails closed if the email
+ * can't be sent rather than emitting a dead token link (SLICE P0-03).
  */
 type Phase = 'checking' | 'form' | 'no-session' | 'working' | 'no-invites';
 
@@ -25,8 +30,6 @@ export function AcceptInvitePage() {
   const { setPassword } = useAuth();
   const { refresh } = useOrg();
   const navigate = useNavigate();
-  const [params] = useSearchParams();
-  const hasToken = Boolean(params.get('token'));
 
   const [phase, setPhase] = useState<Phase>('checking');
   const [password, setPwd] = useState('');
@@ -130,9 +133,7 @@ export function AcceptInvitePage() {
   } else if (phase === 'no-session') {
     content = renderMessage(
       'Invitation link expired',
-      hasToken
-        ? 'Your invitation link could not sign you in. If you already have an account, sign in and your invitation will be applied automatically.'
-        : 'This invitation link is invalid or has expired. Ask your client to send a new invitation, or sign in if you already have an account.',
+      'This invitation link is invalid or has expired. Ask your client to send a new invitation, or sign in if you already have an account — any pending invitation will be applied automatically.',
       { to: '/login', label: 'Go to sign in' },
     );
   } else if (phase === 'no-invites') {

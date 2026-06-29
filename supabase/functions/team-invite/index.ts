@@ -12,8 +12,13 @@
  *      (it re-sends a link).
  *   5. Insert a row into organization_memberships with accepted_at = NULL
  *      (pending) and into team_invitations for the audit trail.
- *   6. Return { ok, invite_link? } — invite_link is populated when the Admin
- *      API isn't available (fallback: raw token from team_invitations).
+ *   6. Return { ok, message }.
+ *
+ * Fail-closed: if the Supabase invite email cannot be sent we have no safe way
+ * for the invitee to redeem the invite (redemption is gated on a *verified*
+ * email via accept_pending_invites(), not on a raw URL token), so we roll back
+ * the invitation + pending membership and return an error rather than handing
+ * back a dead/insecure ?token=<uuid> link. See SLICE P0-03.
  *
  * Input:  { email: string, role: OrgRole, organization_id: string }
  * Output: { ok: true, message: string }
@@ -253,16 +258,36 @@ Deno.serve(async (req) => {
   );
 
   if (adminInviteErr) {
-    // Email send failed — still return success with a fallback copy-paste link.
-    console.warn('inviteUserByEmail failed (non-fatal):', adminInviteErr.message);
+    // Email send failed. We have no safe fallback: redemption requires the
+    // invitee to be signed in with their *verified* email (accept_pending_invites
+    // matches the JWT email, not the URL token), so a raw ?token=<uuid> link
+    // grants nothing and only leaks a live invite token. Fail closed — roll back
+    // the invitation (and any freshly-created pending membership) so we don't
+    // leave a dangling "pending forever" record, then surface the error.
+    console.error('inviteUserByEmail failed — rolling back invite:', adminInviteErr.message);
 
-    const fallbackLink = `${siteUrl}/accept-invite?token=${token}`;
+    await adminClient.from('team_invitations').delete().eq('token', token);
 
-    return json({
-      ok: true,
-      message: `Invitation recorded. Email send failed — share this link manually: ${fallbackLink}`,
-      invite_link: fallbackLink,
-    });
+    if (matchedUser) {
+      // Only remove the membership if it is still pending — never clobber a row
+      // the user had already accepted in a prior invite.
+      await adminClient
+        .from('organization_memberships')
+        .delete()
+        .eq('user_id', matchedUser.id)
+        .eq('organization_id', organization_id)
+        .is('accepted_at', null);
+    }
+
+    return json(
+      {
+        ok: false,
+        error:
+          'Could not send the invitation email. The invite was not created. ' +
+          'Please check the email address and try again, or contact support if this persists.',
+      },
+      502,
+    );
   }
 
   return json({
