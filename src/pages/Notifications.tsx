@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { useNotificationOrgScope } from '@/hooks/useNotificationOrgScope';
 import { SkeletonTable } from '@/components/Skeleton';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
 import {
@@ -65,6 +66,7 @@ const SEVERITY_COLOURS: Record<string, string> = {
 
 export function NotificationsPage() {
   const { currentOrg } = useOrg();
+  const { crossOrg, orgNameById, enterOrg } = useNotificationOrgScope();
   const navigate = useNavigate();
   const [rows, setRows] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,20 +76,18 @@ export function NotificationsPage() {
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async () => {
-    if (!currentOrg) return;
+    if (!crossOrg && !currentOrg) return;
     setLoading(true);
-    const { data, error: e } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('organization_id', currentOrg.id)
-      .is('dismissed_at', null)
+    let query = supabase.from('notifications').select('*').is('dismissed_at', null);
+    if (!crossOrg && currentOrg) query = query.eq('organization_id', currentOrg.id);
+    const { data, error: e } = await query
       .order('read_at', { ascending: true, nullsFirst: true })
       .order('created_at', { ascending: false })
       .limit(200);
     if (e) setError(e.message);
     setRows((data ?? []) as NotificationRow[]);
     setLoading(false);
-  }, [currentOrg]);
+  }, [currentOrg, crossOrg]);
 
   useEffect(() => void refresh(), [refresh]);
 
@@ -108,6 +108,7 @@ export function NotificationsPage() {
         .update({ read_at: new Date().toISOString() })
         .eq('id', n.id);
     }
+    enterOrg(n.organization_id);
     if (n.link) {
       navigate(n.link);
     } else {
@@ -137,7 +138,7 @@ export function NotificationsPage() {
     void refresh();
   };
 
-  if (!currentOrg) return null;
+  if (!crossOrg && !currentOrg) return null;
 
   const distinctCategories = Array.from(new Set(rows.map((r) => r.category)));
   const severityItems = [
@@ -413,6 +414,14 @@ export function NotificationsPage() {
                     >
                       {CATEGORY_LABELS[n.category] ?? n.category}
                     </span>
+                    {crossOrg && orgNameById.get(n.organization_id) && (
+                      <span
+                        className="badge badge-primary"
+                        style={{ fontSize: '0.625rem', padding: '0.1rem 0.35rem' }}
+                      >
+                        {orgNameById.get(n.organization_id)}
+                      </span>
+                    )}
                   </div>
                   {n.body && (
                     <div
