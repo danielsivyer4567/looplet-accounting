@@ -12,12 +12,20 @@ and Row-Level Security (RLS) enforces that **tenant** boundary on every read and
 write — a key can never see or touch another organization's data. The raw
 service-role key is never used by integrations.
 
-> **Important — read scope is not granular.** Any valid key can **read your whole
-> organization** over the Read API (PostgREST), regardless of its `scopes`. Read
-> scopes (e.g. `read:financials`) are advisory today; they do **not** narrow what
-> a key can read within its org. **Write** authority *is* enforced per type
-> (`write:bills` / `write:bank` / `write:invoices` / `write:receipts`) by the
-> ingest and receipt endpoints. Treat
+> **Important — the Read JWT is read-only, and read scope is not granular.** The
+> JWT you get from `api-gateway` runs as the dedicated, **SELECT-only**
+> `connector` Postgres role (migration 0205). It **cannot** `POST` / `PATCH` /
+> `DELETE` any table over PostgREST — every write is denied at the grant layer,
+> independent of RLS. All writes must go through the scoped `ingest` /
+> `receipt-webhook` endpoints, which enforce per-type write scopes. The JWT also
+> cannot be exchanged for a broader, write-capable token — `api-gateway` never
+> mints the `authenticated` role for a key.
+>
+> Separately, any valid key can **read your whole organization** over the Read
+> API, regardless of its `scopes`. Read scopes (e.g. `read:financials`) are
+> advisory today; they do **not** narrow what a key can read within its org.
+> **Write** authority *is* enforced per type (`write:bills` / `write:bank` /
+> `write:invoices` / `write:receipts`) by the ingest and receipt endpoints. Treat
 > issuing any key as granting full-org read, and grant write scopes minimally.
 
 Base URL: `https://dxoikltymmknxqpkpyhi.supabase.co`
@@ -95,12 +103,14 @@ curl -s -X POST \
 }
 ```
 
-The JWT carries `role=authenticated` and an `organization_id` claim. The
-`get_accessible_org_ids()` RLS helper honours that claim, so every existing
-org-scoped policy automatically restricts your reads to your organization — no
-extra filtering required, and no way to read another tenant's data. Note this
-restricts reads to *your org*, not to a subset of it: the token can read the
-whole org regardless of the key's read scopes (see the note at the top).
+The JWT carries `role=connector` (a SELECT-only Postgres role) and an
+`organization_id` claim. The `get_accessible_org_ids()` RLS helper honours that
+claim, so every existing org-scoped policy automatically restricts your reads to
+your organization — no extra filtering required, and no way to read another
+tenant's data. Note this restricts reads to *your org*, not to a subset of it:
+the token can read the whole org regardless of the key's read scopes (see the
+note at the top). It is **read-only**: any write over `/rest/v1` fails (see
+[§7 — Why the Read JWT can't write](#7-why-the-read-jwt-cant-write)).
 
 ### Step 2 — query PostgREST
 
@@ -334,3 +344,41 @@ Looplet. A dependency-free reference bridge is in
 | 429    | `rate_limited`       | Per-key window exceeded                  |
 
 Authentication failures never reveal which check failed.
+
+---
+
+## 7. Why the Read JWT can't write
+
+**Design decision (P0-06).** Earlier, `api-gateway` minted the Read JWT with
+`role: authenticated`. PostgREST runs every request under the JWT's `role`
+Postgres role, and the `authenticated` role holds
+`GRANT SELECT, INSERT, UPDATE ON ALL TABLES` (plus per-table `DELETE` on many
+tables). Because every org table's *write* RLS policy keys on
+`get_accessible_org_ids()` — which honours the integration token's
+`organization_id` claim — **any** connector key could exchange for a JWT and then
+`POST` / `PATCH` / `DELETE` bills, invoices, journal entries, trusts, etc.
+straight over `/rest/v1`, bypassing the scoped `ingest` function entirely. A
+read-only connector could mutate the whole org's books.
+
+The fix is a least-privilege Postgres role rather than claim-by-claim RLS:
+
+- A dedicated **`connector`** role (migration 0205) is granted `SELECT` only on
+  all tables — present and future (default privileges) — and **no**
+  `INSERT` / `UPDATE` / `DELETE`. Any write attempt is denied at the grant layer
+  (`SQLSTATE 42501`), regardless of what RLS would allow.
+- `api-gateway` mints `role: connector` (never `authenticated`), so the token
+  carries no write authority to escalate into — it cannot be exchanged for a
+  broader, write-capable JWT.
+- `connector` is a **`NOINHERIT` member of `authenticated`**. The membership
+  makes `TO authenticated` `SELECT` policies apply to connector tokens (so reads
+  keep working everywhere), while `NOINHERIT` stops it from silently inheriting
+  `authenticated`'s table *write* grants. Its only effective privilege is the
+  direct `SELECT` grant.
+
+Net result: **the scoped `ingest` / `receipt-webhook` endpoints are the only
+write surface for connectors**, and per-type `write:*` scopes there remain the
+authoritative write boundary. Reads stay RLS-scoped to the single pinned org.
+
+A claim-based read-scope (narrowing *which rows/tables* a key may read by its
+`scopes`) is still future work; it would be layered on top of this role without
+changing the write posture.

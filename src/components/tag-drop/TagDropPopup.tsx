@@ -31,8 +31,10 @@ export interface TagDropPopupProps {
   tagComment: string;
   selectedStaff: StaffMember[];
   uploadedFiles: UploadedFile[];
-  isRecordingAudio: boolean;
-  isRecordingScreen: boolean;
+  /** @deprecated Voice capture is deferred (no durable upload yet); control is disabled. */
+  isRecordingAudio?: boolean;
+  /** @deprecated Screen capture is deferred (no durable upload yet); control is disabled. */
+  isRecordingScreen?: boolean;
   staffSelectionError: string | null;
   requiresApproval: boolean;
   isUploading: boolean;
@@ -47,9 +49,12 @@ export interface TagDropPopupProps {
   onCommentChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onStaffSelect: (staff: StaffMember) => void;
   onApprovalChange: (checked: boolean) => void;
-  onToggleScreenRecord: () => void;
-  onImageUpload: () => void;
-  onAudioRecord: () => void;
+  /** @deprecated Screen capture is deferred (no durable upload yet); control is disabled. */
+  onToggleScreenRecord?: () => void;
+  /** @deprecated Image upload is deferred (no durable upload yet); control is disabled. */
+  onImageUpload?: () => void;
+  /** @deprecated Voice capture is deferred (no durable upload yet); control is disabled. */
+  onAudioRecord?: () => void;
   onPaintClick: () => void;
   onSaveTag: () => void;
   onSaveDraft: () => void;
@@ -69,8 +74,6 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
   tagComment,
   selectedStaff,
   uploadedFiles,
-  isRecordingAudio,
-  isRecordingScreen,
   staffSelectionError,
   requiresApproval,
   isUploading,
@@ -85,9 +88,6 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
   onCommentChange,
   onStaffSelect,
   onApprovalChange,
-  onToggleScreenRecord,
-  onImageUpload,
-  onAudioRecord,
   onPaintClick,
   onSaveTag,
   onSaveDraft,
@@ -240,33 +240,38 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
           </p>
         )}
 
-        {/* Attachments + actions */}
+        {/* Attachments + actions — Screen / Image / Voice are deferred (no
+            durable upload yet), so only Paint is enabled here too. */}
         <div className="flex items-center gap-1.5 px-4 py-3">
-          {[
-            {
-              icon: Monitor,
-              label: 'Screen',
-              onClick: onToggleScreenRecord,
-              active: isRecordingScreen,
-            },
-            { icon: ImageIcon, label: 'Image', onClick: onImageUpload, active: false },
-            { icon: Mic, label: 'Voice', onClick: onAudioRecord, active: isRecordingAudio },
-            { icon: Palette, label: 'Paint', onClick: onPaintClick, active: false },
-          ].map(({ icon: Icon, label, onClick, active }) => (
+          {(
+            [
+              { icon: Monitor, label: 'Screen', deferred: true },
+              { icon: ImageIcon, label: 'Image', deferred: true },
+              { icon: Mic, label: 'Voice', deferred: true },
+              { icon: Palette, label: 'Paint', deferred: false },
+            ] as const
+          ).map(({ icon: Icon, label, deferred }) => (
             <button
               key={label}
               type="button"
-              onClick={onClick}
-              title={label}
+              disabled={deferred}
+              aria-disabled={deferred || undefined}
+              onClick={deferred ? undefined : onPaintClick}
+              title={deferred ? `${label} capture is coming soon` : label}
               className={cn(
                 'flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-semibold transition-colors',
-                active
-                  ? 'animate-pulse border-red-300 bg-red-50 text-red-600'
+                deferred
+                  ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-500'
                   : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800',
               )}
             >
               <Icon className="h-3.5 w-3.5" />
               {label}
+              {deferred && (
+                <span className="rounded-full bg-slate-200 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-700 dark:text-slate-300">
+                  Soon
+                </span>
+              )}
             </button>
           ))}
           <div className="ml-auto flex items-center gap-2">
@@ -528,6 +533,19 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
                 Attachments
               </label>
 
+              {/* Screen / Image / Voice capture is NOT wired to durable storage
+                  yet — the tag-attachments bucket + uploader (SC-2D/2E) were
+                  never built, so a captured blob/base64 preview would not
+                  survive a reload. Until that lands these controls are
+                  disabled + labelled "Soon" so we never persist a dead URL.
+                  Comments, drawings (Paint), mentions and deep links all
+                  persist today and stay fully enabled. */}
+              <p className="text-[10px] text-slate-400">
+                Screen, image and voice capture are coming soon. Use{' '}
+                <span className="font-semibold text-slate-500">Paint</span> to annotate the page —
+                drawings, comments and @mentions save with the tag.
+              </p>
+
               {/* File Previews */}
               {uploadedFiles.length > 0 && (
                 <div className="grid grid-cols-4 gap-2 mb-2">
@@ -569,51 +587,33 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
                 </div>
               )}
 
-              {/* Media Action Buttons */}
+              {/* Media Action Buttons — Screen / Image / Voice are deferred
+                  (no durable upload yet); only Paint persists, so only it is
+                  enabled. */}
               <div className="grid grid-cols-4 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    'flex flex-col items-center justify-center gap-1 h-16 border rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800',
-                    isRecordingScreen
-                      ? 'bg-red-50 border-red-200 text-red-600'
-                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300',
-                  )}
-                  onClick={onToggleScreenRecord}
-                >
-                  <Monitor className="h-4 w-4" />
-                  <span className="text-[10px] font-medium">
-                    {isRecordingScreen ? 'Stop' : 'Screen'}
-                  </span>
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex flex-col items-center justify-center gap-1 h-16 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 border rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800"
-                  onClick={onImageUpload}
-                >
-                  <ImageIcon className="h-4 w-4" />
-                  <span className="text-[10px] font-medium">Image</span>
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    'flex flex-col items-center justify-center gap-1 h-16 border rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800',
-                    isRecordingAudio
-                      ? 'bg-red-50 border-red-200 text-red-600'
-                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300',
-                  )}
-                  onClick={onAudioRecord}
-                >
-                  <Mic className="h-4 w-4" />
-                  <span className="text-[10px] font-medium">
-                    {isRecordingAudio ? 'Stop' : 'Voice'}
-                  </span>
-                </Button>
+                {(
+                  [
+                    { icon: Monitor, label: 'Screen' },
+                    { icon: ImageIcon, label: 'Image' },
+                    { icon: Mic, label: 'Voice' },
+                  ] as const
+                ).map(({ icon: Icon, label }) => (
+                  <Button
+                    key={label}
+                    variant="outline"
+                    size="sm"
+                    disabled
+                    aria-disabled="true"
+                    title={`${label} capture is coming soon`}
+                    className="relative flex flex-col items-center justify-center gap-1 h-16 bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 border rounded-xl"
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="text-[10px] font-medium">{label}</span>
+                    <span className="absolute top-1 right-1 rounded-full bg-slate-200 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-700 dark:text-slate-300">
+                      Soon
+                    </span>
+                  </Button>
+                ))}
 
                 <Button
                   variant="outline"

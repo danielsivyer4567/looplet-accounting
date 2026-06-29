@@ -37,15 +37,23 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setLoading(true);
-    // Memberships → orgs (RLS does the filtering automatically). We carry the
-    // caller's role_enum/accepted_at and the org's entity_type so the client
+    // Memberships → orgs (RLS does the org-id filtering automatically). We carry
+    // the caller's role_enum/accepted_at and the org's entity_type so the client
     // picker and role-aware landing can reason about accountant access.
+    //
+    // PENDING-INVITE GATE (P0-01): a pending membership (accepted_at IS NULL) is
+    // created the moment a user is invited; it must NOT surface the org until the
+    // invite is accepted. get_accessible_org_ids() (migration 0203) already drops
+    // pending orgs at the RLS layer, but this row read is keyed on user_id and
+    // still returns the caller's own pending membership rows. We exclude them
+    // here (server-side .not filter) so a pending org is never listed/selectable.
     const { data, error } = await supabase
       .from('organization_memberships')
       .select(
         'role_enum, accepted_at, organizations(id, name, abn, organization_type, business_profile(entity_type))',
       )
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      .not('accepted_at', 'is', null);
     if (error) {
       console.error('Failed to load organizations', error);
       setOrganizations([]);
@@ -54,6 +62,10 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
     }
     const orgs: Organization[] = (data as MembershipRow[] | null ?? [])
       .map((row): Organization | null => {
+        // Defense in depth: never surface a pending (un-accepted) membership,
+        // even if the server filter above is bypassed. accepted_at IS NULL =
+        // invite not yet accepted → the org is not yet accessible.
+        if (!row.accepted_at) return null;
         const o = Array.isArray(row.organizations) ? row.organizations[0] : row.organizations;
         if (!o) return null;
         const profile = Array.isArray(o.business_profile)

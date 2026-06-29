@@ -715,21 +715,20 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
     setState((prev) => ({ ...prev, isUploading: true, uploadProgress: 10 }));
 
     try {
-      // Prepare attachments (in real implementation, upload to storage first)
-      const attachments = state.uploadedFiles
-        .filter((f) => f.type !== 'drawing')
-        .map((f) => ({
-          type: f.type,
-          url: f.previewUrl, // In production, this would be a storage URL
-        }));
-
+      // Media attachments (image/audio/video) are DEFERRED: the tag-attachments
+      // storage bucket exists but no uploader is wired, so a base64/blob preview
+      // URL would not survive a reload. We deliberately persist no media here —
+      // the popup's Screen/Image/Voice controls are disabled ("Soon") so
+      // uploadedFiles only ever holds drawings, which ride along on
+      // `drawingData` (below), not the attachments table. Passing an empty
+      // attachments array keeps us from writing dead URLs into tag_attachments.
       setState((prev) => ({ ...prev, uploadProgress: 50 }));
 
       const result = await createTag({
         creatorId: user.id,
         comment: state.tagComment,
         taggedStaffIds: state.selectedStaff.map((s) => s.id),
-        attachments,
+        attachments: [],
         coords: state.popupCoords || { x: 0, y: 0 },
         requiresApproval: state.requiresApproval,
         pageUrl: pageUrl || window.location.pathname,
@@ -763,7 +762,6 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
   }, [
     state.selectedStaff,
     state.tagComment,
-    state.uploadedFiles,
     state.popupCoords,
     state.drawingData,
     state.requiresApproval,
