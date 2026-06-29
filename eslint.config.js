@@ -33,4 +33,14 @@ export default tseslint.config(
       'react-refresh/only-export-components': 'off',
     },
   },
+  {
+    // Ported tag-drop providers co-locate the Provider component with its
+    // consumer hook (useTagDrop / useTagState) as in the upstream CRM source;
+    // that colocation is the vendored shape, so opt them out of the
+    // fast-refresh export rule (same rationale as the shadcn primitives above).
+    files: ['src/hooks/useTagDrop.tsx', 'src/hooks/useTagState.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 );
