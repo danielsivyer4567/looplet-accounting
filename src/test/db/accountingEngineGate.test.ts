@@ -28,6 +28,7 @@ describe('accounting-engine CI gate', () => {
     expect(accountingScript).toContain('bankReconciliationGlPosting.test.ts');
     expect(accountingScript).toContain('paymentRunPayrollGlPosting.test.ts');
     expect(accountingScript).toContain('gstBasControlGlPosting.test.ts');
+    expect(accountingScript).toContain('sourcePostingCompletion.test.ts');
     expect(accountingScript).toContain('useRegistrations.test.ts');
     expect(accountingScript).toContain('Bas.test.tsx');
     expect(accountingScript).toContain('invoice-reconciliation-migration.test.ts');
@@ -52,6 +53,9 @@ describe('accounting-engine CI gate', () => {
     );
     const gstBasControlGlPosting = readRepoFile(
       'supabase/migrations/0220_gst_bas_control_gl_posting.sql',
+    );
+    const sourcePostingCompletion = readRepoFile(
+      'supabase/migrations/0221_source_posting_completion.sql',
     );
 
     expect(gl).toMatch(/CREATE OR REPLACE FUNCTION public\.create_and_post_journal\(/);
@@ -85,6 +89,25 @@ describe('accounting-engine CI gate', () => {
       /CREATE OR REPLACE FUNCTION public\.post_gst_bas_adjustment_journal\(/,
     );
     expect(gstBasControlGlPosting).toMatch(/create_and_post_journal/);
+    expect(sourcePostingCompletion).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.post_depreciation_schedule_journal\(/,
+    );
+    expect(sourcePostingCompletion).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.post_opening_balance_journal\(/,
+    );
+    expect(sourcePostingCompletion).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.post_manual_journal\(/,
+    );
+    expect(sourcePostingCompletion).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.reverse_journal_entry\(/,
+    );
+    expect(sourcePostingCompletion).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.post_customer_credit_note_journal\(/,
+    );
+    expect(sourcePostingCompletion).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.post_supplier_credit_note_journal\(/,
+    );
+    expect(sourcePostingCompletion).toMatch(/create_and_post_journal/);
   });
 
   it('keeps GST, BAS, PAYG, and reconciliation coverage represented', () => {

@@ -3,9 +3,9 @@
 > The live cross-off list for finishing the app. Updated by the orchestrator after
 > every slice verifies. Branch: `feat/finish-line` (off `feat/accountant-portal`).
 
-**Progress: 28 / 51 complete (55%)**  ·  deploy-gated: 1 (P0-05)  ·  blocked-external: 0
+**Progress: 29 / 51 complete (57%)**  ·  deploy-gated: 1 (P0-05)  ·  blocked-external: 0
 **Current wave:** F — source posting on GL
-**Last updated:** Wave F P2-01d complete (accounting gate + lint + typecheck + 360 tests + build green)
+**Last updated:** Wave F P2-01e complete (accounting gate + lint + typecheck + 368 tests + build green)
 **Note:** +1 slice discovered in Wave B — P1-14 require_role() accepted_at gate (total now 51).
 
 Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocked-on-deploy]` · `[!]` external-blocked (cannot finish here)
@@ -41,12 +41,12 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [x] P1-13 Cron secrets + SITE_URL provisioning
 - [x] P1-14 require_role() accepted_at gate *(discovered in Wave B)*
 
-## P2 — Source posting + compliance output + product completion (4/26)
+## P2 — Source posting + compliance output + product completion (5/26)
 - [x] P2-01a Source posting: invoices + invoice payments
 - [x] P2-01b Source posting: bank transactions + reconciliation
 - [x] P2-01c Source posting: payment runs + payroll
 - [x] P2-01d Source posting: GST/BAS control + adjustments
-- [ ] P2-01e Source posting: depreciation/opening-bal/manual-journals/credit-notes/reversals
+- [x] P2-01e Source posting: depreciation/opening-bal/manual-journals/credit-notes/reversals
 - [ ] P2-02a BAS labels completion + immutable snapshot + source drilldown
 - [ ] P2-LODGE-1 SBR/AS4 message + envelope builder (behind fail-closed gate)
 - [ ] P2-LODGE-2 Digital-signing integration points + secret wiring  *(external-gated)*
