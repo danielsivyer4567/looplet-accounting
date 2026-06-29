@@ -33,6 +33,7 @@ import { EofyReportPage } from '@/pages/reports/EOFY';
 import { TaxReturnPage } from '@/pages/reports/TaxReturn';
 import { FbtReportPage } from '@/pages/reports/Fbt';
 import { TparReportPage } from '@/pages/reports/Tpar';
+import { FrankingReportPage } from '@/pages/reports/Franking';
 import { NotificationsPage } from '@/pages/Notifications';
 import { SuppliersPage } from '@/pages/Suppliers';
 import { SupplierDetailPage } from '@/pages/SupplierDetail';
@@ -126,6 +127,7 @@ export function App() {
             <Route path="reports/tax-return" element={<TaxReturnPage />} />
             <Route path="reports/fbt" element={<FbtReportPage />} />
             <Route path="reports/tpar" element={<TparReportPage />} />
+            <Route path="reports/franking" element={<FrankingReportPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="suppliers" element={<SuppliersPage />} />
             <Route path="suppliers/:id" element={<SupplierDetailPage />} />

@@ -32,10 +32,12 @@ describe('accounting-engine CI gate', () => {
     expect(accountingScript).toContain('basLabelsSnapshotsDrilldown.test.ts');
     expect(accountingScript).toContain('fbtReturnBuilder.test.ts');
     expect(accountingScript).toContain('tparReportBuilder.test.ts');
+    expect(accountingScript).toContain('frankingRegister.test.ts');
     expect(accountingScript).toContain('useRegistrations.test.ts');
     expect(accountingScript).toContain('Bas.test.tsx');
     expect(accountingScript).toContain('Fbt.test.tsx');
     expect(accountingScript).toContain('Tpar.test.tsx');
+    expect(accountingScript).toContain('Franking.test.tsx');
     expect(accountingScript).toContain('invoice-reconciliation-migration.test.ts');
     expect(accountingScript).toContain('receipt-webhook.test.ts');
   });
@@ -67,6 +69,7 @@ describe('accounting-engine CI gate', () => {
     );
     const fbtReturnBuilder = readRepoFile('supabase/migrations/0223_fbt_return_builder.sql');
     const tparReportBuilder = readRepoFile('supabase/migrations/0224_tpar_report_builder.sql');
+    const frankingRegister = readRepoFile('supabase/migrations/0225_franking_register.sql');
 
     expect(gl).toMatch(/CREATE OR REPLACE FUNCTION public\.create_and_post_journal\(/);
     expect(gl).toMatch(/CREATE OR REPLACE FUNCTION public\.trial_balance_by_period\(/);
@@ -140,6 +143,11 @@ describe('accounting-engine CI gate', () => {
     expect(tparReportBuilder).toMatch(/CREATE OR REPLACE FUNCTION public\.build_tpar_report\(/);
     expect(tparReportBuilder).toMatch(/payment_run_items/);
     expect(tparReportBuilder).toMatch(/p\.auto_category_code = 'subcontractor'/);
+    expect(frankingRegister).toMatch(/CREATE TABLE IF NOT EXISTS public\.franking_account_entries/);
+    expect(frankingRegister).toMatch(
+      /CREATE TABLE IF NOT EXISTS public\.company_dividend_statements/,
+    );
+    expect(frankingRegister).toMatch(/CREATE OR REPLACE FUNCTION public\.build_franking_register/);
   });
 
   it('keeps GST, BAS, PAYG, and reconciliation coverage represented', () => {

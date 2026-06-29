@@ -8,6 +8,7 @@ import {
   Archive,
   Calculator,
   ClipboardList,
+  Landmark,
 } from 'lucide-react';
 
 const REPORTS = [
@@ -74,6 +75,14 @@ const REPORTS = [
       'Taxable Payments Annual Report export from paid subcontractor bills, supplier intake rules, ABN checks, and payment-run evidence.',
     status: 'live',
     icon: ClipboardList,
+  },
+  {
+    to: '/reports/franking',
+    title: 'Franking Register',
+    description:
+      'Company franking account movements, member dividend statements, benchmark percentage, and GL reconciliation.',
+    status: 'live',
+    icon: Landmark,
   },
 ];
 
