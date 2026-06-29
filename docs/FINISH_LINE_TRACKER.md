@@ -3,9 +3,9 @@
 > The live cross-off list for finishing the app. Updated by the orchestrator after
 > every slice verifies. Branch: `feat/finish-line` (off `feat/accountant-portal`).
 
-**Progress: 24 / 51 complete (47%)**  ·  deploy-gated: 1 (P0-05)  ·  blocked-external: 0
+**Progress: 25 / 51 complete (49%)**  ·  deploy-gated: 1 (P0-05)  ·  blocked-external: 0
 **Current wave:** F — source posting on GL
-**Last updated:** Wave E complete (accounting gate + lint + typecheck + 312 tests + build green)
+**Last updated:** Wave F P2-01a complete (accounting gate + lint + typecheck + 324 tests + build green)
 **Note:** +1 slice discovered in Wave B — P1-14 require_role() accepted_at gate (total now 51).
 
 Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocked-on-deploy]` · `[!]` external-blocked (cannot finish here)
@@ -41,8 +41,8 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [x] P1-13 Cron secrets + SITE_URL provisioning
 - [x] P1-14 require_role() accepted_at gate *(discovered in Wave B)*
 
-## P2 — Source posting + compliance output + product completion (0/26)
-- [ ] P2-01a Source posting: invoices + invoice payments
+## P2 — Source posting + compliance output + product completion (1/26)
+- [x] P2-01a Source posting: invoices + invoice payments
 - [ ] P2-01b Source posting: bank transactions + reconciliation
 - [ ] P2-01c Source posting: payment runs + payroll
 - [ ] P2-01d Source posting: GST/BAS control + adjustments

@@ -24,6 +24,7 @@ describe('accounting-engine CI gate', () => {
     expect(accountingScript).toContain('periodLockCoverage.test.ts');
     expect(accountingScript).toContain('requireRoleAccepted.test.ts');
     expect(accountingScript).toContain('apReconciliationParity.test.ts');
+    expect(accountingScript).toContain('invoiceGlPosting.test.ts');
     expect(accountingScript).toContain('useRegistrations.test.ts');
     expect(accountingScript).toContain('Bas.test.tsx');
     expect(accountingScript).toContain('invoice-reconciliation-migration.test.ts');
@@ -39,6 +40,7 @@ describe('accounting-engine CI gate', () => {
     const gl = readRepoFile('supabase/migrations/0215_gl_canonical_posting.sql');
     const periodLocks = readRepoFile('supabase/migrations/0209_period_lock_coverage.sql');
     const apReconciliation = readRepoFile('supabase/migrations/0216_ap_reconciliation_parity.sql');
+    const invoiceGlPosting = readRepoFile('supabase/migrations/0217_invoice_gl_posting.sql');
 
     expect(gl).toMatch(/CREATE OR REPLACE FUNCTION public\.create_and_post_journal\(/);
     expect(gl).toMatch(/CREATE OR REPLACE FUNCTION public\.trial_balance_by_period\(/);
@@ -47,6 +49,9 @@ describe('accounting-engine CI gate', () => {
     expect(periodLocks).toMatch(/journal_entries:entry_date/);
     expect(apReconciliation).toMatch(/CREATE OR REPLACE FUNCTION public\.reconcile_match_bill\(/);
     expect(apReconciliation).toMatch(/CREATE OR REPLACE VIEW public\.v_bank_match_candidates/);
+    expect(invoiceGlPosting).toMatch(/CREATE OR REPLACE FUNCTION public\.post_invoice_journal\(/);
+    expect(invoiceGlPosting).toMatch(/CREATE OR REPLACE FUNCTION public\.post_invoice_payment_journal\(/);
+    expect(invoiceGlPosting).toMatch(/create_and_post_journal/);
   });
 
   it('keeps GST, BAS, PAYG, and reconciliation coverage represented', () => {
