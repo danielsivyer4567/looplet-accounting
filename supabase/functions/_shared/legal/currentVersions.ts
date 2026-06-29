@@ -5,8 +5,23 @@ export interface CurrentVersion {
   effective_from: string;
 }
 
+interface SupabaseError {
+  message: string;
+}
+
+interface CurrentVersionsQuery {
+  select(columns: string): CurrentVersionsQuery;
+  eq(column: string, value: string): CurrentVersionsQuery;
+  is(column: string, value: null): CurrentVersionsQuery;
+  order(column: string, options: { ascending: boolean }): CurrentVersionsQuery;
+  range(
+    from: number,
+    to: number,
+  ): Promise<{ data: CurrentVersion[] | null; error: SupabaseError | null }>;
+}
+
 interface SupabaseClient {
-  from(table: string): any;
+  from(table: string): unknown;
 }
 
 const CURRENT_PAGE_SIZE = 1000;
@@ -18,8 +33,8 @@ export async function loadCurrentVersions(
   const current = new Map<string, CurrentVersion>();
   for (let from = 0; ; from += CURRENT_PAGE_SIZE) {
     const to = from + CURRENT_PAGE_SIZE - 1;
-    const { data: liveRows, error: liveErr } = await admin
-      .from('legal_corpus')
+    const query = admin.from('legal_corpus') as CurrentVersionsQuery;
+    const { data: liveRows, error: liveErr } = await query
       .select('id, section_ref, content_hash, effective_from')
       .eq('doc_ref', doc_ref)
       .is('effective_to', null)

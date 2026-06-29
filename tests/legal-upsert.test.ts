@@ -7,7 +7,7 @@ import {
 describe('legal upsert current-version loading', () => {
   it('pages current corpus rows beyond the PostgREST default cap', async () => {
     const docRef = 'Large Act';
-    const ranges: Array<[number, number]> = [];
+    const ranges: [number, number][] = [];
 
     const rows: CurrentVersion[] = Array.from({ length: 1005 }, (_, index) => ({
       id: `row-${index}`,

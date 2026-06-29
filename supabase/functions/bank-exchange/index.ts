@@ -153,6 +153,7 @@ Deno.serve(async (req) => {
         organization_id: body.organization_id,
         bank_connection_id: bankConn.id,
         days: 180,
+        trigger_source: 'exchange',
       }),
     }).catch((e) => console.error('bank-sync dispatch failed:', e));
 

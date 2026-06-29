@@ -18,7 +18,13 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
-import { loadAndRefreshGmail, registerGmailWatch } from '../_shared/gmail/auth.ts';
+import {
+  flagGmailConnectionError,
+  GmailInvalidGrantError,
+  isFatalGmailAuthError,
+  loadAndRefreshGmail,
+  registerGmailWatch,
+} from '../_shared/gmail/auth.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -84,17 +90,24 @@ Deno.serve(async (req) => {
         failed.push({ id: row.id, error: msg });
         // Distinguish a dead connection (revoked / invalid refresh token) from a
         // transient blip. On fatal auth errors, DISABLE the integration so the app
-        // shows a "Reconnect Gmail" banner and we stop silently no-op'ing every
-        // day — mirrors Xero's flagConnectionError(disable=true). See AUDIT.md B3.
-        // (Re-connecting via OAuth sets is_active=true again and resumes renewal.)
-        const fatal = /invalid_grant|\(400\)|\(401\)/i.test(msg);
-        const update: Record<string, unknown> = {
-          last_error: `watch renew: ${msg}`.slice(0, 500),
-        };
-        if (fatal) update.is_active = false;
-        await admin.from('gmail_integrations').update(update).eq('id', row.id);
-        // TODO(B3 follow-up): also emit a notification row once the notifications
-        // schema is confirmed, so the disconnect pings the user proactively.
+        // shows a "Reconnect Gmail" banner, stop silently no-op'ing every day, AND
+        // emit an in-app notification so the user is pinged proactively — mirrors
+        // Xero's flagConnectionError(disable=true). See AUDIT.md B3. (Re-connecting
+        // via OAuth sets is_active=true again and resumes renewal.)
+        //
+        // A GmailInvalidGrantError from loadAndRefreshGmail has ALREADY been
+        // flagged + notified inside the shared helper, so don't double-flag it.
+        // Anything else here came from registerGmailWatch (a successful refresh
+        // followed by a watch() rejection) or a transient blip — flag it now,
+        // disabling only when fatal.
+        if (!(err instanceof GmailInvalidGrantError)) {
+          await flagGmailConnectionError(
+            admin,
+            row,
+            `watch renew: ${msg}`,
+            isFatalGmailAuthError(msg),
+          );
+        }
       }
     }
 

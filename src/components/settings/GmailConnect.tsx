@@ -13,6 +13,11 @@ export function GmailConnect() {
 
   if (!currentOrg) return null;
 
+  // Starts the Google OAuth flow. Used both for the first connect and to
+  // reconnect a mailbox whose grant was revoked/expired: the OAuth callback
+  // upserts on (organization_id, gmail_address) and flips is_active back to
+  // true + clears last_error, so reconnecting the SAME mailbox revives the
+  // disabled row in place (no duplicate, no orphaned bills).
   const handleConnect = async () => {
     setError(null);
     setConnecting(true);
@@ -121,6 +126,8 @@ export function GmailConnect() {
     }
   };
 
+  const disconnected = integrations.filter((g) => !g.is_active);
+
   return (
     <div style={{ marginTop: '2rem' }}>
       <h2 style={{ fontSize: 18, marginBottom: '0.5rem' }}>Gmail intake</h2>
@@ -128,6 +135,26 @@ export function GmailConnect() {
         Connect a mailbox so supplier invoices arrive automatically. We watch the INBOX label only
         and pull PDF / image attachments. You can list specific senders below to filter further.
       </p>
+
+      {disconnected.length > 0 && (
+        <div
+          role="alert"
+          style={{
+            border: '1px solid #7a5a22',
+            background: '#2a1f0c',
+            color: '#e3b873',
+            borderRadius: 4,
+            padding: '0.6rem 0.75rem',
+            fontSize: 13,
+            marginBottom: '1rem',
+          }}
+        >
+          {disconnected.length === 1
+            ? `${disconnected[0]?.gmail_address ?? 'That mailbox'} was disconnected — invoice intake from it has stopped. `
+            : `${disconnected.length} Gmail mailboxes were disconnected — invoice intake from them has stopped. `}
+          Use the <strong>Reconnect</strong> button below to restore it.
+        </div>
+      )}
 
       {loading ? (
         <p style={{ color: '#888' }}>Loading…</p>
@@ -185,7 +212,7 @@ export function GmailConnect() {
                   )}
                 </td>
                 <td style={td}>
-                  {g.is_active && (
+                  {g.is_active ? (
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       <button
                         onClick={() => handleBackfill(g.id, g.gmail_address)}
@@ -217,6 +244,26 @@ export function GmailConnect() {
                         Disconnect
                       </button>
                     </div>
+                  ) : (
+                    // Disabled row: offer a one-click reconnect. Reconnecting the
+                    // same Google account upserts this row back to active.
+                    <button
+                      onClick={handleConnect}
+                      disabled={connecting}
+                      title={`Reconnect ${g.gmail_address} via Google`}
+                      style={{
+                        background: '#3a2a12',
+                        color: '#e3b873',
+                        border: '1px solid #7a5a22',
+                        borderRadius: 3,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        padding: '0.2rem 0.5rem',
+                        cursor: connecting ? 'wait' : 'pointer',
+                      }}
+                    >
+                      {connecting ? 'Reconnecting…' : 'Reconnect'}
+                    </button>
                   )}
                 </td>
               </tr>

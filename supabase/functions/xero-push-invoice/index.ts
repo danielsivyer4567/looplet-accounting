@@ -21,6 +21,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { requireEnv } from '../_shared/env.ts';
 import { callXeroWithRetry, xeroFetch, XeroApiError } from '../_shared/xero/auth.ts';
+import { computeNextAttemptAt, deriveXeroIdempotencyKey } from '../_shared/xero/idempotency.ts';
 
 const MAX_ATTEMPTS = 3;
 const DEFAULT_ACCOUNT_CODE = Deno.env.get('XERO_DEFAULT_INCOME_ACCOUNT_CODE') ?? '200';
@@ -217,7 +218,25 @@ Deno.serve(async (req) => {
       Status: 'AUTHORISED',
     };
 
-    const idempotencyKey = crypto.randomUUID();
+    // STABLE Xero Idempotency-Key: derived from org+kind+id so every retry of
+    // this push REUSES the same key. Xero dedupes server-side, so a retry after
+    // a timeout / unknown-result returns the existing invoice rather than
+    // creating a DUPLICATE ACCREC. Persisted on the durable push queue.
+    const idempotencyKey = await deriveXeroIdempotencyKey(organization_id, 'invoice', invoice_id);
+    const nowIso = new Date().toISOString();
+    await admin.from('xero_push_queue').upsert(
+      {
+        organization_id,
+        record_type: 'invoice',
+        record_id: invoice_id,
+        idempotency_key: idempotencyKey,
+        status: 'pending',
+        attempts: attempts + 1,
+        max_attempts: MAX_ATTEMPTS,
+        last_attempt_at: nowIso,
+      },
+      { onConflict: 'organization_id,record_type,record_id' },
+    );
 
     try {
       const data = await callXeroWithRetry<{ Invoices: { InvoiceID?: string }[] }>(
@@ -244,7 +263,16 @@ Deno.serve(async (req) => {
         metadata: { ...inv.metadata, xero_attempts: attempts + 1, last_xero_error: null },
       }).eq('id', invoice_id);
 
-      // Append to sync log
+      // Mark the durable queue row synced.
+      await admin.from('xero_push_queue').update({
+        status: 'synced',
+        xero_invoice_id: xeroInvoiceId,
+        last_error: null,
+        last_http_status: null,
+        next_attempt_at: null,
+      }).eq('organization_id', organization_id).eq('record_type', 'invoice').eq('record_id', invoice_id);
+
+      // Append to sync log (per-attempt UNIQUE audit row — NOT the Xero header key).
       await admin.from('xero_sync_log').insert({
         organization_id,
         record_type: 'invoice',
@@ -252,7 +280,8 @@ Deno.serve(async (req) => {
         xero_id: xeroInvoiceId,
         operation: 'push',
         status: 'success',
-        idempotency_key: idempotencyKey,
+        payload_hash: idempotencyKey,
+        idempotency_key: crypto.randomUUID(),
         request: xeroInvoice,
         response: data,
       });
@@ -260,6 +289,7 @@ Deno.serve(async (req) => {
       return json({ ok: true, xero_invoice_id: xeroInvoiceId, was_stub: false });
     } catch (pushErr) {
       const msg = pushErr instanceof Error ? pushErr.message : String(pushErr);
+      const httpStatus = pushErr instanceof XeroApiError ? pushErr.status : null;
 
       await admin.from('invoices').update({
         xero_status: 'failed',
@@ -270,6 +300,14 @@ Deno.serve(async (req) => {
         },
       }).eq('id', invoice_id);
 
+      // Mark the durable queue row failed + record HTTP status for backoff.
+      await admin.from('xero_push_queue').update({
+        status: 'failed',
+        last_error: msg.slice(0, 500),
+        last_http_status: httpStatus,
+        next_attempt_at: computeNextAttemptAt(httpStatus, attempts + 1),
+      }).eq('organization_id', organization_id).eq('record_type', 'invoice').eq('record_id', invoice_id);
+
       await admin.from('xero_sync_log').insert({
         organization_id,
         record_type: 'invoice',
@@ -278,7 +316,8 @@ Deno.serve(async (req) => {
         operation: 'push',
         status: 'failed',
         error_message: msg.slice(0, 500),
-        idempotency_key: idempotencyKey,
+        payload_hash: idempotencyKey,
+        idempotency_key: crypto.randomUUID(),
         request: xeroInvoice,
         response: null,
       });

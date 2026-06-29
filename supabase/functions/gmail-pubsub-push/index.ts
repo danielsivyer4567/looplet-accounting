@@ -34,7 +34,11 @@ import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import { hasExistingGmailBill } from '../_shared/gmail/dedupe.ts';
-import { loadAndRefreshGmail } from '../_shared/gmail/auth.ts';
+import {
+  flagGmailConnectionError,
+  isFatalGmailAuthError,
+  loadAndRefreshGmail,
+} from '../_shared/gmail/auth.ts';
 import { hasRetryableGmailIngestFailure } from '../_shared/gmail/pubsub.ts';
 
 // Deno / Supabase Edge Runtime global — used to keep the isolate alive after
@@ -166,10 +170,12 @@ async function processNotification(
 
     if (!histResp.ok) {
       const t = await histResp.text();
-      await admin
-        .from('gmail_integrations')
-        .update({ last_error: `history.list ${histResp.status}: ${t.slice(0, 200)}` })
-        .eq('id', integ.id);
+      const detail = `history.list ${histResp.status}: ${t.slice(0, 200)}`;
+      // A 401/403 here means the access token was rejected even though refresh
+      // succeeded — treat it the same as a dead grant: disable + notify so the
+      // mailbox stops silently dropping mail. Other statuses (404 stale history,
+      // 5xx) are transient — record last_error only, keep the integration active.
+      await flagGmailConnectionError(admin, integ, detail, isFatalGmailAuthError(detail));
       return;
     }
 
@@ -255,6 +261,7 @@ interface IngestResult {
 interface IntegRow {
   id: string;
   organization_id: string;
+  gmail_address?: string | null;
   last_history_id?: string | null;
   allowlist?: string[] | null;
 }

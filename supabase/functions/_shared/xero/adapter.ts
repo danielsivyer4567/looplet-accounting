@@ -8,6 +8,7 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { callXeroWithRetry, xeroFetch, XeroApiError } from './auth.ts';
+import { deriveXeroIdempotencyKey } from './idempotency.ts';
 
 interface BillForPush {
   id: string;
@@ -124,8 +125,10 @@ async function pushBillReal(args: PushArgs): Promise<PushResult> {
     Status: 'AUTHORISED',
   };
 
-  // 3. POST to Xero with idempotency-key
-  const idempotencyKey = crypto.randomUUID();
+  // 3. POST to Xero with a STABLE idempotency-key derived from the source bill.
+  //    A retry of the same bill reuses this key so Xero dedupes server-side and
+  //    never creates a duplicate ACCPAY (the random-per-attempt key was the bug).
+  const idempotencyKey = await deriveXeroIdempotencyKey(organizationId, 'bill', bill.id);
   const data = await callXeroWithRetry<{ Invoices: { InvoiceID?: string }[] }>(
     admin,
     organizationId,
@@ -142,7 +145,9 @@ async function pushBillReal(args: PushArgs): Promise<PushResult> {
     throw new XeroApiError('Xero did not return an InvoiceID after push', 502);
   }
 
-  // 4. Append to sync log
+  // 4. Append to sync log. The Xero header `idempotencyKey` is STABLE (repeats
+  //    across retries) so it CANNOT be this row's UNIQUE id — store it in
+  //    payload_hash and give each append its own fresh UNIQUE idempotency_key.
   await admin.from('xero_sync_log').insert({
     organization_id: organizationId,
     record_type: 'bill',
@@ -150,7 +155,8 @@ async function pushBillReal(args: PushArgs): Promise<PushResult> {
     xero_id: xeroInvoiceId,
     operation: 'push',
     status: 'success',
-    idempotency_key: idempotencyKey,
+    payload_hash: idempotencyKey,
+    idempotency_key: crypto.randomUUID(),
     request: xeroInvoice,
     response: data,
   });

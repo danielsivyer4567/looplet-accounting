@@ -174,10 +174,12 @@ Deno.serve(async (req) => {
       .single();
     if (billErr || !bill) return json({ ok: false, error: 'Bill not found' }, 404);
 
-    await admin
-      .from('bills')
-      .update({ status: 'verified', updated_at: new Date().toISOString() })
-      .eq('id', bill.id);
+    // NOTE: status is NOT flipped to 'verified' here. That was the production
+    // bug — every bill (including total OCR failures) earned 'verified' before
+    // OCR even ran. Status is now set by persistExtraction() from the quality
+    // gate: only a real financial document with a usable total at/above the
+    // confidence floor is verified; anything else stays 'received' as a
+    // needs-review exception.
 
     // Pull file bytes
     const { data: fileBlob, error: storageErr } = await admin.storage
@@ -260,7 +262,16 @@ Deno.serve(async (req) => {
             page_count: textRes.pageCount,
           };
 
-          await persistExtraction(admin, bill.id, extracted, contentSha256, 'text-only', docMetadata);
+          const gate = await persistExtraction(admin, {
+            billId: bill.id,
+            organizationId: bill.organization_id,
+            extracted,
+            contentSha256,
+            provider: 'text-only',
+            method: 'text',
+            raw: textRes.fullText,
+            docMetadata,
+          });
           const routing = await runRouting(admin, bill.id, bill.organization_id, {
             job_reference_raw: extracted.job_reference,
             confidence: extracted.confidence,
@@ -274,6 +285,8 @@ Deno.serve(async (req) => {
             provider: 'text-only',
             extracted,
             confidence_score: headers.confidence,
+            extraction_status: gate.outcome,
+            quality_score: gate.quality.score,
             routing,
           });
         }
@@ -281,11 +294,46 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Vision path
-    const { data: extracted, raw, provider } = await extractBillData(bytes, bill.mime_type);
+    // Vision path. A hard OCR failure (provider error, refusal, empty response)
+    // must NOT leave the bill silently "verified" — it stays 'received' as a
+    // needs-review exception and the failure is recorded as an attempt.
+    let extracted: ExtractedBill;
+    let raw: string;
+    let provider: string;
+    try {
+      const res = await extractBillData(bytes, bill.mime_type);
+      extracted = res.data;
+      raw = res.raw;
+      provider = res.provider;
+    } catch (ocrErr) {
+      const msg = ocrErr instanceof Error ? ocrErr.message : String(ocrErr);
+      // Bill is already 'received' (we never flipped it). Record the failed
+      // attempt so the exception is auditable and visible in the UI.
+      await recordAttempt(admin, {
+        billId: bill.id,
+        organizationId: bill.organization_id,
+        provider: 'none',
+        method: 'none',
+        status: 'error',
+        confidence: null,
+        reasons: [`OCR failed: ${msg}`],
+        raw: msg,
+        extracted: {},
+      });
+      return json({ ok: false, error: msg, extraction_status: 'error' }, 502);
+    }
     extracted._extraction_method = 'vision';
 
-    await persistExtraction(admin, bill.id, extracted, contentSha256, provider, docMetadata);
+    const gate = await persistExtraction(admin, {
+      billId: bill.id,
+      organizationId: bill.organization_id,
+      extracted,
+      contentSha256,
+      provider,
+      method: 'vision',
+      raw,
+      docMetadata,
+    });
     const routing = await runRouting(admin, bill.id, bill.organization_id, {
       job_reference_raw: extracted.job_reference,
       confidence: extracted.confidence,
@@ -299,6 +347,8 @@ Deno.serve(async (req) => {
       provider,
       extracted,
       raw_length: raw.length,
+      extraction_status: gate.outcome,
+      quality_score: gate.quality.score,
       routing,
     });
   } catch (err) {
