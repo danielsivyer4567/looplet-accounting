@@ -11,15 +11,34 @@ ceiling. The source tree now carries numbered migrations through `0229`.
 
 `docs/MIGRATION_GAP_AUDIT.md` records the live-history repair through `0196` and
 the prior `supabase db push --linked --dry-run` evidence of "Remote database is
-up to date" at that point. This checkout is not currently linked for migration
-commands, so the exact post-`0196` live baseline must be re-proven by the
-operator before any production deploy.
+up to date" at that point.
 
-The local finish-line deploy batch after that repaired baseline is:
+On 2026-06-30, the finish-line migration batch `0199`-`0229` was applied to live
+through `supabase db query --linked` and recorded in
+`supabase_migrations.schema_migrations`. `0197` and `0198` were already recorded
+before this pass. The Postgres pooler password available in this worktree still
+does not authenticate for `supabase migration list --linked` or
+`supabase db push --linked --dry-run`, but the Management API SQL path proves the
+live ledger has numeric rows through `0229`.
+
+The local finish-line deploy batch after that repaired baseline is now live:
 
 - `0197_track_vault_backed_cron_schedules.sql`
 - `0198_fix_taa_legal_source_url.sql`
 - `0199_accountant_portal.sql` through `0229_credit_notes_product.sql`
+
+Representative post-apply proof collected on 2026-06-30:
+
+- `supabase_migrations.schema_migrations` rows exist for every version `0199`
+  through `0229`.
+- Tag tables/RLS/RPCs/storage and `team-invite` v37 are live.
+- Representative finish-line tables exist: `api_keys`, `cron_heartbeat_jobs`,
+  `bank_link_jobs`, `extraction_attempts`, `xero_push_queue`,
+  `bas_worksheet_snapshots`, `customer_credit_notes`, `supplier_credit_notes`.
+- Representative finish-line RPCs exist, including `create_and_post_journal`,
+  `generate_bas_worksheet`, `build_fbt_return`, `build_tpar_report`,
+  `build_franking_register`, `build_sgc_statement`, `build_superstream_payload`,
+  and the AR/AP credit-note RPCs.
 
 ## Operator Baseline Check
 

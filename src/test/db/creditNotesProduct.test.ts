@@ -32,6 +32,13 @@ describe('0229 credit notes product workflow', () => {
     expect(sql).toMatch(/journal_entry_id = v_entry\.id/);
   });
 
+  it('uses valid rowtype assignment for source documents', () => {
+    expect(sql).toMatch(/SELECT i\.\*\s+INTO v_invoice/);
+    expect(sql).toMatch(/SELECT b\.\*\s+INTO v_bill/);
+    expect(sql).not.toMatch(/INTO v_invoice, v_customer_name/);
+    expect(sql).not.toMatch(/INTO v_bill, v_supplier_name/);
+  });
+
   it('exposes the credit-note UI route and sidebar entry', () => {
     expect(hook).toMatch(/from\('customer_credit_notes'/);
     expect(hook).toMatch(/rpc\('create_customer_credit_note'/);

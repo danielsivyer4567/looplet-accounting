@@ -210,12 +210,9 @@ BEGIN
       USING ERRCODE = 'check_violation';
   END IF;
 
-  SELECT i, c.name
-    INTO v_invoice, v_customer_name
+  SELECT i.*
+    INTO v_invoice
     FROM public.invoices i
-    JOIN public.customers c
-      ON c.id = i.customer_id
-     AND c.organization_id = i.organization_id
    WHERE i.id = p_invoice_id
      AND i.organization_id = p_organization_id
      AND i.deleted_at IS NULL
@@ -227,6 +224,12 @@ BEGIN
       v_number
       USING ERRCODE = 'no_data_found';
   END IF;
+
+  SELECT c.name
+    INTO v_customer_name
+    FROM public.customers c
+   WHERE c.id = v_invoice.customer_id
+     AND c.organization_id = v_invoice.organization_id;
 
   IF v_invoice.status IN ('draft'::public.invoice_status, 'void'::public.invoice_status) THEN
     RAISE EXCEPTION 'customer credit note % cannot post against draft or void invoice %',
@@ -406,12 +409,9 @@ BEGIN
       USING ERRCODE = 'check_violation';
   END IF;
 
-  SELECT b, COALESCE(s.name, b.supplier_name_raw, 'Unknown supplier')
-    INTO v_bill, v_supplier_name
+  SELECT b.*
+    INTO v_bill
     FROM public.bills b
-    LEFT JOIN public.suppliers s
-      ON s.id = b.supplier_id
-     AND s.organization_id = b.organization_id
    WHERE b.id = p_bill_id
      AND b.organization_id = p_organization_id
      AND b.deleted_at IS NULL
@@ -423,6 +423,14 @@ BEGIN
       v_number
       USING ERRCODE = 'no_data_found';
   END IF;
+
+  SELECT COALESCE(s.name, v_bill.supplier_name_raw, 'Unknown supplier')
+    INTO v_supplier_name
+    FROM public.suppliers s
+   WHERE s.id = v_bill.supplier_id
+     AND s.organization_id = v_bill.organization_id;
+
+  v_supplier_name := COALESCE(v_supplier_name, v_bill.supplier_name_raw, 'Unknown supplier');
 
   IF v_bill.status = 'void'::public.bill_status THEN
     RAISE EXCEPTION 'supplier credit note % cannot post against void bill %',

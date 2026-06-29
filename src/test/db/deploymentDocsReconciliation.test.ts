@@ -27,12 +27,29 @@ describe('deployment docs reconciliation', () => {
     const migrations = listFiles('supabase/migrations', '.sql');
     const latestMigration = migrations[migrations.length - 1];
     const runbook = readRepoFile('docs/MIGRATION_BASELINE_RUNBOOK.md');
+    const p005Runbook = readRepoFile('docs/DEPLOY_PROOF_P0-05.md');
 
     expect(latestMigration).toBe('0229_credit_notes_product.sql');
     expect(runbook).toContain(`Current local ceiling:** \`${latestMigration}\``);
     expect(runbook).toMatch(/supabase db push --linked --dry-run/);
     expect(runbook).toMatch(/Rollback \/ Abort/);
     expect(runbook).toMatch(/COMPLIANCE_BACKLOG/);
+
+    expect(p005Runbook).toContain('ceiling is now `0229_credit_notes_product.sql`');
+    expect(p005Runbook).toContain('`0199`-`0207`');
+    expect(p005Runbook).toContain('Only redeploy after `0199` has applied');
+    expect(p005Runbook).toContain('DB/function deployed; live overlay UI proof pending');
+    expect(p005Runbook).toContain('signed-in live overlay workflow');
+    expect(p005Runbook).not.toMatch(/There is no `0208`\/`0209`\/`0210`/);
+  });
+
+  it('keeps legacy AR-table FK indexes guarded for consolidated live schemas', () => {
+    const fkIndexes = readRepoFile('supabase/migrations/0202_fk_indexes.sql');
+
+    expect(fkIndexes).toMatch(/to_regclass\('public\.customer_invoices'\)/);
+    expect(fkIndexes).toMatch(/customer_invoices_created_by_idx/);
+    expect(fkIndexes).toMatch(/Skipping customer_invoices FK index/);
+    expect(fkIndexes).toMatch(/invoices_created_by_idx/);
   });
 
   it('keeps edge-function inventory in sync with local directories and live-observed holdbacks', () => {

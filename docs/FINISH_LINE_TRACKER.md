@@ -3,9 +3,9 @@
 > The live cross-off list for finishing the app. Updated by the orchestrator after
 > every slice verifies. Branch: `feat/finish-line` (off `feat/accountant-portal`).
 
-**Progress: 47 / 51 complete (92%)** · deploy-gated: 1 (P0-05) · blocked-external: 3 (ATO TODO)
+**Progress: 47 / 51 complete (92%)** · proof-gated: 1 (P0-05 live overlay UI) · blocked-external: 3 (ATO TODO)
 **Current wave:** F — compliance output
-**Last updated:** Wave F P2-07 in-repo reconciliation complete (migration baseline/rollback runbook, manual staging deploy workflow, source-controlled function inventory from live CLI: 66 local/51 live-active/15 holdbacks, docs index, ATO backlog; focused reconciliation test/typecheck/lint/diff-check clean; production migration dry-run remains operator proof because local DB password was rejected)
+**Last updated:** 2026-06-30 live deploy advanced: finish-line migrations 0199-0229 applied via Management API SQL and recorded in schema_migrations; `team-invite` redeployed to v37; 12 non-ATO held functions deployed, leaving only `ato-correspondence`, `ato-lodge`, and `lodgements` local-only; tag tables/RLS/RPCs/storage/connector role/triggers proven; rolled-back invite acceptance and tag RPC proofs passed. P0-05 still not checked because signed-in live overlay screenshots/console proof remain pending. ATO lodgement TODOs stay unchecked.
 **Note:** +1 slice discovered in Wave B — P1-14 require_role() accepted_at gate (total now 51).
 
 Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocked-on-deploy]` · `[!]` external-blocked (cannot finish here)
@@ -18,7 +18,7 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [x] P0-02 Tag-draft unique constraint + indexes
 - [x] P0-03 Invite fallback token redemption
 - [x] P0-04 Media attachment scope (persist-or-defer)
-- [~] P0-05 Accountant/tag deploy + live overlay proof _(blocked-on-deploy: runbook ready)_
+- [~] P0-05 Accountant/tag deploy + live overlay proof _(DB/function deployed; blocked-on-signed-in live overlay proof)_
 - [x] P0-06 Connector gateway PostgREST hardening
 - [x] P0-07 API-key storage + rate-limit hardening
 - [x] P0-08 Frontend error boundary + login a11y
@@ -41,7 +41,7 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [x] P1-11 Period-lock coverage expansion
 - [x] P1-12 Audit triggers on money tables
 - [x] P1-13 Cron secrets + SITE_URL provisioning
-- [x] P1-14 require_role() accepted_at gate _(discovered in Wave B)_
+- [x] P1-14 require*role() accepted_at gate *(discovered in Wave B)\_
 
 ## P2 — Source posting + compliance output + product completion (23/26)
 

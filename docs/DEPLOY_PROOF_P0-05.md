@@ -1,9 +1,11 @@
 # DEPLOY_PROOF_P0-05 — Accountant portal + tag-drop deploy runbook & live overlay proof
 
-> **Status: blocked-on-deploy.** This worktree has no DB connection and cannot
-> deploy. This is the precise runbook + proof plan for a human/CI to execute
-> against the live project, plus the SQL/UI evidence that must be captured to
-> close the slice.
+> **Status: DB/function deployed; live overlay UI proof pending.** On
+> 2026-06-30, `0199`-`0207` were applied to live through
+> `supabase db query --linked`, matching migration-history rows were recorded,
+> and `team-invite` was redeployed. The remaining closeout is signed-in
+> accountant/tag overlay proof with screenshots, refreshed browser console, and
+> manual interaction notes.
 >
 > **Target project:** `dxoikltymmknxqpkpyhi` ("looplet accounting") — the live
 > production project. ALWAYS pass `--project-ref dxoikltymmknxqpkpyhi` so a CLI
@@ -14,32 +16,77 @@
 
 ---
 
+## 2026-06-30 live evidence collected
+
+- Preflight proved `organizations`, `organization_memberships`,
+  `team_invitations`, `jobs`, `audit_log`, `get_accessible_org_ids()`,
+  `set_updated_at()`, and `notify(...)` existed before apply.
+- Before apply, `accept_pending_invites()` and all six tag tables were absent.
+- Applied `0199_accountant_portal.sql` through `0207_money_audit_triggers.sql`
+  one file at a time via `supabase db query --linked`.
+- `0202_fk_indexes.sql` initially failed because live no longer has the legacy
+  `customer_invoices` table; the migration is now guarded for that consolidated
+  schema and was re-applied successfully.
+- Recorded `supabase_migrations.schema_migrations` rows for `0199`-`0207` with
+  `created_by='codex-live-p0-05-20260630'`.
+- Post-apply SQL proved all six tag tables exist and have RLS enabled:
+  `tags`, `tag_staff`, `tag_attachments`, `tag_replies`, `tag_rate_limits`,
+  `tag_drafts`.
+- Post-apply SQL proved the expected tag and invite RPCs are present and
+  `SECURITY DEFINER`: `accept_pending_invites`, `check_tag_rate_limit`,
+  `create_tag_with_rate_limit`, `dispatch_tag_notification`,
+  `get_taggable_staff`.
+- Post-apply SQL proved `tag-attachments` storage bucket exists and is private,
+  tag policies are present, `tag_drafts_user_org_page_uniq` exists,
+  `get_accessible_org_ids()` references `accepted_at`, the `connector` role is
+  `NOLOGIN`/`NOINHERIT`, `trg_journal_entries_audit_v2` exists, and
+  `trigger_dispatch_tag_notification` exists.
+- `deno check supabase/functions/team-invite/index.ts` passed.
+- `supabase functions deploy team-invite --use-api --project-ref
+dxoikltymmknxqpkpyhi` deployed `team-invite` v37.
+- Unauthenticated POST to
+  `https://dxoikltymmknxqpkpyhi.supabase.co/functions/v1/team-invite` returned
+  `401 {"code":"UNAUTHORIZED_NO_AUTH_HEADER","message":"Missing authorization header"}`.
+- Rolled-back SQL proof `p0-05-accept-pending-proof.sql` returned
+  `rolled_back_accept_pending_invites_pass`.
+- Rolled-back SQL proof `p0-05-tag-rpc-proof.sql` returned
+  `rolled_back_create_tag_with_rate_limit_pass`.
+
+Still pending for full P0-05 closure: the signed-in live overlay workflow in
+Section 3 below. Do not mark the tracker row checked until those screenshots and
+console captures are attached.
+
+---
+
 ## 0. Scope & migration inventory
 
 This slice ships the accountant-portal accept-invite RPC, the tag-drop schema +
 data-plane functions, and the finish-line Wave A/B hardening migrations, then
-redeploys the `team-invite` edge function.
+redeploys the `team-invite` edge function. The broader finish-line migration
+ceiling is now `0229_credit_notes_product.sql`; use
+`docs/MIGRATION_BASELINE_RUNBOOK.md` for full-release baseline proof before any
+production migration apply.
 
 **Migrations covered (all present in `supabase/migrations/`):**
 
-| Wave | File | What it lands |
-|------|------|---------------|
-| core | `0199_accountant_portal.sql` | `accept_pending_invites()` RPC (new-invitee membership + accept gate) |
-| core | `0200_tag_drop.sql` | `tags`/`tag_staff`/`tag_attachments`/`tag_replies`/`tag_rate_limits`/`tag_drafts` tables + RLS + `tag-attachments` storage bucket + `check_tag_rate_limit()` |
-| core | `0201_tag_functions.sql` | `get_taggable_staff()`, `create_tag_with_rate_limit()`, `dispatch_tag_notification()` trigger on `tag_staff` |
-| A | `0202_fk_indexes.sql` | FK-covering indexes (incl. `tags.approved_by`, `tag_drafts.organization_id/job_id`) |
-| A | `0203_accepted_membership_access.sql` | `get_accessible_org_ids()` only grants access when `accepted_at IS NOT NULL` |
-| A | `0204_tag_draft_contract.sql` | UNIQUE arbiter on `tag_drafts(user_id, organization_id, page_url)` (`NULLS NOT DISTINCT`) |
-| B | `0205_connector_hardening.sql` | dedicated read-only `connector` Postgres role for gateway-minted JWTs |
-| B | `0206_definer_notify_hardening.sql` | `notify()` interactive-caller org guard + DEFINER EXECUTE grant tightening |
-| B | `0207_money_audit_triggers.sql` | audit trigger on every money table (closes `journal_entries` gap) |
+| Wave | File                                  | What it lands                                                                                                                                                |
+| ---- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| core | `0199_accountant_portal.sql`          | `accept_pending_invites()` RPC (new-invitee membership + accept gate)                                                                                        |
+| core | `0200_tag_drop.sql`                   | `tags`/`tag_staff`/`tag_attachments`/`tag_replies`/`tag_rate_limits`/`tag_drafts` tables + RLS + `tag-attachments` storage bucket + `check_tag_rate_limit()` |
+| core | `0201_tag_functions.sql`              | `get_taggable_staff()`, `create_tag_with_rate_limit()`, `dispatch_tag_notification()` trigger on `tag_staff`                                                 |
+| A    | `0202_fk_indexes.sql`                 | FK-covering indexes (incl. `tags.approved_by`, `tag_drafts.organization_id/job_id`)                                                                          |
+| A    | `0203_accepted_membership_access.sql` | `get_accessible_org_ids()` only grants access when `accepted_at IS NOT NULL`                                                                                 |
+| A    | `0204_tag_draft_contract.sql`         | UNIQUE arbiter on `tag_drafts(user_id, organization_id, page_url)` (`NULLS NOT DISTINCT`)                                                                    |
+| B    | `0205_connector_hardening.sql`        | dedicated read-only `connector` Postgres role for gateway-minted JWTs                                                                                        |
+| B    | `0206_definer_notify_hardening.sql`   | `notify()` interactive-caller org guard + DEFINER EXECUTE grant tightening                                                                                   |
+| B    | `0207_money_audit_triggers.sql`       | audit trigger on every money table (closes `journal_entries` gap)                                                                                            |
 
-> **Note on the slice's stated "0202–0210" range:** only `0202`–`0207` exist in
-> the tree at the time of writing. There is no `0208`/`0209`/`0210`. If a later
-> session adds them, append them to the deploy order below in numeric sequence —
-> the order rule is simply ascending file number.
+> **Scope note:** P0-05 live overlay proof covers the accountant/tag deployment
+> batch (`0199`-`0207`) only. Later migrations (`0208`-`0229`) are covered by the
+> full finish-line migration baseline runbook and their own slice evidence.
 
 > **Dependency notes (why the order matters):**
+>
 > - `0201` references objects created in `0200` (`tags`, `tag_staff`,
 >   `tag_rate_limits`) and the `audit_log` + `notify()` from earlier migrations.
 > - `0202` indexes `tags`/`tag_drafts` (created in `0200`) and `tags.approved_by`.
@@ -63,19 +110,22 @@ tracked migrations (memory `migration-history-drift`):
 - `supabase_migrations.schema_migrations` on prod does NOT mirror the repo chain.
   Recent migs are recorded under **timestamp** versions (e.g. `20260626125641`
   named `0090_books_health`), not bare `0090`. The recorded head is the timestamp
-  era, while the repo files run `0001`…`0207`.
+  era, while the repo files now run through `0229`.
 - A plain `supabase db push` would diff the repo chain against that drifted
   history and try to (re)apply a large, unpredictable set of files — including
   migrations whose effects are already live — risking spurious failures or
   re-running DDL out of context.
 
-**Therefore: apply each of the 9 files explicitly and individually, in the order
-in the table above, NOT via `db push`.** Every file in this batch is written to
-be idempotent and prod-safe (enums guarded by `DO`/`duplicate_object`, tables
-`IF NOT EXISTS`, policies `DROP ... IF EXISTS` + `CREATE`, functions
-`CREATE OR REPLACE`, triggers `DROP TRIGGER IF EXISTS` + `CREATE`, indexes
-`IF NOT EXISTS`, bucket `ON CONFLICT DO NOTHING`, tables guarded with
-`to_regclass()`), so re-asserting over the drifted live history is safe.
+**Therefore: do not use this P0-05 runbook as permission for a broad production
+`db push`.** First run the baseline workflow in
+`docs/MIGRATION_BASELINE_RUNBOOK.md`. If the baseline is still drifted, apply
+each of the 9 P0-05 files explicitly and individually, in the order in the table
+above, NOT via `db push`. Every file in this batch is written to be idempotent
+and prod-safe (enums guarded by `DO`/`duplicate_object`, tables `IF NOT EXISTS`,
+policies `DROP ... IF EXISTS` + `CREATE`, functions `CREATE OR REPLACE`,
+triggers `DROP TRIGGER IF EXISTS` + `CREATE`, indexes `IF NOT EXISTS`, bucket
+`ON CONFLICT DO NOTHING`, tables guarded with `to_regclass()`), so re-asserting
+over a drifted live history is safe after the object prereqs are verified.
 
 ### Pre-flight (confirm live schema before touching it)
 
@@ -122,9 +172,10 @@ Apply these in sequence; each is one transactional file (they each `BEGIN; ... C
 0207_money_audit_triggers.sql
 ```
 
-**Recommended method (per file, idempotent, no `db push`):** paste each file's
-contents into the Supabase SQL editor for `dxoikltymmknxqpkpyhi`, or apply via a
-service-role `execute_sql` call, one file at a time, stopping on first error.
+**Recommended method when the full-release dry run is not clean (per file,
+idempotent, no `db push`):** paste each file's contents into the Supabase SQL
+editor for `dxoikltymmknxqpkpyhi`, or apply via a service-role `execute_sql`
+call, one file at a time, stopping on first error.
 
 > **`0205` index-build caveat:** `0205` creates the `connector` role and grants;
 > it runs inside its own `BEGIN/COMMIT`. The `0202` index sweep uses
@@ -133,7 +184,7 @@ service-role `execute_sql` call, one file at a time, stopping on first error.
 > low-traffic window if `bills`/`customer_invoices`/`bank_transactions` are large.
 
 > **`0203` blast-radius note:** `0203` narrows `get_accessible_org_ids()` to
-> accepted memberships only. Any user currently relying on a *pending*
+> accepted memberships only. Any user currently relying on a _pending_
 > (`accepted_at IS NULL`) membership for access will lose it until they accept.
 > `0039` backfilled all pre-existing memberships with
 > `accepted_at = joined_at`, so only genuinely un-accepted invites are affected —
@@ -154,7 +205,9 @@ does not change behaviour. Do NOT let a missing ledger row trigger a
 deployed copy matches the repo (it inserts the pending `organization_memberships`
 row with `accepted_at = NULL` that `accept_pending_invites()` later flips).
 
-The CLI is logged-in + linked (memory `edge-fn-deploy-method`):
+Only redeploy after `0199` has applied or live `accept_pending_invites()` has
+been proven present. The CLI is logged-in + linked (memory
+`edge-fn-deploy-method`):
 
 ```bash
 supabase functions deploy team-invite --use-api --project-ref dxoikltymmknxqpkpyhi
@@ -410,17 +463,19 @@ and the page falls back to normal — no foreign-org data leaks into the overlay
 Close the slice only when ALL boxes are ticked and screenshots/console captures
 are attached.
 
-- [ ] Pre-flight `to_regclass`/`accepted_at` checks all non-NULL (Section 1).
-- [ ] All 9 files applied individually in order; NO `supabase db push` run.
-- [ ] §2.1 six tag tables exist.
-- [ ] §2.2 RLS enabled on all six.
-- [ ] §2.3 expected tag policies present; `tags_select` is org-scoped (not `true`).
-- [ ] §2.4 `tag-attachments` bucket exists (private) + 3 object policies.
-- [ ] §2.5 5 RPCs/trigger present, all SECURITY DEFINER, no anon/PUBLIC EXECUTE.
-- [ ] §2.6 `get_accessible_org_ids()` references `accepted_at`; `tag_drafts` unique
+- [x] Pre-flight `to_regclass`/`accepted_at` checks all non-NULL (Section 1).
+- [x] Full-release migration baseline checked per `docs/MIGRATION_BASELINE_RUNBOOK.md`.
+- [x] All 9 P0-05 files applied individually in order, or the full-release
+      dry run was clean and applied through the reviewed baseline workflow.
+- [x] §2.1 six tag tables exist.
+- [x] §2.2 RLS enabled on all six.
+- [x] §2.3 expected tag policies present; `tags_select` is org-scoped (not `true`).
+- [x] §2.4 `tag-attachments` bucket exists (private) + 3 object policies.
+- [x] §2.5 5 RPCs/trigger present, all SECURITY DEFINER, no anon/PUBLIC EXECUTE.
+- [x] §2.6 `get_accessible_org_ids()` references `accepted_at`; `tag_drafts` unique
       arbiter present; `connector` role NOLOGIN/NOINHERIT; `journal_entries` audit
       trigger present.
-- [ ] §2.7 `team-invite` listed as deployed with recent `updated_at`; unauth POST → 401.
+- [x] §2.7 `team-invite` listed as deployed with recent `updated_at`; unauth POST → 401.
 - [ ] §3.2 tag created via overlay; RPC 200; refreshed console clean; row in `public.tags`.
 - [ ] §3.3 mention shows in bell dropdown AND Notifications page (Mentions filter);
       notifications row has `category='mention'` + `?tag=` link; 0 `TAG_NOTIFY_FAILED`.

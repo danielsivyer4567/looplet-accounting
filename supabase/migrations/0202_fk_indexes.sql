@@ -55,12 +55,22 @@ CREATE INDEX IF NOT EXISTS bills_attached_by_idx
   WHERE attached_by IS NOT NULL;
 
 -- ----------------------------------------------------------------------------
--- customer_invoices: created_by FK to auth.users.
---   org/customer/job FKs are indexed (0001); created_by is not.
+-- customer_invoices / invoices: created_by FK to auth.users.
+--   customer_invoices is a legacy AR table that 0042 drops on current
+--   databases; guard it so this finish-line sweep stays safe against both old
+--   and consolidated schemas. invoices is the current AR table.
 -- ----------------------------------------------------------------------------
-CREATE INDEX IF NOT EXISTS customer_invoices_created_by_idx
-  ON public.customer_invoices (created_by)
-  WHERE created_by IS NOT NULL;
+DO $ci$
+BEGIN
+  IF to_regclass('public.customer_invoices') IS NOT NULL THEN
+    CREATE INDEX IF NOT EXISTS customer_invoices_created_by_idx
+      ON public.customer_invoices (created_by)
+      WHERE created_by IS NOT NULL;
+  ELSE
+    RAISE NOTICE 'Skipping customer_invoices FK index (legacy table not present in this database)';
+  END IF;
+END
+$ci$;
 
 CREATE INDEX IF NOT EXISTS invoices_created_by_idx
   ON public.invoices (created_by)
