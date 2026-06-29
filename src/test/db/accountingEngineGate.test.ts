@@ -31,9 +31,11 @@ describe('accounting-engine CI gate', () => {
     expect(accountingScript).toContain('sourcePostingCompletion.test.ts');
     expect(accountingScript).toContain('basLabelsSnapshotsDrilldown.test.ts');
     expect(accountingScript).toContain('fbtReturnBuilder.test.ts');
+    expect(accountingScript).toContain('tparReportBuilder.test.ts');
     expect(accountingScript).toContain('useRegistrations.test.ts');
     expect(accountingScript).toContain('Bas.test.tsx');
     expect(accountingScript).toContain('Fbt.test.tsx');
+    expect(accountingScript).toContain('Tpar.test.tsx');
     expect(accountingScript).toContain('invoice-reconciliation-migration.test.ts');
     expect(accountingScript).toContain('receipt-webhook.test.ts');
   });
@@ -64,6 +66,7 @@ describe('accounting-engine CI gate', () => {
       'supabase/migrations/0222_bas_labels_snapshots_drilldown.sql',
     );
     const fbtReturnBuilder = readRepoFile('supabase/migrations/0223_fbt_return_builder.sql');
+    const tparReportBuilder = readRepoFile('supabase/migrations/0224_tpar_report_builder.sql');
 
     expect(gl).toMatch(/CREATE OR REPLACE FUNCTION public\.create_and_post_journal\(/);
     expect(gl).toMatch(/CREATE OR REPLACE FUNCTION public\.trial_balance_by_period\(/);
@@ -134,6 +137,9 @@ describe('accounting-engine CI gate', () => {
     expect(fbtReturnBuilder).toMatch(
       /CREATE OR REPLACE FUNCTION public\.fbt_return_approval_payload\(/,
     );
+    expect(tparReportBuilder).toMatch(/CREATE OR REPLACE FUNCTION public\.build_tpar_report\(/);
+    expect(tparReportBuilder).toMatch(/payment_run_items/);
+    expect(tparReportBuilder).toMatch(/p\.auto_category_code = 'subcontractor'/);
   });
 
   it('keeps GST, BAS, PAYG, and reconciliation coverage represented', () => {

@@ -7,6 +7,7 @@ import {
   Calendar,
   Archive,
   Calculator,
+  ClipboardList,
 } from 'lucide-react';
 
 const REPORTS = [
@@ -65,6 +66,14 @@ const REPORTS = [
       'Draft Fringe Benefits Tax return from curated benefit inputs, ATO gross-up rates, taxable-value rollups, and Tier-2 approval.',
     status: 'live',
     icon: Calculator,
+  },
+  {
+    to: '/reports/tpar',
+    title: 'TPAR',
+    description:
+      'Taxable Payments Annual Report export from paid subcontractor bills, supplier intake rules, ABN checks, and payment-run evidence.',
+    status: 'live',
+    icon: ClipboardList,
   },
 ];
 
