@@ -5,6 +5,7 @@ import { OrgProvider } from '@/contexts/OrgContext';
 import { Layout } from '@/components/Layout';
 import { LoginPage } from '@/pages/Login';
 import { SignupPage } from '@/pages/Signup';
+import { AcceptInvitePage } from '@/pages/AcceptInvite';
 import { DashboardPage } from '@/pages/Dashboard';
 import { BillsPage } from '@/pages/Bills';
 import { BillUploadPage } from '@/pages/BillUpload';
@@ -74,6 +75,7 @@ export function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/accept-invite" element={<AcceptInvitePage />} />
           <Route
             element={
               <ProtectedRoute>

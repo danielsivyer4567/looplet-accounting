@@ -45,13 +45,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
+  const setPassword = async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password });
+    return { error };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
   return (
     <AuthContext.Provider
-      value={{ user, session, loading, signIn, signUp, resetPassword, signOut }}
+      value={{ user, session, loading, signIn, signUp, resetPassword, setPassword, signOut }}
     >
       {children}
     </AuthContext.Provider>
