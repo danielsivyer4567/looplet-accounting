@@ -30,8 +30,10 @@ describe('accounting-engine CI gate', () => {
     expect(accountingScript).toContain('gstBasControlGlPosting.test.ts');
     expect(accountingScript).toContain('sourcePostingCompletion.test.ts');
     expect(accountingScript).toContain('basLabelsSnapshotsDrilldown.test.ts');
+    expect(accountingScript).toContain('fbtReturnBuilder.test.ts');
     expect(accountingScript).toContain('useRegistrations.test.ts');
     expect(accountingScript).toContain('Bas.test.tsx');
+    expect(accountingScript).toContain('Fbt.test.tsx');
     expect(accountingScript).toContain('invoice-reconciliation-migration.test.ts');
     expect(accountingScript).toContain('receipt-webhook.test.ts');
   });
@@ -61,6 +63,7 @@ describe('accounting-engine CI gate', () => {
     const basLabelsSnapshotsDrilldown = readRepoFile(
       'supabase/migrations/0222_bas_labels_snapshots_drilldown.sql',
     );
+    const fbtReturnBuilder = readRepoFile('supabase/migrations/0223_fbt_return_builder.sql');
 
     expect(gl).toMatch(/CREATE OR REPLACE FUNCTION public\.create_and_post_journal\(/);
     expect(gl).toMatch(/CREATE OR REPLACE FUNCTION public\.trial_balance_by_period\(/);
@@ -70,7 +73,9 @@ describe('accounting-engine CI gate', () => {
     expect(apReconciliation).toMatch(/CREATE OR REPLACE FUNCTION public\.reconcile_match_bill\(/);
     expect(apReconciliation).toMatch(/CREATE OR REPLACE VIEW public\.v_bank_match_candidates/);
     expect(invoiceGlPosting).toMatch(/CREATE OR REPLACE FUNCTION public\.post_invoice_journal\(/);
-    expect(invoiceGlPosting).toMatch(/CREATE OR REPLACE FUNCTION public\.post_invoice_payment_journal\(/);
+    expect(invoiceGlPosting).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.post_invoice_payment_journal\(/,
+    );
     expect(invoiceGlPosting).toMatch(/create_and_post_journal/);
     expect(bankReconciliationGlPosting).toMatch(
       /CREATE OR REPLACE FUNCTION public\.post_bank_transaction_journal\(/,
@@ -123,6 +128,11 @@ describe('accounting-engine CI gate', () => {
     );
     expect(basLabelsSnapshotsDrilldown).toMatch(
       /CREATE OR REPLACE FUNCTION public\.snapshot_bas_worksheet\(/,
+    );
+    expect(fbtReturnBuilder).toMatch(/CREATE TABLE IF NOT EXISTS public\.fbt_benefit_inputs/);
+    expect(fbtReturnBuilder).toMatch(/CREATE OR REPLACE FUNCTION public\.build_fbt_return\(/);
+    expect(fbtReturnBuilder).toMatch(
+      /CREATE OR REPLACE FUNCTION public\.fbt_return_approval_payload\(/,
     );
   });
 
