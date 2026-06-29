@@ -59,7 +59,11 @@ export function LoginPage() {
         overflowY: 'auto',
       }}
     >
-      <div
+      <a href="#login-main" className="skip-link">
+        Skip to sign-in form
+      </a>
+      <main
+        id="login-main"
         className="glass-panel animated-fade-in"
         style={{
           maxWidth: '420px',
@@ -79,8 +83,11 @@ export function LoginPage() {
           style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
         >
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Email Address</label>
+            <label className="form-label" htmlFor="login-email">
+              Email Address
+            </label>
             <input
+              id="login-email"
               type="email"
               className="form-input"
               value={email}
@@ -95,7 +102,9 @@ export function LoginPage() {
               <div
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
               >
-                <label className="form-label">Password</label>
+                <label className="form-label" htmlFor="login-password">
+                  Password
+                </label>
                 <button
                   type="button"
                   onClick={() => {
@@ -117,6 +126,7 @@ export function LoginPage() {
                 </button>
               </div>
               <input
+                id="login-password"
                 type="password"
                 className="form-input"
                 value={password}
@@ -127,33 +137,35 @@ export function LoginPage() {
             </div>
           )}
 
-          {error && (
-            <div
-              className="badge badge-danger"
-              style={{
-                width: '100%',
-                padding: '0.625rem',
-                textAlign: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {error}
-            </div>
-          )}
-          {notice && (
-            <div
-              className="badge badge-success"
-              style={{
-                width: '100%',
-                padding: '0.625rem',
-                textAlign: 'center',
-                justifyContent: 'center',
-                textTransform: 'none',
-              }}
-            >
-              {notice}
-            </div>
-          )}
+          <div role="status" aria-live="polite">
+            {error && (
+              <div
+                className="badge badge-danger"
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  textAlign: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {error}
+              </div>
+            )}
+            {notice && (
+              <div
+                className="badge badge-success"
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  textAlign: 'center',
+                  justifyContent: 'center',
+                  textTransform: 'none',
+                }}
+              >
+                {notice}
+              </div>
+            )}
+          </div>
 
           <button
             type="submit"
@@ -207,7 +219,7 @@ export function LoginPage() {
             </>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

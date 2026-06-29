@@ -3,15 +3,15 @@
 > The live cross-off list for finishing the app. Updated by the orchestrator after
 > every slice verifies. Branch: `feat/finish-line` (off `feat/accountant-portal`).
 
-**Progress: 0 / 50 complete (0%)**  ·  deploy-gated: 0  ·  blocked-external: 0
-**Current wave:** A — frontend/config/additive
-**Last updated:** start
+**Progress: 6 / 50 complete (12%)**  ·  deploy-gated: 0  ·  blocked-external: 0
+**Current wave:** B — P0 security core
+**Last updated:** Wave A verified (typecheck + 173 tests + build green)
 
 Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocked-on-deploy]` · `[!]` external-blocked (cannot finish here)
 
 ---
 
-## P0 — Release & security blockers (0/11)
+## P0 — Release & security blockers (4/11)
 - [ ] P0-01 Pending membership access gate
 - [ ] P0-02 Tag-draft unique constraint + indexes
 - [ ] P0-03 Invite fallback token redemption
@@ -19,25 +19,25 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [ ] P0-05 Accountant/tag deploy + live overlay proof  *(deploy-gated)*
 - [ ] P0-06 Connector gateway PostgREST hardening
 - [ ] P0-07 API-key storage + rate-limit hardening
-- [ ] P0-08 Frontend error boundary + login a11y
-- [ ] P0-09 Branch hygiene / gate baseline
-- [ ] P0-10 Email-inbound webhook auth fail-closed + config
-- [ ] P0-11 Edge-function JWT-mode pinning (config.toml)
+- [x] P0-08 Frontend error boundary + login a11y
+- [x] P0-09 Branch hygiene / gate baseline
+- [x] P0-10 Email-inbound webhook auth fail-closed + config
+- [x] P0-11 Edge-function JWT-mode pinning (config.toml)
 
-## P1 — Reliability & accounting foundations (0/13)
+## P1 — Reliability & accounting foundations (2/13)
 - [ ] P1-01 Cron heartbeat + no-success-window + soft-failure parsing
 - [ ] P1-02 Basiq durability + basiq_user_id migration + webhook persist
 - [ ] P1-03 OCR provider selection + extraction quality + accuracy gate
 - [ ] P1-04 GL canonical posting RPC + date-scoped trial balance
 - [ ] P1-05 Accounting-engine CI tests + test:accounting
 - [ ] P1-06 SECURITY DEFINER + notify() org-guard hardening
-- [ ] P1-07 High-impact FK indexes (+ tag_drafts)
+- [x] P1-07 High-impact FK indexes (+ tag_drafts)
 - [ ] P1-08 Xero retry/backfill + stable idempotency keys
 - [ ] P1-09 Gmail reconnect + disconnect notification
 - [ ] P1-10 AP reconciliation parity
 - [ ] P1-11 Period-lock coverage expansion
 - [ ] P1-12 Audit triggers on money tables
-- [ ] P1-13 Cron secrets + SITE_URL provisioning
+- [x] P1-13 Cron secrets + SITE_URL provisioning
 
 ## P2 — Source posting + compliance output + product completion (0/26)
 - [ ] P2-01a Source posting: invoices + invoice payments

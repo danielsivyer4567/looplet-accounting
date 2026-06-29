@@ -40,6 +40,38 @@ verify_jwt = false
 [functions.accountant-session-digest]
 verify_jwt = false
 
+# Inbound-email webhook for accountants. The inbound-email provider POSTs here
+# with no Supabase JWT, so the platform gate is off; the function fails CLOSED on
+# the x-inbound-secret header (EMAIL_INBOUND_SECRET) before doing anything.
+[functions.accountant-email-query]
+verify_jwt = false
+
+# Basiq webhook receiver. Basiq sends no Supabase JWT; the function fails closed
+# on the BASIQ_WEBHOOK_VERIFY_TOKEN URL query secret before processing the event.
+[functions.bank-webhook]
+verify_jwt = false
+
+# Autopilot reconciliation. pg_cron drives it via service-role bearer or a
+# ?secret=<AUTO_RECONCILE_CRON_SECRET>; user-JWT callers fall through to an
+# RLS org-access check. Platform JWT gate off so cron can reach it (migration 0065).
+[functions.auto-reconcile]
+verify_jwt = false
+
+# Gmail watch renewal cron. pg_cron drives it via service-role bearer or a
+# ?secret=<GMAIL_WATCH_RENEW_CRON_SECRET>; both checked constant-time, else 403.
+[functions.gmail-watch-renew]
+verify_jwt = false
+
+# Final-pay calculator. Self-authenticates via getUser + org membership (like the
+# other payroll fns), so the platform JWT gate is off and the function does its own auth.
+[functions.payroll-termination]
+verify_jwt = false
+
+# Quarterly super batch send (Tier-2 approval gated). Self-authenticates via
+# getUser + membership (like payment-runs-aba-export), so the platform JWT gate is off.
+[functions.super-batch-send]
+verify_jwt = false
+
 # Cron-driven functions (EPIC C2 / Phase 1.G/1.I). pg_cron drives these via
 # net.http_post and authenticates with the service-role bearer or a ?secret=
 # cron secret that the function checks itself, so the platform JWT gate is off.
@@ -72,4 +104,29 @@ verify_jwt = true
 # advisor (SC-6.B.02): user-invoked proactive advisory engine. JWT stays on;
 # the function forwards the caller token into Supabase so RLS/RPC org checks apply.
 [functions.advisor]
+verify_jwt = true
+
+# bank-job-poll: user-invoked Basiq job poller. JWT stays on; the RLS check ensures
+# the caller owns the org before touching Basiq.
+[functions.bank-job-poll]
+verify_jwt = true
+
+# bas-worksheet-pdf (SC-3.D.01): user-invoked BAS worksheet renderer. JWT stays on;
+# the SECURITY-INVOKER RPC runs through a caller-scoped client so RLS scopes the worksheet.
+[functions.bas-worksheet-pdf]
+verify_jwt = true
+
+# eofy-pack (SC-4.C.01): user-invoked EOFY pack assembler. JWT stays on; every RPC is
+# SECURITY INVOKER through a caller-scoped client so RLS scopes the pack to the caller's orgs.
+[functions.eofy-pack]
+verify_jwt = true
+
+# trust-minute (SC-5.D.01): user-invoked trustee-resolution PDF. JWT stays on; reads run
+# through a caller-scoped client so RLS scopes every row to the caller's orgs.
+[functions.trust-minute]
+verify_jwt = true
+
+# div7a-agreement (SC-5.F.01): user-invoked Div 7A agreement PDF. JWT stays on; the loan
+# read runs through a caller-scoped client so RLS scopes it to the caller's orgs.
+[functions.div7a-agreement]
 verify_jwt = true
