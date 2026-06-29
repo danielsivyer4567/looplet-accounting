@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Looplet Accounting Connector API
-  version: "1.0.0"
+  version: '1.0.0'
   description: >
     External connector API for Looplet Accounting. Two surfaces:
 
@@ -50,7 +50,9 @@ components:
       bearerFormat: JWT
       description: >
         Short-lived (15 min) org-scoped JWT returned by `/functions/v1/api-gateway`.
-        Carries `role=authenticated` and an `organization_id` claim that RLS honours.
+        Carries `role=connector` and an `organization_id` claim that RLS honours.
+        The connector Postgres role is SELECT-only; writes must use scoped ingest
+        endpoints.
   schemas:
     Error:
       type: object
@@ -61,8 +63,8 @@ components:
       type: object
       properties:
         access_token: { type: string, description: Short-lived org-scoped JWT }
-        token_type:   { type: string, enum: [Bearer] }
-        expires_in:   { type: integer, description: TTL in seconds (900) }
+        token_type: { type: string, enum: [Bearer] }
+        expires_in: { type: integer, description: TTL in seconds (900) }
         organization_id: { type: string, format: uuid }
       required: [access_token, token_type, expires_in, organization_id]
     IngestRequest:
@@ -82,9 +84,9 @@ components:
     IngestResponse:
       type: object
       properties:
-        ok:      { type: boolean }
-        id:      { type: [string, "null"], format: uuid }
-        type:    { type: string }
+        ok: { type: boolean }
+        id: { type: [string, 'null'], format: uuid }
+        type: { type: string }
         deduped: { type: boolean, description: true if this was an idempotent re-push }
         routing:
           type: object
@@ -99,54 +101,54 @@ components:
       type: object
       description: Scope required - write:bills. Dedup on org + content hash and UNIQUE(org, supplier_id, invoice_number).
       properties:
-        supplier_id:           { type: string, format: uuid }
-        job_id:                { type: string, format: uuid }
-        supplier_name_raw:     { type: string }
-        supplier_abn:          { type: string }
-        invoice_number:        { type: string }
-        invoice_date:          { type: string, format: date }
-        due_date:              { type: string, format: date }
-        total_inc_gst_cents:   { type: integer }
-        gst_cents:             { type: integer }
+        supplier_id: { type: string, format: uuid }
+        job_id: { type: string, format: uuid }
+        supplier_name_raw: { type: string }
+        supplier_abn: { type: string }
+        invoice_number: { type: string }
+        invoice_date: { type: string, format: date }
+        due_date: { type: string, format: date }
+        total_inc_gst_cents: { type: integer }
+        gst_cents: { type: integer }
         subtotal_ex_gst_cents: { type: integer }
-        currency_code:         { type: string, default: AUD }
-        job_reference_raw:     { type: string, description: Drives auto-attach to a job. }
-        notes:                 { type: string }
-        raw_extracted:         { type: object }
-        storage_key:           { type: string, description: Optional; synthesised if absent. }
-        original_filename:     { type: string }
-        mime_type:             { type: string }
+        currency_code: { type: string, default: AUD }
+        job_reference_raw: { type: string, description: Drives auto-attach to a job. }
+        notes: { type: string }
+        raw_extracted: { type: object }
+        storage_key: { type: string, description: Optional; synthesised if absent. }
+        original_filename: { type: string }
+        mime_type: { type: string }
     BankTransactionPayload:
       type: object
       description: Scope required - write:bank. Idempotent on (bank_account_id, external_id).
       required: [bank_account_id, external_id]
       properties:
-        bank_account_id:       { type: string, format: uuid, description: Must belong to the key's org. }
-        external_id:           { type: string, description: Stable source id; the dedup key. }
-        posted_at:             { type: string, format: date-time }
-        description:           { type: string }
-        amount_cents:          { type: integer, description: Signed; positive = money in. }
+        bank_account_id: { type: string, format: uuid, description: Must belong to the key's org. }
+        external_id: { type: string, description: Stable source id; the dedup key. }
+        posted_at: { type: string, format: date-time }
+        description: { type: string }
+        amount_cents: { type: integer, description: Signed; positive = money in. }
         running_balance_cents: { type: integer }
-        reference:             { type: string }
-        category_external:     { type: string }
-        raw:                   { type: object }
+        reference: { type: string }
+        category_external: { type: string }
+        raw: { type: object }
     InvoicePayload:
       type: object
       description: Scope required - write:invoices. Dedup on UNIQUE(org, invoice_number).
       required: [invoice_number, customer_id, due_date]
       properties:
-        invoice_number:        { type: string }
-        customer_id:           { type: string, format: uuid, description: Must belong to the key's org. }
-        job_id:                { type: string, format: uuid }
-        issue_date:            { type: string, format: date }
-        due_date:              { type: string, format: date }
-        terms_days:            { type: integer, default: 14 }
+        invoice_number: { type: string }
+        customer_id: { type: string, format: uuid, description: Must belong to the key's org. }
+        job_id: { type: string, format: uuid }
+        issue_date: { type: string, format: date }
+        due_date: { type: string, format: date }
+        terms_days: { type: integer, default: 14 }
         subtotal_ex_gst_cents: { type: integer }
-        gst_cents:             { type: integer }
-        total_inc_gst_cents:   { type: integer }
-        currency_code:         { type: string, default: AUD }
-        notes:                 { type: string }
-        status:                { type: string, enum: [draft, sent, partially_paid, paid, overdue, void] }
+        gst_cents: { type: integer }
+        total_inc_gst_cents: { type: integer }
+        currency_code: { type: string, default: AUD }
+        notes: { type: string }
+        status: { type: string, enum: [draft, sent, partially_paid, paid, overdue, void] }
     ReceiptWebhookRequest:
       type: object
       description: >
@@ -187,12 +189,20 @@ components:
           required: [name]
           properties:
             name: { type: string, example: Bunnings Trade }
-            abn: { type: string, example: "12123456789" }
+            abn: { type: string, example: '12123456789' }
             external_id: { type: string, example: store-017 }
         receipt:
           type: object
           description: POS receipts must include purchase_at, total_inc_gst_cents, subtotal_ex_gst_cents, gst_cents, tender_status, and payment_reference; subtotal + GST must reconcile to total_inc_gst_cents.
-          required: [purchase_at, subtotal_ex_gst_cents, gst_cents, total_inc_gst_cents, tender_status, payment_reference]
+          required:
+            [
+              purchase_at,
+              subtotal_ex_gst_cents,
+              gst_cents,
+              total_inc_gst_cents,
+              tender_status,
+              payment_reference,
+            ]
           properties:
             number: { type: string, example: POS-2026-0001 }
             idempotency_key: { type: string }
@@ -219,9 +229,9 @@ components:
             payment_method: { type: string, example: card }
             payment_last4:
               type: string
-              example: "1234"
+              example: '1234'
               description: Optional card last four only. Full card numbers are rejected before storage.
-              pattern: "^[0-9]{4}$"
+              pattern: '^[0-9]{4}$'
             payment_reference:
               type: string
               example: eftpos-auth-777331
@@ -257,7 +267,11 @@ components:
         quantity: { type: number }
         unit_price_cents: { type: integer }
         total_inc_gst_cents: { type: integer }
-        gst_cents: { type: integer, description: Required for POS receipts. Line GST must reconcile to receipt.gst_cents. }
+        gst_cents:
+          {
+            type: integer,
+            description: Required for POS receipts. Line GST must reconcile to receipt.gst_cents.,
+          }
         category: { type: string }
     ReceiptWebhookResponse:
       type: object
@@ -268,8 +282,8 @@ components:
           description: true when the same stable idempotency key was already processed.
         event_type: { type: string, enum: [sale, refund, void] }
         receipt_event_id: { type: string, format: uuid }
-        related_receipt_event_id: { type: [string, "null"], format: uuid }
-        bill_id: { type: [string, "null"], format: uuid }
+        related_receipt_event_id: { type: [string, 'null'], format: uuid }
+        bill_id: { type: [string, 'null'], format: uuid }
         audit_package_id: { type: string, format: uuid }
         sync_jobs:
           type: array
@@ -284,8 +298,8 @@ components:
           properties:
             business_use: { type: string }
             deductibility_status: { type: string }
-            job_id: { type: [string, "null"], format: uuid }
-            job_reference: { type: [string, "null"] }
+            job_id: { type: [string, 'null'], format: uuid }
+            job_reference: { type: [string, 'null'] }
             gst_estimated: { type: boolean }
             reason: { type: string }
       required: [ok, duplicate, receipt_event_id]
@@ -297,21 +311,22 @@ paths:
       summary: Exchange an API key for a short-lived org-scoped JWT
       description: >
         Validates the presented API key (SHA-256 hash lookup), then mints a
-        15-minute JWT with `role=authenticated` and the key's `organization_id`
+        15-minute JWT with `role=connector` and the key's `organization_id`
         claim. Use the returned token as a bearer against `/rest/v1` — RLS scopes
-        all reads to that organization. Rate-limited per key; logged.
+        all reads to that organization and the SELECT-only connector role denies
+        direct PostgREST writes. Rate-limited per key; logged.
       security:
         - ApiKey: []
       responses:
-        "200":
+        '200':
           description: Token minted
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TokenResponse' }
-        "401":
+        '401':
           description: Invalid or revoked API key
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
-        "429":
+        '429':
           description: Per-key rate limit exceeded
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
 
@@ -332,22 +347,22 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/IngestRequest' }
       responses:
-        "200":
+        '200':
           description: Accepted (idempotent re-push of an existing record)
           content: { application/json: { schema: { $ref: '#/components/schemas/IngestResponse' } } }
-        "201":
+        '201':
           description: Created
           content: { application/json: { schema: { $ref: '#/components/schemas/IngestResponse' } } }
-        "400":
+        '400':
           description: Invalid JSON, unsupported type, or validation failure
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
-        "401":
+        '401':
           description: Invalid or revoked API key
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
-        "403":
+        '403':
           description: Key lacks the required scope for this type
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
-        "429":
+        '429':
           description: Per-key rate limit exceeded
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
 
@@ -377,22 +392,25 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/ReceiptWebhookRequest' }
       responses:
-        "200":
+        '200':
           description: Accepted, including idempotent duplicate retries
-          content: { application/json: { schema: { $ref: '#/components/schemas/ReceiptWebhookResponse' } } }
-        "400":
+          content:
+            {
+              application/json: { schema: { $ref: '#/components/schemas/ReceiptWebhookResponse' } },
+            }
+        '400':
           description: Invalid JSON, inactive identity token, missing retry key, bad totals, or validation failure
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
-        "401":
+        '401':
           description: Missing, malformed, expired, or revoked API key
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
-        "403":
+        '403':
           description: Key lacks write:receipts
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
-        "429":
+        '429':
           description: Per-key rate limit exceeded
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
-        "500":
+        '500':
           description: Receipt ingest failed after authentication and validation
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
 
@@ -410,13 +428,31 @@ paths:
       security:
         - BearerJWT: []
       parameters:
-        - { name: table,  in: path,  required: true,  schema: { type: string }, description: Table or view name }
-        - { name: select, in: query, required: false, schema: { type: string }, example: "id,invoice_number,total_inc_gst_cents" }
-        - { name: order,  in: query, required: false, schema: { type: string }, example: "issue_date.desc" }
-        - { name: limit,  in: query, required: false, schema: { type: integer } }
+        - {
+            name: table,
+            in: path,
+            required: true,
+            schema: { type: string },
+            description: Table or view name,
+          }
+        - {
+            name: select,
+            in: query,
+            required: false,
+            schema: { type: string },
+            example: 'id,invoice_number,total_inc_gst_cents',
+          }
+        - {
+            name: order,
+            in: query,
+            required: false,
+            schema: { type: string },
+            example: 'issue_date.desc',
+          }
+        - { name: limit, in: query, required: false, schema: { type: integer } }
       responses:
-        "200":
+        '200':
           description: Array of org-scoped rows
           content: { application/json: { schema: { type: array, items: { type: object } } } }
-        "401":
+        '401':
           description: Missing/expired JWT

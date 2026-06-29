@@ -7,6 +7,7 @@ import { BankConnect } from '@/components/settings/BankConnect';
 import { XeroConnect } from '@/components/settings/XeroConnect';
 import { PayerBankDetails } from '@/components/settings/PayerBankDetails';
 import { InviteAccountant } from '@/components/settings/InviteAccountant';
+import { ApiKeys } from '@/components/settings/ApiKeys';
 import { User, Lock, Bell, Eye, Shield, ChevronRight, Info, X } from 'lucide-react';
 
 type SettingsCategory = 'account' | 'privacy' | 'notification' | 'appearance';
@@ -202,6 +203,9 @@ export function SettingsPage() {
               </div>
               <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem' }}>
                 <InviteAccountant />
+              </div>
+              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem' }}>
+                <ApiKeys />
               </div>
               <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem' }}>
                 <h2

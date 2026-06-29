@@ -3,9 +3,9 @@
 > The live cross-off list for finishing the app. Updated by the orchestrator after
 > every slice verifies. Branch: `feat/finish-line` (off `feat/accountant-portal`).
 
-**Progress: 38 / 51 complete (75%)**  ·  deploy-gated: 1 (P0-05)  ·  blocked-external: 0
+**Progress: 39 / 51 complete (76%)** · deploy-gated: 1 (P0-05) · blocked-external: 0
 **Current wave:** F — compliance output
-**Last updated:** Wave F P2-CN complete (source-linked AR/AP credit-note documents + RPC-only GL posting workflow + UI surface + gates green; ATO lodgement TODOs left pending/external-gated)
+**Last updated:** Wave F P2-04 complete (connector key UI + scope UX + audit surface + OpenAPI role drift fixed; ATO lodgement TODOs left pending/external-gated)
 **Note:** +1 slice discovered in Wave B — P1-14 require_role() accepted_at gate (total now 51).
 
 Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocked-on-deploy]` · `[!]` external-blocked (cannot finish here)
@@ -13,11 +13,12 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 ---
 
 ## P0 — Release & security blockers (10/11)
+
 - [x] P0-01 Pending membership access gate
 - [x] P0-02 Tag-draft unique constraint + indexes
 - [x] P0-03 Invite fallback token redemption
 - [x] P0-04 Media attachment scope (persist-or-defer)
-- [~] P0-05 Accountant/tag deploy + live overlay proof  *(blocked-on-deploy: runbook ready)*
+- [~] P0-05 Accountant/tag deploy + live overlay proof _(blocked-on-deploy: runbook ready)_
 - [x] P0-06 Connector gateway PostgREST hardening
 - [x] P0-07 API-key storage + rate-limit hardening
 - [x] P0-08 Frontend error boundary + login a11y
@@ -26,6 +27,7 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [x] P0-11 Edge-function JWT-mode pinning (config.toml)
 
 ## P1 — Reliability & accounting foundations (14/14)
+
 - [x] P1-01 Cron heartbeat + no-success-window + soft-failure parsing
 - [x] P1-02 Basiq durability + basiq_user_id migration + webhook persist
 - [x] P1-03 OCR provider selection + extraction quality + accuracy gate
@@ -39,9 +41,10 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [x] P1-11 Period-lock coverage expansion
 - [x] P1-12 Audit triggers on money tables
 - [x] P1-13 Cron secrets + SITE_URL provisioning
-- [x] P1-14 require_role() accepted_at gate *(discovered in Wave B)*
+- [x] P1-14 require_role() accepted_at gate _(discovered in Wave B)_
 
-## P2 — Source posting + compliance output + product completion (14/26)
+## P2 — Source posting + compliance output + product completion (15/26)
+
 - [x] P2-01a Source posting: invoices + invoice payments
 - [x] P2-01b Source posting: bank transactions + reconciliation
 - [x] P2-01c Source posting: payment runs + payroll
@@ -49,9 +52,9 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [x] P2-01e Source posting: depreciation/opening-bal/manual-journals/credit-notes/reversals
 - [x] P2-02a BAS labels completion + immutable snapshot + source drilldown
 - [x] P2-LODGE-1 SBR/AS4 message + envelope builder (behind fail-closed gate)
-- [ ] P2-LODGE-2 Digital-signing integration points + secret wiring  *(external-gated)*
-- [ ] P2-LODGE-3 Lodgement status polling + correspondence ingest  *(external-gated)*
-- [ ] P2-LODGE-4 Lodgement orchestration + audit + retry  *(live external-gated)*
+- [ ] P2-LODGE-2 Digital-signing integration points + secret wiring _(external-gated)_
+- [ ] P2-LODGE-3 Lodgement status polling + correspondence ingest _(external-gated)_
+- [ ] P2-LODGE-4 Lodgement orchestration + audit + retry _(live external-gated)_
 - [x] P2-FBT FBT return builder RPC + Fbt.tsx + approval gate
 - [x] P2-TPAR TPAR builder RPC + Tpar.tsx + export
 - [x] P2-FRANK Franking register + dividend/distribution statements + reconciliation
@@ -59,7 +62,7 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 - [x] P2-STP STP Phase 2 correctness + TFN secure store/masking + lifecycle
 - [x] P2-SUPER SuperStream/clearing-house real dispatch (or documented transport)
 - [x] P2-CN Credit notes AR/AP (schema + RPC + UI + GL posting)
-- [ ] P2-04 Connector product surface (key UI + scope enforcement + OpenAPI + audit)
+- [x] P2-04 Connector product surface (key UI + scope enforcement + OpenAPI + audit)
 - [ ] P2-05a Cross-browser smoke (Chromium/Firefox) on core routes
 - [ ] P2-05b Mobile/tablet + empty/loading/error states
 - [ ] P2-05c Keyboard/focus a11y across main workflows
@@ -72,6 +75,7 @@ Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocke
 ---
 
 ### External blockers (cannot be finished in-repo)
+
 Electronic ATO lodgement (P2-LODGE-2/3/4 live) needs ATO **DSP accreditation**, **EVTE**
 certification, and **SBR taxonomy hosting** — a certification/provisioning task outside
 this build. Scaffolding is built behind the existing fail-closed gate; live lodgement
