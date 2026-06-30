@@ -160,8 +160,8 @@ The bill runs through the **same router** the Gmail/upload path uses:
 - fuzzy match → **suggested** in the Allocation Portal,
 - no match → **queued** for manual allocation.
 
-Intake rules are applied automatically. The response includes the routing
-outcome:
+Intake rules are applied automatically and must be accepted before the ingest
+call returns success. The response includes the routing outcome:
 
 ```json
 {
@@ -193,7 +193,10 @@ Dedup: a byte-identical re-push (same org + same payload), or a collision on
 
 `bank_account_id` must belong to your org. Idempotent on
 `(bank_account_id, external_id)` — same as the Basiq sync. New transactions are
-fed to the intake-rules engine automatically.
+fed to the intake-rules engine automatically before success is returned. If
+ingest returns `500` with `ingest_failed` after validation, retry the same
+payload/idempotency key; the endpoint is designed to re-run the routing handoff
+for deduped records.
 
 ### Invoice (`write:invoices`)
 

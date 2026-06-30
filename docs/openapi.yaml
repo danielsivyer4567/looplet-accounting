@@ -432,6 +432,9 @@ paths:
         '429':
           description: Per-key rate limit exceeded
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '500':
+          description: Ingest failed after authentication and validation, including required automation handoffs
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
 
   /functions/v1/receipt-webhook:
     post:

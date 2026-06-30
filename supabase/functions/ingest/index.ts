@@ -147,17 +147,18 @@ Deno.serve(async (req) => {
     // ValidationError carries a caller-safe message (e.g. "customer_id is
     // required"); anything else (raw DB/Postgres errors) is logged server-side
     // and returned as a generic message so we never disclose schema internals.
-    await log(db, ctx, type, 400);
     if (err instanceof ValidationError) {
+      await log(db, ctx, type, 400);
       return json({ error: err.message }, 400);
     }
+    await log(db, ctx, type, 500);
     console.error('[ingest] write failed', {
       type,
       organizationId: orgId,
       keyPrefix: ctx.keyPrefix,
       detail: err instanceof Error ? err.message : String(err),
     });
-    return json({ error: 'ingest_failed' }, 400);
+    return json({ error: 'ingest_failed' }, 500);
   }
 });
 
@@ -231,13 +232,25 @@ async function ingestBill(db: SupabaseClient, orgId: string, payload: Record<str
   // Re-push? Return the existing row (idempotent).
   const { data: existing } = await db
     .from('bills')
-    .select('id, status')
+    .select('id, status, job_reference_raw')
     .eq('organization_id', orgId)
     .eq('content_sha256', contentSha256)
     .is('deleted_at', null)
     .maybeSingle();
   if (existing) {
-    return { status: 200, body: { ok: true, id: existing.id, type: 'bill', deduped: true } };
+    const routing = await routeBill({
+      admin: db,
+      billId: existing.id,
+      organizationId: orgId,
+      jobReferenceRaw:
+        (payload.job_reference_raw as string | undefined) ?? existing.job_reference_raw ?? null,
+      extractedConfidence: 'medium',
+    });
+    await runIntakeRouting(orgId, 'bill', [existing.id]);
+    return {
+      status: 200,
+      body: { ok: true, id: existing.id, type: 'bill', deduped: true, routing },
+    };
   }
 
   const row: Record<string, unknown> = {
@@ -266,20 +279,15 @@ async function ingestBill(db: SupabaseClient, orgId: string, payload: Record<str
 
   // Same auto-routing as the Gmail/upload path: score the job ref, auto-attach /
   // suggest / queue, then let the intake-rules engine pick it up.
-  let routing: unknown = null;
-  try {
-    routing = await routeBill({
-      admin: db,
-      billId: inserted.id,
-      organizationId: orgId,
-      jobReferenceRaw: (payload.job_reference_raw as string) ?? null,
-      extractedConfidence: 'medium',
-    });
-  } catch {
-    /* routing is best-effort; the bill is safely persisted */
-  }
+  const routing = await routeBill({
+    admin: db,
+    billId: inserted.id,
+    organizationId: orgId,
+    jobReferenceRaw: (payload.job_reference_raw as string) ?? null,
+    extractedConfidence: 'medium',
+  });
 
-  fireIntakeRouting(orgId, 'bill', [inserted.id]);
+  await runIntakeRouting(orgId, 'bill', [inserted.id]);
 
   return {
     status: 201,
@@ -335,7 +343,7 @@ async function ingestBankTransaction(
     .single();
   if (error) throw new Error(error.message);
 
-  fireIntakeRouting(orgId, 'bank_transaction', [txn.id]);
+  await runIntakeRouting(orgId, 'bank_transaction', [txn.id]);
 
   return { status: 201, body: { ok: true, id: txn.id, type: 'bank_transaction' } };
 }
@@ -601,22 +609,25 @@ async function ingestPayment(
   return { status: 202, body: { ok: true, job_id: jobId, type: 'payment', deduped: false } };
 }
 
-// Fire-and-forget into intake-routing-apply — mirrors bank-sync. Never blocks.
-function fireIntakeRouting(
+async function runIntakeRouting(
   orgId: string,
   target: 'bill' | 'bank_transaction',
   targetIds: string[],
-) {
+): Promise<void> {
   const url = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!url || !serviceKey || targetIds.length === 0) return;
-  void fetch(`${url}/functions/v1/intake-routing-apply`, {
+  if (targetIds.length === 0) return;
+  if (!url || !serviceKey) throw new Error('intake routing config missing');
+  const response = await fetch(`${url}/functions/v1/intake-routing-apply`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ organization_id: orgId, target, target_ids: targetIds }),
-  }).catch(() => {
-    /* routing is non-critical */
   });
+  if (!response.ok) {
+    throw new Error(
+      `intake-routing-apply failed: ${response.status} ${await response.text().catch(() => '')}`.trim(),
+    );
+  }
 }
 
 function textField(value: unknown): string | null {

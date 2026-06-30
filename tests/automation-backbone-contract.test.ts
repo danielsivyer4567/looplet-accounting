@@ -26,6 +26,16 @@ describe('automation backbone source contracts', () => {
     expect(ingest).toMatch(/bill_id:\s*billId/);
   });
 
+  it('connector ingest routes bill and bank pushes observably', () => {
+    expect(ingest).not.toMatch(/fireIntakeRouting/);
+    expect(ingest).not.toMatch(/routing is best-effort/);
+    expect(ingest).not.toMatch(/routing is non-critical/);
+    expect(ingest).toMatch(/await runIntakeRouting\(orgId, 'bill', \[existing\.id\]\)/);
+    expect(ingest).toMatch(/await runIntakeRouting\(orgId, 'bill', \[inserted\.id\]\)/);
+    expect(ingest).toMatch(/await runIntakeRouting\(orgId, 'bank_transaction', \[txn\.id\]\)/);
+    expect(ingest).toMatch(/return json\(\{ error: 'ingest_failed' \}, 500\)/);
+  });
+
   it('bill extraction jobs dispatch a specific bill when one is known', () => {
     expect(worker).toMatch(/const endpoint = billId \? 'bills-extract' : 'bills-extract-batch'/);
     expect(worker).toMatch(/bill_id:\s*billId/);
