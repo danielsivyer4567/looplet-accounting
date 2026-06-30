@@ -5,6 +5,7 @@ import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import { AllocationSplitButton } from '@/components/AllocationSplitButton';
+import { BankTransactionCodingQueue } from '@/components/BankTransactionCodingQueue';
 import {
   Scale,
   CheckCircle2,
@@ -15,7 +16,7 @@ import {
   Check,
 } from 'lucide-react';
 import { ConfidenceBadge } from '@/components/ConfidenceBadge';
-import type { AutomationConfidence } from '@/lib/automationDecision';
+import { recordFeedback, type AutomationConfidence } from '@/lib/automationDecision';
 
 interface BankTxn {
   id: string;
@@ -172,6 +173,14 @@ export function ReconciliationPage() {
       const result = data as { ok: boolean; error?: string } | null;
       if (result && !result.ok) throw new Error(result.error ?? 'reconcile_match_bill failed');
 
+      void recordFeedback({
+        organizationId: currentOrg.id,
+        sourceKind: 'bank_match',
+        sourceId: txnId,
+        newValue: { matched_bill_id: billId },
+        correctionReason: 'reconciliation_confirm',
+      }).catch(() => {});
+
       if (currentOrg) {
         void (async () => {
           try {
@@ -213,6 +222,14 @@ export function ReconciliationPage() {
       if (rpcErr) throw rpcErr;
       const result = data as { ok: boolean; error?: string } | null;
       if (result && !result.ok) throw new Error(result.error ?? 'reconcile_match_invoice failed');
+
+      void recordFeedback({
+        organizationId: currentOrg.id,
+        sourceKind: 'bank_match',
+        sourceId: txnId,
+        newValue: { matched_invoice_id: invoiceId, amount_cents: amountCents },
+        correctionReason: 'reconciliation_confirm',
+      }).catch(() => {});
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -460,10 +477,23 @@ export function ReconciliationPage() {
             </div>
           )}
 
-          {/* Footer note info box */}
+          {/* Coding Queue — AI-suggested GL categories for bank transactions */}
           <div
             style={{
               marginTop: '3rem',
+              padding: '1.5rem',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-md)',
+            }}
+          >
+            <BankTransactionCodingQueue />
+          </div>
+
+          {/* Footer note info box */}
+          <div
+            style={{
+              marginTop: '1.5rem',
               padding: '1rem 1.25rem',
               background: 'var(--bg-card)',
               border: '1px dashed var(--border-subtle)',
@@ -477,8 +507,8 @@ export function ReconciliationPage() {
           >
             <AlertCircle size={16} />
             <span>
-              Future updates: auto-categorisation rules, partial-match handling, multi-bill splits,
-              and attachable receipt photos.
+              Coding queue learns from every confirmation and override — recurring merchants are
+              auto-coded after the first review.
             </span>
           </div>
         </>

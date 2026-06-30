@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
 import { SkeletonLine } from '@/components/Skeleton';
 import { ListChecks, Eye, EyeOff, CheckCircle2, X, Pencil } from 'lucide-react';
+import { recordFeedback } from '@/lib/automationDecision';
 
 // Bill fields the queue needs beyond the suggestion itself: a label for the card
 // and storage_key/mime_type for the PDF preview. coding_review_queue carries only
@@ -395,7 +396,19 @@ export function CodingReviewPage() {
               isPreviewing={previewBillId === s.bill_id}
               onPreview={() => setPreviewBillId(previewBillId === s.bill_id ? null : s.bill_id)}
               onAccept={() => runDecision(s, () => accept(s))}
-              onOverride={(codes) => runDecision(s, () => override(s, codes))}
+              onOverride={(codes) =>
+                runDecision(s, async () => {
+                  await override(s, codes);
+                  void recordFeedback({
+                    organizationId: s.organization_id,
+                    sourceKind: 'bill_coding',
+                    sourceId: s.bill_id,
+                    previousValue: { account_code: s.account_code, tax_code: s.tax_code },
+                    newValue: { account_code: codes.account_code, tax_code: codes.tax_code },
+                    correctionReason: 'coding_review_override',
+                  }).catch(() => {});
+                })
+              }
             />
           ))}
         </div>
