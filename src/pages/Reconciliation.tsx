@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { ConfidenceBadge } from '@/components/ConfidenceBadge';
 import { recordFeedback, type AutomationConfidence } from '@/lib/automationDecision';
+import { enqueueJob } from '@/lib/automationJobs';
 
 interface BankTxn {
   id: string;
@@ -197,26 +198,21 @@ export function ReconciliationPage() {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
       }).catch(() => {});
 
-      if (currentOrg) {
-        void (async () => {
-          try {
-            const {
-              data: { session },
-            } = await supabase.auth.getSession();
-            if (!session) return;
-            const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/xero-push-bill`;
-            await fetch(url, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${session.access_token}`,
-              },
-              body: JSON.stringify({ organization_id: currentOrg.id, bill_id: billId }),
-            });
-          } catch {
-            /* ignored */
-          }
-        })();
+      try {
+        await enqueueJob({
+          organizationId: currentOrg.id,
+          jobKind: 'xero_push',
+          sourceKind: 'bill',
+          sourceId: billId,
+          priority: 4,
+          payload: { bill_id: billId, source: 'bank_reconciliation_match' },
+        });
+      } catch (queueErr) {
+        setError(
+          `Bill matched, but Xero push was not queued: ${
+            queueErr instanceof Error ? queueErr.message : String(queueErr)
+          }`,
+        );
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

@@ -13,11 +13,11 @@
  *
  * Idempotent: already-synced invoices return immediately.
  *
- * Called fire-and-forget when invoice.status transitions to 'sent',
- * or from the "Re-push to Xero" button.
+ * Called by automation-worker for queued `xero_push` jobs when an invoice is
+ * sent or manually re-pushed.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { requireEnv } from '../_shared/env.ts';
 import { callXeroWithRetry, xeroFetch, XeroApiError } from '../_shared/xero/auth.ts';
@@ -95,12 +95,14 @@ Deno.serve(async (req) => {
     // Load invoice with customer
     const { data: invoice, error: invErr } = await admin
       .from('invoices')
-      .select(`
+      .select(
+        `
         id, organization_id, customer_id, invoice_number, issue_date, due_date,
         total_inc_gst_cents, gst_cents, subtotal_ex_gst_cents, currency_code, notes,
         status, xero_status, xero_invoice_id, metadata,
         customer:customers!invoices_customer_id_fkey(id, name, email, xero_contact_id)
-      `)
+      `,
+      )
       .eq('id', invoice_id)
       .eq('organization_id', organization_id)
       .maybeSingle();
@@ -116,13 +118,16 @@ Deno.serve(async (req) => {
     }
 
     // Check attempt cap
-    const attempts = ((inv.metadata?.xero_attempts as number) ?? 0);
+    const attempts = (inv.metadata?.xero_attempts as number) ?? 0;
     if (attempts >= MAX_ATTEMPTS) {
-      return json({
-        ok: false,
-        error: `Max push attempts (${MAX_ATTEMPTS}) reached. Fix the error then use Re-push.`,
-        xero_attempts: attempts,
-      }, 409);
+      return json(
+        {
+          ok: false,
+          error: `Max push attempts (${MAX_ATTEMPTS}) reached. Fix the error then use Re-push.`,
+          xero_attempts: attempts,
+        },
+        409,
+      );
     }
 
     // Validate
@@ -177,7 +182,9 @@ Deno.serve(async (req) => {
     // Load line items
     const { data: lineItems } = await admin
       .from('invoice_line_items')
-      .select('description, quantity, unit_price_cents, line_total_inc_gst_cents, line_gst_cents, account_code')
+      .select(
+        'description, quantity, unit_price_cents, line_total_inc_gst_cents, line_gst_cents, account_code',
+      )
       .eq('invoice_id', invoice_id)
       .order('line_number');
 
@@ -237,12 +244,15 @@ Deno.serve(async (req) => {
       }
 
       // Success — update invoice
-      await admin.from('invoices').update({
-        xero_invoice_id: xeroInvoiceId,
-        xero_status: 'synced',
-        xero_synced_at: new Date().toISOString(),
-        metadata: { ...inv.metadata, xero_attempts: attempts + 1, last_xero_error: null },
-      }).eq('id', invoice_id);
+      await admin
+        .from('invoices')
+        .update({
+          xero_invoice_id: xeroInvoiceId,
+          xero_status: 'synced',
+          xero_synced_at: new Date().toISOString(),
+          metadata: { ...inv.metadata, xero_attempts: attempts + 1, last_xero_error: null },
+        })
+        .eq('id', invoice_id);
 
       // Append to sync log
       await admin.from('xero_sync_log').insert({
@@ -261,14 +271,17 @@ Deno.serve(async (req) => {
     } catch (pushErr) {
       const msg = pushErr instanceof Error ? pushErr.message : String(pushErr);
 
-      await admin.from('invoices').update({
-        xero_status: 'failed',
-        metadata: {
-          ...inv.metadata,
-          xero_attempts: attempts + 1,
-          last_xero_error: msg.slice(0, 500),
-        },
-      }).eq('id', invoice_id);
+      await admin
+        .from('invoices')
+        .update({
+          xero_status: 'failed',
+          metadata: {
+            ...inv.metadata,
+            xero_attempts: attempts + 1,
+            last_xero_error: msg.slice(0, 500),
+          },
+        })
+        .eq('id', invoice_id);
 
       await admin.from('xero_sync_log').insert({
         organization_id,
@@ -296,7 +309,7 @@ Deno.serve(async (req) => {
  * Searches Xero by name, creates if not found, persists ContactID locally.
  */
 async function resolveOrCreateContact(
-  admin: ReturnType<typeof createClient>,
+  admin: SupabaseClient,
   organizationId: string,
   name: string,
   localId: string | null,
@@ -310,10 +323,7 @@ async function resolveOrCreateContact(
     admin,
     organizationId,
     (ctx) =>
-      xeroFetch(
-        ctx,
-        `/api.xro/2.0/Contacts?where=${encodeURIComponent(where)}&summaryOnly=true`,
-      ),
+      xeroFetch(ctx, `/api.xro/2.0/Contacts?where=${encodeURIComponent(where)}&summaryOnly=true`),
   );
 
   const existing = found?.Contacts?.[0];

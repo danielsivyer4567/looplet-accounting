@@ -22,11 +22,11 @@
  * Idempotent: if xero_invoice_id already set and xero_status='synced', returns
  * immediately without re-pushing.
  *
- * Called fire-and-forget from the frontend after bills.status flips to 'paid',
- * or from the "Re-push to Xero" button on error/null status.
+ * Called by automation-worker for queued `xero_push` jobs after bill events or
+ * manual re-push requests.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { callXeroWithRetry, xeroFetch, XeroApiError } from '../_shared/xero/auth.ts';
 import { requireEnv } from '../_shared/env.ts';
@@ -111,14 +111,16 @@ Deno.serve(async (req) => {
     // Load bill with supplier
     const { data: bill, error: billErr } = await admin
       .from('bills')
-      .select(`
+      .select(
+        `
         id, organization_id, supplier_id, invoice_number, invoice_date, due_date,
         total_inc_gst_cents, gst_cents, subtotal_ex_gst_cents, currency_code,
         supplier_name_raw, job_reference_raw, status, xero_status, xero_invoice_id, metadata,
         supplier:suppliers!bills_supplier_id_fkey(
           id, name, abn, default_account_code, xero_contact_id
         )
-      `)
+      `,
+      )
       .eq('id', bill_id)
       .eq('organization_id', organization_id)
       .maybeSingle();
@@ -134,13 +136,16 @@ Deno.serve(async (req) => {
     }
 
     // Check attempt count
-    const attempts = ((b.metadata?.xero_attempts as number) ?? 0);
+    const attempts = (b.metadata?.xero_attempts as number) ?? 0;
     if (attempts >= MAX_ATTEMPTS) {
-      return json({
-        ok: false,
-        error: `Max push attempts (${MAX_ATTEMPTS}) reached. Fix the error then use Re-push.`,
-        xero_attempts: attempts,
-      }, 409);
+      return json(
+        {
+          ok: false,
+          error: `Max push attempts (${MAX_ATTEMPTS}) reached. Fix the error then use Re-push.`,
+          xero_attempts: attempts,
+        },
+        409,
+      );
     }
 
     // Validate bill has minimum required fields
@@ -261,12 +266,15 @@ Deno.serve(async (req) => {
       }
 
       // Success — update bill
-      await admin.from('bills').update({
-        xero_invoice_id: xeroInvoiceId,
-        xero_status: 'synced',
-        xero_synced_at: new Date().toISOString(),
-        metadata: { ...b.metadata, xero_attempts: attempts + 1, last_xero_error: null },
-      }).eq('id', bill_id);
+      await admin
+        .from('bills')
+        .update({
+          xero_invoice_id: xeroInvoiceId,
+          xero_status: 'synced',
+          xero_synced_at: new Date().toISOString(),
+          metadata: { ...b.metadata, xero_attempts: attempts + 1, last_xero_error: null },
+        })
+        .eq('id', bill_id);
 
       // Append to sync log
       await admin.from('xero_sync_log').insert({
@@ -286,14 +294,17 @@ Deno.serve(async (req) => {
       const msg = pushErr instanceof Error ? pushErr.message : String(pushErr);
 
       // Update bill with failure state
-      await admin.from('bills').update({
-        xero_status: 'failed',
-        metadata: {
-          ...b.metadata,
-          xero_attempts: attempts + 1,
-          last_xero_error: msg.slice(0, 500),
-        },
-      }).eq('id', bill_id);
+      await admin
+        .from('bills')
+        .update({
+          xero_status: 'failed',
+          metadata: {
+            ...b.metadata,
+            xero_attempts: attempts + 1,
+            last_xero_error: msg.slice(0, 500),
+          },
+        })
+        .eq('id', bill_id);
 
       // Append failure to sync log
       await admin.from('xero_sync_log').insert({
@@ -323,7 +334,7 @@ Deno.serve(async (req) => {
  * Stores the resolved ContactID back on suppliers/customers row if an id provided.
  */
 async function resolveOrCreateContact(
-  admin: ReturnType<typeof createClient>,
+  admin: SupabaseClient,
   organizationId: string,
   name: string,
   localId: string | null,
@@ -339,10 +350,7 @@ async function resolveOrCreateContact(
     admin,
     organizationId,
     (ctx) =>
-      xeroFetch(
-        ctx,
-        `/api.xro/2.0/Contacts?where=${encodeURIComponent(where)}&summaryOnly=true`,
-      ),
+      xeroFetch(ctx, `/api.xro/2.0/Contacts?where=${encodeURIComponent(where)}&summaryOnly=true`),
   );
 
   const existing = found?.Contacts?.[0];

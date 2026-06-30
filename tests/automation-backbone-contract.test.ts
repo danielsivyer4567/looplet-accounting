@@ -19,6 +19,9 @@ const automationJobs = readFileSync(
   'utf8',
 );
 const appAutomationJobs = readFileSync(join(root, 'src/lib/automationJobs.ts'), 'utf8');
+const billsPage = readFileSync(join(root, 'src/pages/Bills.tsx'), 'utf8');
+const invoiceDetailPage = readFileSync(join(root, 'src/pages/InvoiceDetail.tsx'), 'utf8');
+const reconciliationPage = readFileSync(join(root, 'src/pages/Reconciliation.tsx'), 'utf8');
 const config = readFileSync(join(root, 'supabase/config.toml'), 'utf8');
 
 describe('automation backbone source contracts', () => {
@@ -68,6 +71,14 @@ describe('automation backbone source contracts', () => {
     expect(worker).toMatch(/invoice_id:\s*invoiceId/);
     expect(worker).toMatch(/bill_id:\s*billId/);
     expect(worker).toMatch(/xero_push requires invoice_id or bill_id/);
+  });
+
+  it('UI queues Xero pushes instead of direct edge fetches', () => {
+    for (const source of [billsPage, invoiceDetailPage, reconciliationPage]) {
+      expect(source).toMatch(/enqueueJob/);
+      expect(source).toMatch(/jobKind:\s*'xero_push'/);
+      expect(source).not.toMatch(/functions\/v1\/xero-push-(bill|invoice)/);
+    }
   });
 
   it('scheduled worker only claims job kinds it can execute end-to-end', () => {

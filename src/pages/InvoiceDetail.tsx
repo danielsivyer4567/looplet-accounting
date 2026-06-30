@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
+import { enqueueJob } from '@/lib/automationJobs';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { XeroStatusPill } from '@/components/XeroStatusPill';
 import {
@@ -314,41 +315,46 @@ export function InvoiceDetailPage() {
   const markSent = async () => {
     if (!invoice || !currentOrg) return;
     setBusy(true);
-    await supabase
-      .from('invoices')
-      .update({ status: 'sent', sent_at: new Date().toISOString() })
-      .eq('id', invoice.id);
-    setBusy(false);
-    void refresh();
-    void pushInvoiceToXero(invoice.id, currentOrg.id);
+    setError(null);
+    try {
+      const { error: sentErr } = await supabase
+        .from('invoices')
+        .update({ status: 'sent', sent_at: new Date().toISOString() })
+        .eq('id', invoice.id);
+      if (sentErr) throw sentErr;
+
+      await queueInvoiceXeroPush(invoice.id, currentOrg.id, 'invoice_sent');
+      void refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const pushInvoiceToXero = async (invoiceId: string, orgId: string) => {
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) return;
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/xero-push-invoice`;
-      await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ organization_id: orgId, invoice_id: invoiceId }),
-      });
-      void refresh();
-    } catch {
-      // Best effort
-    }
+  const queueInvoiceXeroPush = async (invoiceId: string, orgId: string, source: string) => {
+    await enqueueJob({
+      organizationId: orgId,
+      jobKind: 'xero_push',
+      sourceKind: 'invoice',
+      sourceId: invoiceId,
+      priority: 4,
+      payload: { invoice_id: invoiceId, source },
+    });
   };
 
   const handleXeroRepush = async () => {
     if (!invoice || !currentOrg) return;
     setXeroBusy(true);
-    await pushInvoiceToXero(invoice.id, currentOrg.id);
-    setXeroBusy(false);
+    setError(null);
+    try {
+      await queueInvoiceXeroPush(invoice.id, currentOrg.id, 'invoice_repush');
+      void refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setXeroBusy(false);
+    }
   };
 
   const recordPayment = async () => {

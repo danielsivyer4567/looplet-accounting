@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
 import { useBills, type BillListRow } from '@/hooks/useBills';
+import { enqueueJob } from '@/lib/automationJobs';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import { XeroStatusPill } from '@/components/XeroStatusPill';
-import { supabase } from '@/lib/supabase';
 import { DocumentPreviewModal } from '@/components/DocumentPreviewModal';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
@@ -43,18 +43,13 @@ export function BillsPage() {
     if (!currentOrg) return;
     setRepushingId(bill.id);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) return;
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/xero-push-bill`;
-      await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ organization_id: currentOrg.id, bill_id: bill.id }),
+      await enqueueJob({
+        organizationId: currentOrg.id,
+        jobKind: 'xero_push',
+        sourceKind: 'bill',
+        sourceId: bill.id,
+        priority: 4,
+        payload: { bill_id: bill.id, source: 'bill_repush' },
       });
       await refresh();
     } finally {
