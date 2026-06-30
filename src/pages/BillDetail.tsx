@@ -12,8 +12,9 @@ import type {
   AutomationConfidence,
   DecisionSourceKind,
   DecisionKind,
+  FeedbackSourceKind,
 } from '@/lib/automationDecision';
-import { recordOverride } from '@/lib/automationDecision';
+import { recordOverride, recordFeedback } from '@/lib/automationDecision';
 import {
   ChevronLeft,
   Edit3,
@@ -110,6 +111,7 @@ export function BillDetailPage() {
     sourceKind: string;
     sourceId: string;
     suggestedTreatment: unknown;
+    reasonCodes: string[];
   } | null>(null);
 
   useEffect(() => {
@@ -129,6 +131,7 @@ export function BillDetailPage() {
             decision_kind: string;
             suggested_treatment: unknown;
             bill_id: string;
+            reason_codes?: string[];
           }[]
         )[0];
         if (d) {
@@ -139,6 +142,7 @@ export function BillDetailPage() {
             sourceKind: 'bill_upload',
             sourceId: d.bill_id,
             suggestedTreatment: d.suggested_treatment,
+            reasonCodes: (d as { reason_codes?: string[] }).reason_codes ?? [],
           });
         }
       }
@@ -182,6 +186,17 @@ export function BillDetailPage() {
     if (!draft) return;
     setSaving(true);
     setActionError(null);
+    const feedbackChanges: Array<{ sourceKind: FeedbackSourceKind; prev: unknown; next: unknown }> = [];
+    if (draft.supplier_name_raw.trim() !== (bill.supplier_name_raw ?? '')) {
+      feedbackChanges.push({ sourceKind: 'supplier', prev: bill.supplier_name_raw, next: draft.supplier_name_raw.trim() });
+    }
+    if (draft.job_reference_raw.trim() !== (bill.job_reference_raw ?? '')) {
+      feedbackChanges.push({ sourceKind: 'job_tag', prev: bill.job_reference_raw, next: draft.job_reference_raw.trim() });
+    }
+    const parsedGst = parseDollarsToCents(draft.gst_dollars);
+    if (parsedGst !== null && parsedGst !== bill.gst_cents) {
+      feedbackChanges.push({ sourceKind: 'gst_treatment', prev: bill.gst_cents, next: parsedGst });
+    }
     try {
       const computed = autoComputeGst(draft);
       const payload: Record<string, unknown> = {
@@ -205,6 +220,20 @@ export function BillDetailPage() {
       }
 
       await refresh();
+      if (feedbackChanges.length > 0) {
+        void Promise.all(
+          feedbackChanges.map((c) =>
+            recordFeedback({
+              organizationId: bill.organization_id,
+              sourceKind: c.sourceKind,
+              sourceId: bill.id,
+              previousValue: c.prev,
+              newValue: c.next,
+              correctionReason: 'user_edit',
+            }).catch(() => {}),
+          ),
+        );
+      }
       setEditing(false);
       setDraft(null);
       setSavedFlash(true);
@@ -382,6 +411,13 @@ export function BillDetailPage() {
           />
         </div>
       </div>
+
+      {decisionState && decisionState.reasonCodes.length > 0 && (
+        <DecisionReasonPanel
+          confidence={decisionState.confidence}
+          reasonCodes={decisionState.reasonCodes}
+        />
+      )}
 
       <StatusBar bill={bill} />
 
@@ -1079,6 +1115,57 @@ function Field({
       >
         {value ?? '—'}
       </span>
+    </div>
+  );
+}
+
+const REASON_CODE_LABELS: Record<string, string> = {
+  ocr_text_extraction: 'Extracted from digital PDF text',
+  ocr_vision_extraction: 'Extracted via vision OCR',
+  cache_hit: 'Matched an identical document seen before',
+  gst_derived: 'GST estimated at 1/11 (not shown on document)',
+  job_matched_exact: 'Exact job reference match found',
+  job_matched_fuzzy: 'Fuzzy job match suggested',
+  probable_non_invoice: 'Document may not be an invoice',
+};
+
+const CONFIDENCE_EXPLAIN: Record<AutomationConfidence, string> = {
+  auto_post: 'Posted automatically',
+  quick_confirm: 'Looplet is confident — one click to confirm',
+  review_needed: 'Check the details before approving',
+  advisor_required: "Needs your accountant's input",
+  blocked_external: 'Waiting on external information',
+};
+
+function DecisionReasonPanel({
+  confidence,
+  reasonCodes,
+}: {
+  confidence: AutomationConfidence;
+  reasonCodes: string[];
+}) {
+  if (reasonCodes.length === 0) return null;
+  return (
+    <div
+      style={{
+        background: 'var(--bg-panel)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-md)',
+        padding: '0.75rem 1rem',
+        fontSize: '0.8rem',
+        color: 'var(--text-muted)',
+        marginTop: '0.75rem',
+      }}
+    >
+      <div style={{ fontWeight: 600, color: 'var(--text-body)', marginBottom: '0.35rem' }}>
+        How Looplet worked this out
+      </div>
+      <div style={{ marginBottom: '0.25rem' }}>{CONFIDENCE_EXPLAIN[confidence]}</div>
+      <ul style={{ margin: '0.35rem 0 0 1rem', padding: 0, lineHeight: 1.6 }}>
+        {reasonCodes.map((code) => (
+          <li key={code}>{REASON_CODE_LABELS[code] ?? code}</li>
+        ))}
+      </ul>
     </div>
   );
 }

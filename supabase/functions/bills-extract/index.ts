@@ -233,6 +233,7 @@ Deno.serve(async (req) => {
       // Run routing on the cache-hit too — same job_reference, same matching.
       const routing = await runRouting(admin, bill.id, bill.organization_id, cacheRow);
       void fireAndForgetIntakeRouting(supabaseUrl, serviceKey, bill.organization_id, 'bill', bill.id);
+      void writeDecision(admin, bill.id, bill.organization_id, undefined, routing.outcome, 'cache', true, false);
       return json({
         ok: true,
         method: 'cache',
@@ -266,6 +267,7 @@ Deno.serve(async (req) => {
             confidence: extracted.confidence,
           });
           void fireAndForgetIntakeRouting(supabaseUrl, serviceKey, bill.organization_id, 'bill', bill.id);
+          void writeDecision(admin, bill.id, bill.organization_id, extracted.confidence, routing.outcome, 'text', true, false);
 
           return json({
             ok: true,
@@ -291,6 +293,13 @@ Deno.serve(async (req) => {
       confidence: extracted.confidence,
     });
     void fireAndForgetIntakeRouting(supabaseUrl, serviceKey, bill.organization_id, 'bill', bill.id);
+    const { isProbableBill: visProbable } = classifyBill({ document_kind: extracted.document_kind, confidence: extracted.confidence, total_inc_gst: extracted.total_inc_gst, supplier_name: extracted.supplier_name });
+    const visGst = deriveGstCents(
+      extracted.total_inc_gst != null ? Math.round(extracted.total_inc_gst * 100) : null,
+      extracted.gst_amount != null ? Math.round(extracted.gst_amount * 100) : null,
+      extracted.subtotal_ex_gst != null ? Math.round(extracted.subtotal_ex_gst * 100) : null,
+    );
+    void writeDecision(admin, bill.id, bill.organization_id, extracted.confidence, routing.outcome, 'vision', visProbable, visGst.estimated);
 
     return json({
       ok: true,
@@ -470,6 +479,41 @@ async function runRouting(
     jobReferenceRaw: source.job_reference_raw ?? null,
     extractedConfidence: source.confidence ?? 'medium',
   });
+}
+
+async function writeDecision(
+  admin: SupabaseClient,
+  billId: string,
+  orgId: string,
+  ocrConfidence: ExtractedBill['confidence'] | undefined,
+  routingOutcome: string,
+  method: 'cache' | 'text' | 'vision',
+  isProbableBill: boolean,
+  gstEstimated: boolean,
+): Promise<void> {
+  const confidence = ocrConfidence === 'high' ? 'quick_confirm' : 'review_needed';
+  const reasonCodes: string[] = [];
+  if (method === 'text') reasonCodes.push('ocr_text_extraction');
+  else if (method === 'vision') reasonCodes.push('ocr_vision_extraction');
+  else if (method === 'cache') reasonCodes.push('cache_hit');
+  if (gstEstimated) reasonCodes.push('gst_derived');
+  if (routingOutcome === 'auto_attached') reasonCodes.push('job_matched_exact');
+  else if (routingOutcome === 'suggested') reasonCodes.push('job_matched_fuzzy');
+  if (!isProbableBill) reasonCodes.push('probable_non_invoice');
+
+  try {
+    await admin.from('automation_decisions').insert({
+      organization_id: orgId,
+      source_kind: 'bill_upload',
+      source_id: billId,
+      decision_kind: 'category',
+      suggested_treatment: { ocr_method: method, routing_outcome: routingOutcome },
+      confidence,
+      reason_codes: reasonCodes,
+    });
+  } catch {
+    // Non-critical — never block the OCR response
+  }
 }
 
 function json(body: unknown, status = 200): Response {
