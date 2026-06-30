@@ -47,6 +47,8 @@ const SCOPE_FOR: Record<string, string> = {
   bill: "write:bills",
   bank_transaction: "write:bank",
   invoice: "write:invoices",
+  document: "write:documents",
+  payment: "write:payments",
 };
 
 function json(body: unknown, status = 200): Response {
@@ -94,6 +96,9 @@ Deno.serve(async (req) => {
     return json({ error: "rate_limited" }, 429);
   }
 
+  // Idempotency-Key header — honoured for all types; required for document/payment.
+  const idempotencyKey = req.headers.get("Idempotency-Key") ?? undefined;
+
   let body: { type?: string; payload?: Record<string, unknown> };
   try {
     body = await req.json();
@@ -121,6 +126,10 @@ Deno.serve(async (req) => {
       result = await ingestBill(db, orgId, payload);
     } else if (type === "bank_transaction") {
       result = await ingestBankTransaction(db, orgId, payload);
+    } else if (type === "document") {
+      result = await ingestDocument(db, orgId, payload, idempotencyKey);
+    } else if (type === "payment") {
+      result = await ingestPayment(db, orgId, payload, idempotencyKey);
     } else {
       result = await ingestInvoice(db, orgId, payload);
     }
@@ -349,6 +358,113 @@ async function ingestInvoice(db: SupabaseClient, orgId: string, payload: Record<
   }
 
   return { status: 201, body: { ok: true, id: inserted.id, type: "invoice", deduped: false } };
+}
+
+// ---------------------------------------------------------------------------
+// document — idempotent via automation_jobs dedup; enqueues a bill_extract job.
+// Scope: write:documents. Idempotency-Key header is required.
+// ---------------------------------------------------------------------------
+
+async function ingestDocument(
+  db: SupabaseClient,
+  orgId: string,
+  payload: Record<string, unknown>,
+  idempotencyKey: string | undefined,
+) {
+  const idemKey = idempotencyKey ?? (payload.idempotency_key as string | undefined);
+  if (!idemKey) throw new ValidationError("Idempotency-Key header or payload.idempotency_key is required for document type");
+
+  // Dedup: if a job already exists for this idempotency key, return it.
+  const { data: existing } = await db
+    .from("automation_jobs")
+    .select("id")
+    .eq("organization_id", orgId)
+    .eq("source_kind", "document")
+    .eq("source_id", idemKey)
+    .in("status", ["pending", "claimed", "completed"])
+    .maybeSingle();
+
+  if (existing) {
+    return { status: 200, body: { ok: true, job_id: (existing as { id: string }).id, type: "document", deduped: true } };
+  }
+
+  const { data: job, error } = await db.rpc("enqueue_automation_job", {
+    p_org_id: orgId,
+    p_job_kind: "bill_extract",
+    p_source_kind: "document",
+    p_source_id: idemKey,
+    p_priority: 5,
+    p_run_after: new Date().toISOString(),
+    p_max_attempts: 3,
+    p_payload: {
+      storage_key: payload.storage_key ?? null,
+      original_filename: payload.original_filename ?? null,
+      mime_type: payload.mime_type ?? "application/octet-stream",
+      idempotency_key: idemKey,
+    },
+  });
+  if (error) throw new Error(error.message);
+
+  const jobId = (job as { id?: string } | null)?.id ?? null;
+  return { status: 202, body: { ok: true, job_id: jobId, type: "document", deduped: false } };
+}
+
+// ---------------------------------------------------------------------------
+// payment — idempotent via automation_jobs dedup; enqueues a payment_record job
+// that the automation-worker will dispatch once a handler is wired. Scope:
+// write:payments. Idempotency-Key header is required.
+// ---------------------------------------------------------------------------
+
+async function ingestPayment(
+  db: SupabaseClient,
+  orgId: string,
+  payload: Record<string, unknown>,
+  idempotencyKey: string | undefined,
+) {
+  const idemKey = idempotencyKey ?? (payload.idempotency_key as string | undefined);
+  if (!idemKey) throw new ValidationError("Idempotency-Key header or payload.idempotency_key is required for payment type");
+
+  // Dedup: return the existing job if already enqueued.
+  const { data: existing } = await db
+    .from("automation_jobs")
+    .select("id")
+    .eq("organization_id", orgId)
+    .eq("source_kind", "payment")
+    .eq("source_id", idemKey)
+    .maybeSingle();
+
+  if (existing) {
+    return { status: 200, body: { ok: true, job_id: (existing as { id: string }).id, type: "payment", deduped: true } };
+  }
+
+  const billId = payload.bill_id as string | undefined;
+  const invoiceId = payload.invoice_id as string | undefined;
+  if (!billId && !invoiceId) throw new ValidationError("Either bill_id or invoice_id is required for payment type");
+  if (!payload.amount_cents) throw new ValidationError("amount_cents is required for payment type");
+  if (!payload.payment_date) throw new ValidationError("payment_date is required for payment type");
+
+  const { data: job, error } = await db.rpc("enqueue_automation_job", {
+    p_org_id: orgId,
+    p_job_kind: "payment_record",
+    p_source_kind: "payment",
+    p_source_id: idemKey,
+    p_priority: 5,
+    p_run_after: new Date().toISOString(),
+    p_max_attempts: 3,
+    p_payload: {
+      bill_id: billId ?? null,
+      invoice_id: invoiceId ?? null,
+      amount_cents: payload.amount_cents,
+      payment_date: payload.payment_date,
+      payment_method: payload.payment_method ?? null,
+      reference: payload.reference ?? null,
+      idempotency_key: idemKey,
+    },
+  });
+  if (error) throw new Error(error.message);
+
+  const jobId = (job as { id?: string } | null)?.id ?? null;
+  return { status: 202, body: { ok: true, job_id: jobId, type: "payment", deduped: false } };
 }
 
 // Fire-and-forget into intake-routing-apply — mirrors bank-sync. Never blocks.

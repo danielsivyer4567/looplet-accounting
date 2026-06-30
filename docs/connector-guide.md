@@ -207,6 +207,73 @@ fed to the intake-rules engine automatically.
 `customer_id` must belong to your org. Dedup on
 `(organization_id, invoice_number)`.
 
+### Document (`write:documents`)
+
+Push a raw file for extraction (e.g. a scanned bill uploaded via a third-party
+document management system). The document is queued as a `bill_extract` job;
+the automation worker OCRs it and creates a bill automatically.
+
+**`Idempotency-Key` header is required** (or `payload.idempotency_key`). On
+replay with the same key the same `job_id` is returned with `deduped: true`.
+
+```bash
+curl -s -X POST \
+  https://dxoikltymmknxqpkpyhi.supabase.co/functions/v1/ingest \
+  -H "Authorization: Bearer llp_ab12cd34.0f1e2d3c..." \
+  -H "Idempotency-Key: doc:supplier-portal:INV-99213.pdf" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "document",
+    "payload": {
+      "storage_key": "org-uploads/2026-06/INV-99213.pdf",
+      "original_filename": "INV-99213.pdf",
+      "mime_type": "application/pdf"
+    }
+  }'
+```
+
+```json
+{ "ok": true, "job_id": "<uuid>", "type": "document", "deduped": false }
+```
+
+Poll `automation_jobs` for the job status (or subscribe to a notification):
+
+```sql
+select id, status, last_error from automation_jobs
+where id = '<job_id>';
+```
+
+### Payment (`write:payments`)
+
+Record that a bill or invoice has been paid. The payment is queued as a
+`payment_record` job; the automation worker will process it via the existing
+payment RPCs once a handler is wired.
+
+**`Idempotency-Key` header is required**. `bill_id` or `invoice_id` must be
+supplied (not both).
+
+```bash
+curl -s -X POST \
+  https://dxoikltymmknxqpkpyhi.supabase.co/functions/v1/ingest \
+  -H "Authorization: Bearer llp_ab12cd34.0f1e2d3c..." \
+  -H "Idempotency-Key: pay:bank-transfer:BSB-20260601-001" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "payment",
+    "payload": {
+      "bill_id": "<uuid>",
+      "amount_cents": 14300,
+      "payment_date": "2026-06-01",
+      "payment_method": "bank_transfer",
+      "reference": "BSB-20260601-001"
+    }
+  }'
+```
+
+```json
+{ "ok": true, "job_id": "<uuid>", "type": "payment", "deduped": false }
+```
+
 ---
 
 ## 4. POS Receipt Webhook

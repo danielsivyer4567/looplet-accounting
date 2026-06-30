@@ -71,7 +71,7 @@ components:
       properties:
         type:
           type: string
-          enum: [bill, bank_transaction, invoice]
+          enum: [bill, bank_transaction, invoice, document, payment]
         payload:
           type: object
           description: Type-specific body. organization_id is ignored if present (pinned to the key).
@@ -79,6 +79,8 @@ components:
             - $ref: '#/components/schemas/BillPayload'
             - $ref: '#/components/schemas/BankTransactionPayload'
             - $ref: '#/components/schemas/InvoicePayload'
+            - $ref: '#/components/schemas/DocumentPayload'
+            - $ref: '#/components/schemas/PaymentPayload'
     IngestResponse:
       type: object
       properties:
@@ -147,6 +149,32 @@ components:
         currency_code:         { type: string, default: AUD }
         notes:                 { type: string }
         status:                { type: string, enum: [draft, sent, partially_paid, paid, overdue, void] }
+    DocumentPayload:
+      type: object
+      description: >
+        Scope required - write:documents. Idempotency-Key header or
+        payload.idempotency_key is required. Enqueues a bill_extract job;
+        the job id is returned so callers can poll automation_jobs for status.
+      properties:
+        storage_key:   { type: string, description: Supabase Storage path of the uploaded file. }
+        original_filename: { type: string }
+        mime_type:     { type: string, default: application/octet-stream }
+        idempotency_key: { type: string, description: Fallback if Idempotency-Key header is absent. }
+    PaymentPayload:
+      type: object
+      description: >
+        Scope required - write:payments. Idempotency-Key header or
+        payload.idempotency_key is required. Enqueues a payment_record job;
+        processed by the automation worker once a payment handler is wired.
+      required: [amount_cents, payment_date]
+      properties:
+        bill_id:        { type: string, format: uuid, description: The bill being paid. One of bill_id or invoice_id is required. }
+        invoice_id:     { type: string, format: uuid, description: The invoice being paid. One of bill_id or invoice_id is required. }
+        amount_cents:   { type: integer, description: Payment amount in cents (positive). }
+        payment_date:   { type: string, format: date, description: Date the payment was made. }
+        payment_method: { type: string, example: bank_transfer }
+        reference:      { type: string, example: BSB-123456 }
+        idempotency_key: { type: string, description: Fallback if Idempotency-Key header is absent. }
     ReceiptWebhookRequest:
       type: object
       description: >
@@ -318,14 +346,25 @@ paths:
   /functions/v1/ingest:
     post:
       tags: [ingest]
-      summary: Push a bill, bank transaction, or invoice
+      summary: Push a bill, bank transaction, invoice, document, or payment
       description: >
         Authenticated by API key. organization_id is pinned to the key (any value
         in the body is ignored). Re-pushes are idempotent. Bills are auto-routed
         (attach/suggest/queue) and fed to the intake-rules engine, identical to the
-        Gmail/CSV importers.
+        Gmail/CSV importers. Documents and payments require an Idempotency-Key
+        header (or payload.idempotency_key) and are queued as automation jobs.
       security:
         - ApiKey: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema: { type: string, maxLength: 160 }
+          description: >
+            Stable caller-generated id for this push. Required for document and
+            payment types. Optional for bill/bank_transaction/invoice (those use
+            content-hash and external_id for dedup). On replay with the same key,
+            returns the original response with deduped=true.
       requestBody:
         required: true
         content:
@@ -337,6 +376,9 @@ paths:
           content: { application/json: { schema: { $ref: '#/components/schemas/IngestResponse' } } }
         "201":
           description: Created
+        "202":
+          description: Accepted and queued (document and payment types — check automation_jobs for status)
+          content: { application/json: { schema: { $ref: '#/components/schemas/IngestResponse' } } }
           content: { application/json: { schema: { $ref: '#/components/schemas/IngestResponse' } } }
         "400":
           description: Invalid JSON, unsupported type, or validation failure
