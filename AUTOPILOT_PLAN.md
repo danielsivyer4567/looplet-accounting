@@ -54,7 +54,10 @@ Cross-tenant view leak closed, `system_defaults` locked, anon definer-fn execute
 ### EPIC D — Reduce human touch _(after B+C)_
 
 - [ ] **D1** Confidence-tiered auto-accept for `gmail-classify-ai` + intake routing.
-- [ ] **D2** Xero push retry/backfill + idempotency.
+- [x] **D2a** Xero push retry idempotency: queued worker retries now pass the
+      automation job id through to the Xero push functions, and direct calls
+      fall back to deterministic UUID-shaped keys instead of random keys.
+- [ ] **D2b** Xero push backfill + live Xero proof.
 
 ### EPIC E — Make it trustworthy _(start early; gates merges)_
 

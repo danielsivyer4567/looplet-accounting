@@ -29,6 +29,7 @@
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { callXeroWithRetry, xeroFetch, XeroApiError } from '../_shared/xero/auth.ts';
+import { resolveXeroIdempotencyKey } from '../_shared/xero/idempotency.ts';
 import { requireEnv } from '../_shared/env.ts';
 
 const MAX_ATTEMPTS = 3;
@@ -94,7 +95,11 @@ Deno.serve(async (req) => {
   });
 
   try {
-    const body = (await req.json()) as { organization_id?: string; bill_id?: string };
+    const body = (await req.json()) as {
+      organization_id?: string;
+      bill_id?: string;
+      idempotency_key?: string;
+    };
     if (!body.organization_id || !body.bill_id) {
       return json({ ok: false, error: 'organization_id and bill_id required' }, 400);
     }
@@ -246,7 +251,12 @@ Deno.serve(async (req) => {
       Status: 'AUTHORISED',
     };
 
-    const idempotencyKey = crypto.randomUUID();
+    const idempotencyKey = await resolveXeroIdempotencyKey(body.idempotency_key, [
+      'xero',
+      'bill',
+      organization_id,
+      bill_id,
+    ]);
 
     try {
       const data = await callXeroWithRetry<{ Invoices: { InvoiceID?: string }[] }>(

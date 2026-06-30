@@ -9,6 +9,15 @@ const bankExchange = readFileSync(join(root, 'supabase/functions/bank-exchange/i
 const bankWebhook = readFileSync(join(root, 'supabase/functions/bank-webhook/index.ts'), 'utf8');
 const bankSync = readFileSync(join(root, 'supabase/functions/bank-sync/index.ts'), 'utf8');
 const billsExtract = readFileSync(join(root, 'supabase/functions/bills-extract/index.ts'), 'utf8');
+const xeroPushBill = readFileSync(join(root, 'supabase/functions/xero-push-bill/index.ts'), 'utf8');
+const xeroPushInvoice = readFileSync(
+  join(root, 'supabase/functions/xero-push-invoice/index.ts'),
+  'utf8',
+);
+const xeroIdempotency = readFileSync(
+  join(root, 'supabase/functions/_shared/xero/idempotency.ts'),
+  'utf8',
+);
 const gmailPubsub = readFileSync(
   join(root, 'supabase/functions/gmail-pubsub-push/index.ts'),
   'utf8',
@@ -71,7 +80,21 @@ describe('automation backbone source contracts', () => {
     expect(worker).toMatch(/xero-push-bill/);
     expect(worker).toMatch(/invoice_id:\s*invoiceId/);
     expect(worker).toMatch(/bill_id:\s*billId/);
+    expect(worker).toMatch(/idempotency_key:\s*job\.id/);
     expect(worker).toMatch(/xero_push requires invoice_id or bill_id/);
+  });
+
+  it('Xero push retries reuse stable idempotency keys', () => {
+    for (const source of [xeroPushBill, xeroPushInvoice]) {
+      expect(source).toMatch(/resolveXeroIdempotencyKey/);
+      expect(source).toMatch(/idempotency_key\?:\s*string/);
+      expect(source).not.toMatch(/const idempotencyKey = crypto\.randomUUID\(\)/);
+      expect(source).toMatch(/headers:\s*\{\s*'Idempotency-Key': idempotencyKey\s*\}/);
+    }
+
+    expect(xeroIdempotency).toMatch(/UUID_RE/);
+    expect(xeroIdempotency).toMatch(/crypto\.subtle\.digest\('SHA-256'/);
+    expect(xeroIdempotency).toMatch(/fallbackParts\.join\(':'\)/);
   });
 
   it('UI queues Xero pushes instead of direct edge fetches', () => {

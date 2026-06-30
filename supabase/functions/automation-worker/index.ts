@@ -178,8 +178,8 @@ async function dispatchJob(
       }
       const endpoint = invoiceId ? 'xero-push-invoice' : 'xero-push-bill';
       const requestBody = invoiceId
-        ? { organization_id: job.organization_id, invoice_id: invoiceId }
-        : { organization_id: job.organization_id, bill_id: billId };
+        ? { organization_id: job.organization_id, invoice_id: invoiceId, idempotency_key: job.id }
+        : { organization_id: job.organization_id, bill_id: billId, idempotency_key: job.id };
       const res = await fetch(`${base}/${endpoint}`, {
         method: 'POST',
         headers,
