@@ -5,18 +5,35 @@
  * batches of 25 entities per API call.
  *
  * Input:  { integration_id, batch_size?: 25, max_batches?: 20 }
- * Output: { ok, stats: { processed, classified, unchanged, errors }, remaining }
+ * Output: { ok, stats: { processed, classified, auto_accepted, unchanged, errors }, remaining }
  *
  * The LLM is given the sender domain, name, and 3 sample subjects per entity
  * and asked to return a category code from the Auto Setup taxonomy. We never
- * trust the LLM blindly — confidence is capped at 0.85 (so the user still
- * sees these in triage but they're at least pre-categorised).
+ * trust the LLM blindly — confidence is capped at 0.85.
+ *
+ * CONFIDENCE-TIERED AUTO-ACCEPT (D1):
+ *   Rows where the capped LLM confidence >= HIGH_CONFIDENCE_THRESHOLD (0.80)
+ *   AND predicted_kind != 'unknown' receive status='approved' — they bypass the
+ *   triage queue and are immediately usable for routing. Lower-confidence rows
+ *   continue to surface as status='pending' for user review.
+ *
+ *   The 0.80 threshold is conservative: the LLM cap is 0.85, so only entities
+ *   where the model is genuinely confident (confidence 0.80–0.85) are auto-
+ *   accepted. The user can still override via the Settings > Auto Setup triage.
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+
+/**
+ * Minimum capped confidence required to auto-accept an LLM classification
+ * (status='approved', bypasses the triage queue). Deliberately conservative:
+ * at this threshold the LLM is expressing high confidence and the category
+ * is unambiguous. Must be < 0.85 (the LLM confidence cap).
+ */
+const HIGH_CONFIDENCE_THRESHOLD = 0.80;
 
 interface RequestBody {
   integration_id?: string;
@@ -95,7 +112,7 @@ Deno.serve(async (req) => {
     const catalogue = (cats ?? []) as { code: string; label: string; description: string | null }[];
     const validCodes = new Set(catalogue.map((c) => c.code));
 
-    const stats = { processed: 0, classified: 0, unchanged: 0, errors: 0 };
+    const stats = { processed: 0, classified: 0, auto_accepted: 0, unchanged: 0, errors: 0 };
     let remaining = 0;
 
     for (let batch = 0; batch < max_batches; batch++) {
@@ -126,17 +143,29 @@ Deno.serve(async (req) => {
         // Apply updates
         for (const u of updates) {
           if (!validCodes.has(u.category)) continue; // safety: never write a code we don't know
+          const cappedConfidence = Math.min(0.85, u.confidence); // never trust LLM at 1.0
+
+          // Confidence-tiered auto-accept (D1): if the LLM is genuinely
+          // confident (capped confidence >= HIGH_CONFIDENCE_THRESHOLD) and
+          // the kind is not 'unknown', approve the entity directly — no triage
+          // queue step needed. Otherwise keep as 'pending' for user review.
+          const autoAccept =
+            cappedConfidence >= HIGH_CONFIDENCE_THRESHOLD && u.kind !== 'unknown';
+          const newStatus = autoAccept ? 'approved' : 'pending';
+
           await admin
             .from('staged_entities')
             .update({
               predicted_kind: u.kind,
               predicted_category: u.category,
               prediction_reason: `AI: ${u.reason}`,
-              confidence: Math.min(0.85, u.confidence), // never trust LLM at 1.0
-              status: 'pending', // LLM-classified rows still need user touch
+              confidence: cappedConfidence,
+              status: newStatus,
             })
             .eq('id', u.id);
+
           stats.classified += 1;
+          if (autoAccept) stats.auto_accepted += 1;
         }
         stats.processed += batchRows.length;
         stats.unchanged += batchRows.length - updates.length;
