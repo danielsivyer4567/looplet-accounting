@@ -21,6 +21,7 @@
 
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { isExactServiceRoleBearer } from '../_shared/serviceRole.ts';
 import { extractBillData } from '../_shared/ocr/index.ts';
 import { extractTextFromPdf } from '../_shared/ocr/textExtract.ts';
 import { parseBillHeaders } from '../_shared/ocr/headerParser.ts';
@@ -73,20 +74,9 @@ Deno.serve(async (req) => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    // Accept either user JWT or service_role (used by bills-extract-batch and Pub/Sub push).
-    // Detection: (a) exact match against SUPABASE_SERVICE_ROLE_KEY env, OR
-    // (b) decoded JWT claim role === 'service_role'. JWT uses base64url which
-    // requires translation before atob.
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-    let isServiceRole = token === serviceKey;
-    if (!isServiceRole) {
-      try {
-        const payloadB64 = (token.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/');
-        const padded = payloadB64 + '='.repeat((4 - (payloadB64.length % 4)) % 4);
-        const payload = JSON.parse(atob(padded));
-        isServiceRole = payload?.role === 'service_role';
-      } catch { /* fall through to user-jwt path */ }
-    }
+    // Accept either a real user JWT or the exact service-role bearer used by
+    // backend edge functions. Never trust a self-asserted JWT role payload.
+    const isServiceRole = isExactServiceRoleBearer(authHeader, serviceKey);
 
     let dbClient: SupabaseClient;
     if (isServiceRole) {
@@ -95,7 +85,10 @@ Deno.serve(async (req) => {
       const userClient = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
       });
-      const { data: { user }, error: userErr } = await userClient.auth.getUser();
+      const {
+        data: { user },
+        error: userErr,
+      } = await userClient.auth.getUser();
       if (userErr || !user) return json({ ok: false, error: 'Invalid token' }, 401);
       dbClient = userClient;
     }
@@ -207,19 +200,21 @@ Deno.serve(async (req) => {
 
     // Only reuse a duplicate that actually captured a total — never copy a
     // failed (null-amount) extraction. `force` skips the cache entirely.
-    const { data: cacheRow } = body.force ? { data: null } : await admin
-      .from('bills')
-      .select(
-        'supplier_name_raw, supplier_abn, invoice_number, invoice_date, due_date, total_inc_gst_cents, gst_cents, subtotal_ex_gst_cents, gst_estimated, currency_code, job_reference_raw, document_kind, is_probable_bill, notes, raw_extracted, ocr_provider, ocr_confidence',
-      )
-      .eq('organization_id', bill.organization_id)
-      .eq('content_sha256', contentSha256)
-      .neq('id', bill.id)
-      .is('deleted_at', null)
-      .not('raw_extracted', 'is', null)
-      .not('total_inc_gst_cents', 'is', null)
-      .limit(1)
-      .maybeSingle();
+    const { data: cacheRow } = body.force
+      ? { data: null }
+      : await admin
+          .from('bills')
+          .select(
+            'supplier_name_raw, supplier_abn, invoice_number, invoice_date, due_date, total_inc_gst_cents, gst_cents, subtotal_ex_gst_cents, gst_estimated, currency_code, job_reference_raw, document_kind, is_probable_bill, notes, raw_extracted, ocr_provider, ocr_confidence',
+          )
+          .eq('organization_id', bill.organization_id)
+          .eq('content_sha256', contentSha256)
+          .neq('id', bill.id)
+          .is('deleted_at', null)
+          .not('raw_extracted', 'is', null)
+          .not('total_inc_gst_cents', 'is', null)
+          .limit(1)
+          .maybeSingle();
 
     if (cacheRow) {
       await admin
@@ -232,9 +227,32 @@ Deno.serve(async (req) => {
         .eq('id', bill.id);
       // Run routing on the cache-hit too — same job_reference, same matching.
       const routing = await runRouting(admin, bill.id, bill.organization_id, cacheRow);
-      void fireAndForgetIntakeRouting(supabaseUrl, serviceKey, bill.organization_id, 'bill', bill.id);
-      void writeDecision(admin, bill.id, bill.organization_id, undefined, routing.outcome, 'cache', true, false);
-      void writeExtractionVersion(admin, bill.id, bill.organization_id, 'cache', cacheRow.ocr_provider ?? 'unknown', cacheRow.ocr_confidence ?? null, cacheRow.raw_extracted);
+      void fireAndForgetIntakeRouting(
+        supabaseUrl,
+        serviceKey,
+        bill.organization_id,
+        'bill',
+        bill.id,
+      );
+      void writeDecision(
+        admin,
+        bill.id,
+        bill.organization_id,
+        undefined,
+        routing.outcome,
+        'cache',
+        true,
+        false,
+      );
+      void writeExtractionVersion(
+        admin,
+        bill.id,
+        bill.organization_id,
+        'cache',
+        cacheRow.ocr_provider ?? 'unknown',
+        cacheRow.ocr_confidence ?? null,
+        cacheRow.raw_extracted,
+      );
       return json({
         ok: true,
         method: 'cache',
@@ -262,14 +280,44 @@ Deno.serve(async (req) => {
             page_count: textRes.pageCount,
           };
 
-          await persistExtraction(admin, bill.id, extracted, contentSha256, 'text-only', docMetadata);
+          await persistExtraction(
+            admin,
+            bill.id,
+            extracted,
+            contentSha256,
+            'text-only',
+            docMetadata,
+          );
           const routing = await runRouting(admin, bill.id, bill.organization_id, {
             job_reference_raw: extracted.job_reference,
             confidence: extracted.confidence,
           });
-          void fireAndForgetIntakeRouting(supabaseUrl, serviceKey, bill.organization_id, 'bill', bill.id);
-          void writeDecision(admin, bill.id, bill.organization_id, extracted.confidence, routing.outcome, 'text', true, false);
-          void writeExtractionVersion(admin, bill.id, bill.organization_id, 'text', 'text-only', headers.confidence, extracted);
+          void fireAndForgetIntakeRouting(
+            supabaseUrl,
+            serviceKey,
+            bill.organization_id,
+            'bill',
+            bill.id,
+          );
+          void writeDecision(
+            admin,
+            bill.id,
+            bill.organization_id,
+            extracted.confidence,
+            routing.outcome,
+            'text',
+            true,
+            false,
+          );
+          void writeExtractionVersion(
+            admin,
+            bill.id,
+            bill.organization_id,
+            'text',
+            'text-only',
+            headers.confidence,
+            extracted,
+          );
 
           return json({
             ok: true,
@@ -295,15 +343,38 @@ Deno.serve(async (req) => {
       confidence: extracted.confidence,
     });
     void fireAndForgetIntakeRouting(supabaseUrl, serviceKey, bill.organization_id, 'bill', bill.id);
-    const { isProbableBill: visProbable } = classifyBill({ document_kind: extracted.document_kind, confidence: extracted.confidence, total_inc_gst: extracted.total_inc_gst, supplier_name: extracted.supplier_name });
+    const { isProbableBill: visProbable } = classifyBill({
+      document_kind: extracted.document_kind,
+      confidence: extracted.confidence,
+      total_inc_gst: extracted.total_inc_gst,
+      supplier_name: extracted.supplier_name,
+    });
     const visGst = deriveGstCents(
       extracted.total_inc_gst != null ? Math.round(extracted.total_inc_gst * 100) : null,
       extracted.gst_amount != null ? Math.round(extracted.gst_amount * 100) : null,
       extracted.subtotal_ex_gst != null ? Math.round(extracted.subtotal_ex_gst * 100) : null,
     );
-    void writeDecision(admin, bill.id, bill.organization_id, extracted.confidence, routing.outcome, 'vision', visProbable, visGst.estimated);
-    const visConf = extracted.confidence === 'high' ? 0.9 : extracted.confidence === 'low' ? 0.4 : 0.7;
-    void writeExtractionVersion(admin, bill.id, bill.organization_id, 'vision', provider, visConf, extracted);
+    void writeDecision(
+      admin,
+      bill.id,
+      bill.organization_id,
+      extracted.confidence,
+      routing.outcome,
+      'vision',
+      visProbable,
+      visGst.estimated,
+    );
+    const visConf =
+      extracted.confidence === 'high' ? 0.9 : extracted.confidence === 'low' ? 0.4 : 0.7;
+    void writeExtractionVersion(
+      admin,
+      bill.id,
+      bill.organization_id,
+      'vision',
+      provider,
+      visConf,
+      extracted,
+    );
 
     return json({
       ok: true,
@@ -412,11 +483,14 @@ async function persistExtraction(
   docMetadata?: DocMetadata | null,
 ): Promise<void> {
   // Backfill empty OCR fields from metadata if metadata has them
-  const filledSupplier = extracted.supplier_name || docMetadata?.candidate_supplier || docMetadata?.author || null;
-  const filledInvoiceNumber = extracted.invoice_number || docMetadata?.candidate_invoice_number || null;
-  const filledInvoiceDate = extracted.invoice_date
-    || (docMetadata?.taken_at ? docMetadata.taken_at.slice(0, 10) : null)
-    || (docMetadata?.created_at ? docMetadata.created_at.slice(0, 10) : null);
+  const filledSupplier =
+    extracted.supplier_name || docMetadata?.candidate_supplier || docMetadata?.author || null;
+  const filledInvoiceNumber =
+    extracted.invoice_number || docMetadata?.candidate_invoice_number || null;
+  const filledInvoiceDate =
+    extracted.invoice_date ||
+    (docMetadata?.taken_at ? docMetadata.taken_at.slice(0, 10) : null) ||
+    (docMetadata?.created_at ? docMetadata.created_at.slice(0, 10) : null);
 
   // Derive GST so the books (and BAS) fill even when the document only shows a
   // total. AU standard-rated supplies are 1/11 of the GST-inclusive total.
@@ -454,9 +528,7 @@ async function persistExtraction(
       document_kind: documentKind,
       is_probable_bill: isProbableBill,
       notes: extracted.notes || null,
-      raw_extracted: docMetadata
-        ? { ...extracted, _document_metadata: docMetadata }
-        : extracted,
+      raw_extracted: docMetadata ? { ...extracted, _document_metadata: docMetadata } : extracted,
       ocr_provider: provider,
       ocr_confidence:
         extracted.confidence === 'high' ? 0.9 : extracted.confidence === 'low' ? 0.4 : 0.7,

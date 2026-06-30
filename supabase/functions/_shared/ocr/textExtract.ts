@@ -7,7 +7,6 @@
  * empty/garbage — the caller falls back to vision OCR.
  */
 
-// @ts-expect-error -- npm: imports lack TS resolution in Deno editor tooling
 import { extractText } from 'npm:unpdf@0.12.1';
 
 export interface TextExtraction {

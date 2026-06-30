@@ -33,6 +33,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { isExactServiceRoleBearer } from '../_shared/serviceRole.ts';
 
 interface RequestBody {
   organization_id: string;
@@ -55,19 +56,12 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
-    if (!supabaseUrl || !serviceKey || !anonKey) return json({ ok: false, error: 'Server config missing' }, 500);
+    if (!supabaseUrl || !serviceKey || !anonKey)
+      return json({ ok: false, error: 'Server config missing' }, 500);
 
-    // Tolerant auth: service-role bypasses; user JWTs must verify org membership
-    // through RLS before we touch tenant data with the admin client.
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-    let isServiceRole = token === serviceKey;
-    if (!isServiceRole) {
-      try {
-        const payloadB64 = (token.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/');
-        const payload = JSON.parse(atob(payloadB64 + '='.repeat((4 - payloadB64.length % 4) % 4)));
-        isServiceRole = payload?.role === 'service_role';
-      } catch { /* fall through */ }
-    }
+    // Exact service-role bypass; user JWTs must verify org membership through
+    // RLS before we touch tenant data with the admin client.
+    const isServiceRole = isExactServiceRoleBearer(authHeader, serviceKey);
 
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
@@ -112,12 +106,18 @@ Deno.serve(async (req) => {
     const candidates: { key: string; merchant: string; reason: string }[] = [];
 
     for (const [key, list] of groups) {
-      if (list.length < 3) { skipped += 1; continue; }
+      if (list.length < 3) {
+        skipped += 1;
+        continue;
+      }
 
       const amounts = list.map((t) => -t.amount_cents); // make positive
       const median = medianOf(amounts);
       const filtered = list.filter((t) => Math.abs(-t.amount_cents - median) <= median * 0.05);
-      if (filtered.length < 3) { skipped += 1; continue; }
+      if (filtered.length < 3) {
+        skipped += 1;
+        continue;
+      }
 
       const sorted = [...filtered].sort((a, b) => a.posted_at.localeCompare(b.posted_at));
       const gaps: number[] = [];
@@ -128,11 +128,14 @@ Deno.serve(async (req) => {
       }
       const medianGap = medianOf(gaps);
       const cadence = classifyCadence(medianGap);
-      if (!cadence) { skipped += 1; continue; }
+      if (!cadence) {
+        skipped += 1;
+        continue;
+      }
 
       const firstSeen = sorted[0].posted_at;
       const lastSeen = sorted[sorted.length - 1].posted_at;
-      const totalSpent = filtered.reduce((acc, t) => acc + (-t.amount_cents), 0);
+      const totalSpent = filtered.reduce((acc, t) => acc + -t.amount_cents, 0);
       const merchantName = prettifyMerchant(filtered[0].description);
       const nextExpected = nextExpectedDate(lastSeen, medianGap);
 
@@ -145,17 +148,20 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (existing) {
-        await admin.from('subscriptions').update({
-          merchant_name: merchantName,
-          cadence,
-          amount_cents: median,
-          last_seen_at: lastSeen,
-          next_expected_at: nextExpected,
-          observed_count: filtered.length,
-          total_spent_cents: totalSpent,
-          confidence: confidenceScore(filtered.length, gaps),
-          updated_at: new Date().toISOString(),
-        }).eq('id', existing.id);
+        await admin
+          .from('subscriptions')
+          .update({
+            merchant_name: merchantName,
+            cadence,
+            amount_cents: median,
+            last_seen_at: lastSeen,
+            next_expected_at: nextExpected,
+            observed_count: filtered.length,
+            total_spent_cents: totalSpent,
+            confidence: confidenceScore(filtered.length, gaps),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existing.id);
         updated += 1;
       } else {
         await admin.from('subscriptions').insert({
@@ -180,7 +186,11 @@ Deno.serve(async (req) => {
         });
         upserted += 1;
       }
-      candidates.push({ key, merchant: merchantName, reason: `${cadence} ${filtered.length}× $${(median / 100).toFixed(2)}` });
+      candidates.push({
+        key,
+        merchant: merchantName,
+        reason: `${cadence} ${filtered.length}× $${(median / 100).toFixed(2)}`,
+      });
     }
 
     return json({
@@ -201,8 +211,8 @@ Deno.serve(async (req) => {
 function canonicaliseDescription(d: string): string {
   return d
     .toLowerCase()
-    .replace(/\d{4,}/g, '')           // long numbers (card masks, refs)
-    .replace(/[^a-z\s]/g, ' ')        // keep letters + spaces
+    .replace(/\d{4,}/g, '') // long numbers (card masks, refs)
+    .replace(/[^a-z\s]/g, ' ') // keep letters + spaces
     .replace(/\b(au|aus|australia|pty|ltd|llc|inc)\b/g, '')
     .replace(/\s+/g, ' ')
     .trim()
