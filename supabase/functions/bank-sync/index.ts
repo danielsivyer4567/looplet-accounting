@@ -121,22 +121,35 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fire-and-forget: kick subscriptions detection so newly-synced txns
-    // immediately update the recurring-payment list.
-    void fireAndForgetSubsDetect(supabaseUrl, serviceKey, body.organization_id);
+    const postSyncErrors: string[] = [];
 
-    // Fire-and-forget: auto-apply intake_rules to new txns (one batch call
-    // covers all connections). No-op if no rules or no new txns.
-    if (allInsertedTxnIds.length > 0) {
-      void fireAndForgetIntakeRouting(
-        supabaseUrl,
-        serviceKey,
-        body.organization_id,
-        'bank_transaction',
-        allInsertedTxnIds,
+    try {
+      await runSubsDetect(supabaseUrl, serviceKey, body.organization_id);
+    } catch (err) {
+      postSyncErrors.push(
+        `subscriptions-detect: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
 
+    if (allInsertedTxnIds.length > 0) {
+      try {
+        await runIntakeRouting(
+          supabaseUrl,
+          serviceKey,
+          body.organization_id,
+          'bank_transaction',
+          allInsertedTxnIds,
+        );
+      } catch (err) {
+        postSyncErrors.push(
+          `intake-routing-apply: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    if (postSyncErrors.length > 0) {
+      return json({ ok: false, results, post_sync_errors: postSyncErrors }, 502);
+    }
     return json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -144,15 +157,14 @@ Deno.serve(async (req) => {
   }
 });
 
-async function fireAndForgetSubsDetect(supabaseUrl: string, serviceKey: string, orgId: string) {
-  try {
-    await fetch(`${supabaseUrl}/functions/v1/subscriptions-detect`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ organization_id: orgId }),
-    });
-  } catch {
-    // Don't fail bank-sync if subscription detection has a hiccup
+async function runSubsDetect(supabaseUrl: string, serviceKey: string, orgId: string) {
+  const response = await fetch(`${supabaseUrl}/functions/v1/subscriptions-detect`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ organization_id: orgId }),
+  });
+  if (!response.ok) {
+    throw new Error(`${response.status} ${await response.text().catch(() => '')}`.trim());
   }
 }
 
@@ -222,12 +234,10 @@ async function syncOne(
   // would resolve to a stale raw row when a transaction's payload has evolved.
   const rawEventMap = new Map<string, string>();
   if (rawRows.length > 0) {
-    const { error: rawUpsertError } = await admin
-      .from('bank_events_raw')
-      .upsert(rawRows, {
-        onConflict: 'provider,organization_id,provider_event_id,payload_hash',
-        ignoreDuplicates: true,
-      });
+    const { error: rawUpsertError } = await admin.from('bank_events_raw').upsert(rawRows, {
+      onConflict: 'provider,organization_id,provider_event_id,payload_hash',
+      ignoreDuplicates: true,
+    });
     if (rawUpsertError) console.error('bank_events_raw upsert error:', rawUpsertError.message);
     const { data: rawEventData } = await admin
       .from('bank_events_raw')
@@ -235,7 +245,11 @@ async function syncOne(
       .eq('organization_id', orgId)
       .eq('provider', 'basiq')
       .in('provider_event_id', providerEventIds);
-    for (const row of (rawEventData ?? []) as { id: string; provider_event_id: string; payload_hash: string }[]) {
+    for (const row of (rawEventData ?? []) as {
+      id: string;
+      provider_event_id: string;
+      payload_hash: string;
+    }[]) {
       rawEventMap.set(`${row.provider_event_id}:${row.payload_hash}`, row.id);
     }
   }
@@ -293,21 +307,20 @@ async function syncOne(
   };
 }
 
-async function fireAndForgetIntakeRouting(
+async function runIntakeRouting(
   supabaseUrl: string,
   serviceKey: string,
   orgId: string,
   target: 'bill' | 'bank_transaction',
   targetIds: string[],
 ) {
-  try {
-    await fetch(`${supabaseUrl}/functions/v1/intake-routing-apply`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ organization_id: orgId, target, target_ids: targetIds }),
-    });
-  } catch {
-    // Routing is non-critical to bank-sync.
+  const response = await fetch(`${supabaseUrl}/functions/v1/intake-routing-apply`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ organization_id: orgId, target, target_ids: targetIds }),
+  });
+  if (!response.ok) {
+    throw new Error(`${response.status} ${await response.text().catch(() => '')}`.trim());
   }
 }
 

@@ -44,7 +44,7 @@ internally) were left as-is: `enqueue_automation_job`, `get_confidence_policy`,
 | `automation-worker`    |            5 | `supabase functions deploy automation-worker` succeeded after browser-job claim hardening; `functions list` updated to `2026-06-30 19:31:33 UTC`; unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}` |
 | `automation-watchdog`  |            3 | Redeployed after source config pinned `verify_jwt=false`; unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}`                                                                                         |
 | `ingest`               |           32 | `supabase functions deploy ingest` succeeded; `functions list` updated to `2026-06-30 19:15:48 UTC`; unauthenticated POST reaches function code and returns `{"error":"invalid_api_key"}`                                                      |
-| `bank-sync`            |           50 | Deployed after smoke showed platform-level `UNAUTHORIZED_NO_AUTH_HEADER`; repeat unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}`                                                                  |
+| `bank-sync`            |           51 | Deployed after making post-sync subscription detection and intake routing observable/retryable; unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}`                                                   |
 | `bank-webhook`         |           48 | Deployed after making duplicate raw events continue through the action path and making `bank-sync` dispatch observable; missing/wrong token POST reaches function code and returns `{"ok":false,"error":"Invalid webhook verification token"}` |
 | `bank-discover`        |           34 | Deployed after removing unsigned JWT `service_role` claim fallback; unauthenticated POST is blocked by the Supabase gateway with `UNAUTHORIZED_NO_AUTH_HEADER`                                                                                 |
 | `bills-extract`        |           70 | Deployed after removing unsigned JWT `service_role` claim fallback and making extraction proof writes blocking; unauthenticated POST is blocked by the Supabase gateway with `UNAUTHORIZED_NO_AUTH_HEADER`                                     |
@@ -136,6 +136,11 @@ source/worker contract fixes are now deployed to `ingest` v32 and
     while `automation_decisions` and `document_extraction_versions` inserts
     were launched with `void` and ignored Supabase insert errors. Current source
     awaits both writes and fails the response if proof cannot be stored.
+11. **Bank post-sync automations were fire-and-forget** — `bank-sync` imported
+    bank rows, then silently ignored `subscriptions-detect` or
+    `intake-routing-apply` failures. Current source awaits both follow-up calls
+    and returns `post_sync_errors` with a retryable failure if they are not
+    accepted.
 
 `ingest` and `automation-worker` have been deployed as a pair. `verify_jwt=false`
 stays explicit in `supabase/config.toml`.

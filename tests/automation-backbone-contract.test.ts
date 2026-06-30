@@ -6,6 +6,7 @@ const root = process.cwd();
 const ingest = readFileSync(join(root, 'supabase/functions/ingest/index.ts'), 'utf8');
 const worker = readFileSync(join(root, 'supabase/functions/automation-worker/index.ts'), 'utf8');
 const bankWebhook = readFileSync(join(root, 'supabase/functions/bank-webhook/index.ts'), 'utf8');
+const bankSync = readFileSync(join(root, 'supabase/functions/bank-sync/index.ts'), 'utf8');
 const billsExtract = readFileSync(join(root, 'supabase/functions/bills-extract/index.ts'), 'utf8');
 const automationJobs = readFileSync(
   join(root, 'supabase/functions/_shared/automationJobs.ts'),
@@ -82,6 +83,17 @@ describe('automation backbone source contracts', () => {
     expect(billsExtract).toMatch(/await writeExtractionVersion/);
     expect(billsExtract).toMatch(/Failed to persist automation decision/);
     expect(billsExtract).toMatch(/Failed to persist extraction version/);
+  });
+
+  it('bank sync surfaces post-sync automation failures', () => {
+    expect(bankSync).not.toMatch(/fireAndForgetSubsDetect/);
+    expect(bankSync).not.toMatch(/fireAndForgetIntakeRouting/);
+    expect(bankSync).toMatch(/await runSubsDetect/);
+    expect(bankSync).toMatch(/await runIntakeRouting/);
+    expect(bankSync).toMatch(/post_sync_errors/);
+    expect(bankSync).toMatch(
+      /return json\(\{ ok: false, results, post_sync_errors: postSyncErrors \}, 502\)/,
+    );
   });
 
   it('cron and webhook edge functions keep platform JWT disabled', () => {
