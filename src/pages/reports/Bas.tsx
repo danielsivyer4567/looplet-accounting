@@ -475,8 +475,8 @@ function KpiCard({
 
 /**
  * Guided prep flow for one BAS quarter (SC-3.E.01): worksheet labels +
- * pre-lodge blockers (GST-treatment exceptions, GL/BAS reconciliation variance)
- * + a worksheet-PDF download + a Tier-2 approval request. Real lodgement/status
+ * pre-lodge blockers (GST-treatment exceptions, GL/BAS reconciliation variance,
+ * GST coverage) + a worksheet-PDF download + a Tier-2 approval request. Real lodgement/status
  * write-back stays server-side in the Phase-7 lodge flow.
  */
 export function BasPrepCard({
@@ -502,9 +502,21 @@ export function BasPrepCard({
   const hasExceptions = (blockers.treatmentExceptions ?? 0) > 0;
   const hasVariance =
     blockers.reconciliationVarianceCents != null && blockers.reconciliationVarianceCents !== 0;
-  const blocked = hasExceptions || hasVariance || !worksheet;
+  const hasCoverageGap = blockers.gstCoverageReady === false;
+  const hasUnavailableCheck =
+    blockers.treatmentExceptions == null ||
+    blockers.reconciliationVarianceCents == null ||
+    blockers.gstCoverageReady == null;
+  const blocked =
+    hasExceptions || hasVariance || hasCoverageGap || hasUnavailableCheck || !worksheet;
 
   const num = (v: number | undefined): string => formatMoney(v ?? 0);
+  const coverageLabel =
+    blockers.gstCoveragePct == null ? 'unknown' : `${blockers.gstCoveragePct.toFixed(1)}%`;
+  const coverageDetail =
+    blockers.billsInScope != null && blockers.billsComplete != null
+      ? `${coverageLabel} (${blockers.billsComplete}/${blockers.billsInScope} bills)`
+      : coverageLabel;
 
   const downloadPdf = async (): Promise<void> => {
     if (!currentOrg) return;
@@ -604,22 +616,39 @@ export function BasPrepCard({
 
           <div style={{ marginBottom: '1.25rem' }}>
             <BlockerRow
-              ok={!hasExceptions}
+              ok={blockers.treatmentExceptions != null && !hasExceptions}
               okText={
                 blockers.treatmentExceptions == null
                   ? 'GST-treatment check unavailable'
                   : 'No GST-treatment exceptions'
               }
-              badText={`${blockers.treatmentExceptions ?? 0} GST-treatment exception${blockers.treatmentExceptions === 1 ? '' : 's'} - resolve before lodging`}
+              badText={
+                blockers.treatmentExceptions == null
+                  ? 'GST-treatment check unavailable - cannot approve BAS until this check runs'
+                  : `${blockers.treatmentExceptions} GST-treatment exception${blockers.treatmentExceptions === 1 ? '' : 's'} - resolve before lodging`
+              }
             />
             <BlockerRow
-              ok={!hasVariance}
+              ok={blockers.reconciliationVarianceCents != null && !hasVariance}
               okText={
                 blockers.reconciliationVarianceCents == null
                   ? 'Reconciliation not available'
                   : 'GL reconciles to the BAS (variance $0)'
               }
-              badText={`GL vs BAS variance ${formatMoney(blockers.reconciliationVarianceCents ?? 0)} - reconcile before lodging`}
+              badText={
+                blockers.reconciliationVarianceCents == null
+                  ? 'Reconciliation not available - cannot approve BAS until this check runs'
+                  : `GL vs BAS variance ${formatMoney(blockers.reconciliationVarianceCents)} - reconcile before lodging`
+              }
+            />
+            <BlockerRow
+              ok={blockers.gstCoverageReady === true}
+              okText={`GST coverage verified (${coverageDetail})`}
+              badText={
+                blockers.gstCoverageReady == null
+                  ? 'GST coverage check unavailable - cannot approve BAS until this check runs'
+                  : `GST coverage is ${coverageDetail}; finish OCR/review before lodging (95% required)`
+              }
             />
           </div>
 
@@ -632,7 +661,13 @@ export function BasPrepCard({
               className="btn btn-primary"
               onClick={handleLodge}
               disabled={blocked || busy !== null}
-              title={blocked ? 'Clear blockers before lodging' : 'Open a Tier-2 approval request'}
+              title={
+                blocked
+                  ? hasUnavailableCheck
+                    ? 'Required BAS checks are unavailable'
+                    : 'Clear blockers before lodging'
+                  : 'Open a Tier-2 approval request'
+              }
             >
               {busy === 'lodge' ? <Loader2 size={14} /> : <ShieldAlert size={14} />}
               <span>Request lodge approval</span>

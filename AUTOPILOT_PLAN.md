@@ -38,7 +38,10 @@ Cross-tenant view leak closed, `system_defaults` locked, anon definer-fn execute
 
 - [ ] **B1** Diagnose/replace OCR provider (groq @ 0.41 conf, GST null) → reliable amount+GST.
 - [ ] **B2** Re-OCR/repair queue + backfill the 247 existing bills.
-- [ ] **B3** GST-coverage gate before BAS surfaces/lodges.
+- [x] **B3a** GST-coverage pre-lodge gate in the BAS prep UI. Lodge approval
+      now stays blocked unless GST treatment, GL reconciliation, and
+      `v_bas_gst_coverage` all positively verify.
+- [ ] **B3b** Live GST coverage target before BAS is operationally ready.
 - _Done when:_ ≥95% of bills carry amount+GST; BAS view is real.
 
 ### EPIC C — Connect the money in _(parallel with B)_

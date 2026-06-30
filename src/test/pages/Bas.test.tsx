@@ -16,7 +16,15 @@ import type { BasWorksheetPayload, BasBlockers } from '@/hooks/useBasWorksheet';
 
 const h = vi.hoisted(() => ({
   worksheet: null as BasWorksheetPayload | null,
-  blockers: { treatmentExceptions: null, reconciliationVarianceCents: null } as BasBlockers,
+  blockers: {
+    treatmentExceptions: null,
+    reconciliationVarianceCents: null,
+    gstCoverageReady: null,
+    gstCoveragePct: null,
+    billsInScope: null,
+    billsComplete: null,
+    billsGstEstimated: null,
+  } as BasBlockers,
   loading: false,
   error: null as string | null,
   refresh: vi.fn(),
@@ -58,9 +66,29 @@ const SAMPLE: BasWorksheetPayload = {
   summary: { '9_net_amount_cents': 165000 },
 };
 
+const cleanBlockers = (): BasBlockers => ({
+  treatmentExceptions: 0,
+  reconciliationVarianceCents: 0,
+  gstCoverageReady: true,
+  gstCoveragePct: 100,
+  billsInScope: 4,
+  billsComplete: 4,
+  billsGstEstimated: 0,
+});
+
+const unavailableBlockers = (): BasBlockers => ({
+  treatmentExceptions: null,
+  reconciliationVarianceCents: null,
+  gstCoverageReady: null,
+  gstCoveragePct: null,
+  billsInScope: null,
+  billsComplete: null,
+  billsGstEstimated: null,
+});
+
 beforeEach(() => {
   h.worksheet = null;
-  h.blockers = { treatmentExceptions: null, reconciliationVarianceCents: null };
+  h.blockers = unavailableBlockers();
   h.loading = false;
   h.error = null;
   h.refresh = vi.fn();
@@ -74,7 +102,7 @@ const renderCard = () =>
 describe('BasPrepCard (SC-3.E.01)', () => {
   it('renders worksheet labels and lets you approve-and-lodge when there are no blockers', async () => {
     h.worksheet = SAMPLE;
-    h.blockers = { treatmentExceptions: 0, reconciliationVarianceCents: 0 };
+    h.blockers = cleanBlockers();
     renderCard();
 
     expect(screen.getByText('1A GST on sales')).toBeInTheDocument();
@@ -82,6 +110,7 @@ describe('BasPrepCard (SC-3.E.01)', () => {
     expect(screen.getByText('9 Net amount')).toBeInTheDocument();
     expect(screen.getByText('No GST-treatment exceptions')).toBeInTheDocument();
     expect(screen.getByText(/GL reconciles to the BAS/)).toBeInTheDocument();
+    expect(screen.getByText(/GST coverage verified \(100.0% \(4\/4 bills\)\)/)).toBeInTheDocument();
 
     const lodge = screen.getByRole('button', { name: /Request lodge approval/i });
     expect(lodge).not.toBeDisabled();
@@ -93,7 +122,7 @@ describe('BasPrepCard (SC-3.E.01)', () => {
 
   it('disables approve-and-lodge and surfaces both blockers when exceptions or variance exist', () => {
     h.worksheet = SAMPLE;
-    h.blockers = { treatmentExceptions: 3, reconciliationVarianceCents: -5000 };
+    h.blockers = { ...cleanBlockers(), treatmentExceptions: 3, reconciliationVarianceCents: -5000 };
     renderCard();
 
     expect(screen.getByText(/3 GST-treatment exceptions - resolve/)).toBeInTheDocument();
@@ -102,12 +131,32 @@ describe('BasPrepCard (SC-3.E.01)', () => {
     expect(h.requestLodgeApproval).not.toHaveBeenCalled();
   });
 
-  it('reads "check unavailable" (not "clean") when a blocker view is not deployed', () => {
+  it('disables approve-and-lodge when GST coverage is below the 95 percent gate', () => {
     h.worksheet = SAMPLE;
-    h.blockers = { treatmentExceptions: null, reconciliationVarianceCents: null };
+    h.blockers = {
+      ...cleanBlockers(),
+      gstCoverageReady: false,
+      gstCoveragePct: 72.5,
+      billsInScope: 40,
+      billsComplete: 29,
+    };
     renderCard();
 
-    expect(screen.getByText('GST-treatment check unavailable')).toBeInTheDocument();
-    expect(screen.getByText('Reconciliation not available')).toBeInTheDocument();
+    expect(screen.getByText(/GST coverage is 72.5% \(29\/40 bills\)/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Request lodge approval/i })).toBeDisabled();
+    expect(h.requestLodgeApproval).not.toHaveBeenCalled();
+  });
+
+  it('blocks approve-and-lodge when blocker checks are unavailable', () => {
+    h.worksheet = SAMPLE;
+    h.blockers = unavailableBlockers();
+    renderCard();
+
+    expect(
+      screen.getByText(/GST-treatment check unavailable - cannot approve/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Reconciliation not available - cannot approve/)).toBeInTheDocument();
+    expect(screen.getByText(/GST coverage check unavailable - cannot approve/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Request lodge approval/i })).toBeDisabled();
   });
 });

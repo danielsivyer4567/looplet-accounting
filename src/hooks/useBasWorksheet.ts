@@ -7,13 +7,13 @@ import { useOrg } from '@/hooks/useOrg';
  * quarter. Pulls three things for the current org + (fy, quarter):
  *   - the full worksheet payload from generate_bas_worksheet (SC-3.C.03),
  *   - the pre-lodge BLOCKERS: GST-treatment exceptions (v_gst_treatment_exceptions,
- *     SC-3.A.02) and the GL-vs-BAS reconciliation variance (v_gst_reconciliation,
- *     SC-3.B.02),
+ *     SC-3.A.02), the GL-vs-BAS reconciliation variance (v_gst_reconciliation,
+ *     SC-3.B.02), and GST data coverage (v_bas_gst_coverage, B3),
  * and exposes requestLodgeApproval() which opens a Tier-2 approval (request_approval,
  * SC-2.B.01) — the lodge itself is a stub until Phase 7 SC-7.E wires real DSP
  * lodgement, and the lodged-status write-back lands in SC-3.E.02.
  *
- * Best-effort: generate_bas_worksheet (0122) and the two views (0117/0119) are
+ * Best-effort: generate_bas_worksheet (0122) and the blocker views are
  * repo-only until the epic's deploy step, so each read degrades to null/0 + an
  * error string rather than throwing — the page renders, just without live figures.
  * Hand-typed (no generated Supabase types; `as unknown as` cast, like useApprovals).
@@ -37,11 +37,22 @@ export interface BasBlockers {
   treatmentExceptions: number | null;
   /** GL-vs-BAS net-GST variance in cents (SC-3.B.02); null = unavailable, 0 = reconciled. */
   reconciliationVarianceCents: number | null;
+  /** GST coverage gate from v_bas_gst_coverage; null = check unavailable. */
+  gstCoverageReady: boolean | null;
+  gstCoveragePct: number | null;
+  billsInScope: number | null;
+  billsComplete: number | null;
+  billsGstEstimated: number | null;
 }
 
 const NO_BLOCKERS: BasBlockers = {
   treatmentExceptions: null,
   reconciliationVarianceCents: null,
+  gstCoverageReady: null,
+  gstCoveragePct: null,
+  billsInScope: null,
+  billsComplete: null,
+  billsGstEstimated: null,
 };
 
 export function useBasWorksheet(fyStartYear: number | null, quarter: number | null) {
@@ -60,10 +71,10 @@ export function useBasWorksheet(fyStartYear: number | null, quarter: number | nu
     setLoading(true);
     setError(null);
 
-    // The worksheet RPC and the two blocker reads are independent — one round trip.
+    // The worksheet RPC and blocker reads are independent — one round trip.
     // Blockers are best-effort: a view that isn't deployed yet degrades to "unavailable"
     // (null), never a fabricated "clean" — so a missing check can't fail the lodge gate open.
-    const [ws, exc, recon] = await Promise.all([
+    const [ws, exc, recon, coverage] = await Promise.all([
       supabase.rpc('generate_bas_worksheet', {
         p_org: currentOrg.id,
         p_fy_start_year: fyStartYear,
@@ -78,6 +89,13 @@ export function useBasWorksheet(fyStartYear: number | null, quarter: number | nu
         .select('variance_cents')
         .eq('organization_id', currentOrg.id)
         .maybeSingle(),
+      supabase
+        .from('v_bas_gst_coverage' as never)
+        .select('bills_in_scope,bills_complete,bills_gst_estimated,coverage_pct,gst_ready')
+        .eq('organization_id', currentOrg.id)
+        .eq('fy_start_year', fyStartYear)
+        .eq('quarter_num', quarter)
+        .maybeSingle(),
     ]);
 
     if (ws.error) {
@@ -89,9 +107,23 @@ export function useBasWorksheet(fyStartYear: number | null, quarter: number | nu
     }
 
     const reconRow = recon.error ? null : (recon.data as { variance_cents: number } | null);
+    const coverageRow = coverage.error
+      ? null
+      : (coverage.data as {
+          bills_in_scope: number;
+          bills_complete: number;
+          bills_gst_estimated: number;
+          coverage_pct: number;
+          gst_ready: boolean;
+        } | null);
     setBlockers({
       treatmentExceptions: exc.error ? null : (exc.data?.length ?? 0),
       reconciliationVarianceCents: reconRow ? reconRow.variance_cents : null,
+      gstCoverageReady: coverage.error ? null : (coverageRow?.gst_ready ?? false),
+      gstCoveragePct: coverageRow?.coverage_pct ?? null,
+      billsInScope: coverageRow?.bills_in_scope ?? null,
+      billsComplete: coverageRow?.bills_complete ?? null,
+      billsGstEstimated: coverageRow?.bills_gst_estimated ?? null,
     });
 
     setLoading(false);

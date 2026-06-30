@@ -87,6 +87,7 @@ import { DashboardPage } from '@/pages/Dashboard';
 import { DebtDetailPage } from '@/pages/DebtDetail';
 import { EmployeeDetailPage } from '@/pages/EmployeeDetail';
 import { SubscriptionDetailPage } from '@/pages/SubscriptionDetail';
+import { BasReportPage } from '@/pages/reports/Bas';
 import { OrgProfileForm } from '@/components/settings/OrgProfile';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import '@/index.css';
@@ -100,6 +101,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <Link to="/debts/debt-1">Debt</Link>
         <Link to="/subscriptions/sub-1">Subscription</Link>
         <Link to="/employees/emp-1">Employee</Link>
+        <Link to="/reports/bas">BAS</Link>
         <Link to="/move">Move</Link>
       </nav>
       {children}
@@ -131,6 +133,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/debts/:id" element={<DebtDetailPage />} />
           <Route path="/subscriptions/:id" element={<SubscriptionDetailPage />} />
           <Route path="/employees/:id" element={<EmployeeDetailPage />} />
+          <Route path="/reports/bas" element={<BasReportPage />} />
           <Route path="/move" element={<MoveProbe />} />
           <Route path="*" element={<DashboardPage />} />
         </Routes>
@@ -369,6 +372,46 @@ const timesheet = {
 
 const job = { id: 'job-1', job_number: 'J-001', name: 'Fence repair' };
 
+const basQuarter = {
+  organization_id: 'org-1',
+  fy_start_year: 2025,
+  quarter_num: 4,
+  quarter_start: '2026-04-01',
+  quarter_end: '2026-06-30',
+  due_date: '2026-07-28',
+  gst_collected_cents: 10000,
+  gst_paid_cents: 5000,
+  net_gst_cents: 5000,
+  sales_ex_gst_cents: 100000,
+  purchases_ex_gst_cents: 50000,
+  invoice_count: 2,
+  bill_count: 40,
+};
+
+const basCoverage = {
+  organization_id: 'org-1',
+  fy_start_year: 2025,
+  quarter_num: 4,
+  bills_in_scope: 40,
+  bills_complete: 29,
+  bills_gst_estimated: 0,
+  coverage_pct: 72.5,
+  gst_ready: false,
+};
+
+const basWorksheet = {
+  organization_id: 'org-1',
+  fy_start_year: 2025,
+  quarter: 4,
+  quarter_start: '2026-04-01',
+  quarter_end: '2026-06-30',
+  due_date: '2026-07-28',
+  gst: { G1: 110000, G10: 0, G11: 55000, '1A': 10000, '1B': 5000 },
+  payg_withholding: { W1: 800000, W2: 160000, W4: 0, W5: 160000, '4': 160000 },
+  payg_instalment: null,
+  summary: { '9_net_amount_cents': 5000 },
+};
+
 const tableData: Record<string, unknown[]> = {
   organizations: [org],
   debts: [debt],
@@ -382,6 +425,10 @@ const tableData: Record<string, unknown[]> = {
   pay_slips: [],
   v_award_rate_exceptions: [],
   allocation_splits: [],
+  v_bas_quarterly: [basQuarter],
+  v_bas_gst_coverage: [basCoverage],
+  v_gst_treatment_exceptions: [],
+  v_gst_reconciliation: [{ organization_id: 'org-1', variance_cents: 0 }],
 };
 
 function mutations() {
@@ -418,6 +465,7 @@ function makeQuery(table: string) {
     'limit',
     'in',
     'match',
+    'returns',
   ].forEach((method) => {
     query[method] = pass;
   });
@@ -455,7 +503,14 @@ function makeQuery(table: string) {
 
 export const supabase = {
   from: (table: string) => makeQuery(table),
-  rpc: async () => ({ data: [], error: null }),
+  rpc: async (name: string, args?: unknown) => {
+    if (name === 'generate_bas_worksheet') return { data: basWorksheet, error: null };
+    if (name === 'request_approval') {
+      mutations().push({ table: 'approval_requests', method: 'rpc', payload: args });
+      return { data: null, error: null };
+    }
+    return { data: [], error: null };
+  },
   auth: {
     getUser: async () => ({ data: { user: { id: 'user-1' } }, error: null }),
     getSession: async () => ({
@@ -505,6 +560,16 @@ async function runSmoke(port) {
     await expectVisible(page, 'text=Review 12 staged senders');
     checks.dashboardTriage = await noHorizontalOverflow(page);
     screenshots.dashboard = await screenshot(page, 'dashboard.png');
+
+    await visit(page, port, '/reports/bas');
+    await expectVisible(page, 'text=BAS Quarterly (GST)');
+    await expectVisible(page, 'text=GST Data Incomplete:');
+    await expectVisible(page, 'text=GST coverage is 72.5% (29/40 bills)');
+    checks.basCoverageLodgeDisabled = await page
+      .getByRole('button', { name: /request lodge approval/i })
+      .isDisabled();
+    checks.basCoverageNoOverflow = await noHorizontalOverflow(page);
+    screenshots.basCoverageGate = await screenshot(page, 'bas-coverage-gate.png');
 
     await visit(page, port, '/settings-org');
     await expectVisible(page, 'text=Organisation profile');
