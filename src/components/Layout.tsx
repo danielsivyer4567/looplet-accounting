@@ -54,38 +54,39 @@ interface NavItem {
   to: string;
   label: string;
   icon: typeof LayoutDashboard;
+  area: 'Today' | 'Money' | 'Jobs' | 'Gear' | 'People' | 'Tax' | 'Advisor' | 'Setup';
   end?: boolean;
   badge?: string;
 }
 
 const navItems: NavItem[] = [
-  { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
-  { to: '/ask', label: 'Ask AI', icon: MessageSquare, badge: 'NEW' },
-  { to: '/legal-horizon', label: 'Upcoming', icon: CalendarClock, badge: 'NEW' },
-  { to: '/scan', label: 'Scan Doc', icon: Scan },
-  { to: '/receipt-hub', label: 'Receipts', icon: ReceiptText, badge: 'MVP' },
-  { to: '/onboarding', label: 'Auto Setup', icon: Sparkles },
-  { to: '/bills', label: 'Bills', icon: Receipt },
-  { to: '/payment-runs', label: 'Payment', icon: DollarSign },
-  { to: '/invoices', label: 'Invoices', icon: FileText },
-  { to: '/credit-notes', label: 'Credits', icon: FileMinus2 },
-  { to: '/allocations', label: 'Allocations', icon: GitCommit },
-  { to: '/coding-review', label: 'Coding', icon: ListChecks },
-  { to: '/approvals', label: 'Approvals', icon: ShieldCheck },
-  { to: '/lodgements', label: 'Lodgements', icon: Send },
-  { to: '/reconciliation', label: 'Reconcile', icon: Scale },
-  { to: '/fixed-assets', label: 'Assets', icon: Boxes },
-  { to: '/jobs', label: 'Jobs', icon: Briefcase },
-  { to: '/customers', label: 'Customers', icon: Users },
-  { to: '/suppliers', label: 'Suppliers', icon: Truck },
-  { to: '/employees', label: 'Employees', icon: Contact },
-  { to: '/payroll', label: 'Payroll', icon: CreditCard },
-  { to: '/subscriptions', label: 'Subs', icon: RefreshCw },
-  { to: '/debts', label: 'Debts', icon: TrendingDown },
-  { to: '/reports', label: 'Reports', icon: BarChart3 },
-  { to: '/quality', label: 'Quality', icon: CheckCircle },
-  { to: '/settings', label: 'Settings', icon: Settings },
-  { to: '/notifications', label: 'Alerts', icon: Bell },
+  { to: '/', label: 'Today', icon: LayoutDashboard, area: 'Today', end: true },
+  { to: '/ask', label: 'Ask AI', icon: MessageSquare, area: 'Today', badge: 'NEW' },
+  { to: '/notifications', label: 'Alerts', icon: Bell, area: 'Today' },
+  { to: '/bills', label: 'Bills', icon: Receipt, area: 'Money' },
+  { to: '/payment-runs', label: 'Pay', icon: DollarSign, area: 'Money' },
+  { to: '/invoices', label: 'Invoices', icon: FileText, area: 'Money' },
+  { to: '/credit-notes', label: 'Credits', icon: FileMinus2, area: 'Money' },
+  { to: '/reconciliation', label: 'Match', icon: Scale, area: 'Money' },
+  { to: '/debts', label: 'Debts', icon: TrendingDown, area: 'Money' },
+  { to: '/jobs', label: 'Jobs', icon: Briefcase, area: 'Jobs' },
+  { to: '/customers', label: 'Customers', icon: Users, area: 'Jobs' },
+  { to: '/allocations', label: 'Allocate', icon: GitCommit, area: 'Jobs' },
+  { to: '/suppliers', label: 'Suppliers', icon: Truck, area: 'Jobs' },
+  { to: '/fixed-assets', label: 'Gear', icon: Boxes, area: 'Gear' },
+  { to: '/subscriptions', label: 'Subs', icon: RefreshCw, area: 'Gear' },
+  { to: '/employees', label: 'People', icon: Contact, area: 'People' },
+  { to: '/payroll', label: 'Payday', icon: CreditCard, area: 'People' },
+  { to: '/reports', label: 'Tax', icon: BarChart3, area: 'Tax' },
+  { to: '/lodgements', label: 'Lodge', icon: Send, area: 'Tax' },
+  { to: '/legal-horizon', label: 'Upcoming', icon: CalendarClock, area: 'Tax', badge: 'NEW' },
+  { to: '/receipt-hub', label: 'Receipts', icon: ReceiptText, area: 'Advisor', badge: 'MVP' },
+  { to: '/scan', label: 'Scan Doc', icon: Scan, area: 'Advisor' },
+  { to: '/coding-review', label: 'Coding', icon: ListChecks, area: 'Advisor' },
+  { to: '/approvals', label: 'Approvals', icon: ShieldCheck, area: 'Advisor' },
+  { to: '/quality', label: 'Quality', icon: CheckCircle, area: 'Advisor' },
+  { to: '/onboarding', label: 'Auto Setup', icon: Sparkles, area: 'Setup' },
+  { to: '/settings', label: 'Settings', icon: Settings, area: 'Setup' },
 ];
 
 function SidebarContent({ items, onNavClick }: { items: NavItem[]; onNavClick?: () => void }) {
@@ -119,65 +120,85 @@ function SidebarContent({ items, onNavClick }: { items: NavItem[]; onNavClick?: 
           padding: '0.25rem',
         }}
       >
-        {items.map((item) => {
+        {items.map((item, index) => {
           const Icon = item.icon;
+          const previous = items[index - 1];
+          const showArea = !previous || previous.area !== item.area;
           return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end ?? false}
-              onClick={onNavClick}
-              style={({ isActive }) => ({
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0.6rem 0.15rem',
-                borderRadius: 'var(--radius-md)',
-                textDecoration: 'none',
-                color: isActive ? 'var(--text-sidebar-active)' : 'var(--text-sidebar)',
-                background: isActive ? 'var(--bg-sidebar-active)' : 'transparent',
-                transition: 'var(--transition-smooth)',
-                position: 'relative',
-                width: '100%',
-                gap: '4px',
-              })}
-              className="nav-link-item"
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon size={18} strokeWidth={isActive ? 2.25 : 1.75} />
-                  <span
-                    style={{
-                      fontSize: '9px',
-                      fontWeight: 600,
-                      textAlign: 'center',
-                      display: 'block',
-                      lineHeight: 1.1,
-                    }}
-                  >
-                    {item.label}
-                  </span>
-                  {item.badge && (
+            <div key={item.to} style={{ width: '100%' }}>
+              {showArea && (
+                <div
+                  aria-hidden="true"
+                  style={{
+                    margin: index === 0 ? '0 0 0.2rem' : '0.55rem 0 0.2rem',
+                    fontSize: '7px',
+                    fontWeight: 800,
+                    color: 'var(--text-muted)',
+                    textAlign: 'center',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0,
+                    lineHeight: 1,
+                  }}
+                >
+                  {item.area}
+                </div>
+              )}
+              <NavLink
+                to={item.to}
+                end={item.end ?? false}
+                onClick={onNavClick}
+                style={({ isActive }) => ({
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0.6rem 0.15rem',
+                  borderRadius: 'var(--radius-md)',
+                  textDecoration: 'none',
+                  color: isActive ? 'var(--text-sidebar-active)' : 'var(--text-sidebar)',
+                  background: isActive ? 'var(--bg-sidebar-active)' : 'transparent',
+                  transition: 'var(--transition-smooth)',
+                  position: 'relative',
+                  width: '100%',
+                  gap: '4px',
+                })}
+                className="nav-link-item"
+              >
+                {({ isActive }) => (
+                  <>
+                    <Icon size={18} strokeWidth={isActive ? 2.25 : 1.75} />
                     <span
                       style={{
-                        position: 'absolute',
-                        top: '2px',
-                        right: '2px',
-                        fontSize: '7px',
-                        padding: '1px 3px',
-                        borderRadius: '3px',
-                        background: 'var(--accent-primary)',
-                        color: '#fff',
-                        fontWeight: 700,
+                        fontSize: '9px',
+                        fontWeight: 600,
+                        textAlign: 'center',
+                        display: 'block',
+                        lineHeight: 1.1,
                       }}
                     >
-                      {item.badge}
+                      {item.label}
                     </span>
-                  )}
-                </>
-              )}
-            </NavLink>
+                    {item.badge && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: '2px',
+                          right: '2px',
+                          fontSize: '7px',
+                          padding: '1px 3px',
+                          borderRadius: '3px',
+                          background: 'var(--accent-primary)',
+                          color: '#fff',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </>
+                )}
+              </NavLink>
+            </div>
           );
         })}
       </nav>
@@ -250,7 +271,12 @@ export function Layout() {
   // jump to the picker. Accountant-only users land on /clients directly (HomeRoute).
   const items: NavItem[] = useMemo(() => {
     if (accountantClientOrgs.length === 0) return navItems;
-    const clientsItem: NavItem = { to: '/clients', label: 'Clients', icon: Building2 };
+    const clientsItem: NavItem = {
+      to: '/clients',
+      label: 'Clients',
+      icon: Building2,
+      area: 'Advisor',
+    };
     // Insert "Clients" right after Home (the first nav item).
     return navItems.flatMap((item, i) => (i === 0 ? [item, clientsItem] : [item]));
   }, [accountantClientOrgs.length]);

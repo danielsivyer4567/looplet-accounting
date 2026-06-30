@@ -1,7 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import { DashboardPage, orderAdviceNotesForSeason } from '@/pages/Dashboard';
+import {
+  DashboardPage,
+  buildOwnerWorkstreamTasks,
+  orderAdviceNotesForSeason,
+} from '@/pages/Dashboard';
 import type { AdviceNote } from '@/hooks/useAdviceNotes';
 import type { RealtimePnl } from '@/hooks/useRealtimePnl';
 import type { TaxObligation } from '@/hooks/useTaxCalendar';
@@ -168,6 +172,11 @@ describe('Dashboard advice cards', () => {
   it('renders seasonal advice cards and opens the detail view', () => {
     renderDashboard();
 
+    expect(screen.getByLabelText(/today workstream/i)).toHaveTextContent(
+      'Check Year-end planning levers',
+    );
+    expect(screen.getByLabelText(/today workstream/i)).toHaveTextContent('Keep tax money aside');
+
     const cards = screen.getAllByLabelText(/Advice card:/i);
     expect(cards[0]).toHaveTextContent('Year-end planning levers');
     expect(cards[1]).toHaveTextContent('Structuring tax comparison');
@@ -202,5 +211,24 @@ describe('Dashboard advice cards', () => {
       'href',
       '/onboarding/triage',
     );
+  });
+
+  it('builds owner-first Today tasks from onboarding, tax, advice, and cash signals', () => {
+    const tasks = buildOwnerWorkstreamTasks({
+      onboardingRemaining: 4,
+      obligations: [june30Obligation],
+      adviceNotes: [note('year_end', 'Year-end planning levers', '2026-06-27T01:00:00Z')],
+      pnl,
+    });
+
+    expect(tasks.map((task) => task.title)).toEqual([
+      'Review 4 staged senders',
+      'Review Year-end planning',
+      'Check Year-end planning levers',
+      'Check supplier spend',
+      'Keep tax money aside',
+    ]);
+    expect(tasks.find((task) => task.id === 'tax-set-aside')?.confidence).toBe('auto_post');
+    expect(tasks.find((task) => task.id === 'onboarding-triage')?.to).toBe('/onboarding/triage');
   });
 });

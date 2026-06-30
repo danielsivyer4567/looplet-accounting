@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
-import { useRealtimePnl } from '@/hooks/useRealtimePnl';
+import { useRealtimePnl, type RealtimePnl } from '@/hooks/useRealtimePnl';
 import { useAdviceNotes, type AdviceNote, type AdviceNoteKind } from '@/hooks/useAdviceNotes';
 import { useTaxCalendar, type TaxObligation } from '@/hooks/useTaxCalendar';
 import { useOnboardingProgress } from '@/hooks/onboarding/useStagedEntities';
@@ -228,6 +228,141 @@ const STANDARD_PRIORITY: Partial<Record<AdviceNoteKind, number>> = {
   fbt: 5,
 };
 
+type WorkstreamConfidence =
+  | 'auto_post'
+  | 'quick_confirm'
+  | 'review_needed'
+  | 'advisor_required'
+  | 'blocked_external';
+
+interface OwnerWorkstreamTask {
+  id: string;
+  title: string;
+  detail: string;
+  confidence: WorkstreamConfidence;
+  to?: string;
+  adviceNoteId?: string;
+  impactLabel?: string;
+}
+
+const CONFIDENCE_LABELS: Record<WorkstreamConfidence, string> = {
+  auto_post: 'Handled',
+  quick_confirm: 'Quick confirm',
+  review_needed: 'Review',
+  advisor_required: 'Advisor check',
+  blocked_external: 'External gate',
+};
+
+const CONFIDENCE_BADGE_CLASS: Record<WorkstreamConfidence, string> = {
+  auto_post: 'badge-success',
+  quick_confirm: 'badge-info',
+  review_needed: 'badge-warning',
+  advisor_required: 'badge-danger',
+  blocked_external: 'badge-neutral',
+};
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function buildOwnerWorkstreamTasks({
+  onboardingRemaining,
+  obligations,
+  adviceNotes,
+  pnl,
+}: {
+  onboardingRemaining: number;
+  obligations: TaxObligation[];
+  adviceNotes: AdviceNote[];
+  pnl: RealtimePnl | null;
+}): OwnerWorkstreamTask[] {
+  const tasks: OwnerWorkstreamTask[] = [];
+
+  if (onboardingRemaining > 0) {
+    const senderLabel = onboardingRemaining === 1 ? 'sender' : 'senders';
+    tasks.push({
+      id: 'onboarding-triage',
+      title: `Review ${onboardingRemaining} staged ${senderLabel}`,
+      detail: 'Teach Looplet which emails become bills, receipts, or ignore.',
+      confidence: 'quick_confirm',
+      to: '/onboarding/triage',
+    });
+  }
+
+  for (const obligation of obligations
+    .filter((item) => item.stage === 'overdue' || item.stage === 'due_soon')
+    .slice(0, 2)) {
+    const name = obligation.display_name ?? obligation.title;
+    tasks.push({
+      id: `tax-${obligation.obligation_key}`,
+      title: `Review ${name}`,
+      detail: describeObligationForOwner(obligation),
+      confidence: obligation.stage === 'overdue' ? 'advisor_required' : 'review_needed',
+      to: taxTaskLink(obligation),
+    });
+  }
+
+  const draftAdvice = adviceNotes.find((note) => note.status === 'draft');
+  if (draftAdvice) {
+    tasks.push({
+      id: `advice-${draftAdvice.id}`,
+      title: `Check ${draftAdvice.title}`,
+      detail: 'AI has prepared a draft recommendation for review before it is relied on.',
+      confidence: 'advisor_required',
+      adviceNoteId: draftAdvice.id,
+    });
+  }
+
+  if ((pnl?.cost_bills_cents ?? 0) > 0) {
+    tasks.push({
+      id: 'supplier-spend',
+      title: 'Check supplier spend',
+      detail: 'Bill pressure is showing in the current cash picture.',
+      confidence: 'review_needed',
+      to: '/bills',
+      impactLabel: formatMoneyCompact(pnl?.cost_bills_cents ?? 0),
+    });
+  }
+
+  const taxSetAside = (pnl?.gst_set_aside_cents ?? 0) + (pnl?.tax_set_aside_cents ?? 0);
+  if (taxSetAside > 0) {
+    tasks.push({
+      id: 'tax-set-aside',
+      title: 'Keep tax money aside',
+      detail: 'GST and tax set-aside are already separated from what is really yours.',
+      confidence: 'auto_post',
+      to: '/reports/bas',
+      impactLabel: formatMoneyCompact(taxSetAside),
+    });
+  }
+
+  if (tasks.length === 0) {
+    tasks.push({
+      id: 'clear',
+      title: "You're clear today",
+      detail: 'No urgent owner actions are showing from the current books.',
+      confidence: 'auto_post',
+      to: '/receipt-hub',
+    });
+  }
+
+  return tasks.slice(0, 5);
+}
+
+function describeObligationForOwner(obligation: TaxObligation): string {
+  if (obligation.days_until_due < 0) {
+    return `${Math.abs(obligation.days_until_due)} days overdue. Review evidence before lodging.`;
+  }
+  if (obligation.days_until_due === 0) {
+    return 'Due today. Check the draft and blockers before anything is lodged.';
+  }
+  return `Due in ${obligation.days_until_due} days. Prepare the draft and resolve blockers early.`;
+}
+
+function taxTaskLink(obligation: TaxObligation): string {
+  const text = `${obligation.title} ${obligation.display_name ?? ''} ${obligation.category}`;
+  if (/bas|gst/i.test(text)) return '/reports/bas';
+  if (/payg|payroll|super/i.test(text)) return '/payroll';
+  return '/legal-horizon';
+}
+
 function AdviceCardsSection({
   notes,
   loading,
@@ -327,6 +462,124 @@ function OnboardingTriagePrompt({ remaining }: { remaining: number }) {
   );
 }
 
+function TodayWorkstream({
+  tasks,
+  onOpenAdvice,
+}: {
+  tasks: OwnerWorkstreamTask[];
+  onOpenAdvice: (id: string) => void;
+}) {
+  return (
+    <section
+      aria-label="Today workstream"
+      style={{
+        display: 'grid',
+        gap: '0.85rem',
+        marginBottom: '1.5rem',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          gap: '1rem',
+          flexWrap: 'wrap',
+        }}
+      >
+        <div>
+          <h2
+            style={{
+              margin: 0,
+              color: 'var(--text-title)',
+              fontSize: '1.15rem',
+              letterSpacing: 0,
+            }}
+          >
+            Today
+          </h2>
+          <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            Exceptions first. Looplet handles the routine work and asks when judgement matters.
+          </p>
+        </div>
+        <Link to="/notifications" className="btn btn-secondary">
+          <span>All alerts</span>
+          <ChevronRight size={16} />
+        </Link>
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '0.75rem',
+        }}
+      >
+        {tasks.map((task) => (
+          <article
+            key={task.id}
+            style={{
+              display: 'grid',
+              gap: '0.75rem',
+              alignContent: 'space-between',
+              padding: '0.9rem',
+              background: 'var(--bg-panel)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 8,
+              boxShadow: 'var(--shadow-sm)',
+              minHeight: 142,
+            }}
+          >
+            <div style={{ display: 'grid', gap: '0.45rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span className={`badge ${CONFIDENCE_BADGE_CLASS[task.confidence]}`}>
+                  {CONFIDENCE_LABELS[task.confidence]}
+                </span>
+                {task.impactLabel && (
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                    {task.impactLabel}
+                  </span>
+                )}
+              </div>
+              <h3
+                style={{
+                  margin: 0,
+                  color: 'var(--text-title)',
+                  fontSize: '0.95rem',
+                  lineHeight: 1.25,
+                  letterSpacing: 0,
+                }}
+              >
+                {task.title}
+              </h3>
+              <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                {task.detail}
+              </p>
+            </div>
+            <div>
+              {task.adviceNoteId ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => onOpenAdvice(task.adviceNoteId ?? '')}
+                >
+                  <span>Open</span>
+                  <ChevronRight size={16} />
+                </button>
+              ) : (
+                <Link to={task.to ?? '/'} className="btn btn-secondary">
+                  <span>Open</span>
+                  <ChevronRight size={16} />
+                </Link>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // eslint-disable-next-line react-refresh/only-export-components
 export function orderAdviceNotesForSeason(
   notes: AdviceNote[],
@@ -391,14 +644,24 @@ export function DashboardPage() {
     () => orderAdviceNotesForSeason(adviceNotes, obligations).slice(0, 3),
     [adviceNotes, obligations],
   );
-  const selectedAdviceNote =
-    selectedAdviceNoteId != null
-      ? (adviceNotes.find((note) => note.id === selectedAdviceNoteId) ?? null)
-      : null;
   const onboardingRemaining =
     onboardingProgressLoading || onboardingProgress == null
       ? 0
       : onboardingProgress.pending_count + onboardingProgress.needs_review_count;
+  const todayTasks = useMemo(
+    () =>
+      buildOwnerWorkstreamTasks({
+        onboardingRemaining,
+        obligations,
+        adviceNotes: seasonalAdviceNotes,
+        pnl,
+      }),
+    [onboardingRemaining, obligations, pnl, seasonalAdviceNotes],
+  );
+  const selectedAdviceNote =
+    selectedAdviceNoteId != null
+      ? (adviceNotes.find((note) => note.id === selectedAdviceNoteId) ?? null)
+      : null;
 
   useEffect(() => {
     if (selectedAdviceNoteId && !adviceNotes.some((note) => note.id === selectedAdviceNoteId)) {
@@ -620,6 +883,8 @@ export function DashboardPage() {
           </button>
         </div>
       </div>
+
+      <TodayWorkstream tasks={todayTasks} onOpenAdvice={setSelectedAdviceNoteId} />
 
       <div
         style={{
