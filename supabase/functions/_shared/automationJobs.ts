@@ -19,6 +19,7 @@ export type AutomationJobKind =
   | 'bank_reconcile'
   | 'gmail_backfill'
   | 'coding_classify'
+  | 'payment_record'
   | 'browser_collect';
 
 export interface AutomationJob {

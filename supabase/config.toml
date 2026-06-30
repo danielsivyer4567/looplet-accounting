@@ -13,6 +13,21 @@ verify_jwt = false
 [functions.ingest]
 verify_jwt = false
 
+# Automation Backbone workers/webhooks self-authenticate with service-role
+# bearer or dedicated shared secrets because they are called by pg_cron,
+# external providers, or internal workers rather than browser Supabase JWTs.
+[functions.automation-worker]
+verify_jwt = false
+
+[functions.bank-webhook]
+verify_jwt = false
+
+[functions.bank-sync]
+verify_jwt = false
+
+[functions.auto-reconcile]
+verify_jwt = false
+
 [functions.receipt-webhook]
 verify_jwt = false
 

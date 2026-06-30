@@ -16,12 +16,13 @@ This document records what is now actually live and what remains.
 Applied via Supabase MCP as forward-only repair migrations above the remote head
 (`20260630124815`), idempotent, dry-run-verified in a rolled-back transaction first:
 
-| Migration (recorded) | Covers | Verification |
-|---|---|---|
-| `20260630170735_automation_backbone_repair` | SC-01 (automation_jobs + 4 tables + 5 RPCs), SC-04 (confidence_policies + 3 RPCs), SC-05 (document_extraction_versions), SC-06 (bank_events_raw + raw_event_id FK + replay_bank_event), SC-07 (reconciliation_evidence), SC-08 (browser_sessions, browser_job_runs) | All `to_regclass`/`to_regprocedure` resolve; SC-06 dedup + null-org partial-unique + replay behavioral checks passed against live prod (rolled back) |
-| `20260630171500_automation_backbone_definer_hardening` | Security fix (see below) | Anon access to `replay_bank_event` confirmed denied on persisted prod state; ACL = `service_role` only |
+| Migration (recorded)                                   | Covers                                                                                                                                                                                                                                                              | Verification                                                                                                                                         |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `20260630170735_automation_backbone_repair`            | SC-01 (automation_jobs + 4 tables + 5 RPCs), SC-04 (confidence_policies + 3 RPCs), SC-05 (document_extraction_versions), SC-06 (bank_events_raw + raw_event_id FK + replay_bank_event), SC-07 (reconciliation_evidence), SC-08 (browser_sessions, browser_job_runs) | All `to_regclass`/`to_regprocedure` resolve; SC-06 dedup + null-org partial-unique + replay behavioral checks passed against live prod (rolled back) |
+| `20260630171500_automation_backbone_definer_hardening` | Security fix (see below)                                                                                                                                                                                                                                            | Anon access to `replay_bank_event` confirmed denied on persisted prod state; ACL = `service_role` only                                               |
 
 ### Security fix included
+
 A Supabase advisor + a rolled-back `SET ROLE anon` probe confirmed that
 `replay_bank_event` (orig SC-06 / 0217) was **executable by the anon role and
 returned raw bank payloads** to unauthenticated callers via
@@ -36,34 +37,52 @@ The four functions intentionally callable by `authenticated` (org-authz enforced
 internally) were left as-is: `enqueue_automation_job`, `get_confidence_policy`,
 `upsert_confidence_policy`, `delete_confidence_policy`.
 
-## ⛔ NOT yet live — remaining work (blocked-on-deploy)
+## ✅ Edge deploys completed after source fixes (verified 2026-07-01)
 
-The DB schema is live, but the epic does not yet **run**. Remaining:
+| Function            | Live version | Verification                                                                                                                                                                                                 |
+| ------------------- | -----------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `automation-worker` |            3 | `supabase functions deploy automation-worker` succeeded; `functions list` updated to `2026-06-30 19:16:18 UTC`; unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}` |
+| `ingest`            |           32 | `supabase functions deploy ingest` succeeded; `functions list` updated to `2026-06-30 19:15:48 UTC`; unauthenticated POST reaches function code and returns `{"error":"invalid_api_key"}`                    |
+| `bank-sync`         |           50 | Deployed after smoke showed platform-level `UNAUTHORIZED_NO_AUTH_HEADER`; repeat unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}`                                |
+
+These smokes are deliberately non-mutating. They prove routing and `verify_jwt=false`
+config, not a real bank/document/payment workflow.
+
+## ⛔ Remaining work — live-proof and activation
+
+The DB schema is live and the core worker/ingest pieces are deployed, but the epic is
+not yet fully activated end-to-end. Remaining:
 
 A 17-agent deploy-readiness workflow (8 deep-readers + 8 adversarial verifiers +
 synthesis, each verifier cross-checked source AND live prod) classified the 8
 candidate edge functions. Key outcome: **3 of 8 are traps** — do not deploy.
 
-### ✅ Safe to deploy (verified: source contains the epic change, DB contract live)
-Deploy order (worker first as inert canary, then live-path redeploys one at a time
-with secret-confirm + smoke-check between each):
-1. `automation-worker` (SC-02) — net-new, additive, **inert** until cron+secret set; `verify_jwt=false`. Bundle: `_shared/cors.ts`, `_shared/automationJobs.ts`.
-2. `bank-webhook` (SC-06 raw-event guard) — `verify_jwt=false`; confirm `BASIQ_WEBHOOK_VERIFY_TOKEN` (fail-closed). Bundle: cors, apiKeys, env.
-3. `bank-sync` (SC-06 raw_event_id write) — `verify_jwt=false`; confirm `BASIQ_API_KEY`. Bundle: cors, apiKeys, basiq/client, serviceRole.
-4. `auto-reconcile` (SC-07 evidence write) — `verify_jwt=false`; `AUTO_RECONCILE_CRON_SECRET` optional. Bundle: cors.
-5. `bills-extract` (SC-05 version-row write) — **keep its user-JWT setting**; full 16-file `_shared` transitive bundle.
+### ✅ Remaining live-proof order
 
-⚠️ #2–5 are in the **live money/ingestion path** — `verify`/`check` discipline each,
-not a batch. (Verifiers confirmed the live versions genuinely lack the epic change,
-so these redeploys are meaningful, not no-ops.)
+Live-path checks should still run one at a time with secret-confirm + smoke-check
+between each:
+
+1. `bank-webhook` (SC-06 raw-event guard) — `verify_jwt=false` already reaches function code on missing/invalid token; still needs a signed Basiq-style positive event smoke.
+2. `auto-reconcile` (SC-07 evidence write) — `verify_jwt=false` already reaches function code on missing auth; still needs a controlled org smoke with candidate data.
+3. `bills-extract` (SC-05 version-row write) — **keep its user-JWT setting**; still needs a controlled bill/document smoke that proves `document_extraction_versions` writes.
+4. Positive e2e proof for `ingest` + `automation-worker`: create a real org-prefixed document object, ingest it with a connector key, run/observe the worker, and verify the bill row/extraction state.
+5. Positive e2e proof for `payment_record`: use a dedicated test invoice and connector key, then verify a single idempotent `invoice_payments` row.
+
+⚠️ These are in the **live money/ingestion path** — `verify`/`check` discipline each,
+not a batch.
 
 ### ⛔ Do NOT deploy — traps the analysis caught
+
 - **`api-gateway` ("SC-09")** — HEAD source is **byte-identical to the live v30**; zero SC-09 commits. Deploying is a pointless no-op that risks a live fn for nothing. The real SC-09 artifact is `ingest`. **Drop from the queue.**
 - **`automation-watchdog` ("SC-03")** — contains **zero** SC-03 Automation Backbone integration (no `bank_events_raw`/`reconciliation_evidence`/etc.). It's a standalone anomaly scanner mislabeled SC-03. Deploy only if you want the scanner as its own feature — it advances the epic by nothing.
 
-### ✅ `ingest` (SC-09) — blockers FIXED this session (was DOA on prod)
-The analysis found `ingest` would have failed on every document/payment call. Both
-blockers are now fixed and live-verified:
+### ✅ `ingest` (SC-09) — blockers fixed in source and core deploy complete
+
+The analysis found `ingest` would have failed on every document/payment call. The
+first two blockers were fixed and live-verified at the DB/RPC level; the later
+source/worker contract fixes are now deployed to `ingest` v32 and
+`automation-worker` v3, but still need positive e2e data proof:
+
 1. **Org-gate** — `enqueue_automation_job` rejected the bare service-role caller
    (`get_accessible_org_ids()` → `[]`). Fixed by migration
    `20260630180000_enqueue_job_service_role_bypass` (service_role bypasses the gate;
@@ -73,16 +92,29 @@ blockers are now fixed and live-verified:
    into the `uuid` `source_id`/`p_source_id`. Fixed in `ingest/index.ts`: a new
    `idemKeyToUuid()` derives a stable uuid (SHA-256 prefix) from the key for both
    the dedup filter and `p_source_id`. No schema change, no API-contract break.
+3. **Document jobs had no source row** — `document` ingest enqueued `bill_extract`
+   with `source_kind='document'`, but did not create a `bills` row; the worker's
+   extractor could only drain existing bills. Current source now creates/reuses the
+   org-prefixed `bills` row, returns `bill_id`, and puts `bill_id` in the job payload.
+4. **Payment jobs were unsupported** — `payment` ingest enqueued `payment_record`,
+   but the worker had no handler. Current source now supports invoice receipt jobs
+   by inserting `invoice_payments` idempotently and rejects AP bill payment shortcuts
+   so bill settlement still goes through bank reconciliation or payment runs.
+5. **Platform JWT config drift** — `automation-worker`, `bank-webhook`,
+   `bank-sync`, and `auto-reconcile` were missing explicit `verify_jwt=false`
+   entries in `supabase/config.toml`. Current source now pins those settings.
 
-`ingest` is now deploy-ready (it still needs an actual deploy via MCP, with the full
-`_shared` bundle, in a dedicated step). `verify_jwt` stays as currently configured.
+`ingest` and `automation-worker` have been deployed as a pair. `verify_jwt=false`
+stays explicit in `supabase/config.toml`.
 
 ### Activation (only after the relevant deploys)
+
 1. `AUTOMATION_WORKER_SECRET` set in project secrets (optional — service-role bearer cron works without it)
 2. `cron.schedule('automation-worker-every-2min', '*/2 * * * *', …)`
 3. (Only if deploying the scanner) `AUTOMATION_WATCHDOG_SECRET` + a manual `cron.schedule` — no watchdog cron exists live
 
 ## Notes
+
 - ATO/DSP/SBR lodgement remains external-gated throughout — unchanged.
 - The unrelated working-tree changes from this session (favicon files, deletion of
   the duplicate `0214_fix_allocation_rpc_grants.sql`) are **not** part of this repair

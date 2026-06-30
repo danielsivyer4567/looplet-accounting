@@ -232,6 +232,7 @@ describe('browser_collect dispatcher stub', () => {
       'bank_reconcile',
       'gmail_backfill',
       'coding_classify',
+      'payment_record',
       'browser_collect',
     ];
     expect(supportedKinds).toContain(kind);

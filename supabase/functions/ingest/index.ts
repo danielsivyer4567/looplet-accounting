@@ -38,33 +38,33 @@ import {
   serviceClient,
   sha256Hex,
   shouldLogAnon,
-} from "../_shared/apiKeys.ts";
-import { corsHeaders, preflight } from "../_shared/cors.ts";
-import { routeBill } from "../_shared/bills/router.ts";
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+} from '../_shared/apiKeys.ts';
+import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { routeBill } from '../_shared/bills/router.ts';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SCOPE_FOR: Record<string, string> = {
-  bill: "write:bills",
-  bank_transaction: "write:bank",
-  invoice: "write:invoices",
-  document: "write:documents",
-  payment: "write:payments",
+  bill: 'write:bills',
+  bank_transaction: 'write:bank',
+  invoice: 'write:invoices',
+  document: 'write:documents',
+  payment: 'write:payments',
 };
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "content-type": "application/json" },
+    headers: { ...corsHeaders, 'content-type': 'application/json' },
   });
 }
 
 Deno.serve(async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
-  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+  if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
   const ip = clientIp(req);
-  const ctx = await authenticateApiKey(req.headers.get("authorization"));
+  const ctx = await authenticateApiKey(req.headers.get('authorization'));
 
   if (!ctx) {
     // Throttle UNauthenticated traffic only (F4). authenticateApiKey does no DB
@@ -73,16 +73,20 @@ Deno.serve(async (req) => {
     // 429-ing a legitimate connector — authenticated keys are governed solely by
     // the per-key DB limiter below.
     if (!allowAnonRequest(ip)) {
-      return json({ error: "rate_limited" }, 429);
+      return json({ error: 'rate_limited' }, 429);
     }
     // Cap anonymous 401 logging so bad keys can't flood the table.
     if (shouldLogAnon(ip)) {
       await logApiRequest(serviceClient(), {
-        organizationId: null, apiKeyId: null, keyPrefix: null,
-        endpoint: "ingest", method: req.method, status: 401,
+        organizationId: null,
+        apiKeyId: null,
+        keyPrefix: null,
+        endpoint: 'ingest',
+        method: req.method,
+        status: 401,
       });
     }
-    return json({ error: "invalid_api_key" }, 401);
+    return json({ error: 'invalid_api_key' }, 401);
   }
 
   const db = serviceClient();
@@ -90,45 +94,49 @@ Deno.serve(async (req) => {
   // Per-key rate limit (shared with the gateway's ceiling).
   if (!(await enforceRateLimit(db, ctx.keyId))) {
     await logApiRequest(db, {
-      organizationId: ctx.organizationId, apiKeyId: ctx.keyId, keyPrefix: ctx.keyPrefix,
-      endpoint: "ingest", method: req.method, status: 429,
+      organizationId: ctx.organizationId,
+      apiKeyId: ctx.keyId,
+      keyPrefix: ctx.keyPrefix,
+      endpoint: 'ingest',
+      method: req.method,
+      status: 429,
     });
-    return json({ error: "rate_limited" }, 429);
+    return json({ error: 'rate_limited' }, 429);
   }
 
   // Idempotency-Key header — honoured for all types; required for document/payment.
-  const idempotencyKey = req.headers.get("Idempotency-Key") ?? undefined;
+  const idempotencyKey = req.headers.get('Idempotency-Key') ?? undefined;
 
   let body: { type?: string; payload?: Record<string, unknown> };
   try {
     body = await req.json();
   } catch {
     await log(db, ctx, null, 400);
-    return json({ error: "invalid_json" }, 400);
+    return json({ error: 'invalid_json' }, 400);
   }
 
-  const type = body.type ?? "";
+  const type = body.type ?? '';
   const payload = body.payload;
-  if (!payload || typeof payload !== "object" || !(type in SCOPE_FOR)) {
+  if (!payload || typeof payload !== 'object' || !(type in SCOPE_FOR)) {
     await log(db, ctx, type || null, 400);
-    return json({ error: "unsupported_type" }, 400);
+    return json({ error: 'unsupported_type' }, 400);
   }
   if (!hasScope(ctx, SCOPE_FOR[type])) {
     await log(db, ctx, type, 403);
-    return json({ error: "insufficient_scope" }, 403);
+    return json({ error: 'insufficient_scope' }, 403);
   }
 
   const orgId = ctx.organizationId; // pinned from the key — never from body
 
   try {
     let result: { status: number; body: unknown };
-    if (type === "bill") {
+    if (type === 'bill') {
       result = await ingestBill(db, orgId, payload);
-    } else if (type === "bank_transaction") {
+    } else if (type === 'bank_transaction') {
       result = await ingestBankTransaction(db, orgId, payload);
-    } else if (type === "document") {
+    } else if (type === 'document') {
       result = await ingestDocument(db, orgId, payload, idempotencyKey);
-    } else if (type === "payment") {
+    } else if (type === 'payment') {
       result = await ingestPayment(db, orgId, payload, idempotencyKey);
     } else {
       result = await ingestInvoice(db, orgId, payload);
@@ -143,13 +151,13 @@ Deno.serve(async (req) => {
     if (err instanceof ValidationError) {
       return json({ error: err.message }, 400);
     }
-    console.error("[ingest] write failed", {
+    console.error('[ingest] write failed', {
       type,
       organizationId: orgId,
       keyPrefix: ctx.keyPrefix,
       detail: err instanceof Error ? err.message : String(err),
     });
-    return json({ error: "ingest_failed" }, 400);
+    return json({ error: 'ingest_failed' }, 400);
   }
 });
 
@@ -157,10 +165,20 @@ Deno.serve(async (req) => {
 // errors are thrown as plain Error and never surfaced (see catch above).
 class ValidationError extends Error {}
 
-function log(db: SupabaseClient, ctx: { organizationId: string; keyId: string; keyPrefix: string }, type: string | null, status: number) {
+function log(
+  db: SupabaseClient,
+  ctx: { organizationId: string; keyId: string; keyPrefix: string },
+  type: string | null,
+  status: number,
+) {
   return logApiRequest(db, {
-    organizationId: ctx.organizationId, apiKeyId: ctx.keyId, keyPrefix: ctx.keyPrefix,
-    endpoint: "ingest", method: "POST", ingestType: type, status,
+    organizationId: ctx.organizationId,
+    apiKeyId: ctx.keyId,
+    keyPrefix: ctx.keyPrefix,
+    endpoint: 'ingest',
+    method: 'POST',
+    ingestType: type,
+    status,
   });
 }
 
@@ -172,16 +190,30 @@ function log(db: SupabaseClient, ctx: { organizationId: string; keyId: string; k
 // Whitelisted, writable bill columns from the API. organization_id/source/
 // status are forced; computed/internal columns are never accepted from callers.
 const BILL_FIELDS = [
-  "supplier_id", "job_id", "supplier_name_raw", "supplier_abn", "invoice_number",
-  "invoice_date", "due_date", "total_inc_gst_cents", "gst_cents", "subtotal_ex_gst_cents",
-  "currency_code", "job_reference_raw", "notes", "raw_extracted",
+  'supplier_id',
+  'job_id',
+  'supplier_name_raw',
+  'supplier_abn',
+  'invoice_number',
+  'invoice_date',
+  'due_date',
+  'total_inc_gst_cents',
+  'gst_cents',
+  'subtotal_ex_gst_cents',
+  'currency_code',
+  'job_reference_raw',
+  'notes',
+  'raw_extracted',
 ] as const;
 
 // Build a stable, canonical dedupe hash from ONLY the whitelisted, persisted
 // fields (sorted keys, undefined/null dropped) plus the org. This is immune to
 // key order, whitespace, and any non-persisted junk a caller includes in the
 // payload — two semantically-identical pushes always collide.
-async function canonicalContentHash(orgId: string, payload: Record<string, unknown>): Promise<string> {
+async function canonicalContentHash(
+  orgId: string,
+  payload: Record<string, unknown>,
+): Promise<string> {
   const canon: Record<string, unknown> = {};
   for (const f of BILL_FIELDS) {
     if (payload[f] !== undefined && payload[f] !== null) canon[f] = payload[f];
@@ -198,40 +230,36 @@ async function ingestBill(db: SupabaseClient, orgId: string, payload: Record<str
 
   // Re-push? Return the existing row (idempotent).
   const { data: existing } = await db
-    .from("bills")
-    .select("id, status")
-    .eq("organization_id", orgId)
-    .eq("content_sha256", contentSha256)
-    .is("deleted_at", null)
+    .from('bills')
+    .select('id, status')
+    .eq('organization_id', orgId)
+    .eq('content_sha256', contentSha256)
+    .is('deleted_at', null)
     .maybeSingle();
   if (existing) {
-    return { status: 200, body: { ok: true, id: existing.id, type: "bill", deduped: true } };
+    return { status: 200, body: { ok: true, id: existing.id, type: 'bill', deduped: true } };
   }
 
   const row: Record<string, unknown> = {
     organization_id: orgId,
-    source: "api",
-    status: "received",
+    source: 'api',
+    status: 'received',
     content_sha256: contentSha256,
     // NOT NULL file-evidence columns: callers pushing structured data rarely
     // have a file, so synthesise sentinels (a real upload uses bills-extract).
     storage_key: (payload.storage_key as string) ?? `api/${contentSha256}`,
-    original_filename: (payload.original_filename as string) ?? "api-ingest.json",
-    mime_type: (payload.mime_type as string) ?? "application/json",
+    original_filename: (payload.original_filename as string) ?? 'api-ingest.json',
+    mime_type: (payload.mime_type as string) ?? 'application/json',
   };
   for (const f of BILL_FIELDS) {
     if (payload[f] !== undefined) row[f] = payload[f];
   }
 
-  const { data: inserted, error } = await db
-    .from("bills")
-    .insert(row)
-    .select("id")
-    .single();
+  const { data: inserted, error } = await db.from('bills').insert(row).select('id').single();
   if (error) {
     // UNIQUE(org, supplier_id, invoice_number) collision → treat as duplicate.
-    if ((error as { code?: string }).code === "23505") {
-      return { status: 200, body: { ok: true, id: null, type: "bill", deduped: true } };
+    if ((error as { code?: string }).code === '23505') {
+      return { status: 200, body: { ok: true, id: null, type: 'bill', deduped: true } };
     }
     throw new Error(error.message);
   }
@@ -245,41 +273,55 @@ async function ingestBill(db: SupabaseClient, orgId: string, payload: Record<str
       billId: inserted.id,
       organizationId: orgId,
       jobReferenceRaw: (payload.job_reference_raw as string) ?? null,
-      extractedConfidence: "medium",
+      extractedConfidence: 'medium',
     });
-  } catch { /* routing is best-effort; the bill is safely persisted */ }
+  } catch {
+    /* routing is best-effort; the bill is safely persisted */
+  }
 
-  fireIntakeRouting(orgId, "bill", [inserted.id]);
+  fireIntakeRouting(orgId, 'bill', [inserted.id]);
 
-  return { status: 201, body: { ok: true, id: inserted.id, type: "bill", deduped: false, routing } };
+  return {
+    status: 201,
+    body: { ok: true, id: inserted.id, type: 'bill', deduped: false, routing },
+  };
 }
 
 const BANK_TXN_FIELDS = [
-  "posted_at", "description", "amount_cents", "running_balance_cents",
-  "reference", "category_external", "raw",
+  'posted_at',
+  'description',
+  'amount_cents',
+  'running_balance_cents',
+  'reference',
+  'category_external',
+  'raw',
 ] as const;
 
-async function ingestBankTransaction(db: SupabaseClient, orgId: string, payload: Record<string, unknown>) {
+async function ingestBankTransaction(
+  db: SupabaseClient,
+  orgId: string,
+  payload: Record<string, unknown>,
+) {
   const bankAccountId = payload.bank_account_id as string | undefined;
   const externalId = payload.external_id as string | undefined;
   if (!bankAccountId || !externalId) {
-    throw new ValidationError("bank_account_id and external_id are required");
+    throw new ValidationError('bank_account_id and external_id are required');
   }
 
   // The bank account must belong to the key's org (tenant pin).
   const { data: acct } = await db
-    .from("bank_accounts")
-    .select("id")
-    .eq("id", bankAccountId)
-    .eq("organization_id", orgId)
+    .from('bank_accounts')
+    .select('id')
+    .eq('id', bankAccountId)
+    .eq('organization_id', orgId)
     .maybeSingle();
-  if (!acct) throw new ValidationError("bank_account not found for this organization");
+  if (!acct) throw new ValidationError('bank_account not found for this organization');
 
   const row: Record<string, unknown> = {
     organization_id: orgId,
     bank_account_id: bankAccountId,
     external_id: externalId,
-    description: (payload.description as string) ?? "(no description)",
+    description: (payload.description as string) ?? '(no description)',
   };
   for (const f of BANK_TXN_FIELDS) {
     if (payload[f] !== undefined) row[f] = payload[f];
@@ -287,15 +329,15 @@ async function ingestBankTransaction(db: SupabaseClient, orgId: string, payload:
 
   // Idempotent on (bank_account_id, external_id) — identical to bank-sync.
   const { data: txn, error } = await db
-    .from("bank_transactions")
-    .upsert(row, { onConflict: "bank_account_id,external_id", ignoreDuplicates: false })
-    .select("id")
+    .from('bank_transactions')
+    .upsert(row, { onConflict: 'bank_account_id,external_id', ignoreDuplicates: false })
+    .select('id')
     .single();
   if (error) throw new Error(error.message);
 
-  fireIntakeRouting(orgId, "bank_transaction", [txn.id]);
+  fireIntakeRouting(orgId, 'bank_transaction', [txn.id]);
 
-  return { status: 201, body: { ok: true, id: txn.id, type: "bank_transaction" } };
+  return { status: 201, body: { ok: true, id: txn.id, type: 'bank_transaction' } };
 }
 
 // NOTE: `status` is deliberately NOT writable from the API — invoices always
@@ -303,37 +345,44 @@ async function ingestBankTransaction(db: SupabaseClient, orgId: string, payload:
 // caller must not be able to mint an invoice already 'paid'/'void'. Status
 // transitions go through the authenticated app/RPCs, not raw ingest.
 const INVOICE_FIELDS = [
-  "customer_id", "job_id", "issue_date", "due_date", "terms_days",
-  "subtotal_ex_gst_cents", "gst_cents", "total_inc_gst_cents", "currency_code",
-  "notes",
+  'customer_id',
+  'job_id',
+  'issue_date',
+  'due_date',
+  'terms_days',
+  'subtotal_ex_gst_cents',
+  'gst_cents',
+  'total_inc_gst_cents',
+  'currency_code',
+  'notes',
 ] as const;
 
 async function ingestInvoice(db: SupabaseClient, orgId: string, payload: Record<string, unknown>) {
   const invoiceNumber = payload.invoice_number as string | undefined;
   const customerId = payload.customer_id as string | undefined;
-  if (!invoiceNumber) throw new ValidationError("invoice_number is required");
-  if (!customerId) throw new ValidationError("customer_id is required");
-  if (!payload.due_date) throw new ValidationError("due_date is required");
+  if (!invoiceNumber) throw new ValidationError('invoice_number is required');
+  if (!customerId) throw new ValidationError('customer_id is required');
+  if (!payload.due_date) throw new ValidationError('due_date is required');
 
   // Customer must belong to the key's org.
   const { data: cust } = await db
-    .from("customers")
-    .select("id")
-    .eq("id", customerId)
-    .eq("organization_id", orgId)
+    .from('customers')
+    .select('id')
+    .eq('id', customerId)
+    .eq('organization_id', orgId)
     .maybeSingle();
-  if (!cust) throw new ValidationError("customer not found for this organization");
+  if (!cust) throw new ValidationError('customer not found for this organization');
 
   // Dedupe on UNIQUE(org, invoice_number): re-push returns the existing row.
   const { data: existing } = await db
-    .from("invoices")
-    .select("id")
-    .eq("organization_id", orgId)
-    .eq("invoice_number", invoiceNumber)
-    .is("deleted_at", null)
+    .from('invoices')
+    .select('id')
+    .eq('organization_id', orgId)
+    .eq('invoice_number', invoiceNumber)
+    .is('deleted_at', null)
     .maybeSingle();
   if (existing) {
-    return { status: 200, body: { ok: true, id: existing.id, type: "invoice", deduped: true } };
+    return { status: 200, body: { ok: true, id: existing.id, type: 'invoice', deduped: true } };
   }
 
   const row: Record<string, unknown> = {
@@ -345,19 +394,15 @@ async function ingestInvoice(db: SupabaseClient, orgId: string, payload: Record<
     if (payload[f] !== undefined) row[f] = payload[f];
   }
 
-  const { data: inserted, error } = await db
-    .from("invoices")
-    .insert(row)
-    .select("id")
-    .single();
+  const { data: inserted, error } = await db.from('invoices').insert(row).select('id').single();
   if (error) {
-    if ((error as { code?: string }).code === "23505") {
-      return { status: 200, body: { ok: true, id: null, type: "invoice", deduped: true } };
+    if ((error as { code?: string }).code === '23505') {
+      return { status: 200, body: { ok: true, id: null, type: 'invoice', deduped: true } };
     }
     throw new Error(error.message);
   }
 
-  return { status: 201, body: { ok: true, id: inserted.id, type: "invoice", deduped: false } };
+  return { status: 201, body: { ok: true, id: inserted.id, type: 'invoice', deduped: false } };
 }
 
 // A document/payment ingest has no pre-existing source-row uuid; the
@@ -383,48 +428,109 @@ async function ingestDocument(
   idempotencyKey: string | undefined,
 ) {
   const idemKey = idempotencyKey ?? (payload.idempotency_key as string | undefined);
-  if (!idemKey) throw new ValidationError("Idempotency-Key header or payload.idempotency_key is required for document type");
+  if (!idemKey)
+    throw new ValidationError(
+      'Idempotency-Key header or payload.idempotency_key is required for document type',
+    );
 
   const sourceId = await idemKeyToUuid(idemKey);
+  const storageKey = textField(payload.storage_key);
+  if (!storageKey) throw new ValidationError('storage_key is required for document type');
+  if (!storageKey.startsWith(`org-${orgId}/`)) {
+    throw new ValidationError('storage_key must belong to this organization');
+  }
+  const originalFilename =
+    textField(payload.original_filename) ?? storageKey.split('/').pop() ?? 'document';
+  const mimeType = textField(payload.mime_type) ?? 'application/octet-stream';
 
   // Dedup: if a job already exists for this idempotency key, return it.
   const { data: existing } = await db
-    .from("automation_jobs")
-    .select("id")
-    .eq("organization_id", orgId)
-    .eq("source_kind", "document")
-    .eq("source_id", sourceId)
-    .in("status", ["pending", "claimed", "completed"])
+    .from('automation_jobs')
+    .select('id, payload')
+    .eq('organization_id', orgId)
+    .eq('source_kind', 'document')
+    .eq('source_id', sourceId)
+    .in('status', ['pending', 'claimed', 'completed'])
     .maybeSingle();
 
   if (existing) {
-    return { status: 200, body: { ok: true, job_id: (existing as { id: string }).id, type: "document", deduped: true } };
+    const existingPayload = (existing as { payload?: Record<string, unknown> | null }).payload;
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        job_id: (existing as { id: string }).id,
+        bill_id: textField(existingPayload?.bill_id),
+        type: 'document',
+        deduped: true,
+      },
+    };
   }
 
-  const { data: job, error } = await db.rpc("enqueue_automation_job", {
+  // Create or reuse the canonical bill row first. The worker and watchdogs
+  // operate on bills, so accepting a document without a bill row makes the job
+  // look successful while no extractable source exists.
+  let billId: string;
+  const { data: existingBill, error: existingBillErr } = await db
+    .from('bills')
+    .select('id')
+    .eq('organization_id', orgId)
+    .eq('storage_key', storageKey)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (existingBillErr) throw new Error(existingBillErr.message);
+  if (existingBill) {
+    billId = (existingBill as { id: string }).id;
+  } else {
+    const { data: insertedBill, error: billErr } = await db
+      .from('bills')
+      .insert({
+        organization_id: orgId,
+        source: 'api',
+        status: 'received',
+        storage_key: storageKey,
+        original_filename: originalFilename,
+        mime_type: mimeType,
+        currency_code: 'AUD',
+      })
+      .select('id')
+      .single();
+    if (billErr || !insertedBill) throw new Error(billErr?.message ?? 'bill insert failed');
+    billId = (insertedBill as { id: string }).id;
+  }
+
+  const { data: job, error } = await db.rpc('enqueue_automation_job', {
     p_org_id: orgId,
-    p_job_kind: "bill_extract",
-    p_source_kind: "document",
+    p_job_kind: 'bill_extract',
+    p_source_kind: 'document',
     p_source_id: sourceId,
     p_priority: 5,
     p_run_after: new Date().toISOString(),
     p_max_attempts: 3,
     p_payload: {
-      storage_key: payload.storage_key ?? null,
-      original_filename: payload.original_filename ?? null,
-      mime_type: payload.mime_type ?? "application/octet-stream",
+      bill_id: billId,
+      storage_key: storageKey,
+      original_filename: originalFilename,
+      mime_type: mimeType,
       idempotency_key: idemKey,
     },
   });
   if (error) throw new Error(error.message);
 
   const jobId = (job as { id?: string } | null)?.id ?? null;
-  return { status: 202, body: { ok: true, job_id: jobId, type: "document", deduped: false } };
+  return {
+    status: 202,
+    body: { ok: true, job_id: jobId, bill_id: billId, type: 'document', deduped: false },
+  };
 }
 
 // ---------------------------------------------------------------------------
 // payment — idempotent via automation_jobs dedup; enqueues a payment_record job
-// that the automation-worker will dispatch once a handler is wired. Scope:
+// for AR invoice receipts. AP bill settlement must go through bank
+// reconciliation or payment runs so amount/source evidence guards stay intact.
+// Scope:
 // write:payments. Idempotency-Key header is required.
 // ---------------------------------------------------------------------------
 
@@ -435,41 +541,54 @@ async function ingestPayment(
   idempotencyKey: string | undefined,
 ) {
   const idemKey = idempotencyKey ?? (payload.idempotency_key as string | undefined);
-  if (!idemKey) throw new ValidationError("Idempotency-Key header or payload.idempotency_key is required for payment type");
+  if (!idemKey)
+    throw new ValidationError(
+      'Idempotency-Key header or payload.idempotency_key is required for payment type',
+    );
 
   const sourceId = await idemKeyToUuid(idemKey);
 
   // Dedup: return the existing job if already enqueued.
   const { data: existing } = await db
-    .from("automation_jobs")
-    .select("id")
-    .eq("organization_id", orgId)
-    .eq("source_kind", "payment")
-    .eq("source_id", sourceId)
+    .from('automation_jobs')
+    .select('id')
+    .eq('organization_id', orgId)
+    .eq('source_kind', 'payment')
+    .eq('source_id', sourceId)
     .maybeSingle();
 
   if (existing) {
-    return { status: 200, body: { ok: true, job_id: (existing as { id: string }).id, type: "payment", deduped: true } };
+    return {
+      status: 200,
+      body: { ok: true, job_id: (existing as { id: string }).id, type: 'payment', deduped: true },
+    };
   }
 
   const billId = payload.bill_id as string | undefined;
   const invoiceId = payload.invoice_id as string | undefined;
-  if (!billId && !invoiceId) throw new ValidationError("Either bill_id or invoice_id is required for payment type");
-  if (!payload.amount_cents) throw new ValidationError("amount_cents is required for payment type");
-  if (!payload.payment_date) throw new ValidationError("payment_date is required for payment type");
+  if (billId) {
+    throw new ValidationError(
+      'bill payments require bank reconciliation or payment runs; payment ingest supports invoice_id only',
+    );
+  }
+  if (!invoiceId) throw new ValidationError('invoice_id is required for payment type');
+  const amountCents = Number(payload.amount_cents);
+  if (!Number.isInteger(amountCents) || amountCents <= 0) {
+    throw new ValidationError('amount_cents must be a positive integer');
+  }
+  if (!payload.payment_date) throw new ValidationError('payment_date is required for payment type');
 
-  const { data: job, error } = await db.rpc("enqueue_automation_job", {
+  const { data: job, error } = await db.rpc('enqueue_automation_job', {
     p_org_id: orgId,
-    p_job_kind: "payment_record",
-    p_source_kind: "payment",
+    p_job_kind: 'payment_record',
+    p_source_kind: 'payment',
     p_source_id: sourceId,
     p_priority: 5,
     p_run_after: new Date().toISOString(),
     p_max_attempts: 3,
     p_payload: {
-      bill_id: billId ?? null,
-      invoice_id: invoiceId ?? null,
-      amount_cents: payload.amount_cents,
+      invoice_id: invoiceId,
+      amount_cents: amountCents,
       payment_date: payload.payment_date,
       payment_method: payload.payment_method ?? null,
       reference: payload.reference ?? null,
@@ -479,17 +598,29 @@ async function ingestPayment(
   if (error) throw new Error(error.message);
 
   const jobId = (job as { id?: string } | null)?.id ?? null;
-  return { status: 202, body: { ok: true, job_id: jobId, type: "payment", deduped: false } };
+  return { status: 202, body: { ok: true, job_id: jobId, type: 'payment', deduped: false } };
 }
 
 // Fire-and-forget into intake-routing-apply — mirrors bank-sync. Never blocks.
-function fireIntakeRouting(orgId: string, target: "bill" | "bank_transaction", targetIds: string[]) {
-  const url = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+function fireIntakeRouting(
+  orgId: string,
+  target: 'bill' | 'bank_transaction',
+  targetIds: string[],
+) {
+  const url = Deno.env.get('SUPABASE_URL');
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   if (!url || !serviceKey || targetIds.length === 0) return;
   void fetch(`${url}/functions/v1/intake-routing-apply`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+    method: 'POST',
+    headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ organization_id: orgId, target, target_ids: targetIds }),
-  }).catch(() => {/* routing is non-critical */});
+  }).catch(() => {
+    /* routing is non-critical */
+  });
+}
+
+function textField(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }

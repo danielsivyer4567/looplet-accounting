@@ -11,6 +11,7 @@
  *   bank_reconcile  — forward to auto-reconcile edge fn
  *   gmail_backfill  — forward to gmail-backfill edge fn
  *   coding_classify — forward to gmail-classify-ai edge fn
+ *   payment_record  — record AR invoice receipts from ingest payment jobs
  *
  * Each dispatch path:
  *   1. Idempotency check (skip if a completed job exists for same source)
@@ -60,7 +61,10 @@ function json(body: unknown, status = 200): Response {
 // Dispatcher — calls existing edge functions by relative URL
 // ---------------------------------------------------------------------------
 
-interface DispatchResult { ok: boolean; detail?: unknown }
+interface DispatchResult {
+  ok: boolean;
+  detail?: unknown;
+}
 
 async function dispatchJob(
   job: AutomationJob,
@@ -71,19 +75,26 @@ async function dispatchJob(
   const base = `${supabaseUrl}/functions/v1`;
   const headers = {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${serviceKey}`,
+    Authorization: `Bearer ${serviceKey}`,
   };
 
   switch (job.job_kind) {
     case 'bill_extract': {
-      const res = await fetch(`${base}/bills-extract-batch`, {
+      const pl = objectPayload(job.payload);
+      const billId =
+        stringValue(pl['bill_id']) ?? (job.source_kind === 'bill' ? job.source_id : null);
+      const endpoint = billId ? 'bills-extract' : 'bills-extract-batch';
+      const requestBody = billId
+        ? { bill_id: billId, force: booleanValue(pl['force']) }
+        : {
+            organization_id: job.organization_id,
+            source_id: job.source_id,
+            payload: job.payload,
+          };
+      const res = await fetch(`${base}/${endpoint}`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          organization_id: job.organization_id,
-          source_id: job.source_id,
-          payload: job.payload,
-        }),
+        body: JSON.stringify(requestBody),
       });
       const body = await res.json().catch(() => ({}));
       return { ok: res.ok, detail: body };
@@ -144,7 +155,7 @@ async function dispatchJob(
     }
 
     case 'coding_classify': {
-      const pl = (job.payload ?? {}) as Record<string, unknown>;
+      const pl = objectPayload(job.payload);
       const res = await fetch(`${base}/gmail-classify-ai`, {
         method: 'POST',
         headers,
@@ -157,6 +168,9 @@ async function dispatchJob(
       const body = await res.json().catch(() => ({}));
       return { ok: res.ok, detail: body };
     }
+
+    case 'payment_record':
+      return await recordPayment(job, supabaseUrl, serviceKey);
 
     case 'browser_collect':
       // Opt-in guard: completes gracefully when no real browser runner is attached.
@@ -308,4 +322,107 @@ function extractError(detail: unknown): string {
   if (typeof d['error'] === 'string') return d['error'];
   if (typeof d['message'] === 'string') return d['message'];
   return JSON.stringify(detail).slice(0, 200);
+}
+
+async function recordPayment(
+  job: AutomationJob,
+  supabaseUrl: string,
+  serviceKey: string,
+): Promise<DispatchResult> {
+  const pl = objectPayload(job.payload);
+  if (stringValue(pl['bill_id'])) {
+    return {
+      ok: false,
+      detail: {
+        error:
+          'bill payment jobs require bank reconciliation or payment runs; invoice payments only',
+      },
+    };
+  }
+
+  const invoiceId = stringValue(pl['invoice_id']);
+  const amountCents = numberValue(pl['amount_cents']);
+  const paidAt = paidAtIso(pl['payment_date']);
+  if (!invoiceId) return { ok: false, detail: { error: 'invoice_id required' } };
+  if (!amountCents || amountCents <= 0 || !Number.isInteger(amountCents)) {
+    return { ok: false, detail: { error: 'amount_cents must be a positive integer' } };
+  }
+  if (!paidAt) return { ok: false, detail: { error: 'payment_date required' } };
+
+  const admin = makeAdminClient(supabaseUrl, serviceKey);
+  const { data: invoice, error: invoiceErr } = await admin
+    .from('invoices')
+    .select('id, organization_id')
+    .eq('id', invoiceId)
+    .eq('organization_id', job.organization_id)
+    .maybeSingle();
+  if (invoiceErr)
+    return { ok: false, detail: { error: `invoice lookup failed: ${invoiceErr.message}` } };
+  if (!invoice) return { ok: false, detail: { error: 'invoice not found for organization' } };
+
+  const idempotencyKey = stringValue(pl['idempotency_key']);
+  const reference = stringValue(pl['reference']) ?? `ingest:${idempotencyKey ?? job.id}`;
+  const { data: existing, error: existingErr } = await admin
+    .from('invoice_payments')
+    .select('id')
+    .eq('organization_id', job.organization_id)
+    .eq('invoice_id', invoiceId)
+    .eq('amount_cents', amountCents)
+    .eq('reference', reference)
+    .maybeSingle();
+  if (existingErr) {
+    return { ok: false, detail: { error: `payment dedupe lookup failed: ${existingErr.message}` } };
+  }
+  if (existing) {
+    return { ok: true, detail: { status: 'deduped', payment_id: existing.id } };
+  }
+
+  const { data: inserted, error: insertErr } = await admin
+    .from('invoice_payments')
+    .insert({
+      organization_id: job.organization_id,
+      invoice_id: invoiceId,
+      paid_at: paidAt,
+      amount_cents: amountCents,
+      method: stringValue(pl['payment_method']) ?? 'api',
+      reference,
+      notes: `Recorded by automation worker from ingest payment ${idempotencyKey ?? job.id}`,
+    })
+    .select('id')
+    .single();
+  if (insertErr) {
+    return { ok: false, detail: { error: `invoice payment insert failed: ${insertErr.message}` } };
+  }
+
+  return { ok: true, detail: { status: 'recorded', payment_id: inserted.id } };
+}
+
+function objectPayload(payload: unknown): Record<string, unknown> {
+  return payload && typeof payload === 'object' && !Array.isArray(payload)
+    ? (payload as Record<string, unknown>)
+    : {};
+}
+
+function stringValue(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function numberValue(value: unknown): number | null {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string' && value.trim().length > 0) return Number(value);
+  return null;
+}
+
+function booleanValue(value: unknown): boolean {
+  return value === true;
+}
+
+function paidAtIso(value: unknown): string | null {
+  const raw = stringValue(value);
+  if (!raw) return null;
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T00:00:00.000Z` : raw;
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
