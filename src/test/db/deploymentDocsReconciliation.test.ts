@@ -38,8 +38,10 @@ describe('deployment docs reconciliation', () => {
     expect(p005Runbook).toContain('ceiling is now `0229_credit_notes_product.sql`');
     expect(p005Runbook).toContain('`0199`-`0207`');
     expect(p005Runbook).toContain('Only redeploy after `0199` has applied');
-    expect(p005Runbook).toContain('DB/function deployed; live overlay UI proof pending');
-    expect(p005Runbook).toContain('signed-in live overlay workflow');
+    expect(p005Runbook).toContain(
+      'DB/function deployed; current-build signed-in proof passed; production',
+    );
+    expect(p005Runbook).toContain('production Pages origin');
     expect(p005Runbook).not.toMatch(/There is no `0208`\/`0209`\/`0210`/);
   });
 

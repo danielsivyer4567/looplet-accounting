@@ -1,11 +1,14 @@
 # DEPLOY_PROOF_P0-05 — Accountant portal + tag-drop deploy runbook & live overlay proof
 
-> **Status: DB/function deployed; live overlay UI proof pending.** On
-> 2026-06-30, `0199`-`0207` were applied to live through
-> `supabase db query --linked`, matching migration-history rows were recorded,
-> and `team-invite` was redeployed. The remaining closeout is signed-in
-> accountant/tag overlay proof with screenshots, refreshed browser console, and
-> manual interaction notes.
+> **Status: DB/function deployed; current-build signed-in proof passed; production
+> frontend proof pending.** On 2026-06-30, `0199`-`0207` were applied to live
+> through `supabase db query --linked`, matching migration-history rows were
+> recorded, and `team-invite` was redeployed. A signed-in production-preview pass
+> of the current finish-line build against live Supabase then proved the
+> accountant/tag overlay flow. The production Pages deployment at
+> `https://looplet-accounting.pages.dev` is still stale and lacks the tag-drop
+> toggle, so the tracker row must stay unchecked until the current frontend is
+> deployed there and the same proof is repeated on that origin.
 >
 > **Target project:** `dxoikltymmknxqpkpyhi` ("looplet accounting") — the live
 > production project. ALWAYS pass `--project-ref dxoikltymmknxqpkpyhi` so a CLI
@@ -52,9 +55,54 @@ dxoikltymmknxqpkpyhi` deployed `team-invite` v37.
 - Rolled-back SQL proof `p0-05-tag-rpc-proof.sql` returned
   `rolled_back_create_tag_with_rate_limit_pass`.
 
-Still pending for full P0-05 closure: the signed-in live overlay workflow in
-Section 3 below. Do not mark the tracker row checked until those screenshots and
-console captures are attached.
+### 2026-06-30 signed-in UI proof attempt
+
+- Production Pages check:
+  `https://looplet-accounting.pages.dev/login` loaded and signed in with a
+  disposable smoke accountant. `/bills` loaded with no console/page errors or
+  failed responses, but the deployed build did not expose the tag-drop toggle.
+  The current production deployment therefore cannot satisfy Section 3 yet.
+- Current finish-line build check:
+  `npm run preview -- --host 127.0.0.1 --port 5182` served the built current
+  branch while using the live Supabase project.
+- Disposable smoke users/org were created through the supported Supabase Admin
+  API, not manual auth-table inserts. Direct SQL auth-user minting was retried
+  and still returned GoTrue `500 Database error querying schema`, matching the
+  earlier blocker note.
+- Accountant preview proof created live tag
+  `d5a61729-3433-426a-9ba7-0f7fd5389af1` from `/bills` through
+  `create_tag_with_rate_limit`; the RPC returned `200` with
+  `{"success":true}`. Browser console, page errors, and failed responses were
+  empty for the focused proof.
+- Member preview proof showed the mention in the bell and on `/notifications`
+  with `category='mention'`, `resource_type='tag'`, and
+  `/bills?tag=d5a61729-3433-426a-9ba7-0f7fd5389af1`.
+- Clicking `View tag` navigated to
+  `/bills?tag=d5a61729-3433-426a-9ba7-0f7fd5389af1`, fetched the tag row with
+  `200`, rendered the overlay card with the smoke comment, and marked the
+  notification read with `204`.
+- A focused preview close check rendered the overlay, clicked the visible close
+  control, and confirmed the smoke comment disappeared. Console, page-error, and
+  failed-response captures were empty.
+- Cross-tenant negative check created a synthetic foreign tag
+  `1025e5be-2ede-4367-9fdb-13cfd53c136b`; opening
+  `/bills?tag=1025e5be-2ede-4367-9fdb-13cfd53c136b` as the smoke member returned
+  `200 []` from the `tags` select and rendered no tag card.
+- Smoke data cleanup was completed after screenshots/network captures:
+  remaining smoke orgs/users/tags/notifications all returned `0`.
+- Screenshot artifacts captured under `.claude/scratch/`:
+  `p0-05-live-entry.png`, `p0-05-accountant-after-reload.png`,
+  `p0-05-preview-accountant-tag-popup.png`,
+  `p0-05-preview-accountant-tag-saved.png`,
+  `p0-05-preview-member-bell.png`,
+  `p0-05-preview-member-notifications.png`,
+  `p0-05-preview-member-deep-link.png`,
+  `p0-05-preview-member-overlay-closed-focused.png`, and
+  `p0-05-local-member-foreign-tag-negative.png`.
+
+Still pending for full P0-05 closure: deploy the current frontend to production
+Pages and repeat Section 3 on `https://looplet-accounting.pages.dev`. Do not mark
+the tracker row checked from localhost/preview evidence alone.
 
 ---
 
@@ -462,6 +510,11 @@ and the page falls back to normal — no foreign-org data leaks into the overlay
 
 Close the slice only when ALL boxes are ticked and screenshots/console captures
 are attached.
+
+The 2026-06-30 current-build preview proof satisfies the behaviour below against
+live Supabase, but the boxes remain unchecked until the same evidence is captured
+on the production Pages origin. Production Pages was stale during the proof pass
+and did not expose the tag-drop toggle.
 
 - [x] Pre-flight `to_regclass`/`accepted_at` checks all non-NULL (Section 1).
 - [x] Full-release migration baseline checked per `docs/MIGRATION_BASELINE_RUNBOOK.md`.
