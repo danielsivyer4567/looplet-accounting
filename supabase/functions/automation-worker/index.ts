@@ -13,6 +13,11 @@
  *   coding_classify — forward to gmail-classify-ai edge fn
  *   payment_record  — record AR invoice receipts from ingest payment jobs
  *
+ * Browser collection is intentionally excluded from the default claim loop.
+ * A dedicated browser runner must claim browser_collect jobs with its own
+ * filtered claim_automation_jobs call so evidence collection is never marked
+ * complete by this worker without a real browser run.
+ *
  * Each dispatch path:
  *   1. Idempotency check (skip if a completed job exists for same source)
  *   2. Log 'dispatch' step as 'started'
@@ -35,6 +40,15 @@ import {
 import type { AutomationJob } from '../_shared/automationJobs.ts';
 
 const CLAIM_LIMIT = 10;
+const DEFAULT_JOB_KINDS = [
+  'bill_extract',
+  'receipt_sync',
+  'xero_push',
+  'bank_reconcile',
+  'gmail_backfill',
+  'coding_classify',
+  'payment_record',
+] as const;
 
 // Exponential backoff delays per attempt (seconds): 60, 300, 900
 function backoffDelay(attempts: number): Date {
@@ -196,9 +210,8 @@ async function dispatchJob(
       return await recordPayment(job, supabaseUrl, serviceKey);
 
     case 'browser_collect':
-      // Opt-in guard: completes gracefully when no real browser runner is attached.
-      // A real runner overrides this by consuming the job before the worker claims it.
-      // See docs/BROWSER_AUTOMATION_RUNBOOK.md.
+      // Defensive fallback only. The default claim loop excludes browser jobs;
+      // a real browser runner must claim them explicitly.
       return {
         ok: true,
         detail: { status: 'not_supported', reason: 'no browser runner attached' },
@@ -266,8 +279,10 @@ Deno.serve(async (req) => {
     const workerId = `automation-worker-${crypto.randomUUID()}`;
     const admin = makeAdminClient(supabaseUrl, serviceKey);
 
-    // Claim due jobs
-    const jobs = await claimJobs(admin, workerId, null, CLAIM_LIMIT);
+    // Claim only jobs this worker can fully execute. Browser evidence jobs are
+    // owned by a separate runner because completing them without screenshots or
+    // collected artifacts would create false proof.
+    const jobs = await claimJobs(admin, workerId, [...DEFAULT_JOB_KINDS], CLAIM_LIMIT);
 
     const stats = {
       claimed: jobs.length,

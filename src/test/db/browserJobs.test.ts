@@ -8,7 +8,7 @@
  *  4. Org isolation: authenticated client cannot read another org's sessions
  *  5. Authenticated client cannot INSERT directly into browser_sessions
  *  6. Authenticated client cannot INSERT directly into browser_job_runs
- *  7. browser_collect job dispatches to not_supported (does not dead-letter)
+ *  7. browser_collect remains a supported dedicated-runner job kind
  */
 
 import { describe, it, expect, afterAll } from 'vitest';
@@ -217,10 +217,10 @@ describe('browser_job_runs — no direct INSERT', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Dispatcher: browser_collect returns not_supported (does not error)
+// Dispatcher: browser_collect remains supported for dedicated browser runners.
 // ---------------------------------------------------------------------------
 
-describe('browser_collect dispatcher stub', () => {
+describe('browser_collect job kind', () => {
   it('browser_collect is in the AutomationJobKind union', async () => {
     // Import the type — if tsc is clean this is purely a compile-time check,
     // but we verify the string value is accepted by the kind guard at runtime.

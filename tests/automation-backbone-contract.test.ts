@@ -51,6 +51,19 @@ describe('automation backbone source contracts', () => {
     expect(worker).toMatch(/xero_push requires invoice_id or bill_id/);
   });
 
+  it('scheduled worker only claims job kinds it can execute end-to-end', () => {
+    expect(worker).toMatch(/const DEFAULT_JOB_KINDS = \[/);
+    expect(worker).toMatch(
+      /claimJobs\(admin, workerId, \[\.\.\.DEFAULT_JOB_KINDS\], CLAIM_LIMIT\)/,
+    );
+
+    const defaultKindsMatch = worker.match(/const DEFAULT_JOB_KINDS = \[([\s\S]*?)\] as const;/);
+    expect(defaultKindsMatch?.[1]).toContain("'bill_extract'");
+    expect(defaultKindsMatch?.[1]).toContain("'payment_record'");
+    expect(defaultKindsMatch?.[1]).not.toContain("'browser_collect'");
+    expect(worker).toMatch(/case 'browser_collect'/);
+  });
+
   it('cron and webhook edge functions keep platform JWT disabled', () => {
     for (const fn of ['automation-worker', 'bank-webhook', 'bank-sync', 'auto-reconcile']) {
       expect(config).toMatch(

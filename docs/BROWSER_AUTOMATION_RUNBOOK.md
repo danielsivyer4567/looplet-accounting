@@ -7,19 +7,21 @@ read pages and write results back to Looplet as structured evidence. The databas
 schema (`browser_sessions`, `browser_job_runs`) and the job dispatcher stub are
 deployed, but **no browser runner ships inside this repo**.
 
-Browser jobs are **opt-in only**. The automation-worker dispatcher returns
-`not_supported` and completes the job gracefully when no runner is attached, so
-a stale `browser_collect` job never blocks the queue.
+Browser jobs are **opt-in only**. The default automation-worker does not claim
+`browser_collect` jobs because it cannot produce browser evidence. A dedicated
+runner must claim them with a filtered `claim_automation_jobs` call and then
+write screenshots, console status, and collected artifacts back to Looplet.
 
 ## Opt-in rule
 
 Browser automation MUST NOT be used for:
+
 - Any write that affects accounting records (bills, GL entries, payments)
 - Automated lodgement of any ATO, DSP, or SBR document
 - Any action that cannot be reviewed by a human before it takes effect
 
 Permitted uses: read-only data collection, screenshot evidence, form pre-fill
-*preview* (not submit).
+_preview_ (not submit).
 
 ## Artifact contract
 
@@ -56,20 +58,24 @@ const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
 async function runBrowserSession(job) {
   // 1. Create a session row
-  const { data: session } = await admin.from('browser_sessions').insert({
-    org_id: job.organization_id,
-    created_by: null,                 // system-initiated
-    purpose: job.payload.purpose,
-    status: 'running',
-    started_at: new Date().toISOString(),
-  }).select('id').single();
+  const { data: session } = await admin
+    .from('browser_sessions')
+    .insert({
+      org_id: job.organization_id,
+      created_by: null, // system-initiated
+      purpose: job.payload.purpose,
+      status: 'running',
+      started_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single();
 
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
 
   // 2. Capture console errors
   const consoleErrors = [];
-  page.on('console', msg => {
+  page.on('console', (msg) => {
     if (msg.type() === 'error') consoleErrors.push({ level: 'error', message: msg.text() });
   });
 
@@ -89,16 +95,19 @@ async function runBrowserSession(job) {
     target_url: job.payload.target_url,
     screenshot_path: screenshotPath,
     console_errors: consoleErrors,
-    failed_responses: [],           // populate from response interception
+    failed_responses: [], // populate from response interception
     final_url: page.url(),
     duration_ms: durationMs,
   });
 
   // 6. Close the session
-  await admin.from('browser_sessions').update({
-    status: 'completed',
-    ended_at: new Date().toISOString(),
-  }).eq('id', session.id);
+  await admin
+    .from('browser_sessions')
+    .update({
+      status: 'completed',
+      ended_at: new Date().toISOString(),
+    })
+    .eq('id', session.id);
 
   await browser.close();
 }
@@ -106,9 +115,9 @@ async function runBrowserSession(job) {
 
 ## Claiming browser_collect jobs
 
-The automation-worker returns `not_supported` for `browser_collect` and marks
-the job **completed** immediately. A real runner should claim its own jobs before
-the worker does, or use a separate claim loop filtered to `job_kinds: ['browser_collect']`.
+The default automation-worker excludes `browser_collect` from its claim filter.
+A real runner must use a separate claim loop filtered to
+`job_kinds: ['browser_collect']`.
 
 ```js
 const { data: jobs } = await admin.rpc('claim_automation_jobs', {
@@ -119,6 +128,9 @@ const { data: jobs } = await admin.rpc('claim_automation_jobs', {
 });
 ```
 
-If a browser_collect job arrives and no runner is active, the worker's
-`not_supported` path ensures it completes after one attempt — no dead-letter,
-no queue blockage.
+If a browser_collect job arrives and no runner is active, it remains pending or
+is retried according to the runner's own lock/backoff behavior. That is
+intentional: a browser collection task should not be marked completed until a
+runner has produced evidence. The worker still keeps a defensive `not_supported`
+dispatcher path for explicit/manual claims, but the scheduled worker path does
+not use it.

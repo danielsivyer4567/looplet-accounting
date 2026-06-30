@@ -39,11 +39,11 @@ internally) were left as-is: `enqueue_automation_job`, `get_confidence_policy`,
 
 ## ✅ Edge deploys completed after source fixes (verified 2026-07-01)
 
-| Function            | Live version | Verification                                                                                                                                                                                                                             |
-| ------------------- | -----------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `automation-worker` |            4 | `supabase functions deploy automation-worker` succeeded after dispatch contract fix; `functions list` updated to `2026-06-30 19:27:25 UTC`; unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}` |
-| `ingest`            |           32 | `supabase functions deploy ingest` succeeded; `functions list` updated to `2026-06-30 19:15:48 UTC`; unauthenticated POST reaches function code and returns `{"error":"invalid_api_key"}`                                                |
-| `bank-sync`         |           50 | Deployed after smoke showed platform-level `UNAUTHORIZED_NO_AUTH_HEADER`; repeat unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}`                                                            |
+| Function            | Live version | Verification                                                                                                                                                                                                                                   |
+| ------------------- | -----------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `automation-worker` |            5 | `supabase functions deploy automation-worker` succeeded after browser-job claim hardening; `functions list` updated to `2026-06-30 19:31:33 UTC`; unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}` |
+| `ingest`            |           32 | `supabase functions deploy ingest` succeeded; `functions list` updated to `2026-06-30 19:15:48 UTC`; unauthenticated POST reaches function code and returns `{"error":"invalid_api_key"}`                                                      |
+| `bank-sync`         |           50 | Deployed after smoke showed platform-level `UNAUTHORIZED_NO_AUTH_HEADER`; repeat unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}`                                                                  |
 
 These smokes are deliberately non-mutating. They prove routing and `verify_jwt=false`
 config, not a real bank/document/payment workflow.
@@ -81,7 +81,7 @@ not a batch.
 The analysis found `ingest` would have failed on every document/payment call. The
 first two blockers were fixed and live-verified at the DB/RPC level; the later
 source/worker contract fixes are now deployed to `ingest` v32 and
-`automation-worker` v4, but still need positive e2e data proof:
+`automation-worker` v5, but still need positive e2e data proof:
 
 1. **Org-gate** — `enqueue_automation_job` rejected the bare service-role caller
    (`get_accessible_org_ids()` → `[]`). Fixed by migration
@@ -109,6 +109,11 @@ source/worker contract fixes are now deployed to `ingest` v32 and
    functions require `bill_id` or `invoice_id`. Current source now dispatches
    `receipt_sync` to `receipt-sync-dispatch` and sends Xero-specific request
    bodies.
+7. **Browser job false-complete risk** — the default worker claimed every job
+   kind and could complete `browser_collect` with `not_supported`, leaving no
+   screenshot/console/artifact proof. Current source now claims only executable
+   server-side job kinds; dedicated browser runners must claim `browser_collect`
+   explicitly.
 
 `ingest` and `automation-worker` have been deployed as a pair. `verify_jwt=false`
 stays explicit in `supabase/config.toml`.
