@@ -404,11 +404,23 @@ function makeQuery(table: string) {
     return Promise.resolve(selectResult());
   };
 
-  ['select', 'eq', 'neq', 'gt', 'lt', 'gte', 'lte', 'is', 'order', 'limit', 'in', 'match'].forEach(
-    (method) => {
-      query[method] = pass;
-    },
-  );
+  [
+    'select',
+    'eq',
+    'neq',
+    'gt',
+    'lt',
+    'gte',
+    'lte',
+    'is',
+    'not',
+    'order',
+    'limit',
+    'in',
+    'match',
+  ].forEach((method) => {
+    query[method] = pass;
+  });
   query.insert = (p: unknown) => {
     op = 'insert';
     payload = p;
@@ -587,7 +599,7 @@ async function runSmoke(port) {
     }
     if (consoleErrors.length > 0 || pageErrors.length > 0) {
       throw new Error(
-        `browser errors found: console=${consoleErrors.length}, page=${pageErrors.length}`,
+        `browser errors found: console=${JSON.stringify(consoleErrors)}, page=${JSON.stringify(pageErrors)}`,
       );
     }
 
