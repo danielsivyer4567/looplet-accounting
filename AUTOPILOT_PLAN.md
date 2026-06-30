@@ -60,7 +60,13 @@ Cross-tenant view leak closed, `system_defaults` locked, anon definer-fn execute
       stale `describe.skip`/`expect(true)` gate. Live PR-run proof still depends on
       GitHub test secrets being present.
 - [ ] **E2** Accounting-engine tests (GST split, BAS, reconciliation, PAYG, ABA, Xero push).
-- [ ] **E3** Remaining hardening: `notify()` org-guard, `search_path` on definer fns, 61 FK indexes, audit triggers on money tables.
+- [ ] **E3** Remaining hardening: `notify()` org-guard is code-complete in
+      `20260701062500_harden_notify_org_guard.sql` and covered by
+      `tests/notify-org-guard-contract.test.ts`; `search_path` hardening
+      (`0060`), FK indexes (`0061`), and money-table audit triggers (`0062`)
+      exist in the migration chain. Live apply of the new notify guard is still
+      pending because the current Supabase CLI connection rejects
+      `SUPABASE_DB_PASSWORD`.
 
 ### EPIC F — Connector API _(parallel; scaffold in PR #9)_
 
