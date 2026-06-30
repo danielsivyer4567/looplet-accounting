@@ -62,9 +62,9 @@ Deno.serve(async (req: Request) => {
 
     // Verify org membership — fail fast before any heavy RPCs
     const { data: memberData, error: memberError } = await client
-      .from('org_members')
-      .select('org_id')
-      .eq('org_id', org_id)
+      .from('organization_members')
+      .select('organization_id')
+      .eq('organization_id', org_id)
       .maybeSingle()
 
     if (memberError) {
@@ -130,18 +130,18 @@ async function fetchStats(
 ): Promise<{ stats: ScoreBandCounts }> {
   const { data, error } = await client
     .from('v_allocation_queue')
-    .select('suggested_score')
-    .eq('org_id', org_id)
+    .select('score')
+    .eq('organization_id', org_id)
 
   if (error) {
     throw new Error(`Failed to query v_allocation_queue: ${error.message}`)
   }
 
-  const rows = (data ?? []) as Array<{ suggested_score: number | null }>
+  const rows = (data ?? []) as Array<{ score: number | null }>
 
   const counts: ScoreBandCounts = { high: 0, medium: 0, no_suggestion: 0 }
   for (const row of rows) {
-    const score = row.suggested_score
+    const score = row.score
     if (score == null) {
       counts.no_suggestion++
     } else if (score >= 0.85) {
