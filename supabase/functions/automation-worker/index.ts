@@ -158,6 +158,15 @@ async function dispatchJob(
       return { ok: res.ok, detail: body };
     }
 
+    case 'browser_collect':
+      // Opt-in guard: completes gracefully when no real browser runner is attached.
+      // A real runner overrides this by consuming the job before the worker claims it.
+      // See docs/BROWSER_AUTOMATION_RUNBOOK.md.
+      return {
+        ok: true,
+        detail: { status: 'not_supported', reason: 'no browser runner attached' },
+      };
+
     default:
       return { ok: false, detail: { error: `unsupported job_kind: ${job.job_kind}` } };
   }
