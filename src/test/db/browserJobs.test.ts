@@ -30,7 +30,8 @@ const authed = () =>
     auth: { persistSession: false },
     global: { headers: { Authorization: `Bearer ${TEST_USER_JWT}` } },
   });
-const anon = () => createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+const anon = () =>
+  createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
 
 const createdSessionIds: string[] = [];
 
@@ -60,7 +61,9 @@ describe('browser_job_runs — schema', () => {
   itLive('table exists with expected columns', async () => {
     const { data, error } = await svc()
       .from('browser_job_runs')
-      .select('id, session_id, target_url, screenshot_path, console_errors, failed_responses, final_url, duration_ms, created_at')
+      .select(
+        'id, session_id, target_url, screenshot_path, console_errors, failed_responses, final_url, duration_ms, created_at',
+      )
       .limit(0);
     expect(error).toBeNull();
     expect(Array.isArray(data)).toBe(true);
@@ -139,10 +142,7 @@ describe('browser_sessions — org isolation', () => {
     if (!row?.id) return;
     createdSessionIds.push(row.id);
 
-    const { data } = await authed()
-      .from('browser_sessions')
-      .select('id')
-      .eq('id', row.id);
+    const { data } = await authed().from('browser_sessions').select('id').eq('id', row.id);
     expect((data ?? []).length).toBe(0);
   });
 
@@ -171,10 +171,7 @@ describe('browser_sessions — org isolation', () => {
     const run = r as { id: string } | null;
     if (!run?.id) return;
 
-    const { data } = await authed()
-      .from('browser_job_runs')
-      .select('id')
-      .eq('id', run.id);
+    const { data } = await authed().from('browser_job_runs').select('id').eq('id', run.id);
     expect((data ?? []).length).toBe(0);
   });
 });
@@ -229,8 +226,13 @@ describe('browser_collect dispatcher stub', () => {
     // but we verify the string value is accepted by the kind guard at runtime.
     const kind = 'browser_collect';
     const supportedKinds = [
-      'bill_extract', 'receipt_sync', 'xero_push', 'bank_reconcile',
-      'gmail_backfill', 'coding_classify', 'browser_collect',
+      'bill_extract',
+      'receipt_sync',
+      'xero_push',
+      'bank_reconcile',
+      'gmail_backfill',
+      'coding_classify',
+      'browser_collect',
     ];
     expect(supportedKinds).toContain(kind);
   });

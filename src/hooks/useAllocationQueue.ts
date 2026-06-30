@@ -139,7 +139,9 @@ export function useAllocationQueue() {
           body.min_score = min_score;
         }
 
-        const { error: fnError } = await supabase.functions.invoke('bills-allocate-batch', { body });
+        const { error: fnError } = await supabase.functions.invoke('bills-allocate-batch', {
+          body,
+        });
 
         if (fnError) {
           return {
@@ -182,7 +184,10 @@ export function useAllocationQueue() {
     [invokeAllocate],
   );
 
-  const runRematch = useCallback((): Promise<RunResult> => invokeAllocate('rematch'), [invokeAllocate]);
+  const runRematch = useCallback(
+    (): Promise<RunResult> => invokeAllocate('rematch'),
+    [invokeAllocate],
+  );
 
   const runFull = useCallback((): Promise<RunResult> => invokeAllocate('full'), [invokeAllocate]);
 

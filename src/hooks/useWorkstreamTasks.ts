@@ -176,7 +176,8 @@ export function useWorkstreamTasks() {
           owner_label: `Close out ${monthLabel} books — ${itemsSummary} need attention`,
           why_now: `Month-end close window is open and ${totalAttentionItems} item${totalAttentionItems === 1 ? '' : 's'} must be resolved before the period can be locked.`,
           source_refs: { overdue_bills: overdueBills, unmatched_bank: unmatchedBank },
-          suggested_action: 'Review and clear overdue bills and unmatched bank transactions, then run the period close.',
+          suggested_action:
+            'Review and clear overdue bills and unmatched bank transactions, then run the period close.',
           confidence: 'review_needed',
           impact_cents: null,
           due_at: lastDayOfCurrentMonth(),

@@ -6,7 +6,19 @@ import { GmailConnect } from '@/components/settings/GmailConnect';
 import { BankConnect } from '@/components/settings/BankConnect';
 import { XeroConnect } from '@/components/settings/XeroConnect';
 import { PayerBankDetails } from '@/components/settings/PayerBankDetails';
-import { User, Lock, Bell, Eye, Shield, ChevronRight, Info, X, Cpu, Trash2, Plus } from 'lucide-react';
+import {
+  User,
+  Lock,
+  Bell,
+  Eye,
+  Shield,
+  ChevronRight,
+  Info,
+  X,
+  Cpu,
+  Trash2,
+  Plus,
+} from 'lucide-react';
 import {
   type AutomationConfidence,
   type DecisionSourceKind,
@@ -699,7 +711,9 @@ export function SettingsPage() {
 
           {activeCategory === 'automation' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+              >
                 <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>
                   Confidence policies
                 </h3>
@@ -723,9 +737,16 @@ export function SettingsPage() {
                   Add policy
                 </button>
               </div>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', lineHeight: 1.5, margin: 0 }}>
-                Override the default confidence band for a source/task combination.
-                The most specific active policy wins over the AI-computed band.
+              <p
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.825rem',
+                  lineHeight: 1.5,
+                  margin: 0,
+                }}
+              >
+                Override the default confidence band for a source/task combination. The most
+                specific active policy wins over the AI-computed band.
               </p>
 
               {policyError && (
@@ -737,32 +758,62 @@ export function SettingsPage() {
               {addingPolicy && (
                 <div
                   className="card"
-                  style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+                  style={{
+                    padding: '1rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem',
+                  }}
                 >
                   <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>New policy</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                  <div
+                    style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}
+                  >
                     <div>
-                      <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                      <label
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          display: 'block',
+                          marginBottom: '0.25rem',
+                        }}
+                      >
                         Source kind
                       </label>
                       <select
                         value={newPolicy.source_kind}
                         onChange={(e) =>
-                          setNewPolicy((p) => ({ ...p, source_kind: e.target.value as DecisionSourceKind }))
+                          setNewPolicy((p) => ({
+                            ...p,
+                            source_kind: e.target.value as DecisionSourceKind,
+                          }))
                         }
                         style={{
-                          width: '100%', padding: '0.4rem 0.6rem',
-                          background: 'var(--bg-input)', border: '1px solid var(--border-subtle)',
-                          borderRadius: '6px', color: 'var(--text-title)', fontSize: '0.8rem',
+                          width: '100%',
+                          padding: '0.4rem 0.6rem',
+                          background: 'var(--bg-input)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: '6px',
+                          color: 'var(--text-title)',
+                          fontSize: '0.8rem',
                         }}
                       >
                         {SOURCE_KIND_OPTIONS.map((k) => (
-                          <option key={k} value={k}>{k}</option>
+                          <option key={k} value={k}>
+                            {k}
+                          </option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                      <label
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          display: 'block',
+                          marginBottom: '0.25rem',
+                        }}
+                      >
                         Task type
                       </label>
                       <select
@@ -771,33 +822,55 @@ export function SettingsPage() {
                           setNewPolicy((p) => ({ ...p, task_type: e.target.value as DecisionKind }))
                         }
                         style={{
-                          width: '100%', padding: '0.4rem 0.6rem',
-                          background: 'var(--bg-input)', border: '1px solid var(--border-subtle)',
-                          borderRadius: '6px', color: 'var(--text-title)', fontSize: '0.8rem',
+                          width: '100%',
+                          padding: '0.4rem 0.6rem',
+                          background: 'var(--bg-input)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: '6px',
+                          color: 'var(--text-title)',
+                          fontSize: '0.8rem',
                         }}
                       >
                         {TASK_TYPE_OPTIONS.map((t) => (
-                          <option key={t} value={t}>{t}</option>
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                      <label
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          display: 'block',
+                          marginBottom: '0.25rem',
+                        }}
+                      >
                         Policy band
                       </label>
                       <select
                         value={newPolicy.policy}
                         onChange={(e) =>
-                          setNewPolicy((p) => ({ ...p, policy: e.target.value as AutomationConfidence }))
+                          setNewPolicy((p) => ({
+                            ...p,
+                            policy: e.target.value as AutomationConfidence,
+                          }))
                         }
                         style={{
-                          width: '100%', padding: '0.4rem 0.6rem',
-                          background: 'var(--bg-input)', border: '1px solid var(--border-subtle)',
-                          borderRadius: '6px', color: 'var(--text-title)', fontSize: '0.8rem',
+                          width: '100%',
+                          padding: '0.4rem 0.6rem',
+                          background: 'var(--bg-input)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: '6px',
+                          color: 'var(--text-title)',
+                          fontSize: '0.8rem',
                         }}
                       >
                         {CONFIDENCE_OPTIONS.map((c) => (
-                          <option key={c} value={c}>{c}</option>
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -806,9 +879,13 @@ export function SettingsPage() {
                     <button
                       onClick={() => setAddingPolicy(false)}
                       style={{
-                        padding: '0.4rem 0.8rem', background: 'transparent',
-                        border: '1px solid var(--border-subtle)', borderRadius: '6px',
-                        color: 'var(--text-muted)', fontSize: '0.8rem', cursor: 'pointer',
+                        padding: '0.4rem 0.8rem',
+                        background: 'transparent',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: '6px',
+                        color: 'var(--text-muted)',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
                       }}
                     >
                       Cancel
@@ -816,9 +893,14 @@ export function SettingsPage() {
                     <button
                       onClick={handleAddPolicy}
                       style={{
-                        padding: '0.4rem 0.8rem', background: 'var(--accent-primary)',
-                        border: 'none', borderRadius: '6px',
-                        color: '#fff', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer',
+                        padding: '0.4rem 0.8rem',
+                        background: 'var(--accent-primary)',
+                        border: 'none',
+                        borderRadius: '6px',
+                        color: '#fff',
+                        fontWeight: 600,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
                       }}
                     >
                       Save
@@ -839,18 +921,35 @@ export function SettingsPage() {
                     <div
                       key={p.id}
                       className="settings-row"
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
                     >
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}>
+                        <div
+                          style={{
+                            fontWeight: 600,
+                            fontSize: '0.85rem',
+                            color: 'var(--text-title)',
+                          }}
+                        >
                           {p.source_kind} / {p.task_type}
                           {p.supplier_id && (
                             <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
-                              {' '}· supplier {p.supplier_id.slice(0, 8)}…
+                              {' '}
+                              · supplier {p.supplier_id.slice(0, 8)}…
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
+                        <div
+                          style={{
+                            fontSize: '0.75rem',
+                            color: 'var(--text-muted)',
+                            marginTop: '0.1rem',
+                          }}
+                        >
                           <strong>{p.policy}</strong>
                           {p.valid_until
                             ? ` · expires ${new Date(p.valid_until).toLocaleDateString()}`
@@ -861,8 +960,10 @@ export function SettingsPage() {
                         onClick={() => handleDeletePolicy(p.id)}
                         title="Delete policy"
                         style={{
-                          background: 'transparent', border: 'none',
-                          cursor: 'pointer', color: 'var(--text-muted)',
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--text-muted)',
                           padding: '0.25rem',
                         }}
                       >

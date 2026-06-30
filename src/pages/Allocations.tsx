@@ -190,7 +190,9 @@ export function AllocationsPage() {
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
   const [previewBillId, setPreviewBillId] = useState<string | null>(null);
 
-  const previewBill = previewBillId ? (queue.find((b) => b.bill_id === previewBillId) ?? null) : null;
+  const previewBill = previewBillId
+    ? (queue.find((b) => b.bill_id === previewBillId) ?? null)
+    : null;
 
   if (!currentOrg) {
     return (

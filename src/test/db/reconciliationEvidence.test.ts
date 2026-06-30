@@ -30,7 +30,8 @@ const authed = () =>
     auth: { persistSession: false },
     global: { headers: { Authorization: `Bearer ${TEST_USER_JWT}` } },
   });
-const anon = () => createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+const anon = () =>
+  createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
 
 const createdEvidenceIds: string[] = [];
 
@@ -61,7 +62,13 @@ describe('reconciliation_evidence — service_role writes', () => {
         bank_transaction_id: TEST_BANK_TXN_A,
         organization_id: ORG_A_ID,
         reason_codes: ['amount_exact', 'date_recent', 'name_match'],
-        score_components: { kind: 'bill', score: 1.05, amount_diff_cents: 0, days_diff: 2, name_hit: true },
+        score_components: {
+          kind: 'bill',
+          score: 1.05,
+          amount_diff_cents: 0,
+          days_diff: 2,
+          name_hit: true,
+        },
         auto_applied: true,
         skipped_reason: null,
       })
@@ -137,13 +144,15 @@ describe('reconciliation_evidence — RLS read', () => {
 describe('reconciliation_evidence — write deny', () => {
   itLive('authenticated client cannot INSERT directly', async () => {
     if (!TEST_USER_JWT) return;
-    const { error } = await authed().from('reconciliation_evidence').insert({
-      bank_transaction_id: TEST_BANK_TXN_A,
-      organization_id: ORG_A_ID,
-      reason_codes: ['amount_match'],
-      score_components: {},
-      auto_applied: false,
-    });
+    const { error } = await authed()
+      .from('reconciliation_evidence')
+      .insert({
+        bank_transaction_id: TEST_BANK_TXN_A,
+        organization_id: ORG_A_ID,
+        reason_codes: ['amount_match'],
+        score_components: {},
+        auto_applied: false,
+      });
     expect(error).not.toBeNull();
   });
 

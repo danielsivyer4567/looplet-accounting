@@ -4,35 +4,35 @@ import { formatMoney } from '@/lib/money';
 import { useBankCodingQueue, type CodingQueueRow } from '@/hooks/useBankCodingQueue';
 
 const CATEGORY_OPTIONS = [
-  { code: 'materials',           label: 'Materials' },
-  { code: 'subcontractor',       label: 'Subcontractor' },
-  { code: 'motor_vehicle',       label: 'Motor vehicle' },
-  { code: 'fuel',                label: 'Fuel' },
-  { code: 'plant_equipment',     label: 'Plant & equipment' },
-  { code: 'insurance',           label: 'Insurance' },
-  { code: 'telephone_internet',  label: 'Telephone & internet' },
-  { code: 'subscriptions_saas',  label: 'Subscriptions' },
-  { code: 'office_supplies',     label: 'Office supplies' },
-  { code: 'travel',              label: 'Travel' },
+  { code: 'materials', label: 'Materials' },
+  { code: 'subcontractor', label: 'Subcontractor' },
+  { code: 'motor_vehicle', label: 'Motor vehicle' },
+  { code: 'fuel', label: 'Fuel' },
+  { code: 'plant_equipment', label: 'Plant & equipment' },
+  { code: 'insurance', label: 'Insurance' },
+  { code: 'telephone_internet', label: 'Telephone & internet' },
+  { code: 'subscriptions_saas', label: 'Subscriptions' },
+  { code: 'office_supplies', label: 'Office supplies' },
+  { code: 'travel', label: 'Travel' },
   { code: 'meals_entertainment', label: 'Meals & entertainment' },
-  { code: 'professional_fees',   label: 'Professional fees' },
-  { code: 'rent',                label: 'Rent' },
-  { code: 'utilities',           label: 'Utilities' },
-  { code: 'bank_fees',           label: 'Bank fees' },
-  { code: 'marketing',           label: 'Marketing' },
-  { code: 'training',            label: 'Training' },
-  { code: 'uniform_ppe',         label: 'Uniform & PPE' },
-  { code: 'ato_bas_super',       label: 'ATO / BAS / Super' },
-  { code: 'customer_payment',    label: 'Customer payment' },
-  { code: 'refunds',             label: 'Refunds' },
-  { code: 'employee_wages',      label: 'Employee wages' },
-  { code: 'personal_expense',    label: 'Personal' },
-  { code: 'uncategorized',       label: 'Needs review' },
+  { code: 'professional_fees', label: 'Professional fees' },
+  { code: 'rent', label: 'Rent' },
+  { code: 'utilities', label: 'Utilities' },
+  { code: 'bank_fees', label: 'Bank fees' },
+  { code: 'marketing', label: 'Marketing' },
+  { code: 'training', label: 'Training' },
+  { code: 'uniform_ppe', label: 'Uniform & PPE' },
+  { code: 'ato_bas_super', label: 'ATO / BAS / Super' },
+  { code: 'customer_payment', label: 'Customer payment' },
+  { code: 'refunds', label: 'Refunds' },
+  { code: 'employee_wages', label: 'Employee wages' },
+  { code: 'personal_expense', label: 'Personal' },
+  { code: 'uncategorized', label: 'Needs review' },
 ];
 
 function confidenceColor(c: number): string {
   if (c >= 0.88) return 'var(--color-success)';
-  if (c >= 0.60) return 'var(--color-warning, #f59e0b)';
+  if (c >= 0.6) return 'var(--color-warning, #f59e0b)';
   return 'var(--color-danger, #ef4444)';
 }
 
@@ -53,7 +53,7 @@ function OverrideSelect({
         className="btn btn-ghost"
         style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', opacity: busy ? 0.5 : 1 }}
         disabled={busy}
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen((o) => !o)}
       >
         Override <ChevronDown size={12} style={{ marginLeft: 2 }} />
       </button>
@@ -73,7 +73,7 @@ function OverrideSelect({
             overflowY: 'auto',
           }}
         >
-          {CATEGORY_OPTIONS.map(opt => (
+          {CATEGORY_OPTIONS.map((opt) => (
             <button
               key={opt.code}
               className="btn btn-ghost"
@@ -114,7 +114,8 @@ function CodingRow({
   const busy = busyId === row.bank_transaction_id;
   const isDebit = row.txn_amount_cents < 0;
   const date = new Date(row.txn_posted_at).toLocaleDateString('en-AU', {
-    day: '2-digit', month: 'short',
+    day: '2-digit',
+    month: 'short',
   });
 
   return (
@@ -124,7 +125,13 @@ function CodingRow({
       </td>
       <td style={{ maxWidth: '220px' }}>
         <span
-          style={{ fontSize: '0.85rem', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          style={{
+            fontSize: '0.85rem',
+            display: 'block',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
           title={row.txn_description}
         >
           {row.txn_description}
@@ -132,24 +139,38 @@ function CodingRow({
       </td>
       <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
         <span style={{ color: isDebit ? 'var(--text-danger, #ef4444)' : 'var(--color-success)' }}>
-          {isDebit ? '-' : '+'}{formatMoney(Math.abs(row.txn_amount_cents))}
+          {isDebit ? '-' : '+'}
+          {formatMoney(Math.abs(row.txn_amount_cents))}
         </span>
       </td>
       <td>
         {row.category_code && row.category_code !== 'uncategorized' ? (
           <span
             className="badge"
-            style={{ background: 'var(--bg-accent-subtle)', color: 'var(--accent-primary)', fontSize: '0.75rem' }}
+            style={{
+              background: 'var(--bg-accent-subtle)',
+              color: 'var(--accent-primary)',
+              fontSize: '0.75rem',
+            }}
           >
             <Tag size={10} style={{ marginRight: 3 }} />
             {row.category_label ?? row.category_code}
           </span>
         ) : (
-          <span className="badge badge-warning" style={{ fontSize: '0.75rem' }}>Unclear</span>
+          <span className="badge badge-warning" style={{ fontSize: '0.75rem' }}>
+            Unclear
+          </span>
         )}
       </td>
       <td style={{ textAlign: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', justifyContent: 'center' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.25rem',
+            justifyContent: 'center',
+          }}
+        >
           <div
             style={{
               width: '36px',
@@ -184,7 +205,11 @@ function CodingRow({
             <Check size={12} style={{ marginRight: 3 }} />
             Confirm
           </button>
-          <OverrideSelect row={row} busy={busy} onOverride={code => onOverride(row.bank_transaction_id, code)} />
+          <OverrideSelect
+            row={row}
+            busy={busy}
+            onOverride={(code) => onOverride(row.bank_transaction_id, code)}
+          />
         </div>
       </td>
     </tr>
@@ -208,14 +233,23 @@ export function BankTransactionCodingQueue() {
 
   const handleConfirmAll = async () => {
     setActionError(null);
-    await confirmAll(0.80);
+    await confirmAll(0.8);
   };
 
-  const highConfidenceCount = rows.filter(r => r.confidence >= 0.80 && r.category_code && r.category_code !== 'uncategorized').length;
+  const highConfidenceCount = rows.filter(
+    (r) => r.confidence >= 0.8 && r.category_code && r.category_code !== 'uncategorized',
+  ).length;
 
   if (loading) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+      <div
+        style={{
+          padding: '2rem',
+          textAlign: 'center',
+          color: 'var(--text-muted)',
+          fontSize: '0.875rem',
+        }}
+      >
         Loading coding queue…
       </div>
     );
@@ -224,12 +258,19 @@ export function BankTransactionCodingQueue() {
   return (
     <div>
       {/* Section header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '1rem',
+          flexWrap: 'wrap',
+          gap: '0.75rem',
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Zap size={18} style={{ color: 'var(--accent-primary)' }} />
-          <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>
-            Coding Queue
-          </h2>
+          <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Coding Queue</h2>
           {rows.length > 0 && (
             <span
               className="badge"
@@ -254,7 +295,12 @@ export function BankTransactionCodingQueue() {
       {(error || actionError) && (
         <div
           className="badge badge-danger"
-          style={{ display: 'block', padding: '0.5rem 0.75rem', marginBottom: '0.75rem', textTransform: 'none' }}
+          style={{
+            display: 'block',
+            padding: '0.5rem 0.75rem',
+            marginBottom: '0.75rem',
+            textTransform: 'none',
+          }}
         >
           {error ?? actionError}
         </div>
@@ -287,7 +333,7 @@ export function BankTransactionCodingQueue() {
               </tr>
             </thead>
             <tbody>
-              {rows.map(row => (
+              {rows.map((row) => (
                 <CodingRow
                   key={row.id}
                   row={row}

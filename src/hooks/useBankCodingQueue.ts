@@ -57,7 +57,9 @@ export function useBankCodingQueue() {
   ): Promise<{ ok: boolean; error?: string }> {
     setBusyId(bankTransactionId);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return { ok: false, error: 'Not authenticated' };
 
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bank-transaction-classifier`;
@@ -74,11 +76,11 @@ export function useBankCodingQueue() {
         }),
       });
 
-      const body = await res.json() as { ok: boolean; error?: string };
+      const body = (await res.json()) as { ok: boolean; error?: string };
       if (!body.ok) return { ok: false, error: body.error ?? '' };
 
       // Optimistic removal from queue
-      setRows(prev => prev.filter(r => r.bank_transaction_id !== bankTransactionId));
+      setRows((prev) => prev.filter((r) => r.bank_transaction_id !== bankTransactionId));
       return { ok: true };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -88,8 +90,8 @@ export function useBankCodingQueue() {
     }
   }
 
-  async function confirmAll(minConfidence = 0.80) {
-    const high = rows.filter(r => r.confidence >= minConfidence);
+  async function confirmAll(minConfidence = 0.8) {
+    const high = rows.filter((r) => r.confidence >= minConfidence);
     for (const row of high) {
       if (!row.category_code) continue;
       await postDecision(row.bank_transaction_id, 'accept');

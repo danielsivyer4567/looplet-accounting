@@ -4,12 +4,7 @@ import { supabase } from '@/lib/supabase';
 // Types — mirror the DB schema
 // ---------------------------------------------------------------------------
 
-export type AutomationJobStatus =
-  | 'pending'
-  | 'claimed'
-  | 'completed'
-  | 'failed'
-  | 'dead_lettered';
+export type AutomationJobStatus = 'pending' | 'claimed' | 'completed' | 'failed' | 'dead_lettered';
 
 export type AutomationJobKind =
   | 'bill_extract'
@@ -80,20 +75,12 @@ export interface AutomationDeadLetter {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-function unwrap<T>(
-  label: string,
-  data: T[] | null,
-  error: { message: string } | null,
-): T[] {
+function unwrap<T>(label: string, data: T[] | null, error: { message: string } | null): T[] {
   if (error) throw new Error(`${label} failed: ${error.message}`);
   return (data ?? []) as T[];
 }
 
-function unwrapOne<T>(
-  label: string,
-  data: T | null,
-  error: { message: string } | null,
-): T {
+function unwrapOne<T>(label: string, data: T | null, error: { message: string } | null): T {
   if (error) throw new Error(`${label} failed: ${error.message}`);
   return data as T;
 }
