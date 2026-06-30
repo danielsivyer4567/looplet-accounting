@@ -4,7 +4,7 @@
  * Tests:
  *  1. bank_events_raw table exists with expected columns
  *  2. Duplicate raw event (same provider/org/event_id/hash) rejected by unique constraint
- *  3. replay_bank_event RPC returns payload and produces no second transaction on re-run
+ *  3. replay_bank_event RPC returns payload for service_role only
  *  4. Org isolation: authenticated client cannot read another org's raw events
  *  5. Unauthenticated client cannot INSERT directly
  */
@@ -28,7 +28,8 @@ const authed = () =>
     auth: { persistSession: false },
     global: { headers: { Authorization: `Bearer ${TEST_USER_JWT}` } },
   });
-const anon = () => createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+const anon = () =>
+  createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
 
 const createdRawEventIds: string[] = [];
 
@@ -42,7 +43,9 @@ describe('bank_events_raw — schema', () => {
   itLive('table exists with expected columns', async () => {
     const { data, error } = await svc()
       .from('bank_events_raw')
-      .select('id, organization_id, provider, provider_event_id, payload_hash, raw_payload, received_at')
+      .select(
+        'id, organization_id, provider, provider_event_id, payload_hash, raw_payload, received_at',
+      )
       .limit(0);
     expect(error).toBeNull();
     expect(Array.isArray(data)).toBe(true);
@@ -79,13 +82,17 @@ describe('bank_events_raw — idempotency', () => {
 
   itLive('duplicate raw event (same provider/org/event_id/hash) is rejected', async () => {
     // First insert succeeds (or already done above)
-    await svc().from('bank_events_raw').insert({
-      organization_id: ORG_A_ID,
-      provider: 'basiq',
-      provider_event_id: 'txn:test-dedup-002',
-      payload_hash: 'aabbcc002',
-      raw_payload: { amount: '20.00' },
-    }).select('id').single();
+    await svc()
+      .from('bank_events_raw')
+      .insert({
+        organization_id: ORG_A_ID,
+        provider: 'basiq',
+        provider_event_id: 'txn:test-dedup-002',
+        payload_hash: 'aabbcc002',
+        raw_payload: { amount: '20.00' },
+      })
+      .select('id')
+      .single();
 
     const { data: first } = await svc()
       .from('bank_events_raw')
@@ -96,13 +103,15 @@ describe('bank_events_raw — idempotency', () => {
     if (first?.id) createdRawEventIds.push((first as { id: string }).id);
 
     // Exact duplicate must fail
-    const { error: dupError } = await svc().from('bank_events_raw').insert({
-      organization_id: ORG_A_ID,
-      provider: 'basiq',
-      provider_event_id: 'txn:test-dedup-002',
-      payload_hash: 'aabbcc002',
-      raw_payload: { amount: '20.00' },
-    });
+    const { error: dupError } = await svc()
+      .from('bank_events_raw')
+      .insert({
+        organization_id: ORG_A_ID,
+        provider: 'basiq',
+        provider_event_id: 'txn:test-dedup-002',
+        payload_hash: 'aabbcc002',
+        raw_payload: { amount: '20.00' },
+      });
     expect(dupError).not.toBeNull();
     expect(dupError?.code).toBe('23505');
   });
@@ -167,7 +176,7 @@ describe('replay_bank_event RPC', () => {
     expect(typeof result.error).toBe('string');
   });
 
-  itLive('authenticated user from ORG_A cannot replay ORG_B event', async () => {
+  itLive('authenticated user from ORG_A cannot execute replay_bank_event', async () => {
     if (!ORG_B_ID || !TEST_USER_JWT) return;
     // Insert an event belonging to ORG_B
     const { data: inserted } = await svc()
@@ -185,11 +194,32 @@ describe('replay_bank_event RPC', () => {
     if (!eventId) return;
     createdRawEventIds.push(eventId);
 
-    // User from ORG_A should get not-authorized
-    const { data } = await authed().rpc('replay_bank_event', { p_event_id: eventId });
-    const result = data as Record<string, unknown>;
-    expect(result.ok).toBe(false);
-    expect(result.error).toMatch(/not authorized|not found/);
+    const { data, error } = await authed().rpc('replay_bank_event', { p_event_id: eventId });
+    expect(data).toBeNull();
+    expect(error).not.toBeNull();
+    expect(error?.message ?? '').toMatch(/permission denied|not authorized|execute/i);
+  });
+
+  itLive('anon user cannot execute replay_bank_event', async () => {
+    const { data: inserted } = await svc()
+      .from('bank_events_raw')
+      .insert({
+        organization_id: ORG_A_ID,
+        provider: 'basiq',
+        provider_event_id: 'txn:test-replay-anon-denied',
+        payload_hash: 'replay-anon-denied-hash',
+        raw_payload: { amount: '2.00' },
+      })
+      .select('id')
+      .single();
+    const eventId = (inserted as { id: string } | null)?.id;
+    if (!eventId) return;
+    createdRawEventIds.push(eventId);
+
+    const { data, error } = await anon().rpc('replay_bank_event', { p_event_id: eventId });
+    expect(data).toBeNull();
+    expect(error).not.toBeNull();
+    expect(error?.message ?? '').toMatch(/permission denied|not authorized|execute/i);
   });
 });
 
@@ -212,32 +242,35 @@ describe('bank_events_raw — unmatched (null-org) events', () => {
     createdRawEventIds.push(row.id);
   });
 
-  itLive('duplicate unmatched event (same provider/event_id/hash, org=null) is rejected', async () => {
-    await svc().from('bank_events_raw').insert({
-      organization_id: null,
-      provider: 'basiq',
-      provider_event_id: 'connection.updated:unknown-conn-002',
-      payload_hash: 'unmatched-hash-002',
-      raw_payload: {},
-    });
-    const { data: first } = await svc()
-      .from('bank_events_raw')
-      .select('id')
-      .is('organization_id', null)
-      .eq('provider_event_id', 'connection.updated:unknown-conn-002')
-      .single();
-    if (first?.id) createdRawEventIds.push((first as { id: string }).id);
+  itLive(
+    'duplicate unmatched event (same provider/event_id/hash, org=null) is rejected',
+    async () => {
+      await svc().from('bank_events_raw').insert({
+        organization_id: null,
+        provider: 'basiq',
+        provider_event_id: 'connection.updated:unknown-conn-002',
+        payload_hash: 'unmatched-hash-002',
+        raw_payload: {},
+      });
+      const { data: first } = await svc()
+        .from('bank_events_raw')
+        .select('id')
+        .is('organization_id', null)
+        .eq('provider_event_id', 'connection.updated:unknown-conn-002')
+        .single();
+      if (first?.id) createdRawEventIds.push((first as { id: string }).id);
 
-    const { error: dupError } = await svc().from('bank_events_raw').insert({
-      organization_id: null,
-      provider: 'basiq',
-      provider_event_id: 'connection.updated:unknown-conn-002',
-      payload_hash: 'unmatched-hash-002',
-      raw_payload: {},
-    });
-    expect(dupError).not.toBeNull();
-    expect(dupError?.code).toBe('23505');
-  });
+      const { error: dupError } = await svc().from('bank_events_raw').insert({
+        organization_id: null,
+        provider: 'basiq',
+        provider_event_id: 'connection.updated:unknown-conn-002',
+        payload_hash: 'unmatched-hash-002',
+        raw_payload: {},
+      });
+      expect(dupError).not.toBeNull();
+      expect(dupError?.code).toBe('23505');
+    },
+  );
 
   itLive('authenticated user cannot read null-org events via RLS', async () => {
     if (!TEST_USER_JWT) return;
@@ -256,14 +289,11 @@ describe('bank_events_raw — unmatched (null-org) events', () => {
     if (!eventId) return;
     createdRawEventIds.push(eventId);
 
-    const { data } = await authed()
-      .from('bank_events_raw')
-      .select('id')
-      .eq('id', eventId);
+    const { data } = await authed().from('bank_events_raw').select('id').eq('id', eventId);
     expect((data ?? []).length).toBe(0);
   });
 
-  itLive('authenticated user cannot replay a null-org event', async () => {
+  itLive('authenticated user cannot execute replay_bank_event for a null-org event', async () => {
     if (!TEST_USER_JWT) return;
     const { data: inserted } = await svc()
       .from('bank_events_raw')
@@ -280,10 +310,10 @@ describe('bank_events_raw — unmatched (null-org) events', () => {
     if (!eventId) return;
     createdRawEventIds.push(eventId);
 
-    const { data } = await authed().rpc('replay_bank_event', { p_event_id: eventId });
-    const result = data as Record<string, unknown>;
-    expect(result.ok).toBe(false);
-    expect(result.error).toMatch(/not authorized/);
+    const { data, error } = await authed().rpc('replay_bank_event', { p_event_id: eventId });
+    expect(data).toBeNull();
+    expect(error).not.toBeNull();
+    expect(error?.message ?? '').toMatch(/permission denied|not authorized|execute/i);
   });
 });
 
@@ -307,10 +337,7 @@ describe('bank_events_raw — org isolation', () => {
     createdRawEventIds.push(eventId);
 
     // User who belongs to ORG_A should not see ORG_B's event
-    const { data } = await authed()
-      .from('bank_events_raw')
-      .select('id')
-      .eq('id', eventId);
+    const { data } = await authed().from('bank_events_raw').select('id').eq('id', eventId);
     expect((data ?? []).length).toBe(0);
   });
 
