@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { enqueueJob } from '@/lib/automationJobs';
 import { BankCsvImport } from './BankCsvImport';
 import { BankStatementImport } from './BankStatementImport';
 
@@ -19,6 +20,7 @@ export function BankConnect() {
   const [connections, setConnections] = useState<BankConnectionRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -71,20 +73,23 @@ export function BankConnect() {
   };
 
   const handleSync = async (id: string) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) return;
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bank-sync`;
-    await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ organization_id: currentOrg.id, bank_connection_id: id }),
-    });
-    await refresh();
+    setError(null);
+    setSyncingId(id);
+    try {
+      await enqueueJob({
+        organizationId: currentOrg.id,
+        jobKind: 'bank_sync',
+        sourceKind: 'bank_connection',
+        sourceId: id,
+        priority: 3,
+        payload: { bank_connection_id: id, days: 180, source: 'manual_bank_sync' },
+      });
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSyncingId(null);
+    }
   };
 
   return (
@@ -149,8 +154,12 @@ export function BankConnect() {
                   <td style={td}>{c.last_synced_at?.slice(0, 16).replace('T', ' ') ?? 'never'}</td>
                   <td style={td}>
                     {c.provider === 'basiq' ? (
-                      <button onClick={() => handleSync(c.id)} style={smallBtn}>
-                        ↻ Sync
+                      <button
+                        onClick={() => handleSync(c.id)}
+                        disabled={syncingId === c.id}
+                        style={smallBtn}
+                      >
+                        {syncingId === c.id ? 'Queueing…' : '↻ Sync'}
                       </button>
                     ) : (
                       <span

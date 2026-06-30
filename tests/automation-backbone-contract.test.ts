@@ -22,6 +22,7 @@ const appAutomationJobs = readFileSync(join(root, 'src/lib/automationJobs.ts'), 
 const billsPage = readFileSync(join(root, 'src/pages/Bills.tsx'), 'utf8');
 const invoiceDetailPage = readFileSync(join(root, 'src/pages/InvoiceDetail.tsx'), 'utf8');
 const reconciliationPage = readFileSync(join(root, 'src/pages/Reconciliation.tsx'), 'utf8');
+const bankConnect = readFileSync(join(root, 'src/components/settings/BankConnect.tsx'), 'utf8');
 const config = readFileSync(join(root, 'supabase/config.toml'), 'utf8');
 
 describe('automation backbone source contracts', () => {
@@ -103,6 +104,13 @@ describe('automation backbone source contracts', () => {
     expect(bankExchange).toMatch(/sync_job_id:\s*syncJobId/);
     expect(bankExchange).not.toMatch(/functions\/v1\/bank-sync/);
     expect(bankExchange).not.toMatch(/bank-sync dispatch failed/);
+  });
+
+  it('bank settings queues manual sync jobs instead of direct edge fetches', () => {
+    expect(bankConnect).toMatch(/enqueueJob/);
+    expect(bankConnect).toMatch(/jobKind:\s*'bank_sync'/);
+    expect(bankConnect).toMatch(/sourceKind:\s*'bank_connection'/);
+    expect(bankConnect).not.toMatch(/functions\/v1\/bank-sync/);
   });
 
   it('bank webhooks do not lose sync dispatch after raw-event persistence', () => {
