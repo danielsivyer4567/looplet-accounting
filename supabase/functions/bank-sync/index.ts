@@ -15,6 +15,7 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { sha256Hex } from '../_shared/apiKeys.ts';
 import {
   getAccountsForConnection,
   getAllTransactionsForConnection,
@@ -199,6 +200,46 @@ async function syncOne(
     : fromDate;
   const txns = await getAllTransactionsForConnection(basiqUserId, conn.external_item_id, since);
 
+  // Batch-insert raw Basiq transaction events before normalising.
+  // Deduplicates re-syncs at the raw layer; raw_event_id links each
+  // bank_transaction back to its source payload for audit/replay.
+  const providerEventIds = txns.map((t) => `txn:${t.id}`);
+  const rawHashes = await Promise.all(txns.map((t) => sha256Hex(JSON.stringify(t))));
+  // txn.id → payload hash; used below to resolve the exact raw event row
+  // when a transaction's payload has changed (different hash = new raw row).
+  const txnHashMap = new Map<string, string>();
+  txns.forEach((t, i) => txnHashMap.set(t.id, rawHashes[i]));
+
+  const rawRows = txns.map((t, i) => ({
+    organization_id: orgId,
+    provider: 'basiq',
+    provider_event_id: providerEventIds[i],
+    payload_hash: rawHashes[i],
+    raw_payload: t as unknown as Record<string, unknown>,
+  }));
+
+  // Map key: `${provider_event_id}:${payload_hash}` — keying by event id alone
+  // would resolve to a stale raw row when a transaction's payload has evolved.
+  const rawEventMap = new Map<string, string>();
+  if (rawRows.length > 0) {
+    const { error: rawUpsertError } = await admin
+      .from('bank_events_raw')
+      .upsert(rawRows, {
+        onConflict: 'provider,organization_id,provider_event_id,payload_hash',
+        ignoreDuplicates: true,
+      });
+    if (rawUpsertError) console.error('bank_events_raw upsert error:', rawUpsertError.message);
+    const { data: rawEventData } = await admin
+      .from('bank_events_raw')
+      .select('id, provider_event_id, payload_hash')
+      .eq('organization_id', orgId)
+      .eq('provider', 'basiq')
+      .in('provider_event_id', providerEventIds);
+    for (const row of (rawEventData ?? []) as { id: string; provider_event_id: string; payload_hash: string }[]) {
+      rawEventMap.set(`${row.provider_event_id}:${row.payload_hash}`, row.id);
+    }
+  }
+
   let inserted = 0;
   let skipped = 0;
   const insertedTxnIds: string[] = [];
@@ -225,6 +266,7 @@ async function syncOne(
           reference: t.reference ?? null,
           category_external: t.subClass?.title ?? t.class ?? null,
           raw: t,
+          raw_event_id: rawEventMap.get(`txn:${t.id}:${txnHashMap.get(t.id)}`) ?? null,
         },
         { onConflict: 'bank_account_id,external_id' },
       )

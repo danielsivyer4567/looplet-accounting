@@ -15,6 +15,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
+import { sha256Hex } from '../_shared/apiKeys.ts';
 
 interface BasiqWebhookPayload {
   type: string;                    // "transactions.updated" | "connection.updated" | etc.
@@ -60,8 +61,9 @@ Deno.serve(async (req) => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    // 2. Parse payload
-    const payload = (await req.json()) as BasiqWebhookPayload;
+    // 2. Parse payload (read as text first so we can hash the raw body)
+    const bodyText = await req.text();
+    const payload = JSON.parse(bodyText) as BasiqWebhookPayload;
     const type = payload?.type ?? 'unknown';
     const data = (payload?.data ?? {}) as Record<string, unknown>;
     const connection = data.connection as { id?: string } | undefined;
@@ -79,8 +81,32 @@ Deno.serve(async (req) => {
       .eq('external_item_id', connectionId ?? '')
       .maybeSingle();
 
-    // 4. Update connection state + react
+    // 4. Store raw event regardless of whether a matching connection was found.
+    //    Unmatched events land with organization_id = NULL so they are never
+    //    silently dropped — they remain available for investigation/replay via
+    //    service_role. Tenants cannot read null-org rows (RLS excludes them).
+    const payloadHash = await sha256Hex(bodyText);
+    const providerEventId = `${type}:${connectionId ?? 'unknown'}`;
+    const { error: rawInsertError } = await admin.from('bank_events_raw').insert({
+      organization_id: conn?.organization_id ?? null,
+      provider: 'basiq',
+      provider_event_id: providerEventId,
+      payload_hash: payloadHash,
+      raw_payload: payload,
+    });
+    if (rawInsertError) {
+      if (rawInsertError.code === '23505') {
+        // Exact duplicate delivery — acknowledge without re-processing
+        return json({ ok: true, type, action: 'duplicate_skipped', matched: !!conn });
+      }
+      // Any other persistence failure means we would lose audit evidence.
+      // Fail the handler so Basiq retries rather than silently dropping the event.
+      console.error('bank_events_raw insert failed:', rawInsertError.message, rawInsertError.code);
+      return json({ ok: false, error: 'Failed to persist raw event', code: rawInsertError.code }, 500);
+    }
     let action = 'logged';
+
+    // 5. Update connection state + react
     if (conn) {
       if (type.includes('transactions') || type.includes('updated')) {
         // Trigger a sync (fire-and-forget)
