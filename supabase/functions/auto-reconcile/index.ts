@@ -19,6 +19,9 @@
  * amount-tolerance guard on reconcile_match_bill). Invoice settlements record
  * min(inflow, balance_due) so an over-payment never posts a negative balance.
  *
+ * SC-07 adds reconciliation_evidence rows for every auto-apply and ambiguous
+ * skip so the UI can surface "Why Looplet picked this" per transaction.
+ *
  * Input:  { organization_id }
  * Output: { ok, stats: { scanned, matched_bills, matched_invoices,
  *                         skipped_ambiguous, errors[] } }
@@ -65,6 +68,10 @@ interface BillCandidate {
   bill_id: string;
   bill_amount_cents: number;
   score: number;
+  amount_diff_cents: number;
+  days_diff: number;
+  supplier_name: string | null;
+  bt_description: string;
 }
 
 interface InvoiceCandidate {
@@ -73,10 +80,25 @@ interface InvoiceCandidate {
   bt_amount_cents: number;
   invoice_balance_due_cents: number;
   score: number;
+  amount_diff_cents: number;
+  days_diff: number;
+  customer_name: string | null;
+  invoice_number: string | null;
+  bt_description: string;
 }
 
 type Candidate =
-  | { kind: 'bill'; txnId: string; score: number; billId: string; amountCents: number }
+  | {
+      kind: 'bill';
+      txnId: string;
+      score: number;
+      billId: string;
+      amountCents: number;
+      amountDiffCents: number;
+      daysDiff: number;
+      supplierName: string | null;
+      btDescription: string;
+    }
   | {
       kind: 'invoice';
       txnId: string;
@@ -84,6 +106,11 @@ type Candidate =
       invoiceId: string;
       amountCents: number;
       balanceDueCents: number;
+      amountDiffCents: number;
+      daysDiff: number;
+      customerName: string | null;
+      invoiceNumber: string | null;
+      btDescription: string;
     };
 
 Deno.serve(async (req) => {
@@ -158,12 +185,16 @@ Deno.serve(async (req) => {
     const [billRes, invoiceRes] = await Promise.all([
       admin
         .from('v_bank_match_candidates')
-        .select('bank_transaction_id, bill_id, bill_amount_cents, score')
+        .select(
+          'bank_transaction_id, bill_id, bill_amount_cents, score, amount_diff_cents, days_diff, supplier_name, bt_description',
+        )
         .eq('organization_id', orgId)
         .gte('score', AMBIGUITY_FLOOR),
       admin
         .from('v_bank_invoice_match_candidates')
-        .select('bank_transaction_id, invoice_id, bt_amount_cents, invoice_balance_due_cents, score')
+        .select(
+          'bank_transaction_id, invoice_id, bt_amount_cents, invoice_balance_due_cents, score, amount_diff_cents, days_diff, customer_name, invoice_number, bt_description',
+        )
         .eq('organization_id', orgId)
         .gte('score', AMBIGUITY_FLOOR),
     ]);
@@ -188,6 +219,10 @@ Deno.serve(async (req) => {
         score: Number(b.score),
         billId: b.bill_id,
         amountCents: b.bill_amount_cents,
+        amountDiffCents: Number(b.amount_diff_cents),
+        daysDiff: Number(b.days_diff),
+        supplierName: b.supplier_name,
+        btDescription: b.bt_description,
       });
     }
     for (const v of (invoiceRes.data ?? []) as InvoiceCandidate[]) {
@@ -200,6 +235,11 @@ Deno.serve(async (req) => {
         invoiceId: v.invoice_id,
         amountCents: v.bt_amount_cents,
         balanceDueCents: v.invoice_balance_due_cents,
+        amountDiffCents: Number(v.amount_diff_cents),
+        daysDiff: Number(v.days_diff),
+        customerName: v.customer_name,
+        invoiceNumber: v.invoice_number,
+        btDescription: v.bt_description,
       });
     }
 
@@ -211,6 +251,16 @@ Deno.serve(async (req) => {
       errors: [] as { bank_transaction_id: string; error: string }[],
     };
 
+    // Collect evidence rows to batch-insert after the match loop.
+    const evidenceRows: Array<{
+      bank_transaction_id: string;
+      organization_id: string;
+      reason_codes: string[];
+      score_components: Record<string, unknown>;
+      auto_applied: boolean;
+      skipped_reason: string | null;
+    }> = [];
+
     for (const [txnId, candidates] of byTxn) {
       const strong = candidates.filter((c) => c.score >= STRONG_THRESHOLD);
 
@@ -221,7 +271,19 @@ Deno.serve(async (req) => {
       //   - 2+ strong           -> ambiguous
       //   - 1 strong + a rival  -> ambiguous
       if (strong.length !== 1 || candidates.length > 1) {
-        if (strong.length >= 1) stats.skipped_ambiguous += 1;
+        if (strong.length >= 1) {
+          stats.skipped_ambiguous += 1;
+          const topStrong = strong.reduce((a, b) => (a.score >= b.score ? a : b));
+          const skippedReason =
+            strong.length > 1 ? 'multiple_strong_candidates' : 'rival_candidate_present';
+          evidenceRows.push({
+            bank_transaction_id: txnId,
+            organization_id: orgId,
+            ...buildScoreEvidence(topStrong),
+            auto_applied: false,
+            skipped_reason: skippedReason,
+          });
+        }
         continue;
       }
 
@@ -265,9 +327,26 @@ Deno.serve(async (req) => {
           if (r && !r.ok) throw new Error(r.error ?? 'reconcile_match_invoice failed');
           stats.matched_invoices += 1;
         }
+        evidenceRows.push({
+          bank_transaction_id: txnId,
+          organization_id: orgId,
+          ...buildScoreEvidence(winner),
+          auto_applied: true,
+          skipped_reason: null,
+        });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         stats.errors.push({ bank_transaction_id: txnId, error: msg });
+      }
+    }
+
+    // Batch-insert evidence rows; failures are logged but don't affect match stats.
+    if (evidenceRows.length > 0) {
+      const { error: evErr } = await admin
+        .from('reconciliation_evidence')
+        .insert(evidenceRows);
+      if (evErr) {
+        stats.errors.push({ bank_transaction_id: '_evidence_batch', error: evErr.message });
       }
     }
 
@@ -277,6 +356,55 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: msg }, 500);
   }
 });
+
+/** Derive human-readable reason_codes and structured score_components from a candidate. */
+function buildScoreEvidence(c: Candidate): {
+  reason_codes: string[];
+  score_components: Record<string, unknown>;
+} {
+  const reason_codes: string[] = ['amount_match']; // view filter guarantees ≤50 cents diff
+  if (c.amountDiffCents === 0) reason_codes.push('amount_exact');
+
+  if (c.daysDiff === 0) reason_codes.push('date_exact');
+  else if (c.daysDiff <= 3) reason_codes.push('date_recent');
+  else if (c.daysDiff <= 7) reason_codes.push('date_close');
+
+  const btDesc = c.btDescription.toLowerCase();
+
+  if (c.kind === 'bill') {
+    const nameHit =
+      c.supplierName != null && btDesc.includes(c.supplierName.toLowerCase());
+    if (nameHit) reason_codes.push('name_match');
+    return {
+      reason_codes,
+      score_components: {
+        kind: 'bill',
+        score: c.score,
+        amount_diff_cents: c.amountDiffCents,
+        days_diff: c.daysDiff,
+        name_hit: nameHit,
+      },
+    };
+  } else {
+    const nameHit =
+      c.customerName != null && btDesc.includes(c.customerName.toLowerCase());
+    const numberHit =
+      c.invoiceNumber != null && btDesc.includes(c.invoiceNumber.toLowerCase());
+    if (nameHit) reason_codes.push('name_match');
+    if (numberHit) reason_codes.push('number_match');
+    return {
+      reason_codes,
+      score_components: {
+        kind: 'invoice',
+        score: c.score,
+        amount_diff_cents: c.amountDiffCents,
+        days_diff: c.daysDiff,
+        name_hit: nameHit,
+        number_hit: numberHit,
+      },
+    };
+  }
+}
 
 function clamp01(n: number): number {
   if (!Number.isFinite(n)) return 0;
