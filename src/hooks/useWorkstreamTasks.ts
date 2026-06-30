@@ -3,11 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 
 export type TaskConfidence =
-  | 'auto_post'
-  | 'quick_confirm'
-  | 'review_needed'
-  | 'advisor_required'
-  | 'blocked_external';
+  'auto_post' | 'quick_confirm' | 'review_needed' | 'advisor_required' | 'blocked_external';
 
 export type TaskKind =
   | 'onboarding_triage'

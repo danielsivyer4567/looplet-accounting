@@ -1,5 +1,5 @@
 -- ============================================================================
--- 0214_fix_allocation_rpc_grants.sql
+-- 0216_fix_allocation_rpc_grants.sql
 --
 -- Grants EXECUTE on bulk_accept_job_suggestions and rematch_unallocated_bills
 -- to the authenticated role.
