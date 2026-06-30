@@ -33,6 +33,7 @@ Labels:
 | `docs/MIGRATION_BASELINE_RUNBOOK.md`           | runbook        | Migration baseline and rollback policy.                              |
 | `docs/MIGRATION_GAP_AUDIT.md`                  | audit          | Migration-history repair evidence.                                   |
 | `docs/openapi.yaml`                            | active         | Connector OpenAPI contract.                                          |
+| `docs/OWNER_FIRST_AI_WORKSTREAM_BLUEPRINT.md`  | active         | Owner-first IA, AI automation, and guided workstream blueprint.      |
 | `docs/PARALLEL_AGENT_EXECUTION_PLAN.md`        | proposal       | Historical parallel-agent plan.                                      |
 | `docs/pos-integration-guide.md`                | active         | POS integration guide.                                               |
 | `docs/pos-receipt-webhook.md`                  | active         | POS receipt webhook guide.                                           |

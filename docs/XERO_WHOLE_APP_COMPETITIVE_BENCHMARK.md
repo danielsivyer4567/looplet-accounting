@@ -17,6 +17,8 @@ The winning model is:
 - deterministic compliance prep with clear agent-only boundaries
 - advisor proof packs that turn clicks, paths, and writes into billable evidence
 
+Execution blueprint: `docs/OWNER_FIRST_AI_WORKSTREAM_BLUEPRINT.md`.
+
 ## Xero Baseline
 
 Official Xero AU product surfaces reviewed:
