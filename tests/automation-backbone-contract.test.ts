@@ -168,11 +168,14 @@ describe('automation backbone source contracts', () => {
   it('bank sync surfaces post-sync automation failures', () => {
     expect(bankSync).not.toMatch(/fireAndForgetSubsDetect/);
     expect(bankSync).not.toMatch(/fireAndForgetIntakeRouting/);
-    expect(bankSync).toMatch(/await runSubsDetect/);
+    expect(bankSync).toMatch(/await runPostSyncFunction/);
+    expect(bankSync).toMatch(/subscriptions-detect/);
+    expect(bankSync).toMatch(/subscriptions-autoconfirm/);
     expect(bankSync).toMatch(/await runIntakeRouting/);
+    expect(bankSync).toMatch(/post_sync:\s*postSync/);
     expect(bankSync).toMatch(/post_sync_errors/);
     expect(bankSync).toMatch(
-      /return json\(\{ ok: false, results, post_sync_errors: postSyncErrors \}, 502\)/,
+      /return json\([\s\S]*\{ ok: false, results, post_sync: postSync, post_sync_errors: postSyncErrors \}[\s\S]*502[\s\S]*\)/,
     );
   });
 

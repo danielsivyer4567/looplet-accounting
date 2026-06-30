@@ -57,6 +57,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { isExactServiceRoleBearer } from '../_shared/serviceRole.ts';
 
 interface RequestBody {
   organization_id?: string;
@@ -75,7 +76,7 @@ interface Candidate {
 // Coupled to subscriptions-detect/confidenceScore() — see the module header.
 // 0.80 is only reachable once observed_count >= 8 (consistencyScore caps at 0.5),
 // so MIN_OCCURRENCES=8 makes the implied floor explicit rather than dead code.
-const MIN_CONFIDENCE = 0.80;
+const MIN_CONFIDENCE = 0.8;
 const MIN_OCCURRENCES = 8;
 // 'candidate' is the only unreviewed status in the subscription_status enum
 // (candidate|confirmed|dismissed|cancelled). 'detected' was a phantom value.
@@ -100,8 +101,7 @@ Deno.serve(async (req) => {
     // decode the JWT and trust its `role` claim — an attacker controls the token
     // body, so a self-asserted role:'service_role' would be forgeable. The only
     // bearer we treat as service-role is the literal service key.
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-    const isServiceRole = token === serviceKey;
+    const isServiceRole = isExactServiceRoleBearer(authHeader, serviceKey);
 
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },

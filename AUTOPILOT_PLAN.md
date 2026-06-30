@@ -57,7 +57,11 @@ Cross-tenant view leak closed, `system_defaults` locked, anon definer-fn execute
       is committed with the match or the match rolls back once deployed.
 - [ ] **C2b** Live auto-reconciler proof over candidate views; auto-match
       unambiguous above threshold and leave rival candidates untouched.
-- [ ] **C3** Auto-confirm high-confidence subscription candidates.
+- [x] **C3a** Auto-confirm source wiring code-complete: post-bank-sync now runs
+      `subscriptions-autoconfirm` after detection and surfaces failures as
+      retryable post-sync errors instead of leaving high-confidence candidates
+      waiting for manual confirmation.
+- [ ] **C3b** Live auto-confirm proof with seeded/real recurring bank debits.
 - _Done when:_ live txns flow; bills reach `paid` with no manual clicks.
 
 ### EPIC D — Reduce human touch _(after B+C)_

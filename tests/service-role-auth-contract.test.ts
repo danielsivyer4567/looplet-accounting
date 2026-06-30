@@ -8,6 +8,7 @@ const serviceRoleBypassFunctions = [
   'bank-discover',
   'bills-extract',
   'subscriptions-detect',
+  'subscriptions-autoconfirm',
 ] as const;
 
 describe('service-role auth source contracts', () => {

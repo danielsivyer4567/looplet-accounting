@@ -122,13 +122,34 @@ Deno.serve(async (req) => {
     }
 
     const postSyncErrors: string[] = [];
+    const postSync: Record<string, unknown> = {};
 
     try {
-      await runSubsDetect(supabaseUrl, serviceKey, body.organization_id);
+      postSync['subscriptions_detect'] = await runPostSyncFunction(
+        supabaseUrl,
+        serviceKey,
+        'subscriptions-detect',
+        body.organization_id,
+      );
     } catch (err) {
       postSyncErrors.push(
         `subscriptions-detect: ${err instanceof Error ? err.message : String(err)}`,
       );
+    }
+
+    if (!postSyncErrors.some((err) => err.startsWith('subscriptions-detect:'))) {
+      try {
+        postSync['subscriptions_autoconfirm'] = await runPostSyncFunction(
+          supabaseUrl,
+          serviceKey,
+          'subscriptions-autoconfirm',
+          body.organization_id,
+        );
+      } catch (err) {
+        postSyncErrors.push(
+          `subscriptions-autoconfirm: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
     }
 
     if (allInsertedTxnIds.length > 0) {
@@ -148,24 +169,37 @@ Deno.serve(async (req) => {
     }
 
     if (postSyncErrors.length > 0) {
-      return json({ ok: false, results, post_sync_errors: postSyncErrors }, 502);
+      return json(
+        { ok: false, results, post_sync: postSync, post_sync_errors: postSyncErrors },
+        502,
+      );
     }
-    return json({ ok: true, results });
+    return json({ ok: true, results, post_sync: postSync });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return json({ ok: false, error: msg }, 500);
   }
 });
 
-async function runSubsDetect(supabaseUrl: string, serviceKey: string, orgId: string) {
-  const response = await fetch(`${supabaseUrl}/functions/v1/subscriptions-detect`, {
+async function runPostSyncFunction(
+  supabaseUrl: string,
+  serviceKey: string,
+  functionName: 'subscriptions-detect' | 'subscriptions-autoconfirm',
+  orgId: string,
+): Promise<unknown> {
+  const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ organization_id: orgId }),
   });
+  const body = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new Error(`${response.status} ${await response.text().catch(() => '')}`.trim());
+    throw new Error(`${response.status} ${JSON.stringify(body)}`.trim());
   }
+  if (body && typeof body === 'object' && (body as { ok?: unknown }).ok === false) {
+    throw new Error(JSON.stringify(body));
+  }
+  return body;
 }
 
 async function syncOne(
