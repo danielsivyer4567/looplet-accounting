@@ -29,13 +29,13 @@ describe('deployment docs reconciliation', () => {
     const runbook = readRepoFile('docs/MIGRATION_BASELINE_RUNBOOK.md');
     const p005Runbook = readRepoFile('docs/DEPLOY_PROOF_P0-05.md');
 
-    expect(latestMigration).toBe('0229_credit_notes_product.sql');
+    expect(latestMigration).toBe('0230_advisor_work_proofs.sql');
     expect(runbook).toContain(`Current local ceiling:** \`${latestMigration}\``);
     expect(runbook).toMatch(/supabase db push --linked --dry-run/);
     expect(runbook).toMatch(/Rollback \/ Abort/);
     expect(runbook).toMatch(/COMPLIANCE_BACKLOG/);
 
-    expect(p005Runbook).toContain('ceiling is now `0229_credit_notes_product.sql`');
+    expect(p005Runbook).toContain('ceiling is now `0230_advisor_work_proofs.sql`');
     expect(p005Runbook).toContain('`0199`-`0207`');
     expect(p005Runbook).toContain('Only redeploy after `0199` has applied');
     expect(p005Runbook).toContain('production Pages deployed and signed-in P0-05 proof complete');

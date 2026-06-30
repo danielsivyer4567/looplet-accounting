@@ -9,6 +9,7 @@ import { OrgSelector } from './OrgSelector';
 import { NotificationBell } from './NotificationBell';
 import { BrandLogo } from './BrandLogo';
 import { TaxTimeline } from './TaxTimeline';
+import { AdvisorFinishButton } from './AdvisorFinishButton';
 import { useTheme } from '@/contexts/theme-context';
 import {
   LayoutDashboard,
@@ -443,14 +444,17 @@ export function Layout() {
                 gap: isMobile ? '0.5rem' : '0.75rem',
                 alignItems: 'center',
                 flex: isMobile ? '1 1 100%' : '0 0 auto',
-                justifyContent: isMobile ? 'space-between' : 'flex-start',
+                flexWrap: isMobile ? 'wrap' : 'nowrap',
+                justifyContent: 'flex-start',
                 minWidth: 0,
               }}
             >
               {/* OrgSelector in header */}
-              <div style={{ marginRight: '0.25rem' }}>
+              <div style={{ marginRight: '0.25rem', minWidth: 0 }}>
                 <OrgSelector />
               </div>
+
+              <AdvisorFinishButton />
 
               {/* Dark/Light mode theme switch */}
               <button

@@ -447,7 +447,13 @@ function startVite(port) {
       : ['vite', '--host', '127.0.0.1', '--port', String(port)];
   return spawn(command, args, {
     cwd: rootDir,
-    env: process.env,
+    env: {
+      ...process.env,
+      VITE_SUPABASE_URL:
+        process.env.VITE_SUPABASE_URL || 'https://dxoikltymmknxqpkpyhi.supabase.co',
+      VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || 'product-smoke-anon-key',
+      VITE_SUPABASE_PROJECT_REF: process.env.VITE_SUPABASE_PROJECT_REF || 'dxoikltymmknxqpkpyhi',
+    },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 }
