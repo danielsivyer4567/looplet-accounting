@@ -252,14 +252,14 @@ Deno.serve(async (req) => {
     };
 
     // Collect evidence rows to batch-insert after the match loop.
-    const evidenceRows: Array<{
+    const evidenceRows: {
       bank_transaction_id: string;
       organization_id: string;
       reason_codes: string[];
       score_components: Record<string, unknown>;
       auto_applied: boolean;
       skipped_reason: string | null;
-    }> = [];
+    }[] = [];
 
     for (const [txnId, candidates] of byTxn) {
       const strong = candidates.filter((c) => c.score >= STRONG_THRESHOLD);

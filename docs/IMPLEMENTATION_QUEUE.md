@@ -1,6 +1,31 @@
 # Implementation Queue — Compliance Backlog
 
-Generated: 2026-06-30
+Generated: 2026-07-01
+
+## Automation Backbone Epic — Completed Slices (SC-01–SC-09)
+
+All slices code-complete and committed. Live-proof items blocked on deploy.
+
+| Slice | Status | Commit |
+|-------|--------|--------|
+| SC-01 Automation jobs tables + TS library | done | 3ec0ac6 |
+| SC-02 Automation worker Edge Function | done | 2ed9693 |
+| SC-03 Automation watchdog scanner | done | — |
+| SC-04 Confidence policy engine | done | f968b5e |
+| SC-05 Versioned document extraction | done | d27601d |
+| SC-06 Raw bank event layer | done | d4bcc9e |
+| SC-07 Reconciliation evidence upgrade | done | 96d8194 |
+| SC-08 Browser job schema + runbook | done | f736bf0 |
+| SC-09 Connector endpoint completion + OpenAPI | done | 69ff6dc |
+
+**Blocked on deploy (live-proof only — code is done):**
+- Basiq end-to-end bank feed (C1 in AUTOPILOT_PLAN)
+- POS pilot receipt flow (receipt-POS integration contract)
+- Advisor sign-in live screenshot (SC-09 human gate)
+
+Migration ceiling: **0219**. ATO/DSP/SBR lodgement remains external-gated throughout.
+
+---
 
 These items are identified in the accountant-coverage gap analysis as the next
 meaningful blocks of compliance work. None are in-scope for the owner-first
