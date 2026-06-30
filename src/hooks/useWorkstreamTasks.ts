@@ -21,7 +21,8 @@ export type TaskKind =
   | 'advisor_proof_reminder'
   | 'duplicate_bill'
   | 'low_confidence_bill'
-  | 'bas_coverage_gap';
+  | 'bas_coverage_gap'
+  | 'period_close';
 
 export interface WorkstreamTask {
   id: string;

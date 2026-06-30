@@ -182,3 +182,83 @@ export function serializeReasonCodes(codes: string[]): string[] {
 export function isDecisionBlocked(confidence: AutomationConfidence): boolean {
   return confidence === 'blocked_external';
 }
+
+// -- Feedback / Learning Loop ------------------------------------------------
+
+/**
+ * Kinds of user corrections the learning loop tracks.
+ */
+export type FeedbackSourceKind =
+  | 'bill_coding'
+  | 'bank_match'
+  | 'gst_treatment'
+  | 'supplier'
+  | 'job_tag'
+  | 'asset_class'
+  | 'confidence_outcome';
+
+/**
+ * A single feedback record.
+ */
+export interface AutomationFeedback {
+  id: string;
+  organization_id: string;
+  source_kind: FeedbackSourceKind;
+  source_id: string;
+  previous_value: unknown;
+  new_value: unknown;
+  correction_reason: string | null;
+  accepted_by: string | null;
+  accepted_at: string;
+  promoted_to_rule: boolean;
+}
+
+/**
+ * Aggregated feedback pattern eligible for rule promotion (3+ occurrences).
+ */
+export interface FeedbackPattern {
+  organization_id: string;
+  source_kind: FeedbackSourceKind;
+  new_value: unknown;
+  occurrence_count: number;
+  first_seen_at: string;
+  last_seen_at: string;
+}
+
+/**
+ * Records a user correction to an automation suggestion.
+ * Calls the record_feedback SECURITY DEFINER RPC.
+ */
+export async function recordFeedback(args: {
+  organizationId: string;
+  sourceKind: FeedbackSourceKind;
+  sourceId: string;
+  previousValue?: unknown;
+  newValue: unknown;
+  correctionReason?: string;
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('record_feedback', {
+    p_organization_id: args.organizationId,
+    p_source_kind: args.sourceKind,
+    p_source_id: args.sourceId,
+    p_previous_value: args.previousValue ?? null,
+    p_new_value: args.newValue,
+    p_correction_reason: args.correctionReason ?? null,
+  });
+
+  if (error) throw new Error(`Failed to record feedback: ${error.message}`);
+  return data as string;
+}
+
+/**
+ * Fetches feedback patterns eligible for rule promotion.
+ */
+export async function getFeedbackPatterns(organizationId: string): Promise<FeedbackPattern[]> {
+  const { data, error } = await supabase
+    .from('v_feedback_patterns')
+    .select('*')
+    .eq('organization_id', organizationId);
+
+  if (error) throw new Error(`Failed to fetch feedback patterns: ${error.message}`);
+  return (data ?? []) as FeedbackPattern[];
+}

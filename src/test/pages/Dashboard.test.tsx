@@ -238,6 +238,54 @@ describe('Dashboard advice cards', () => {
     expect(screen.getByText('Quick')).toBeInTheDocument();
   });
 
+  it('links Today task cards to existing routes', () => {
+    mocks.workstreamTasks = [
+      {
+        id: 'wt-route-1',
+        organization_id: 'org-1',
+        task_kind: 'missing_document',
+        owner_label: 'Receipt missing for fuel payment',
+        why_now: 'A bank payment has no matching source document',
+        source_refs: { table: 'data_completeness_findings' },
+        suggested_action: 'Upload or match the receipt',
+        confidence: 'review_needed',
+        impact_cents: null,
+        due_at: null,
+        blocking_reason: null,
+        completion_event: { evidence_ready: true },
+        urgency: 7,
+        created_at: '2026-06-30T00:00:00Z',
+      },
+      {
+        id: 'wt-route-2',
+        organization_id: 'org-1',
+        task_kind: 'advisor_proof_reminder',
+        owner_label: 'Save advisor work proof',
+        why_now: 'An advisor session is ready for finish proof',
+        source_refs: { table: 'advisor_work_proofs' },
+        suggested_action: 'Review and save the proof',
+        confidence: 'quick_confirm',
+        impact_cents: null,
+        due_at: null,
+        blocking_reason: null,
+        completion_event: { proof_saved: true },
+        urgency: 8,
+        created_at: '2026-06-30T00:00:00Z',
+      },
+    ];
+
+    renderDashboard();
+
+    expect(screen.getByRole('link', { name: /receipt missing for fuel payment/i })).toHaveAttribute(
+      'href',
+      '/receipt-hub',
+    );
+    expect(screen.getByRole('link', { name: /save advisor work proof/i })).toHaveAttribute(
+      'href',
+      '/my-activity',
+    );
+  });
+
   it('renders anomaly tasks in the Today feed', () => {
     mocks.workstreamTasks = [
       {

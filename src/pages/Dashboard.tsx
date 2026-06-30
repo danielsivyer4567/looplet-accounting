@@ -31,6 +31,7 @@ import {
   FileSearch,
   UserCheck,
   ShieldAlert,
+  CalendarClock,
 } from 'lucide-react';
 
 interface MockTransaction {
@@ -1191,6 +1192,7 @@ const TASK_ICONS: Record<TaskKind, typeof Clock> = {
   duplicate_bill: Copy,
   low_confidence_bill: FileSearch,
   bas_coverage_gap: AlertTriangle,
+  period_close: CalendarClock,
 };
 
 const CONFIDENCE_COLORS: Record<string, string> = {
@@ -1200,6 +1202,36 @@ const CONFIDENCE_COLORS: Record<string, string> = {
   advisor_required: '#ef4444',
   blocked_external: '#dc2626',
 };
+
+function taskRoute(task: WorkstreamTask): string {
+  switch (task.task_kind) {
+    case 'onboarding_triage':
+      return '/onboarding/triage';
+    case 'tax_obligation':
+      return '/reports';
+    case 'bas_blocker':
+    case 'bas_coverage_gap':
+      return '/reports/bas';
+    case 'unapproved_bill':
+    case 'duplicate_bill':
+    case 'low_confidence_bill':
+      return '/bills';
+    case 'overdue_invoice':
+      return '/invoices';
+    case 'unmatched_bank_item':
+      return '/reconciliation';
+    case 'pending_approval':
+      return '/approvals';
+    case 'missing_document':
+      return '/receipt-hub';
+    case 'advisor_proof_reminder':
+      return '/my-activity';
+    case 'period_close':
+      return '/reports';
+    default:
+      return '/';
+  }
+}
 
 function TodayFeed({ tasks, loading }: { tasks: WorkstreamTask[]; loading: boolean }) {
   if (loading) {
@@ -1242,133 +1274,146 @@ function TodayFeed({ tasks, loading }: { tasks: WorkstreamTask[]; loading: boole
         {tasks.map((task) => {
           const Icon = TASK_ICONS[task.task_kind] ?? Clock;
           return (
-            <div
+            <Link
               key={task.id}
-              style={{
-                display: 'flex',
-                gap: '0.75rem',
-                padding: '0.75rem 1rem',
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: 'var(--shadow-sm)',
-                alignItems: 'flex-start',
-              }}
+              to={taskRoute(task)}
+              style={{ textDecoration: 'none', color: 'inherit' }}
             >
               <div
                 style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'var(--bg-app)',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  color: 'var(--text-muted)',
+                  gap: '0.75rem',
+                  padding: '0.75rem 1rem',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  boxShadow: 'var(--shadow-sm)',
+                  alignItems: 'flex-start',
+                  transition: 'box-shadow 0.15s',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-md)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-sm)';
                 }}
               >
-                <Icon size={18} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
                 <div
                   style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg-app)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.5rem',
-                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    color: 'var(--text-muted)',
                   }}
                 >
-                  <span
+                  <Icon size={18} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
                     style={{
-                      fontWeight: 600,
-                      color: 'var(--text-title)',
-                      fontSize: '0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      flexWrap: 'wrap',
                     }}
                   >
-                    {task.owner_label}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '0.65rem',
-                      padding: '0.1rem 0.4rem',
-                      borderRadius: 'var(--radius-sm)',
-                      background: CONFIDENCE_COLORS[task.confidence] ?? 'var(--text-muted)',
-                      color: '#fff',
-                      fontWeight: 600,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                    }}
-                  >
-                    {task.confidence === 'auto_post'
-                      ? 'Auto'
-                      : task.confidence === 'quick_confirm'
-                        ? 'Quick'
-                        : task.confidence === 'review_needed'
-                          ? 'Review'
-                          : task.confidence === 'advisor_required'
-                            ? 'Advisor'
-                            : task.confidence === 'blocked_external'
-                              ? 'Blocked'
-                              : task.confidence}
-                  </span>
-                  {task.blocking_reason && (
+                    <span
+                      style={{
+                        fontWeight: 600,
+                        color: 'var(--text-title)',
+                        fontSize: '0.85rem',
+                      }}
+                    >
+                      {task.owner_label}
+                    </span>
                     <span
                       style={{
                         fontSize: '0.65rem',
                         padding: '0.1rem 0.4rem',
                         borderRadius: 'var(--radius-sm)',
-                        background: '#fef2f2',
-                        color: '#dc2626',
+                        background: CONFIDENCE_COLORS[task.confidence] ?? 'var(--text-muted)',
+                        color: '#fff',
                         fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
                       }}
                     >
-                      BLOCKING
+                      {task.confidence === 'auto_post'
+                        ? 'Auto'
+                        : task.confidence === 'quick_confirm'
+                          ? 'Quick'
+                          : task.confidence === 'review_needed'
+                            ? 'Review'
+                            : task.confidence === 'advisor_required'
+                              ? 'Advisor'
+                              : task.confidence === 'blocked_external'
+                                ? 'Blocked'
+                                : task.confidence}
                     </span>
-                  )}
+                    {task.blocking_reason && (
+                      <span
+                        style={{
+                          fontSize: '0.65rem',
+                          padding: '0.1rem 0.4rem',
+                          borderRadius: 'var(--radius-sm)',
+                          background: '#fef2f2',
+                          color: '#dc2626',
+                          fontWeight: 600,
+                        }}
+                      >
+                        BLOCKING
+                      </span>
+                    )}
+                  </div>
+                  <p
+                    style={{
+                      margin: '0.2rem 0 0',
+                      fontSize: '0.75rem',
+                      color: 'var(--text-muted)',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {task.why_now}
+                  </p>
+                  <div
+                    style={{
+                      marginTop: '0.35rem',
+                      display: 'flex',
+                      gap: '0.5rem',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <span style={{ fontSize: '0.75rem', color: '#0075ff', fontWeight: 600 }}>
+                      {task.suggested_action}
+                    </span>
+                    {task.impact_cents != null && task.impact_cents !== 0 && (
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        $
+                        {(Math.abs(task.impact_cents) / 100).toLocaleString('en-AU', {
+                          minimumFractionDigits: 2,
+                        })}
+                      </span>
+                    )}
+                    {task.due_at && (
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        Due {new Date(task.due_at).toLocaleDateString('en-AU')}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <p
-                  style={{
-                    margin: '0.2rem 0 0',
-                    fontSize: '0.75rem',
-                    color: 'var(--text-muted)',
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {task.why_now}
-                </p>
-                <div
-                  style={{
-                    marginTop: '0.35rem',
-                    display: 'flex',
-                    gap: '0.5rem',
-                    flexWrap: 'wrap',
-                    alignItems: 'center',
-                  }}
-                >
-                  <span style={{ fontSize: '0.75rem', color: '#0075ff', fontWeight: 600 }}>
-                    {task.suggested_action}
-                  </span>
-                  {task.impact_cents != null && task.impact_cents !== 0 && (
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                      $
-                      {(Math.abs(task.impact_cents) / 100).toLocaleString('en-AU', {
-                        minimumFractionDigits: 2,
-                      })}
-                    </span>
-                  )}
-                  {task.due_at && (
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                      Due {new Date(task.due_at).toLocaleDateString('en-AU')}
-                    </span>
-                  )}
-                </div>
+                <ChevronRight
+                  size={16}
+                  style={{ color: 'var(--text-muted)', flexShrink: 0, marginTop: '0.3rem' }}
+                />
               </div>
-              <ChevronRight
-                size={16}
-                style={{ color: 'var(--text-muted)', flexShrink: 0, marginTop: '0.3rem' }}
-              />
-            </div>
+            </Link>
           );
         })}
       </div>

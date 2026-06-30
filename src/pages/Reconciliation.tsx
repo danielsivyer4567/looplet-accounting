@@ -12,7 +12,10 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   RotateCcw,
+  Check,
 } from 'lucide-react';
+import { ConfidenceBadge } from '@/components/ConfidenceBadge';
+import type { AutomationConfidence } from '@/lib/automationDecision';
 
 interface BankTxn {
   id: string;
@@ -52,6 +55,13 @@ interface InvoiceMatchCandidate {
 }
 
 type MatchCandidate = BillMatchCandidate | InvoiceMatchCandidate;
+
+function scoreToConfidence(score: number): AutomationConfidence {
+  if (score >= 0.95) return 'auto_post';
+  if (score >= 0.85) return 'quick_confirm';
+  if (score >= 0.5) return 'review_needed';
+  return 'advisor_required';
+}
 
 interface RowVm {
   txn: BankTxn;
@@ -321,13 +331,14 @@ export function ReconciliationPage() {
                   candidate matches.
                 </span>
               </div>
-              {rows.some((r) => (r.candidates[0]?.score ?? 0) >= 0.9) && (
+              {rows.some((r) => scoreToConfidence(r.candidates[0]?.score ?? 0) === 'auto_post') && (
                 <button
                   onClick={() => void bulkApplyHigh()}
                   className="btn btn-primary"
                   style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
                 >
-                  ✓ Auto-match high-confidence
+                  <CheckCircle2 size={12} />
+                  <span>Auto-match high-confidence</span>
                 </button>
               )}
             </div>
@@ -574,7 +585,6 @@ function TxnRow({
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {candidates.map((c, i) => {
-              const isMatchReady = c.score >= 0.9;
               return (
                 <div
                   key={`${c.kind}-${i}`}
@@ -645,31 +655,33 @@ function TxnRow({
                     </Link>
                   )}
 
-                  <button
-                    onClick={() => onMatch(txn.id, txn.amount_cents, c)}
-                    disabled={busy}
-                    className="btn"
-                    style={{
-                      padding: '0.25rem 0.5rem',
-                      fontSize: '0.725rem',
-                      background: isMatchReady
-                        ? 'var(--bg-success-subtle)'
-                        : 'var(--bg-info-subtle)',
-                      color: isMatchReady ? 'var(--text-success)' : 'var(--text-info)',
-                      borderColor: isMatchReady ? 'var(--accent-success)' : 'var(--accent-info)',
-                      fontWeight: 600,
-                      cursor: busy ? 'wait' : 'pointer',
-                    }}
-                  >
-                    Match ({(c.score * 100).toFixed(0)}%)
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <ConfidenceBadge confidence={scoreToConfidence(c.score)} />
+                    <button
+                      onClick={() => onMatch(txn.id, txn.amount_cents, c)}
+                      disabled={busy}
+                      className={`btn${scoreToConfidence(c.score) === 'auto_post' ? ' btn-primary' : ''}`}
+                      style={{
+                        padding: '0.25rem 0.5rem',
+                        fontSize: '0.725rem',
+                        fontWeight: 600,
+                        cursor: busy ? 'wait' : 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                      }}
+                    >
+                      {scoreToConfidence(c.score) === 'quick_confirm' && <Check size={12} />}
+                      Match ({(c.score * 100).toFixed(0)}%)
+                    </button>
+                  </div>
                 </div>
               );
             })}
           </div>
         )}
 
-        {top && top.score >= 0.95 && (
+        {top && scoreToConfidence(top.score) === 'auto_post' && (
           <div
             style={{
               marginTop: '0.5rem',
@@ -684,7 +696,7 @@ function TxnRow({
             }}
           >
             <CheckCircle2 size={12} />
-            <span>Strong match candidate — consider auto-applying</span>
+            <span>Auto-match ready</span>
           </div>
         )}
       </div>

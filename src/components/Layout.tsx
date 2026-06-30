@@ -40,38 +40,63 @@ import {
   Boxes,
   ShieldCheck,
   Send,
+  ChevronDown,
+  ChevronRight,
+  Wrench,
 } from 'lucide-react';
 
-const navItems = [
-  { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
-  { to: '/ask', label: 'Ask AI', icon: MessageSquare, badge: 'NEW' },
-  { to: '/legal-horizon', label: 'Upcoming', icon: CalendarClock, badge: 'NEW' },
-  { to: '/scan', label: 'Scan Doc', icon: Scan },
-  { to: '/receipt-hub', label: 'Receipts', icon: ReceiptText, badge: 'MVP' },
-  { to: '/onboarding', label: 'Auto Setup', icon: Sparkles },
-  { to: '/bills', label: 'Bills', icon: Receipt },
-  { to: '/payment-runs', label: 'Payment', icon: DollarSign },
-  { to: '/invoices', label: 'Invoices', icon: FileText },
-  { to: '/allocations', label: 'Allocations', icon: GitCommit },
-  { to: '/coding-review', label: 'Coding', icon: ListChecks },
-  { to: '/approvals', label: 'Approvals', icon: ShieldCheck },
-  { to: '/lodgements', label: 'Lodgements', icon: Send },
-  { to: '/reconciliation', label: 'Reconcile', icon: Scale },
-  { to: '/fixed-assets', label: 'Assets', icon: Boxes },
-  { to: '/jobs', label: 'Jobs', icon: Briefcase },
-  { to: '/customers', label: 'Customers', icon: Users },
-  { to: '/suppliers', label: 'Suppliers', icon: Truck },
-  { to: '/employees', label: 'Employees', icon: Contact },
-  { to: '/payroll', label: 'Payroll', icon: CreditCard },
-  { to: '/subscriptions', label: 'Subs', icon: RefreshCw },
-  { to: '/debts', label: 'Debts', icon: TrendingDown },
-  { to: '/reports', label: 'Reports', icon: BarChart3 },
-  { to: '/quality', label: 'Quality', icon: CheckCircle },
-  { to: '/settings', label: 'Settings', icon: Settings },
-  { to: '/notifications', label: 'Alerts', icon: Bell },
+interface NavItem {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  badge?: string;
+  end?: boolean;
+  category: 'owner' | 'advisor';
+}
+
+const ownerNavItems: NavItem[] = [
+  { to: '/', label: 'Home', icon: LayoutDashboard, end: true, category: 'owner' },
+  { to: '/ask', label: 'Ask AI', icon: MessageSquare, badge: 'NEW', category: 'owner' },
+  { to: '/scan', label: 'Scan Doc', icon: Scan, category: 'owner' },
+  { to: '/receipt-hub', label: 'Receipts', icon: ReceiptText, badge: 'MVP', category: 'owner' },
+  { to: '/legal-horizon', label: 'Upcoming', icon: CalendarClock, badge: 'NEW', category: 'owner' },
+  { to: '/bills', label: 'Bills', icon: Receipt, category: 'owner' },
+  { to: '/invoices', label: 'Invoices', icon: FileText, category: 'owner' },
+  { to: '/jobs', label: 'Jobs', icon: Briefcase, category: 'owner' },
+  { to: '/customers', label: 'Customers', icon: Users, category: 'owner' },
+  { to: '/suppliers', label: 'Suppliers', icon: Truck, category: 'owner' },
+  { to: '/reports', label: 'Reports', icon: BarChart3, category: 'owner' },
 ];
 
+const advisorNavItems: NavItem[] = [
+  { to: '/onboarding', label: 'Auto Setup', icon: Sparkles, category: 'advisor' },
+  { to: '/payment-runs', label: 'Payment', icon: DollarSign, category: 'advisor' },
+  { to: '/allocations', label: 'Allocations', icon: GitCommit, category: 'advisor' },
+  { to: '/coding-review', label: 'Coding', icon: ListChecks, category: 'advisor' },
+  { to: '/approvals', label: 'Approvals', icon: ShieldCheck, category: 'advisor' },
+  { to: '/lodgements', label: 'Lodgements', icon: Send, category: 'advisor' },
+  { to: '/reconciliation', label: 'Reconcile', icon: Scale, category: 'advisor' },
+  { to: '/fixed-assets', label: 'Assets', icon: Boxes, category: 'advisor' },
+  { to: '/payroll', label: 'Payroll', icon: CreditCard, category: 'advisor' },
+  { to: '/subscriptions', label: 'Subs', icon: RefreshCw, category: 'advisor' },
+  { to: '/debts', label: 'Debts', icon: TrendingDown, category: 'advisor' },
+  { to: '/employees', label: 'Employees', icon: Contact, category: 'advisor' },
+  { to: '/quality', label: 'Quality', icon: CheckCircle, category: 'advisor' },
+  { to: '/settings', label: 'Settings', icon: Settings, category: 'advisor' },
+  { to: '/notifications', label: 'Alerts', icon: Bell, category: 'advisor' },
+];
+
+const navItems: NavItem[] = [...ownerNavItems, ...advisorNavItems];
+
 function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
+  const [showAdvanced, setShowAdvanced] = useState(() => {
+    const stored = localStorage.getItem('looplet_show_advanced');
+    return stored === 'true';
+  });
+  useEffect(() => {
+    localStorage.setItem('looplet_show_advanced', String(showAdvanced));
+  }, [showAdvanced]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', alignItems: 'center' }}>
       {/* Brand Header: Centered Round Square 'L' Logo */}
@@ -102,7 +127,8 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
           padding: '0.25rem',
         }}
       >
-        {navItems.map((item) => {
+        {/* Owner items — always visible */}
+        {ownerNavItems.map((item) => {
           const Icon = item.icon;
           return (
             <NavLink
@@ -163,6 +189,96 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
             </NavLink>
           );
         })}
+
+        {/* Advanced toggle + items */}
+        <button
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '3px',
+            padding: '0.5rem 0.15rem',
+            marginTop: '0.5rem',
+            border: 'none',
+            background: 'transparent',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            fontSize: '7px',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            width: '100%',
+          }}
+          title={showAdvanced ? 'Hide advanced' : 'Show advanced'}
+        >
+          <Wrench size={10} />
+          <span>Advanced</span>
+          {showAdvanced ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+        </button>
+
+        {showAdvanced &&
+          advisorNavItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end ?? false}
+                onClick={onNavClick}
+                style={({ isActive }) => ({
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0.6rem 0.15rem',
+                  borderRadius: 'var(--radius-md)',
+                  textDecoration: 'none',
+                  color: isActive ? 'var(--text-sidebar-active)' : 'var(--text-sidebar)',
+                  background: isActive ? 'var(--bg-sidebar-active)' : 'transparent',
+                  transition: 'var(--transition-smooth)',
+                  position: 'relative',
+                  width: '100%',
+                  gap: '4px',
+                })}
+                className="nav-link-item"
+              >
+                {({ isActive }) => (
+                  <>
+                    <Icon size={18} strokeWidth={isActive ? 2.25 : 1.75} />
+                    <span
+                      style={{
+                        fontSize: '9px',
+                        fontWeight: 600,
+                        textAlign: 'center',
+                        display: 'block',
+                        lineHeight: 1.1,
+                      }}
+                    >
+                      {item.label}
+                    </span>
+                    {item.badge && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: '2px',
+                          right: '2px',
+                          fontSize: '7px',
+                          padding: '1px 3px',
+                          borderRadius: '3px',
+                          background: 'var(--accent-primary)',
+                          color: '#fff',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
       </nav>
 
       {/* Sidebar Footer */}
