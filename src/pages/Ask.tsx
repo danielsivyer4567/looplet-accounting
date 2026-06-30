@@ -328,6 +328,72 @@ export function AskPage() {
           background: var(--bg-hover);
           transform: translateY(-1px);
         }
+        .advisor-notes-layout {
+          display: grid;
+          grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+          gap: 1rem;
+          align-items: start;
+        }
+        .advisor-notes-rail {
+          position: sticky;
+          top: 1rem;
+          align-self: start;
+          display: grid;
+          gap: 0.75rem;
+          min-width: 0;
+        }
+        .advisor-notes-list {
+          display: grid;
+          gap: 0.75rem;
+          max-height: min(72vh, 48rem);
+          overflow-y: auto;
+          padding-right: 0.15rem;
+        }
+        .advisor-note-button {
+          width: 100%;
+          min-height: 8.75rem;
+          text-align: left;
+          padding: 0.85rem;
+          border-radius: var(--radius-sm);
+          color: var(--text-body);
+          cursor: pointer;
+          display: grid;
+          gap: 0.5rem;
+          align-content: start;
+          transition: var(--transition-smooth);
+        }
+        .advisor-note-button:hover {
+          transform: translateY(-1px);
+        }
+        .advisor-note-title,
+        .advisor-note-summary {
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .advisor-note-title {
+          -webkit-line-clamp: 2;
+        }
+        .advisor-note-summary {
+          -webkit-line-clamp: 3;
+        }
+        .advisor-note-detail {
+          min-width: 0;
+          overflow: hidden;
+        }
+        @media (max-width: 1024px) {
+          .advisor-notes-layout {
+            grid-template-columns: 1fr;
+          }
+          .advisor-notes-rail {
+            position: static;
+          }
+          .advisor-notes-list {
+            max-height: none;
+            overflow: visible;
+            padding-right: 0;
+          }
+        }
       `}</style>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingBottom: '100px' }}>
@@ -912,15 +978,8 @@ export function AdvisorPanel({
         </div>
       ) : null}
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '1rem',
-          alignItems: 'start',
-        }}
-      >
-        <div style={{ display: 'grid', gap: '0.5rem' }}>
+      <div className="advisor-notes-layout">
+        <aside className="advisor-notes-rail" aria-label="Advisor notes">
           <div
             style={{
               display: 'flex',
@@ -946,58 +1005,61 @@ export function AdvisorPanel({
             {loading ? <span className="badge badge-neutral">Loading</span> : null}
           </div>
 
-          {notes.length === 0 && !loading && backendAvailable ? (
-            <div
-              style={{
-                padding: '0.85rem',
-                border: '1px dashed var(--border-subtle)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text-muted)',
-                fontSize: '0.82rem',
-              }}
-            >
-              No advisor notes yet.
-            </div>
-          ) : null}
-
-          {notes.map((note) => {
-            const selected = selectedNoteId === note.id;
-            return (
-              <button
-                key={note.id}
-                type="button"
-                onClick={() => onSelectNote(note.id)}
+          <div className="advisor-notes-list">
+            {notes.length === 0 && !loading && backendAvailable ? (
+              <div
                 style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '0.75rem',
-                  border: `1px solid ${selected ? 'var(--accent-primary)' : 'var(--border-subtle)'}`,
+                  padding: '0.85rem',
+                  border: '1px dashed var(--border-subtle)',
                   borderRadius: 'var(--radius-sm)',
-                  background: selected ? 'var(--bg-hover)' : 'var(--bg-card)',
-                  color: 'var(--text-body)',
-                  cursor: 'pointer',
-                  display: 'grid',
-                  gap: '0.45rem',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.82rem',
                 }}
               >
-                <span style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                  <span className={`badge ${adviceStatusBadgeClass(note.status)}`}>
-                    {labelFromStatus(note.status)}
-                  </span>
-                  <span className="badge badge-info">{labelFromAdviceKind(note.kind)}</span>
-                </span>
-                <strong style={{ color: 'var(--text-title)', lineHeight: 1.25 }}>
-                  {note.title}
-                </strong>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', lineHeight: 1.4 }}>
-                  {compactText(note.summary, 120)}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                No advisor notes yet.
+              </div>
+            ) : null}
 
-        <div style={{ minWidth: 0 }}>
+            {notes.map((note) => {
+              const selected = selectedNoteId === note.id;
+              return (
+                <button
+                  key={note.id}
+                  type="button"
+                  className="advisor-note-button"
+                  aria-current={selected ? 'true' : undefined}
+                  onClick={() => onSelectNote(note.id)}
+                  style={{
+                    border: `1px solid ${selected ? 'var(--accent-primary)' : 'var(--border-subtle)'}`,
+                    background: selected ? 'var(--bg-hover)' : 'var(--bg-card)',
+                    boxShadow: selected ? '0 0 0 1px var(--accent-primary)' : 'var(--shadow-sm)',
+                  }}
+                >
+                  <span style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    <span className={`badge ${adviceStatusBadgeClass(note.status)}`}>
+                      {labelFromStatus(note.status)}
+                    </span>
+                    <span className="badge badge-info">{labelFromAdviceKind(note.kind)}</span>
+                  </span>
+                  <strong
+                    className="advisor-note-title"
+                    style={{ color: 'var(--text-title)', lineHeight: 1.25 }}
+                  >
+                    {note.title}
+                  </strong>
+                  <span
+                    className="advisor-note-summary"
+                    style={{ color: 'var(--text-muted)', fontSize: '0.8rem', lineHeight: 1.45 }}
+                  >
+                    {compactText(note.summary, 150)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <div className="advisor-note-detail">
           {!backendAvailable ? (
             <div
               style={{
