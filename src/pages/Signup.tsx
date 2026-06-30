@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Globe } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { BrandHeader } from '@/components/BrandHeader';
 
@@ -25,12 +26,13 @@ function friendlySignupError(message: string): string {
 }
 
 export function SignupPage() {
-  const { signUp } = useAuth();
+  const { signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
   const [done, setDone] = useState(false);
 
   const onSubmit = async (e: FormEvent) => {
@@ -48,6 +50,16 @@ export function SignupPage() {
       return;
     }
     navigate('/');
+  };
+
+  const onGoogleSignUp = async () => {
+    setGoogleBusy(true);
+    setError(null);
+    const { error } = await signInWithGoogle();
+    if (error) {
+      setError(error.message);
+      setGoogleBusy(false);
+    }
   };
 
   const contentElement = done ? (
@@ -111,6 +123,44 @@ export function SignupPage() {
       <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', textAlign: 'center' }}>
         Create your account
       </h2>
+
+      <button
+        type="button"
+        onClick={onGoogleSignUp}
+        disabled={busy || googleBusy}
+        className="btn"
+        style={{
+          width: '100%',
+          padding: '0.625rem',
+          marginBottom: '1rem',
+          border: '1px solid var(--border-subtle)',
+          background: 'var(--bg-card)',
+          color: 'var(--text-title)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem',
+        }}
+      >
+        <Globe size={16} aria-hidden="true" />
+        {googleBusy ? 'Opening Google…' : 'Continue with Google'}
+      </button>
+
+      <div
+        aria-hidden="true"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          marginBottom: '1rem',
+          color: 'var(--text-muted)',
+          fontSize: '0.75rem',
+        }}
+      >
+        <span style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+        <span>Email</span>
+        <span style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+      </div>
 
       <form
         onSubmit={onSubmit}

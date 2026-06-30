@@ -28,6 +28,7 @@ Labels:
 | `docs/FINISH_LINE_TRACKER.md`                  | tracker        | Current cross-off list.                                              |
 | `docs/FUNCTION_INVENTORY.md`                   | runbook        | Edge function reconciliation.                                        |
 | `docs/general-ledger.md`                       | active         | GL design and usage.                                                 |
+| `docs/GOOGLE_INTEGRATION.md`                   | active         | Google sign-in and Gmail document intake setup.                      |
 | `docs/IMPLEMENTATION_QUEUE.md`                 | tracker        | Work queue source material.                                          |
 | `docs/INDEX.md`                                | active         | This index.                                                          |
 | `docs/MIGRATION_BASELINE_RUNBOOK.md`           | runbook        | Migration baseline and rollback policy.                              |

@@ -1,10 +1,11 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Globe } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { BrandHeader } from '@/components/BrandHeader';
 
 export function LoginPage() {
-  const { signIn, resetPassword } = useAuth();
+  const { user, signIn, signInWithGoogle, resetPassword } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<'signin' | 'reset'>('signin');
   const [email, setEmail] = useState('');
@@ -12,6 +13,11 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
+
+  useEffect(() => {
+    if (user) navigate('/');
+  }, [navigate, user]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -37,6 +43,17 @@ export function LoginPage() {
       return;
     }
     navigate('/');
+  };
+
+  const onGoogleSignIn = async () => {
+    setGoogleBusy(true);
+    setError(null);
+    setNotice(null);
+    const { error } = await signInWithGoogle();
+    if (error) {
+      setError(error.message);
+      setGoogleBusy(false);
+    }
   };
 
   const isReset = mode === 'reset';
@@ -77,6 +94,47 @@ export function LoginPage() {
         <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', textAlign: 'center' }}>
           {isReset ? 'Reset password' : 'Sign in to your account'}
         </h2>
+
+        {!isReset && (
+          <>
+            <button
+              type="button"
+              onClick={onGoogleSignIn}
+              disabled={busy || googleBusy}
+              className="btn"
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                marginBottom: '1rem',
+                border: '1px solid var(--border-subtle)',
+                background: 'var(--bg-card)',
+                color: 'var(--text-title)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+              }}
+            >
+              <Globe size={16} aria-hidden="true" />
+              {googleBusy ? 'Opening Google…' : 'Continue with Google'}
+            </button>
+            <div
+              aria-hidden="true"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                marginBottom: '1rem',
+                color: 'var(--text-muted)',
+                fontSize: '0.75rem',
+              }}
+            >
+              <span style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+              <span>Email</span>
+              <span style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+            </div>
+          </>
+        )}
 
         <form
           onSubmit={onSubmit}

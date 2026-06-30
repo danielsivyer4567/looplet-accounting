@@ -30,6 +30,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/login?oauth=google`,
+        queryParams: {
+          prompt: 'select_account',
+        },
+      },
+    });
+    return { error };
+  };
+
   const signUp = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signUp({ email, password });
     // When the project requires email confirmation, signUp returns no session
@@ -56,7 +69,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, session, loading, signIn, signUp, resetPassword, setPassword, signOut }}
+      value={{
+        user,
+        session,
+        loading,
+        signIn,
+        signInWithGoogle,
+        signUp,
+        resetPassword,
+        setPassword,
+        signOut,
+      }}
     >
       {children}
     </AuthContext.Provider>

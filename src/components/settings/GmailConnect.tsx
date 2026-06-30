@@ -3,7 +3,21 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { useGmailIntegrations } from '@/hooks/useGmailIntegrations';
 
-export function GmailConnect() {
+interface GmailConnectProps {
+  title?: string;
+  description?: string;
+  connectLabel?: string;
+  reconnectLabel?: string;
+  showContainerSpacing?: boolean;
+}
+
+export function GmailConnect({
+  title = 'Gmail intake',
+  description = 'Connect a mailbox so supplier invoices arrive automatically. We watch the INBOX label only and pull PDF / image attachments. You can list specific senders below to filter further.',
+  connectLabel = '+ Connect Gmail',
+  reconnectLabel = 'Reconnect',
+  showContainerSpacing = true,
+}: GmailConnectProps) {
   const { currentOrg } = useOrg();
   const { integrations, loading, refresh } = useGmailIntegrations();
   const [connecting, setConnecting] = useState(false);
@@ -129,12 +143,9 @@ export function GmailConnect() {
   const disconnected = integrations.filter((g) => !g.is_active);
 
   return (
-    <div style={{ marginTop: '2rem' }}>
-      <h2 style={{ fontSize: 18, marginBottom: '0.5rem' }}>Gmail intake</h2>
-      <p style={{ color: '#888', fontSize: 13, marginBottom: '1rem' }}>
-        Connect a mailbox so supplier invoices arrive automatically. We watch the INBOX label only
-        and pull PDF / image attachments. You can list specific senders below to filter further.
-      </p>
+    <div style={{ marginTop: showContainerSpacing ? '2rem' : 0 }}>
+      <h2 style={{ fontSize: 18, marginBottom: '0.5rem' }}>{title}</h2>
+      <p style={{ color: '#888', fontSize: 13, marginBottom: '1rem' }}>{description}</p>
 
       {disconnected.length > 0 && (
         <div
@@ -173,7 +184,7 @@ export function GmailConnect() {
             fontWeight: 600,
           }}
         >
-          {connecting ? 'Connecting…' : '+ Connect Gmail'}
+          {connecting ? 'Connecting…' : connectLabel}
         </button>
       ) : (
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -262,7 +273,7 @@ export function GmailConnect() {
                         cursor: connecting ? 'wait' : 'pointer',
                       }}
                     >
-                      {connecting ? 'Reconnecting…' : 'Reconnect'}
+                      {connecting ? 'Reconnecting…' : reconnectLabel}
                     </button>
                   )}
                 </td>
