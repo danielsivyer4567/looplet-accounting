@@ -262,4 +262,53 @@ describe('AskPage advisor surface', () => {
       question: 'What is GST?',
     });
   });
+
+  it('renders cited law panel when the ask-bot response includes citations', async () => {
+    mocks.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          ok: true,
+          route: 'knowledge',
+          answer: 'You can claim the ute under instant asset write-off [1].',
+          citations: [
+            {
+              n: 1,
+              doc_ref: 'ITAA 1997',
+              section_ref: 's 40-82',
+              quoted_text: 'A depreciating asset is immediately deductible...',
+              citation_url: 'https://legislation.gov.au/itaa97/s40-82',
+              chunk_id: 'chunk-001',
+            },
+          ],
+          sonar_citations: [],
+        }),
+      });
+
+    renderAsk();
+    await waitFor(() =>
+      expect(mocks.fetch).toHaveBeenCalledWith(
+        'https://supabase.test/functions/v1/advisor',
+        expect.objectContaining({ method: 'OPTIONS' }),
+      ),
+    );
+    fireEvent.change(screen.getByPlaceholderText(/Ask anything/i), {
+      target: { value: 'Can I claim my ute?' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    // The CitedLawPanel renders "Cited law (1)" when citations are present
+    expect(await screen.findByText(/Cited law \(1\)/i)).toBeInTheDocument();
+    // The citation reference is listed
+    expect(await screen.findByText(/ITAA 1997/)).toBeInTheDocument();
+    expect(await screen.findByText(/s 40-82/)).toBeInTheDocument();
+    // The badge count is shown
+    expect(await screen.findByText(/1 cited section/i)).toBeInTheDocument();
+  });
 });
