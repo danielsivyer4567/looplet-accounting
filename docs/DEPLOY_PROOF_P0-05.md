@@ -1,21 +1,23 @@
 # DEPLOY_PROOF_P0-05 — Accountant portal + tag-drop deploy runbook & live overlay proof
 
-> **Status: DB/function deployed; current-build signed-in proof passed; production
-> frontend proof pending.** On 2026-06-30, `0199`-`0207` were applied to live
-> through `supabase db query --linked`, matching migration-history rows were
-> recorded, and `team-invite` was redeployed. A signed-in production-preview pass
-> of the current finish-line build against live Supabase then proved the
-> accountant/tag overlay flow. The production Pages deployment at
-> `https://looplet-accounting.pages.dev` is still stale and lacks the tag-drop
-> toggle, so the tracker row must stay unchecked until the current frontend is
-> deployed there and the same proof is repeated on that origin.
+> **Status: production Pages deployed and signed-in P0-05 proof complete.** On
+> 2026-06-30, `0199`-`0207` were applied to live through
+> `supabase db query --linked`, matching migration-history rows were recorded,
+> and `team-invite` was redeployed. The current frontend was then deployed to
+> Cloudflare Pages production deployment
+> `933983a7-9d03-47e7-8be4-e33ef0f9b21a` from source `0e9dd07`, and a signed-in
+> proof on `https://looplet-accounting.pages.dev` proved the accountant/tag
+> overlay flow end to end with clean console/page-error/failed-response captures.
+> The only remaining finish-line tracker TODOs are the externally gated ATO
+> lodgement items.
 >
 > **Target project:** `dxoikltymmknxqpkpyhi` ("looplet accounting") — the live
 > production project. ALWAYS pass `--project-ref dxoikltymmknxqpkpyhi` so a CLI
 > deploy can never land on a sibling project (the user has previously had
 > `auto-reconcile` deploy to the wrong project — see memory
-> `supabase-project-refs`). The frontend ships separately via Cloudflare Pages on
-> merge to `main`; nothing in this runbook touches the frontend deploy.
+> `supabase-project-refs`). The frontend ships separately via Cloudflare Pages;
+> production UI proof must use the canonical Pages origin after a current build
+> is deployed.
 
 ---
 
@@ -55,54 +57,50 @@ dxoikltymmknxqpkpyhi` deployed `team-invite` v37.
 - Rolled-back SQL proof `p0-05-tag-rpc-proof.sql` returned
   `rolled_back_create_tag_with_rate_limit_pass`.
 
-### 2026-06-30 signed-in UI proof attempt
+### 2026-06-30 signed-in UI proof
 
-- Production Pages check:
-  `https://looplet-accounting.pages.dev/login` loaded and signed in with a
-  disposable smoke accountant. `/bills` loaded with no console/page errors or
-  failed responses, but the deployed build did not expose the tag-drop toggle.
-  The current production deployment therefore cannot satisfy Section 3 yet.
-- Current finish-line build check:
-  `npm run preview -- --host 127.0.0.1 --port 5182` served the built current
-  branch while using the live Supabase project.
+- Current frontend build passed `npm run build`, then deployed with:
+  `npx wrangler pages deploy dist --project-name looplet-accounting --branch main --commit-hash 0e9dd074a245ee00c1969cdf88bf60fb43b895c7`.
+- Cloudflare Pages reported production deployment
+  `933983a7-9d03-47e7-8be4-e33ef0f9b21a` at
+  `https://933983a7.looplet-accounting.pages.dev`, source `0e9dd07`, branch
+  `main`.
+- Canonical production origin `https://looplet-accounting.pages.dev` returned
+  HTTP `200` with CSP, HSTS, `X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY`, and
+  `permissions-policy: camera=(), microphone=(), geolocation=()` headers.
 - Disposable smoke users/org were created through the supported Supabase Admin
-  API, not manual auth-table inserts. Direct SQL auth-user minting was retried
-  and still returned GoTrue `500 Database error querying schema`, matching the
-  earlier blocker note.
-- Accountant preview proof created live tag
-  `d5a61729-3433-426a-9ba7-0f7fd5389af1` from `/bills` through
+  API, not manual auth-table inserts.
+- Production `/bills` exposed the tag-drop toggle
+  (`productionTagToggleCount: 1`).
+- Accountant production proof created live tag
+  `766bbf7a-f9d6-4b1c-8e73-4aa45ef0f868` from `/bills` through
   `create_tag_with_rate_limit`; the RPC returned `200` with
-  `{"success":true}`. Browser console, page errors, and failed responses were
-  empty for the focused proof.
-- Member preview proof showed the mention in the bell and on `/notifications`
-  with `category='mention'`, `resource_type='tag'`, and
-  `/bills?tag=d5a61729-3433-426a-9ba7-0f7fd5389af1`.
-- Clicking `View tag` navigated to
-  `/bills?tag=d5a61729-3433-426a-9ba7-0f7fd5389af1`, fetched the tag row with
-  `200`, rendered the overlay card with the smoke comment, and marked the
-  notification read with `204`.
-- A focused preview close check rendered the overlay, clicked the visible close
-  control, and confirmed the smoke comment disappeared. Console, page-error, and
-  failed-response captures were empty.
-- Cross-tenant negative check created a synthetic foreign tag
-  `1025e5be-2ede-4367-9fdb-13cfd53c136b`; opening
-  `/bills?tag=1025e5be-2ede-4367-9fdb-13cfd53c136b` as the smoke member returned
+  `{"success":true}` and the tag row was verified server-side.
+- Member production proof created notification
+  `4d829475-7d7b-422e-99af-4860abf96494` with `category='mention'`,
+  `resource_type='tag'`, and
+  `/bills?tag=766bbf7a-f9d6-4b1c-8e73-4aa45ef0f868`.
+- The mentioned member saw the mention in the bell and on `/notifications`.
+  Clicking `View tag` navigated to
+  `/bills?tag=766bbf7a-f9d6-4b1c-8e73-4aa45ef0f868`, rendered the projected
+  overlay, and pressing Escape closed it.
+- Cross-tenant negative check created synthetic foreign tag
+  `486241e9-7a41-4c0a-b3d5-f0dd6b23b68f`; opening
+  `/bills?tag=486241e9-7a41-4c0a-b3d5-f0dd6b23b68f` as the smoke member returned
   `200 []` from the `tags` select and rendered no tag card.
-- Smoke data cleanup was completed after screenshots/network captures:
-  remaining smoke orgs/users/tags/notifications all returned `0`.
+- Browser console, page-error, and failed-response captures were empty for both
+  accountant and member proof sessions.
+- Smoke data cleanup was verified after screenshots/network captures: remaining
+  smoke orgs/users/tags/notifications all returned `0`.
 - Screenshot artifacts captured under `.claude/scratch/`:
-  `p0-05-live-entry.png`, `p0-05-accountant-after-reload.png`,
-  `p0-05-preview-accountant-tag-popup.png`,
-  `p0-05-preview-accountant-tag-saved.png`,
-  `p0-05-preview-member-bell.png`,
-  `p0-05-preview-member-notifications.png`,
-  `p0-05-preview-member-deep-link.png`,
-  `p0-05-preview-member-overlay-closed-focused.png`, and
-  `p0-05-local-member-foreign-tag-negative.png`.
-
-Still pending for full P0-05 closure: deploy the current frontend to production
-Pages and repeat Section 3 on `https://looplet-accounting.pages.dev`. Do not mark
-the tracker row checked from localhost/preview evidence alone.
+  `p0-05-prod-accountant-tag-popup.png`,
+  `p0-05-prod-accountant-tag-saved.png`,
+  `p0-05-prod-member-bell.png`,
+  `p0-05-prod-member-notifications.png`,
+  `p0-05-prod-member-deep-link.png`,
+  `p0-05-prod-member-overlay-closed.png`, and
+  `p0-05-prod-member-foreign-tag-negative.png`.
 
 ---
 
@@ -511,11 +509,6 @@ and the page falls back to normal — no foreign-org data leaks into the overlay
 Close the slice only when ALL boxes are ticked and screenshots/console captures
 are attached.
 
-The 2026-06-30 current-build preview proof satisfies the behaviour below against
-live Supabase, but the boxes remain unchecked until the same evidence is captured
-on the production Pages origin. Production Pages was stale during the proof pass
-and did not expose the tag-drop toggle.
-
 - [x] Pre-flight `to_regclass`/`accepted_at` checks all non-NULL (Section 1).
 - [x] Full-release migration baseline checked per `docs/MIGRATION_BASELINE_RUNBOOK.md`.
 - [x] All 9 P0-05 files applied individually in order, or the full-release
@@ -529,15 +522,15 @@ and did not expose the tag-drop toggle.
       arbiter present; `connector` role NOLOGIN/NOINHERIT; `journal_entries` audit
       trigger present.
 - [x] §2.7 `team-invite` listed as deployed with recent `updated_at`; unauth POST → 401.
-- [ ] §3.2 tag created via overlay; RPC 200; refreshed console clean; row in `public.tags`.
-- [ ] §3.3 mention shows in bell dropdown AND Notifications page (Mentions filter);
+- [x] §3.2 tag created via overlay; RPC 200; refreshed console clean; row in `public.tags`.
+- [x] §3.3 mention shows in bell dropdown AND Notifications page (Mentions filter);
       notifications row has `category='mention'` + `?tag=` link; 0 `TAG_NOTIFY_FAILED`.
-- [ ] §3.4 clicking the mention deep-links to `/bills?tag=<uuid>`; overlay projects;
+- [x] §3.4 clicking the mention deep-links to `/bills?tag=<uuid>`; overlay projects;
       open/close clears it; refreshed console clean.
-- [ ] §3.5 foreign-org `?tag=` deep link projects nothing (RLS holds).
-- [ ] Screenshots attached: placed pin/card, bell dropdown, Notifications/Mentions,
+- [x] §3.5 foreign-org `?tag=` deep link projects nothing (RLS holds).
+- [x] Screenshots attached: placed pin/card, bell dropdown, Notifications/Mentions,
       `/bills?tag=<uuid>` overlay (with URL visible).
-- [ ] Refreshed-console captures attached for §3.2 and §3.4 (no 401/403/42501).
+- [x] Refreshed-console captures attached for §3.2 and §3.4 (no 401/403/42501).
 
 ---
 

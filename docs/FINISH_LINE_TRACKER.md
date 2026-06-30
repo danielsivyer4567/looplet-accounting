@@ -3,22 +3,22 @@
 > The live cross-off list for finishing the app. Updated by the orchestrator after
 > every slice verifies. Branch: `feat/finish-line` (off `feat/accountant-portal`).
 
-**Progress: 47 / 51 complete (92%)** · proof-gated: 1 (P0-05 live overlay UI) · blocked-external: 3 (ATO TODO)
+**Progress: 48 / 51 complete (94%)** · blocked-external: 3 (ATO TODO)
 **Current wave:** F — compliance output
-**Last updated:** 2026-06-30 signed-in P0-05 pass: production Pages at `https://looplet-accounting.pages.dev` is reachable and signs in, but the deployed build is stale and does not expose the tag-drop toggle. Current finish-line production preview against live Supabase passed tag create, mention bell/inbox, deep-link overlay, open/close, and foreign-tag RLS-negative checks with clean console/page-error/failed-response captures; smoke rows were cleaned afterward. P0-05 remains unchecked until the current frontend is deployed to production Pages and the same proof is repeated there. ATO lodgement TODOs stay unchecked.
+**Last updated:** 2026-06-30 production P0-05 pass: current frontend deployed to Cloudflare Pages production deployment `933983a7-9d03-47e7-8be4-e33ef0f9b21a` from source `0e9dd07`, then signed-in proof on `https://looplet-accounting.pages.dev` passed tag create, mention bell/inbox, deep-link overlay, open/close, and foreign-tag RLS-negative checks with clean console/page-error/failed-response captures. Disposable smoke rows were cleaned and verified at `0`. Only the ATO lodgement TODOs remain unchecked.
 **Note:** +1 slice discovered in Wave B — P1-14 require_role() accepted_at gate (total now 51).
 
 Legend: `[ ]` pending · `[x]` done+verified · `[~]` code-complete but `[blocked-on-deploy]` · `[!]` external-blocked (cannot finish here)
 
 ---
 
-## P0 — Release & security blockers (10/11)
+## P0 — Release & security blockers (11/11)
 
 - [x] P0-01 Pending membership access gate
 - [x] P0-02 Tag-draft unique constraint + indexes
 - [x] P0-03 Invite fallback token redemption
 - [x] P0-04 Media attachment scope (persist-or-defer)
-- [~] P0-05 Accountant/tag deploy + live overlay proof _(DB/function/current-build proof passed; blocked-on-production-frontend deploy proof)_
+- [x] P0-05 Accountant/tag deploy + live overlay proof
 - [x] P0-06 Connector gateway PostgREST hardening
 - [x] P0-07 API-key storage + rate-limit hardening
 - [x] P0-08 Frontend error boundary + login a11y
