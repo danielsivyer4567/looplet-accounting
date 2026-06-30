@@ -8,6 +8,11 @@ const worker = readFileSync(join(root, 'supabase/functions/automation-worker/ind
 const bankWebhook = readFileSync(join(root, 'supabase/functions/bank-webhook/index.ts'), 'utf8');
 const bankSync = readFileSync(join(root, 'supabase/functions/bank-sync/index.ts'), 'utf8');
 const billsExtract = readFileSync(join(root, 'supabase/functions/bills-extract/index.ts'), 'utf8');
+const gmailPubsub = readFileSync(
+  join(root, 'supabase/functions/gmail-pubsub-push/index.ts'),
+  'utf8',
+);
+const gmailIngest = readFileSync(join(root, 'supabase/functions/_shared/gmail/ingest.ts'), 'utf8');
 const automationJobs = readFileSync(
   join(root, 'supabase/functions/_shared/automationJobs.ts'),
   'utf8',
@@ -107,6 +112,15 @@ describe('automation backbone source contracts', () => {
     expect(bankSync).toMatch(
       /return json\(\{ ok: false, results, post_sync_errors: postSyncErrors \}, 502\)/,
     );
+  });
+
+  it('gmail bill ingestion queues extraction jobs instead of direct fire-and-forget HTTP', () => {
+    for (const source of [gmailPubsub, gmailIngest]) {
+      expect(source).toMatch(/enqueue_automation_job/);
+      expect(source).toMatch(/p_job_kind:\s*'bill_extract'/);
+      expect(source).not.toMatch(/functions\/v1\/bills-extract/);
+      expect(source).not.toMatch(/bills-extract dispatch failed/);
+    }
   });
 
   it('cron and webhook edge functions keep platform JWT disabled', () => {

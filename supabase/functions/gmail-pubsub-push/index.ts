@@ -10,7 +10,7 @@
  *      d. Filters by allowlist (if configured) + accepted MIME types.
  *      e. Uploads attachments to Supabase Storage.
  *      f. Inserts into `bills` (source='gmail', status='received').
- *      g. Invokes `bills-extract` for each bill (fire-and-forget).
+ *      g. Enqueues `bill_extract` jobs for the automation worker.
  *
  * Pub/Sub push payload shape:
  * {
@@ -433,15 +433,28 @@ async function ingestMessage(
       continue;
     }
 
-    // Fire-and-forget extract.
-    fetch(`${supabaseUrl}/functions/v1/bills-extract`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${serviceKey}`,
+    const { error: jobErr } = await admin.rpc('enqueue_automation_job', {
+      p_org_id: integ.organization_id,
+      p_job_kind: 'bill_extract',
+      p_source_kind: 'bill',
+      p_source_id: bill.id,
+      p_priority: 5,
+      p_run_after: new Date().toISOString(),
+      p_max_attempts: 3,
+      p_payload: {
+        bill_id: bill.id,
+        source: 'gmail_pubsub',
+        gmail_message_id: messageId,
+        gmail_thread_id: msg.threadId,
       },
-      body: JSON.stringify({ bill_id: bill.id }),
-    }).catch((e) => console.error('bills-extract dispatch failed:', e));
+    });
+    if (jobErr) {
+      result.rejected.push({
+        message_id: messageId,
+        reason: `bill_extract enqueue ${jobErr.message}`,
+      });
+      continue;
+    }
 
     result.bills.push({ bill_id: bill.id as string, filename });
   }

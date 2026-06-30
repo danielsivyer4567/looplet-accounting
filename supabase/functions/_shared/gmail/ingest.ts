@@ -4,12 +4,11 @@
  *
  * Given a connected mailbox + a Gmail messageId, fetches the message, walks
  * the MIME parts for accepted attachments, uploads them to Supabase Storage,
- * inserts bill rows, and fires `bills-extract` (fire-and-forget). Dedup is via
+ * inserts bill rows, and enqueues `bill_extract` jobs. Dedup is via
  * `bills.intake_metadata->>'gmail_message_id'` index from migration 0006.
  */
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { requireEnv } from '../env.ts';
 import { hasExistingGmailBill } from './dedupe.ts';
 
 const ACCEPTED_MIME = new Set([
@@ -172,17 +171,28 @@ export async function ingestGmailMessage(
       continue;
     }
 
-    // Fire bills-extract (no await — backfill needs to keep moving)
-    const supabaseUrl = requireEnv('SUPABASE_URL');
-    const serviceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
-    fetch(`${supabaseUrl}/functions/v1/bills-extract`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${serviceKey}`,
+    const { error: jobErr } = await admin.rpc('enqueue_automation_job', {
+      p_org_id: integ.organization_id,
+      p_job_kind: 'bill_extract',
+      p_source_kind: 'bill',
+      p_source_id: bill.id,
+      p_priority: 5,
+      p_run_after: new Date().toISOString(),
+      p_max_attempts: 3,
+      p_payload: {
+        bill_id: bill.id,
+        source: 'gmail_backfill',
+        gmail_message_id: messageId,
+        gmail_thread_id: msg.threadId,
       },
-      body: JSON.stringify({ bill_id: bill.id }),
-    }).catch((e) => console.error('bills-extract dispatch failed:', e));
+    });
+    if (jobErr) {
+      result.rejected.push({
+        message_id: messageId,
+        reason: `bill_extract enqueue ${jobErr.message}`,
+      });
+      continue;
+    }
 
     result.bills.push({
       bill_id: bill.id as string,

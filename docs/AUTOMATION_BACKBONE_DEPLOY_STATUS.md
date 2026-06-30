@@ -49,6 +49,8 @@ internally) were left as-is: `enqueue_automation_job`, `get_confidence_policy`,
 | `bank-discover`        |           34 | Deployed after removing unsigned JWT `service_role` claim fallback; unauthenticated POST is blocked by the Supabase gateway with `UNAUTHORIZED_NO_AUTH_HEADER`                                                                                 |
 | `bills-extract`        |           71 | Deployed after removing unsigned JWT `service_role` claim fallback and making extraction proof + intake-routing handoff blocking; unauthenticated POST is blocked by the Supabase gateway with `UNAUTHORIZED_NO_AUTH_HEADER`                   |
 | `subscriptions-detect` |           45 | Deployed after removing unsigned JWT `service_role` claim fallback; unauthenticated POST is blocked by the Supabase gateway with `UNAUTHORIZED_NO_AUTH_HEADER`                                                                                 |
+| `gmail-pubsub-push`    |           54 | Deployed after replacing direct `bills-extract` background dispatch with durable `bill_extract` automation jobs; missing token POST reaches function code and returns `Invalid push verification token`                                        |
+| `gmail-backfill`       |           46 | Deployed after replacing direct `bills-extract` background dispatch with durable `bill_extract` automation jobs; unauthenticated POST is blocked by the Supabase gateway with `UNAUTHORIZED_NO_AUTH_HEADER`                                    |
 
 These smokes are deliberately non-mutating. They prove routing and `verify_jwt=false`
 config, not a real bank/document/payment workflow.
@@ -88,7 +90,7 @@ missing-document recovery rather than the raw-bank-event SC-06 path.
 
 The analysis found `ingest` would have failed on every document/payment call. The
 first two blockers were fixed and live-verified at the DB/RPC level; the later
-source/worker contract fixes are now deployed to `ingest` v32 and
+source/worker contract fixes are now deployed to `ingest` v33 and
 `automation-worker` v5, but still need positive e2e data proof:
 
 1. **Org-gate** — `enqueue_automation_job` rejected the bare service-role caller
@@ -150,6 +152,12 @@ source/worker contract fixes are now deployed to `ingest` v32 and
     failed; bill retries then deduped and skipped routing entirely. Current
     source reruns routing on deduped bill pushes, awaits intake routing for
     bill/bank pushes, and returns HTTP 500 for internal automation failures.
+14. **Gmail bill extraction was fire-and-forget** — Gmail Pub/Sub and Gmail
+    backfill created bills, then directly called `bills-extract` in background
+    HTTP promises. Dispatch failures were not durable worker jobs, so watchdogs
+    could not retry them. Current source enqueues `bill_extract` jobs for both
+    paths; Pub/Sub retry state now treats enqueue failures as retryable ingest
+    rejections instead of advancing history past them.
 
 `ingest` and `automation-worker` have been deployed as a pair. `verify_jwt=false`
 stays explicit in `supabase/config.toml`.
