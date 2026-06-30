@@ -5,6 +5,8 @@ import { useRealtimePnl, type RealtimePnl } from '@/hooks/useRealtimePnl';
 import { useAdviceNotes, type AdviceNote, type AdviceNoteKind } from '@/hooks/useAdviceNotes';
 import { useTaxCalendar, type TaxObligation } from '@/hooks/useTaxCalendar';
 import { useOnboardingProgress } from '@/hooks/onboarding/useStagedEntities';
+import { useWorkstreamTasks, type WorkstreamTask, type TaskKind } from '@/hooks/useWorkstreamTasks';
+import { IntentLauncher } from '@/components/IntentLauncher';
 import { AdviceCard } from '@/components/AdviceCard';
 import { AdviceNoteView } from '@/components/AdviceNoteView';
 import { SkeletonCard } from '@/components/Skeleton';
@@ -20,6 +22,15 @@ import {
   X,
   ChevronRight,
   Shuffle,
+  Clock,
+  AlertTriangle,
+  FileWarning,
+  Banknote,
+  Receipt,
+  ArrowLeftRight,
+  FileSearch,
+  UserCheck,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface MockTransaction {
@@ -636,6 +647,7 @@ export function DashboardPage() {
   const { obligations } = useTaxCalendar();
   const { progress: onboardingProgress, loading: onboardingProgressLoading } =
     useOnboardingProgress();
+  const { tasks: todayTasks, loading: todayLoading } = useWorkstreamTasks();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'local' | 'international'>('local');
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -884,6 +896,11 @@ export function DashboardPage() {
         </div>
       </div>
 
+      {/* Owner intent launchers */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <IntentLauncher />
+      </div>
+
       <TodayWorkstream tasks={todayTasks} onOpenAdvice={setSelectedAdviceNoteId} />
 
       <div
@@ -951,6 +968,9 @@ export function DashboardPage() {
           <InsightBarList items={costMixItems} formatValue={formatMoneyCompact} />
         </InsightPanel>
       </div>
+
+      {/* Today — owner-first workstream feed */}
+      <TodayFeed tasks={todayTasks} loading={todayLoading} />
 
       {/* Transactions Container */}
       <div
@@ -1420,6 +1440,201 @@ function DetailRow({
         </button>
       </div>
     </div>
+  );
+}
+
+const TASK_ICONS: Record<TaskKind, typeof Clock> = {
+  onboarding_triage: UserCheck,
+  tax_obligation: FileWarning,
+  bas_blocker: ShieldAlert,
+  unapproved_bill: Receipt,
+  overdue_invoice: Banknote,
+  unmatched_bank_item: ArrowLeftRight,
+  missing_document: FileSearch,
+  pending_approval: Clock,
+  advisor_proof_reminder: AlertTriangle,
+};
+
+const CONFIDENCE_COLORS: Record<string, string> = {
+  auto_post: 'var(--accent-success)',
+  quick_confirm: '#0075ff',
+  review_needed: '#f59e0b',
+  advisor_required: '#ef4444',
+  blocked_external: '#dc2626',
+};
+
+function TodayFeed({ tasks, loading }: { tasks: WorkstreamTask[]; loading: boolean }) {
+  if (loading) {
+    return (
+      <section
+        style={{ gridColumn: '1 / -1', marginBottom: '1.5rem' }}
+        aria-label="Today feed loading"
+      >
+        <h2 style={{ margin: '0 0 0.75rem', color: 'var(--text-title)', fontSize: '1rem' }}>
+          Today
+        </h2>
+        <SkeletonCard />
+      </section>
+    );
+  }
+  if (tasks.length === 0) return null;
+
+  return (
+    <section
+      style={{
+        gridColumn: '1 / -1',
+        marginBottom: '1.5rem',
+      }}
+      aria-label="Today"
+    >
+      <h2 style={{ margin: '0 0 0.75rem', color: 'var(--text-title)', fontSize: '1rem' }}>
+        Today
+        <span
+          style={{
+            marginLeft: '0.5rem',
+            fontSize: '0.75rem',
+            color: 'var(--text-muted)',
+            fontWeight: 400,
+          }}
+        >
+          {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
+        </span>
+      </h2>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        {tasks.map((task) => {
+          const Icon = TASK_ICONS[task.task_kind] ?? Clock;
+          return (
+            <div
+              key={task.id}
+              style={{
+                display: 'flex',
+                gap: '0.75rem',
+                padding: '0.75rem 1rem',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: 'var(--shadow-sm)',
+                alignItems: 'flex-start',
+              }}
+            >
+              <div
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-app)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  color: 'var(--text-muted)',
+                }}
+              >
+                <Icon size={18} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontWeight: 600,
+                      color: 'var(--text-title)',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    {task.owner_label}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.65rem',
+                      padding: '0.1rem 0.4rem',
+                      borderRadius: 'var(--radius-sm)',
+                      background: CONFIDENCE_COLORS[task.confidence] ?? 'var(--text-muted)',
+                      color: '#fff',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    {task.confidence === 'auto_post'
+                      ? 'Auto'
+                      : task.confidence === 'quick_confirm'
+                        ? 'Quick'
+                        : task.confidence === 'review_needed'
+                          ? 'Review'
+                          : task.confidence === 'advisor_required'
+                            ? 'Advisor'
+                            : task.confidence === 'blocked_external'
+                              ? 'Blocked'
+                              : task.confidence}
+                  </span>
+                  {task.blocking_reason && (
+                    <span
+                      style={{
+                        fontSize: '0.65rem',
+                        padding: '0.1rem 0.4rem',
+                        borderRadius: 'var(--radius-sm)',
+                        background: '#fef2f2',
+                        color: '#dc2626',
+                        fontWeight: 600,
+                      }}
+                    >
+                      BLOCKING
+                    </span>
+                  )}
+                </div>
+                <p
+                  style={{
+                    margin: '0.2rem 0 0',
+                    fontSize: '0.75rem',
+                    color: 'var(--text-muted)',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {task.why_now}
+                </p>
+                <div
+                  style={{
+                    marginTop: '0.35rem',
+                    display: 'flex',
+                    gap: '0.5rem',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span style={{ fontSize: '0.75rem', color: '#0075ff', fontWeight: 600 }}>
+                    {task.suggested_action}
+                  </span>
+                  {task.impact_cents != null && task.impact_cents !== 0 && (
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      $
+                      {(Math.abs(task.impact_cents) / 100).toLocaleString('en-AU', {
+                        minimumFractionDigits: 2,
+                      })}
+                    </span>
+                  )}
+                  {task.due_at && (
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      Due {new Date(task.due_at).toLocaleDateString('en-AU')}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <ChevronRight
+                size={16}
+                style={{ color: 'var(--text-muted)', flexShrink: 0, marginTop: '0.3rem' }}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
