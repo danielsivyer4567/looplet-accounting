@@ -1,0 +1,48 @@
+-- ============================================================================
+-- 0213_automation_watchdog_cron.sql
+--
+-- INERT MIGRATION — no SQL is executed.
+--
+-- This migration is intentionally a no-op so it can be applied safely to any
+-- environment without placeholder values causing runtime failures.
+--
+-- To register the cron job, run the following manually AFTER deploying the
+-- automation-watchdog edge function and setting AUTOMATION_WATCHDOG_SECRET:
+--
+--   SELECT cron.schedule(
+--     'automation-watchdog-every-15min',
+--     '*/15 * * * *',
+--     $cmd$
+--       SELECT net.http_post(
+--         url := current_setting('app.supabase_url') || '/functions/v1/automation-watchdog?secret='
+--                || current_setting('app.automation_watchdog_secret'),
+--         headers := jsonb_build_object('Content-Type', 'application/json'),
+--         body := '{}'::jsonb
+--       );
+--     $cmd$
+--   );
+--
+-- Or use the Vault-backed approach (preferred):
+--   1. supabase secrets set AUTOMATION_WATCHDOG_SECRET=<random-32-char>
+--   2. Register the cron job via the Supabase dashboard or a one-shot SQL script
+--      that reads vault.decrypted_secrets to build the URL.
+--
+-- Prerequisites:
+--   1. supabase functions deploy automation-watchdog --no-verify-jwt
+--   2. AUTOMATION_WATCHDOG_SECRET set in project secrets
+--
+-- To inspect job history (after registering):
+--   SELECT * FROM cron.job WHERE jobname = 'automation-watchdog-every-15min';
+--   SELECT * FROM cron.job_run_details
+--    WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'automation-watchdog-every-15min')
+--    ORDER BY start_time DESC LIMIT 20;
+--
+-- To pause:
+--   UPDATE cron.job SET active = false WHERE jobname = 'automation-watchdog-every-15min';
+--
+-- To unschedule:
+--   SELECT cron.unschedule('automation-watchdog-every-15min');
+-- ============================================================================
+
+-- Intentionally empty — see comment above.
+SELECT 1 WHERE false;

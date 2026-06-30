@@ -234,6 +234,7 @@ Deno.serve(async (req) => {
       const routing = await runRouting(admin, bill.id, bill.organization_id, cacheRow);
       void fireAndForgetIntakeRouting(supabaseUrl, serviceKey, bill.organization_id, 'bill', bill.id);
       void writeDecision(admin, bill.id, bill.organization_id, undefined, routing.outcome, 'cache', true, false);
+      void writeExtractionVersion(admin, bill.id, bill.organization_id, 'cache', cacheRow.ocr_provider ?? 'unknown', cacheRow.ocr_confidence ?? null, cacheRow.raw_extracted);
       return json({
         ok: true,
         method: 'cache',
@@ -268,6 +269,7 @@ Deno.serve(async (req) => {
           });
           void fireAndForgetIntakeRouting(supabaseUrl, serviceKey, bill.organization_id, 'bill', bill.id);
           void writeDecision(admin, bill.id, bill.organization_id, extracted.confidence, routing.outcome, 'text', true, false);
+          void writeExtractionVersion(admin, bill.id, bill.organization_id, 'text', 'text-only', headers.confidence, extracted);
 
           return json({
             ok: true,
@@ -300,6 +302,8 @@ Deno.serve(async (req) => {
       extracted.subtotal_ex_gst != null ? Math.round(extracted.subtotal_ex_gst * 100) : null,
     );
     void writeDecision(admin, bill.id, bill.organization_id, extracted.confidence, routing.outcome, 'vision', visProbable, visGst.estimated);
+    const visConf = extracted.confidence === 'high' ? 0.9 : extracted.confidence === 'low' ? 0.4 : 0.7;
+    void writeExtractionVersion(admin, bill.id, bill.organization_id, 'vision', provider, visConf, extracted);
 
     return json({
       ok: true,
@@ -521,6 +525,29 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+async function writeExtractionVersion(
+  admin: SupabaseClient,
+  billId: string,
+  orgId: string,
+  method: 'cache' | 'text' | 'vision',
+  provider: string,
+  confidence: number | null,
+  extractedJson: unknown,
+): Promise<void> {
+  try {
+    await admin.from('document_extraction_versions').insert({
+      bill_id: billId,
+      organization_id: orgId,
+      method,
+      provider,
+      confidence,
+      extracted_json: extractedJson ?? {},
+    });
+  } catch {
+    // Non-critical — never block the OCR response
+  }
 }
 
 /**

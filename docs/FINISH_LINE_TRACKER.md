@@ -74,3 +74,43 @@ Warnings only (no errors):
 
 - **SC-09**: Advisor work proof requires live Supabase deploy + screenshot capture
 - **SC-11**: POS receipt advantage proof requires live POS endpoint + receipt flow test
+
+---
+
+## Automation Backbone Epic (SC-01–SC-09)
+
+Generated: 2026-07-01
+
+### Ledger slices
+
+| Slice | Title | Status |
+|-------|-------|--------|
+| SC-01 | Automation jobs tables + TS library | done |
+| SC-02 | Automation worker Edge Function | done |
+| SC-03 | Automation watchdog scanner | done |
+| SC-04 | Confidence policy engine | done |
+| SC-05 | Versioned document extraction | done |
+| SC-06 | Raw bank event layer | done |
+| SC-07 | Reconciliation evidence upgrade | done |
+| SC-08 | Browser job schema + runbook | done |
+| SC-09 | Connector endpoint completion + OpenAPI | done |
+
+### Gate results (SC-10 final run — 2026-07-01)
+
+| Gate | Result |
+|------|--------|
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS (1 fix: `Array<T>` → `T[]` in auto-reconcile) |
+| `npm run build` | PASS (349 modules; warnings only — pre-existing) |
+| `npm test` | PASS — 217 tests passed, 111 skipped (live-gated) |
+| `git diff --check` | PASS |
+
+### Migration ceiling
+
+Highest migration: **0219** (`_browser_jobs`). Ceiling confirmed — no 0220 file exists.
+
+### Blocked items (need human deploy / external provider)
+
+- **Basiq end-to-end**: requires live CDR bank-link flow + Basiq tenant credentials
+- **POS pilot**: requires live POS endpoint + receipt posting test
+- **Advisor sign-in**: requires live Supabase deploy + auth screenshot capture

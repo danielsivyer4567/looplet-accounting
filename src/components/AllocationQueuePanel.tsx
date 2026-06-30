@@ -85,22 +85,18 @@ type BusyAction = 'auto_accept' | 'rematch' | 'full' | null;
 
 export function AllocationQueuePanel() {
   const { currentOrg } = useOrg();
-  const { bills, loading, error, refresh } = useAllocationQueue();
+  const { queue, loading, error, refresh } = useAllocationQueue();
   const [busy, setBusy] = useState<BusyAction>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Computed stats from the bill list
-  const autoAcceptCount = bills.filter(
-    (b) => b.suggested_match_score != null && b.suggested_match_score >= 0.85,
+  const autoAcceptCount = queue.filter(
+    (b) => b.score != null && b.score >= 0.85,
   ).length;
-  const needsReviewCount = bills.filter(
-    (b) =>
-      b.suggested_match_score != null &&
-      b.suggested_match_score >= 0.5 &&
-      b.suggested_match_score < 0.85,
+  const needsReviewCount = queue.filter(
+    (b) => b.score != null && b.score >= 0.5 && b.score < 0.85,
   ).length;
-  const unmatchedCount = bills.filter(
-    (b) => b.suggested_match_score == null || b.suggested_match_score < 0.5,
+  const unmatchedCount = queue.filter(
+    (b) => b.score == null || b.score < 0.5,
   ).length;
 
   const invokeMode = useCallback(
@@ -148,7 +144,7 @@ export function AllocationQueuePanel() {
   const handleRematch = () => invokeMode('rematch');
   const handleFull = () => invokeMode('full', 0.85);
 
-  const displayBills = bills.slice(0, 50);
+  const displayBills = queue.slice(0, 50);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -193,7 +189,7 @@ export function AllocationQueuePanel() {
               {unmatchedCount > 0 && (
                 <span style={{ color: 'var(--text-muted)' }}>{unmatchedCount} unmatched</span>
               )}
-              {bills.length === 0 && !loading && (
+              {queue.length === 0 && !loading && (
                 <span>No unallocated bills</span>
               )}
             </p>
@@ -281,7 +277,7 @@ export function AllocationQueuePanel() {
       {/* Body */}
       {loading ? (
         <SkeletonTable rows={6} cols={6} />
-      ) : bills.length === 0 ? (
+      ) : queue.length === 0 ? (
         <div
           style={{
             padding: '2.5rem',
@@ -328,13 +324,13 @@ export function AllocationQueuePanel() {
                     })
                   : '—';
 
-                const suggestedJob = bill.suggested_job;
-                const jobLabel = suggestedJob
-                  ? `${suggestedJob.job_number} – ${suggestedJob.name}`
+                const hasJob = bill.suggested_job_number != null;
+                const jobLabel = hasJob
+                  ? `${bill.suggested_job_number} – ${bill.suggested_job_name ?? ''}`
                   : bill.job_reference_raw ?? '—';
 
                 return (
-                  <tr key={bill.id}>
+                  <tr key={bill.bill_id}>
                     <td>
                       <span
                         style={{
@@ -372,15 +368,15 @@ export function AllocationQueuePanel() {
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
-                          color: suggestedJob ? 'var(--text-title)' : 'var(--text-muted)',
+                          color: hasJob ? 'var(--text-title)' : 'var(--text-muted)',
                         }}
-                        title={suggestedJob ? jobLabel : undefined}
+                        title={hasJob ? jobLabel : undefined}
                       >
                         {jobLabel}
                       </span>
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <ScoreBadge score={bill.suggested_match_score} />
+                      <ScoreBadge score={bill.score} />
                     </td>
                     <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                       {date}
@@ -391,7 +387,7 @@ export function AllocationQueuePanel() {
             </tbody>
           </table>
 
-          {bills.length > 50 && (
+          {queue.length > 50 && (
             <p
               style={{
                 margin: '0.5rem 0 0',
@@ -400,14 +396,14 @@ export function AllocationQueuePanel() {
                 textAlign: 'right',
               }}
             >
-              Showing 50 of {bills.length} bills. Run Auto-Accept or Re-match to reduce the queue.
+              Showing 50 of {queue.length} bills. Run Auto-Accept or Re-match to reduce the queue.
             </p>
           )}
         </div>
       )}
 
       {/* Refresh link */}
-      {!loading && bills.length > 0 && (
+      {!loading && queue.length > 0 && (
         <div style={{ textAlign: 'right' }}>
           <button
             className="btn btn-ghost"

@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, preflight } from '../_shared/cors.ts'
 
 interface RequestBody {
@@ -26,8 +27,14 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return new Response(
+        JSON.stringify({ error: 'Server misconfiguration: missing env vars' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
 
     const client = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -62,7 +69,7 @@ Deno.serve(async (req: Request) => {
 
     // Verify org membership — fail fast before any heavy RPCs
     const { data: memberData, error: memberError } = await client
-      .from('organization_members')
+      .from('organization_memberships')
       .select('organization_id')
       .eq('organization_id', org_id)
       .maybeSingle()
@@ -125,7 +132,7 @@ Deno.serve(async (req: Request) => {
 })
 
 async function fetchStats(
-  client: ReturnType<typeof createClient>,
+  client: SupabaseClient,
   org_id: string,
 ): Promise<{ stats: ScoreBandCounts }> {
   const { data, error } = await client
@@ -137,7 +144,7 @@ async function fetchStats(
     throw new Error(`Failed to query v_allocation_queue: ${error.message}`)
   }
 
-  const rows = (data ?? []) as Array<{ score: number | null }>
+  const rows = (data ?? []) as { score: number | null }[]
 
   const counts: ScoreBandCounts = { high: 0, medium: 0, no_suggestion: 0 }
   for (const row of rows) {
@@ -157,14 +164,14 @@ async function fetchStats(
 }
 
 async function runAutoAccept(
-  client: ReturnType<typeof createClient>,
+  client: SupabaseClient,
   org_id: string,
   min_score: number,
 ): Promise<{ auto_accept: unknown }> {
   const { data, error } = await client.rpc('bulk_accept_job_suggestions', {
     p_org_id: org_id,
     p_min_score: min_score,
-  })
+  } as Record<string, unknown>)
 
   if (error) {
     throw new Error(`bulk_accept_job_suggestions failed: ${error.message}`)
@@ -174,13 +181,13 @@ async function runAutoAccept(
 }
 
 async function runRematch(
-  client: ReturnType<typeof createClient>,
+  client: SupabaseClient,
   org_id: string,
 ): Promise<{ rematch: unknown }> {
   const { data, error } = await client.rpc('rematch_unallocated_bills', {
     p_org_id: org_id,
     p_limit: 500,
-  })
+  } as Record<string, unknown>)
 
   if (error) {
     throw new Error(`rematch_unallocated_bills failed: ${error.message}`)

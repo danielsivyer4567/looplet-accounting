@@ -14,6 +14,9 @@ import {
   ArrowDownRight,
   RotateCcw,
   Check,
+  ChevronDown,
+  ChevronUp,
+  Info,
 } from 'lucide-react';
 import { ConfidenceBadge } from '@/components/ConfidenceBadge';
 import { recordFeedback, type AutomationConfidence } from '@/lib/automationDecision';
@@ -27,6 +30,16 @@ interface BankTxn {
   matched_bill_id: string | null;
   matched_invoice_id: string | null;
   bank_account_id: string;
+  manually_matched: boolean | null;
+}
+
+interface EvidenceRow {
+  id: string;
+  reason_codes: string[];
+  score_components: Record<string, unknown>;
+  auto_applied: boolean;
+  skipped_reason: string | null;
+  created_at: string;
 }
 
 interface BillMatchCandidate {
@@ -76,6 +89,8 @@ export function ReconciliationPage() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [expandedEvidenceId, setExpandedEvidenceId] = useState<string | null>(null);
+  const [evidenceCache, setEvidenceCache] = useState<Map<string, EvidenceRow[]>>(new Map());
 
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
@@ -96,7 +111,7 @@ export function ReconciliationPage() {
       supabase
         .from('bank_transactions')
         .select(
-          'id, posted_at, description, amount_cents, reference, matched_bill_id, matched_invoice_id, bank_account_id',
+          'id, posted_at, description, amount_cents, reference, matched_bill_id, matched_invoice_id, bank_account_id, manually_matched',
         )
         .eq('organization_id', currentOrg.id)
         .or('matched_bill_id.not.is.null,matched_invoice_id.not.is.null')
@@ -179,6 +194,7 @@ export function ReconciliationPage() {
         sourceId: txnId,
         newValue: { matched_bill_id: billId },
         correctionReason: 'reconciliation_confirm',
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       }).catch(() => {});
 
       if (currentOrg) {
@@ -229,6 +245,7 @@ export function ReconciliationPage() {
         sourceId: txnId,
         newValue: { matched_invoice_id: invoiceId, amount_cents: amountCents },
         correctionReason: 'reconciliation_confirm',
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       }).catch(() => {});
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -238,16 +255,47 @@ export function ReconciliationPage() {
     }
   };
 
-  const undoMatch = async (txnId: string) => {
+  const loadEvidence = async (txnId: string) => {
+    if (expandedEvidenceId === txnId) {
+      setExpandedEvidenceId(null);
+      return;
+    }
+    if (!evidenceCache.has(txnId)) {
+      const { data } = await supabase
+        .from('reconciliation_evidence')
+        .select('id, reason_codes, score_components, auto_applied, skipped_reason, created_at')
+        .eq('bank_transaction_id', txnId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      setEvidenceCache((prev) => new Map(prev).set(txnId, (data ?? []) as EvidenceRow[]));
+    }
+    setExpandedEvidenceId(txnId);
+  };
+
+  const undoMatch = async (txn: BankTxn) => {
     if (!confirm('Undo this match?')) return;
-    setBusyId(txnId);
+    setBusyId(txn.id);
     try {
       const { data, error: rpcErr } = await supabase.rpc('reconcile_undo_match', {
-        p_bank_transaction_id: txnId,
+        p_bank_transaction_id: txn.id,
       });
       if (rpcErr) throw rpcErr;
       const result = data as { ok: boolean; error?: string } | null;
       if (result && !result.ok) throw new Error(result.error ?? 'reconcile_undo_match failed');
+
+      if (!txn.manually_matched) {
+        void recordFeedback({
+          organizationId: currentOrg.id,
+          sourceKind: 'bank_match',
+          sourceId: txn.id,
+          previousValue: txn.matched_bill_id
+            ? { matched_bill_id: txn.matched_bill_id }
+            : { matched_invoice_id: txn.matched_invoice_id },
+          newValue: { action: 'undo_auto_match' },
+          correctionReason: 'auto_match_overridden',
+          // eslint-disable-next-line @typescript-eslint/no-empty-function
+        }).catch(() => {});
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -414,62 +462,105 @@ export function ReconciliationPage() {
                       <th>Description</th>
                       <th style={{ textAlign: 'right' }}>Amount</th>
                       <th>Matched to</th>
-                      <th style={{ width: '80px' }}></th>
+                      <th style={{ width: '120px' }}></th>
                     </tr>
                   </thead>
                   <tbody>
                     {matched.map((m) => (
-                      <tr key={m.id}>
-                        <td style={{ whiteSpace: 'nowrap' }}>{m.posted_at.slice(0, 10)}</td>
-                        <td>{m.description}</td>
-                        <td
-                          style={{
-                            textAlign: 'right',
-                            fontWeight: 600,
-                            color:
-                              m.amount_cents < 0 ? 'var(--text-danger)' : 'var(--text-success)',
-                          }}
-                        >
-                          {formatMoney(m.amount_cents)}
-                        </td>
-                        <td>
-                          {m.matched_bill_id && (
-                            <Link
-                              to={`/bills/${m.matched_bill_id}`}
-                              className="badge badge-info"
-                              style={{ textDecoration: 'none' }}
-                            >
-                              bill →
-                            </Link>
-                          )}
-                          {m.matched_invoice_id && (
-                            <Link
-                              to={`/invoices/${m.matched_invoice_id}`}
-                              className="badge badge-success"
-                              style={{ textDecoration: 'none' }}
-                            >
-                              invoice →
-                            </Link>
-                          )}
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <button
-                            onClick={() => void undoMatch(m.id)}
-                            disabled={busyId === m.id}
-                            className="btn btn-secondary"
+                      <>
+                        <tr key={m.id}>
+                          <td style={{ whiteSpace: 'nowrap' }}>{m.posted_at.slice(0, 10)}</td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <span>{m.description}</span>
+                              {!m.manually_matched && (
+                                <span
+                                  className="badge badge-info"
+                                  style={{ fontSize: '9px', padding: '1px 4px', fontWeight: 500 }}
+                                >
+                                  auto
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td
                             style={{
-                              padding: '0.25rem 0.5rem',
-                              fontSize: '0.725rem',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.25rem',
+                              textAlign: 'right',
+                              fontWeight: 600,
+                              color:
+                                m.amount_cents < 0 ? 'var(--text-danger)' : 'var(--text-success)',
                             }}
                           >
-                            <RotateCcw size={12} />
-                            <span>Undo</span>
-                          </button>
-                        </td>
-                      </tr>
+                            {formatMoney(m.amount_cents)}
+                          </td>
+                          <td>
+                            {m.matched_bill_id && (
+                              <Link
+                                to={`/bills/${m.matched_bill_id}`}
+                                className="badge badge-info"
+                                style={{ textDecoration: 'none' }}
+                              >
+                                bill →
+                              </Link>
+                            )}
+                            {m.matched_invoice_id && (
+                              <Link
+                                to={`/invoices/${m.matched_invoice_id}`}
+                                className="badge badge-success"
+                                style={{ textDecoration: 'none' }}
+                              >
+                                invoice →
+                              </Link>
+                            )}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                              <button
+                                onClick={() => void loadEvidence(m.id)}
+                                className="btn btn-secondary"
+                                style={{
+                                  padding: '0.25rem 0.4rem',
+                                  fontSize: '0.7rem',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.2rem',
+                                }}
+                                title="Why this match?"
+                              >
+                                <Info size={11} />
+                                <span>Why?</span>
+                                {expandedEvidenceId === m.id ? (
+                                  <ChevronUp size={10} />
+                                ) : (
+                                  <ChevronDown size={10} />
+                                )}
+                              </button>
+                              <button
+                                onClick={() => void undoMatch(m)}
+                                disabled={busyId === m.id}
+                                className="btn btn-secondary"
+                                style={{
+                                  padding: '0.25rem 0.5rem',
+                                  fontSize: '0.725rem',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem',
+                                }}
+                              >
+                                <RotateCcw size={12} />
+                                <span>Undo</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        {expandedEvidenceId === m.id && (
+                          <tr key={`${m.id}-evidence`}>
+                            <td colSpan={5} style={{ padding: '0.5rem 0.75rem 0.75rem' }}>
+                              <EvidencePanel rows={evidenceCache.get(m.id) ?? []} />
+                            </td>
+                          </tr>
+                        )}
+                      </>
                     ))}
                   </tbody>
                 </table>
@@ -517,6 +608,105 @@ export function ReconciliationPage() {
   );
 }
 
+function EvidencePanel({ rows }: { rows: EvidenceRow[] }) {
+  if (rows.length === 0) {
+    return (
+      <div
+        style={{
+          fontSize: '0.775rem',
+          color: 'var(--text-muted)',
+          fontStyle: 'italic',
+          padding: '0.4rem 0',
+        }}
+      >
+        No autopilot evidence recorded for this match.
+      </div>
+    );
+  }
+  const latest = rows[0];
+  if (!latest) return null;
+  const sc = latest.score_components as Record<string, unknown>;
+  const reasonLabels: Record<string, string> = {
+    amount_exact: 'Exact amount',
+    amount_close: 'Near-exact amount (≤$0.50)',
+    amount_match: 'Amount within tolerance',
+    date_exact: 'Same day',
+    date_recent: 'Within 3 days',
+    date_close: 'Within 7 days',
+    name_match: 'Supplier/customer name matched',
+    number_match: 'Invoice number matched',
+  };
+  return (
+    <div
+      style={{
+        background: 'var(--bg-app)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-sm)',
+        padding: '0.75rem 1rem',
+        fontSize: '0.775rem',
+      }}
+    >
+      <div
+        style={{
+          fontWeight: 600,
+          color: 'var(--text-muted)',
+          marginBottom: '0.4rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.4rem',
+        }}
+      >
+        <Info size={12} />
+        Why Looplet picked this match
+        {latest.auto_applied && (
+          <span className="badge badge-info" style={{ fontSize: '9px', padding: '1px 4px' }}>
+            auto-applied
+          </span>
+        )}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.5rem' }}>
+        {latest.reason_codes.map((code) => (
+          <span
+            key={code}
+            style={{
+              padding: '0.15rem 0.45rem',
+              background: 'var(--bg-success-subtle)',
+              border: '1px solid rgba(16,185,129,0.2)',
+              borderRadius: '999px',
+              fontSize: '0.7rem',
+              color: 'var(--text-success)',
+              fontWeight: 500,
+            }}
+          >
+            {reasonLabels[code] ?? code}
+          </span>
+        ))}
+      </div>
+      {typeof sc.score === 'number' && (
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.725rem' }}>
+          Score: <strong>{((sc.score as number) * 100).toFixed(0)}%</strong>
+          {typeof sc.amount_diff_cents === 'number' && (
+            <>
+              {' · '}Amount diff:{' '}
+              <strong>
+                {sc.amount_diff_cents === 0
+                  ? 'exact'
+                  : `$${(Math.abs(sc.amount_diff_cents as number) / 100).toFixed(2)}`}
+              </strong>
+            </>
+          )}
+          {typeof sc.days_diff === 'number' && (
+            <>
+              {' · '}Days apart:{' '}
+              <strong>{sc.days_diff === 0 ? 'same day' : `${sc.days_diff}d`}</strong>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TxnRow({
   row,
   busy,
@@ -530,6 +720,7 @@ function TxnRow({
   hostOrgId: string;
   onSplitSaved: () => void;
 }) {
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const { txn, candidates } = row;
   const top = candidates[0];
   const isPositive = txn.amount_cents >= 0;
@@ -615,96 +806,147 @@ function TxnRow({
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {candidates.map((c, i) => {
+              const isExpanded = expandedIdx === i;
               return (
-                <div
-                  key={`${c.kind}-${i}`}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '0.75rem',
-                    background: 'var(--bg-app)',
-                    padding: '0.5rem 0.75rem',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-subtle)',
-                  }}
-                >
-                  {c.kind === 'bill' ? (
-                    <Link
-                      to={`/bills/${c.bill_id}`}
-                      style={{
-                        fontSize: '0.775rem',
-                        color: 'var(--text-body)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                        gap: '0.25rem',
-                      }}
-                    >
-                      <span
-                        className="badge badge-info"
-                        style={{ fontSize: '8px', padding: '1px 3px' }}
+                <div key={`${c.kind}-${i}`}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      background: 'var(--bg-app)',
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: isExpanded ? 'var(--radius-sm) var(--radius-sm) 0 0' : 'var(--radius-sm)',
+                      border: '1px solid var(--border-subtle)',
+                      borderBottom: isExpanded ? 'none' : undefined,
+                    }}
+                  >
+                    {c.kind === 'bill' ? (
+                      <Link
+                        to={`/bills/${c.bill_id}`}
+                        style={{
+                          fontSize: '0.775rem',
+                          color: 'var(--text-body)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '0.25rem',
+                        }}
                       >
-                        BILL
-                      </span>
-                      <strong style={{ color: 'var(--text-title)' }}>
-                        {c.supplier_name ?? '(no supplier)'}
-                      </strong>
-                      <span>·</span>
-                      <code>{c.bill_invoice_number ?? '—'}</code>
-                      <span>·</span>
-                      <span style={{ fontWeight: 600 }}>{formatMoney(c.bill_amount_cents)}</span>
-                    </Link>
-                  ) : (
-                    <Link
-                      to={`/invoices/${c.invoice_id}`}
-                      style={{
-                        fontSize: '0.775rem',
-                        color: 'var(--text-body)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                        gap: '0.25rem',
-                      }}
-                    >
-                      <span
-                        className="badge badge-success"
-                        style={{ fontSize: '8px', padding: '1px 3px' }}
+                        <span
+                          className="badge badge-info"
+                          style={{ fontSize: '8px', padding: '1px 3px' }}
+                        >
+                          BILL
+                        </span>
+                        <strong style={{ color: 'var(--text-title)' }}>
+                          {c.supplier_name ?? '(no supplier)'}
+                        </strong>
+                        <span>·</span>
+                        <code>{c.bill_invoice_number ?? '—'}</code>
+                        <span>·</span>
+                        <span style={{ fontWeight: 600 }}>{formatMoney(c.bill_amount_cents)}</span>
+                      </Link>
+                    ) : (
+                      <Link
+                        to={`/invoices/${c.invoice_id}`}
+                        style={{
+                          fontSize: '0.775rem',
+                          color: 'var(--text-body)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '0.25rem',
+                        }}
                       >
-                        INV
-                      </span>
-                      <strong style={{ color: 'var(--text-title)' }}>
-                        {c.customer_name ?? '(no customer)'}
-                      </strong>
-                      <span>·</span>
-                      <code>{c.invoice_number}</code>
-                      <span>·</span>
-                      <span style={{ fontWeight: 600 }}>
-                        Owing {formatMoney(c.invoice_balance_due_cents)}
-                      </span>
-                    </Link>
-                  )}
+                        <span
+                          className="badge badge-success"
+                          style={{ fontSize: '8px', padding: '1px 3px' }}
+                        >
+                          INV
+                        </span>
+                        <strong style={{ color: 'var(--text-title)' }}>
+                          {c.customer_name ?? '(no customer)'}
+                        </strong>
+                        <span>·</span>
+                        <code>{c.invoice_number}</code>
+                        <span>·</span>
+                        <span style={{ fontWeight: 600 }}>
+                          Owing {formatMoney(c.invoice_balance_due_cents)}
+                        </span>
+                      </Link>
+                    )}
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <ConfidenceBadge confidence={scoreToConfidence(c.score)} />
-                    <button
-                      onClick={() => onMatch(txn.id, txn.amount_cents, c)}
-                      disabled={busy}
-                      className={`btn${scoreToConfidence(c.score) === 'auto_post' ? ' btn-primary' : ''}`}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <button
+                        onClick={() => setExpandedIdx(isExpanded ? null : i)}
+                        className="btn btn-secondary"
+                        style={{
+                          padding: '0.2rem 0.35rem',
+                          fontSize: '0.7rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.15rem',
+                          color: 'var(--text-muted)',
+                        }}
+                        title="Why this score?"
+                      >
+                        <Info size={11} />
+                        {isExpanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                      </button>
+                      <ConfidenceBadge confidence={scoreToConfidence(c.score)} />
+                      <button
+                        onClick={() => onMatch(txn.id, txn.amount_cents, c)}
+                        disabled={busy}
+                        className={`btn${scoreToConfidence(c.score) === 'auto_post' ? ' btn-primary' : ''}`}
+                        style={{
+                          padding: '0.25rem 0.5rem',
+                          fontSize: '0.725rem',
+                          fontWeight: 600,
+                          cursor: busy ? 'wait' : 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                        }}
+                      >
+                        {scoreToConfidence(c.score) === 'quick_confirm' && <Check size={12} />}
+                        Match ({(c.score * 100).toFixed(0)}%)
+                      </button>
+                    </div>
+                  </div>
+                  {isExpanded && (
+                    <div
                       style={{
-                        padding: '0.25rem 0.5rem',
+                        background: 'var(--bg-app)',
+                        border: '1px solid var(--border-subtle)',
+                        borderTop: '1px dashed var(--border-subtle)',
+                        borderRadius: '0 0 var(--radius-sm) var(--radius-sm)',
+                        padding: '0.5rem 0.75rem',
                         fontSize: '0.725rem',
-                        fontWeight: 600,
-                        cursor: busy ? 'wait' : 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.25rem',
+                        color: 'var(--text-muted)',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '0.75rem',
                       }}
                     >
-                      {scoreToConfidence(c.score) === 'quick_confirm' && <Check size={12} />}
-                      Match ({(c.score * 100).toFixed(0)}%)
-                    </button>
-                  </div>
+                      <span>
+                        Score: <strong style={{ color: 'var(--text-body)' }}>{(c.score * 100).toFixed(0)}%</strong>
+                      </span>
+                      <span>
+                        Amount diff:{' '}
+                        <strong style={{ color: 'var(--text-body)' }}>
+                          {c.amount_diff_cents === 0 ? 'exact' : `$${(Math.abs(c.amount_diff_cents) / 100).toFixed(2)}`}
+                        </strong>
+                      </span>
+                      <span>
+                        Days apart:{' '}
+                        <strong style={{ color: 'var(--text-body)' }}>
+                          {c.days_diff === 0 ? 'same day' : `${c.days_diff}d`}
+                        </strong>
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}

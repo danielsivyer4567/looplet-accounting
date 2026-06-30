@@ -2,18 +2,25 @@ import { useState, useEffect, useCallback } from 'react';
 import { useOrg } from '@/hooks/useOrg';
 import { supabase } from '@/lib/supabase';
 
+// Columns match v_allocation_queue exactly:
+//   bill_id, organization_id, status, supplier_name_raw, invoice_number,
+//   invoice_date, total_inc_gst_cents, job_reference_raw, suggested_job_id,
+//   score (alias of suggested_match_score), suggested_job_number,
+//   suggested_job_name, suggested_job_status, created_at
 export interface AllocationQueueRow {
-  id: string;
+  bill_id: string;
+  organization_id: string;
+  status: string | null;
   supplier_name_raw: string | null;
   invoice_number: string | null;
   invoice_date: string | null;
   total_inc_gst_cents: number | null;
-  suggested_job_id: string | null;
-  suggested_match_score: number | null;
   job_reference_raw: string | null;
+  suggested_job_id: string | null;
+  score: number | null;
   suggested_job_number: string | null;
   suggested_job_name: string | null;
-  status: string | null;
+  suggested_job_status: string | null;
   created_at: string | null;
 }
 
@@ -35,10 +42,10 @@ function computeStats(rows: AllocationQueueRow[]): AllocationQueueStats {
   let no_suggestion = 0;
 
   for (const row of rows) {
-    const score = row.suggested_match_score;
-    if (score == null || score < 0.5) {
+    const s = row.score;
+    if (s == null || s < 0.5) {
       no_suggestion++;
-    } else if (score >= 0.85) {
+    } else if (s >= 0.85) {
       high_confidence++;
     } else {
       needs_review++;
@@ -52,6 +59,23 @@ function computeStats(rows: AllocationQueueRow[]): AllocationQueueStats {
     no_suggestion,
   };
 }
+
+const SELECT_COLS = [
+  'bill_id',
+  'organization_id',
+  'status',
+  'supplier_name_raw',
+  'invoice_number',
+  'invoice_date',
+  'total_inc_gst_cents',
+  'job_reference_raw',
+  'suggested_job_id',
+  'score',
+  'suggested_job_number',
+  'suggested_job_name',
+  'suggested_job_status',
+  'created_at',
+].join(', ');
 
 export function useAllocationQueue() {
   const { currentOrg } = useOrg();
@@ -74,17 +98,15 @@ export function useAllocationQueue() {
     try {
       const { data, error: fetchError } = await supabase
         .from('v_allocation_queue')
-        .select(
-          'id, supplier_name_raw, invoice_number, invoice_date, total_inc_gst_cents, suggested_job_id, suggested_match_score, job_reference_raw, suggested_job_number, suggested_job_name, status, created_at',
-        )
-        .eq('org_id', currentOrg.id);
+        .select(SELECT_COLS)
+        .eq('organization_id', currentOrg.id);
 
       if (fetchError) {
         setError(fetchError.message);
         return;
       }
 
-      const rows = (data ?? []) as AllocationQueueRow[];
+      const rows = (data ?? []) as unknown as AllocationQueueRow[];
       setQueue(rows);
       setStats(computeStats(rows));
     } catch (err) {
@@ -130,15 +152,12 @@ export function useAllocationQueue() {
           };
         }
 
-        // Re-fetch to get fresh rows, then compute stats from those rows directly
         const { data } = await supabase
           .from('v_allocation_queue')
-          .select(
-            'id, supplier_name_raw, invoice_number, invoice_date, total_inc_gst_cents, suggested_job_id, suggested_match_score, job_reference_raw, suggested_job_number, suggested_job_name, status, created_at',
-          )
-          .eq('org_id', currentOrg.id);
+          .select(SELECT_COLS)
+          .eq('organization_id', currentOrg.id);
 
-        const freshRows = (data ?? []) as AllocationQueueRow[];
+        const freshRows = (data ?? []) as unknown as AllocationQueueRow[];
         setQueue(freshRows);
         const freshStats = computeStats(freshRows);
         setStats(freshStats);

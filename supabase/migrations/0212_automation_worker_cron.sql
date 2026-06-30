@@ -1,0 +1,48 @@
+-- ============================================================================
+-- 0212_automation_worker_cron.sql
+--
+-- INERT MIGRATION — no SQL is executed.
+--
+-- This migration is intentionally a no-op so it can be applied safely to any
+-- environment without placeholder values causing runtime failures.
+--
+-- To register the cron job, run the following manually AFTER deploying the
+-- automation-worker edge function and setting AUTOMATION_WORKER_SECRET:
+--
+--   SELECT cron.schedule(
+--     'automation-worker-every-2min',
+--     '*/2 * * * *',
+--     $cmd$
+--       SELECT net.http_post(
+--         url := current_setting('app.supabase_url') || '/functions/v1/automation-worker?secret='
+--                || current_setting('app.automation_worker_secret'),
+--         headers := jsonb_build_object('Content-Type', 'application/json'),
+--         body := '{}'::jsonb
+--       );
+--     $cmd$
+--   );
+--
+-- Or use the Vault-backed approach (preferred):
+--   1. supabase secrets set AUTOMATION_WORKER_SECRET=<random-32-char>
+--   2. Register the cron job via the Supabase dashboard or a one-shot SQL script
+--      that reads vault.decrypted_secrets to build the URL.
+--
+-- Prerequisites:
+--   1. supabase functions deploy automation-worker --no-verify-jwt
+--   2. AUTOMATION_WORKER_SECRET set in project secrets
+--
+-- To inspect job history (after registering):
+--   SELECT * FROM cron.job WHERE jobname = 'automation-worker-every-2min';
+--   SELECT * FROM cron.job_run_details
+--    WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'automation-worker-every-2min')
+--    ORDER BY start_time DESC LIMIT 20;
+--
+-- To pause:
+--   UPDATE cron.job SET active = false WHERE jobname = 'automation-worker-every-2min';
+--
+-- To unschedule:
+--   SELECT cron.unschedule('automation-worker-every-2min');
+-- ============================================================================
+
+-- Intentionally empty — see comment above.
+SELECT 1 WHERE false;
