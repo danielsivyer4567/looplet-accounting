@@ -194,7 +194,7 @@ export function ReconciliationPage() {
         sourceId: txnId,
         newValue: { matched_bill_id: billId },
         correctionReason: 'reconciliation_confirm',
-      // eslint-disable-next-line @typescript-eslint/no-empty-function
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
       }).catch(() => {});
 
       if (currentOrg) {
@@ -245,7 +245,7 @@ export function ReconciliationPage() {
         sourceId: txnId,
         newValue: { matched_invoice_id: invoiceId, amount_cents: amountCents },
         correctionReason: 'reconciliation_confirm',
-      // eslint-disable-next-line @typescript-eslint/no-empty-function
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
       }).catch(() => {});
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -514,7 +514,14 @@ export function ReconciliationPage() {
                             )}
                           </td>
                           <td style={{ textAlign: 'right' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                justifyContent: 'flex-end',
+                              }}
+                            >
                               <button
                                 onClick={() => void loadEvidence(m.id)}
                                 className="btn btn-secondary"
@@ -817,7 +824,9 @@ function TxnRow({
                       gap: '0.75rem',
                       background: 'var(--bg-app)',
                       padding: '0.5rem 0.75rem',
-                      borderRadius: isExpanded ? 'var(--radius-sm) var(--radius-sm) 0 0' : 'var(--radius-sm)',
+                      borderRadius: isExpanded
+                        ? 'var(--radius-sm) var(--radius-sm) 0 0'
+                        : 'var(--radius-sm)',
                       border: '1px solid var(--border-subtle)',
                       borderBottom: isExpanded ? 'none' : undefined,
                     }}
@@ -931,12 +940,17 @@ function TxnRow({
                       }}
                     >
                       <span>
-                        Score: <strong style={{ color: 'var(--text-body)' }}>{(c.score * 100).toFixed(0)}%</strong>
+                        Score:{' '}
+                        <strong style={{ color: 'var(--text-body)' }}>
+                          {(c.score * 100).toFixed(0)}%
+                        </strong>
                       </span>
                       <span>
                         Amount diff:{' '}
                         <strong style={{ color: 'var(--text-body)' }}>
-                          {c.amount_diff_cents === 0 ? 'exact' : `$${(Math.abs(c.amount_diff_cents) / 100).toFixed(2)}`}
+                          {c.amount_diff_cents === 0
+                            ? 'exact'
+                            : `$${(Math.abs(c.amount_diff_cents) / 100).toFixed(2)}`}
                         </strong>
                       </span>
                       <span>

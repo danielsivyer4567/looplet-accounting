@@ -406,7 +406,7 @@ export function CodingReviewPage() {
                     previousValue: { account_code: s.account_code, tax_code: s.tax_code },
                     newValue: { account_code: codes.account_code, tax_code: codes.tax_code },
                     correctionReason: 'coding_review_override',
-                  // eslint-disable-next-line @typescript-eslint/no-empty-function
+                    // eslint-disable-next-line @typescript-eslint/no-empty-function
                   }).catch(() => {});
                 })
               }

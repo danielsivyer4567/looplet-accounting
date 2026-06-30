@@ -190,10 +190,18 @@ export function BillDetailPage() {
     setActionError(null);
     const feedbackChanges: { sourceKind: FeedbackSourceKind; prev: unknown; next: unknown }[] = [];
     if (draft.supplier_name_raw.trim() !== (bill.supplier_name_raw ?? '')) {
-      feedbackChanges.push({ sourceKind: 'supplier', prev: bill.supplier_name_raw, next: draft.supplier_name_raw.trim() });
+      feedbackChanges.push({
+        sourceKind: 'supplier',
+        prev: bill.supplier_name_raw,
+        next: draft.supplier_name_raw.trim(),
+      });
     }
     if (draft.job_reference_raw.trim() !== (bill.job_reference_raw ?? '')) {
-      feedbackChanges.push({ sourceKind: 'job_tag', prev: bill.job_reference_raw, next: draft.job_reference_raw.trim() });
+      feedbackChanges.push({
+        sourceKind: 'job_tag',
+        prev: bill.job_reference_raw,
+        next: draft.job_reference_raw.trim(),
+      });
     }
     const parsedGst = parseDollarsToCents(draft.gst_dollars);
     if (parsedGst !== null && parsedGst !== bill.gst_cents) {
@@ -232,7 +240,7 @@ export function BillDetailPage() {
               previousValue: c.prev,
               newValue: c.next,
               correctionReason: 'user_edit',
-            // eslint-disable-next-line @typescript-eslint/no-empty-function
+              // eslint-disable-next-line @typescript-eslint/no-empty-function
             }).catch(() => {}),
           ),
         );
@@ -1198,7 +1206,9 @@ function ExtractionHistory({ billId }: { billId: string }) {
                 <tbody>
                   {versions.map((v) => (
                     <tr key={v.id}>
-                      <td><code>{v.method}</code></td>
+                      <td>
+                        <code>{v.method}</code>
+                      </td>
                       <td>{v.provider}</td>
                       <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>
                         {v.confidence != null ? `${Math.round(v.confidence * 100)}%` : '—'}

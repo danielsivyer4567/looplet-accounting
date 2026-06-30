@@ -35,10 +35,7 @@ describe('document_extraction_versions DB', () => {
 
   itLive('service_role can insert a version row', async () => {
     const client = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-    const { data: bills } = await client
-      .from('bills')
-      .select('id, organization_id')
-      .limit(1);
+    const { data: bills } = await client.from('bills').select('id, organization_id').limit(1);
     if (!bills || bills.length === 0) return;
     const billRow = (bills as { id: string; organization_id: string }[])[0];
     if (!billRow) return;
@@ -65,10 +62,7 @@ describe('document_extraction_versions DB', () => {
 
   itLive('multiple version rows for same bill are preserved', async () => {
     const client = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-    const { data: bills } = await client
-      .from('bills')
-      .select('id, organization_id')
-      .limit(1);
+    const { data: bills } = await client.from('bills').select('id, organization_id').limit(1);
     if (!bills || bills.length === 0) return;
     const billRow2 = (bills as { id: string; organization_id: string }[])[0];
     if (!billRow2) return;
@@ -109,10 +103,7 @@ describe('document_extraction_versions DB', () => {
 
   itLive('enqueue_automation_job queues a bill_extract job (Rerun path)', async () => {
     const client = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-    const { data: bills } = await client
-      .from('bills')
-      .select('id, organization_id')
-      .limit(1);
+    const { data: bills } = await client.from('bills').select('id, organization_id').limit(1);
     if (!bills || bills.length === 0) return;
     const billRow3 = (bills as { id: string; organization_id: string }[])[0];
     if (!billRow3) return;

@@ -113,7 +113,11 @@ describe('ingest — payment type', () => {
       headers: headers(),
       body: JSON.stringify({
         type: 'payment',
-        payload: { bill_id: '00000000-0000-0000-0000-000000000001', amount_cents: 100, payment_date: '2026-06-01' },
+        payload: {
+          bill_id: '00000000-0000-0000-0000-000000000001',
+          amount_cents: 100,
+          payment_date: '2026-06-01',
+        },
       }),
     });
     expect(res.status).toBe(400);

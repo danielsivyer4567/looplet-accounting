@@ -45,10 +45,7 @@ const createdIds: string[] = [];
 
 afterAll(async () => {
   if (createdIds.length > 0) {
-    await serviceClient()
-      .from('confidence_policies')
-      .delete()
-      .in('id', createdIds);
+    await serviceClient().from('confidence_policies').delete().in('id', createdIds);
   }
 });
 

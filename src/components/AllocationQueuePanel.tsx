@@ -89,15 +89,11 @@ export function AllocationQueuePanel() {
   const [busy, setBusy] = useState<BusyAction>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const autoAcceptCount = queue.filter(
-    (b) => b.score != null && b.score >= 0.85,
-  ).length;
+  const autoAcceptCount = queue.filter((b) => b.score != null && b.score >= 0.85).length;
   const needsReviewCount = queue.filter(
     (b) => b.score != null && b.score >= 0.5 && b.score < 0.85,
   ).length;
-  const unmatchedCount = queue.filter(
-    (b) => b.score == null || b.score < 0.5,
-  ).length;
+  const unmatchedCount = queue.filter((b) => b.score == null || b.score < 0.5).length;
 
   const invokeMode = useCallback(
     async (mode: 'auto_accept' | 'rematch' | 'full', minScore?: number) => {
@@ -189,9 +185,7 @@ export function AllocationQueuePanel() {
               {unmatchedCount > 0 && (
                 <span style={{ color: 'var(--text-muted)' }}>{unmatchedCount} unmatched</span>
               )}
-              {queue.length === 0 && !loading && (
-                <span>No unallocated bills</span>
-              )}
+              {queue.length === 0 && !loading && <span>No unallocated bills</span>}
             </p>
           )}
         </div>
@@ -200,7 +194,13 @@ export function AllocationQueuePanel() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
             className="btn btn-primary"
-            style={{ fontSize: '0.8rem', padding: '0.4rem 0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            style={{
+              fontSize: '0.8rem',
+              padding: '0.4rem 0.85rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+            }}
             disabled={busy !== null || loading}
             onClick={handleAutoAccept}
           >
@@ -214,7 +214,13 @@ export function AllocationQueuePanel() {
 
           <button
             className="btn btn-secondary"
-            style={{ fontSize: '0.8rem', padding: '0.4rem 0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            style={{
+              fontSize: '0.8rem',
+              padding: '0.4rem 0.85rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+            }}
             disabled={busy !== null || loading}
             onClick={handleRematch}
           >
@@ -228,7 +234,13 @@ export function AllocationQueuePanel() {
 
           <button
             className="btn btn-ghost"
-            style={{ fontSize: '0.8rem', padding: '0.4rem 0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            style={{
+              fontSize: '0.8rem',
+              padding: '0.4rem 0.85rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+            }}
             disabled={busy !== null || loading}
             onClick={handleFull}
           >
@@ -317,17 +329,17 @@ export function AllocationQueuePanel() {
                       year: 'numeric',
                     })
                   : bill.created_at
-                  ? new Date(bill.created_at).toLocaleDateString('en-AU', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    })
-                  : '—';
+                    ? new Date(bill.created_at).toLocaleDateString('en-AU', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      })
+                    : '—';
 
                 const hasJob = bill.suggested_job_number != null;
                 const jobLabel = hasJob
                   ? `${bill.suggested_job_number} – ${bill.suggested_job_name ?? ''}`
-                  : bill.job_reference_raw ?? '—';
+                  : (bill.job_reference_raw ?? '—');
 
                 return (
                   <tr key={bill.bill_id}>
@@ -343,7 +355,9 @@ export function AllocationQueuePanel() {
                         }}
                         title={bill.supplier_name_raw ?? undefined}
                       >
-                        {bill.supplier_name_raw ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                        {bill.supplier_name_raw ?? (
+                          <span style={{ color: 'var(--text-muted)' }}>—</span>
+                        )}
                       </span>
                     </td>
                     <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
@@ -378,7 +392,13 @@ export function AllocationQueuePanel() {
                     <td style={{ textAlign: 'center' }}>
                       <ScoreBadge score={bill.score} />
                     </td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                    <td
+                      style={{
+                        color: 'var(--text-muted)',
+                        fontSize: '0.8rem',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
                       {date}
                     </td>
                   </tr>
