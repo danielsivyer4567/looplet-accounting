@@ -4,6 +4,20 @@ import { useWorkstreamTasks, type WorkstreamTask } from '@/hooks/useWorkstreamTa
 
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
+  from: vi.fn(() => ({
+    select: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        is: vi.fn(() => ({
+          lt: vi.fn(() => ({
+            not: vi.fn(() => Promise.resolve({ count: 0, error: null })),
+          })),
+        })),
+        gte: vi.fn(() => ({
+          not: vi.fn(() => Promise.resolve({ count: 0, error: null })),
+        })),
+      })),
+    })),
+  })),
   org: {
     current: {
       id: 'org-1',
@@ -20,6 +34,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     rpc: mocks.rpc,
+    from: mocks.from,
   },
 }));
 

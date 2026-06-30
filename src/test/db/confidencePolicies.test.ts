@@ -9,7 +9,8 @@
  *  5. recordDecision applies policy override when present
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
+// itLive = it.skipIf(!HAS_LIVE) — skip all tests when live env is absent
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL ?? '';
@@ -20,6 +21,9 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ?? '';
 const ORG_A_ID = process.env.TEST_ORG_A_ID ?? '';
 const ORG_B_ID = process.env.TEST_ORG_B_ID ?? '';
 const TEST_USER_JWT = process.env.TEST_USER_JWT ?? '';
+
+const HAS_LIVE = Boolean(SUPABASE_URL && SUPABASE_SERVICE_KEY && ORG_A_ID);
+const itLive = it.skipIf(!HAS_LIVE);
 
 const serviceClient = () =>
   createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
@@ -39,12 +43,6 @@ const anonClient = () =>
 
 const createdIds: string[] = [];
 
-beforeAll(() => {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !ORG_A_ID) {
-    throw new Error('Missing env vars for confidence policy tests');
-  }
-});
-
 afterAll(async () => {
   if (createdIds.length > 0) {
     await serviceClient()
@@ -55,7 +53,7 @@ afterAll(async () => {
 });
 
 describe('confidence_policies — get_confidence_policy RPC', () => {
-  it('returns null when no policy exists for the scope', async () => {
+  itLive('returns null when no policy exists for the scope', async () => {
     const svc = serviceClient();
     const { data, error } = await svc.rpc('get_confidence_policy', {
       p_org_id: ORG_A_ID,
@@ -67,7 +65,7 @@ describe('confidence_policies — get_confidence_policy RPC', () => {
     expect(data).toBeNull();
   });
 
-  it('returns org-scoped policy when one is present', async () => {
+  itLive('returns org-scoped policy when one is present', async () => {
     const svc = serviceClient();
     const { data: inserted, error: insErr } = await svc
       .from('confidence_policies')
@@ -93,7 +91,7 @@ describe('confidence_policies — get_confidence_policy RPC', () => {
     expect(data).toBe('quick_confirm');
   });
 
-  it('supplier-specific policy overrides org-wide policy', async () => {
+  itLive('supplier-specific policy overrides org-wide policy', async () => {
     const svc = serviceClient();
     const FAKE_SUPPLIER = '00000000-0000-0000-0000-000000000001';
 
@@ -121,7 +119,7 @@ describe('confidence_policies — get_confidence_policy RPC', () => {
     expect(data).toBe('auto_post');
   });
 
-  it('ignores expired policies', async () => {
+  itLive('ignores expired policies', async () => {
     const svc = serviceClient();
     const past = new Date(Date.now() - 86_400_000).toISOString();
 
@@ -150,7 +148,7 @@ describe('confidence_policies — get_confidence_policy RPC', () => {
     expect(data).toBeNull();
   });
 
-  it('org isolation: ORG_B cannot see ORG_A policies', async () => {
+  itLive('org isolation: ORG_B cannot see ORG_A policies', async () => {
     if (!ORG_B_ID) return;
     const svc = serviceClient();
     const { data, error } = await svc.rpc('get_confidence_policy', {
@@ -165,7 +163,7 @@ describe('confidence_policies — get_confidence_policy RPC', () => {
 });
 
 describe('confidence_policies — RLS (no direct inserts from authenticated client)', () => {
-  it('authenticated client cannot INSERT directly', async () => {
+  itLive('authenticated client cannot INSERT directly', async () => {
     const client = authedClient();
     const { error } = await client.from('confidence_policies').insert({
       org_id: ORG_A_ID,
@@ -176,7 +174,7 @@ describe('confidence_policies — RLS (no direct inserts from authenticated clie
     expect(error).not.toBeNull();
   });
 
-  it('anon client cannot SELECT', async () => {
+  itLive('anon client cannot SELECT', async () => {
     const client = anonClient();
     const { data, error } = await client
       .from('confidence_policies')

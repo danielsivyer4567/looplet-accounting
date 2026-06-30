@@ -78,6 +78,7 @@ interface BankCodingRule {
   job_id: string | null;
   is_personal: boolean;
   priority: number;
+  hit_count: number;
 }
 
 interface ClassifyResult {

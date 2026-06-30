@@ -17,6 +17,7 @@ import type {
 import { recordOverride, recordFeedback } from '@/lib/automationDecision';
 import {
   ChevronLeft,
+  ChevronDown,
   Edit3,
   Save,
   X,
@@ -104,6 +105,7 @@ export function BillDetailPage() {
   const [draft, setDraft] = useState<BillDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [rerunQueued, setRerunQueued] = useState(false);
   const [decisionState, setDecisionState] = useState<{
     confidence: AutomationConfidence;
     decisionId: string;
@@ -281,23 +283,19 @@ export function BillDetailPage() {
   const reocr = async () => {
     setBusy(true);
     setActionError(null);
+    setRerunQueued(false);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) throw new Error('No session');
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bills-extract`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ bill_id: bill.id }),
+      const { error } = await supabase.rpc('enqueue_automation_job', {
+        p_org_id: bill.organization_id,
+        p_job_kind: 'bill_extract',
+        p_source_kind: 'bill',
+        p_source_id: bill.id,
+        p_priority: 5,
+        p_payload: { force: true },
       });
-      const body = await res.json();
-      if (!res.ok || !body.ok) throw new Error(body.error ?? `Re-OCR failed (${res.status})`);
-      await refresh();
+      if (error) throw error;
+      setRerunQueued(true);
+      setTimeout(() => setRerunQueued(false), 3000);
     } catch (err) {
       setActionError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -348,6 +346,14 @@ export function BillDetailPage() {
               style={{ padding: '0.4rem 0.75rem', textTransform: 'none' }}
             >
               ✓ Saved
+            </span>
+          )}
+          {rerunQueued && (
+            <span
+              className="badge badge-info"
+              style={{ padding: '0.4rem 0.75rem', textTransform: 'none' }}
+            >
+              ✓ Queued for re-extraction
             </span>
           )}
 
@@ -700,6 +706,8 @@ export function BillDetailPage() {
             </div>
           </div>
 
+          <ExtractionHistory billId={bill.id} />
+
           {/* Line items section */}
           {bill.line_items.length > 0 && (
             <div>
@@ -857,7 +865,7 @@ export function BillDetailPage() {
                   style={{ alignSelf: 'flex-start' }}
                 >
                   <RefreshCw size={12} />
-                  <span>Re-run intake parsing</span>
+                  <span>Rerun extraction</span>
                 </button>
               </div>
             )}
@@ -1116,6 +1124,96 @@ function Field({
       >
         {value ?? '—'}
       </span>
+    </div>
+  );
+}
+
+interface ExtractionVersion {
+  id: string;
+  provider: string;
+  method: string;
+  confidence: number | null;
+  created_at: string;
+}
+
+function ExtractionHistory({ billId }: { billId: string }) {
+  const [open, setOpen] = useState(false);
+  const [versions, setVersions] = useState<ExtractionVersion[] | null>(null);
+
+  useEffect(() => {
+    if (!open || versions !== null) return;
+    void supabase
+      .from('document_extraction_versions')
+      .select('id, provider, method, confidence, created_at')
+      .eq('bill_id', billId)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setVersions((data ?? []) as ExtractionVersion[]));
+  }, [open, billId, versions]);
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.35rem',
+          fontSize: '0.875rem',
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          fontWeight: 600,
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: 0,
+          marginBottom: open ? '0.5rem' : 0,
+        }}
+      >
+        <ChevronDown
+          size={14}
+          style={{ transition: 'transform 0.15s', transform: open ? 'rotate(180deg)' : 'none' }}
+        />
+        Extraction History
+      </button>
+      {open && (
+        <div className="card" style={{ padding: '0.75rem 1rem' }}>
+          {versions === null ? (
+            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.825rem' }}>Loading…</p>
+          ) : versions.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.825rem' }}>
+              No extraction history recorded yet.
+            </p>
+          ) : (
+            <div className="table-premium-container">
+              <table className="table-premium">
+                <thead>
+                  <tr>
+                    <th>Method</th>
+                    <th>Provider</th>
+                    <th style={{ textAlign: 'right' }}>Confidence</th>
+                    <th>When</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {versions.map((v) => (
+                    <tr key={v.id}>
+                      <td><code>{v.method}</code></td>
+                      <td>{v.provider}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>
+                        {v.confidence != null ? `${Math.round(v.confidence * 100)}%` : '—'}
+                      </td>
+                      <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                        {new Date(v.created_at).toLocaleString('en-AU')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
