@@ -46,7 +46,7 @@ internally) were left as-is: `enqueue_automation_job`, `get_confidence_policy`,
 | `bank-sync`            |           50 | Deployed after smoke showed platform-level `UNAUTHORIZED_NO_AUTH_HEADER`; repeat unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}`                                                                  |
 | `bank-webhook`         |           48 | Deployed after making duplicate raw events continue through the action path and making `bank-sync` dispatch observable; missing/wrong token POST reaches function code and returns `{"ok":false,"error":"Invalid webhook verification token"}` |
 | `bank-discover`        |           34 | Deployed after removing unsigned JWT `service_role` claim fallback; unauthenticated POST is blocked by the Supabase gateway with `UNAUTHORIZED_NO_AUTH_HEADER`                                                                                 |
-| `bills-extract`        |           69 | Deployed after removing unsigned JWT `service_role` claim fallback; unauthenticated POST is blocked by the Supabase gateway with `UNAUTHORIZED_NO_AUTH_HEADER`                                                                                 |
+| `bills-extract`        |           70 | Deployed after removing unsigned JWT `service_role` claim fallback and making extraction proof writes blocking; unauthenticated POST is blocked by the Supabase gateway with `UNAUTHORIZED_NO_AUTH_HEADER`                                     |
 | `subscriptions-detect` |           45 | Deployed after removing unsigned JWT `service_role` claim fallback; unauthenticated POST is blocked by the Supabase gateway with `UNAUTHORIZED_NO_AUTH_HEADER`                                                                                 |
 
 These smokes are deliberately non-mutating. They prove routing and `verify_jwt=false`
@@ -128,6 +128,10 @@ source/worker contract fixes are now deployed to `ingest` v32 and
    duplicate delivery returned `duplicate_skipped` before retrying the sync.
    Current source continues duplicates through the action path and awaits
    `bank-sync`, returning a retryable error if dispatch is not accepted.
+10. **OCR proof writes were best-effort** — `bills-extract` returned success
+    while `automation_decisions` and `document_extraction_versions` inserts
+    were launched with `void` and ignored Supabase insert errors. Current source
+    awaits both writes and fails the response if proof cannot be stored.
 
 `ingest` and `automation-worker` have been deployed as a pair. `verify_jwt=false`
 stays explicit in `supabase/config.toml`.

@@ -6,6 +6,7 @@ const root = process.cwd();
 const ingest = readFileSync(join(root, 'supabase/functions/ingest/index.ts'), 'utf8');
 const worker = readFileSync(join(root, 'supabase/functions/automation-worker/index.ts'), 'utf8');
 const bankWebhook = readFileSync(join(root, 'supabase/functions/bank-webhook/index.ts'), 'utf8');
+const billsExtract = readFileSync(join(root, 'supabase/functions/bills-extract/index.ts'), 'utf8');
 const automationJobs = readFileSync(
   join(root, 'supabase/functions/_shared/automationJobs.ts'),
   'utf8',
@@ -72,6 +73,15 @@ describe('automation backbone source contracts', () => {
     expect(bankWebhook).toMatch(/const syncResponse = await fetch/);
     expect(bankWebhook).not.toContain("}).catch((e) => console.error('webhook");
     expect(bankWebhook).toMatch(/bank-sync dispatch failed/);
+  });
+
+  it('bill extraction persists proof rows before returning ok', () => {
+    expect(billsExtract).not.toMatch(/void writeDecision/);
+    expect(billsExtract).not.toMatch(/void writeExtractionVersion/);
+    expect(billsExtract).toMatch(/await writeDecision/);
+    expect(billsExtract).toMatch(/await writeExtractionVersion/);
+    expect(billsExtract).toMatch(/Failed to persist automation decision/);
+    expect(billsExtract).toMatch(/Failed to persist extraction version/);
   });
 
   it('cron and webhook edge functions keep platform JWT disabled', () => {

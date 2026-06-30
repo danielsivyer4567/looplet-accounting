@@ -234,7 +234,7 @@ Deno.serve(async (req) => {
         'bill',
         bill.id,
       );
-      void writeDecision(
+      await writeDecision(
         admin,
         bill.id,
         bill.organization_id,
@@ -244,7 +244,7 @@ Deno.serve(async (req) => {
         true,
         false,
       );
-      void writeExtractionVersion(
+      await writeExtractionVersion(
         admin,
         bill.id,
         bill.organization_id,
@@ -299,7 +299,7 @@ Deno.serve(async (req) => {
             'bill',
             bill.id,
           );
-          void writeDecision(
+          await writeDecision(
             admin,
             bill.id,
             bill.organization_id,
@@ -309,7 +309,7 @@ Deno.serve(async (req) => {
             true,
             false,
           );
-          void writeExtractionVersion(
+          await writeExtractionVersion(
             admin,
             bill.id,
             bill.organization_id,
@@ -354,7 +354,7 @@ Deno.serve(async (req) => {
       extracted.gst_amount != null ? Math.round(extracted.gst_amount * 100) : null,
       extracted.subtotal_ex_gst != null ? Math.round(extracted.subtotal_ex_gst * 100) : null,
     );
-    void writeDecision(
+    await writeDecision(
       admin,
       bill.id,
       bill.organization_id,
@@ -366,7 +366,7 @@ Deno.serve(async (req) => {
     );
     const visConf =
       extracted.confidence === 'high' ? 0.9 : extracted.confidence === 'low' ? 0.4 : 0.7;
-    void writeExtractionVersion(
+    await writeExtractionVersion(
       admin,
       bill.id,
       bill.organization_id,
@@ -577,18 +577,17 @@ async function writeDecision(
   else if (routingOutcome === 'suggested') reasonCodes.push('job_matched_fuzzy');
   if (!isProbableBill) reasonCodes.push('probable_non_invoice');
 
-  try {
-    await admin.from('automation_decisions').insert({
-      organization_id: orgId,
-      source_kind: 'bill_upload',
-      source_id: billId,
-      decision_kind: 'category',
-      suggested_treatment: { ocr_method: method, routing_outcome: routingOutcome },
-      confidence,
-      reason_codes: reasonCodes,
-    });
-  } catch {
-    // Non-critical — never block the OCR response
+  const { error } = await admin.from('automation_decisions').insert({
+    organization_id: orgId,
+    source_kind: 'bill_upload',
+    source_id: billId,
+    decision_kind: 'category',
+    suggested_treatment: { ocr_method: method, routing_outcome: routingOutcome },
+    confidence,
+    reason_codes: reasonCodes,
+  });
+  if (error) {
+    throw new Error(`Failed to persist automation decision for bill ${billId}: ${error.message}`);
   }
 }
 
@@ -608,17 +607,16 @@ async function writeExtractionVersion(
   confidence: number | null,
   extractedJson: unknown,
 ): Promise<void> {
-  try {
-    await admin.from('document_extraction_versions').insert({
-      bill_id: billId,
-      organization_id: orgId,
-      method,
-      provider,
-      confidence,
-      extracted_json: extractedJson ?? {},
-    });
-  } catch {
-    // Non-critical — never block the OCR response
+  const { error } = await admin.from('document_extraction_versions').insert({
+    bill_id: billId,
+    organization_id: orgId,
+    method,
+    provider,
+    confidence,
+    extracted_json: extractedJson ?? {},
+  });
+  if (error) {
+    throw new Error(`Failed to persist extraction version for bill ${billId}: ${error.message}`);
   }
 }
 
