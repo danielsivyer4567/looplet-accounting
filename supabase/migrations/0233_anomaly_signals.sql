@@ -27,7 +27,7 @@ AS $$
   -- 1. Onboarding triage — staged senders needing approval
   SELECT
     gen_random_uuid(),
-    se.organization_id,
+    p_org_id,
     'onboarding_triage',
     CASE count(*)::int
       WHEN 1 THEN 'Review 1 staged sender'
@@ -128,7 +128,7 @@ AS $$
   -- 4. Unapproved bills — received and waiting
   SELECT
     gen_random_uuid(),
-    b.organization_id,
+    p_org_id,
     'unapproved_bill',
     count(*)::text || ' bills need approval',
     count(*)::text || ' received bills have not been approved yet',
@@ -157,12 +157,12 @@ AS $$
   -- 5. Overdue invoices
   SELECT
     gen_random_uuid(),
-    ci.organization_id,
+    p_org_id,
     'overdue_invoice',
     count(*)::text || ' overdue invoices',
     'Invoices totalling $' || (coalesce(sum(ci.total_inc_gst_cents - ci.amount_paid_cents), 0) / 100)::text || ' are past due',
     jsonb_build_array(jsonb_build_object(
-      'table', 'customer_invoices',
+      'table', 'invoices',
       'count', count(*),
       'outstanding_cents', coalesce(sum(ci.total_inc_gst_cents - ci.amount_paid_cents), 0),
       'url', '/invoices'
@@ -172,10 +172,10 @@ AS $$
     coalesce(sum(ci.total_inc_gst_cents - ci.amount_paid_cents), 0),
     NULL::timestamptz,
     NULL,
-    jsonb_build_object('table', 'customer_invoices', 'status', 'paid'),
+    jsonb_build_object('table', 'invoices', 'status', 'paid'),
     5,
     now()
-  FROM public.customer_invoices ci
+  FROM public.invoices ci
   WHERE ci.organization_id = p_org_id
     AND ci.status IN ('sent', 'overdue')
     AND ci.due_date < CURRENT_DATE
@@ -187,7 +187,7 @@ AS $$
   -- 6. Unmatched bank items
   SELECT
     gen_random_uuid(),
-    bt.organization_id,
+    p_org_id,
     'unmatched_bank_item',
     count(*)::text || ' unmatched bank transactions',
     count(*)::text || ' bank items have no matching bill or invoice',
@@ -239,7 +239,6 @@ AS $$
   WHERE dcf.organization_id = p_org_id
     AND dcf.resolved_at IS NULL
     AND dcf.is_muted = false
-    AND dcf.deleted_at IS NULL
 
   UNION ALL
 
@@ -352,7 +351,7 @@ AS $$
   WHERE bg.organization_id = p_org_id
     AND bg.gst_ready = false
 
-  ORDER BY urgency, created_at;
+  ORDER BY 13, 14;
 $$;
 
 COMMENT ON FUNCTION public.get_workstream_tasks IS

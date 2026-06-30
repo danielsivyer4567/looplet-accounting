@@ -21,26 +21,26 @@ does not authenticate for `supabase migration list --linked` or
 `supabase db push --linked --dry-run`, but the Management API SQL path proves the
 live ledger has numeric rows through `0229`.
 
-The live finish-line deploy batch after that repaired baseline is live through
-`0229`. The local pending batch now runs from `0230` through `0236`; it must be
-applied through the same reviewed baseline workflow before those features are
-considered live.
+Later on 2026-06-30, the owner-first/advisor proof batch `0230`-`0236` was
+applied to live through the same `supabase db query --linked` Management API SQL
+path and recorded in `supabase_migrations.schema_migrations` with
+`created_by='codex-live-owner-first-20260630'`.
 
 - `0197_track_vault_backed_cron_schedules.sql`
 - `0198_fix_taa_legal_source_url.sql`
 - `0199_accountant_portal.sql` through `0229_credit_notes_product.sql`
-- `0230_advisor_work_proofs.sql` _(local pending unless explicitly applied)_
-- `0231_workstream_tasks.sql` _(local pending unless explicitly applied)_
-- `0232_automation_decisions.sql` _(local pending unless explicitly applied)_
-- `0233_anomaly_signals.sql` _(local pending unless explicitly applied)_
-- `0234_ap_exception_review.sql` _(local pending unless explicitly applied)_
-- `0235_close_tasks.sql` _(local pending unless explicitly applied)_
-- `0236_automation_feedback.sql` _(local pending unless explicitly applied)_
+- `0230_advisor_work_proofs.sql` _(live via Management API SQL path)_
+- `0231_workstream_tasks.sql` _(live via Management API SQL path)_
+- `0232_automation_decisions.sql` _(live via Management API SQL path)_
+- `0233_anomaly_signals.sql` _(live via Management API SQL path)_
+- `0234_ap_exception_review.sql` _(live via Management API SQL path)_
+- `0235_close_tasks.sql` _(live via Management API SQL path)_
+- `0236_automation_feedback.sql` _(live via Management API SQL path)_
 
 Representative post-apply proof collected on 2026-06-30:
 
 - `supabase_migrations.schema_migrations` rows exist for every version `0199`
-  through `0229`.
+  through `0236`.
 - Tag tables/RLS/RPCs/storage and `team-invite` v37 are live.
 - Representative finish-line tables exist: `api_keys`, `cron_heartbeat_jobs`,
   `bank_link_jobs`, `extraction_attempts`, `xero_push_queue`,
@@ -49,6 +49,11 @@ Representative post-apply proof collected on 2026-06-30:
   `generate_bas_worksheet`, `build_fbt_return`, `build_tpar_report`,
   `build_franking_register`, `build_sgc_statement`, `build_superstream_payload`,
   and the AR/AP credit-note RPCs.
+- Owner-first proof exists for `advisor_work_proofs`, `automation_decisions`,
+  `automation_feedback`, `workstream_task`, `get_workstream_tasks(uuid)`,
+  `get_bill_decisions(uuid[])`, `record_automation_decision(...)`, and
+  `record_feedback(...)`. `get_workstream_tasks(...)` executed successfully
+  against a real organization and returned rows.
 
 ## Operator Baseline Check
 
