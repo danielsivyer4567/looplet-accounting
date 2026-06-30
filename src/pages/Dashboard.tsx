@@ -1193,6 +1193,7 @@ const TASK_ICONS: Record<TaskKind, typeof Clock> = {
   low_confidence_bill: FileSearch,
   bas_coverage_gap: AlertTriangle,
   period_close: CalendarClock,
+  month_end_close: CalendarClock,
 };
 
 const CONFIDENCE_COLORS: Record<string, string> = {
@@ -1227,6 +1228,7 @@ function taskRoute(task: WorkstreamTask): string {
     case 'advisor_proof_reminder':
       return '/my-activity';
     case 'period_close':
+    case 'month_end_close':
       return '/reports';
     default:
       return '/';
