@@ -6,6 +6,7 @@ import { useAdviceNotes, type AdviceNote, type AdviceNoteKind } from '@/hooks/us
 import { useTaxCalendar, type TaxObligation } from '@/hooks/useTaxCalendar';
 import { useOnboardingProgress } from '@/hooks/onboarding/useStagedEntities';
 import { useWorkstreamTasks, type WorkstreamTask, type TaskKind } from '@/hooks/useWorkstreamTasks';
+import { IntentLauncher } from '@/components/IntentLauncher';
 import { AdviceCard } from '@/components/AdviceCard';
 import { AdviceNoteView } from '@/components/AdviceNoteView';
 import { SkeletonCard } from '@/components/Skeleton';
@@ -630,6 +631,11 @@ export function DashboardPage() {
             <span>Account details</span>
           </button>
         </div>
+      </div>
+
+      {/* Owner intent launchers */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <IntentLauncher />
       </div>
 
       <div
