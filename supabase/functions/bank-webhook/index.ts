@@ -18,14 +18,16 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { sha256Hex } from '../_shared/apiKeys.ts';
 
 interface BasiqWebhookPayload {
-  type: string;                    // "transactions.updated" | "connection.updated" | etc.
-  data?: {
-    type?: string;
-    id?: string;                    // affected resource id
-    userId?: string;
-    connectionId?: string;
-    accountId?: string;
-  } | Record<string, unknown>;
+  type: string; // "transactions.updated" | "connection.updated" | etc.
+  data?:
+    | {
+        type?: string;
+        id?: string; // affected resource id
+        userId?: string;
+        connectionId?: string;
+        accountId?: string;
+      }
+    | Record<string, unknown>;
   // Different Basiq event types use different shapes; we fall back to scanning
 }
 
@@ -87,6 +89,7 @@ Deno.serve(async (req) => {
     //    service_role. Tenants cannot read null-org rows (RLS excludes them).
     const payloadHash = await sha256Hex(bodyText);
     const providerEventId = `${type}:${connectionId ?? 'unknown'}`;
+    let duplicateDelivery = false;
     const { error: rawInsertError } = await admin.from('bank_events_raw').insert({
       organization_id: conn?.organization_id ?? null,
       provider: 'basiq',
@@ -96,22 +99,34 @@ Deno.serve(async (req) => {
     });
     if (rawInsertError) {
       if (rawInsertError.code === '23505') {
-        // Exact duplicate delivery — acknowledge without re-processing
-        return json({ ok: true, type, action: 'duplicate_skipped', matched: !!conn });
+        // Exact duplicate delivery. Continue through the action path: a prior
+        // delivery may have persisted raw evidence but failed before dispatching
+        // bank-sync, and bank-sync is idempotent.
+        duplicateDelivery = true;
+      } else {
+        // Any other persistence failure means we would lose audit evidence.
+        // Fail the handler so Basiq retries rather than silently dropping the event.
+        console.error(
+          'bank_events_raw insert failed:',
+          rawInsertError.message,
+          rawInsertError.code,
+        );
+        return json(
+          { ok: false, error: 'Failed to persist raw event', code: rawInsertError.code },
+          500,
+        );
       }
-      // Any other persistence failure means we would lose audit evidence.
-      // Fail the handler so Basiq retries rather than silently dropping the event.
-      console.error('bank_events_raw insert failed:', rawInsertError.message, rawInsertError.code);
-      return json({ ok: false, error: 'Failed to persist raw event', code: rawInsertError.code }, 500);
     }
-    let action = 'logged';
+    let action = duplicateDelivery ? 'duplicate_logged' : 'logged';
 
     // 5. Update connection state + react
     if (conn) {
       if (type.includes('transactions') || type.includes('updated')) {
-        // Trigger a sync (fire-and-forget)
-        action = 'sync_kicked';
-        fetch(`${supabaseUrl}/functions/v1/bank-sync`, {
+        // Trigger a sync and require observable acceptance. If this fails after
+        // raw evidence was stored, a duplicate delivery will still retry the
+        // action path because duplicates no longer return early.
+        action = duplicateDelivery ? 'duplicate_sync_kicked' : 'sync_kicked';
+        const syncResponse = await fetch(`${supabaseUrl}/functions/v1/bank-sync`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -121,7 +136,20 @@ Deno.serve(async (req) => {
             organization_id: conn.organization_id,
             bank_connection_id: conn.id,
           }),
-        }).catch((e) => console.error('webhook → bank-sync dispatch failed:', e));
+        });
+        if (!syncResponse.ok) {
+          const detail = await syncResponse.text().catch(() => '');
+          console.error('webhook → bank-sync dispatch failed:', syncResponse.status, detail);
+          return json(
+            {
+              ok: false,
+              error: 'bank-sync dispatch failed',
+              status: syncResponse.status,
+              duplicate: duplicateDelivery,
+            },
+            502,
+          );
+        }
       } else if (type.includes('invalid') || type.includes('expired') || type.includes('error')) {
         action = 'marked_expired';
         await admin
@@ -140,12 +168,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({ ok: true, type, action, matched: !!conn });
+    return json({ ok: true, type, action, matched: !!conn, duplicate: duplicateDelivery });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('bank-webhook error:', msg);
-    // Always 200 so Basiq doesn't retry-storm us on app-level errors
-    return json({ ok: false, error: msg });
+    return json({ ok: false, error: msg }, 500);
   }
 });
 

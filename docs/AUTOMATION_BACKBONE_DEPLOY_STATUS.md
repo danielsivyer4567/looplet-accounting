@@ -44,6 +44,7 @@ internally) were left as-is: `enqueue_automation_job`, `get_confidence_policy`,
 | `automation-worker`    |            5 | `supabase functions deploy automation-worker` succeeded after browser-job claim hardening; `functions list` updated to `2026-06-30 19:31:33 UTC`; unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}` |
 | `ingest`               |           32 | `supabase functions deploy ingest` succeeded; `functions list` updated to `2026-06-30 19:15:48 UTC`; unauthenticated POST reaches function code and returns `{"error":"invalid_api_key"}`                                                      |
 | `bank-sync`            |           50 | Deployed after smoke showed platform-level `UNAUTHORIZED_NO_AUTH_HEADER`; repeat unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}`                                                                  |
+| `bank-webhook`         |           48 | Deployed after making duplicate raw events continue through the action path and making `bank-sync` dispatch observable; missing/wrong token POST reaches function code and returns `{"ok":false,"error":"Invalid webhook verification token"}` |
 | `bank-discover`        |           34 | Deployed after removing unsigned JWT `service_role` claim fallback; unauthenticated POST is blocked by the Supabase gateway with `UNAUTHORIZED_NO_AUTH_HEADER`                                                                                 |
 | `bills-extract`        |           69 | Deployed after removing unsigned JWT `service_role` claim fallback; unauthenticated POST is blocked by the Supabase gateway with `UNAUTHORIZED_NO_AUTH_HEADER`                                                                                 |
 | `subscriptions-detect` |           45 | Deployed after removing unsigned JWT `service_role` claim fallback; unauthenticated POST is blocked by the Supabase gateway with `UNAUTHORIZED_NO_AUTH_HEADER`                                                                                 |
@@ -122,6 +123,11 @@ source/worker contract fixes are now deployed to `ingest` v32 and
    trusted a self-asserted `role: service_role` claim. Current source uses exact
    `SUPABASE_SERVICE_ROLE_KEY` bearer comparison only, with a contract test
    preventing the old pattern from returning.
+9. **Webhook sync dispatch could be lost** — `bank-webhook` persisted raw
+   evidence, then fire-and-forgot `bank-sync`; if dispatch failed, a later
+   duplicate delivery returned `duplicate_skipped` before retrying the sync.
+   Current source continues duplicates through the action path and awaits
+   `bank-sync`, returning a retryable error if dispatch is not accepted.
 
 `ingest` and `automation-worker` have been deployed as a pair. `verify_jwt=false`
 stays explicit in `supabase/config.toml`.

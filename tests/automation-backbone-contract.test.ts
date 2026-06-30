@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 const root = process.cwd();
 const ingest = readFileSync(join(root, 'supabase/functions/ingest/index.ts'), 'utf8');
 const worker = readFileSync(join(root, 'supabase/functions/automation-worker/index.ts'), 'utf8');
+const bankWebhook = readFileSync(join(root, 'supabase/functions/bank-webhook/index.ts'), 'utf8');
 const automationJobs = readFileSync(
   join(root, 'supabase/functions/_shared/automationJobs.ts'),
   'utf8',
@@ -62,6 +63,15 @@ describe('automation backbone source contracts', () => {
     expect(defaultKindsMatch?.[1]).toContain("'payment_record'");
     expect(defaultKindsMatch?.[1]).not.toContain("'browser_collect'");
     expect(worker).toMatch(/case 'browser_collect'/);
+  });
+
+  it('bank webhooks do not lose sync dispatch after raw-event persistence', () => {
+    expect(bankWebhook).toMatch(/let duplicateDelivery = false/);
+    expect(bankWebhook).toMatch(/duplicateDelivery = true/);
+    expect(bankWebhook).not.toMatch(/duplicate_skipped/);
+    expect(bankWebhook).toMatch(/const syncResponse = await fetch/);
+    expect(bankWebhook).not.toContain("}).catch((e) => console.error('webhook");
+    expect(bankWebhook).toMatch(/bank-sync dispatch failed/);
   });
 
   it('cron and webhook edge functions keep platform JWT disabled', () => {
