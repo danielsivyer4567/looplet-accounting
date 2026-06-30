@@ -11,6 +11,7 @@ import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/Ins
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { ConfidenceBadge } from '@/components/ConfidenceBadge';
 import type { AutomationConfidence } from '@/lib/automationDecision';
+import { AllocationQueuePanel } from '@/components/AllocationQueuePanel';
 import {
   Plus,
   Eye,
@@ -223,6 +224,8 @@ export function BillsPage() {
           <InsightBarList items={supplierSpendItems} formatValue={formatMoneyCompact} />
         </InsightPanel>
       </div>
+
+      <AllocationQueuePanel />
 
       {/* Filter and Option controls */}
       <div
