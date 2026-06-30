@@ -1,0 +1,25 @@
+-- SC-10: Bookkeeper role investigation
+--
+-- Decision: bookkeepers do NOT require a separate role enum value.
+--
+-- Rationale:
+--   In this product, bookkeepers perform the same review/approve workflow as
+--   accountants — they prepare transactions, reconcile accounts, and surface
+--   items for owner approval. There is no current functional gate that differs
+--   between a bookkeeper and an accountant (TPB-licensed or otherwise).
+--
+--   Adding a distinct 'bookkeeper' enum at this stage would fragment RLS
+--   policies, heartbeat RPCs, and permission checks throughout the codebase
+--   for zero functional gain.
+--
+-- Implementation:
+--   Bookkeepers are invited using the existing 'accountant' role_enum value.
+--   The Team page UI labels this role "Accountant / Bookkeeper" to make it
+--   clear that both practitioners use the same access tier.
+--
+-- Future:
+--   If a distinct permission surface is needed (e.g. bookkeepers cannot
+--   approve GST lodgement drafts, only accountants can), introduce a new
+--   enum value at that point with a targeted migration.
+--
+-- No DDL changes in this migration.

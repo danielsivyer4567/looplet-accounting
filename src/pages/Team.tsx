@@ -18,6 +18,9 @@ const ROLE_RANK: Record<OrgRole, number> = {
 };
 
 function roleLabel(role: OrgRole): string {
+  // Bookkeepers share the same review/approve permissions as accountants —
+  // no separate role is needed; invite them using the "Accountant" role.
+  if (role === 'accountant') return 'Accountant / Bookkeeper';
   return role.charAt(0).toUpperCase() + role.slice(1);
 }
 
