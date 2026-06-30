@@ -5,6 +5,7 @@ import { DashboardPage, orderAdviceNotesForSeason } from '@/pages/Dashboard';
 import type { AdviceNote } from '@/hooks/useAdviceNotes';
 import type { RealtimePnl } from '@/hooks/useRealtimePnl';
 import type { TaxObligation } from '@/hooks/useTaxCalendar';
+import type { WorkstreamTask } from '@/hooks/useWorkstreamTasks';
 
 const mocks = vi.hoisted(() => ({
   adviceNotes: [] as AdviceNote[],
@@ -18,6 +19,7 @@ const mocks = vi.hoisted(() => ({
     pct_complete: 100,
     is_complete: true,
   },
+  workstreamTasks: [] as WorkstreamTask[],
   signOff: vi.fn(),
   dismiss: vi.fn(),
 }));
@@ -80,6 +82,14 @@ vi.mock('@/hooks/onboarding/useStagedEntities', () => ({
     progress: mocks.onboardingProgress,
     loading: false,
     refresh: vi.fn(),
+  }),
+}));
+
+vi.mock('@/hooks/useWorkstreamTasks', () => ({
+  useWorkstreamTasks: () => ({
+    tasks: mocks.workstreamTasks,
+    loading: false,
+    error: null,
   }),
 }));
 
@@ -180,6 +190,58 @@ describe('Dashboard advice cards', () => {
     fireEvent.click(firstOpenButton);
     expect(screen.getByRole('heading', { name: 'Year-end planning levers' })).toBeInTheDocument();
     expect(screen.getByText('General information only.')).toBeInTheDocument();
+  });
+
+  it('renders workstream tasks in the Today feed', () => {
+    mocks.workstreamTasks = [
+      {
+        id: 'wt-1',
+        organization_id: 'org-1',
+        task_kind: 'tax_obligation',
+        owner_label: 'BAS — Q1 FY26',
+        why_now: '14 days OVERDUE',
+        source_refs: { table: 'v_tax_calendar' },
+        suggested_action: 'Prepare and lodge BAS',
+        confidence: 'advisor_required',
+        impact_cents: 500000,
+        due_at: '2026-04-21T00:00:00Z',
+        blocking_reason: null,
+        completion_event: { status: 'lodged' },
+        urgency: 2,
+        created_at: '2026-06-30T00:00:00Z',
+      },
+      {
+        id: 'wt-2',
+        organization_id: 'org-1',
+        task_kind: 'unapproved_bill',
+        owner_label: '3 bills need approval',
+        why_now: '3 received bills have not been approved yet',
+        source_refs: { table: 'bills', count: 3 },
+        suggested_action: 'Review and approve bills',
+        confidence: 'quick_confirm',
+        impact_cents: 150000,
+        due_at: null,
+        blocking_reason: null,
+        completion_event: { table: 'bills', status: 'verified' },
+        urgency: 4,
+        created_at: '2026-06-30T00:00:00Z',
+      },
+    ];
+
+    renderDashboard();
+
+    expect(screen.getByText('BAS — Q1 FY26')).toBeInTheDocument();
+    expect(screen.getByText('14 days OVERDUE')).toBeInTheDocument();
+    expect(screen.getByText('3 bills need approval')).toBeInTheDocument();
+    expect(screen.getByText('2 tasks')).toBeInTheDocument();
+    expect(screen.getByText('Advisor')).toBeInTheDocument();
+    expect(screen.getByText('Quick')).toBeInTheDocument();
+  });
+
+  it('hides Today feed when there are no tasks', () => {
+    mocks.workstreamTasks = [];
+    renderDashboard();
+    expect(screen.queryByText(/tasks/)).not.toBeInTheDocument();
   });
 
   it('surfaces pending onboarding triage with a direct link', () => {
