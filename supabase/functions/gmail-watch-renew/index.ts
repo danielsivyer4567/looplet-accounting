@@ -17,8 +17,15 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import { loadAndRefreshGmail, registerGmailWatch } from '../_shared/gmail/auth.ts';
+
+interface GmailIntegrationRenewRow {
+  id: string;
+  gmail_address: string;
+  organization_id: string;
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -93,8 +100,14 @@ Deno.serve(async (req) => {
         };
         if (fatal) update.is_active = false;
         await admin.from('gmail_integrations').update(update).eq('id', row.id);
-        // TODO(B3 follow-up): also emit a notification row once the notifications
-        // schema is confirmed, so the disconnect pings the user proactively.
+        if (fatal) {
+          await emitGmailDisconnectNotification(admin, row, msg).catch((notifyErr) => {
+            console.warn(
+              'gmail-watch-renew: notify gmail_disconnected failed',
+              notifyErr instanceof Error ? notifyErr.message : String(notifyErr),
+            );
+          });
+        }
       }
     }
 
@@ -118,4 +131,29 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+async function emitGmailDisconnectNotification(
+  admin: SupabaseClient,
+  row: GmailIntegrationRenewRow,
+  errorMessage: string,
+): Promise<void> {
+  const { error } = await admin.rpc('notify', {
+    p_org: row.organization_id,
+    p_category: 'gmail_disconnected',
+    p_title: 'Reconnect Gmail',
+    p_body: `${row.gmail_address} stopped syncing because Google rejected the refresh token. Reconnect Gmail to resume automatic bill capture.`,
+    p_link: '/settings',
+    p_severity: 'error',
+    p_user_id: null,
+    p_resource_type: 'gmail_integrations',
+    p_resource_id: row.id,
+    p_metadata: {
+      gmail_address: row.gmail_address,
+      integration_id: row.id,
+      reason: 'invalid_refresh_token',
+      error: errorMessage.slice(0, 300),
+    },
+  });
+  if (error) throw new Error(error.message);
 }

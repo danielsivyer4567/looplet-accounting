@@ -88,6 +88,7 @@ import { DebtDetailPage } from '@/pages/DebtDetail';
 import { EmployeeDetailPage } from '@/pages/EmployeeDetail';
 import { SubscriptionDetailPage } from '@/pages/SubscriptionDetail';
 import { BasReportPage } from '@/pages/reports/Bas';
+import { NotificationsPage } from '@/pages/Notifications';
 import { OrgProfileForm } from '@/components/settings/OrgProfile';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import '@/index.css';
@@ -102,6 +103,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <Link to="/subscriptions/sub-1">Subscription</Link>
         <Link to="/employees/emp-1">Employee</Link>
         <Link to="/reports/bas">BAS</Link>
+        <Link to="/notifications">Alerts</Link>
         <Link to="/move">Move</Link>
       </nav>
       {children}
@@ -134,6 +136,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/subscriptions/:id" element={<SubscriptionDetailPage />} />
           <Route path="/employees/:id" element={<EmployeeDetailPage />} />
           <Route path="/reports/bas" element={<BasReportPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/move" element={<MoveProbe />} />
           <Route path="*" element={<DashboardPage />} />
         </Routes>
@@ -412,6 +415,23 @@ const basWorksheet = {
   summary: { '9_net_amount_cents': 5000 },
 };
 
+const gmailDisconnectNotification = {
+  id: 'notif-gmail-1',
+  organization_id: 'org-1',
+  user_id: null,
+  category: 'gmail_disconnected',
+  severity: 'error',
+  title: 'Reconnect Gmail',
+  body: 'accounts@example.com stopped syncing because Google rejected the refresh token. Reconnect Gmail to resume automatic bill capture.',
+  link: '/settings',
+  resource_type: 'gmail_integrations',
+  resource_id: 'gmail-int-1',
+  read_at: null,
+  dismissed_at: null,
+  created_at: '2026-06-30T20:00:00.000Z',
+  metadata: { gmail_address: 'accounts@example.com' },
+};
+
 const tableData: Record<string, unknown[]> = {
   organizations: [org],
   debts: [debt],
@@ -429,6 +449,7 @@ const tableData: Record<string, unknown[]> = {
   v_bas_gst_coverage: [basCoverage],
   v_gst_treatment_exceptions: [],
   v_gst_reconciliation: [{ organization_id: 'org-1', variance_cents: 0 }],
+  notifications: [gmailDisconnectNotification],
 };
 
 function mutations() {
@@ -570,6 +591,16 @@ async function runSmoke(port) {
       .isDisabled();
     checks.basCoverageNoOverflow = await noHorizontalOverflow(page);
     screenshots.basCoverageGate = await screenshot(page, 'bas-coverage-gate.png');
+
+    await visit(page, port, '/notifications');
+    await expectVisible(page, 'text=Reconnect Gmail');
+    await expectVisible(page, 'text=Gmail disconnected');
+    await expectVisible(page, 'text=accounts@example.com stopped syncing');
+    checks.gmailDisconnectNotificationNoOverflow = await noHorizontalOverflow(page);
+    screenshots.gmailDisconnectNotification = await screenshot(
+      page,
+      'gmail-disconnect-notification.png',
+    );
 
     await visit(page, port, '/settings-org');
     await expectVisible(page, 'text=Organisation profile');

@@ -31,7 +31,9 @@ Cross-tenant view leak closed, `system_defaults` locked, anon definer-fn execute
 - [x] **A1** Gmail dead-integration handling — disable + flag on fatal `invalid_grant` (mirrors Xero).
 - [ ] **A1 follow-up** Reconnect Gmail and capture a real watched-mailbox event
       trace.
-- [ ] **A1 follow-up** emit a notification on disconnect (after notifications schema confirmed).
+- [x] **A1 follow-up** Gmail disconnect notification code-complete: fatal watch-renew
+      auth errors now disable the integration and emit a `gmail_disconnected`
+      alert linking back to Settings.
 - _Done when:_ `cron_health_summary().http_failures_24h` → 0 and Gmail ingests again.
 
 ### EPIC B — Fill the books automatically _(parallel with C)_
