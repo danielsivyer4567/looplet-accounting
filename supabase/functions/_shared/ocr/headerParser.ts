@@ -18,17 +18,25 @@ export interface HeaderParseResult {
   mathConsistent: boolean;
 }
 
-// Match $1,234.56 / 1234 / 1,234.5 etc. Captures the numeric portion.
-const MONEY = /\$?\s*([0-9]{1,3}(?:[,\s][0-9]{3})*(?:\.\d{1,2})?)\b/;
+// Match $1,234.56 / 1 234.56 / 1234.56 / AUD 1234 etc.
+// Captures the numeric portion as dollars. OCR text often strips thousands
+// separators, so ungrouped 4+ digit totals must be accepted.
+const MONEY = /(?:AUD|A\$)?\s*\$?\s*((?:[0-9]{1,3}(?:[,\s][0-9]{3})+|[0-9]+)(?:\.\d{1,2})?)\b/;
 
 // Build label-then-money regex
 function moneyAfter(label: string): RegExp {
   return new RegExp(`(?:${label})[:\\s]*` + MONEY.source, 'i');
 }
 
-const TOTAL_RE = moneyAfter('total\\s+(?:inc(?:l(?:usive)?)?\\s+(?:gst|of\\s+gst)|inc\\.?\\s+gst)|total\\s+amount(?:\\s+due)?|amount\\s+due|grand\\s+total|balance\\s+due|total');
-const SUBTOTAL_RE = moneyAfter('sub[-\\s]?total|net\\s+(?:amount|total)|total\\s+ex(?:cl(?:uding|\\.?))?\\s+gst');
-const GST_RE = moneyAfter('gst(?:\\s+amount)?|tax\\s+amount|tax\\s+\\(gst\\)|10%\\s+gst');
+const TOTAL_RE = moneyAfter(
+  '\\b(?:total\\s+(?:inc(?:l(?:usive)?)?\\s+(?:gst|of\\s+gst)|inc\\.?\\s+gst)|total\\s+amount(?:\\s+due)?|amount\\s+due|grand\\s+total|balance\\s+due|total\\s+due|total)\\b(?!\\s+ex(?:cl(?:uding|\\.?))?\\s+gst)',
+);
+const SUBTOTAL_RE = moneyAfter(
+  '\\b(?:sub[-\\s]?total|net\\s+(?:amount|total)|total\\s+ex(?:cl(?:uding|\\.?))?\\s+gst)\\b',
+);
+const GST_RE = moneyAfter(
+  '\\b(?:gst\\s+amount|tax\\s+amount|tax\\s+\\(gst\\)|10%\\s+gst|(?<!\\bex\\s)(?<!\\binc\\s)gst)\\b',
+);
 const ABN_RE = /\b(?:ABN[:\s]*)?(\d{2}\s?\d{3}\s?\d{3}\s?\d{3})\b/i;
 const INVOICE_NO_RE =
   /\b(?:tax\s+invoice|invoice|inv)\s*(?:no\.?|number|#)?[:\s]*([A-Z0-9][A-Z0-9-]{2,19})\b/i;

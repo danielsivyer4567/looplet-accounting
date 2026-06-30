@@ -38,7 +38,10 @@ Cross-tenant view leak closed, `system_defaults` locked, anon definer-fn execute
 
 ### EPIC B — Fill the books automatically _(parallel with C)_
 
-- [ ] **B1** Diagnose/replace OCR provider (groq @ 0.41 conf, GST null) → reliable amount+GST.
+- [x] **B1a** Born-digital PDF amount parser hardening: text extraction now
+      handles ungrouped 4+ digit totals and avoids misreading `Subtotal` /
+      `Total ex GST` as payable total/GST.
+- [ ] **B1b** Diagnose/replace OCR provider (groq @ 0.41 conf, GST null) → reliable amount+GST.
 - [ ] **B2** Re-OCR/repair queue + backfill the 247 existing bills.
 - [x] **B3a** GST-coverage pre-lodge gate in the BAS prep UI. Lodge approval
       now stays blocked unless GST treatment, GL reconciliation, and
