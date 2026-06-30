@@ -8,8 +8,7 @@ import { createClient } from '@supabase/supabase-js';
  * owner-readable anomaly tasks and are org-scoped via RLS.
  */
 
-const SUPABASE_URL =
-  process.env['VITE_SUPABASE_URL'] ?? process.env['SUPABASE_URL'] ?? '';
+const SUPABASE_URL = process.env['VITE_SUPABASE_URL'] ?? process.env['SUPABASE_URL'] ?? '';
 const SERVICE_ROLE_KEY = process.env['SUPABASE_SERVICE_ROLE_KEY'] ?? '';
 
 const HAS_LIVE = Boolean(SUPABASE_URL && SERVICE_ROLE_KEY);
@@ -29,8 +28,8 @@ describe('anomaly signals in get_workstream_tasks', () => {
     expect(error).toBeNull();
 
     const anomalyKinds = new Set(['duplicate_bill', 'low_confidence_bill', 'bas_coverage_gap']);
-    const anomalies = (data ?? []).filter(
-      (t: Record<string, unknown>) => anomalyKinds.has(t.task_kind as string),
+    const anomalies = (data ?? []).filter((t: Record<string, unknown>) =>
+      anomalyKinds.has(t.task_kind as string),
     );
 
     for (const task of anomalies) {
