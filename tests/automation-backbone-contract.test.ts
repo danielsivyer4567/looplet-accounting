@@ -9,6 +9,7 @@ const automationJobs = readFileSync(
   join(root, 'supabase/functions/_shared/automationJobs.ts'),
   'utf8',
 );
+const appAutomationJobs = readFileSync(join(root, 'src/lib/automationJobs.ts'), 'utf8');
 const config = readFileSync(join(root, 'supabase/config.toml'), 'utf8');
 
 describe('automation backbone source contracts', () => {
@@ -30,9 +31,24 @@ describe('automation backbone source contracts', () => {
 
   it('payment jobs record invoice receipts and refuse AP bill shortcuts', () => {
     expect(automationJobs).toMatch(/\|\s*'payment_record'/);
+    expect(appAutomationJobs).toMatch(/\|\s*'payment_record'/);
     expect(worker).toMatch(/case 'payment_record'/);
     expect(worker).toMatch(/from\('invoice_payments'\)[\s\S]*\.insert\(\{/);
     expect(worker).toMatch(/bill payment jobs require bank reconciliation or payment runs/i);
+  });
+
+  it('receipt and Xero queue dispatches match target function contracts', () => {
+    expect(worker).toMatch(/case 'receipt_sync'/);
+    expect(worker).toMatch(/receipt-sync-dispatch/);
+    expect(worker).toMatch(/receipt_sync_job_id/);
+    expect(worker).not.toMatch(/case 'receipt_sync':[\s\S]*?functions\/v1`\}\?\/ingest/);
+
+    expect(worker).toMatch(/case 'xero_push'/);
+    expect(worker).toMatch(/xero-push-invoice/);
+    expect(worker).toMatch(/xero-push-bill/);
+    expect(worker).toMatch(/invoice_id:\s*invoiceId/);
+    expect(worker).toMatch(/bill_id:\s*billId/);
+    expect(worker).toMatch(/xero_push requires invoice_id or bill_id/);
   });
 
   it('cron and webhook edge functions keep platform JWT disabled', () => {

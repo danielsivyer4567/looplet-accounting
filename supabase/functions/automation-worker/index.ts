@@ -6,7 +6,7 @@
  *
  * Job kinds handled (this slice):
  *   bill_extract    — forward to bills-extract-batch edge fn
- *   receipt_sync    — forward to generic receipt-sync API helper
+ *   receipt_sync    — forward to receipt-sync-dispatch
  *   xero_push       — forward to xero-push-bill edge fn
  *   bank_reconcile  — forward to auto-reconcile edge fn
  *   gmail_backfill  — forward to gmail-backfill edge fn
@@ -101,30 +101,53 @@ async function dispatchJob(
     }
 
     case 'receipt_sync': {
-      const res = await fetch(`${base}/ingest`, {
+      const pl = objectPayload(job.payload);
+      const receiptSyncJobId =
+        stringValue(pl['receipt_sync_job_id']) ??
+        (job.source_kind === 'receipt_sync_job' ? job.source_id : null);
+      const provider = stringValue(pl['provider']);
+      const limit = numberValue(pl['limit']);
+      const requestBody: Record<string, unknown> = {
+        organization_id: job.organization_id,
+      };
+      if (receiptSyncJobId) requestBody['receipt_sync_job_id'] = receiptSyncJobId;
+      if (provider) requestBody['provider'] = provider;
+      if (limit && Number.isInteger(limit) && limit > 0) requestBody['limit'] = limit;
+      const res = await fetch(`${base}/receipt-sync-dispatch`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          organization_id: job.organization_id,
-          source_kind: job.source_kind,
-          source_id: job.source_id,
-          payload: job.payload,
-        }),
+        body: JSON.stringify(requestBody),
       });
       const body = await res.json().catch(() => ({}));
       return { ok: res.ok, detail: body };
     }
 
     case 'xero_push': {
-      const endpoint = job.source_kind === 'invoice' ? 'xero-push-invoice' : 'xero-push-bill';
+      const pl = objectPayload(job.payload);
+      const invoiceId =
+        stringValue(pl['invoice_id']) ??
+        (job.source_kind === 'invoice' || job.source_kind === 'customer_invoice'
+          ? job.source_id
+          : null);
+      const billId =
+        stringValue(pl['bill_id']) ?? (job.source_kind === 'bill' ? job.source_id : null);
+      if (invoiceId && billId) {
+        return {
+          ok: false,
+          detail: { error: 'xero_push must target either invoice_id or bill_id, not both' },
+        };
+      }
+      if (!invoiceId && !billId) {
+        return { ok: false, detail: { error: 'xero_push requires invoice_id or bill_id' } };
+      }
+      const endpoint = invoiceId ? 'xero-push-invoice' : 'xero-push-bill';
+      const requestBody = invoiceId
+        ? { organization_id: job.organization_id, invoice_id: invoiceId }
+        : { organization_id: job.organization_id, bill_id: billId };
       const res = await fetch(`${base}/${endpoint}`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          organization_id: job.organization_id,
-          source_id: job.source_id,
-          payload: job.payload,
-        }),
+        body: JSON.stringify(requestBody),
       });
       const body = await res.json().catch(() => ({}));
       return { ok: res.ok, detail: body };
