@@ -227,13 +227,7 @@ Deno.serve(async (req) => {
         .eq('id', bill.id);
       // Run routing on the cache-hit too — same job_reference, same matching.
       const routing = await runRouting(admin, bill.id, bill.organization_id, cacheRow);
-      void fireAndForgetIntakeRouting(
-        supabaseUrl,
-        serviceKey,
-        bill.organization_id,
-        'bill',
-        bill.id,
-      );
+      await runIntakeRouting(supabaseUrl, serviceKey, bill.organization_id, 'bill', bill.id);
       await writeDecision(
         admin,
         bill.id,
@@ -292,13 +286,7 @@ Deno.serve(async (req) => {
             job_reference_raw: extracted.job_reference,
             confidence: extracted.confidence,
           });
-          void fireAndForgetIntakeRouting(
-            supabaseUrl,
-            serviceKey,
-            bill.organization_id,
-            'bill',
-            bill.id,
-          );
+          await runIntakeRouting(supabaseUrl, serviceKey, bill.organization_id, 'bill', bill.id);
           await writeDecision(
             admin,
             bill.id,
@@ -342,7 +330,7 @@ Deno.serve(async (req) => {
       job_reference_raw: extracted.job_reference,
       confidence: extracted.confidence,
     });
-    void fireAndForgetIntakeRouting(supabaseUrl, serviceKey, bill.organization_id, 'bill', bill.id);
+    await runIntakeRouting(supabaseUrl, serviceKey, bill.organization_id, 'bill', bill.id);
     const { isProbableBill: visProbable } = classifyBill({
       document_kind: extracted.document_kind,
       confidence: extracted.confidence,
@@ -621,24 +609,24 @@ async function writeExtractionVersion(
 }
 
 /**
- * Fire-and-forget call into intake-routing-apply. Mirrors the
- * fireAndForgetSubsDetect pattern in bank-sync — never block the caller's
- * response, never throw, just let the rules engine pick up the new row.
+ * Call into intake-routing-apply so the rules engine picks up the newly OCR'd
+ * bill. This is part of auto-allocation, so failure is observable/retryable.
  */
-async function fireAndForgetIntakeRouting(
+async function runIntakeRouting(
   supabaseUrl: string,
   serviceKey: string,
   orgId: string,
   target: 'bill' | 'bank_transaction',
   targetId: string,
 ): Promise<void> {
-  try {
-    await fetch(`${supabaseUrl}/functions/v1/intake-routing-apply`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ organization_id: orgId, target, target_id: targetId }),
-    });
-  } catch {
-    // Routing is non-critical to the OCR response.
+  const response = await fetch(`${supabaseUrl}/functions/v1/intake-routing-apply`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ organization_id: orgId, target, target_id: targetId }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      `intake-routing-apply failed: ${response.status} ${await response.text().catch(() => '')}`.trim(),
+    );
   }
 }

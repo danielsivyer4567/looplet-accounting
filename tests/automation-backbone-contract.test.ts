@@ -79,10 +79,13 @@ describe('automation backbone source contracts', () => {
   it('bill extraction persists proof rows before returning ok', () => {
     expect(billsExtract).not.toMatch(/void writeDecision/);
     expect(billsExtract).not.toMatch(/void writeExtractionVersion/);
+    expect(billsExtract).not.toMatch(/fireAndForgetIntakeRouting/);
     expect(billsExtract).toMatch(/await writeDecision/);
     expect(billsExtract).toMatch(/await writeExtractionVersion/);
+    expect(billsExtract).toMatch(/await runIntakeRouting/);
     expect(billsExtract).toMatch(/Failed to persist automation decision/);
     expect(billsExtract).toMatch(/Failed to persist extraction version/);
+    expect(billsExtract).toMatch(/intake-routing-apply failed/);
   });
 
   it('bank sync surfaces post-sync automation failures', () => {
