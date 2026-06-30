@@ -41,8 +41,9 @@ internally) were left as-is: `enqueue_automation_job`, `get_confidence_policy`,
 
 | Function               | Live version | Verification                                                                                                                                                                                                                                   |
 | ---------------------- | -----------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `automation-worker`    |            5 | `supabase functions deploy automation-worker` succeeded after browser-job claim hardening; `functions list` updated to `2026-06-30 19:31:33 UTC`; unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}` |
+| `automation-worker`    |            6 | Deployed after browser-job claim hardening and `bank_sync` worker dispatch support; unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}`                                                               |
 | `automation-watchdog`  |            3 | Redeployed after source config pinned `verify_jwt=false`; unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}`                                                                                         |
+| `bank-exchange`        |           46 | Deployed after replacing initial connection `bank-sync` background dispatch with durable `bank_sync` automation jobs; unauthenticated POST is blocked by the Supabase gateway with `UNAUTHORIZED_NO_AUTH_HEADER`                               |
 | `ingest`               |           33 | Deployed after making connector bill/bank intake-routing observable and changing internal ingest failures to HTTP 500; unauthenticated POST reaches function code and returns `{"error":"invalid_api_key"}`                                    |
 | `bank-sync`            |           51 | Deployed after making post-sync subscription detection and intake routing observable/retryable; unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}`                                                   |
 | `bank-webhook`         |           48 | Deployed after making duplicate raw events continue through the action path and making `bank-sync` dispatch observable; missing/wrong token POST reaches function code and returns `{"ok":false,"error":"Invalid webhook verification token"}` |
@@ -91,7 +92,7 @@ missing-document recovery rather than the raw-bank-event SC-06 path.
 The analysis found `ingest` would have failed on every document/payment call. The
 first two blockers were fixed and live-verified at the DB/RPC level; the later
 source/worker contract fixes are now deployed to `ingest` v33 and
-`automation-worker` v5, but still need positive e2e data proof:
+`automation-worker` v6, but still need positive e2e data proof:
 
 1. **Org-gate** — `enqueue_automation_job` rejected the bare service-role caller
    (`get_accessible_org_ids()` → `[]`). Fixed by migration
@@ -158,9 +159,15 @@ source/worker contract fixes are now deployed to `ingest` v33 and
     could not retry them. Current source enqueues `bill_extract` jobs for both
     paths; Pub/Sub retry state now treats enqueue failures as retryable ingest
     rejections instead of advancing history past them.
+15. **Initial bank connection sync was fire-and-forget** — `bank-exchange`
+    saved the Basiq connection and accounts, then background-called `bank-sync`.
+    If that dispatch failed, the bank looked connected but initial transactions
+    could be missing until manual sync. Current source enqueues or reuses a
+    durable `bank_sync` automation job keyed by the `bank_connection` source, and
+    the worker dispatches that job to `bank-sync`.
 
 `ingest` and `automation-worker` have been deployed as a pair. `verify_jwt=false`
-stays explicit in `supabase/config.toml`.
+stays explicit in `supabase/config.toml` for the worker/server-to-server paths.
 
 ### Activation (only after the relevant deploys)
 

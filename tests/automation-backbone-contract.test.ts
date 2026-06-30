@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 const root = process.cwd();
 const ingest = readFileSync(join(root, 'supabase/functions/ingest/index.ts'), 'utf8');
 const worker = readFileSync(join(root, 'supabase/functions/automation-worker/index.ts'), 'utf8');
+const bankExchange = readFileSync(join(root, 'supabase/functions/bank-exchange/index.ts'), 'utf8');
 const bankWebhook = readFileSync(join(root, 'supabase/functions/bank-webhook/index.ts'), 'utf8');
 const bankSync = readFileSync(join(root, 'supabase/functions/bank-sync/index.ts'), 'utf8');
 const billsExtract = readFileSync(join(root, 'supabase/functions/bills-extract/index.ts'), 'utf8');
@@ -77,9 +78,20 @@ describe('automation backbone source contracts', () => {
 
     const defaultKindsMatch = worker.match(/const DEFAULT_JOB_KINDS = \[([\s\S]*?)\] as const;/);
     expect(defaultKindsMatch?.[1]).toContain("'bill_extract'");
+    expect(defaultKindsMatch?.[1]).toContain("'bank_sync'");
     expect(defaultKindsMatch?.[1]).toContain("'payment_record'");
     expect(defaultKindsMatch?.[1]).not.toContain("'browser_collect'");
     expect(worker).toMatch(/case 'browser_collect'/);
+  });
+
+  it('bank exchange queues initial sync jobs instead of fire-and-forget HTTP', () => {
+    expect(worker).toMatch(/case 'bank_sync'/);
+    expect(worker).toMatch(/`\$\{base\}\/bank-sync`/);
+    expect(bankExchange).toMatch(/enqueue_automation_job/);
+    expect(bankExchange).toMatch(/p_job_kind:\s*'bank_sync'/);
+    expect(bankExchange).toMatch(/sync_job_id:\s*syncJobId/);
+    expect(bankExchange).not.toMatch(/functions\/v1\/bank-sync/);
+    expect(bankExchange).not.toMatch(/bank-sync dispatch failed/);
   });
 
   it('bank webhooks do not lose sync dispatch after raw-event persistence', () => {

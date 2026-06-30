@@ -6,6 +6,7 @@
  *
  * Job kinds handled (this slice):
  *   bill_extract    — forward to bills-extract-batch edge fn
+ *   bank_sync       — forward to bank-sync edge fn
  *   receipt_sync    — forward to receipt-sync-dispatch
  *   xero_push       — forward to xero-push-bill edge fn
  *   bank_reconcile  — forward to auto-reconcile edge fn
@@ -42,6 +43,7 @@ import type { AutomationJob } from '../_shared/automationJobs.ts';
 const CLAIM_LIMIT = 10;
 const DEFAULT_JOB_KINDS = [
   'bill_extract',
+  'bank_sync',
   'receipt_sync',
   'xero_push',
   'bank_reconcile',
@@ -106,6 +108,26 @@ async function dispatchJob(
             payload: job.payload,
           };
       const res = await fetch(`${base}/${endpoint}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody),
+      });
+      const body = await res.json().catch(() => ({}));
+      return { ok: res.ok, detail: body };
+    }
+
+    case 'bank_sync': {
+      const pl = objectPayload(job.payload);
+      const bankConnectionId =
+        stringValue(pl['bank_connection_id']) ??
+        (job.source_kind === 'bank_connection' ? job.source_id : null);
+      const days = numberValue(pl['days']);
+      const requestBody: Record<string, unknown> = {
+        organization_id: job.organization_id,
+      };
+      if (bankConnectionId) requestBody['bank_connection_id'] = bankConnectionId;
+      if (days && Number.isFinite(days) && days > 0) requestBody['days'] = days;
+      const res = await fetch(`${base}/bank-sync`, {
         method: 'POST',
         headers,
         body: JSON.stringify(requestBody),

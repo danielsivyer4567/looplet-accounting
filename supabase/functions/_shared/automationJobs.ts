@@ -14,6 +14,7 @@ import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export type AutomationJobKind =
   | 'bill_extract'
+  | 'bank_sync'
   | 'receipt_sync'
   | 'xero_push'
   | 'bank_reconcile'

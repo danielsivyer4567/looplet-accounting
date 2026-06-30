@@ -8,6 +8,7 @@ export type AutomationJobStatus = 'pending' | 'claimed' | 'completed' | 'failed'
 
 export type AutomationJobKind =
   | 'bill_extract'
+  | 'bank_sync'
   | 'receipt_sync'
   | 'xero_push'
   | 'bank_reconcile'

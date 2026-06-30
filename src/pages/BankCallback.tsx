@@ -18,8 +18,8 @@ const POLL_MAX_ATTEMPTS = 30;
  *      resolves a connectionId (or timeout after 60 s), then call bank-exchange.
  *   C. error param — surface the error with a retry button.
  *
- * Once bank-exchange returns, bank-sync is already kicked inside that function,
- * and bank-sync fires subscriptions-detect when it finishes.
+ * Once bank-exchange returns, the initial bank-sync job is queued durably; the
+ * worker imports transactions and then runs subscription detection.
  */
 export function BankCallbackPage() {
   const [params] = useSearchParams();

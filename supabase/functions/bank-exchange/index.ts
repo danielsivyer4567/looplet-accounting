@@ -5,10 +5,10 @@
  *   2. Look up the Basiq connection details
  *   3. Insert a row into bank_connections
  *   4. Insert/update bank_accounts for each account on this connection
- *   5. Fire-and-forget bank-sync to pull initial transactions
+ *   5. Enqueue a durable bank_sync job to pull initial transactions
  *
  * Input:  { organization_id, connection_id }
- * Output: { ok: true, bank_connection_id, accounts: [...], sync_kicked: true }
+ * Output: { ok: true, bank_connection_id, accounts: [...], sync_kicked: true, sync_job_id }
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -23,7 +23,7 @@ import {
 
 interface RequestBody {
   organization_id: string;
-  connection_id: string;     // Basiq connection.id from callback
+  connection_id: string; // Basiq connection.id from callback
 }
 
 Deno.serve(async (req) => {
@@ -63,7 +63,9 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'No Basiq user yet — call bank-link-token first' }, 400);
     }
 
-    const { data: { user } } = await userClient.auth.getUser();
+    const {
+      data: { user },
+    } = await userClient.auth.getUser();
 
     // 1. Look up the connection details from Basiq
     const conn = await getConnection(org.basiq_user_id, body.connection_id);
@@ -142,25 +144,53 @@ Deno.serve(async (req) => {
       if (row) accountRows.push(row);
     }
 
-    // 5. Kick initial transaction sync (fire-and-forget so we return fast)
-    fetch(`${supabaseUrl}/functions/v1/bank-sync`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${serviceKey}`,
-      },
-      body: JSON.stringify({
-        organization_id: body.organization_id,
-        bank_connection_id: bankConn.id,
-        days: 180,
-      }),
-    }).catch((e) => console.error('bank-sync dispatch failed:', e));
+    // 5. Queue initial transaction sync. Reuse an unfinished job if the callback
+    // is retried, so a flaky redirect does not fan out duplicate bank imports.
+    const { data: existingJob, error: existingJobErr } = await admin
+      .from('automation_jobs')
+      .select('id, status')
+      .eq('organization_id', body.organization_id)
+      .eq('job_kind', 'bank_sync')
+      .eq('source_kind', 'bank_connection')
+      .eq('source_id', bankConn.id)
+      .in('status', ['pending', 'claimed', 'failed'])
+      .order('run_after', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingJobErr) {
+      return json({ ok: false, error: `sync job lookup: ${existingJobErr.message}` }, 500);
+    }
+
+    let syncJobId = (existingJob as { id?: string } | null)?.id ?? null;
+    if (!syncJobId) {
+      const { data: syncJob, error: syncJobErr } = await admin.rpc('enqueue_automation_job', {
+        p_org_id: body.organization_id,
+        p_job_kind: 'bank_sync',
+        p_source_kind: 'bank_connection',
+        p_source_id: bankConn.id,
+        p_priority: 3,
+        p_run_after: new Date().toISOString(),
+        p_max_attempts: 3,
+        p_payload: {
+          bank_connection_id: bankConn.id,
+          days: 180,
+          source: 'bank_exchange',
+        },
+      });
+      if (syncJobErr || !syncJob) {
+        const detail = syncJobErr?.message ?? 'no job returned';
+        return json({ ok: false, error: `sync job enqueue: ${detail}` }, 500);
+      }
+      syncJobId = (syncJob as { id: string }).id;
+    }
 
     return json({
       ok: true,
       bank_connection_id: bankConn.id,
       accounts: accountRows,
       sync_kicked: true,
+      sync_job_id: syncJobId,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
