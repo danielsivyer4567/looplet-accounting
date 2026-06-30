@@ -360,6 +360,17 @@ async function ingestInvoice(db: SupabaseClient, orgId: string, payload: Record<
   return { status: 201, body: { ok: true, id: inserted.id, type: "invoice", deduped: false } };
 }
 
+// A document/payment ingest has no pre-existing source-row uuid; the
+// Idempotency-Key is the dedup handle. automation_jobs.source_id is a uuid, so
+// derive a stable uuid from the key (same key -> same uuid; 128 bits from the
+// SHA-256 prefix) and use it as both the dedup filter and p_source_id. This
+// keeps the column a uuid (no schema change) and the API contract unchanged
+// (callers still send an arbitrary Idempotency-Key string).
+async function idemKeyToUuid(key: string): Promise<string> {
+  const h = (await sha256Hex(key)).slice(0, 32);
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20, 32)}`;
+}
+
 // ---------------------------------------------------------------------------
 // document — idempotent via automation_jobs dedup; enqueues a bill_extract job.
 // Scope: write:documents. Idempotency-Key header is required.
@@ -374,13 +385,15 @@ async function ingestDocument(
   const idemKey = idempotencyKey ?? (payload.idempotency_key as string | undefined);
   if (!idemKey) throw new ValidationError("Idempotency-Key header or payload.idempotency_key is required for document type");
 
+  const sourceId = await idemKeyToUuid(idemKey);
+
   // Dedup: if a job already exists for this idempotency key, return it.
   const { data: existing } = await db
     .from("automation_jobs")
     .select("id")
     .eq("organization_id", orgId)
     .eq("source_kind", "document")
-    .eq("source_id", idemKey)
+    .eq("source_id", sourceId)
     .in("status", ["pending", "claimed", "completed"])
     .maybeSingle();
 
@@ -392,7 +405,7 @@ async function ingestDocument(
     p_org_id: orgId,
     p_job_kind: "bill_extract",
     p_source_kind: "document",
-    p_source_id: idemKey,
+    p_source_id: sourceId,
     p_priority: 5,
     p_run_after: new Date().toISOString(),
     p_max_attempts: 3,
@@ -424,13 +437,15 @@ async function ingestPayment(
   const idemKey = idempotencyKey ?? (payload.idempotency_key as string | undefined);
   if (!idemKey) throw new ValidationError("Idempotency-Key header or payload.idempotency_key is required for payment type");
 
+  const sourceId = await idemKeyToUuid(idemKey);
+
   // Dedup: return the existing job if already enqueued.
   const { data: existing } = await db
     .from("automation_jobs")
     .select("id")
     .eq("organization_id", orgId)
     .eq("source_kind", "payment")
-    .eq("source_id", idemKey)
+    .eq("source_id", sourceId)
     .maybeSingle();
 
   if (existing) {
@@ -447,7 +462,7 @@ async function ingestPayment(
     p_org_id: orgId,
     p_job_kind: "payment_record",
     p_source_kind: "payment",
-    p_source_id: idemKey,
+    p_source_id: sourceId,
     p_priority: 5,
     p_run_after: new Date().toISOString(),
     p_max_attempts: 3,

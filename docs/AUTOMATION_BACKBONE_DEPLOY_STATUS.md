@@ -40,30 +40,47 @@ internally) were left as-is: `enqueue_automation_job`, `get_confidence_policy`,
 
 The DB schema is live, but the epic does not yet **run**. Remaining:
 
-### Net-new edge functions (absent on prod)
-- `automation-worker` (SC-02) — claims due jobs + dispatches by job_kind
-- `automation-watchdog` (SC-03) — background signal scanner
+A 17-agent deploy-readiness workflow (8 deep-readers + 8 adversarial verifiers +
+synthesis, each verifier cross-checked source AND live prod) classified the 8
+candidate edge functions. Key outcome: **3 of 8 are traps** — do not deploy.
 
-These are safe to deploy (additive); they stay **inert** until a cron schedule
-and `AUTOMATION_WORKER_SECRET` are set. Activation runbook is in the inert
-migrations `0212_automation_worker_cron.sql` / `0213_automation_watchdog_cron.sql`.
+### ✅ Safe to deploy (verified: source contains the epic change, DB contract live)
+Deploy order (worker first as inert canary, then live-path redeploys one at a time
+with secret-confirm + smoke-check between each):
+1. `automation-worker` (SC-02) — net-new, additive, **inert** until cron+secret set; `verify_jwt=false`. Bundle: `_shared/cors.ts`, `_shared/automationJobs.ts`.
+2. `bank-webhook` (SC-06 raw-event guard) — `verify_jwt=false`; confirm `BASIQ_WEBHOOK_VERIFY_TOKEN` (fail-closed). Bundle: cors, apiKeys, env.
+3. `bank-sync` (SC-06 raw_event_id write) — `verify_jwt=false`; confirm `BASIQ_API_KEY`. Bundle: cors, apiKeys, basiq/client, serviceRole.
+4. `auto-reconcile` (SC-07 evidence write) — `verify_jwt=false`; `AUTO_RECONCILE_CRON_SECRET` optional. Bundle: cors.
+5. `bills-extract` (SC-05 version-row write) — **keep its user-JWT setting**; full 16-file `_shared` transitive bundle.
 
-### Live-path functions needing redeploy (currently at pre-epic versions)
-These exist on prod but at versions that predate the epic's source changes, so
-their new write paths (raw-event idempotency, extraction versioning, reconciliation
-evidence, connector endpoints) are not active until redeployed:
-- `bank-webhook`, `bank-sync` (SC-06 idempotency guard + raw event write)
-- `auto-reconcile` (SC-07 evidence write)
-- `bills-extract` (SC-05 version-row write)
-- `api-gateway`, `ingest` (SC-09 endpoint surface)
+⚠️ #2–5 are in the **live money/ingestion path** — `verify`/`check` discipline each,
+not a batch. (Verifiers confirmed the live versions genuinely lack the epic change,
+so these redeploys are meaningful, not no-ops.)
 
-⚠️ These are in the **live money/ingestion path** — redeploy each with the
-`verify`/`check` discipline, ideally one focused session per function, not a batch.
+### ⛔ Do NOT deploy — traps the analysis caught
+- **`api-gateway` ("SC-09")** — HEAD source is **byte-identical to the live v30**; zero SC-09 commits. Deploying is a pointless no-op that risks a live fn for nothing. The real SC-09 artifact is `ingest`. **Drop from the queue.**
+- **`automation-watchdog` ("SC-03")** — contains **zero** SC-03 Automation Backbone integration (no `bank_events_raw`/`reconciliation_evidence`/etc.). It's a standalone anomaly scanner mislabeled SC-03. Deploy only if you want the scanner as its own feature — it advances the epic by nothing.
 
-### Activation (only after the above)
-1. `AUTOMATION_WORKER_SECRET` set in project secrets
+### ✅ `ingest` (SC-09) — blockers FIXED this session (was DOA on prod)
+The analysis found `ingest` would have failed on every document/payment call. Both
+blockers are now fixed and live-verified:
+1. **Org-gate** — `enqueue_automation_job` rejected the bare service-role caller
+   (`get_accessible_org_ids()` → `[]`). Fixed by migration
+   `20260630180000_enqueue_job_service_role_bypass` (service_role bypasses the gate;
+   `authenticated` still org-checked). Dry-run proof on prod: service_role enqueue
+   ok=true, authenticated non-member blocked=true.
+2. **`source_id` type mismatch** — `ingest` passed the raw Idempotency-Key string
+   into the `uuid` `source_id`/`p_source_id`. Fixed in `ingest/index.ts`: a new
+   `idemKeyToUuid()` derives a stable uuid (SHA-256 prefix) from the key for both
+   the dedup filter and `p_source_id`. No schema change, no API-contract break.
+
+`ingest` is now deploy-ready (it still needs an actual deploy via MCP, with the full
+`_shared` bundle, in a dedicated step). `verify_jwt` stays as currently configured.
+
+### Activation (only after the relevant deploys)
+1. `AUTOMATION_WORKER_SECRET` set in project secrets (optional — service-role bearer cron works without it)
 2. `cron.schedule('automation-worker-every-2min', '*/2 * * * *', …)`
-3. `cron.schedule('automation-watchdog-…', …)`
+3. (Only if deploying the scanner) `AUTOMATION_WATCHDOG_SECRET` + a manual `cron.schedule` — no watchdog cron exists live
 
 ## Notes
 - ATO/DSP/SBR lodgement remains external-gated throughout — unchanged.
