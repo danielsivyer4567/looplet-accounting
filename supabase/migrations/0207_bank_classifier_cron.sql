@@ -1,0 +1,56 @@
+-- 0207: pg_cron schedule for bank-transaction-classifier (EPIC: full autopilot).
+--
+-- TRACKED FOR LATER — DO NOT RUN AS-IS. Intentionally inert: the cron.schedule()
+-- call is commented out because (a) it requires the function to be deployed first,
+-- and (b) it needs real <PROJECT_REF> / <BANK_CLASSIFIER_CRON_SECRET> values.
+--
+-- Runs every 2 hours at :30 (offset from auto-reconcile at :15 and
+-- notifications-cron at :30 on a different hour). The classifier should run
+-- AFTER auto-reconcile so it can inherit coding from freshly-matched bills
+-- (Stage 1 of the cascade). With auto-reconcile at 03:15 and this at 03:30,
+-- the order is guaranteed for the overnight batch.
+--
+-- Auth gate: ?secret=<BANK_CLASSIFIER_CRON_SECRET> (same pattern as 0065
+-- auto-reconcile-daily). The function is deployed --no-verify-jwt.
+--
+-- Before enabling:
+--   1. supabase functions deploy bank-transaction-classifier --no-verify-jwt
+--   2. supabase secrets set BANK_CLASSIFIER_CRON_SECRET=<random-32-char-string>
+--   3. Ensure ANTHROPIC_API_KEY is set (shared with bills-extract)
+--   4. Replace <PROJECT_REF> and <BANK_CLASSIFIER_CRON_SECRET> below
+--   5. Uncomment and run cron.schedule() once
+--
+-- The function processes 100 transactions per org per run. For orgs with a large
+-- backlog the cron drains it over multiple 2-hour windows automatically.
+
+-- SELECT cron.schedule(
+--   'bank-txn-classifier-cron',
+--   '30 */2 * * *',   -- every 2 hours at :30
+--   $cron$
+--     SELECT net.http_post(
+--       url := 'https://<PROJECT_REF>.supabase.co/functions/v1/bank-transaction-classifier'
+--              || '?secret=<BANK_CLASSIFIER_CRON_SECRET>',
+--       headers := jsonb_build_object('Content-Type', 'application/json'),
+--       body := jsonb_build_object('organization_id', o.id)
+--     )
+--     FROM public.organizations o
+--     WHERE o.deleted_at IS NULL;
+--   $cron$
+-- );
+
+-- To inspect:
+--   SELECT * FROM cron.job WHERE jobname = 'bank-txn-classifier-cron';
+--   SELECT * FROM cron.job_run_details
+--    WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'bank-txn-classifier-cron')
+--    ORDER BY start_time DESC LIMIT 10;
+--
+-- To unschedule:
+--   SELECT cron.unschedule('bank-txn-classifier-cron');
+--
+-- To run immediately (backlog drain) via MCP:
+--   SELECT net.http_post(
+--     url := 'https://<PROJECT_REF>.supabase.co/functions/v1/bank-transaction-classifier'
+--            || '?secret=<BANK_CLASSIFIER_CRON_SECRET>',
+--     headers := jsonb_build_object('Content-Type', 'application/json'),
+--     body := jsonb_build_object('organization_id', '<ORG_ID>', 'limit', 500)
+--   );

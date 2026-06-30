@@ -50,5 +50,8 @@ src/lib/database.types.ts
 # Claude Code scratch (ledgers, check markers — transient work-tracking)
 .claude/scratch/
 
+# graphify knowledge graph output (generated, not source)
+graphify-out/
+
 # Personal Claude Code overrides (not committed)
 .claude/settings.local.json
