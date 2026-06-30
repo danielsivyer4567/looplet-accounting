@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, preflight } from '../_shared/cors.ts'
 
 interface RequestBody {
@@ -125,7 +126,7 @@ Deno.serve(async (req: Request) => {
 })
 
 async function fetchStats(
-  client: ReturnType<typeof createClient>,
+  client: SupabaseClient,
   org_id: string,
 ): Promise<{ stats: ScoreBandCounts }> {
   const { data, error } = await client
@@ -157,14 +158,14 @@ async function fetchStats(
 }
 
 async function runAutoAccept(
-  client: ReturnType<typeof createClient>,
+  client: SupabaseClient,
   org_id: string,
   min_score: number,
 ): Promise<{ auto_accept: unknown }> {
   const { data, error } = await client.rpc('bulk_accept_job_suggestions', {
     p_org_id: org_id,
     p_min_score: min_score,
-  })
+  } as Record<string, unknown>)
 
   if (error) {
     throw new Error(`bulk_accept_job_suggestions failed: ${error.message}`)
@@ -174,13 +175,13 @@ async function runAutoAccept(
 }
 
 async function runRematch(
-  client: ReturnType<typeof createClient>,
+  client: SupabaseClient,
   org_id: string,
 ): Promise<{ rematch: unknown }> {
   const { data, error } = await client.rpc('rematch_unallocated_bills', {
     p_org_id: org_id,
     p_limit: 500,
-  })
+  } as Record<string, unknown>)
 
   if (error) {
     throw new Error(`rematch_unallocated_bills failed: ${error.message}`)

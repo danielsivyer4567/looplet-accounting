@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
-import { useAllocationQueue, type QueueBill } from '@/hooks/useAllocationQueue';
+import { useAllocationQueue, type AllocationQueueRow } from '@/hooks/useAllocationQueue';
 import { useJobs } from '@/hooks/useJobs';
 import type { JobListRow } from '@/hooks/useJobs';
 import { supabase } from '@/lib/supabase';
@@ -9,33 +9,47 @@ import { formatMoney } from '@/lib/money';
 import { SkeletonLine } from '@/components/Skeleton';
 import { GitPullRequest, Eye, EyeOff, CheckCircle2, ChevronRight, X } from 'lucide-react';
 
-function BillPreviewPane({ bill, onClose }: { bill: QueueBill; onClose: () => void }) {
+// Fetch storage fields from bills table on-demand (not in v_allocation_queue)
+function BillPreviewPane({ bill, onClose }: { bill: AllocationQueueRow; onClose: () => void }) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [urlError, setUrlError] = useState<string | null>(null);
+  const [mimeType, setMimeType] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setSignedUrl(null);
     setUrlError(null);
+    setMimeType(null);
 
-    supabase.storage
+    // Fetch storage_key + mime_type from bills table (not exposed in the queue view)
+    supabase
       .from('bills')
-      .createSignedUrl(bill.storage_key, 300)
+      .select('storage_key, mime_type')
+      .eq('id', bill.bill_id)
+      .single()
       .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error || !data?.signedUrl) {
-          setUrlError(error?.message ?? 'Could not generate preview URL');
-        } else {
-          setSignedUrl(data.signedUrl);
-        }
+        if (cancelled || error || !data) return;
+        const { storage_key, mime_type } = data as { storage_key: string; mime_type: string };
+        setMimeType(mime_type);
+        supabase.storage
+          .from('bills')
+          .createSignedUrl(storage_key, 300)
+          .then(({ data: urlData, error: urlErr }) => {
+            if (cancelled) return;
+            if (urlErr || !urlData?.signedUrl) {
+              setUrlError(urlErr?.message ?? 'Could not generate preview URL');
+            } else {
+              setSignedUrl(urlData.signedUrl);
+            }
+          });
       });
 
     return () => {
       cancelled = true;
     };
-  }, [bill.storage_key]);
+  }, [bill.bill_id]);
 
-  const isPdf = bill.mime_type === 'application/pdf';
+  const isPdf = mimeType === 'application/pdf';
 
   return (
     <div
@@ -89,7 +103,7 @@ function BillPreviewPane({ bill, onClose }: { bill: QueueBill; onClose: () => vo
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexShrink: 0 }}>
           {signedUrl && (
             <a
-              href={`/bills/${bill.id}`}
+              href={`/bills/${bill.bill_id}`}
               target="_blank"
               rel="noreferrer"
               style={{ color: 'var(--accent-primary)', fontSize: '0.75rem', fontWeight: 600 }}
@@ -124,7 +138,7 @@ function BillPreviewPane({ bill, onClose }: { bill: QueueBill; onClose: () => vo
             <p style={{ margin: '4px 0 0', color: 'var(--text-muted)' }}>{urlError}</p>
             <p style={{ marginTop: 12 }}>
               <Link
-                to={`/bills/${bill.id}`}
+                to={`/bills/${bill.bill_id}`}
                 style={{ color: 'var(--accent-primary)', fontWeight: 600 }}
               >
                 Open bill detail page instead &rarr;
@@ -146,7 +160,7 @@ function BillPreviewPane({ bill, onClose }: { bill: QueueBill; onClose: () => vo
         ) : isPdf ? (
           <iframe
             src={signedUrl}
-            title={`Bill preview — ${bill.supplier_name_raw ?? bill.id}`}
+            title={`Bill preview — ${bill.supplier_name_raw ?? bill.bill_id}`}
             style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
           />
         ) : (
@@ -169,14 +183,14 @@ function BillPreviewPane({ bill, onClose }: { bill: QueueBill; onClose: () => vo
 
 export function AllocationsPage() {
   const { currentOrg } = useOrg();
-  const { bills, loading, error, refresh } = useAllocationQueue();
+  const { queue, loading, error, refresh } = useAllocationQueue();
   const { jobs } = useJobs();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
   const [previewBillId, setPreviewBillId] = useState<string | null>(null);
 
-  const previewBill = previewBillId ? (bills.find((b) => b.id === previewBillId) ?? null) : null;
+  const previewBill = previewBillId ? (queue.find((b) => b.bill_id === previewBillId) ?? null) : null;
 
   if (!currentOrg) {
     return (
@@ -226,7 +240,7 @@ export function AllocationsPage() {
     );
   }
 
-  if (bills.length === 0) {
+  if (queue.length === 0) {
     return (
       <section className="animated-fade-in" style={{ padding: '2rem 0' }}>
         <h1 style={{ marginBottom: '0.5rem' }}>Allocations</h1>
@@ -275,8 +289,8 @@ export function AllocationsPage() {
     );
   }
 
-  const confirmAttach = async (bill: QueueBill, jobId: string) => {
-    setBusyId(bill.id);
+  const confirmAttach = async (bill: AllocationQueueRow, jobId: string) => {
+    setBusyId(bill.bill_id);
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -292,7 +306,7 @@ export function AllocationsPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ bill_id: bill.id, job_id: jobId }),
+        body: JSON.stringify({ bill_id: bill.bill_id, job_id: jobId }),
       });
       if (!res.ok) {
         const body = await res.text();
@@ -315,7 +329,7 @@ export function AllocationsPage() {
     setBusyId(null);
   };
 
-  const billsWithSuggestion = bills.filter((b) => b.suggested_job?.id);
+  const billsWithSuggestion = queue.filter((b) => b.suggested_job_id != null);
 
   const bulkAttachAllSuggestions = async () => {
     if (billsWithSuggestion.length === 0) return;
@@ -329,16 +343,16 @@ export function AllocationsPage() {
     setBulkMsg(`Attaching 0 / ${billsWithSuggestion.length}…`);
     let n = 0;
     for (const b of billsWithSuggestion) {
-      if (!b.suggested_job?.id) continue;
+      if (!b.suggested_job_id) continue;
       await supabase
         .from('bills')
         .update({
-          job_id: b.suggested_job.id,
+          job_id: b.suggested_job_id,
           suggested_job_id: null,
           suggested_match_score: null,
           status: 'attached',
         })
-        .eq('id', b.id);
+        .eq('id', b.bill_id);
       n += 1;
       setBulkMsg(`Attaching ${n} / ${billsWithSuggestion.length}…`);
     }
@@ -386,7 +400,7 @@ export function AllocationsPage() {
             Allocations
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
-            {bills.length} bill{bills.length === 1 ? '' : 's'} waiting to be allocated to jobs.
+            {queue.length} bill{queue.length === 1 ? '' : 's'} waiting to be allocated to jobs.
           </p>
         </div>
 
@@ -433,17 +447,17 @@ export function AllocationsPage() {
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {bills.map((b) => (
+          {queue.map((b) => (
             <BillCard
-              key={b.id}
+              key={b.bill_id}
               bill={b}
-              busy={busyId === b.id}
+              busy={busyId === b.bill_id}
               jobs={jobs}
-              isPreviewing={previewBillId === b.id}
+              isPreviewing={previewBillId === b.bill_id}
               onConfirm={(jobId) => confirmAttach(b, jobId)}
-              onReject={() => rejectSuggestion(b.id)}
-              onQuickAssign={(jobId) => quickAssignToJob(b.id, jobId)}
-              onPreview={() => setPreviewBillId(previewBillId === b.id ? null : b.id)}
+              onReject={() => rejectSuggestion(b.bill_id)}
+              onQuickAssign={(jobId) => quickAssignToJob(b.bill_id, jobId)}
+              onPreview={() => setPreviewBillId(previewBillId === b.bill_id ? null : b.bill_id)}
             />
           ))}
         </div>
@@ -465,7 +479,7 @@ function BillCard({
   onQuickAssign,
   onPreview,
 }: {
-  bill: QueueBill;
+  bill: AllocationQueueRow;
   busy: boolean;
   jobs: JobListRow[];
   isPreviewing: boolean;
@@ -474,8 +488,8 @@ function BillCard({
   onQuickAssign: (jobId: string) => void;
   onPreview: () => void;
 }) {
-  const score = bill.suggested_match_score ?? 0;
-  const sugg = bill.suggested_job;
+  const score = bill.score ?? 0;
+  const hasSugg = bill.suggested_job_id != null;
 
   let scoreClass = 'badge-neutral';
   if (score >= 0.85) scoreClass = 'badge-success';
@@ -520,14 +534,6 @@ function BillCard({
           <code>{bill.invoice_number ?? '—'}</code>
           <span>·</span>
           <span>{bill.invoice_date ?? '—'}</span>
-          {bill.ocr_provider && (
-            <>
-              <span>·</span>
-              <span>
-                Intake: {bill.ocr_provider} ({Math.round((bill.ocr_confidence ?? 0) * 100)}%)
-              </span>
-            </>
-          )}
         </div>
 
         <div style={{ fontSize: '0.775rem', color: 'var(--text-body)', marginTop: '0.35rem' }}>
@@ -567,7 +573,7 @@ function BillCard({
           flexShrink: 0,
         }}
       >
-        {sugg ? (
+        {hasSugg ? (
           <div
             style={{
               background: 'var(--bg-app)',
@@ -601,14 +607,14 @@ function BillCard({
               }}
             >
               <code style={{ marginRight: '0.5rem', color: 'var(--accent-primary)' }}>
-                {sugg.job_number}
+                {bill.suggested_job_number}
               </code>
-              <span>{sugg.name}</span>
+              <span>{bill.suggested_job_name}</span>
             </div>
 
             <div style={{ display: 'flex', gap: '0.35rem' }}>
               <button
-                onClick={() => onConfirm(sugg.id)}
+                onClick={() => bill.suggested_job_id && onConfirm(bill.suggested_job_id)}
                 disabled={busy}
                 className="btn btn-primary"
                 style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', flex: 1 }}
@@ -642,11 +648,10 @@ function BillCard({
               ))}
             </select>
             <Link
-              to={`/bills/${bill.id}`}
+              to={`/bills/${bill.bill_id}`}
               style={{
                 color: 'var(--text-muted)',
                 fontSize: '0.75rem',
-                textAlign: 'right',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'flex-end',
