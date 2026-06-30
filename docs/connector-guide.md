@@ -15,7 +15,7 @@ service-role key is never used by integrations.
 > **Important — read scope is not granular.** Any valid key can **read your whole
 > organization** over the Read API (PostgREST), regardless of its `scopes`. Read
 > scopes (e.g. `read:financials`) are advisory today; they do **not** narrow what
-> a key can read within its org. **Write** authority *is* enforced per type
+> a key can read within its org. **Write** authority _is_ enforced per type
 > (`write:bills` / `write:bank` / `write:invoices` / `write:receipts`) by the
 > ingest and receipt endpoints. Treat
 > issuing any key as granting full-org read, and grant write scopes minimally.
@@ -56,14 +56,14 @@ Authorization: Bearer llp_ab12cd34.0f1e2d3c...
 
 **Scopes** (grant the minimum needed):
 
-| Scope             | Allows                                  |
-|-------------------|-----------------------------------------|
+| Scope             | Allows                                                          |
+| ----------------- | --------------------------------------------------------------- |
 | `read:financials` | Advisory only — any key already has full-org read via PostgREST |
-| `write:bills`     | `POST /ingest` with `type=bill`         |
-| `write:bank`      | `POST /ingest` with `type=bank_transaction` |
-| `write:invoices`  | `POST /ingest` with `type=invoice`      |
-| `write:receipts`  | `POST /receipt-webhook` for POS receipt ingestion |
-| `admin:keys`      | Implies all scopes                      |
+| `write:bills`     | `POST /ingest` with `type=bill`                                 |
+| `write:bank`      | `POST /ingest` with `type=bank_transaction`                     |
+| `write:invoices`  | `POST /ingest` with `type=invoice`                              |
+| `write:receipts`  | `POST /receipt-webhook` for POS receipt ingestion               |
+| `admin:keys`      | Implies all scopes                                              |
 
 **Revoke** a key (soft, audit-preserving):
 
@@ -99,7 +99,7 @@ The JWT carries `role=authenticated` and an `organization_id` claim. The
 `get_accessible_org_ids()` RLS helper honours that claim, so every existing
 org-scoped policy automatically restricts your reads to your organization — no
 extra filtering required, and no way to read another tenant's data. Note this
-restricts reads to *your org*, not to a subset of it: the token can read the
+restricts reads to _your org_, not to a subset of it: the token can read the
 whole org regardless of the key's read scopes (see the note at the top).
 
 ### Step 2 — query PostgREST
@@ -164,8 +164,13 @@ Intake rules are applied automatically. The response includes the routing
 outcome:
 
 ```json
-{ "ok": true, "id": "<uuid>", "type": "bill", "deduped": false,
-  "routing": { "outcome": "auto_attached", "match_score": 1.0 } }
+{
+  "ok": true,
+  "id": "<uuid>",
+  "type": "bill",
+  "deduped": false,
+  "routing": { "outcome": "auto_attached", "match_score": 1.0 }
+}
 ```
 
 Dedup: a byte-identical re-push (same org + same payload), or a collision on
@@ -210,8 +215,16 @@ fed to the intake-rules engine automatically.
 ### Document (`write:documents`)
 
 Push a raw file for extraction (e.g. a scanned bill uploaded via a third-party
-document management system). The document is queued as a `bill_extract` job;
-the automation worker OCRs it and creates a bill automatically.
+document management system). The file must already exist in the private `bills`
+storage bucket under this organization prefix:
+
+```text
+org-<organization_id>/...
+```
+
+The ingest endpoint creates or reuses the canonical `bills` row, queues a
+`bill_extract` job, and returns both the `bill_id` and `job_id`. The automation
+worker OCRs the bill and moves it through the same routing path as manual uploads.
 
 **`Idempotency-Key` header is required** (or `payload.idempotency_key`). On
 replay with the same key the same `job_id` is returned with `deduped: true`.
@@ -225,7 +238,7 @@ curl -s -X POST \
   -d '{
     "type": "document",
     "payload": {
-      "storage_key": "org-uploads/2026-06/INV-99213.pdf",
+      "storage_key": "org-<organization_id>/supplier-portal/2026-06/INV-99213.pdf",
       "original_filename": "INV-99213.pdf",
       "mime_type": "application/pdf"
     }
@@ -233,7 +246,7 @@ curl -s -X POST \
 ```
 
 ```json
-{ "ok": true, "job_id": "<uuid>", "type": "document", "deduped": false }
+{ "ok": true, "bill_id": "<uuid>", "job_id": "<uuid>", "type": "document", "deduped": false }
 ```
 
 Poll `automation_jobs` for the job status (or subscribe to a notification):
@@ -245,12 +258,15 @@ where id = '<job_id>';
 
 ### Payment (`write:payments`)
 
-Record that a bill or invoice has been paid. The payment is queued as a
-`payment_record` job; the automation worker will process it via the existing
-payment RPCs once a handler is wired.
+Record that a customer invoice has been paid. The payment is queued as a
+`payment_record` job; the automation worker records an idempotent
+`invoice_payments` row and the invoice triggers recompute the invoice balance.
 
-**`Idempotency-Key` header is required**. `bill_id` or `invoice_id` must be
-supplied (not both).
+Supplier bill payments are deliberately **not** accepted through generic payment
+ingest. AP bills must be settled through bank reconciliation or payment runs so
+Looplet keeps bank evidence, amount guards, and audit trails intact.
+
+**`Idempotency-Key` header is required**. `invoice_id` is required.
 
 ```bash
 curl -s -X POST \
@@ -261,7 +277,7 @@ curl -s -X POST \
   -d '{
     "type": "payment",
     "payload": {
-      "bill_id": "<uuid>",
+      "invoice_id": "<uuid>",
       "amount_cents": 14300,
       "payment_date": "2026-06-01",
       "payment_method": "bank_transfer",
@@ -391,13 +407,13 @@ Looplet. A dependency-free reference bridge is in
 
 ## 6. Errors
 
-| Status | `error`              | Meaning                                  |
-|--------|----------------------|------------------------------------------|
-| 400    | `invalid_json`       | Body was not valid JSON                  |
-| 400    | `unsupported_type`   | `type` not in bill/bank_transaction/invoice, or missing payload |
-| 400    | receipt validation message | Receipt payload/identity/idempotency/totals failed validation |
-| 401    | `invalid_api_key`    | Missing, malformed, expired, or revoked key |
-| 403    | `insufficient_scope` | Key lacks the scope for that ingest type |
-| 429    | `rate_limited`       | Per-key window exceeded                  |
+| Status | `error`                    | Meaning                                                         |
+| ------ | -------------------------- | --------------------------------------------------------------- |
+| 400    | `invalid_json`             | Body was not valid JSON                                         |
+| 400    | `unsupported_type`         | `type` not in bill/bank_transaction/invoice, or missing payload |
+| 400    | receipt validation message | Receipt payload/identity/idempotency/totals failed validation   |
+| 401    | `invalid_api_key`          | Missing, malformed, expired, or revoked key                     |
+| 403    | `insufficient_scope`       | Key lacks the scope for that ingest type                        |
+| 429    | `rate_limited`             | Per-key window exceeded                                         |
 
 Authentication failures never reveal which check failed.

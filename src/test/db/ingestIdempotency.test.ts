@@ -130,7 +130,7 @@ describe('ingest — payment type', () => {
     expect(res.status).toBe(400);
   });
 
-  itLive('rejects if no bill_id or invoice_id', async () => {
+  itLive('rejects if no invoice_id', async () => {
     const res = await fetch(INGEST_URL, {
       method: 'POST',
       headers: headers('sc09-payment-no-ref'),
