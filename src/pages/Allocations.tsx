@@ -188,6 +188,7 @@ export function AllocationsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [previewBillId, setPreviewBillId] = useState<string | null>(null);
 
   const previewBill = previewBillId
@@ -293,10 +294,12 @@ export function AllocationsPage() {
 
   const confirmAttach = async (bill: AllocationQueueRow, jobId: string) => {
     setBusyId(bill.bill_id);
+    setActionError(null);
     const {
       data: { session },
     } = await supabase.auth.getSession();
     if (!session) {
+      setActionError('Not signed in');
       setBusyId(null);
       return;
     }
@@ -312,7 +315,7 @@ export function AllocationsPage() {
       });
       if (!res.ok) {
         const body = await res.text();
-        alert(`Attach failed: ${body}`);
+        setActionError(`Attach failed: ${body}`);
         return;
       }
       await refresh();
@@ -405,6 +408,20 @@ export function AllocationsPage() {
             {queue.length} bill{queue.length === 1 ? '' : 's'} waiting to be allocated to jobs.
           </p>
         </div>
+
+        {actionError && (
+          <div
+            className="badge badge-danger"
+            style={{
+              display: 'block',
+              padding: '0.75rem',
+              marginBottom: '1rem',
+              textTransform: 'none',
+            }}
+          >
+            {actionError}
+          </div>
+        )}
 
         {billsWithSuggestion.length > 0 && (
           <div

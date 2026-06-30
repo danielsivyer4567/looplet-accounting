@@ -275,6 +275,7 @@ export function TeamPage() {
   async function handleRoleChange(memberId: string, newRole: OrgRole) {
     if (!currentOrg) return;
     setUpdating(memberId);
+    setError(null);
 
     const legacyRole =
       newRole === 'accountant'
@@ -291,7 +292,7 @@ export function TeamPage() {
 
     setUpdating(null);
     if (updateErr) {
-      alert(`Role change failed: ${updateErr.message}`);
+      setError(`Role change failed: ${updateErr.message}`);
       return;
     }
     await load();
@@ -303,6 +304,7 @@ export function TeamPage() {
     if (!confirmed) return;
 
     setRemoving(memberId);
+    setError(null);
     const { error: delErr } = await supabase
       .from('organization_memberships')
       .delete()
@@ -311,7 +313,7 @@ export function TeamPage() {
 
     setRemoving(null);
     if (delErr) {
-      alert(`Remove failed: ${delErr.message}`);
+      setError(`Remove failed: ${delErr.message}`);
       return;
     }
     if (targetUserId === user?.id) {
