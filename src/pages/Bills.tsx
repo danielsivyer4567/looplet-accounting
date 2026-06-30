@@ -9,6 +9,8 @@ import { supabase } from '@/lib/supabase';
 import { DocumentPreviewModal } from '@/components/DocumentPreviewModal';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
+import { ConfidenceBadge } from '@/components/ConfidenceBadge';
+import type { AutomationConfidence } from '@/lib/automationDecision';
 import {
   Plus,
   Eye,
@@ -316,6 +318,7 @@ export function BillsPage() {
                 <th>Job</th>
                 <th style={{ textAlign: 'right' }}>Total</th>
                 <th>Status</th>
+                <th>Conf.</th>
                 <th>Xero</th>
                 <th style={{ width: '80px' }}>Doc</th>
               </tr>
@@ -367,6 +370,15 @@ export function BillsPage() {
                   </td>
                   <td>
                     <StatusBadge status={b.status} />
+                  </td>
+                  <td>
+                    {b.automation_confidence ? (
+                      <ConfidenceBadge
+                        confidence={b.automation_confidence as AutomationConfidence}
+                      />
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
+                    )}
                   </td>
                   <td onClick={(e) => e.stopPropagation()}>
                     <XeroStatusPill

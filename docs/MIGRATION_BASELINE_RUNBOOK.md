@@ -2,10 +2,10 @@
 
 **Status:** active finish-line runbook.
 **Project:** `dxoikltymmknxqpkpyhi`.
-**Current local ceiling:** `0230_advisor_work_proofs.sql`.
+**Current local ceiling:** `0236_automation_feedback.sql`.
 
 This runbook supersedes older warnings that named `0080` or `0207` as the local
-ceiling. The source tree now carries numbered migrations through `0230`.
+ceiling. The source tree now carries numbered migrations through `0236`.
 
 ## Baseline Status
 
@@ -21,15 +21,21 @@ does not authenticate for `supabase migration list --linked` or
 `supabase db push --linked --dry-run`, but the Management API SQL path proves the
 live ledger has numeric rows through `0229`.
 
-The local finish-line deploy batch after that repaired baseline is live through
-`0229`; `0230_advisor_work_proofs.sql` is the next local migration for the
-advisor finish-work proof workflow and must be applied through the same reviewed
-baseline workflow before that feature is considered live.
+The live finish-line deploy batch after that repaired baseline is live through
+`0229`. The local pending batch now runs from `0230` through `0236`; it must be
+applied through the same reviewed baseline workflow before those features are
+considered live.
 
 - `0197_track_vault_backed_cron_schedules.sql`
 - `0198_fix_taa_legal_source_url.sql`
 - `0199_accountant_portal.sql` through `0229_credit_notes_product.sql`
 - `0230_advisor_work_proofs.sql` _(local pending unless explicitly applied)_
+- `0231_workstream_tasks.sql` _(local pending unless explicitly applied)_
+- `0232_automation_decisions.sql` _(local pending unless explicitly applied)_
+- `0233_anomaly_signals.sql` _(local pending unless explicitly applied)_
+- `0234_ap_exception_review.sql` _(local pending unless explicitly applied)_
+- `0235_close_tasks.sql` _(local pending unless explicitly applied)_
+- `0236_automation_feedback.sql` _(local pending unless explicitly applied)_
 
 Representative post-apply proof collected on 2026-06-30:
 

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import type { AutomationConfidence } from '@/lib/automationDecision';
 
 export interface BillListRow {
   id: string;
@@ -22,6 +23,9 @@ export interface BillListRow {
   mime_type?: string | null;
   original_filename?: string | null;
   attached_job?: { id: string; job_number: string } | null;
+  // AP exception review (SC-05): automation confidence from get_bill_decisions
+  automation_confidence?: string | null;
+  decision_id?: string | null;
 }
 
 export function useBills(
@@ -71,6 +75,34 @@ export function useBills(
         if (reset) setBills([]);
       } else {
         const fetched = (data ?? []) as unknown as BillListRow[];
+        const billIds = fetched.map((b: BillListRow) => b.id).filter(Boolean);
+
+        if (billIds.length > 0) {
+          const { data: decisions } = await supabase.rpc('get_bill_decisions', {
+            p_bill_ids: billIds,
+          });
+          if (decisions) {
+            const decisionMap = new Map<
+              string,
+              { confidence: AutomationConfidence; decision_id: string }
+            >();
+            for (const d of decisions as {
+              bill_id: string;
+              confidence: AutomationConfidence;
+              decision_id: string;
+            }[]) {
+              decisionMap.set(d.bill_id, { confidence: d.confidence, decision_id: d.decision_id });
+            }
+            for (const bill of fetched) {
+              const d = decisionMap.get(bill.id);
+              if (d) {
+                bill.automation_confidence = d.confidence;
+                bill.decision_id = d.decision_id;
+              }
+            }
+          }
+        }
+
         if (reset) {
           setBills(fetched);
         } else {

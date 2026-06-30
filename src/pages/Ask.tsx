@@ -111,7 +111,7 @@ export function AskPage() {
   const [history, setHistory] = useState<ChatTurn[]>([]);
   const [showSql, setShowSql] = useState<Set<number>>(new Set());
   const [showCtx, setShowCtx] = useState<Set<number>>(new Set());
-  const [showMap, setShowMap] = useState<Set<number>>(new Set());
+
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const sortedAdviceNotes = useMemo(() => sortAdviceNotes(notes), [notes]);
@@ -281,21 +281,11 @@ export function AskPage() {
     });
   };
 
-  const toggleMap = (idx: number) => {
-    setShowMap((prev) => {
-      const next = new Set(prev);
-      if (next.has(idx)) next.delete(idx);
-      else next.add(idx);
-      return next;
-    });
-  };
-
   // Wipe the conversation and return to the suggested-questions view.
   const clearChat = () => {
     setHistory([]);
     setShowSql(new Set());
     setShowCtx(new Set());
-    setShowMap(new Set());
     setQuestion('');
     setTimeout(() => inputRef.current?.focus(), 50);
   };
@@ -423,7 +413,6 @@ export function AskPage() {
             const r = turn.response;
             const sqlOpen = showSql.has(idx);
             const ctxOpen = showCtx.has(idx);
-            const mapOpen = showMap.has(idx);
             const mindMapBranches = buildMindMap(turn);
             const hasVisual =
               r.ok && r.visual != null && !r.visual.none && (r.visual.nodes?.length ?? 0) >= 2;
@@ -525,29 +514,25 @@ export function AskPage() {
                         </div>
                       )}
 
-                      {/* Reasoning map — the "show my work" transparency view, collapsed by default. */}
-                      <div style={{ marginTop: '0.85rem' }}>
-                        <button
-                          onClick={() => toggleMap(idx)}
-                          className="btn btn-secondary"
+                      {/* How this was worked out — always-visible transparency section */}
+                      <div style={{ marginTop: '1.25rem' }}>
+                        <div
                           style={{
-                            padding: '0.25rem 0.5rem',
-                            fontSize: '0.75rem',
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            color: 'var(--text-muted)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.06em',
+                            marginBottom: '0.5rem',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '0.25rem',
+                            gap: '0.35rem',
                           }}
-                          title="How this answer was assembled: question → books → rules → decision"
                         >
                           <GitBranch size={12} />
-                          {mapOpen ? 'Hide reasoning map' : 'Show reasoning map'}
-                        </button>
-                        {mapOpen && (
-                          <TopDownMindMap
-                            root="Transparent answer path"
-                            branches={mindMapBranches}
-                          />
-                        )}
+                          How this was worked out
+                        </div>
+                        <TopDownMindMap root="Transparent answer path" branches={mindMapBranches} />
                       </div>
 
                       {/* SQL Database Output Table */}

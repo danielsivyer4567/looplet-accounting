@@ -45,6 +45,9 @@ import {
   Building2,
   Tag,
   FileMinus2,
+  ChevronDown,
+  ChevronRight,
+  Wrench,
 } from 'lucide-react';
 import { TagDropProvider, useTagDrop } from '@/hooks/useTagDrop';
 import { TagDropManager } from '@/components/tag-drop/TagDropManager';
@@ -90,6 +93,18 @@ const navItems: NavItem[] = [
 ];
 
 function SidebarContent({ items, onNavClick }: { items: NavItem[]; onNavClick?: () => void }) {
+  const [showAdvanced, setShowAdvanced] = useState(() => {
+    const stored = localStorage.getItem('looplet_show_advanced');
+    return stored === 'true';
+  });
+  useEffect(() => {
+    localStorage.setItem('looplet_show_advanced', String(showAdvanced));
+  }, [showAdvanced]);
+
+  const visibleItems = showAdvanced
+    ? items
+    : items.filter((item) => item.area !== 'Advisor' && item.area !== 'Setup');
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', alignItems: 'center' }}>
       {/* Brand Header: Centered Round Square 'L' Logo */}
@@ -120,9 +135,9 @@ function SidebarContent({ items, onNavClick }: { items: NavItem[]; onNavClick?: 
           padding: '0.25rem',
         }}
       >
-        {items.map((item, index) => {
+        {visibleItems.map((item, index) => {
           const Icon = item.icon;
-          const previous = items[index - 1];
+          const previous = visibleItems[index - 1];
           const showArea = !previous || previous.area !== item.area;
           return (
             <div key={item.to} style={{ width: '100%' }}>
@@ -201,6 +216,32 @@ function SidebarContent({ items, onNavClick }: { items: NavItem[]; onNavClick?: 
             </div>
           );
         })}
+
+        <button
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '3px',
+            padding: '0.5rem 0.15rem',
+            marginTop: '0.5rem',
+            border: 'none',
+            background: 'transparent',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            fontSize: '7px',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            width: '100%',
+          }}
+          title={showAdvanced ? 'Hide advanced' : 'Show advanced'}
+        >
+          <Wrench size={10} />
+          <span>Advanced</span>
+          {showAdvanced ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+        </button>
       </nav>
 
       {/* Sidebar Footer */}

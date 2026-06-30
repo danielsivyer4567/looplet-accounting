@@ -251,7 +251,7 @@ describe('AskPage advisor surface', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
 
-    expect(await screen.findByText('GST answer from ask-bot.')).toBeInTheDocument();
+    expect(await screen.findAllByText('GST answer from ask-bot.')).toHaveLength(2);
     const askCall = mocks.fetch.mock.calls.find(
       ([url]) => url === 'https://supabase.test/functions/v1/ask-bot',
     ) as [string, RequestInit];

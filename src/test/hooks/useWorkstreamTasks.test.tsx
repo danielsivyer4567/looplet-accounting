@@ -120,6 +120,43 @@ describe('useWorkstreamTasks', () => {
     expect(result.current.tasks).toEqual([]);
   });
 
+  it('handles anomaly task kinds', async () => {
+    const anomalyTasks: WorkstreamTask[] = [
+      {
+        ...baseTask,
+        id: 'a1',
+        task_kind: 'duplicate_bill',
+        owner_label: '2 duplicate bills',
+        confidence: 'review_needed',
+      },
+      {
+        ...baseTask,
+        id: 'a2',
+        task_kind: 'low_confidence_bill',
+        owner_label: 'Bill needs review',
+        confidence: 'review_needed',
+      },
+      {
+        ...baseTask,
+        id: 'a3',
+        task_kind: 'bas_coverage_gap',
+        owner_label: 'BAS Q1 — GST gap',
+        confidence: 'review_needed',
+      },
+    ];
+    mocks.rpc.mockReturnValue(rpcOk(anomalyTasks));
+    const { result } = renderHook(() => useWorkstreamTasks());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.tasks).toHaveLength(3);
+    expect(result.current.tasks.map((t) => t.task_kind)).toEqual([
+      'duplicate_bill',
+      'low_confidence_bill',
+      'bas_coverage_gap',
+    ]);
+  });
+
   it('handles multiple task kinds', async () => {
     const tasks: WorkstreamTask[] = [
       { ...baseTask, id: '1', task_kind: 'tax_obligation' },

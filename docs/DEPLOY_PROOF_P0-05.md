@@ -109,7 +109,7 @@ dxoikltymmknxqpkpyhi` deployed `team-invite` v37.
 This slice ships the accountant-portal accept-invite RPC, the tag-drop schema +
 data-plane functions, and the finish-line Wave A/B hardening migrations, then
 redeploys the `team-invite` edge function. The broader finish-line migration
-ceiling is now `0230_advisor_work_proofs.sql`; use
+ceiling is now `0236_automation_feedback.sql`; use
 `docs/MIGRATION_BASELINE_RUNBOOK.md` for full-release baseline proof before any
 production migration apply.
 
@@ -128,7 +128,7 @@ production migration apply.
 | B    | `0207_money_audit_triggers.sql`       | audit trigger on every money table (closes `journal_entries` gap)                                                                                            |
 
 > **Scope note:** P0-05 live overlay proof covers the accountant/tag deployment
-> batch (`0199`-`0207`) only. Later migrations (`0208`-`0230`) are covered by the
+> batch (`0199`-`0207`) only. Later migrations (`0208`-`0236`) are covered by the
 > full finish-line migration baseline runbook and their own slice evidence.
 
 > **Dependency notes (why the order matters):**

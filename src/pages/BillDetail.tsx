@@ -7,6 +7,13 @@ import { AllocationSplitButton } from '@/components/AllocationSplitButton';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
 import { useOrg } from '@/hooks/useOrg';
+import { ConfidenceBadge } from '@/components/ConfidenceBadge';
+import type {
+  AutomationConfidence,
+  DecisionSourceKind,
+  DecisionKind,
+} from '@/lib/automationDecision';
+import { recordOverride } from '@/lib/automationDecision';
 import {
   ChevronLeft,
   Edit3,
@@ -18,6 +25,7 @@ import {
   FolderOpen,
   AlertTriangle,
   Star,
+  Check,
 } from 'lucide-react';
 
 interface BillDraft {
@@ -95,11 +103,46 @@ export function BillDetailPage() {
   const [draft, setDraft] = useState<BillDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [decisionState, setDecisionState] = useState<{
+    confidence: AutomationConfidence;
+    decisionId: string;
+    decisionKind: string;
+    sourceKind: string;
+    sourceId: string;
+    suggestedTreatment: unknown;
+  } | null>(null);
 
   useEffect(() => {
     if (bill) {
       void getBillFileUrl(bill.storage_key).then(setFileUrl);
     }
+  }, [bill]);
+
+  useEffect(() => {
+    if (!bill) return;
+    void supabase.rpc('get_bill_decisions', { p_bill_ids: [bill.id] }).then(({ data }) => {
+      if (data && data.length > 0) {
+        const d = (
+          data as {
+            confidence: AutomationConfidence;
+            decision_id: string;
+            decision_kind: string;
+            suggested_treatment: unknown;
+            bill_id: string;
+          }[]
+        )[0];
+        if (d) {
+          setDecisionState({
+            confidence: d.confidence,
+            decisionId: d.decision_id,
+            decisionKind: d.decision_kind,
+            sourceKind: 'bill_upload',
+            sourceId: d.bill_id,
+            suggestedTreatment: d.suggested_treatment,
+          });
+        }
+      }
+    });
   }, [bill]);
 
   if (loading) {
@@ -276,6 +319,40 @@ export function BillDetailPage() {
             >
               ✓ Saved
             </span>
+          )}
+
+          {decisionState && <ConfidenceBadge confidence={decisionState.confidence} />}
+
+          {decisionState?.confidence === 'quick_confirm' && (
+            <button
+              className="btn btn-primary"
+              style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem', lineHeight: 1 }}
+              onClick={async () => {
+                try {
+                  const orgId = bill.organization_id;
+                  await recordOverride({
+                    originalDecisionId: decisionState.decisionId,
+                    organizationId: orgId,
+                    sourceKind: decisionState.sourceKind as DecisionSourceKind,
+                    sourceId: decisionState.sourceId,
+                    decisionKind: decisionState.decisionKind as DecisionKind,
+                    suggestedTreatment: decisionState.suggestedTreatment,
+                    confidence: 'auto_post',
+                    overrideReason: 'quick_confirm',
+                  });
+                  setDecisionState({
+                    ...decisionState,
+                    confidence: 'auto_post',
+                  });
+                  setSavedFlash(true);
+                  setTimeout(() => setSavedFlash(false), 2000);
+                } catch {
+                  setActionError('Failed to confirm');
+                }
+              }}
+            >
+              <Check size={14} /> Quick Confirm
+            </button>
           )}
 
           <PersonalToggle bill={bill} onChange={() => void refresh()} />

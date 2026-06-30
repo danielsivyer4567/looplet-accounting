@@ -247,6 +247,97 @@ describe('Dashboard advice cards', () => {
     expect(screen.getByText('Quick')).toBeInTheDocument();
   });
 
+  it('links Today task cards to existing routes', () => {
+    mocks.workstreamTasks = [
+      {
+        id: 'wt-route-1',
+        organization_id: 'org-1',
+        task_kind: 'missing_document',
+        owner_label: 'Receipt missing for fuel payment',
+        why_now: 'A bank payment has no matching source document',
+        source_refs: { table: 'data_completeness_findings' },
+        suggested_action: 'Upload or match the receipt',
+        confidence: 'review_needed',
+        impact_cents: null,
+        due_at: null,
+        blocking_reason: null,
+        completion_event: { evidence_ready: true },
+        urgency: 7,
+        created_at: '2026-06-30T00:00:00Z',
+      },
+      {
+        id: 'wt-route-2',
+        organization_id: 'org-1',
+        task_kind: 'advisor_proof_reminder',
+        owner_label: 'Save advisor work proof',
+        why_now: 'An advisor session is ready for finish proof',
+        source_refs: { table: 'advisor_work_proofs' },
+        suggested_action: 'Review and save the proof',
+        confidence: 'quick_confirm',
+        impact_cents: null,
+        due_at: null,
+        blocking_reason: null,
+        completion_event: { proof_saved: true },
+        urgency: 8,
+        created_at: '2026-06-30T00:00:00Z',
+      },
+    ];
+
+    renderDashboard();
+
+    expect(screen.getByRole('link', { name: /receipt missing for fuel payment/i })).toHaveAttribute(
+      'href',
+      '/receipt-hub',
+    );
+    expect(screen.getByRole('link', { name: /save advisor work proof/i })).toHaveAttribute(
+      'href',
+      '/my-activity',
+    );
+  });
+
+  it('renders anomaly tasks in the Today feed', () => {
+    mocks.workstreamTasks = [
+      {
+        id: 'wt-anomaly-1',
+        organization_id: 'org-1',
+        task_kind: 'duplicate_bill',
+        owner_label: '2 duplicate bills from Acme Supplies',
+        why_now: '2 bills share the same supplier, date, and amount',
+        source_refs: { table: 'bills', dup_count: 2 },
+        suggested_action: 'Review and remove duplicate bills',
+        confidence: 'review_needed',
+        impact_cents: 500000,
+        due_at: null,
+        blocking_reason: 'May distort expense reporting',
+        completion_event: { action: 'void_or_dismiss' },
+        urgency: 9,
+        created_at: '2026-06-30T00:00:00Z',
+      },
+      {
+        id: 'wt-anomaly-2',
+        organization_id: 'org-1',
+        task_kind: 'bas_coverage_gap',
+        owner_label: 'BAS Q1 FY26 — GST gap',
+        why_now: '72.5% of bills have GST — needs to be 95%+',
+        source_refs: { table: 'bills', coverage_pct: 72.5 },
+        suggested_action: 'Review bills missing GST amounts for Q1',
+        confidence: 'review_needed',
+        impact_cents: null,
+        due_at: null,
+        blocking_reason: 'Blocks BAS lodgement',
+        completion_event: { gst_ready: true },
+        urgency: 11,
+        created_at: '2026-06-30T00:00:00Z',
+      },
+    ];
+
+    renderDashboard();
+
+    expect(screen.getByText('2 duplicate bills from Acme Supplies')).toBeInTheDocument();
+    expect(screen.getByText('BAS Q1 FY26 — GST gap')).toBeInTheDocument();
+    expect(screen.getByText('2 tasks')).toBeInTheDocument();
+  });
+
   it('hides Today feed when there are no tasks', () => {
     mocks.workstreamTasks = [];
     renderDashboard();

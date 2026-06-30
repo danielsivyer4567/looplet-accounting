@@ -243,7 +243,7 @@ the accounting engine, audit trail, and advisor controls stay underneath.
 
 **Primary files**
 
-- `supabase/migrations/0234_bookkeeper_role.sql`
+- `supabase/migrations/0237_bookkeeper_role.sql`
 - `supabase/functions/team-invite/index.ts`
 - `src/components/settings/InviteAccountant.tsx`
 - `src/contexts/OrgContext.tsx`
@@ -334,7 +334,7 @@ the accounting engine, audit trail, and advisor controls stay underneath.
 
 **Primary files**
 
-- `supabase/migrations/0235_automation_feedback.sql`
+- `supabase/migrations/0236_automation_feedback.sql`
 - `src/lib/automationDecision.ts`
 - `src/pages/CodingReview.tsx`
 - `src/pages/BillDetail.tsx`
