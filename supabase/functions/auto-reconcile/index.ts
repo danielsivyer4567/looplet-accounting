@@ -199,7 +199,8 @@ Deno.serve(async (req) => {
         .gte('score', AMBIGUITY_FLOOR),
     ]);
 
-    if (billRes.error) return json({ ok: false, error: `bill candidates: ${billRes.error.message}` }, 500);
+    if (billRes.error)
+      return json({ ok: false, error: `bill candidates: ${billRes.error.message}` }, 500);
     if (invoiceRes.error) {
       return json({ ok: false, error: `invoice candidates: ${invoiceRes.error.message}` }, 500);
     }
@@ -251,16 +252,6 @@ Deno.serve(async (req) => {
       errors: [] as { bank_transaction_id: string; error: string }[],
     };
 
-    // Collect evidence rows to batch-insert after the match loop.
-    const evidenceRows: {
-      bank_transaction_id: string;
-      organization_id: string;
-      reason_codes: string[];
-      score_components: Record<string, unknown>;
-      auto_applied: boolean;
-      skipped_reason: string | null;
-    }[] = [];
-
     for (const [txnId, candidates] of byTxn) {
       const strong = candidates.filter((c) => c.score >= STRONG_THRESHOLD);
 
@@ -276,13 +267,28 @@ Deno.serve(async (req) => {
           const topStrong = strong.reduce((a, b) => (a.score >= b.score ? a : b));
           const skippedReason =
             strong.length > 1 ? 'multiple_strong_candidates' : 'rival_candidate_present';
-          evidenceRows.push({
-            bank_transaction_id: txnId,
-            organization_id: orgId,
-            ...buildScoreEvidence(topStrong),
-            auto_applied: false,
-            skipped_reason: skippedReason,
+          const evidence = buildScoreEvidence(topStrong);
+          const { data, error } = await rpcClient.rpc('record_reconciliation_skip_evidence', {
+            p_bank_transaction_id: txnId,
+            p_org_id: orgId,
+            p_reason_codes: evidence.reason_codes,
+            p_score_components: evidence.score_components,
+            p_skipped_reason: skippedReason,
           });
+          if (error) {
+            stats.errors.push({
+              bank_transaction_id: txnId,
+              error: `skip evidence: ${error.message}`,
+            });
+          } else {
+            const r = data as { ok: boolean; error?: string } | null;
+            if (r && !r.ok) {
+              stats.errors.push({
+                bank_transaction_id: txnId,
+                error: `skip evidence: ${r.error ?? 'record_reconciliation_skip_evidence failed'}`,
+              });
+            }
+          }
         }
         continue;
       }
@@ -293,19 +299,23 @@ Deno.serve(async (req) => {
       // raw view scores can exceed 1.0 (AP max 1.2, AR max 1.5), so clamp to
       // [0, 1] before persisting.
       const confidence = clamp01(winner.score);
+      const evidence = buildScoreEvidence(winner);
       try {
         if (winner.kind === 'bill') {
           // The RPC enforces the amount tolerance, but assert here too so the
           // unattended path never even attempts a mismatched settlement.
-          const { data, error } = await rpcClient.rpc('reconcile_match_bill', {
+          const { data, error } = await rpcClient.rpc('reconcile_match_bill_with_evidence', {
             p_bank_transaction_id: txnId,
             p_bill_id: winner.billId,
             p_match_confidence: confidence,
             p_manually_matched: false,
+            p_reason_codes: evidence.reason_codes,
+            p_score_components: evidence.score_components,
           });
           if (error) throw error;
-          const r = data as { ok: boolean; error?: string } | null;
-          if (r && !r.ok) throw new Error(r.error ?? 'reconcile_match_bill failed');
+          const r = data as { ok: boolean; error?: string; evidence_recorded?: boolean } | null;
+          if (r && !r.ok) throw new Error(r.error ?? 'reconcile_match_bill_with_evidence failed');
+          if (!r?.evidence_recorded) throw new Error('bill evidence was not recorded');
           stats.matched_bills += 1;
         } else {
           if (winner.amountCents <= 0) throw new Error('non-positive inflow amount');
@@ -315,39 +325,31 @@ Deno.serve(async (req) => {
           // is recorded at face value (leaving a residual balance for a human).
           const settleCents = Math.min(winner.amountCents, winner.balanceDueCents);
           if (settleCents <= 0) throw new Error('non-positive settlement amount');
-          const { data, error } = await rpcClient.rpc('reconcile_match_invoice', {
+          const { data, error } = await rpcClient.rpc('reconcile_match_invoice_with_evidence', {
             p_bank_transaction_id: txnId,
             p_invoice_id: winner.invoiceId,
             p_amount_cents: settleCents,
             p_match_confidence: confidence,
             p_manually_matched: false,
+            p_reason_codes: evidence.reason_codes,
+            p_score_components: evidence.score_components,
           });
           if (error) throw error;
-          const r = data as { ok: boolean; error?: string } | null;
-          if (r && !r.ok) throw new Error(r.error ?? 'reconcile_match_invoice failed');
+          const r = data as { ok: boolean; error?: string; evidence_recorded?: boolean } | null;
+          if (r && !r.ok) {
+            throw new Error(r.error ?? 'reconcile_match_invoice_with_evidence failed');
+          }
+          if (!r?.evidence_recorded) throw new Error('invoice evidence was not recorded');
           stats.matched_invoices += 1;
         }
-        evidenceRows.push({
-          bank_transaction_id: txnId,
-          organization_id: orgId,
-          ...buildScoreEvidence(winner),
-          auto_applied: true,
-          skipped_reason: null,
-        });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         stats.errors.push({ bank_transaction_id: txnId, error: msg });
       }
     }
 
-    // Batch-insert evidence rows; failures are logged but don't affect match stats.
-    if (evidenceRows.length > 0) {
-      const { error: evErr } = await admin
-        .from('reconciliation_evidence')
-        .insert(evidenceRows);
-      if (evErr) {
-        stats.errors.push({ bank_transaction_id: '_evidence_batch', error: evErr.message });
-      }
+    if (stats.errors.length > 0) {
+      return json({ ok: false, stats }, 502);
     }
 
     return json({ ok: true, stats });
@@ -372,8 +374,7 @@ function buildScoreEvidence(c: Candidate): {
   const btDesc = c.btDescription.toLowerCase();
 
   if (c.kind === 'bill') {
-    const nameHit =
-      c.supplierName != null && btDesc.includes(c.supplierName.toLowerCase());
+    const nameHit = c.supplierName != null && btDesc.includes(c.supplierName.toLowerCase());
     if (nameHit) reason_codes.push('name_match');
     return {
       reason_codes,
@@ -386,10 +387,8 @@ function buildScoreEvidence(c: Candidate): {
       },
     };
   } else {
-    const nameHit =
-      c.customerName != null && btDesc.includes(c.customerName.toLowerCase());
-    const numberHit =
-      c.invoiceNumber != null && btDesc.includes(c.invoiceNumber.toLowerCase());
+    const nameHit = c.customerName != null && btDesc.includes(c.customerName.toLowerCase());
+    const numberHit = c.invoiceNumber != null && btDesc.includes(c.invoiceNumber.toLowerCase());
     if (nameHit) reason_codes.push('name_match');
     if (numberHit) reason_codes.push('number_match');
     return {

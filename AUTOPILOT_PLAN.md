@@ -49,7 +49,11 @@ Cross-tenant view leak closed, `system_defaults` locked, anon definer-fn execute
 ### EPIC C — Connect the money in _(parallel with B)_
 
 - [ ] **C1** Real Basiq (AU CDR) feed end-to-end (`bank-link → exchange → sync → webhook`).
-- [ ] **C2** Auto-reconciler edge fn over candidate views; auto-match unambiguous above threshold.
+- [x] **C2a** Auto-reconcile proof safety code-complete: auto-applied bank
+      matches use transactional RPC wrappers so the reconciliation evidence row
+      is committed with the match or the match rolls back once deployed.
+- [ ] **C2b** Live auto-reconciler proof over candidate views; auto-match
+      unambiguous above threshold and leave rival candidates untouched.
 - [ ] **C3** Auto-confirm high-confidence subscription candidates.
 - _Done when:_ live txns flow; bills reach `paid` with no manual clicks.
 

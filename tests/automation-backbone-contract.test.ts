@@ -9,9 +9,17 @@ const bankExchange = readFileSync(join(root, 'supabase/functions/bank-exchange/i
 const bankWebhook = readFileSync(join(root, 'supabase/functions/bank-webhook/index.ts'), 'utf8');
 const bankSync = readFileSync(join(root, 'supabase/functions/bank-sync/index.ts'), 'utf8');
 const billsExtract = readFileSync(join(root, 'supabase/functions/bills-extract/index.ts'), 'utf8');
+const autoReconcile = readFileSync(
+  join(root, 'supabase/functions/auto-reconcile/index.ts'),
+  'utf8',
+);
 const xeroPushBill = readFileSync(join(root, 'supabase/functions/xero-push-bill/index.ts'), 'utf8');
 const xeroPushInvoice = readFileSync(
   join(root, 'supabase/functions/xero-push-invoice/index.ts'),
+  'utf8',
+);
+const atomicReconcileEvidenceMigration = readFileSync(
+  join(root, 'supabase/migrations/20260701070000_reconcile_evidence_atomic.sql'),
   'utf8',
 );
 const xeroIdempotency = readFileSync(
@@ -166,6 +174,40 @@ describe('automation backbone source contracts', () => {
     expect(bankSync).toMatch(
       /return json\(\{ ok: false, results, post_sync_errors: postSyncErrors \}, 502\)/,
     );
+  });
+
+  it('auto-reconcile applies matches and proof evidence transactionally', () => {
+    expect(atomicReconcileEvidenceMigration).toMatch(
+      /create or replace function public\.reconcile_match_bill_with_evidence/i,
+    );
+    expect(atomicReconcileEvidenceMigration).toMatch(
+      /create or replace function public\.reconcile_match_invoice_with_evidence/i,
+    );
+    expect(atomicReconcileEvidenceMigration).toMatch(
+      /create or replace function public\.record_reconciliation_skip_evidence/i,
+    );
+    expect(atomicReconcileEvidenceMigration).toMatch(/public\.reconcile_match_bill\(/);
+    expect(atomicReconcileEvidenceMigration).toMatch(/public\.reconcile_match_invoice\(/);
+    expect(atomicReconcileEvidenceMigration).toMatch(
+      /insert into public\.reconciliation_evidence/i,
+    );
+    expect(atomicReconcileEvidenceMigration).toMatch(/evidence_recorded/);
+    expect(atomicReconcileEvidenceMigration).toMatch(
+      /revoke all on function public\.reconcile_match_bill_with_evidence[\s\S]*from public, anon/i,
+    );
+    expect(atomicReconcileEvidenceMigration).toMatch(
+      /grant execute on function public\.reconcile_match_bill_with_evidence[\s\S]*to authenticated/i,
+    );
+
+    expect(autoReconcile).toMatch(/reconcile_match_bill_with_evidence/);
+    expect(autoReconcile).toMatch(/reconcile_match_invoice_with_evidence/);
+    expect(autoReconcile).toMatch(/record_reconciliation_skip_evidence/);
+    expect(autoReconcile).toMatch(/evidence\.reason_codes/);
+    expect(autoReconcile).toMatch(/evidence\.score_components/);
+    expect(autoReconcile).toMatch(/if \(!r\?\.evidence_recorded\)/);
+    expect(autoReconcile).toMatch(/return json\(\{ ok: false, stats \}, 502\)/);
+    expect(autoReconcile).not.toMatch(/from\('reconciliation_evidence'\)[\s\S]*\.insert/);
+    expect(autoReconcile).not.toMatch(/_evidence_batch/);
   });
 
   it('gmail bill ingestion queues extraction jobs instead of direct fire-and-forget HTTP', () => {
