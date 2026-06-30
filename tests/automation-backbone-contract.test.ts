@@ -85,7 +85,13 @@ describe('automation backbone source contracts', () => {
   });
 
   it('cron and webhook edge functions keep platform JWT disabled', () => {
-    for (const fn of ['automation-worker', 'bank-webhook', 'bank-sync', 'auto-reconcile']) {
+    for (const fn of [
+      'automation-worker',
+      'automation-watchdog',
+      'bank-webhook',
+      'bank-sync',
+      'auto-reconcile',
+    ]) {
       expect(config).toMatch(
         new RegExp(`\\[functions\\.${fn}\\][\\s\\S]*?verify_jwt\\s*=\\s*false`, 'i'),
       );

@@ -42,6 +42,7 @@ internally) were left as-is: `enqueue_automation_job`, `get_confidence_policy`,
 | Function               | Live version | Verification                                                                                                                                                                                                                                   |
 | ---------------------- | -----------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `automation-worker`    |            5 | `supabase functions deploy automation-worker` succeeded after browser-job claim hardening; `functions list` updated to `2026-06-30 19:31:33 UTC`; unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}` |
+| `automation-watchdog`  |            3 | Redeployed after source config pinned `verify_jwt=false`; unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}`                                                                                         |
 | `ingest`               |           32 | `supabase functions deploy ingest` succeeded; `functions list` updated to `2026-06-30 19:15:48 UTC`; unauthenticated POST reaches function code and returns `{"error":"invalid_api_key"}`                                                      |
 | `bank-sync`            |           50 | Deployed after smoke showed platform-level `UNAUTHORIZED_NO_AUTH_HEADER`; repeat unauthenticated POST reaches function code and returns `{"ok":false,"error":"Unauthorized"}`                                                                  |
 | `bank-webhook`         |           48 | Deployed after making duplicate raw events continue through the action path and making `bank-sync` dispatch observable; missing/wrong token POST reaches function code and returns `{"ok":false,"error":"Invalid webhook verification token"}` |
@@ -75,10 +76,13 @@ between each:
 ⚠️ These are in the **live money/ingestion path** — `verify`/`check` discipline each,
 not a batch.
 
-### ⛔ Do NOT deploy — traps the analysis caught
+### ⛔ Do NOT deploy — trap the analysis caught
 
 - **`api-gateway` ("SC-09")** — HEAD source is **byte-identical to the live v30**; zero SC-09 commits. Deploying is a pointless no-op that risks a live fn for nothing. The real SC-09 artifact is `ingest`. **Drop from the queue.**
-- **`automation-watchdog` ("SC-03")** — contains **zero** SC-03 Automation Backbone integration (no `bank_events_raw`/`reconciliation_evidence`/etc.). It's a standalone anomaly scanner mislabeled SC-03. Deploy only if you want the scanner as its own feature — it advances the epic by nothing.
+
+`automation-watchdog` is no longer listed here: it is already live as a useful
+automation safety scanner, but not cron-activated. It advances stuck-job and
+missing-document recovery rather than the raw-bank-event SC-06 path.
 
 ### ✅ `ingest` (SC-09) — blockers fixed in source and core deploy complete
 

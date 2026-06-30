@@ -19,6 +19,9 @@ verify_jwt = false
 [functions.automation-worker]
 verify_jwt = false
 
+[functions.automation-watchdog]
+verify_jwt = false
+
 [functions.bank-webhook]
 verify_jwt = false
 
