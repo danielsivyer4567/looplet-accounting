@@ -3,12 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 
 export type AdviceNoteKind =
-  | 'structuring'
-  | 'year_end'
-  | 'cgt'
-  | 'fbt'
-  | 'profit_extraction'
-  | 'forecast';
+  'structuring' | 'year_end' | 'cgt' | 'fbt' | 'profit_extraction' | 'forecast';
 
 export type AdviceNoteStatus = 'draft' | 'issued' | 'acted' | 'dismissed';
 
