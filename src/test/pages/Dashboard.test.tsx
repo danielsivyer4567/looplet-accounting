@@ -238,6 +238,49 @@ describe('Dashboard advice cards', () => {
     expect(screen.getByText('Quick')).toBeInTheDocument();
   });
 
+  it('renders anomaly tasks in the Today feed', () => {
+    mocks.workstreamTasks = [
+      {
+        id: 'wt-anomaly-1',
+        organization_id: 'org-1',
+        task_kind: 'duplicate_bill',
+        owner_label: '2 duplicate bills from Acme Supplies',
+        why_now: '2 bills share the same supplier, date, and amount',
+        source_refs: { table: 'bills', dup_count: 2 },
+        suggested_action: 'Review and remove duplicate bills',
+        confidence: 'review_needed',
+        impact_cents: 500000,
+        due_at: null,
+        blocking_reason: 'May distort expense reporting',
+        completion_event: { action: 'void_or_dismiss' },
+        urgency: 9,
+        created_at: '2026-06-30T00:00:00Z',
+      },
+      {
+        id: 'wt-anomaly-2',
+        organization_id: 'org-1',
+        task_kind: 'bas_coverage_gap',
+        owner_label: 'BAS Q1 FY26 — GST gap',
+        why_now: '72.5% of bills have GST — needs to be 95%+',
+        source_refs: { table: 'bills', coverage_pct: 72.5 },
+        suggested_action: 'Review bills missing GST amounts for Q1',
+        confidence: 'review_needed',
+        impact_cents: null,
+        due_at: null,
+        blocking_reason: 'Blocks BAS lodgement',
+        completion_event: { gst_ready: true },
+        urgency: 11,
+        created_at: '2026-06-30T00:00:00Z',
+      },
+    ];
+
+    renderDashboard();
+
+    expect(screen.getByText('2 duplicate bills from Acme Supplies')).toBeInTheDocument();
+    expect(screen.getByText('BAS Q1 FY26 — GST gap')).toBeInTheDocument();
+    expect(screen.getByText('2 tasks')).toBeInTheDocument();
+  });
+
   it('hides Today feed when there are no tasks', () => {
     mocks.workstreamTasks = [];
     renderDashboard();

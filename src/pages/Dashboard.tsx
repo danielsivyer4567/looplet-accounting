@@ -1188,6 +1188,9 @@ const TASK_ICONS: Record<TaskKind, typeof Clock> = {
   missing_document: FileSearch,
   pending_approval: Clock,
   advisor_proof_reminder: AlertTriangle,
+  duplicate_bill: Copy,
+  low_confidence_bill: FileSearch,
+  bas_coverage_gap: AlertTriangle,
 };
 
 const CONFIDENCE_COLORS: Record<string, string> = {

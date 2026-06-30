@@ -18,7 +18,10 @@ export type TaskKind =
   | 'unmatched_bank_item'
   | 'missing_document'
   | 'pending_approval'
-  | 'advisor_proof_reminder';
+  | 'advisor_proof_reminder'
+  | 'duplicate_bill'
+  | 'low_confidence_bill'
+  | 'bas_coverage_gap';
 
 export interface WorkstreamTask {
   id: string;
