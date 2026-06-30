@@ -99,21 +99,130 @@ export function needsQuickConfirm(confidence: AutomationConfidence): boolean {
   return confidence === 'quick_confirm';
 }
 
+// -- Confidence policies -----------------------------------------------------
+
+/**
+ * A confidence policy row from the DB.
+ */
+export interface ConfidencePolicy {
+  id: string;
+  org_id: string;
+  supplier_id: string | null;
+  source_kind: string;
+  task_type: string;
+  policy: AutomationConfidence;
+  valid_from: string;
+  valid_until: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+/**
+ * Fetches the most specific active confidence policy for the given scope,
+ * returning null when no policy matches (caller should use its computed band).
+ */
+export async function getConfidencePolicy(args: {
+  organizationId: string;
+  sourceKind: DecisionSourceKind;
+  taskType: DecisionKind;
+  supplierId?: string;
+}): Promise<AutomationConfidence | null> {
+  const { data, error } = await supabase.rpc('get_confidence_policy', {
+    p_org_id: args.organizationId,
+    p_source_kind: args.sourceKind,
+    p_task_type: args.taskType,
+    p_supplier_id: args.supplierId ?? null,
+  });
+
+  if (error) throw new Error(`Failed to fetch confidence policy: ${error.message}`);
+  return (data as AutomationConfidence | null) ?? null;
+}
+
+/**
+ * Lists all confidence policies for an org (for the Settings UI).
+ */
+export async function listConfidencePolicies(organizationId: string): Promise<ConfidencePolicy[]> {
+  const { data, error } = await supabase
+    .from('confidence_policies')
+    .select('*')
+    .eq('org_id', organizationId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(`Failed to list confidence policies: ${error.message}`);
+  return (data ?? []) as ConfidencePolicy[];
+}
+
+/**
+ * Creates a new confidence policy override for the org.
+ */
+export async function createConfidencePolicy(args: {
+  organizationId: string;
+  sourceKind: DecisionSourceKind;
+  taskType: DecisionKind;
+  policy: AutomationConfidence;
+  supplierId?: string;
+  validUntil?: string;
+}): Promise<ConfidencePolicy> {
+  const { data, error } = await supabase.rpc('upsert_confidence_policy', {
+    p_org_id: args.organizationId,
+    p_source_kind: args.sourceKind,
+    p_task_type: args.taskType,
+    p_policy: args.policy,
+    p_supplier_id: args.supplierId ?? null,
+    p_valid_from: new Date().toISOString(),
+    p_valid_until: args.validUntil ?? null,
+  });
+
+  if (error) throw new Error(`Failed to create confidence policy: ${error.message}`);
+  return data as unknown as ConfidencePolicy;
+}
+
+/**
+ * Deletes a confidence policy by ID.
+ */
+export async function deleteConfidencePolicy(args: {
+  policyId: string;
+  organizationId: string;
+}): Promise<void> {
+  const { error } = await supabase.rpc('delete_confidence_policy', {
+    p_policy_id: args.policyId,
+    p_org_id: args.organizationId,
+  });
+
+  if (error) throw new Error(`Failed to delete confidence policy: ${error.message}`);
+}
+
 /**
  * Records a new automation decision via the backend.
+ * Checks for an active confidence policy override before persisting —
+ * the policy wins when present (caller's computed band is the fallback).
+ *
  * This calls supabase.rpc which must be SECURITY DEFINER to bypass
  * the INSERT-blocking RLS on automation_decisions.
- *
- * Falls back to direct insert for service_role contexts.
  */
 export async function recordDecision(input: AutomationDecisionInput): Promise<AutomationDecision> {
+  // Apply policy override when one exists for this scope
+  let effectiveConfidence = input.confidence;
+  try {
+    const policyBand = await getConfidencePolicy({
+      organizationId: input.organization_id,
+      sourceKind: input.source_kind,
+      taskType: input.decision_kind,
+    });
+    if (policyBand !== null) {
+      effectiveConfidence = policyBand;
+    }
+  } catch {
+    // Non-fatal: if policy lookup fails, proceed with caller-supplied confidence
+  }
+
   const { data, error } = await supabase.rpc('record_automation_decision', {
     p_org_id: input.organization_id,
     p_source_kind: input.source_kind,
     p_source_id: input.source_id,
     p_decision_kind: input.decision_kind,
     p_suggested_treatment: input.suggested_treatment,
-    p_confidence: input.confidence,
+    p_confidence: effectiveConfidence,
     p_reason_codes: input.reason_codes ?? [],
     p_evidence_refs: input.evidence_refs ?? null,
     p_policy_refs: input.policy_refs ?? null,
