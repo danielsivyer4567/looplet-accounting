@@ -261,8 +261,10 @@ async function scanBasCoverageGap(admin: SupabaseClient, orgId: string): Promise
     .eq('blocking', true)
     .limit(1);
 
-  if (!(health ?? []).length) return [];
-  const h = (health as { score: number; uncoded_count: number; coverage_pct: number }[])[0]!;
+  const healthArr = (health ?? []) as { score: number; uncoded_count: number; coverage_pct: number }[]
+  if (!healthArr.length) return [];
+  const h = healthArr[0];
+  if (!h) return [];
   return [{
     kind: 'blocked_external',
     org_id: orgId,

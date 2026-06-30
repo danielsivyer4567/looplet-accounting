@@ -179,6 +179,7 @@ export function ReconciliationPage() {
         sourceId: txnId,
         newValue: { matched_bill_id: billId },
         correctionReason: 'reconciliation_confirm',
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       }).catch(() => {});
 
       if (currentOrg) {
@@ -229,6 +230,7 @@ export function ReconciliationPage() {
         sourceId: txnId,
         newValue: { matched_invoice_id: invoiceId, amount_cents: amountCents },
         correctionReason: 'reconciliation_confirm',
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       }).catch(() => {});
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

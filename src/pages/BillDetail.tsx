@@ -186,7 +186,7 @@ export function BillDetailPage() {
     if (!draft) return;
     setSaving(true);
     setActionError(null);
-    const feedbackChanges: Array<{ sourceKind: FeedbackSourceKind; prev: unknown; next: unknown }> = [];
+    const feedbackChanges: { sourceKind: FeedbackSourceKind; prev: unknown; next: unknown }[] = [];
     if (draft.supplier_name_raw.trim() !== (bill.supplier_name_raw ?? '')) {
       feedbackChanges.push({ sourceKind: 'supplier', prev: bill.supplier_name_raw, next: draft.supplier_name_raw.trim() });
     }
@@ -230,6 +230,7 @@ export function BillDetailPage() {
               previousValue: c.prev,
               newValue: c.next,
               correctionReason: 'user_edit',
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             }).catch(() => {}),
           ),
         );

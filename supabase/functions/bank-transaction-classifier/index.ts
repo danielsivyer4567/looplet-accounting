@@ -188,6 +188,7 @@ async function stageRulesMatch(
     admin.from('bank_coding_rules').update({
       hit_count: rule.hit_count + 1,
       last_hit_at: new Date().toISOString(),
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
     }).eq('id', rule.id).then(() => {});
 
     return {
@@ -355,7 +356,7 @@ Respond with JSON only, no other text:
     let parsed: { category_code?: string; confidence?: number; reasoning?: string };
     try {
       parsed = JSON.parse(jsonSlice);
-    } catch (_e) {
+    } catch {
       return {
         category_code: 'uncategorized', confidence: 0.1,
         rationale: { stage: 'llm_json_parse_error', slice: jsonSlice.slice(0, 300) },
@@ -629,6 +630,7 @@ async function handleDecision(
         is_personal: finalCode === 'personal_expense',
         priority: 50,  // human overrides get highest priority
         source: 'human_override',
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       }).then(() => {});
     }
   }

@@ -27,8 +27,14 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return new Response(
+        JSON.stringify({ error: 'Server misconfiguration: missing env vars' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
 
     const client = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -63,7 +69,7 @@ Deno.serve(async (req: Request) => {
 
     // Verify org membership — fail fast before any heavy RPCs
     const { data: memberData, error: memberError } = await client
-      .from('organization_members')
+      .from('organization_memberships')
       .select('organization_id')
       .eq('organization_id', org_id)
       .maybeSingle()
@@ -138,7 +144,7 @@ async function fetchStats(
     throw new Error(`Failed to query v_allocation_queue: ${error.message}`)
   }
 
-  const rows = (data ?? []) as Array<{ score: number | null }>
+  const rows = (data ?? []) as { score: number | null }[]
 
   const counts: ScoreBandCounts = { high: 0, medium: 0, no_suggestion: 0 }
   for (const row of rows) {
