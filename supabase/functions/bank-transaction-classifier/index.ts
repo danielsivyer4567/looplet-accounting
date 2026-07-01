@@ -555,6 +555,13 @@ async function classifyOne(
     }).eq('id', txn.id);
     if (error) throw new Error(`auto-code bank transaction: ${error.message}`);
 
+    const { error: cleanupError } = await admin
+      .from('bank_tx_coding_suggestions')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('bank_transaction_id', txn.id)
+      .is('deleted_at', null);
+    if (cleanupError) throw new Error(`cleanup auto-coded suggestion: ${cleanupError.message}`);
+
     return { status: 'auto_coded', category_code: result.category_code, confidence: result.confidence };
   }
 
