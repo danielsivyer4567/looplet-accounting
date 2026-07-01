@@ -102,7 +102,8 @@ begin
           url := 'https://dxoikltymmknxqpkpyhi.supabase.co/functions/v1/bank-transaction-classifier'
             || '?secret=' || (select decrypted_secret from vault.decrypted_secrets where name = 'bank_txn_classifier_cron_secret' limit 1),
           headers := jsonb_build_object('Content-Type', 'application/json'),
-          body := jsonb_build_object('organization_id', o.id)
+          body := jsonb_build_object('organization_id', o.id),
+          timeout_milliseconds := 60000
         )
         from public.organizations o
         where o.deleted_at is null;

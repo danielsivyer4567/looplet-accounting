@@ -494,7 +494,8 @@ async function upsertSuggestion(
     .maybeSingle();
 
   if (existing) {
-    await admin.from('bank_tx_coding_suggestions').update(row).eq('id', existing.id);
+    const { error } = await admin.from('bank_tx_coding_suggestions').update(row).eq('id', existing.id);
+    if (error) throw new Error(`update suggestion: ${error.message}`);
     return existing.id as string;
   }
   const { data, error } = await admin
@@ -547,12 +548,12 @@ async function classifyOne(
 
   if (result.confidence >= AUTO_CODE_THRESHOLD && result.category_code !== 'uncategorized') {
     // Auto-code: write directly onto the bank_transactions row, no human needed
-    await admin.from('bank_transactions').update({
+    const { error } = await admin.from('bank_transactions').update({
       auto_category_code: result.category_code,
-      applied_intake_rule_id: result.rule_id,
       coding_status: 'auto_coded',
       ...(jobId ? { suggested_job_id: jobId, suggested_job_score: jobScore } : {}),
     }).eq('id', txn.id);
+    if (error) throw new Error(`auto-code bank transaction: ${error.message}`);
 
     return { status: 'auto_coded', category_code: result.category_code, confidence: result.confidence };
   }
@@ -561,10 +562,11 @@ async function classifyOne(
   await upsertSuggestion(admin, txn, result, jobId);
 
   const newStatus = result.confidence >= SUGGEST_THRESHOLD ? 'suggested' : 'needs_review';
-  await admin.from('bank_transactions').update({
+  const { error: txnUpdateError } = await admin.from('bank_transactions').update({
     coding_status: newStatus,
     ...(jobId ? { suggested_job_id: jobId, suggested_job_score: jobScore } : {}),
   }).eq('id', txn.id);
+  if (txnUpdateError) throw new Error(`update bank transaction coding status: ${txnUpdateError.message}`);
 
   return { status: newStatus, category_code: result.category_code, confidence: result.confidence };
 }
