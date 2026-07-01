@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 
@@ -379,5 +381,279 @@ describe('automation-watchdog scanners', () => {
     const wId = `test-isolation-${crypto.randomUUID().slice(0, 8)}`;
     await client.rpc('claim_automation_jobs', { p_worker_id: wId, p_limit: 1 });
     await client.rpc('complete_automation_job', { p_job_id: jobAId, p_worker_id: wId });
+  });
+});
+
+/**
+ * Self-healing scanners added for Lane B+J (nodes J2-J4):
+ *   claimed_lock_expired — a worker claimed a job and never completed/failed it
+ *   pending_starvation   — a known, claimable job_kind is stuck in 'pending' past its run_after
+ *   unreachable_job_kind — a job_kind outside both the worker's claimable set and its
+ *                          explicitly-excluded set will never be claimed at all
+ */
+describe('automation-watchdog self-healing scanners (J2-J4)', () => {
+  it('worker claimable kinds and watchdog known-kind list stay in sync (drift guard)', () => {
+    const root = process.cwd();
+    const worker = readFileSync(
+      join(root, 'supabase/functions/automation-worker/index.ts'),
+      'utf8',
+    );
+    const watchdog = readFileSync(
+      join(root, 'supabase/functions/automation-watchdog/index.ts'),
+      'utf8',
+    );
+
+    const workerMatch = worker.match(/const DEFAULT_JOB_KINDS = \[([\s\S]*?)\] as const;/);
+    const watchdogMatch = watchdog.match(
+      /const KNOWN_CLAIMABLE_JOB_KINDS = \[([\s\S]*?)\] as const;/,
+    );
+    expect(workerMatch).toBeTruthy();
+    expect(watchdogMatch).toBeTruthy();
+
+    const extractKinds = (block: string) =>
+      [...block.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort();
+
+    const workerKinds = extractKinds(workerMatch?.[1] ?? '');
+    const watchdogKinds = extractKinds(watchdogMatch?.[1] ?? '');
+    expect(watchdogKinds).toEqual(workerKinds);
+
+    // browser_collect must be the one kind BOTH lists agree is excluded from the default claim.
+    expect(worker).toMatch(/const DEFAULT_JOB_KINDS = \[/);
+    expect(worker).not.toMatch(/const DEFAULT_JOB_KINDS = \[[\s\S]*?'browser_collect'[\s\S]*?\] as const;/);
+    expect(watchdog).toMatch(/const KNOWN_EXCLUDED_JOB_KINDS = \['browser_collect'\] as const;/);
+  });
+
+  itLive('claimed_lock_expired: a stale claimed lock is detectable and reapable', async () => {
+    const client = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+    const { data: orgs } = await client.from('organizations').select('id').limit(1);
+    const orgId = firstId(orgs as { id: string }[] | null);
+    if (!orgId) return;
+
+    const { data: enqueued } = await client.rpc('enqueue_automation_job', {
+      p_org_id: orgId,
+      p_job_kind: 'bank_sync',
+      p_source_kind: 'bank_connection',
+      p_source_id: crypto.randomUUID(),
+      p_run_after: new Date(Date.now() - 1000).toISOString(),
+      p_max_attempts: 3,
+      p_payload: { watchdog_test: 'j2-lock-expiry' },
+    });
+    const jobId = (enqueued as Record<string, unknown>).id as string;
+
+    const workerId = `test-crashed-worker-${crypto.randomUUID().slice(0, 8)}`;
+    await client.rpc('claim_automation_jobs', { p_worker_id: workerId, p_limit: 1 });
+
+    // Simulate a crashed worker: back-date locked_at past the 300s reap threshold.
+    // Direct update mirrors the watchdog's own service-role write pattern.
+    const staleLockedAt = new Date(Date.now() - 400 * 1000).toISOString();
+    await client
+      .from('automation_jobs')
+      .update({ locked_at: staleLockedAt })
+      .eq('id', jobId)
+      .eq('locked_by', workerId);
+
+    // Scanner query: status='claimed' AND locked_at older than the reap threshold
+    const cutoff = new Date(Date.now() - 300 * 1000).toISOString();
+    const { data: stale, error: scanErr } = await client
+      .from('automation_jobs')
+      .select('id, attempts, max_attempts')
+      .eq('organization_id', orgId)
+      .eq('status', 'claimed')
+      .lt('locked_at', cutoff);
+    expect(scanErr).toBeNull();
+    const found = (stale ?? []) as { id: string; attempts: number; max_attempts: number }[];
+    expect(found.some((j) => j.id === jobId)).toBe(true);
+
+    // handleReap: reset to pending since attempts (1) < max_attempts (3)
+    const { error: reapErr } = await client
+      .from('automation_jobs')
+      .update({ status: 'pending', locked_at: null, locked_by: null })
+      .eq('id', jobId)
+      .eq('status', 'claimed');
+    expect(reapErr).toBeNull();
+
+    const { data: after } = await client
+      .from('automation_jobs')
+      .select('status, locked_at, locked_by')
+      .eq('id', jobId)
+      .single();
+    const a = after as Record<string, unknown>;
+    expect(a['status']).toBe('pending');
+    expect(a['locked_at']).toBeNull();
+    expect(a['locked_by']).toBeNull();
+
+    // Cleanup: claim + complete
+    const cleanupWorker = `test-cleanup-${crypto.randomUUID().slice(0, 8)}`;
+    await client.rpc('claim_automation_jobs', { p_worker_id: cleanupWorker, p_limit: 1 });
+    await client.rpc('complete_automation_job', { p_job_id: jobId, p_worker_id: cleanupWorker });
+  });
+
+  itLive(
+    'claimed_lock_expired: an exhausted stale lock is dead-letterable (not just reset to pending)',
+    async () => {
+      const client = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+      const { data: orgs } = await client.from('organizations').select('id').limit(1);
+      const orgId = firstId(orgs as { id: string }[] | null);
+      if (!orgId) return;
+
+      const { data: enqueued } = await client.rpc('enqueue_automation_job', {
+        p_org_id: orgId,
+        p_job_kind: 'bank_sync',
+        p_source_kind: 'bank_connection',
+        p_source_id: crypto.randomUUID(),
+        p_run_after: new Date(Date.now() - 1000).toISOString(),
+        p_max_attempts: 1,
+        p_payload: { watchdog_test: 'j2-lock-expiry-exhausted' },
+      });
+      const jobId = (enqueued as Record<string, unknown>).id as string;
+
+      const workerId = `test-crashed-worker-${crypto.randomUUID().slice(0, 8)}`;
+      await client.rpc('claim_automation_jobs', { p_worker_id: workerId, p_limit: 1 });
+
+      const staleLockedAt = new Date(Date.now() - 400 * 1000).toISOString();
+      await client
+        .from('automation_jobs')
+        .update({ locked_at: staleLockedAt })
+        .eq('id', jobId)
+        .eq('locked_by', workerId);
+
+      const { data: row } = await client
+        .from('automation_jobs')
+        .select('attempts, max_attempts')
+        .eq('id', jobId)
+        .single();
+      const r = row as Record<string, unknown>;
+      expect((r['attempts'] as number) >= (r['max_attempts'] as number)).toBe(true);
+
+      // handleDeadLetter now matches status IN ('failed','claimed') — verify the 'claimed' path works
+      const { error: updateErr } = await client
+        .from('automation_jobs')
+        .update({ status: 'dead_lettered', locked_at: null, locked_by: null })
+        .eq('id', jobId)
+        .in('status', ['failed', 'claimed']);
+      expect(updateErr).toBeNull();
+
+      await client.from('automation_dead_letters').upsert(
+        {
+          organization_id: orgId,
+          original_job_id: jobId,
+          job_kind: 'bank_sync',
+          source_kind: 'bank_connection',
+          source_id: null,
+          last_error: 'watchdog: expired lock — worker crashed or timed out',
+          payload: null,
+          attempts: r['attempts'] as number,
+        },
+        { onConflict: 'original_job_id', ignoreDuplicates: true },
+      );
+
+      const { data: finalRow } = await client
+        .from('automation_jobs')
+        .select('status')
+        .eq('id', jobId)
+        .single();
+      expect((finalRow as Record<string, unknown>)?.['status']).toBe('dead_lettered');
+    },
+  );
+
+  itLive('pending_starvation: a known job_kind stuck pending past threshold is detectable', async () => {
+    const client = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+    const { data: orgs } = await client.from('organizations').select('id').limit(1);
+    const orgId = firstId(orgs as { id: string }[] | null);
+    if (!orgId) return;
+
+    const { data: enqueued } = await client.rpc('enqueue_automation_job', {
+      p_org_id: orgId,
+      p_job_kind: 'bank_sync',
+      p_source_kind: 'bank_connection',
+      p_source_id: crypto.randomUUID(),
+      p_run_after: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+      p_max_attempts: 3,
+      p_payload: { watchdog_test: 'j3-pending-starvation' },
+    });
+    const jobId = (enqueued as Record<string, unknown>).id as string;
+
+    const cutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const { data: stuck, error: scanErr } = await client
+      .from('automation_jobs')
+      .select('id, job_kind')
+      .eq('organization_id', orgId)
+      .eq('status', 'pending')
+      .in('job_kind', [
+        'bill_extract',
+        'bank_sync',
+        'receipt_sync',
+        'xero_push',
+        'bank_reconcile',
+        'gmail_backfill',
+        'coding_classify',
+        'payment_record',
+      ])
+      .lt('run_after', cutoff);
+    expect(scanErr).toBeNull();
+    const found = (stuck ?? []) as { id: string; job_kind: string }[];
+    expect(found.some((j) => j.id === jobId)).toBe(true);
+
+    // Cleanup: claim (scoped to this job's kind to avoid grabbing an unrelated pending job) + complete
+    const wId = `test-cleanup-${crypto.randomUUID().slice(0, 8)}`;
+    await client.rpc('claim_automation_jobs', {
+      p_worker_id: wId,
+      p_job_kinds: ['bank_sync'],
+      p_limit: 10,
+    });
+    await client.rpc('complete_automation_job', { p_job_id: jobId, p_worker_id: wId });
+  });
+
+  itLive('unreachable_job_kind: a job_kind with no worker handler is detectable', async () => {
+    const client = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+    const { data: orgs } = await client.from('organizations').select('id').limit(1);
+    const orgId = firstId(orgs as { id: string }[] | null);
+    if (!orgId) return;
+
+    const bogusKind = '__watchdog_test_unreachable_kind__';
+    const { data: enqueued } = await client.rpc('enqueue_automation_job', {
+      p_org_id: orgId,
+      p_job_kind: bogusKind,
+      p_source_kind: 'test',
+      p_source_id: crypto.randomUUID(),
+      p_run_after: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+      p_max_attempts: 3,
+      p_payload: { watchdog_test: 'j4-unreachable-kind' },
+    });
+    const jobId = (enqueued as Record<string, unknown>).id as string;
+
+    const knownKinds = [
+      'bill_extract',
+      'bank_sync',
+      'receipt_sync',
+      'xero_push',
+      'bank_reconcile',
+      'gmail_backfill',
+      'coding_classify',
+      'payment_record',
+      'browser_collect',
+    ];
+    const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const { data: pending, error: scanErr } = await client
+      .from('automation_jobs')
+      .select('id, job_kind')
+      .eq('organization_id', orgId)
+      .eq('status', 'pending')
+      .lt('run_after', cutoff);
+    expect(scanErr).toBeNull();
+    const unreachable = (pending ?? []).filter(
+      (j) => !knownKinds.includes((j as { job_kind: string }).job_kind),
+    );
+    expect(unreachable.some((j) => (j as { id: string }).id === jobId)).toBe(true);
+
+    // Cleanup: claim_automation_jobs has no job_kind allowlist at the DB layer (only the
+    // deployed worker restricts itself to DEFAULT_JOB_KINDS), so the bogus kind is still claimable here.
+    const wId = `test-cleanup-${crypto.randomUUID().slice(0, 8)}`;
+    await client.rpc('claim_automation_jobs', {
+      p_worker_id: wId,
+      p_job_kinds: [bogusKind],
+      p_limit: 1,
+    });
+    await client.rpc('complete_automation_job', { p_job_id: jobId, p_worker_id: wId });
   });
 });
