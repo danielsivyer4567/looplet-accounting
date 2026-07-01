@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Looplet Accounting — Automation Spine (live wiring + lane tracker)</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#12171e; --ink:#e6edf3; --muted:#9aa7b4; --line:#30363d;
+    --green:#3fb950; --yellow:#d6a233; --red:#f85149; --grey:#8b949e; --alive:#3fb950;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  header{padding:18px 24px 12px;text-align:center;border-bottom:1px solid var(--line);
+    background:radial-gradient(1200px 200px at 50% -40px,#1b2432,transparent);}
+  h1{margin:0 0 4px;font-size:22px;letter-spacing:-.4px;}
+  .sub{color:var(--muted);font-size:12.5px;margin-bottom:12px;}
+  .legend{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;}
+  .chip{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;
+    border:1px solid var(--line);background:var(--panel);font-size:12px;}
+  .sw{width:11px;height:11px;border-radius:3px;}
+  .sw.green{background:var(--green);} .sw.yellow{background:var(--yellow);}
+  .sw.red{background:var(--red);} .sw.grey{background:transparent;border:2px dashed var(--grey);}
+  .sw.pulse{width:26px;height:0;border-top:3px dashed var(--alive);
+    filter:drop-shadow(0 0 3px var(--alive));animation:legendflow .7s linear infinite;}
+  .sw.dead{width:26px;height:0;border-top:3px solid #3a3f47;opacity:.5;}
+  @keyframes legendflow{to{border-spacing:0;}}
+  .count{color:var(--muted);font-variant-numeric:tabular-nums;}
+
+  /* ---- two-column shell: left = lane tracker, right = graph ---- */
+  #shell{display:flex;align-items:stretch;min-height:calc(100vh - 120px);}
+  #tracker{width:440px;min-width:440px;border-right:1px solid var(--line);
+    background:var(--panel2);overflow:auto;max-height:calc(100vh - 120px);position:sticky;top:0;}
+  #trackerHead{padding:14px 16px 10px;border-bottom:1px solid var(--line);position:sticky;top:0;
+    background:var(--panel2);z-index:5;}
+  #trackerHead h2{margin:0 0 8px;font-size:15px;}
+  #overall{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted);}
+  .bar{flex:1;height:8px;border-radius:999px;background:#222933;overflow:hidden;}
+  .bar > i{display:block;height:100%;width:0;background:linear-gradient(90deg,#2f8f43,#3fb950);
+    transition:width .25s ease;}
+  #laneList{padding:8px 10px 40px;}
+  .lane{border:1px solid var(--line);border-radius:11px;margin:10px 0;overflow:hidden;
+    background:var(--panel);}
+  .lane > .lhead{display:flex;align-items:center;gap:9px;padding:10px 12px;cursor:pointer;
+    border-left:5px solid var(--laneColor,#555);}
+  .lhead .num{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;
+    font-weight:700;font-size:12px;color:#0d1117;background:var(--laneColor,#555);flex:none;}
+  .lhead .lt{flex:1;min-width:0;}
+  .lhead .lt b{font-size:13px;display:block;}
+  .lhead .lt small{color:var(--muted);font-size:11px;font-family:ui-monospace,monospace;}
+  .lhead .prog{font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted);white-space:nowrap;}
+  .lane .lbar{height:5px;background:#222933;}
+  .lane .lbar > i{display:block;height:100%;width:0;background:var(--laneColor,#3fb950);transition:width .25s ease;}
+  .lane .body{padding:6px 8px 10px;}
+  .copybar{display:flex;gap:8px;padding:6px 8px 8px;}
+  .copybtn{flex:1;border:1px solid var(--line);background:#1c2431;color:var(--ink);
+    border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;display:flex;align-items:center;
+    justify-content:center;gap:7px;transition:background .15s;}
+  .copybtn:hover{background:#243044;}
+  .copybtn.ok{background:#123a20;border-color:#2f8f43;color:#9fe6b0;}
+  .item{display:flex;align-items:flex-start;gap:9px;padding:5px 7px;border-radius:7px;}
+  .item:hover{background:#1b222c;}
+  .item input{margin-top:2px;width:16px;height:16px;accent-color:#3fb950;cursor:pointer;flex:none;}
+  .item label{cursor:pointer;font-size:12.5px;line-height:1.35;flex:1;}
+  .item .ref{font-weight:700;font-family:ui-monospace,monospace;font-size:11.5px;}
+  .item .dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin:0 5px 0 2px;vertical-align:middle;}
+  .item .dot.green{background:var(--green);} .item .dot.yellow{background:var(--yellow);}
+  .item .dot.red{background:var(--red);} .item .dot.grey{background:transparent;border:1.5px dashed var(--grey);}
+  .item.done label{text-decoration:line-through;color:var(--muted);}
+
+  #wrap{flex:1;overflow:auto;padding:10px 8px 60px;max-height:calc(100vh - 120px);}
+  #graph{min-width:100%;display:flex;justify-content:center;}
+  #err{display:none;max-width:820px;margin:24px auto;padding:14px 16px;border:1px solid var(--red);
+    background:#2b1416;border-radius:10px;color:#ffd7d5;white-space:pre-wrap;font:12px/1.5 ui-monospace,monospace;}
+  footer{text-align:center;color:var(--muted);font-size:12px;padding:8px 20px 30px;}
+  .tiny{font-size:11px;color:var(--muted);padding:2px 12px 10px;}
+  .resetbtn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:7px;
+    padding:4px 9px;font-size:11px;cursor:pointer;}
+  .resetbtn:hover{color:var(--ink);border-color:var(--red);}
+
+  /* ---- STRINGS ---- */
+  #graph .edgeAlive path, #graph path.edgeAlive{
+    stroke:var(--alive)!important;stroke-width:2.6px!important;stroke-dasharray:9 7!important;
+    filter:drop-shadow(0 0 3px var(--alive));animation:flow .7s linear infinite;opacity:1!important;}
+  #graph .edgeDull path, #graph path.edgeDull{
+    stroke:#3a3f47!important;stroke-width:1.5px!important;stroke-dasharray:none!important;opacity:.42!important;}
+  #graph .edgeAlive marker path, #graph marker path{stroke:none;}
+  @keyframes flow{to{stroke-dashoffset:-16;}}
+
+  /* ---- node lane badge + done state (applied post-render) ---- */
+  #graph .laneBadge{display:inline-block;min-width:15px;height:15px;line-height:15px;padding:0 3px;
+    border-radius:4px;font-size:10px;font-weight:700;color:#0d1117;margin-right:6px;text-align:center;
+    vertical-align:middle;}
+  #graph .node.nodeDone{opacity:.5;}
+  #graph .node.nodeDone rect, #graph .node.nodeDone polygon, #graph .node.nodeDone path{
+    stroke:#3fb950!important;stroke-width:3.4px!important;}
+  #graph .node.nodeDone .nodeLabel{text-decoration:line-through;}
+  #graph .node .doneTick{font-weight:700;color:#3fb950;margin-right:4px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Looplet Accounting — Automation Spine <span style="color:var(--muted);font-weight:400">· lane tracker</span></h1>
+  <div class="sub">Top-down flow · prod <code>dxoikltymmknxqpkpyhi</code> · 2026-07-01 · tick nodes on the left → progress saves to this browser &amp; the graph updates live</div>
+  <div class="legend" id="legend"></div>
+</header>
+
+<div id="shell">
+  <aside id="tracker">
+    <div id="trackerHead">
+      <h2>8 Chats · tick off as you go</h2>
+      <div id="overall">
+        <span id="overallTxt">0 / 0</span>
+        <span class="bar"><i id="overallBar"></i></span>
+        <button class="resetbtn" id="resetBtn" title="Clear all ticks">reset</button>
+      </div>
+      <div class="tiny">Each chat = 1 isolated git worktree. Copy its prompt into a fresh chat. Rules baked into every prompt: worktree-only · timestamped migrations · no autonomous deploy.</div>
+    </div>
+    <div id="laneList"></div>
+  </aside>
+
+  <div id="wrap"><div id="graph"></div></div>
+</div>
+
+<div id="err"></div>
+<footer>Nodes: 🟢 autonomous · 🟡 needs a trigger · 🔴 not running · ⬜ human gate / legal wall &nbsp;·&nbsp; Strings: ⚡ connected · — disconnected &nbsp;·&nbsp; ①–⑧ badge = which chat owns the node</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.16.0/dist/mermaid.min.js"></script>
+<script>
+const MODEL = {
+ "sections":[
+  {"id":"A","title":"Intake & Ingestion"},{"id":"B","title":"Extraction (OCR)"},
+  {"id":"C","title":"AP Coding & Auto-Post"},{"id":"D","title":"Bank Pipeline"},
+  {"id":"E","title":"General Ledger"},{"id":"F","title":"Books Close"},
+  {"id":"G","title":"Compliance Prep & Orchestration"},{"id":"H","title":"Approval & Guardrails"},
+  {"id":"I","title":"Lodgement & Money"},{"id":"J","title":"Self-Healing (Watchdog)"}
+ ],
+ "nodes":[
+  {"ref":"A1","label":"Gmail Pub/Sub push","status":"green","section":"A"},
+  {"ref":"A2","label":"Gmail backfill","status":"yellow","section":"A"},
+  {"ref":"A3","label":"Receipt webhook (POS / Tag)","status":"green","section":"A"},
+  {"ref":"A4","label":"Connector ingest (api-gateway → ingest)","status":"yellow","section":"A"},
+  {"ref":"A5","label":"Gmail watch renew","status":"green","section":"A"},
+  {"ref":"A6","label":"Gmail mine + AI triage","status":"yellow","section":"A"},
+  {"ref":"B1","label":"automation-worker (queue drainer)","status":"red","section":"B"},
+  {"ref":"B2","label":"bills-extract (OCR + fallback)","status":"yellow","section":"B"},
+  {"ref":"B3","label":"Extraction versions (evidence)","status":"green","section":"B"},
+  {"ref":"C1","label":"coding-classifier (GL/GST + ≥0.9 auto-post)","status":"red","section":"C"},
+  {"ref":"C2","label":"intake-routing-apply","status":"green","section":"C"},
+  {"ref":"C3","label":"AP review queue (<0.9)","status":"grey","section":"C"},
+  {"ref":"C4","label":"Capital-purchase detect + propose","status":"yellow","section":"C"},
+  {"ref":"D1","label":"bank-webhook (Basiq)","status":"green","section":"D"},
+  {"ref":"D2","label":"bank-sync-all cron","status":"green","section":"D"},
+  {"ref":"D3","label":"bank-sync post-sync chain","status":"green","section":"D"},
+  {"ref":"D4","label":"bank-transaction-classifier (≥0.88)","status":"red","section":"D"},
+  {"ref":"D5","label":"auto-reconcile (bank ↔ bill/invoice)","status":"red","section":"D"},
+  {"ref":"D6","label":"Subscriptions detect + autoconfirm","status":"green","section":"D"},
+  {"ref":"E1","label":"GL posting (immutable journals)","status":"green","section":"E"},
+  {"ref":"E2","label":"GST/BAS control posting","status":"yellow","section":"E"},
+  {"ref":"F1","label":"data-completeness-scan","status":"green","section":"F"},
+  {"ref":"F2","label":"books-health","status":"green","section":"F"},
+  {"ref":"F3","label":"depreciation-run (monthly)","status":"red","section":"F"},
+  {"ref":"F4","label":"accruals-run (monthly)","status":"red","section":"F"},
+  {"ref":"F5","label":"Period-close preflight","status":"yellow","section":"F"},
+  {"ref":"F6","label":"close_period (lock)","status":"grey","section":"F"},
+  {"ref":"G1","label":"accountant-orchestrator (scheduler)","status":"red","section":"G"},
+  {"ref":"G2","label":"Tax calendar (obligations)","status":"green","section":"G"},
+  {"ref":"G3","label":"Engine-dispatch layer (decide → invoke draft)","status":"red","section":"G"},
+  {"ref":"G4","label":"BAS worksheet engine","status":"yellow","section":"G"},
+  {"ref":"G5","label":"Super batch assemble","status":"yellow","section":"G"},
+  {"ref":"G6","label":"FBT / TPAR / EOFY / workcover / trust / SMSF / TBAR","status":"yellow","section":"G"},
+  {"ref":"G7","label":"Income-tax return draft","status":"red","section":"G"},
+  {"ref":"G8","label":"FBT-instalment / payroll-tax / ASIC-annual drafts","status":"red","section":"G"},
+  {"ref":"G9","label":"Div 7A / SGC / franking / CGT (unreached)","status":"red","section":"G"},
+  {"ref":"G10","label":"Legal-corpus sync + horizon (RAG)","status":"yellow","section":"G"},
+  {"ref":"G11","label":"Advisor proactive engine","status":"yellow","section":"G"},
+  {"ref":"H1","label":"Tier-2 approval (hash-bound)","status":"green","section":"H"},
+  {"ref":"H2","label":"Books-health blocking gate","status":"green","section":"H"},
+  {"ref":"I1","label":"ATO lodgement / SBR transmission","status":"grey","section":"I"},
+  {"ref":"I2","label":"True-and-correct declaration","status":"grey","section":"I"},
+  {"ref":"I3","label":"ABA payment run / release","status":"grey","section":"I"},
+  {"ref":"I4","label":"super-batch-send","status":"grey","section":"I"},
+  {"ref":"I5","label":"Payroll finalise / STP transmit","status":"grey","section":"I"},
+  {"ref":"I6","label":"SMSF independent audit","status":"grey","section":"I"},
+  {"ref":"I7","label":"Xero push (bill / invoice)","status":"yellow","section":"I"},
+  {"ref":"J1","label":"automation-watchdog (10 scanners)","status":"red","section":"J"},
+  {"ref":"J2","label":"claimed / lock-expiry reaper","status":"red","section":"J"},
+  {"ref":"J3","label":"pending-starvation scanner","status":"red","section":"J"},
+  {"ref":"J4","label":"Dead handlers (4 unreachable kinds)","status":"red","section":"J"}
+ ],
+ "edges":[
+  {"from":"A5","to":"A1","flow":"alive"},{"from":"A1","to":"B1","flow":"dull"},
+  {"from":"A2","to":"B1","flow":"dull"},{"from":"A4","to":"B1","flow":"dull"},
+  {"from":"A6","to":"B1","flow":"dull"},{"from":"A3","to":"B2","flow":"alive"},
+  {"from":"B1","to":"B2","flow":"dull"},{"from":"B2","to":"B3","flow":"alive"},
+  {"from":"B2","to":"C2","flow":"alive"},{"from":"B2","to":"C1","flow":"dull"},
+  {"from":"C2","to":"E1","flow":"dull"},{"from":"C1","to":"E1","flow":"dull"},
+  {"from":"C1","to":"C3","flow":"dull"},{"from":"C1","to":"C4","flow":"dull"},
+  {"from":"C4","to":"F3","flow":"dull"},{"from":"D1","to":"D3","flow":"alive"},
+  {"from":"D2","to":"D3","flow":"alive"},{"from":"D3","to":"D6","flow":"alive"},
+  {"from":"D6","to":"D3","flow":"alive"},{"from":"D3","to":"C2","flow":"alive"},
+  {"from":"D3","to":"D4","flow":"dull"},{"from":"D3","to":"D5","flow":"dull"},
+  {"from":"D4","to":"E1","flow":"dull"},{"from":"D5","to":"E1","flow":"dull"},
+  {"from":"E1","to":"E2","flow":"dull"},{"from":"B1","to":"I7","flow":"dull"},
+  {"from":"F1","to":"F2","flow":"alive"},{"from":"F2","to":"G1","flow":"dull"},
+  {"from":"F3","to":"E1","flow":"dull"},{"from":"F4","to":"E1","flow":"dull"},
+  {"from":"F5","to":"F6","flow":"dull"},{"from":"F2","to":"F5","flow":"dull"},
+  {"from":"G2","to":"G1","flow":"dull"},{"from":"G1","to":"G3","flow":"dull"},
+  {"from":"G3","to":"G4","flow":"dull"},{"from":"G3","to":"G5","flow":"dull"},
+  {"from":"G3","to":"G6","flow":"dull"},{"from":"G3","to":"G7","flow":"dull"},
+  {"from":"G3","to":"G8","flow":"dull"},{"from":"G3","to":"G9","flow":"dull"},
+  {"from":"E2","to":"G4","flow":"dull"},{"from":"G10","to":"G11","flow":"dull"},
+  {"from":"G11","to":"G1","flow":"dull"},{"from":"G4","to":"H1","flow":"dull"},
+  {"from":"G5","to":"H1","flow":"dull"},{"from":"G6","to":"H1","flow":"dull"},
+  {"from":"G7","to":"H1","flow":"dull"},{"from":"H2","to":"G1","flow":"alive"},
+  {"from":"H1","to":"I1","flow":"dull"},{"from":"H1","to":"I2","flow":"dull"},
+  {"from":"H1","to":"I3","flow":"dull"},{"from":"H1","to":"I4","flow":"dull"},
+  {"from":"H1","to":"I5","flow":"dull"},{"from":"H1","to":"I6","flow":"dull"},
+  {"from":"G4","to":"I1","flow":"dull"},{"from":"G5","to":"I4","flow":"dull"},
+  {"from":"C3","to":"E1","flow":"dull"},{"from":"I7","to":"E1","flow":"dull"},
+  {"from":"J1","to":"B1","flow":"dull"},{"from":"J1","to":"J2","flow":"dull"},
+  {"from":"J1","to":"J3","flow":"dull"},{"from":"J1","to":"J4","flow":"dull"},
+  {"from":"J3","to":"B1","flow":"dull"}
+ ]
+};
+
+// ---- 8 parallel chats (lanes), grouped by file-ownership so they never conflict ----
+const LANES = [
+ {n:1, id:"A",  color:"#4a9eff", title:"Intake & Ingestion",
+  branch:"lane/a-ingestion", worktree:"../looplet-lane-a",
+  refs:["A1","A2","A3","A4","A5","A6"]},
+ {n:2, id:"BJ", color:"#ff7b4a", title:"Extraction (OCR) + Watchdog",
+  branch:"lane/b-extraction", worktree:"../looplet-lane-b",
+  refs:["B1","B2","B3","J1","J2","J3","J4"]},
+ {n:3, id:"C",  color:"#b48ead", title:"AP Coding & Auto-Post",
+  branch:"lane/c-apcoding", worktree:"../looplet-lane-c",
+  refs:["C1","C2","C3","C4"]},
+ {n:4, id:"D",  color:"#3fb9a0", title:"Bank Pipeline",
+  branch:"lane/d-bank", worktree:"../looplet-lane-d",
+  refs:["D1","D2","D3","D4","D5","D6"]},
+ {n:5, id:"E",  color:"#d6a233", title:"General Ledger core",
+  branch:"lane/e-gl", worktree:"../looplet-lane-e",
+  refs:["E1","E2"]},
+ {n:6, id:"F",  color:"#8fbf5f", title:"Books Close",
+  branch:"lane/f-close", worktree:"../looplet-lane-f",
+  refs:["F1","F2","F3","F4","F5","F6"]},
+ {n:7, id:"G",  color:"#e06c9f", title:"Compliance Prep & Orchestration",
+  branch:"lane/g-compliance", worktree:"../looplet-lane-g",
+  refs:["G1","G2","G3","G4","G5","G6","G7","G8","G9","G10","G11"]},
+ {n:8, id:"HI", color:"#9aa7b4", title:"Approval, Guardrails & Lodgement wall",
+  branch:"lane/h-approval", worktree:"../looplet-lane-h",
+  refs:["H1","H2","I1","I2","I3","I4","I5","I6","I7"]}
+];
+
+// full paste-ready prompt per lane (copied by the button)
+const PROMPTS = {
+ 1:`You are working on ONE isolated lane of the Looplet automation map: Lane A (Intake & Ingestion), nodes A1-A6.
+
+SETUP (run first):
+  git worktree add -b lane/a-ingestion ../looplet-lane-a
+  cd ../looplet-lane-a && claude
+
+SCOPE - these nodes:
+  A1 Gmail Pub/Sub push (green)      A2 Gmail backfill (needs trigger)
+  A3 Receipt webhook POS/Tag (green) A4 Connector ingest api-gateway->ingest (needs trigger)
+  A5 Gmail watch renew (green)       A6 Gmail mine + AI triage (needs trigger)
+GOAL: wire up the yellow "needs a trigger" nodes (A2, A4, A6) so ingestion is fully autonomous; harden the green ones.
+
+YOU OWN (only edit these):
+  supabase/functions/gmail-pubsub-push/**
+  supabase/functions/_shared/gmail/**
+  supabase/functions/_shared/receipt-sync/**
+  api-gateway -> ingest path
+
+FROZEN (do not touch): _shared/ocr/**, automation-worker/**, src/lib/**, everything else.
+
+RULES: work only in this worktree; migrations use timestamp filenames (20260701HHMMSS_name.sql), never integers; do NOT deploy or db push - write code, commit, hand migrations/deploys to me.`,
+
+ 2:`You are working on ONE isolated lane of the Looplet automation map: Lane B (Extraction) + Lane J (Watchdog), nodes B1-B3 and J1-J4. Combined because the watchdog operates directly on the automation-worker queue - splitting them would cause file conflicts.
+
+SETUP (run first):
+  git worktree add -b lane/b-extraction ../looplet-lane-b
+  cd ../looplet-lane-b && claude
+
+SCOPE - these nodes:
+  B1 automation-worker / queue drainer (RED - not running)
+  B2 bills-extract OCR + fallback (needs trigger)   B3 Extraction versions/evidence (green)
+  J1 automation-watchdog 10 scanners (RED)  J2 lock-expiry reaper (RED)
+  J3 pending-starvation scanner (RED)       J4 Dead handlers, 4 unreachable kinds (RED)
+GOAL: get the queue drainer B1 actually running (cron/trigger), then activate the watchdog (J1-J4) that reaps stuck jobs and drains starvation on that same queue.
+
+YOU OWN (only edit these):
+  supabase/functions/automation-worker/**
+  supabase/functions/_shared/ocr/**
+  the automation-watchdog function + its scanners
+
+FROZEN: _shared/gmail/**, coding-classifier/**, bank-*/**, src/lib/**
+
+RULES: work only in this worktree; migrations use timestamp filenames (20260701HHMMSS_name.sql), never integers; do NOT deploy or db push - write code, commit, hand off to me.`,
+
+ 3:`You are working on ONE isolated lane of the Looplet automation map: Lane C (AP Coding & Auto-Post), nodes C1-C4.
+
+SETUP (run first):
+  git worktree add -b lane/c-apcoding ../looplet-lane-c
+  cd ../looplet-lane-c && claude
+
+SCOPE - these nodes:
+  C1 coding-classifier GL/GST + >=0.9 auto-post (RED - not running)
+  C2 intake-routing-apply (green)     C3 AP review queue <0.9 (human gate)
+  C4 Capital-purchase detect + propose (needs trigger)
+GOAL: activate the coding-classifier so bills with confidence >=0.9 auto-code (GL account + GST) and post; route <0.9 to the review queue; wire capital-purchase detection.
+
+YOU OWN (only edit these):
+  the coding-classifier function
+  intake-routing-apply
+  capital-purchase detect/propose logic
+
+FROZEN - you produce journal entries but do NOT edit GL posting internals (Lane E owns E1); treat GL posting as a stable interface. Also frozen: automation-worker/**, _shared/ocr/**, src/lib/**
+
+RULES: work only in this worktree; migrations use timestamp filenames (20260701HHMMSS_name.sql), never integers; do NOT deploy or db push - write code, commit, hand off to me.`,
+
+ 4:`You are working on ONE isolated lane of the Looplet automation map: Lane D (Bank Pipeline), nodes D1-D6.
+
+SETUP (run first):
+  git worktree add -b lane/d-bank ../looplet-lane-d
+  cd ../looplet-lane-d && claude
+
+SCOPE - these nodes:
+  D1 bank-webhook Basiq (green)   D2 bank-sync-all cron (green)   D3 post-sync chain (green)
+  D4 bank-transaction-classifier >=0.88 (RED)   D5 auto-reconcile bank<->bill/invoice (RED)
+  D6 Subscriptions detect + autoconfirm (green)
+GOAL: activate the two RED nodes - the transaction classifier (auto-categorise at >=0.88) and auto-reconcile (match bank lines to bills/invoices). The green sync chain already feeds them.
+
+YOU OWN (only edit these):
+  supabase/functions/bank-*/**  (webhook, sync, classifier, reconcile)
+  supabase/functions/_shared/basiq/**
+
+FROZEN - you post to GL via E1's interface but do NOT edit GL internals (Lane E owns it). Also frozen: coding-classifier/**, automation-worker/**, src/lib/**
+
+RULES: work only in this worktree; migrations use timestamp filenames (20260701HHMMSS_name.sql), never integers; do NOT deploy or db push - write code, commit, hand off to me.`,
+
+ 5:`You are working on ONE isolated lane of the Looplet automation map: Lane E (General Ledger), nodes E1-E2. This is the SHARED WRITE TARGET - every other lane posts through it, so it gets its own chat and you FREEZE its interface early so the other lanes can build against a stable contract.
+
+SETUP (run first):
+  git worktree add -b lane/e-gl ../looplet-lane-e
+  cd ../looplet-lane-e && claude
+
+SCOPE - these nodes:
+  E1 GL posting / immutable journals (green)   E2 GST/BAS control posting (needs trigger)
+GOAL: wire E2 (GST/BAS control account posting) onto E1's immutable-journal engine. FIRST TASK: document and lock the GL posting interface (signature / payload shape) so lanes C, D, F can build against it without editing your files.
+
+YOU OWN (only edit these):
+  the GL posting function (immutable journals)
+  GST/BAS control posting
+
+FROZEN: everything else, incl src/lib/**
+
+RULES: work only in this worktree; migrations use timestamp filenames (20260701HHMMSS_name.sql), never integers; do NOT deploy or db push - write code, commit, hand off to me. Immutable journals are append-only - never write a migration that mutates posted journal rows.`,
+
+ 6:`You are working on ONE isolated lane of the Looplet automation map: Lane F (Books Close), nodes F1-F6.
+
+SETUP (run first):
+  git worktree add -b lane/f-close ../looplet-lane-f
+  cd ../looplet-lane-f && claude
+
+SCOPE - these nodes:
+  F1 data-completeness-scan (green)  F2 books-health (green)
+  F3 depreciation-run monthly (RED)  F4 accruals-run monthly (RED)
+  F5 Period-close preflight (needs trigger)  F6 close_period lock (human gate)
+GOAL: activate the monthly depreciation and accruals runs (F3, F4) and wire the period-close preflight (F5). F6 (the actual close/lock) stays a human gate - build up to it, don't automate the lock.
+
+YOU OWN (only edit these):
+  data-completeness-scan, books-health
+  depreciation-run, accruals-run
+  period-close preflight / close_period functions
+
+FROZEN - depreciation/accruals POST to GL via E1's interface but do NOT edit GL internals (Lane E owns it). Also frozen: src/lib/**, everything upstream.
+
+RULES: work only in this worktree; migrations use timestamp filenames (20260701HHMMSS_name.sql), never integers; do NOT deploy or db push - write code, commit, hand off to me.`,
+
+ 7:`You are working on ONE isolated lane of the Looplet automation map: Lane G (Compliance Prep & Orchestration), nodes G1-G11. Biggest lane - one subsystem wired through the G3 engine-dispatch hub - so it stays a single chat to avoid the sub-engines colliding on shared _shared/models and _shared/legal code.
+
+SETUP (run first):
+  git worktree add -b lane/g-compliance ../looplet-lane-g
+  cd ../looplet-lane-g && claude
+
+SCOPE - these nodes:
+  G1 accountant-orchestrator scheduler (RED)  G2 Tax calendar (green)
+  G3 Engine-dispatch decide->invoke draft (RED)  G4 BAS worksheet (needs trigger)
+  G5 Super batch assemble (needs trigger)  G6 FBT/TPAR/EOFY/workcover/trust/SMSF/TBAR (needs trigger)
+  G7 Income-tax return draft (RED)  G8 FBT-instalment/payroll-tax/ASIC drafts (RED)
+  G9 Div7A/SGC/franking/CGT unreached (RED)  G10 Legal-corpus sync + horizon RAG (needs trigger)
+  G11 Advisor proactive engine (needs trigger)
+GOAL: activate the orchestrator (G1) + engine-dispatch (G3) so the tax calendar (G2) drives draft generation across G4-G9. All outputs are DRAFTS only - they stop at the approval gate (Lane H). Never auto-lodge.
+
+YOU OWN (only edit these):
+  accountant-orchestrator, engine-dispatch/decide layer
+  supabase/functions/_shared/models/**   (cgt, etc.)
+  supabase/functions/_shared/legal/**    (legal-RAG)
+  supabase/functions/_shared/advisoryCite.ts
+  the draft engines (BAS, super, FBT, income-tax, etc.)
+
+FROZEN: approval gate H1/H2 (Lane H owns it), lodgement I* (legal wall), src/lib/**
+
+RULES: work only in this worktree; migrations use timestamp filenames (20260701HHMMSS_name.sql), never integers; do NOT deploy or db push - write code, commit, hand off to me. The legal wall is permanent: generate drafts, never transmit.`,
+
+ 8:`You are working on ONE isolated lane of the Looplet automation map: Lane H (Approval & Guardrails) + Lane I (Lodgement & Money), nodes H1-H2 and I1-I7. Combined because they share the approval-hash + release machinery.
+
+SETUP (run first):
+  git worktree add -b lane/h-approval ../looplet-lane-h
+  cd ../looplet-lane-h && claude
+
+SCOPE - these nodes:
+  H1 Tier-2 approval hash-bound (green)  H2 Books-health blocking gate (green)
+  I1 ATO lodgement/SBR (legal wall)  I2 True-and-correct declaration (legal wall)
+  I3 ABA payment run/release (legal wall)  I4 super-batch-send (legal wall)
+  I5 Payroll finalise/STP transmit (legal wall)  I6 SMSF independent audit (legal wall)
+  I7 Xero push bill/invoice (needs trigger)
+GOAL: harden the approval gate (H1/H2 hash-binding, books-health blocking) and wire the ONE non-wall node - I7 Xero push. I1-I6 are the permanent legal wall (human declaration required): verify the guardrails hold them, do NOT automate transmission.
+
+YOU OWN (only edit these):
+  Tier-2 approval + books-health gate functions
+  supabase/functions/_shared/xero/**
+  supabase/functions/payroll-export-stp/**  (STP export prep only, not transmit)
+  ABA/super-send release guards (verify only)
+
+FROZEN: draft engines (Lane G owns them), src/lib/**
+
+RULES: work only in this worktree; migrations use timestamp filenames (20260701HHMMSS_name.sql), never integers; do NOT deploy, db push, lodge, or release money - write code, commit, hand off to me. The legal wall is non-negotiable.`
+};
+
+// ref -> lane lookup
+const LANE_OF = {};
+LANES.forEach(L=>L.refs.forEach(r=>LANE_OF[r]=L));
+const NODE = {};
+MODEL.nodes.forEach(n=>NODE[n.ref]=n);
+
+// ---- progress state (localStorage) ----
+const LS_KEY = "looplet-spine-progress-v1";
+let DONE = {};
+try{ DONE = JSON.parse(localStorage.getItem(LS_KEY)||"{}"); }catch(e){ DONE = {}; }
+function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(DONE)); }catch(e){} }
+
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+// ---------- graph ----------
+function buildDef(){
+  const L = ["flowchart TD"];
+  MODEL.sections.forEach(sec=>{
+    L.push('subgraph '+sec.id+'["'+sec.id+' · '+esc(sec.title)+'"]');
+    L.push('direction LR');
+    MODEL.nodes.filter(n=>n.section===sec.id).forEach(n=>{
+      L.push('  '+n.ref+'["<b>'+n.ref+'</b> '+esc(n.label)+'"]:::'+n.status);
+    });
+    L.push("end");
+  });
+  for (let i = 1; i < MODEL.sections.length; i++) {
+    L.push(MODEL.sections[i-1].id + " ~~~ " + MODEL.sections[i].id);
+  }
+  MODEL.edges.forEach((e)=>{ L.push(e.from+" --> "+e.to); });
+  L.push("classDef green  fill:#0f2417,stroke:#3fb950,color:#e6edf3,stroke-width:2px;");
+  L.push("classDef yellow fill:#2a2412,stroke:#d6a233,color:#e6edf3,stroke-width:2px;");
+  L.push("classDef red    fill:#2b1416,stroke:#f85149,color:#e6edf3,stroke-width:2px;");
+  L.push("classDef grey   fill:#1a1f26,stroke:#8b949e,color:#c9d4df,stroke-width:1.5px,stroke-dasharray:4 3;");
+  return L.join("\n");
+}
+
+function renderLegend(){
+  const c={green:0,yellow:0,red:0,grey:0};
+  MODEL.nodes.forEach(n=>c[n.status]++);
+  const a=MODEL.edges.filter(e=>e.flow==="alive").length, d=MODEL.edges.length-a;
+  const L=document.getElementById("legend");
+  const chip=(html)=>{const s=document.createElement("div");s.className="chip";s.innerHTML=html;L.appendChild(s);};
+  chip('<span class="sw green"></span>Autonomous <span class="count">'+c.green+'</span>');
+  chip('<span class="sw yellow"></span>Needs a trigger <span class="count">'+c.yellow+'</span>');
+  chip('<span class="sw red"></span>Not running <span class="count">'+c.red+'</span>');
+  chip('<span class="sw grey"></span>Legal wall <span class="count">'+c.grey+'</span>');
+  chip('<span class="sw pulse"></span>Connected <span class="count">'+a+'</span>');
+  chip('<span class="sw dead"></span>Disconnected <span class="count">'+d+'</span>');
+}
+
+// find the rendered <g class="node"> for a ref
+function nodeEl(ref){
+  const g=document.getElementById("graph");
+  // mermaid ids look like flowchart-<ref>-<idx>
+  let el=g.querySelector('[id^="flowchart-'+ref+'-"]');
+  if(!el){
+    el=Array.from(g.querySelectorAll('g.node')).find(n=>{
+      const m=(n.id||"").match(/^flowchart-([A-Za-z0-9]+)-\d+$/);
+      return m && m[1]===ref;
+    });
+  }
+  return el||null;
+}
+
+// decorate a graph node: lane badge + click-to-tick + done styling
+function decorateNodes(){
+  MODEL.nodes.forEach(n=>{
+    const el=nodeEl(n.ref); if(!el) return;
+    const lane=LANE_OF[n.ref];
+    const lbl=el.querySelector(".nodeLabel");
+    if(lbl && lane && !lbl.querySelector(".laneBadge")){
+      const b=document.createElement("span");
+      b.className="laneBadge";
+      b.style.background=lane.color;
+      b.textContent=lane.n;
+      b.title="Chat "+lane.n+" · "+lane.title;
+      lbl.insertBefore(b, lbl.firstChild);
+    }
+    el.style.cursor="pointer";
+    el.addEventListener("click",()=>toggle(n.ref));
+    applyGraphDone(n.ref);
+  });
+}
+function applyGraphDone(ref){
+  const el=nodeEl(ref); if(!el) return;
+  const lbl=el.querySelector(".nodeLabel");
+  const on=!!DONE[ref];
+  el.classList.toggle("nodeDone", on);
+  if(lbl){
+    let tick=lbl.querySelector(".doneTick");
+    if(on && !tick){
+      tick=document.createElement("span");
+      tick.className="doneTick"; tick.textContent="✓";
+      lbl.insertBefore(tick, lbl.firstChild);
+    }else if(!on && tick){ tick.remove(); }
+  }
+}
+
+// ---------- tracker panel ----------
+function buildTracker(){
+  const wrap=document.getElementById("laneList");
+  wrap.innerHTML="";
+  LANES.forEach(L=>{
+    const card=document.createElement("div");
+    card.className="lane";
+    card.style.setProperty("--laneColor", L.color);
+    const items=L.refs.map(ref=>{
+      const n=NODE[ref]||{label:ref,status:"grey"};
+      return `<div class="item" data-ref="${ref}">
+        <input type="checkbox" id="cb-${ref}" ${DONE[ref]?"checked":""}>
+        <label for="cb-${ref}"><span class="dot ${n.status}"></span><span class="ref">${ref}</span> ${esc(n.label)}</label>
+      </div>`;
+    }).join("");
+    card.innerHTML=`
+      <div class="lhead">
+        <span class="num">${L.n}</span>
+        <span class="lt"><b>Chat ${L.n} · ${esc(L.title)}</b><small>${L.branch}</small></span>
+        <span class="prog" id="prog-${L.n}">0/${L.refs.length}</span>
+      </div>
+      <div class="lbar"><i id="lbar-${L.n}"></i></div>
+      <div class="copybar">
+        <button class="copybtn" data-copy="${L.n}">📋 Copy chat ${L.n} prompt</button>
+      </div>
+      <div class="body">${items}</div>`;
+    wrap.appendChild(card);
+  });
+
+  // wire checkboxes
+  wrap.querySelectorAll('.item input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener("change",e=>{
+      const ref=e.target.closest(".item").dataset.ref;
+      DONE[ref]=e.target.checked; if(!e.target.checked) delete DONE[ref];
+      save(); applyGraphDone(ref); refreshItem(ref); updateProgress();
+    });
+  });
+  // wire copy buttons
+  wrap.querySelectorAll(".copybtn").forEach(btn=>{
+    btn.addEventListener("click",async ()=>{
+      const nn=+btn.dataset.copy;
+      try{ await navigator.clipboard.writeText(PROMPTS[nn]); }
+      catch(e){
+        const ta=document.createElement("textarea");ta.value=PROMPTS[nn];
+        document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();
+      }
+      const old=btn.textContent; btn.classList.add("ok"); btn.textContent="✓ Copied — paste into a new chat";
+      setTimeout(()=>{btn.classList.remove("ok");btn.textContent=old;},1600);
+    });
+  });
+}
+function refreshItem(ref){
+  const it=document.querySelector('.item[data-ref="'+ref+'"]');
+  if(it) it.classList.toggle("done", !!DONE[ref]);
+  const cb=document.getElementById("cb-"+ref);
+  if(cb) cb.checked=!!DONE[ref];
+}
+function updateProgress(){
+  let total=0, done=0;
+  LANES.forEach(L=>{
+    const d=L.refs.filter(r=>DONE[r]).length;
+    total+=L.refs.length; done+=d;
+    const p=document.getElementById("prog-"+L.n);
+    const bar=document.getElementById("lbar-"+L.n);
+    if(p) p.textContent=d+"/"+L.refs.length;
+    if(bar) bar.style.width=(L.refs.length?100*d/L.refs.length:0)+"%";
+    if(p) p.style.color = d===L.refs.length ? "#3fb950" : "";
+  });
+  document.getElementById("overallTxt").textContent=done+" / "+total;
+  document.getElementById("overallBar").style.width=(total?100*done/total:0)+"%";
+}
+
+// toggle from graph click
+function toggle(ref){
+  DONE[ref]=!DONE[ref]; if(!DONE[ref]) delete DONE[ref];
+  save(); applyGraphDone(ref); refreshItem(ref); updateProgress();
+}
+
+// ---------- boot ----------
+(async function(){
+  renderLegend();
+  buildTracker();
+  MODEL.nodes.forEach(n=>refreshItem(n.ref));
+  updateProgress();
+
+  document.getElementById("resetBtn").addEventListener("click",()=>{
+    if(!confirm("Clear all ticks?")) return;
+    DONE={}; save();
+    MODEL.nodes.forEach(n=>{ refreshItem(n.ref); applyGraphDone(n.ref); });
+    updateProgress();
+  });
+
+  try{
+    mermaid.initialize({startOnLoad:false, securityLevel:"loose", theme:"dark",
+      flowchart:{htmlLabels:true, nodeSpacing:30, rankSpacing:50, curve:"basis"}});
+    const def = buildDef();
+    const { svg } = await mermaid.render("spineGraph", def);
+    const g = document.getElementById("graph");
+    g.innerHTML = svg;
+    const ordered = Array.from(g.querySelectorAll(".edgePaths path.flowchart-link"));
+    let matched = 0;
+    MODEL.edges.forEach((e,i)=>{
+      let p = g.querySelector(".edgePaths path.flowchart-link.LS-"+e.from+".LE-"+e.to);
+      if(!p) p = ordered[i];
+      if(p){ p.classList.add(e.flow==="alive"?"edgeAlive":"edgeDull"); matched++; }
+    });
+    decorateNodes();
+    console.log("spine-graph strings tagged:", matched, "/", MODEL.edges.length);
+  }catch(e){
+    const el=document.getElementById("err");
+    el.style.display="block";
+    el.textContent="Graph failed to render:\n"+(e && e.message ? e.message : e);
+  }
+})();
+</script>
+</body>
+</html>
