@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 const root = process.cwd();
 const ingest = readFileSync(join(root, 'supabase/functions/ingest/index.ts'), 'utf8');
+const ingestHandlers = readFileSync(join(root, 'supabase/functions/ingest/handlers.ts'), 'utf8');
 const worker = readFileSync(join(root, 'supabase/functions/automation-worker/index.ts'), 'utf8');
 const bankExchange = readFileSync(join(root, 'supabase/functions/bank-exchange/index.ts'), 'utf8');
 const bankWebhook = readFileSync(join(root, 'supabase/functions/bank-webhook/index.ts'), 'utf8');
@@ -44,22 +45,24 @@ const config = readFileSync(join(root, 'supabase/config.toml'), 'utf8');
 
 describe('automation backbone source contracts', () => {
   it('document ingest creates a bill source before queueing OCR', () => {
-    expect(ingest).toMatch(/storageKey\.startsWith\(`org-\$\{orgId\}\/`\)/);
-    expect(ingest).toMatch(
+    expect(ingestHandlers).toMatch(/storageKey\.startsWith\(`org-\$\{orgId\}\/`\)/);
+    expect(ingestHandlers).toMatch(
       /\.from\(['"]bills['"]\)[\s\S]*\.insert\(\{[\s\S]*storage_key: storageKey/i,
     );
-    expect(ingest).toMatch(/p_job_kind:\s*['"]bill_extract['"]/);
-    expect(ingest).toMatch(/p_source_kind:\s*['"]document['"]/);
-    expect(ingest).toMatch(/bill_id:\s*billId/);
+    expect(ingestHandlers).toMatch(/p_job_kind:\s*['"]bill_extract['"]/);
+    expect(ingestHandlers).toMatch(/p_source_kind:\s*['"]document['"]/);
+    expect(ingestHandlers).toMatch(/bill_id:\s*billId/);
   });
 
   it('connector ingest routes bill and bank pushes observably', () => {
-    expect(ingest).not.toMatch(/fireIntakeRouting/);
-    expect(ingest).not.toMatch(/routing is best-effort/);
-    expect(ingest).not.toMatch(/routing is non-critical/);
-    expect(ingest).toMatch(/await runIntakeRouting\(orgId, 'bill', \[existing\.id\]\)/);
-    expect(ingest).toMatch(/await runIntakeRouting\(orgId, 'bill', \[inserted\.id\]\)/);
-    expect(ingest).toMatch(/await runIntakeRouting\(orgId, 'bank_transaction', \[txn\.id\]\)/);
+    expect(ingestHandlers).not.toMatch(/fireIntakeRouting/);
+    expect(ingestHandlers).not.toMatch(/routing is best-effort/);
+    expect(ingestHandlers).not.toMatch(/routing is non-critical/);
+    expect(ingestHandlers).toMatch(/await runIntakeRouting\(orgId, 'bill', \[existing\.id\]\)/);
+    expect(ingestHandlers).toMatch(/await runIntakeRouting\(orgId, 'bill', \[inserted\.id\]\)/);
+    expect(ingestHandlers).toMatch(
+      /await runIntakeRouting\(orgId, 'bank_transaction', \[txn\.id\]\)/,
+    );
     expect(ingest).toMatch(/return json\(\{ error: 'ingest_failed' \}, 500\)/);
   });
 
