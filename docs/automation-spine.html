@@ -143,7 +143,7 @@ const MODEL = {
   {"ref":"A4","label":"Connector ingest (api-gateway → ingest)","status":"yellow","section":"A"},
   {"ref":"A5","label":"Gmail watch renew","status":"green","section":"A"},
   {"ref":"A6","label":"Gmail mine + AI triage","status":"yellow","section":"A"},
-  {"ref":"B1","label":"automation-worker (queue drainer)","status":"red","section":"B"},
+  {"ref":"B1","label":"automation-worker (queue drainer)","status":"green","section":"B"},
   {"ref":"B2","label":"bills-extract (OCR + fallback)","status":"yellow","section":"B"},
   {"ref":"B3","label":"Extraction versions (evidence)","status":"green","section":"B"},
   {"ref":"C1","label":"coding-classifier (GL/GST + ≥0.9 auto-post)","status":"red","section":"C"},
@@ -153,8 +153,8 @@ const MODEL = {
   {"ref":"D1","label":"bank-webhook (Basiq)","status":"green","section":"D"},
   {"ref":"D2","label":"bank-sync-all cron","status":"green","section":"D"},
   {"ref":"D3","label":"bank-sync post-sync chain","status":"green","section":"D"},
-  {"ref":"D4","label":"bank-transaction-classifier (≥0.88)","status":"red","section":"D"},
-  {"ref":"D5","label":"auto-reconcile (bank ↔ bill/invoice)","status":"red","section":"D"},
+  {"ref":"D4","label":"bank-transaction-classifier (≥0.88)","status":"green","section":"D"},
+  {"ref":"D5","label":"auto-reconcile (bank ↔ bill/invoice)","status":"yellow","section":"D"},
   {"ref":"D6","label":"Subscriptions detect + autoconfirm","status":"green","section":"D"},
   {"ref":"E1","label":"GL posting (immutable journals)","status":"green","section":"E"},
   {"ref":"E2","label":"GST/BAS control posting","status":"yellow","section":"E"},
@@ -184,10 +184,10 @@ const MODEL = {
   {"ref":"I5","label":"Payroll finalise / STP transmit","status":"grey","section":"I"},
   {"ref":"I6","label":"SMSF independent audit","status":"grey","section":"I"},
   {"ref":"I7","label":"Xero push (bill / invoice)","status":"yellow","section":"I"},
-  {"ref":"J1","label":"automation-watchdog (10 scanners)","status":"red","section":"J"},
-  {"ref":"J2","label":"claimed / lock-expiry reaper","status":"red","section":"J"},
-  {"ref":"J3","label":"pending-starvation scanner","status":"red","section":"J"},
-  {"ref":"J4","label":"Dead handlers (4 unreachable kinds)","status":"red","section":"J"}
+  {"ref":"J1","label":"automation-watchdog (10 scanners)","status":"green","section":"J"},
+  {"ref":"J2","label":"claimed / lock-expiry reaper","status":"green","section":"J"},
+  {"ref":"J3","label":"pending-starvation scanner","status":"green","section":"J"},
+  {"ref":"J4","label":"Dead handlers (4 unreachable kinds)","status":"green","section":"J"}
  ],
  "edges":[
   {"from":"A5","to":"A1","flow":"alive"},{"from":"A1","to":"B1","flow":"dull"},
@@ -219,9 +219,9 @@ const MODEL = {
   {"from":"H1","to":"I5","flow":"dull"},{"from":"H1","to":"I6","flow":"dull"},
   {"from":"G4","to":"I1","flow":"dull"},{"from":"G5","to":"I4","flow":"dull"},
   {"from":"C3","to":"E1","flow":"dull"},{"from":"I7","to":"E1","flow":"dull"},
-  {"from":"J1","to":"B1","flow":"dull"},{"from":"J1","to":"J2","flow":"dull"},
-  {"from":"J1","to":"J3","flow":"dull"},{"from":"J1","to":"J4","flow":"dull"},
-  {"from":"J3","to":"B1","flow":"dull"}
+  {"from":"J1","to":"B1","flow":"alive"},{"from":"J1","to":"J2","flow":"alive"},
+  {"from":"J1","to":"J3","flow":"alive"},{"from":"J1","to":"J4","flow":"alive"},
+  {"from":"J3","to":"B1","flow":"alive"}
  ]
 };
 
@@ -284,11 +284,12 @@ SETUP (run first):
   cd ../looplet-lane-b && claude
 
 SCOPE - these nodes:
-  B1 automation-worker / queue drainer (RED - not running)
+  B1 automation-worker / queue drainer (LIVE - pg_cron every 2 min, verified 2026-07-01)
   B2 bills-extract OCR + fallback (needs trigger)   B3 Extraction versions/evidence (green)
-  J1 automation-watchdog 10 scanners (RED)  J2 lock-expiry reaper (RED)
-  J3 pending-starvation scanner (RED)       J4 Dead handlers, 4 unreachable kinds (RED)
-GOAL: get the queue drainer B1 actually running (cron/trigger), then activate the watchdog (J1-J4) that reaps stuck jobs and drains starvation on that same queue.
+  J1 automation-watchdog 10 scanners (LIVE - scheduled every 15 min, manual cron-path verified 2026-07-01)
+  J2 lock-expiry reaper (green)  J3 pending-starvation scanner (green)
+  J4 Dead handlers, 4 unreachable kinds (green)
+GOAL: maintain the queue drainer/watchdog, add evidence for newly observed failure modes, and avoid regressing the live cron/secret wiring.
 
 YOU OWN (only edit these):
   supabase/functions/automation-worker/**
@@ -328,9 +329,10 @@ SETUP (run first):
 
 SCOPE - these nodes:
   D1 bank-webhook Basiq (green)   D2 bank-sync-all cron (green)   D3 post-sync chain (green)
-  D4 bank-transaction-classifier >=0.88 (RED)   D5 auto-reconcile bank<->bill/invoice (RED)
+  D4 bank-transaction-classifier >=0.88 (LIVE - cron + manual run verified 2026-07-01)
+  D5 auto-reconcile bank<->bill/invoice (SCHEDULED - first autonomous run still needs evidence)
   D6 Subscriptions detect + autoconfirm (green)
-GOAL: activate the two RED nodes - the transaction classifier (auto-categorise at >=0.88) and auto-reconcile (match bank lines to bills/invoices). The green sync chain already feeds them.
+GOAL: keep the transaction classifier live, verify D5's first autonomous reconcile run, and close any bank/reconcile evidence gaps the live health feed surfaces. The green sync chain already feeds them.
 
 YOU OWN (only edit these):
   supabase/functions/bank-*/**  (webhook, sync, classifier, reconcile)
