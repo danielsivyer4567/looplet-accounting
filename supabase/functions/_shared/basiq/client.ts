@@ -27,8 +27,10 @@ export async function getBasiqServerToken(): Promise<string> {
   // Basiq API keys are issued in two forms:
   //   1. Pre-encoded: "<base64(client_id:client_secret)>" — use directly
   //   2. Raw "client_id:client_secret" — needs base64
-  // Detect which we have. Pre-encoded keys end in '=' padding or have no colon.
-  const looksPreEncoded = !BASIQ_API_KEY.includes(':') || BASIQ_API_KEY.endsWith('=');
+  // A raw credential always contains the ':' separator; a pre-encoded one never does.
+  // (Do NOT also treat a trailing '=' as pre-encoded — a raw secret can legitimately
+  // end in '=', which would otherwise be sent unencoded and fail auth.)
+  const looksPreEncoded = !BASIQ_API_KEY.includes(':');
   const authHeader = looksPreEncoded ? `Basic ${BASIQ_API_KEY}` : `Basic ${btoa(BASIQ_API_KEY)}`;
 
   const resp = await fetch(`${BASIQ_BASE}/token`, {
@@ -54,22 +56,48 @@ export async function getBasiqServerToken(): Promise<string> {
   return data.access_token;
 }
 
+const BASIQ_MAX_ATTEMPTS = 4;
+
 async function basiqFetch<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = await getBasiqServerToken();
-  const resp = await fetch(`${BASIQ_BASE}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      ...(init.headers ?? {}),
-    },
-  });
-  if (!resp.ok) {
+  let lastErr = '';
+  for (let attempt = 0; attempt < BASIQ_MAX_ATTEMPTS; attempt++) {
+    const token = await getBasiqServerToken();
+    const resp = await fetch(`${BASIQ_BASE}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...(init.headers ?? {}),
+      },
+    });
+    if (resp.ok) return (await resp.json()) as T;
+
     const text = await resp.text();
-    throw new Error(`Basiq ${path} ${resp.status}: ${text.slice(0, 400)}`);
+    lastErr = `Basiq ${path} ${resp.status}: ${text.slice(0, 400)}`;
+
+    // A revoked/expired cached token wedges every subsequent call — drop it and
+    // retry once with a freshly minted token.
+    if (resp.status === 401 && attempt < BASIQ_MAX_ATTEMPTS - 1) {
+      cachedToken = null;
+      continue;
+    }
+
+    // Transient throttle / server error: back off (honouring Retry-After) and retry
+    // rather than aborting the whole sync on a temporary condition.
+    if ((resp.status === 429 || resp.status >= 500) && attempt < BASIQ_MAX_ATTEMPTS - 1) {
+      const retryAfter = parseInt(resp.headers.get('Retry-After') ?? '', 10);
+      const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+        ? Math.min(retryAfter, 60) * 1000
+        : 500 * 2 ** attempt;
+      await new Promise((r) => setTimeout(r, waitMs));
+      continue;
+    }
+
+    // Non-retryable status, or attempts exhausted.
+    throw new Error(lastErr);
   }
-  return (await resp.json()) as T;
+  throw new Error(lastErr || `Basiq ${path}: exhausted retries`);
 }
 
 /** Minimal subset of the Supabase client surface used by this module. */
@@ -146,7 +174,11 @@ export async function createAuthLink(
     method: 'POST',
     body: JSON.stringify(body),
   });
-  return { url: data.public_url ?? data.links?.public, expiresAt: data.expiresAt };
+  // Basiq may return the link under either key; fail loudly rather than handing back
+  // a { url: undefined } that renders as a dead "connect your bank" link.
+  const url = data.public_url ?? data.links?.public;
+  if (!url) throw new Error('Basiq auth_link returned no URL');
+  return { url, expiresAt: data.expiresAt };
 }
 
 export interface BasiqConnection {
@@ -247,15 +279,26 @@ export async function getAllTransactionsForConnection(
 ): Promise<BasiqTransaction[]> {
   const all: BasiqTransaction[] = [];
   const filterParts = [`account.connection.id.eq('${connectionId}')`];
-  if (fromDate) filterParts.push(`postDate.gt('${fromDate}')`);
+  // Use gte (not strict gt) on a date-only bound so same-day transactions on the
+  // boundary aren't permanently skipped on incremental sync; the upsert-by-external_id
+  // downstream makes the one-day overlap idempotent.
+  if (fromDate) filterParts.push(`postDate.gte('${fromDate}')`);
   let url: string | null =
     `/users/${basiqUserId}/transactions?limit=500&filter=${filterParts.join(',')}`;
   let page = 0;
-  while (url && page < 20) {
+  const MAX_PAGES = 100;
+  while (url && page < MAX_PAGES) {
     const resp: BasiqTransactionsResponse = await basiqFetch<BasiqTransactionsResponse>(url);
     if (resp.data) all.push(...resp.data);
     url = resp.links?.next ? resp.links.next.replace(BASIQ_BASE, '') : null;
     page += 1;
+  }
+  // Never silently truncate: if there is still a next page after the cap, surface it so
+  // a large account narrows its fromDate rather than dropping transactions unnoticed.
+  if (url) {
+    throw new Error(
+      `Basiq transaction pagination exceeded ${MAX_PAGES} pages for connection ${connectionId}; narrow fromDate to avoid dropping transactions`,
+    );
   }
   return all;
 }

@@ -429,6 +429,9 @@ async function recordPayment(
     .eq('invoice_id', invoiceId)
     .eq('amount_cents', amountCents)
     .eq('reference', reference)
+    // limit(1) so a pre-existing duplicate pair doesn't make maybeSingle() throw and
+    // burn the job's retries re-recording a payment that is already there.
+    .limit(1)
     .maybeSingle();
   if (existingErr) {
     return { ok: false, detail: { error: `payment dedupe lookup failed: ${existingErr.message}` } };

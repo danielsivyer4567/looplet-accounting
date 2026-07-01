@@ -13,11 +13,13 @@ type FetchLike = typeof fetch;
 const EMPTY: AdviceCitationResult = { text: "", citations: [] };
 
 function money(cents: number | null): string {
-  if (cents == null) return "unknown";
+  if (cents == null || !Number.isFinite(cents)) return "unknown";
+  // Preserve cents precision — rounding to whole dollars here misstates the figures
+  // the advisory LLM is grounded on.
   return `$${
     (cents / 100).toLocaleString("en-AU", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     })
   }`;
 }

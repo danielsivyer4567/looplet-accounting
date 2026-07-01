@@ -137,15 +137,28 @@ export async function pushBillToGenericApi(args: GenericApiArgs): Promise<Generi
   const timestamp = String(args.nowSeconds ?? Math.floor(Date.now() / 1000));
   const signature = await hmacSha256Hex(endpoint.signing_secret, `${timestamp}.${body}`);
 
-  const response = await fetch(endpoint.endpoint_url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Looplet-Timestamp': timestamp,
-      'X-Looplet-Signature': `sha256=${signature}`,
-    },
-    body,
-  });
+  // Bound the request: a hanging endpoint would otherwise stall the whole sequential
+  // sync drain. Abort throws → the dispatcher treats it as a retryable failure.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  let response: Response;
+  try {
+    response = await fetch(endpoint.endpoint_url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Looplet-Timestamp': timestamp,
+        'X-Looplet-Signature': `sha256=${signature}`,
+        // Stable across retries so a lost response doesn't create a duplicate bill at
+        // the receiver — receivers should dedup on this key.
+        'X-Looplet-Idempotency-Key': args.receiptEventId,
+      },
+      body,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     // Transient/endpoint error → let the caller mark it failed (retryable).

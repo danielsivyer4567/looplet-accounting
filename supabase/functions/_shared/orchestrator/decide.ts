@@ -207,7 +207,19 @@ export function decideOrchestratorTasks(
     const row of dueCalendarRows(input.tax_calendar, input.organization_id)
   ) {
     const mapping = OBLIGATION_MAPPINGS[row.obligation_key];
-    if (!mapping) continue;
+    if (!mapping) {
+      // A due obligation with no engine mapping must not vanish silently — surface it
+      // as skipped so it shows up for review instead of being dropped without a trace.
+      skipped.push({
+        source: "tax_calendar",
+        engine: "unknown",
+        action: "unmapped_obligation",
+        obligation_key: row.obligation_key,
+        period_label: row.period_label,
+        reason: `No engine mapping for obligation_key '${row.obligation_key}'.`,
+      });
+      continue;
+    }
     if (blocking && mapping.requiresCleanBooks) {
       skipped.push({
         source: "tax_calendar",
