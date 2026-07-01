@@ -11,7 +11,10 @@ const fmt = new Intl.NumberFormat('en-AU', {
 });
 
 export function centsToDollars(cents: number | null | undefined): number {
-  if (cents == null) return 0;
+  // Fail safe: a non-finite value (NaN from an undefined operand, ±Infinity from a
+  // divide-by-zero upstream) must degrade to 0 rather than render "$NaN"/"$∞" on a
+  // decision-facing tile.
+  if (cents == null || !Number.isFinite(cents)) return 0;
   return cents / 100;
 }
 
