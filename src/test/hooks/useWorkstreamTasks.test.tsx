@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchPreflightStatus, useWorkstreamTasks, type WorkstreamTask } from '@/hooks/useWorkstreamTasks';
 
 const mocks = vi.hoisted(() => ({
@@ -105,6 +105,10 @@ describe('useWorkstreamTasks', () => {
     mocks.org.current = { id: 'org-1', name: 'Org One', organization_type: 'standard' };
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('returns empty array when no org is selected', () => {
     mocks.org.current = null;
     const { result } = renderHook(() => useWorkstreamTasks());
@@ -130,8 +134,8 @@ describe('useWorkstreamTasks', () => {
 
   it('fetchPreflightStatus reads the real close signal: period_close_checks + v_books_health.blocking', async () => {
     // Direct unit test (not through the hook) — the hook only calls this
-    // inside the wall-clock-dependent month-end window; fetchPreflightStatus
-    // itself has no date dependency, so this is deterministic on any day.
+    // inside the wall-clock-dependent month-end window; this assertion focuses
+    // on the returned pre-flight state rather than the target period.
     mocks.rpc.mockImplementation((fn: string) =>
       fn === 'period_close_checks'
         ? rpcOk([
@@ -159,6 +163,36 @@ describe('useWorkstreamTasks', () => {
       { check_name: 'trial_balance_balances', passed: false, detail: { message: 'Trial balance is out by 500 cents.' } },
     ]);
     expect(status.booksHealthBlocking).toBe(true);
+  });
+
+  it('fetchPreflightStatus checks the current month during the lead-in window without UTC date drift', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 6, 28, 12, 0, 0));
+    mocks.rpc.mockImplementation((fn: string) =>
+      fn === 'period_close_checks' ? rpcOk([]) : rpcOk(null),
+    );
+
+    await fetchPreflightStatus('org-1');
+
+    expect(mocks.rpc).toHaveBeenCalledWith('period_close_checks', {
+      p_org: 'org-1',
+      p_period: '2026-07-01',
+    });
+  });
+
+  it('fetchPreflightStatus checks the prior month during the first-three-day tail', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 7, 2, 12, 0, 0));
+    mocks.rpc.mockImplementation((fn: string) =>
+      fn === 'period_close_checks' ? rpcOk([]) : rpcOk(null),
+    );
+
+    await fetchPreflightStatus('org-1');
+
+    expect(mocks.rpc).toHaveBeenCalledWith('period_close_checks', {
+      p_org: 'org-1',
+      p_period: '2026-07-01',
+    });
   });
 
   it('handles rpc error gracefully', async () => {

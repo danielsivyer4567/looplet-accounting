@@ -46,7 +46,11 @@ export interface WorkstreamTask {
 function lastDayOfCurrentMonth(): string {
   const now = new Date();
   const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  return last.toISOString().slice(0, 10);
+  return formatLocalDate(last.getFullYear(), last.getMonth(), last.getDate());
+}
+
+function formatLocalDate(year: number, monthIndex0: number, day: number): string {
+  return `${year}-${String(monthIndex0 + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
 /**
@@ -76,11 +80,16 @@ function isMonthEndWindow(): boolean {
  */
 function targetCloseMonthStart(): string {
   const now = new Date();
+  let year = now.getFullYear();
+  let monthIndex0 = now.getMonth();
   if (now.getDate() <= 3) {
-    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    return prev.toISOString().slice(0, 10);
+    monthIndex0 -= 1;
+    if (monthIndex0 < 0) {
+      monthIndex0 = 11;
+      year -= 1;
+    }
   }
-  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  return formatLocalDate(year, monthIndex0, 1);
 }
 
 const EMPTY_PREFLIGHT_STATUS = { failedChecks: [] as PeriodCheck[], booksHealthBlocking: false };
