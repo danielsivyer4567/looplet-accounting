@@ -228,7 +228,6 @@ Deno.serve(async (req) => {
       // Run routing on the cache-hit too — same job_reference, same matching.
       const routing = await runRouting(admin, bill.id, bill.organization_id, cacheRow);
       await runIntakeRouting(supabaseUrl, serviceKey, bill.organization_id, 'bill', bill.id);
-      await runCodingClassify(supabaseUrl, serviceKey, bill.id);
       await writeDecision(
         admin,
         bill.id,
@@ -288,7 +287,6 @@ Deno.serve(async (req) => {
             confidence: extracted.confidence,
           });
           await runIntakeRouting(supabaseUrl, serviceKey, bill.organization_id, 'bill', bill.id);
-          await runCodingClassify(supabaseUrl, serviceKey, bill.id);
           await writeDecision(
             admin,
             bill.id,
@@ -333,7 +331,6 @@ Deno.serve(async (req) => {
       confidence: extracted.confidence,
     });
     await runIntakeRouting(supabaseUrl, serviceKey, bill.organization_id, 'bill', bill.id);
-    await runCodingClassify(supabaseUrl, serviceKey, bill.id);
     const { isProbableBill: visProbable } = classifyBill({
       document_kind: extracted.document_kind,
       confidence: extracted.confidence,
@@ -630,30 +627,6 @@ async function runIntakeRouting(
   if (!response.ok) {
     throw new Error(
       `intake-routing-apply failed: ${response.status} ${await response.text().catch(() => '')}`.trim(),
-    );
-  }
-}
-
-/**
- * Call into coding-classifier so a newly-OCR'd bill gets a GL/GST coding
- * proposal — auto-posts the journal if confidence clears the auto-post
- * threshold, otherwise lands in the review queue. Mirrors runIntakeRouting's
- * throw-on-failure contract so a coding failure is as observable/retryable
- * as a routing failure (Lane C, coding-classifier activation).
- */
-async function runCodingClassify(
-  supabaseUrl: string,
-  serviceKey: string,
-  billId: string,
-): Promise<void> {
-  const response = await fetch(`${supabaseUrl}/functions/v1/coding-classifier`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ bill_id: billId }),
-  });
-  if (!response.ok) {
-    throw new Error(
-      `coding-classifier failed: ${response.status} ${await response.text().catch(() => '')}`.trim(),
     );
   }
 }
