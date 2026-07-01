@@ -373,13 +373,22 @@ async function resolveOrCreateContact(
     return existing.ContactID;
   }
 
-  // 3. Create new Xero contact
+  // 3. Create new Xero contact with a stable idempotency key derived from the name so
+  // two concurrent xero_push jobs for the same new supplier don't race past the
+  // check-then-create above and produce duplicate Xero contacts.
+  const contactIdempotencyKey = await resolveXeroIdempotencyKey(undefined, [
+    'xero',
+    'contact',
+    organizationId,
+    name.trim().toLowerCase(),
+  ]);
   const created = await callXeroWithRetry<{ Contacts: { ContactID?: string }[] }>(
     admin,
     organizationId,
     (ctx) =>
       xeroFetch(ctx, '/api.xro/2.0/Contacts', {
         method: 'POST',
+        headers: { 'Idempotency-Key': contactIdempotencyKey },
         body: JSON.stringify({
           Contacts: [
             {
