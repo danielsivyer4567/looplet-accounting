@@ -43,6 +43,32 @@ const GST_INPUT_CODE = "1200"; // GST receivable (input credits) — the PURCHAS
 const ACCOUNTS_PAYABLE_CODE = "2000";
 const BANK_CODE = "1000";
 
+// intake_categories.xero_account_code predates the internal Looplet COA seed and
+// often contains Xero-template codes (for example 500/478/485). Those do not
+// resolve against seed_default_chart_of_accounts(), so default category matches
+// must prefer this app-native mapping. Explicit per-rule overrides still win.
+const DEFAULT_CATEGORY_ACCOUNT_CODES: Record<string, string> = {
+  materials: "5000",
+  subcontractor: "5100",
+  plant_equipment: "1500",
+  fuel: "6100",
+  motor_vehicle: "6100",
+  insurance: "6200",
+  telephone_internet: "6300",
+  subscriptions_saas: "6400",
+  professional_fees: "6500",
+  bank_fees: "6600",
+  employee_wages: "6000",
+  office_supplies: "6900",
+  marketing: "6900",
+  meals_entertainment: "6900",
+  rent: "6900",
+  training: "6900",
+  travel: "6900",
+  uniform_ppe: "6900",
+  utilities: "6900",
+};
+
 // Canonical live intake_rules.matcher_type values (0006 CHECK constraint). NOTE:
 // the older intake-routing-apply switches on stale names ('email_sender' etc.) and
 // silently misses the live 'sender_address' rules — we match the canonical set.
@@ -229,7 +255,10 @@ function classify(bill: Bill, rules: IntakeRule[], categories: Map<string, Categ
     const cat = rule.category_code ? categories.get(rule.category_code) ?? null : null;
     const accountOverride = rule.xero_account_code_override?.trim();
     const taxOverride = rule.xero_tax_type_override?.trim();
-    const accountCode = (accountOverride || cat?.xero_account_code) ?? null;
+    const defaultAccountCode = rule.category_code
+      ? DEFAULT_CATEGORY_ACCOUNT_CODES[rule.category_code] ?? null
+      : null;
+    const accountCode = (accountOverride || defaultAccountCode || cat?.xero_account_code) ?? null;
     const taxCode = (taxOverride || cat?.xero_tax_type) ?? null;
 
     let confidence = BASE_CONFIDENCE[rule.matcher_type];
@@ -250,7 +279,13 @@ function classify(bill: Bill, rules: IntakeRule[], categories: Map<string, Categ
         matcher_priority: rule.matcher_priority,
         hit_count: rule.hit_count,
         category_code: rule.category_code,
-        account_source: accountOverride ? "rule_override" : cat ? "category" : "none",
+        account_source: accountOverride
+          ? "rule_override"
+          : defaultAccountCode
+            ? "default_category_coa"
+            : cat
+              ? "category"
+              : "none",
         tax_source: taxOverride ? "rule_override" : cat ? "category" : "none",
       },
     };
