@@ -1,5 +1,11 @@
-import { assert, assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { buildGenericApiBody, hmacSha256Hex, type GenericApiArgs } from './genericApi.ts';
+import { assert, assertEquals, assertThrows } from 'https://deno.land/std@0.224.0/assert/mod.ts';
+import {
+  assertDeliverableEndpoint,
+  buildGenericApiBody,
+  GenericApiUnsafeEndpoint,
+  hmacSha256Hex,
+  type GenericApiArgs,
+} from './genericApi.ts';
 
 function sampleArgs(): GenericApiArgs {
   return {
@@ -59,4 +65,44 @@ Deno.test('signature covers timestamp + body', async () => {
   const sig1 = await hmacSha256Hex('s', `1700000000.${body}`);
   const sig2 = await hmacSha256Hex('s', `1700000001.${body}`);
   assert(sig1 !== sig2, 'changing the timestamp must change the signature');
+});
+
+Deno.test('assertDeliverableEndpoint accepts a public https URL', () => {
+  const url = assertDeliverableEndpoint('https://api.partner.example.com/webhooks/looplet');
+  assertEquals(url.protocol, 'https:');
+  assertEquals(url.hostname, 'api.partner.example.com');
+});
+
+Deno.test('assertDeliverableEndpoint rejects plaintext http', () => {
+  assertThrows(
+    () => assertDeliverableEndpoint('http://api.partner.example.com/hook'),
+    GenericApiUnsafeEndpoint,
+    'https',
+  );
+});
+
+Deno.test('assertDeliverableEndpoint blocks loopback, link-local/metadata, and RFC1918 hosts', () => {
+  for (
+    const host of [
+      'localhost',
+      '127.0.0.1',
+      'sub.localhost',
+      '169.254.169.254', // cloud metadata
+      '10.0.0.5',
+      '192.168.1.10',
+      '172.16.0.9',
+      '[::1]',
+    ]
+  ) {
+    assertThrows(
+      () => assertDeliverableEndpoint(`https://${host}/hook`),
+      GenericApiUnsafeEndpoint,
+      undefined,
+      `expected ${host} to be blocked`,
+    );
+  }
+});
+
+Deno.test('assertDeliverableEndpoint rejects a malformed URL', () => {
+  assertThrows(() => assertDeliverableEndpoint('not a url'), GenericApiUnsafeEndpoint);
 });
