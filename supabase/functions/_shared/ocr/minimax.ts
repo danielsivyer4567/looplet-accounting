@@ -15,7 +15,7 @@
  * index.ts (set OCR_PROVIDER=anthropic if you need PDFs OCR'd).
  */
 
-import { EXTRACT_PROMPT, parseExtractedJson, type ExtractedBill } from './prompt.ts';
+import { EXTRACT_PROMPT, ocrTimeoutSignal, parseExtractedJson, type ExtractedBill } from './prompt.ts';
 
 /** Chunked base64 — String.fromCharCode(...bytes) blows the call stack ~125k bytes. */
 function toBase64(bytes: Uint8Array): string {
@@ -67,6 +67,7 @@ export async function extractBillDataMiniMax(
         },
       ],
     }),
+    signal: ocrTimeoutSignal(),
   });
 
   if (!res.ok) {

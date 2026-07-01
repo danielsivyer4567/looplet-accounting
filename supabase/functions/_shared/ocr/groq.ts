@@ -4,7 +4,7 @@
  * ~3s extraction latency, sufficient for v1.
  */
 
-import { EXTRACT_PROMPT, parseExtractedJson, type ExtractedBill } from './prompt.ts';
+import { EXTRACT_PROMPT, ocrTimeoutSignal, parseExtractedJson, type ExtractedBill } from './prompt.ts';
 
 export async function extractBillDataGroq(
   imageBytes: Uint8Array,
@@ -46,6 +46,7 @@ export async function extractBillDataGroq(
         },
       ],
     }),
+    signal: ocrTimeoutSignal(),
   });
 
   if (!res.ok) {

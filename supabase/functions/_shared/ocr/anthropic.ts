@@ -18,7 +18,7 @@
  * images, claude-haiku-4-5 for cheapest).
  */
 
-import { EXTRACT_PROMPT, parseExtractedJson, type ExtractedBill } from './prompt.ts';
+import { EXTRACT_PROMPT, ocrTimeoutSignal, parseExtractedJson, type ExtractedBill } from './prompt.ts';
 
 const ANTHROPIC_VERSION = '2023-06-01';
 
@@ -52,6 +52,13 @@ const BILL_JSON_SCHEMA = {
       },
     },
     job_reference: { type: ['string', 'null'] },
+    // Without this the model cannot emit document_kind (additionalProperties:false
+    // forbids it), so every extraction defaulted to 'invoice' and the non-financial
+    // filter (logo/photo/ui_screenshot) was dead. Enum mirrors DocumentKind in prompt.ts.
+    document_kind: {
+      type: 'string',
+      enum: ['invoice', 'quote', 'receipt', 'statement', 'order', 'logo', 'photo', 'ui_screenshot', 'other'],
+    },
     confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
     notes: { type: 'string' },
   },
@@ -67,6 +74,7 @@ const BILL_JSON_SCHEMA = {
     'currency',
     'line_items',
     'job_reference',
+    'document_kind',
     'confidence',
     'notes',
   ],
@@ -126,6 +134,7 @@ export async function extractBillDataAnthropic(
         },
       ],
     }),
+    signal: ocrTimeoutSignal(),
   });
 
   if (!res.ok) {
