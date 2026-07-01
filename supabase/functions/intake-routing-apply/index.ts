@@ -84,7 +84,12 @@ interface RequestBody {
 
 interface IntakeRule {
   id: string;
-  matcher_type: 'email_sender' | 'sender_domain' | 'subject_regex' | 'amount_range' | 'descriptor_regex';
+  // Loose on purpose: the live CHECK constraint (0006) only permits
+  // sender_address/sender_domain/sender_name/subject_pattern/attachment_name/
+  // body_keyword for bill routing (matchBill below). matchBankTxn separately
+  // recognises its own legacy set (descriptor_regex/amount_range/etc.) — a
+  // narrow union here would make one switch's cases fail the other's type.
+  matcher_type: string;
   matcher_value: string;
   matcher_priority: number;
   category_code: string | null;
@@ -108,6 +113,17 @@ interface BillRow {
   applied_intake_rule_id: string | null;
   auto_category_code: string | null;
   is_personal: boolean | null;
+  original_filename: string | null;
+}
+
+// The signals a bill-shaped matcher can test against (mirrors coding-classifier's
+// MatchSignals so both functions read intake_metadata the same way).
+interface BillSignals {
+  sender: string;
+  fromName: string;
+  subject: string;
+  filename: string;
+  body: string;
 }
 
 interface BankTxnRow {
@@ -234,7 +250,7 @@ async function routeBill(
   const { data: bill, error } = await admin
     .from('bills')
     .select(
-      'id, organization_id, supplier_id, job_id, suggested_job_id, total_inc_gst_cents, intake_metadata, applied_intake_rule_id, auto_category_code, is_personal',
+      'id, organization_id, supplier_id, job_id, suggested_job_id, total_inc_gst_cents, intake_metadata, applied_intake_rule_id, auto_category_code, is_personal, original_filename',
     )
     .eq('id', billId)
     .maybeSingle();
@@ -261,12 +277,10 @@ async function routeBill(
 
   const rules = await loadRules(admin, orgId);
   const billRow = bill as BillRow;
-  const meta = billRow.intake_metadata ?? {};
-  const sender = pickString(meta, ['email_sender', 'from', 'sender']);
-  const subject = pickString(meta, ['email_subject', 'subject']);
+  const signals = buildBillSignals(billRow);
 
   for (const rule of rules) {
-    const matched = matchBill(rule, sender, subject, billRow.total_inc_gst_cents);
+    const matched = matchBill(rule, signals);
     if (!matched) continue;
 
     const fieldsSet = await applyRuleToBill(admin, billRow, rule);
@@ -292,34 +306,45 @@ async function routeBill(
   });
 }
 
-function matchBill(
-  rule: IntakeRule,
-  sender: string | null,
-  subject: string | null,
-  totalIncCents: number | null,
-): boolean {
+// Pulls the same intake_metadata keys coding-classifier reads, so a rule authored
+// against one classifier's signals behaves identically in the other.
+function buildBillSignals(bill: BillRow): BillSignals {
+  const meta = bill.intake_metadata ?? {};
+  return {
+    sender: pickString(meta, ['email_sender', 'from', 'sender']) ?? '',
+    fromName: pickString(meta, ['from_name', 'sender_name']) ?? '',
+    subject: pickString(meta, ['email_subject', 'subject']) ?? '',
+    filename: (bill.original_filename ?? '').toLowerCase(),
+    body: pickString(meta, ['body_text', 'body', 'snippet']) ?? '',
+  };
+}
+
+// Canonical matcher_type set (0006 CHECK constraint) — the ONLY values that can
+// ever exist on a live intake_rules row. Mirrors coding-classifier's ruleMatches
+// so both classifiers agree on what a rule means for a bill.
+function matchBill(rule: IntakeRule, s: BillSignals): boolean {
+  const v = rule.matcher_value.trim();
+  if (v === '') return false;
   switch (rule.matcher_type) {
-    case 'email_sender':
+    case 'sender_address':
       // Exact, case-insensitive (email addresses are case-insensitive in the local part too,
       // per RFC norm).
-      if (!sender) return false;
-      return sender.toLowerCase() === rule.matcher_value.toLowerCase();
+      return s.sender !== '' && s.sender.toLowerCase() === v.toLowerCase();
     case 'sender_domain': {
-      if (!sender) return false;
-      const domain = sender.split('@')[1]?.toLowerCase() ?? '';
-      const want = rule.matcher_value.toLowerCase().replace(/^@/, '');
+      if (s.sender === '') return false;
+      const domain = s.sender.split('@')[1]?.toLowerCase() ?? '';
+      const want = v.toLowerCase().replace(/^@/, '');
       // "reece.com.au" matches sender "...@reece.com.au" or any subdomain "...@x.reece.com.au"
-      return domain === want || domain.endsWith(`.${want}`);
+      return domain !== '' && (domain === want || domain.endsWith(`.${want}`));
     }
-    case 'subject_regex':
-      if (!subject) return false;
-      return safeRegexTest(rule.matcher_value, subject);
-    case 'amount_range':
-      if (totalIncCents == null) return false;
-      return amountInRange(rule.matcher_value, totalIncCents);
-    case 'descriptor_regex':
-      // Not applicable to bills; skipped silently so rules can be reused for txns.
-      return false;
+    case 'sender_name':
+      return s.fromName !== '' && s.fromName.toLowerCase().includes(v.toLowerCase());
+    case 'subject_pattern':
+      return s.subject !== '' && safeRegexTest(v, s.subject);
+    case 'attachment_name':
+      return s.filename !== '' && s.filename.includes(v.toLowerCase());
+    case 'body_keyword':
+      return s.body !== '' && s.body.toLowerCase().includes(v.toLowerCase());
     default:
       return false;
   }
@@ -493,7 +518,7 @@ async function applyFirstMatchingRuleForBill(
   const { data: bill, error } = await admin
     .from('bills')
     .select(
-      'id, organization_id, supplier_id, job_id, suggested_job_id, total_inc_gst_cents, intake_metadata, applied_intake_rule_id, auto_category_code, is_personal',
+      'id, organization_id, supplier_id, job_id, suggested_job_id, total_inc_gst_cents, intake_metadata, applied_intake_rule_id, auto_category_code, is_personal, original_filename',
     )
     .eq('id', billId)
     .maybeSingle();
@@ -502,12 +527,10 @@ async function applyFirstMatchingRuleForBill(
   if (row.organization_id !== orgId) return false;
   if (row.applied_intake_rule_id) return false;
 
-  const meta = row.intake_metadata ?? {};
-  const sender = pickString(meta, ['email_sender', 'from', 'sender']);
-  const subject = pickString(meta, ['email_subject', 'subject']);
+  const signals = buildBillSignals(row);
 
   for (const rule of rules) {
-    if (matchBill(rule, sender, subject, row.total_inc_gst_cents)) {
+    if (matchBill(rule, signals)) {
       await applyRuleToBill(admin, row, rule);
       await recordRuleHit(admin, rule.id);
       return true;
