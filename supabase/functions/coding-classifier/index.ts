@@ -115,6 +115,13 @@ interface Classification {
   rationale: Record<string, unknown>;
 }
 
+// One row from detect_capital_purchases (0094) — only used to test candidacy
+// (p_bill_id restricts it to this one bill, so a non-empty result IS the answer).
+interface CapitalCandidateRow {
+  bill_id: string;
+  suggested_asset_account_code: string | null;
+}
+
 interface JournalLine {
   account_id: string;
   debit_cents: number;
@@ -300,6 +307,45 @@ async function setRationaleStatus(
 ): Promise<void> {
   const { error } = await admin.from("coding_suggestions").update({ status, rationale }).eq("id", suggestionId);
   if (error) throw new Error(`update suggestion status: ${error.message}`);
+}
+
+// Capital-purchase detection (0094 SC-1.F.01/.F.02): a bill that looks like an
+// asset purchase (material cost base, not already expense-coded, not already
+// capitalised) must never silently auto-post as a period expense — it needs a
+// human to confirm the asset in the Fixed Assets register instead. This checks
+// candidacy with the single-bill fast path (p_bill_id) and, if eligible, drafts
+// the `proposed` fixed_assets row via propose_capitalisation (idempotent on
+// source_bill_id — safe to call on every classify run). Both RPCs are SECURITY
+// INVOKER; the service-role admin client bypasses RLS (rolbypassrls) exactly
+// like every other write in this function. Best-effort: a detection/propose
+// failure must never block the ordinary coding path, so errors are logged and
+// swallowed rather than surfaced to the caller.
+async function detectAndProposeCapitalAsset(
+  admin: SupabaseClient,
+  bill: Bill,
+): Promise<{ isCandidate: boolean; fixedAssetId: string | null }> {
+  const { data, error } = await admin.rpc("detect_capital_purchases", {
+    p_org: bill.organization_id,
+    p_bill_id: bill.id,
+  });
+  if (error) {
+    console.error(`detect_capital_purchases failed for bill ${bill.id}: ${error.message}`);
+    return { isCandidate: false, fixedAssetId: null };
+  }
+  const rows = (data ?? []) as CapitalCandidateRow[];
+  if (rows.length === 0) return { isCandidate: false, fixedAssetId: null };
+
+  const { data: assetId, error: proposeErr } = await admin.rpc("propose_capitalisation", {
+    p_bill_id: bill.id,
+  });
+  if (proposeErr) {
+    console.error(`propose_capitalisation failed for bill ${bill.id}: ${proposeErr.message}`);
+    // Still a capital candidate even though the draft write failed — the auto-post
+    // guard below must hold regardless, so a transient write failure can't let a
+    // capital purchase slip through as an auto-posted expense.
+    return { isCandidate: true, fixedAssetId: null };
+  }
+  return { isCandidate: true, fixedAssetId: (assetId as string) ?? null };
 }
 
 async function resolveAccounts(admin: SupabaseClient, orgId: string, codes: string[]): Promise<Map<string, string>> {
@@ -619,8 +665,10 @@ Deno.serve(async (req: Request) => {
       return await handleDecision(admin, supabaseUrl, anonKey, typedBill, body.decision, body, jwt);
     }
 
-    // Independent queries — the org-scoped active rules and the global category map.
-    const [rulesRes, catRes] = await Promise.all([
+    // Independent queries — the org-scoped active rules, the global category map,
+    // and capital-purchase candidacy (0094). Capital detection runs alongside the
+    // coding rules lookup since it only reads/writes fixed_assets, never bills.
+    const [rulesRes, catRes, capital] = await Promise.all([
       admin
         .from("intake_rules")
         .select(
@@ -630,6 +678,7 @@ Deno.serve(async (req: Request) => {
         .eq("is_active", true)
         .order("matcher_priority", { ascending: false }),
       admin.from("intake_categories").select("code, xero_account_code, xero_tax_type"),
+      detectAndProposeCapitalAsset(admin, typedBill),
     ]);
     if (rulesRes.error) return json({ ok: false, error: rulesRes.error.message }, 500);
     if (catRes.error) return json({ ok: false, error: catRes.error.message }, 500);
@@ -646,7 +695,18 @@ Deno.serve(async (req: Request) => {
     let status = "needs_review";
     let journalEntryId: string | null = null;
 
-    if (classification.confidence >= AUTO_POST_THRESHOLD && classification.accountCode) {
+    // A capital-purchase candidate NEVER auto-posts as a period expense, even at
+    // >= AUTO_POST_THRESHOLD confidence — it needs a human to confirm the asset in
+    // the Fixed Assets register (propose_capitalisation already drafted the
+    // `proposed` row above). Coding stays in the review queue with the capital
+    // rationale so the reviewer knows to look there instead of accepting the
+    // expense coding.
+    if (capital.isCandidate) {
+      await setRationaleStatus(admin, suggestionId, "needs_review", {
+        ...classification.rationale,
+        capital_purchase: { candidate: true, fixed_asset_id: capital.fixedAssetId },
+      });
+    } else if (classification.confidence >= AUTO_POST_THRESHOLD && classification.accountCode) {
       const result = await postBillJournal(admin, supabaseUrl, anonKey, typedBill, classification.accountCode);
       if (result.posted) {
         status = "auto_posted";
@@ -673,6 +733,8 @@ Deno.serve(async (req: Request) => {
       account_code: classification.accountCode,
       tax_code: classification.taxCode,
       journal_entry_id: journalEntryId,
+      capital_purchase_candidate: capital.isCandidate,
+      fixed_asset_id: capital.fixedAssetId,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
