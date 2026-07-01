@@ -31,6 +31,13 @@ verify_jwt = false
 [functions.auto-reconcile]
 verify_jwt = false
 
+# Cron-driven autopilot classifier (Lane D4); self-authenticates with
+# BANK_CLASSIFIER_CRON_SECRET or the exact service-role bearer, same pattern
+# as auto-reconcile above. Interactive callers still pass a user JWT that the
+# function verifies itself before touching org data.
+[functions.bank-transaction-classifier]
+verify_jwt = false
+
 [functions.receipt-webhook]
 verify_jwt = false
 
