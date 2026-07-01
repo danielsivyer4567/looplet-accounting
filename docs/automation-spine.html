@@ -146,7 +146,7 @@ const MODEL = {
   {"ref":"B1","label":"automation-worker (queue drainer)","status":"green","section":"B"},
   {"ref":"B2","label":"bills-extract (OCR + fallback)","status":"yellow","section":"B"},
   {"ref":"B3","label":"Extraction versions (evidence)","status":"green","section":"B"},
-  {"ref":"C1","label":"coding-classifier (GL/GST + ≥0.9 auto-post)","status":"red","section":"C"},
+  {"ref":"C1","label":"coding-classifier (GL/GST + ≥0.9 auto-post)","status":"yellow","section":"C"},
   {"ref":"C2","label":"intake-routing-apply","status":"green","section":"C"},
   {"ref":"C3","label":"AP review queue (<0.9)","status":"grey","section":"C"},
   {"ref":"C4","label":"Capital-purchase detect + propose","status":"yellow","section":"C"},
@@ -307,10 +307,10 @@ SETUP (run first):
   cd ../looplet-lane-c && claude
 
 SCOPE - these nodes:
-  C1 coding-classifier GL/GST + >=0.9 auto-post (RED - not running)
+  C1 coding-classifier GL/GST + >=0.9 auto-post (CODE FIXED - deploy blocked by Supabase function-store 500 on 2026-07-01)
   C2 intake-routing-apply (green)     C3 AP review queue <0.9 (human gate)
   C4 Capital-purchase detect + propose (needs trigger)
-GOAL: activate the coding-classifier so bills with confidence >=0.9 auto-code (GL account + GST) and post; route <0.9 to the review queue; wire capital-purchase detection.
+GOAL: deploy the current coding-classifier once Supabase function-store deploys recover, then live-smoke high-confidence auto-post, low-confidence review queue, and capital-purchase proposal paths.
 
 YOU OWN (only edit these):
   the coding-classifier function
