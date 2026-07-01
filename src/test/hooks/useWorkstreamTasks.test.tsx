@@ -1,20 +1,13 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useWorkstreamTasks, type WorkstreamTask } from '@/hooks/useWorkstreamTasks';
+import { fetchPreflightStatus, useWorkstreamTasks, type WorkstreamTask } from '@/hooks/useWorkstreamTasks';
 
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   from: vi.fn(() => ({
     select: vi.fn(() => ({
       eq: vi.fn(() => ({
-        is: vi.fn(() => ({
-          lt: vi.fn(() => ({
-            not: vi.fn(() => Promise.resolve({ count: 0, error: null })),
-          })),
-        })),
-        gte: vi.fn(() => ({
-          not: vi.fn(() => Promise.resolve({ count: 0, error: null })),
-        })),
+        maybeSingle: vi.fn(() => Promise.resolve({ data: { blocking: false }, error: null })),
       })),
     })),
   })),
@@ -74,6 +67,38 @@ function rpcError(message: string) {
   return Promise.resolve({ data: null, error: { message } });
 }
 
+/**
+ * Wires `supabase.rpc` for a fetch cycle: `get_workstream_tasks` resolves to
+ * `tasks`, `period_close_checks` resolves to `checks` (defaults to an empty/
+ * all-passing result so existing task-list assertions aren't perturbed by
+ * the new preflight signal).
+ */
+function mockRpc(tasks: unknown, checks: unknown = []) {
+  mocks.rpc.mockImplementation((fn: string) => {
+    if (fn === 'get_workstream_tasks') return rpcOk(tasks);
+    if (fn === 'period_close_checks') return rpcOk(checks);
+    return rpcOk(null);
+  });
+}
+
+/** Same as mockRpc, but get_workstream_tasks itself errors. */
+function mockRpcTasksError(message: string) {
+  mocks.rpc.mockImplementation((fn: string) => {
+    if (fn === 'get_workstream_tasks') return rpcError(message);
+    if (fn === 'period_close_checks') return rpcOk([]);
+    return rpcOk(null);
+  });
+}
+
+/**
+ * Count of calls to a specific supabase.rpc function name. period_close_checks
+ * is only called inside the month-end close window (wall-clock dependent), so
+ * tests assert on this rather than the raw total call count.
+ */
+function rpcCallCount(fn: string): number {
+  return mocks.rpc.mock.calls.filter((call) => call[0] === fn).length;
+}
+
 describe('useWorkstreamTasks', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -89,7 +114,7 @@ describe('useWorkstreamTasks', () => {
   });
 
   it('calls rpc with org id and returns tasks', async () => {
-    mocks.rpc.mockReturnValue(rpcOk([baseTask]));
+    mockRpc([baseTask]);
     const { result } = renderHook(() => useWorkstreamTasks());
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -103,8 +128,41 @@ describe('useWorkstreamTasks', () => {
     expect(result.current.error).toBeNull();
   });
 
+  it('fetchPreflightStatus reads the real close signal: period_close_checks + v_books_health.blocking', async () => {
+    // Direct unit test (not through the hook) — the hook only calls this
+    // inside the wall-clock-dependent month-end window; fetchPreflightStatus
+    // itself has no date dependency, so this is deterministic on any day.
+    mocks.rpc.mockImplementation((fn: string) =>
+      fn === 'period_close_checks'
+        ? rpcOk([
+            { check_name: 'trial_balance_balances', passed: false, detail: { message: 'Trial balance is out by 500 cents.' } },
+            { check_name: 'no_unposted_drafts', passed: true, detail: {} },
+          ])
+        : rpcOk(null),
+    );
+    mocks.from.mockReturnValueOnce({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          maybeSingle: vi.fn(() => Promise.resolve({ data: { blocking: true }, error: null })),
+        })),
+      })),
+    });
+
+    const status = await fetchPreflightStatus('org-1');
+
+    expect(mocks.rpc).toHaveBeenCalledWith(
+      'period_close_checks',
+      expect.objectContaining({ p_org: 'org-1' }),
+    );
+    expect(mocks.from).toHaveBeenCalledWith('v_books_health');
+    expect(status.failedChecks).toEqual([
+      { check_name: 'trial_balance_balances', passed: false, detail: { message: 'Trial balance is out by 500 cents.' } },
+    ]);
+    expect(status.booksHealthBlocking).toBe(true);
+  });
+
   it('handles rpc error gracefully', async () => {
-    mocks.rpc.mockReturnValue(rpcError('Something went wrong'));
+    mockRpcTasksError('Something went wrong');
     const { result } = renderHook(() => useWorkstreamTasks());
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -114,13 +172,13 @@ describe('useWorkstreamTasks', () => {
   });
 
   it('re-fetches when org changes', async () => {
-    mocks.rpc.mockReturnValue(rpcOk([baseTask]));
+    mockRpc([baseTask]);
     const { result, rerender } = renderHook(() => useWorkstreamTasks());
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(mocks.rpc).toHaveBeenCalledTimes(1);
+    expect(rpcCallCount('get_workstream_tasks')).toBe(1);
 
-    mocks.rpc.mockReturnValue(rpcOk([]));
+    mockRpc([]);
     mocks.org.current = { id: 'org-2', name: 'Org Two', organization_type: 'standard' };
 
     await act(async () => {
@@ -128,8 +186,8 @@ describe('useWorkstreamTasks', () => {
     });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(mocks.rpc).toHaveBeenCalledTimes(2);
-    expect(mocks.rpc).toHaveBeenLastCalledWith('get_workstream_tasks', {
+    expect(rpcCallCount('get_workstream_tasks')).toBe(2);
+    expect(mocks.rpc).toHaveBeenCalledWith('get_workstream_tasks', {
       p_org_id: 'org-2',
     });
     expect(result.current.tasks).toEqual([]);
@@ -159,7 +217,7 @@ describe('useWorkstreamTasks', () => {
         confidence: 'review_needed',
       },
     ];
-    mocks.rpc.mockReturnValue(rpcOk(anomalyTasks));
+    mockRpc(anomalyTasks);
     const { result } = renderHook(() => useWorkstreamTasks());
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -191,7 +249,7 @@ describe('useWorkstreamTasks', () => {
         confidence: 'blocked_external',
       },
     ];
-    mocks.rpc.mockReturnValue(rpcOk(tasks));
+    mockRpc(tasks);
     const { result } = renderHook(() => useWorkstreamTasks());
 
     await waitFor(() => expect(result.current.loading).toBe(false));

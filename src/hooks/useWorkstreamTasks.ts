@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import type { PeriodCheck } from '@/hooks/usePeriodClose';
 
 export type TaskConfidence =
   'auto_post' | 'quick_confirm' | 'review_needed' | 'advisor_required' | 'blocked_external';
@@ -49,13 +50,6 @@ function lastDayOfCurrentMonth(): string {
 }
 
 /**
- * Returns the ISO date string (YYYY-MM-DD) for today.
- */
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-/**
  * Returns a human-readable month label like "June 2026".
  */
 function currentMonthLabel(): string {
@@ -75,41 +69,44 @@ function isMonthEndWindow(): boolean {
 }
 
 /**
- * Fetches two lightweight counts needed for the month-end close derived task:
- *   1. Overdue bills (past due_date, status not 'paid' or 'void')
- *   2. Unmatched bank transactions posted in the current calendar month
- *      (coding_status not in ('coded', 'ignored'))
- *
- * Both queries use `count` aggregation — no row data is returned.
+ * The calendar month (YYYY-MM-01) whose close readiness the proactive
+ * derived task should check: the CURRENT month during the lead-in window
+ * (last 5 days), or the PRIOR month once we've rolled into the first-3-days
+ * tail — the month that actually needs closing at that point.
  */
-async function fetchMonthEndCounts(
-  orgId: string,
-): Promise<{ overdueBills: number; unmatchedBank: number }> {
-  const today = todayIso();
-  // Start of current calendar month
+function targetCloseMonthStart(): string {
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  if (now.getDate() <= 3) {
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return prev.toISOString().slice(0, 10);
+  }
+  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+}
 
-  const [billsResult, bankResult] = await Promise.all([
-    supabase
-      .from('bills')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', orgId)
-      .is('deleted_at', null)
-      .lt('invoice_date', today)
-      .not('status', 'in', '("paid","void")'),
+const EMPTY_PREFLIGHT_STATUS = { failedChecks: [] as PeriodCheck[], booksHealthBlocking: false };
 
-    supabase
-      .from('bank_transactions')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', orgId)
-      .gte('posted_at', monthStart)
-      .not('coding_status', 'in', '("coded","ignored")'),
+/**
+ * Fetches the real month-end close pre-flight signal — the same
+ * period_close_checks (0100) + v_books_health.blocking (0091) gates
+ * close_period() itself refuses on — so the derived task reflects whether a
+ * close would actually succeed, not an unrelated proxy heuristic. Callers
+ * should skip this outside the close window (see EMPTY_PREFLIGHT_STATUS):
+ * period_close_checks scans the month's bank_transactions/journal_entries,
+ * so it isn't cheap to run on every task-feed load when the result would go
+ * unused anyway.
+ */
+export async function fetchPreflightStatus(
+  orgId: string,
+): Promise<{ failedChecks: PeriodCheck[]; booksHealthBlocking: boolean }> {
+  const [checksResult, booksHealthResult] = await Promise.all([
+    supabase.rpc('period_close_checks', { p_org: orgId, p_period: targetCloseMonthStart() }),
+    supabase.from('v_books_health').select('blocking').eq('organization_id', orgId).maybeSingle(),
   ]);
 
+  const checks = (checksResult.data ?? []) as PeriodCheck[];
   return {
-    overdueBills: billsResult.count ?? 0,
-    unmatchedBank: bankResult.count ?? 0,
+    failedChecks: checks.filter((c) => !c.passed),
+    booksHealthBlocking: booksHealthResult.data?.blocking === true,
   };
 }
 
@@ -129,11 +126,12 @@ export function useWorkstreamTasks() {
     setError(null);
 
     const orgId = currentOrg.id;
+    const windowOpen = isMonthEndWindow();
 
     void Promise.all([
       supabase.rpc('get_workstream_tasks', { p_org_id: orgId }),
-      fetchMonthEndCounts(orgId),
-    ]).then(([{ data, error: rpcError }, { overdueBills, unmatchedBank }]) => {
+      windowOpen ? fetchPreflightStatus(orgId) : Promise.resolve(EMPTY_PREFLIGHT_STATUS),
+    ]).then(([{ data, error: rpcError }, { failedChecks, booksHealthBlocking }]) => {
       if (rpcError) {
         setError(rpcError.message);
         setTasks([]);
@@ -143,38 +141,41 @@ export function useWorkstreamTasks() {
 
       const base = (data ?? []) as WorkstreamTask[];
 
-      // Derive a month_end_close task when:
-      //   a) there are overdue bills, OR
-      //   b) there are unmatched bank rows from this month
-      // AND we are inside the month-end close window (last 5 days or first 3 days of new month).
-      const totalAttentionItems = overdueBills + unmatchedBank;
+      // Derive a month_end_close task when the real close pre-flight is
+      // failing (a period_close_checks row or books-health blocking).
+      // fetchPreflightStatus only fetches inside the month-end close window
+      // (last 5 days or first 3 days of the new month) — outside it, both
+      // are always empty/false, so no separate window check is needed here.
+      // arm 12 of get_workstream_tasks (period_close) only fires once the
+      // prior month is actually unlocked, so this proactive signal covers
+      // the lead-in before that — de-duped against it here.
       const alreadyHasCloseTask = base.some(
         (t) => t.task_kind === 'month_end_close' || t.task_kind === 'period_close',
       );
 
       const derivedTasks: WorkstreamTask[] = [];
 
-      if (!alreadyHasCloseTask && totalAttentionItems > 0 && isMonthEndWindow()) {
+      if (!alreadyHasCloseTask && (failedChecks.length > 0 || booksHealthBlocking)) {
         const monthLabel = currentMonthLabel();
-        const parts: string[] = [];
-        if (overdueBills > 0)
-          parts.push(`${overdueBills} overdue bill${overdueBills === 1 ? '' : 's'}`);
-        if (unmatchedBank > 0)
-          parts.push(
-            `${unmatchedBank} unmatched bank transaction${unmatchedBank === 1 ? '' : 's'}`,
-          );
-        const itemsSummary = parts.join(' and ');
+        const checkSummary = failedChecks
+          .map((c) => c.detail?.message ?? c.check_name)
+          .join('; ');
+        const whyNow = failedChecks.length > 0
+          ? `Month-end close window is open and pre-flight checks are failing: ${checkSummary}.`
+          : 'Month-end close window is open and books-health is below the close threshold.';
 
         derivedTasks.push({
           id: `derived-month-end-close-${orgId}`,
           organization_id: orgId,
           task_kind: 'month_end_close',
-          owner_label: `Close out ${monthLabel} books — ${itemsSummary} need attention`,
-          why_now: `Month-end close window is open and ${totalAttentionItems} item${totalAttentionItems === 1 ? '' : 's'} must be resolved before the period can be locked.`,
-          source_refs: { overdue_bills: overdueBills, unmatched_bank: unmatchedBank },
-          suggested_action:
-            'Review and clear overdue bills and unmatched bank transactions, then run the period close.',
-          confidence: 'review_needed',
+          owner_label: `Close out ${monthLabel} books — pre-flight checks need attention`,
+          why_now: whyNow,
+          source_refs: {
+            failed_checks: failedChecks.map((c) => c.check_name),
+            books_health_blocking: booksHealthBlocking,
+          },
+          suggested_action: 'Resolve the failing pre-flight checks, then run the period close.',
+          confidence: 'blocked_external',
           impact_cents: null,
           due_at: lastDayOfCurrentMonth(),
           blocking_reason: null,
