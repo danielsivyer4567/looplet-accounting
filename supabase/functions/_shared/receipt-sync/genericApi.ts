@@ -78,6 +78,56 @@ export class GenericApiNotConfigured extends Error {
   }
 }
 
+/** Raised when the configured endpoint URL is not a permitted delivery target. */
+export class GenericApiUnsafeEndpoint extends Error {
+  constructor(reason: string) {
+    super(`Generic API endpoint is not a permitted delivery target: ${reason}`);
+    this.name = 'GenericApiUnsafeEndpoint';
+  }
+}
+
+/**
+ * Validate an org-configured delivery URL before we POST bill data to it. The
+ * adapter runs inside a cloud edge function, so it must never be used to deliver
+ * over plaintext or to pivot at internal infrastructure (SSRF). We require a
+ * public https:// URL and reject loopback, link-local / cloud-metadata, and
+ * RFC1918 private hosts. Returns the parsed URL on success; throws otherwise.
+ */
+export function assertDeliverableEndpoint(rawUrl: string): URL {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    throw new GenericApiUnsafeEndpoint('malformed URL');
+  }
+  if (url.protocol !== 'https:') {
+    throw new GenericApiUnsafeEndpoint('must use https');
+  }
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  const blockedExact = new Set([
+    'localhost',
+    '0.0.0.0',
+    '::1',
+    '::',
+    'metadata',
+    'metadata.google.internal',
+  ]);
+  const isBlocked =
+    blockedExact.has(host) ||
+    host.endsWith('.localhost') ||
+    /^127\./.test(host) || // loopback
+    /^169\.254\./.test(host) || // link-local (incl. 169.254.169.254 cloud metadata)
+    /^10\./.test(host) || // RFC1918
+    /^192\.168\./.test(host) || // RFC1918
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) || // RFC1918 172.16/12
+    /^(?:fc|fd)[0-9a-f]{2}:/.test(host) || // IPv6 ULA fc00::/7
+    /^fe80:/.test(host); // IPv6 link-local
+  if (isBlocked) {
+    throw new GenericApiUnsafeEndpoint('internal or non-public host');
+  }
+  return url;
+}
+
 export async function hmacSha256Hex(secret: string, body: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     'raw',
@@ -133,11 +183,15 @@ export async function pushBillToGenericApi(args: GenericApiArgs): Promise<Generi
     throw new GenericApiNotConfigured();
   }
 
+  // Never deliver over plaintext or to an internal/SSRF target — the URL is
+  // org-configured but we run inside a cloud edge function.
+  const safeUrl = assertDeliverableEndpoint(endpoint.endpoint_url);
+
   const body = buildGenericApiBody(args);
   const timestamp = String(args.nowSeconds ?? Math.floor(Date.now() / 1000));
   const signature = await hmacSha256Hex(endpoint.signing_secret, `${timestamp}.${body}`);
 
-  const response = await fetch(endpoint.endpoint_url, {
+  const response = await fetch(safeUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
