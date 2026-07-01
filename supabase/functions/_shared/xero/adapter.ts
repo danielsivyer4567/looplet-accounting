@@ -8,6 +8,7 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { callXeroWithRetry, xeroFetch, XeroApiError } from './auth.ts';
+import { resolveXeroIdempotencyKey } from './idempotency.ts';
 
 interface BillForPush {
   id: string;
@@ -124,8 +125,14 @@ async function pushBillReal(args: PushArgs): Promise<PushResult> {
     Status: 'AUTHORISED',
   };
 
-  // 3. POST to Xero with idempotency-key
-  const idempotencyKey = crypto.randomUUID();
+  // 3. POST to Xero with a STABLE idempotency-key so a retry after a lost response
+  // reuses the same key and Xero dedups it, rather than creating a duplicate ACCPAY.
+  const idempotencyKey = await resolveXeroIdempotencyKey(undefined, [
+    'xero',
+    'bill',
+    organizationId,
+    bill.id,
+  ]);
   const data = await callXeroWithRetry<{ Invoices: { InvoiceID?: string }[] }>(
     admin,
     organizationId,
@@ -178,13 +185,22 @@ async function resolveOrCreateContact(
   const existing = found?.Contacts?.[0];
   if (existing?.ContactID) return existing.ContactID;
 
-  // Create
+  // Create with a stable idempotency key derived from the supplier name so two
+  // concurrent pushes for the same supplier don't race past the check-then-create
+  // and produce duplicate Xero contacts.
+  const contactIdempotencyKey = await resolveXeroIdempotencyKey(undefined, [
+    'xero',
+    'contact',
+    organizationId,
+    name.trim().toLowerCase(),
+  ]);
   const created = await callXeroWithRetry<{ Contacts: { ContactID?: string }[] }>(
     admin,
     organizationId,
     (ctx) =>
       xeroFetch(ctx, '/api.xro/2.0/Contacts', {
         method: 'POST',
+        headers: { 'Idempotency-Key': contactIdempotencyKey },
         body: JSON.stringify({ Contacts: [{ Name: name, IsSupplier: true }] }),
       }),
   );

@@ -123,6 +123,12 @@ export function buildStpEvent(args: {
 }): Record<string, unknown> {
   const { run, org, slips, generatedBy } = args;
   const termination = parseTermination(run.metadata);
+  // An ETP is only emitted alongside the terminated employee's pay slip. If that
+  // employee has no slip in this run, the ETP would be silently dropped from the STP
+  // file — flag it so it's included or lodged separately rather than under-reported.
+  const terminatedPresent = termination
+    ? slips.some((s) => s.employee.id === termination.employee_id)
+    : true;
 
   return {
     schema: "stp_phase2_v1",
@@ -215,6 +221,11 @@ export function buildStpEvent(args: {
       "TFN, address, and BMS_ID fields default to placeholders if not stored.",
       ...(termination
         ? ["Termination event — cessation type + ETP codes are simplified; confirm against the actual award/ATO before lodgement."]
+        : []),
+      ...(termination && !terminatedPresent
+        ? [
+          `Termination recorded for employee ${termination.employee_id} but no pay slip is in this run — the ETP is NOT included in this STP file. Include that employee in the pay run or lodge the ETP separately.`,
+        ]
         : []),
     ],
   };

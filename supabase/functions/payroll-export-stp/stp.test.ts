@@ -89,6 +89,45 @@ Deno.test("resignation: cessation code V + non-excluded ETP code O", () => {
   assertEquals(pe.employees[0].etp?.taxable_cents, 5_000_000);
 });
 
+Deno.test("termination without a pay slip in the run is flagged (ETP not silently dropped)", () => {
+  const meta = {
+    termination: {
+      employee_id: "e-missing",
+      cessation_date: "2026-06-30",
+      reason: "resignation",
+      etp: { taxable_cents: 5_000_000, tax_free_cents: 0, tax_withheld_cents: 1_600_000 },
+    },
+  };
+  const stp = buildStpEvent({
+    run: run(meta),
+    org: ORG,
+    slips: [slip("e1", "A")], // terminated employee e-missing has NO slip
+    generatedBy: "t",
+  });
+  const notes = (stp as { notes: string[] }).notes;
+  assertEquals(
+    notes.some((n) => n.includes("e-missing") && n.includes("no pay slip")),
+    true,
+  );
+  // No ETP block is emitted for the absent employee (there is no slip to carry it).
+  const pe = payEvent(stp);
+  assertEquals(pe.employees.every((x) => x.etp === null), true);
+});
+
+Deno.test("termination WITH a matching slip emits no orphan-ETP note", () => {
+  const meta = {
+    termination: {
+      employee_id: "e1",
+      cessation_date: "2026-06-30",
+      reason: "resignation",
+      etp: { taxable_cents: 5_000_000, tax_free_cents: 0, tax_withheld_cents: 1_600_000 },
+    },
+  };
+  const stp = buildStpEvent({ run: run(meta), org: ORG, slips: [slip("e1", "A")], generatedBy: "t" });
+  const notes = (stp as { notes: string[] }).notes;
+  assertEquals(notes.some((n) => n.includes("no pay slip")), false);
+});
+
 Deno.test("code mappers", () => {
   assertEquals(cessationTypeCode("invalidity"), "I");
   assertEquals(cessationTypeCode("dismissal"), "F");
