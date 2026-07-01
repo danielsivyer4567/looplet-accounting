@@ -53,3 +53,19 @@ Deno.test('hasRetryableGmailIngestFailure treats filtered mail as durably proces
     false,
   );
 });
+
+Deno.test('hasRetryableGmailIngestFailure retries a rolled-back enqueue and a failed rule lookup', () => {
+  // Both bail after rolling back / before inserting, so a replay must re-run them.
+  assertEquals(
+    hasRetryableGmailIngestFailure({
+      rejected: [{ reason: 'bill_extract enqueue could not reach worker' }],
+    }),
+    true,
+  );
+  assertEquals(
+    hasRetryableGmailIngestFailure({
+      rejected: [{ reason: 'rule lookup timed out' }],
+    }),
+    true,
+  );
+});

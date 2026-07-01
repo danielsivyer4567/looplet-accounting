@@ -9,7 +9,7 @@
  */
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { hasExistingGmailBill } from './dedupe.ts';
+import { existingGmailAttachmentIds } from './dedupe.ts';
 
 const ACCEPTED_MIME = new Set([
   'application/pdf',
@@ -46,8 +46,11 @@ export async function ingestGmailMessage(
 ): Promise<IngestStats> {
   const result: IngestStats = { bills: [], rejected: [], duplicates: 0 };
 
-  // Dedup: have we seen this messageId before?
-  if (await hasExistingGmailBill(admin, integ.organization_id, messageId)) {
+  // Per-(message, attachment) dedup so a mid-message retry re-ingests only the
+  // attachments that didn't land. A message fully ingested by the legacy per-message
+  // path (bills exist, no attachment ids recorded) is skipped wholesale.
+  const seen = await existingGmailAttachmentIds(admin, integ.organization_id, messageId);
+  if (seen.hasAnyBill && seen.attachmentIds.size === 0) {
     result.duplicates = 1;
     return result;
   }
@@ -108,6 +111,11 @@ export async function ingestGmailMessage(
   for (const part of attachments) {
     const attachmentId = part.body?.attachmentId;
     if (!attachmentId) continue;
+    // Skip only the attachments already ingested for this message (partial-retry safe).
+    if (seen.attachmentIds.has(attachmentId)) {
+      result.duplicates += 1;
+      continue;
+    }
     const attResp = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } },
@@ -154,6 +162,7 @@ export async function ingestGmailMessage(
         currency_code: 'AUD',
         intake_metadata: {
           gmail_message_id: messageId,
+          gmail_attachment_id: attachmentId,
           gmail_thread_id: msg.threadId,
           gmail_internal_date: msg.internalDate ?? null,
           from: fromAddress,
@@ -187,6 +196,10 @@ export async function ingestGmailMessage(
       },
     });
     if (jobErr) {
+      // Roll the bill back so a replay re-creates AND re-enqueues it, rather than
+      // leaving an orphan bill stuck in 'received' with no OCR job (the per-attachment
+      // dedup would otherwise block re-ingestion forever).
+      await admin.from('bills').delete().eq('id', bill.id);
       result.rejected.push({
         message_id: messageId,
         reason: `bill_extract enqueue ${jobErr.message}`,
