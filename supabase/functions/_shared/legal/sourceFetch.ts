@@ -61,8 +61,15 @@ function decodeHtml(value: string): string {
   };
   return value.replace(/&(#x[0-9a-f]+|#\d+|[a-z][a-z0-9]+);/gi, (whole, entity: string) => {
     const key = entity.toLowerCase();
-    if (key.startsWith('#x')) return String.fromCodePoint(Number.parseInt(key.slice(2), 16));
-    if (key.startsWith('#')) return String.fromCodePoint(Number.parseInt(key.slice(1), 10));
+    if (key.startsWith('#')) {
+      // Guard the code point: an out-of-range numeric entity (e.g. &#x110000;) would
+      // make String.fromCodePoint throw a RangeError and crash the whole source fetch.
+      // Leave the original text in place instead.
+      const cp = key.startsWith('#x')
+        ? Number.parseInt(key.slice(2), 16)
+        : Number.parseInt(key.slice(1), 10);
+      return Number.isInteger(cp) && cp >= 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : whole;
+    }
     return named[key] ?? whole;
   });
 }
@@ -114,7 +121,13 @@ function parseAuDate(value: string | null): string | null {
   if (!match) return null;
   const month = MONTHS[(match[2] ?? '').toLowerCase()];
   if (!month) return null;
-  return `${match[3]}-${month}-${(match[1] ?? '').padStart(2, '0')}`;
+  const iso = `${match[3]}-${month}-${(match[1] ?? '').padStart(2, '0')}`;
+  // Reject impossible days ("99 May 2020" → 2020-05-99, "31 Apr 2020") by round-tripping
+  // through Date: an out-of-range day yields NaN or normalizes to a different date. A bad
+  // effective_from would otherwise corrupt version ordering; null falls back to a default.
+  const d = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== iso) return null;
+  return iso;
 }
 
 function firstMatch(html: string, patterns: RegExp[]): string | null {

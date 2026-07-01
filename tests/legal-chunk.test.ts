@@ -157,6 +157,20 @@ describe('chunkLegalText — false-positive guards', () => {
   });
 });
 
+describe('chunkLegalText — header-less fallback embed bound', () => {
+  it('splits an oversized header-less paragraph so every chunk stays under the embed limit', () => {
+    const MAX_EMBED_CHARS = 6000; // mirror of the internal bound in chunk.ts
+    // One ~20k-char paragraph, no section headings → fallback path. Previously emitted
+    // as a single over-limit chunk; must now be split so each embed input is bounded.
+    const giant = 'word '.repeat(4000).trim();
+    const chunks = chunkLegalText(giant, { doc_ref: 'ATO ruling' });
+    expect(chunks.length).toBeGreaterThan(1);
+    for (const c of chunks) {
+      expect(c.text.length).toBeLessThanOrEqual(MAX_EMBED_CHARS);
+    }
+  });
+});
+
 describe('chunkLegalText — embedding bounds', () => {
   it('splits oversized sections into deterministic part anchors', () => {
     const longParagraphs = Array.from(

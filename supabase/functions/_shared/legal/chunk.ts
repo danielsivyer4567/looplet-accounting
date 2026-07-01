@@ -227,6 +227,16 @@ function fallbackChunks(text: string, doc_ref: string): LegalChunk[] {
   };
 
   for (const block of blocks) {
+    // A single paragraph larger than the embed limit must be split, or it becomes an
+    // over-limit embed input (the fallback path does not run through boundChunkForEmbedding).
+    if (block.length > MAX_EMBED_CHARS) {
+      flush();
+      for (const part of splitLongBlock(block)) {
+        n += 1;
+        out.push({ doc_ref, section_ref: `[${n}]`, heading: '', text: part });
+      }
+      continue;
+    }
     buf.push(block);
     size += block.length;
     if (size >= FLUSH_AT) flush();
