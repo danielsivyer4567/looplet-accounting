@@ -1,5 +1,14 @@
 # Ledger: Finish-Line — complete the app (50 slices, wave-orchestrated)
 
+> **SUPERSEDED 2026-07-02.** This ledger was never updated after the
+> finish-line effort actually ran — every slice below still reads `[ ]`
+> even though the work happened. The real status lives in
+> `docs/FINISH_LINE_TRACKER.md` (48/51 code-complete) plus
+> `docs/WIRING_ACTIVATION_PLAN.md` (live-wiring status, which is the actual
+> gap — see that doc). Do not resume `/work` against this file; it will
+> re-do already-shipped slices. Kept only for the original wave breakdown
+> as historical reference.
+
 **Branch:** feat/finish-line (off feat/accountant-portal @ 2d854d7)
 **Created:** 2026-06-29  **Approved:** yes (plan atomic-popping-mitten.md)
 **Tracker:** docs/FINISH_LINE_TRACKER.md  **Orchestrator:** main session (Workflow waves)

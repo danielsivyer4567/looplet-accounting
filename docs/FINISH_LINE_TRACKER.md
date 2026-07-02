@@ -4,7 +4,17 @@
 > after every slice verifies. Branch: `feat/finish-line` (off
 > `feat/accountant-portal`).
 
-**Progress: 48 / 51 complete (94%)** · blocked-external: 3 (ATO TODO)
+**Progress: 48 / 51 code-complete (94%)** · blocked-external: 3 (ATO TODO)
+
+> **Read this before trusting the 94%:** this number tracks code merged,
+> not features running on real data. Verified live 2026-07-02: Xero has
+> 0 connected orgs (all pushes run the stub path), the bank feed's one
+> connection is stale since 2026-05-02 despite an active cron, and the
+> coding→posting spine is stuck (202 coding_suggestions in 30 days → 0
+> automation_decisions, no `intake-routing-apply` cron exists). Gmail
+> ingestion is genuinely live (176 bills in 30 days). See
+> `docs/WIRING_ACTIVATION_PLAN.md` for the live-wiring gap and the fix
+> order — that doc, not this %, is the real measure of "is it finished."
 **Current wave:** F — compliance output
 **Last updated:** 2026-06-30 owner-first migrations `0230`-`0236` applied live
 through `supabase db query --linked` and recorded in
