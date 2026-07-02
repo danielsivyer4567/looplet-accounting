@@ -71,9 +71,16 @@ export function XeroConnect() {
       } = await supabase.auth.getSession();
       if (!session) throw new Error('Not signed in');
 
+      // Redirect URI must EXACTLY match one registered in the Xero Developer app
+      // (developer.xero.com/app/manage → Configuration → Redirect URIs).
+      // accounting.looplet.com.au is the canonical production domain, so the
+      // fallback is pinned to its registered callback — a missing/unset
+      // VITE_XERO_REDIRECT_URI can no longer silently derive the URI from
+      // window.location.origin and reintroduce a redirect_uri mismatch. A
+      // non-prod deployment can still override via the env var.
       const redirect_uri =
         import.meta.env.VITE_XERO_REDIRECT_URI ||
-        `${window.location.origin}/settings/xero-callback`;
+        'https://accounting.looplet.com.au/auth/callback/xero';
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/xero-oauth-start`;
       const res = await fetch(url, {
         method: 'POST',
