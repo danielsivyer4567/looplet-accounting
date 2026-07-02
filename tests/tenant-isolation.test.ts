@@ -137,7 +137,7 @@ describe('tenant isolation (cross-org RLS — DEPLOY BLOCKER)', () => {
       .from('bills')
       .insert({
         organization_id: orgId,
-        source: 'manual',
+        source: 'manual_upload',
         storage_key: `org-${orgId}/iso-${tag}.pdf`,
         original_filename: `iso-${tag}.pdf`,
         mime_type: 'application/pdf',
@@ -215,12 +215,15 @@ describe('tenant isolation (cross-org RLS — DEPLOY BLOCKER)', () => {
     }
     const orgId = org.data.id as string;
 
-    // 3. Make the user the owner of that org.
+    // 3. Make the user the owner of that org. accepted_at must be set —
+    // get_accessible_org_ids() treats accepted_at IS NULL as a pending
+    // invite and grants it zero access by design.
     const membership = await admin.from('organization_memberships').insert({
       user_id: userId,
       organization_id: orgId,
       role: 'owner',
       is_default: true,
+      accepted_at: new Date().toISOString(),
     });
     if (membership.error) {
       throw new Error(`membership insert(${tag}) failed: ${membership.error.message}`);
