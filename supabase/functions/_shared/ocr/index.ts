@@ -1,6 +1,6 @@
 /**
  * Provider-agnostic OCR layer. Port of Loopletnumero `services/ocr/index.ts`.
- * Selects adapter via `OCR_PROVIDER` env (groq | openai | kimi | anthropic).
+ * Selects adapter via `OCR_PROVIDER` env (minimax | anthropic | openai | groq).
  */
 
 import { extractBillDataGroq } from './groq.ts';

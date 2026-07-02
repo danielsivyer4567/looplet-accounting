@@ -11,6 +11,7 @@
  *   xero_push       — forward to xero-push-bill edge fn
  *   bank_reconcile  — forward to auto-reconcile edge fn
  *   gmail_backfill  — forward to gmail-backfill edge fn
+ *   gmail_mine      — forward to gmail-mine edge fn
  *   coding_classify — forward to gmail-classify-ai edge fn
  *   payment_record  — record AR invoice receipts from ingest payment jobs
  *
@@ -48,6 +49,7 @@ const DEFAULT_JOB_KINDS = [
   'xero_push',
   'bank_reconcile',
   'gmail_backfill',
+  'gmail_mine',
   'coding_classify',
   'payment_record',
 ] as const;
@@ -100,13 +102,17 @@ async function dispatchJob(
       const billId =
         stringValue(pl['bill_id']) ?? (job.source_kind === 'bill' ? job.source_id : null);
       const endpoint = billId ? 'bills-extract' : 'bills-extract-batch';
-      const requestBody = billId
+      const requestBody: Record<string, unknown> = billId
         ? { bill_id: billId, force: booleanValue(pl['force']) }
-        : {
-            organization_id: job.organization_id,
-            source_id: job.source_id,
-            payload: job.payload,
-          };
+        : { organization_id: job.organization_id };
+      if (!billId) {
+        const mode = billExtractBatchMode(pl['mode']);
+        const max = numberValue(pl['max']);
+        const delayMs = numberValue(pl['delay_ms']);
+        if (mode) requestBody['mode'] = mode;
+        if (max && Number.isInteger(max) && max > 0) requestBody['max'] = max;
+        if (delayMs && Number.isFinite(delayMs) && delayMs > 0) requestBody['delay_ms'] = delayMs;
+      }
       const res = await fetch(`${base}/${endpoint}`, {
         method: 'POST',
         headers,
@@ -208,6 +214,34 @@ async function dispatchJob(
           integration_id: pl['integration_id'] ?? job.source_id,
           days: pl['days'] ?? 180,
         }),
+      });
+      const body = await res.json().catch(() => ({}));
+      return { ok: res.ok, detail: body };
+    }
+
+    case 'gmail_mine': {
+      const pl = objectPayload(job.payload);
+      const integrationId =
+        stringValue(pl['integration_id']) ??
+        (job.source_kind === 'gmail_integration' ? job.source_id : null);
+      if (!integrationId) {
+        return { ok: false, detail: { error: 'gmail_mine requires integration_id' } };
+      }
+      const days = numberValue(pl['days']);
+      const max = numberValue(pl['max']);
+      const folder = pl['folder'] === 'sent' ? 'sent' : 'inbox';
+      const requestBody: Record<string, unknown> = {
+        integration_id: integrationId,
+        folder,
+      };
+      if (days && Number.isInteger(days) && days > 0) requestBody['days'] = days;
+      if (max && Number.isInteger(max) && max > 0) requestBody['max'] = max;
+      const pageToken = stringValue(pl['page_token']);
+      if (pageToken) requestBody['page_token'] = pageToken;
+      const res = await fetch(`${base}/gmail-mine`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody),
       });
       const body = await res.json().catch(() => ({}));
       return { ok: res.ok, detail: body };
@@ -480,6 +514,10 @@ function numberValue(value: unknown): number | null {
 
 function booleanValue(value: unknown): boolean {
   return value === true;
+}
+
+function billExtractBatchMode(value: unknown): 'received' | 'repair' | null {
+  return value === 'received' || value === 'repair' ? value : null;
 }
 
 function paidAtIso(value: unknown): string | null {

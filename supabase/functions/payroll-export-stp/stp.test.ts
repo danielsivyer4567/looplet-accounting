@@ -6,6 +6,7 @@ import {
   buildStpEvent,
   cessationTypeCode,
   etpCode,
+  stpTransmissionGate,
   type StpOrg,
   type StpRun,
   type StpSlip,
@@ -42,9 +43,23 @@ interface PayEvent {
 const payEvent = (stp: Record<string, unknown>) => (stp as { pay_event: PayEvent }).pay_event;
 
 Deno.test("ordinary run: no termination block, no ETP on any employee", () => {
-  const pe = payEvent(buildStpEvent({ run: run(null), org: ORG, slips: [slip("e1", "A")], generatedBy: "t" }));
+  const stp = buildStpEvent({ run: run(null), org: ORG, slips: [slip("e1", "A")], generatedBy: "t" });
+  const pe = payEvent(stp);
   assertEquals(pe.termination, null);
   assertEquals(pe.employees[0].etp, null);
+  assertEquals(
+    (stp as { transmission_gate: ReturnType<typeof stpTransmissionGate> }).transmission_gate,
+    stpTransmissionGate(),
+  );
+});
+
+Deno.test("STP export is explicitly transmit-gated, not an SBR submission", () => {
+  const gate = stpTransmissionGate();
+  assertEquals(gate.approval_required, true);
+  assertEquals(gate.blocked_action, "stp_sbr_transmit");
+  assertEquals(gate.transmit_enabled, false);
+  assertEquals(gate.handoff, "registered_tax_or_bas_agent");
+  assertEquals(gate.external_wall.includes("ATO/DSP/SBR"), true);
 });
 
 Deno.test("genuine redundancy: cessation code R + excluded ETP code R on the terminated employee only", () => {

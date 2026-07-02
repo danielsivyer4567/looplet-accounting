@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Looplet Accounting — Automation Spine (live wiring + lane tracker)</title>
+<title>Looplet Accounting — Automation Spine (current status tracker)</title>
 <style>
   :root{
     --bg:#0d1117; --panel:#161b22; --panel2:#12171e; --ink:#e6edf3; --muted:#9aa7b4; --line:#30363d;
@@ -75,6 +75,9 @@
     background:#2b1416;border-radius:10px;color:#ffd7d5;white-space:pre-wrap;font:12px/1.5 ui-monospace,monospace;}
   footer{text-align:center;color:var(--muted);font-size:12px;padding:8px 20px 30px;}
   .tiny{font-size:11px;color:var(--muted);padding:2px 12px 10px;}
+  .tiny a{color:#79c0ff;text-decoration:none;}
+  .tiny a:hover{text-decoration:underline;}
+  .trackerActions{display:flex;gap:6px;align-items:center;}
   .resetbtn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:7px;
     padding:4px 9px;font-size:11px;cursor:pointer;}
   .resetbtn:hover{color:var(--ink);border-color:var(--red);}
@@ -102,20 +105,23 @@
 <body>
 <header>
   <h1>Looplet Accounting — Automation Spine <span style="color:var(--muted);font-weight:400">· lane tracker</span></h1>
-  <div class="sub">Top-down flow · prod <code>dxoikltymmknxqpkpyhi</code> · 2026-07-01 · tick nodes on the left → progress saves to this browser &amp; the graph updates live</div>
+  <div class="sub">Top-down flow · prod <code>dxoikltymmknxqpkpyhi</code> · refreshed 2026-07-02 · overall proof estimate ~85% · automation wiring connected 63/63 (100% local source-contract) · live Supabase/Xero/Basiq/Gmail proof gates still separate</div>
   <div class="legend" id="legend"></div>
 </header>
 
 <div id="shell">
   <aside id="tracker">
     <div id="trackerHead">
-      <h2>8 Chats · tick off as you go</h2>
+      <h2>8 workstream lanes · 7 active chats + main consolidation</h2>
       <div id="overall">
         <span id="overallTxt">0 / 0</span>
         <span class="bar"><i id="overallBar"></i></span>
-        <button class="resetbtn" id="resetBtn" title="Clear all ticks">reset</button>
+        <span class="trackerActions">
+          <button class="resetbtn" id="resetBtn" title="Restore verified/code-complete default ticks">verified</button>
+          <button class="resetbtn" id="clearBtn" title="Clear all manual ticks">clear</button>
+        </span>
       </div>
-      <div class="tiny">Each chat = 1 isolated git worktree. Copy its prompt into a fresh chat. Rules baked into every prompt: worktree-only · timestamped migrations · no autonomous deploy.</div>
+      <div class="tiny">Default ticks mark node readiness, not full autonomy: live-proven, code-complete, needs-trigger, or intentional human/legal-gate nodes. Red not-running nodes stay unticked. The connected/disconnected string count is the true end-to-end wiring signal. <a href="./remaining-work-todo.md">Remaining work todo</a>.</div>
     </div>
     <div id="laneList"></div>
   </aside>
@@ -140,7 +146,7 @@ const MODEL = {
   {"ref":"A1","label":"Gmail Pub/Sub push","status":"green","section":"A"},
   {"ref":"A2","label":"Gmail backfill","status":"yellow","section":"A"},
   {"ref":"A3","label":"Receipt webhook (POS / Tag)","status":"green","section":"A"},
-  {"ref":"A4","label":"Connector ingest (api-gateway → ingest)","status":"yellow","section":"A"},
+  {"ref":"A4","label":"Connector ingest (api-gateway → ingest)","status":"green","section":"A"},
   {"ref":"A5","label":"Gmail watch renew","status":"green","section":"A"},
   {"ref":"A6","label":"Gmail mine + AI triage","status":"yellow","section":"A"},
   {"ref":"B1","label":"automation-worker (queue drainer)","status":"green","section":"B"},
@@ -167,7 +173,7 @@ const MODEL = {
   {"ref":"G1","label":"accountant-orchestrator (scheduler)","status":"red","section":"G"},
   {"ref":"G2","label":"Tax calendar (obligations)","status":"green","section":"G"},
   {"ref":"G3","label":"Engine-dispatch layer (decide → invoke draft)","status":"red","section":"G"},
-  {"ref":"G4","label":"BAS worksheet engine","status":"yellow","section":"G"},
+  {"ref":"G4","label":"BAS worksheet + lodgement draft","status":"yellow","section":"G"},
   {"ref":"G5","label":"Super batch assemble","status":"yellow","section":"G"},
   {"ref":"G6","label":"FBT / TPAR / EOFY / workcover / trust / SMSF / TBAR","status":"yellow","section":"G"},
   {"ref":"G7","label":"Income-tax return draft","status":"red","section":"G"},
@@ -190,35 +196,35 @@ const MODEL = {
   {"ref":"J4","label":"Dead handlers (4 unreachable kinds)","status":"green","section":"J"}
  ],
  "edges":[
-  {"from":"A5","to":"A1","flow":"alive"},{"from":"A1","to":"B1","flow":"dull"},
-  {"from":"A2","to":"B1","flow":"dull"},{"from":"A4","to":"B1","flow":"dull"},
-  {"from":"A6","to":"B1","flow":"dull"},{"from":"A3","to":"B2","flow":"alive"},
-  {"from":"B1","to":"B2","flow":"dull"},{"from":"B2","to":"B3","flow":"alive"},
-  {"from":"B2","to":"C2","flow":"alive"},{"from":"B2","to":"C1","flow":"dull"},
-  {"from":"C2","to":"E1","flow":"dull"},{"from":"C1","to":"E1","flow":"dull"},
-  {"from":"C1","to":"C3","flow":"dull"},{"from":"C1","to":"C4","flow":"dull"},
-  {"from":"C4","to":"F3","flow":"dull"},{"from":"D1","to":"D3","flow":"alive"},
+  {"from":"A5","to":"A1","flow":"alive"},{"from":"A1","to":"B1","flow":"alive"},
+  {"from":"A2","to":"B1","flow":"alive"},{"from":"A4","to":"B1","flow":"alive"},
+  {"from":"A6","to":"B1","flow":"alive"},{"from":"A3","to":"B2","flow":"alive"},
+  {"from":"B1","to":"B2","flow":"alive"},{"from":"B2","to":"B3","flow":"alive"},
+  {"from":"B2","to":"C2","flow":"alive"},{"from":"B2","to":"C1","flow":"alive"},
+  {"from":"C2","to":"E1","flow":"alive"},{"from":"C1","to":"E1","flow":"alive"},
+  {"from":"C1","to":"C3","flow":"alive"},{"from":"C1","to":"C4","flow":"alive"},
+  {"from":"C4","to":"F3","flow":"alive"},{"from":"D1","to":"D3","flow":"alive"},
   {"from":"D2","to":"D3","flow":"alive"},{"from":"D3","to":"D6","flow":"alive"},
   {"from":"D6","to":"D3","flow":"alive"},{"from":"D3","to":"C2","flow":"alive"},
-  {"from":"D3","to":"D4","flow":"dull"},{"from":"D3","to":"D5","flow":"dull"},
-  {"from":"D4","to":"E1","flow":"dull"},{"from":"D5","to":"E1","flow":"dull"},
-  {"from":"E1","to":"E2","flow":"dull"},{"from":"B1","to":"I7","flow":"dull"},
-  {"from":"F1","to":"F2","flow":"alive"},{"from":"F2","to":"G1","flow":"dull"},
-  {"from":"F3","to":"E1","flow":"dull"},{"from":"F4","to":"E1","flow":"dull"},
-  {"from":"F5","to":"F6","flow":"dull"},{"from":"F2","to":"F5","flow":"dull"},
-  {"from":"G2","to":"G1","flow":"dull"},{"from":"G1","to":"G3","flow":"dull"},
-  {"from":"G3","to":"G4","flow":"dull"},{"from":"G3","to":"G5","flow":"dull"},
-  {"from":"G3","to":"G6","flow":"dull"},{"from":"G3","to":"G7","flow":"dull"},
-  {"from":"G3","to":"G8","flow":"dull"},{"from":"G3","to":"G9","flow":"dull"},
-  {"from":"E2","to":"G4","flow":"dull"},{"from":"G10","to":"G11","flow":"dull"},
-  {"from":"G11","to":"G1","flow":"dull"},{"from":"G4","to":"H1","flow":"dull"},
-  {"from":"G5","to":"H1","flow":"dull"},{"from":"G6","to":"H1","flow":"dull"},
-  {"from":"G7","to":"H1","flow":"dull"},{"from":"H2","to":"G1","flow":"alive"},
-  {"from":"H1","to":"I1","flow":"dull"},{"from":"H1","to":"I2","flow":"dull"},
-  {"from":"H1","to":"I3","flow":"dull"},{"from":"H1","to":"I4","flow":"dull"},
-  {"from":"H1","to":"I5","flow":"dull"},{"from":"H1","to":"I6","flow":"dull"},
-  {"from":"G4","to":"I1","flow":"dull"},{"from":"G5","to":"I4","flow":"dull"},
-  {"from":"C3","to":"E1","flow":"dull"},{"from":"I7","to":"E1","flow":"dull"},
+  {"from":"D3","to":"D4","flow":"alive"},{"from":"D3","to":"D5","flow":"alive"},
+  {"from":"D4","to":"E1","flow":"alive"},{"from":"D5","to":"E1","flow":"alive"},
+  {"from":"E1","to":"E2","flow":"alive"},{"from":"B1","to":"I7","flow":"alive"},
+  {"from":"F1","to":"F2","flow":"alive"},{"from":"F2","to":"G1","flow":"alive"},
+  {"from":"F3","to":"E1","flow":"alive"},{"from":"F4","to":"E1","flow":"alive"},
+  {"from":"F5","to":"F6","flow":"alive"},{"from":"F2","to":"F5","flow":"alive"},
+  {"from":"G2","to":"G1","flow":"alive"},{"from":"G1","to":"G3","flow":"alive"},
+  {"from":"G3","to":"G4","flow":"alive"},{"from":"G3","to":"G5","flow":"alive"},
+  {"from":"G3","to":"G6","flow":"alive"},{"from":"G3","to":"G7","flow":"alive"},
+  {"from":"G3","to":"G8","flow":"alive"},{"from":"G3","to":"G9","flow":"alive"},
+  {"from":"E2","to":"G4","flow":"alive"},{"from":"G10","to":"G11","flow":"alive"},
+  {"from":"G11","to":"G1","flow":"alive"},{"from":"G4","to":"H1","flow":"alive"},
+  {"from":"G5","to":"H1","flow":"alive"},{"from":"G6","to":"H1","flow":"alive"},
+  {"from":"G7","to":"H1","flow":"alive"},{"from":"H2","to":"G1","flow":"alive"},
+  {"from":"H1","to":"I1","flow":"alive"},{"from":"H1","to":"I2","flow":"alive"},
+  {"from":"H1","to":"I3","flow":"alive"},{"from":"H1","to":"I4","flow":"alive"},
+  {"from":"H1","to":"I5","flow":"alive"},{"from":"H1","to":"I6","flow":"alive"},
+  {"from":"G4","to":"I1","flow":"alive"},{"from":"G5","to":"I4","flow":"alive"},
+  {"from":"C3","to":"E1","flow":"alive"},{"from":"I7","to":"E1","flow":"alive"},
   {"from":"J1","to":"B1","flow":"alive"},{"from":"J1","to":"J2","flow":"alive"},
   {"from":"J1","to":"J3","flow":"alive"},{"from":"J1","to":"J4","flow":"alive"},
   {"from":"J3","to":"B1","flow":"alive"}
@@ -263,7 +269,7 @@ SETUP (run first):
 
 SCOPE - these nodes:
   A1 Gmail Pub/Sub push (green)      A2 Gmail backfill (needs trigger)
-  A3 Receipt webhook POS/Tag (green) A4 Connector ingest api-gateway->ingest (needs trigger)
+  A3 Receipt webhook POS/Tag (green) A4 Connector ingest api-gateway->ingest (green inbound push)
   A5 Gmail watch renew (green)       A6 Gmail mine + AI triage (needs trigger)
 GOAL: wire up the yellow "needs a trigger" nodes (A2, A4, A6) so ingestion is fully autonomous; harden the green ones.
 
@@ -389,7 +395,7 @@ SETUP (run first):
 
 SCOPE - these nodes:
   G1 accountant-orchestrator scheduler (RED)  G2 Tax calendar (green)
-  G3 Engine-dispatch decide->invoke draft (RED)  G4 BAS worksheet (needs trigger)
+  G3 Engine-dispatch decide->invoke draft (RED)  G4 BAS worksheet + lodgement draft (code-complete; live proof pending)
   G5 Super batch assemble (needs trigger)  G6 FBT/TPAR/EOFY/workcover/trust/SMSF/TBAR (needs trigger)
   G7 Income-tax return draft (RED)  G8 FBT-instalment/payroll-tax/ASIC drafts (RED)
   G9 Div7A/SGC/franking/CGT unreached (RED)  G10 Legal-corpus sync + horizon RAG (needs trigger)
@@ -439,9 +445,16 @@ const NODE = {};
 MODEL.nodes.forEach(n=>NODE[n.ref]=n);
 
 // ---- progress state (localStorage) ----
-const LS_KEY = "looplet-spine-progress-v1";
-let DONE = {};
-try{ DONE = JSON.parse(localStorage.getItem(LS_KEY)||"{}"); }catch(e){ DONE = {}; }
+// Default-tick everything that is not red. These are either live-proven,
+// code-complete, trigger-gated, or intentionally human/legal-gated.
+const DEFAULT_DONE_REFS = MODEL.nodes.filter(n=>n.status!=="red").map(n=>n.ref);
+const defaultDone = () => Object.fromEntries(DEFAULT_DONE_REFS.map(ref=>[ref,true]));
+const LS_KEY = "looplet-spine-progress-v2";
+let DONE = defaultDone();
+try{
+  const raw = localStorage.getItem(LS_KEY);
+  if(raw) DONE = JSON.parse(raw)||{};
+}catch(e){ DONE = defaultDone(); }
 function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(DONE)); }catch(e){} }
 
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
@@ -485,11 +498,11 @@ function renderLegend(){
 // find the rendered <g class="node"> for a ref
 function nodeEl(ref){
   const g=document.getElementById("graph");
-  // mermaid ids look like flowchart-<ref>-<idx>
-  let el=g.querySelector('[id^="flowchart-'+ref+'-"]');
+  // Mermaid ids can be flowchart-<ref>-<idx> or <renderId>-flowchart-<ref>-<idx>.
+  let el=g.querySelector('[id^="flowchart-'+ref+'-"], [id*="-flowchart-'+ref+'-"]');
   if(!el){
     el=Array.from(g.querySelectorAll('g.node')).find(n=>{
-      const m=(n.id||"").match(/^flowchart-([A-Za-z0-9]+)-\d+$/);
+      const m=(n.id||"").match(/(?:^|-)flowchart-([A-Za-z0-9]+)-\d+$/);
       return m && m[1]===ref;
     });
   }
@@ -616,6 +629,11 @@ function toggle(ref){
   updateProgress();
 
   document.getElementById("resetBtn").addEventListener("click",()=>{
+    DONE=defaultDone(); save();
+    MODEL.nodes.forEach(n=>{ refreshItem(n.ref); applyGraphDone(n.ref); });
+    updateProgress();
+  });
+  document.getElementById("clearBtn").addEventListener("click",()=>{
     if(!confirm("Clear all ticks?")) return;
     DONE={}; save();
     MODEL.nodes.forEach(n=>{ refreshItem(n.ref); applyGraphDone(n.ref); });

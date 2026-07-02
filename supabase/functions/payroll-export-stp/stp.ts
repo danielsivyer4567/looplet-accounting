@@ -56,6 +56,14 @@ export interface StpOrg {
   settings: Record<string, unknown> | null;
 }
 
+export interface StpTransmissionGate {
+  approval_required: true;
+  blocked_action: "stp_sbr_transmit";
+  transmit_enabled: false;
+  external_wall: string;
+  handoff: "registered_tax_or_bas_agent";
+}
+
 export interface TerminationContext {
   employee_id: string;
   cessation_date: string;
@@ -93,6 +101,17 @@ export function cessationTypeCode(reason: string): string {
 /** Life-benefit ETP code: R for excluded (redundancy/invalidity/early-retirement), else O. */
 export function etpCode(reason: string): string {
   return EXCLUDED_ETP_REASONS.has(reason) ? "R" : "O";
+}
+
+export function stpTransmissionGate(): StpTransmissionGate {
+  return {
+    approval_required: true,
+    blocked_action: "stp_sbr_transmit",
+    transmit_enabled: false,
+    external_wall:
+      "STP SBR transmission requires an authorised ATO/DSP/SBR channel and registered tax/BAS-agent handling; Looplet prepares the file only.",
+    handoff: "registered_tax_or_bas_agent",
+  };
 }
 
 function parseTermination(metadata: Record<string, unknown> | null): TerminationContext | null {
@@ -134,6 +153,7 @@ export function buildStpEvent(args: {
     schema: "stp_phase2_v1",
     generated_at: new Date().toISOString(),
     generated_by: generatedBy,
+    transmission_gate: stpTransmissionGate(),
     header: {
       employer_abn: (org?.settings as Record<string, unknown> | null)?.["abn"] ?? null,
       employer_name: org?.name ?? null,

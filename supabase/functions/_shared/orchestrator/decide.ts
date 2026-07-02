@@ -9,7 +9,8 @@ export type OrchestratorPriority = "urgent" | "high" | "normal" | "low";
 export type OrchestratorTaskSource =
   | "books_health"
   | "tax_calendar"
-  | "seasonal";
+  | "seasonal"
+  | "advisor";
 
 export interface TaxCalendarRow {
   organization_id: string;
@@ -43,12 +44,26 @@ export interface OrganizationProfile {
   employees_count?: number | null;
 }
 
+export interface AdvisorSignalRow {
+  id: string;
+  organization_id: string;
+  kind: string;
+  title: string;
+  summary: string;
+  status: string;
+  inputs: Record<string, unknown> | null;
+  numbers: Record<string, unknown> | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
 export interface DecideInput {
   organization_id: string;
   as_at_date: string | Date;
   tax_calendar: TaxCalendarRow[];
   books_health: BooksHealthRow | null;
   profile: OrganizationProfile | null;
+  advisor_signals?: AdvisorSignalRow[];
 }
 
 export interface OrchestratorTask {
@@ -188,6 +203,34 @@ const OBLIGATION_MAPPINGS: Record<string, ObligationMapping> = {
     route: "/trusts",
     requiresCleanBooks: true,
   },
+  div7a: {
+    engine: "div7a",
+    action: "prepare_div7a_review",
+    title: (row) => `Prepare ${row.title}`,
+    route: "/trusts",
+    requiresCleanBooks: true,
+  },
+  sgc: {
+    engine: "sgc",
+    action: "prepare_sgc_review",
+    title: (row) => `Prepare ${row.title}`,
+    route: "/payroll",
+    requiresCleanBooks: false,
+  },
+  franking_account: {
+    engine: "franking",
+    action: "prepare_franking_account_review",
+    title: (row) => `Prepare ${row.title}`,
+    route: "/reports/tax-return",
+    requiresCleanBooks: true,
+  },
+  cgt: {
+    engine: "cgt",
+    action: "prepare_cgt_review",
+    title: (row) => `Prepare ${row.title}`,
+    route: "/reports/tax-return",
+    requiresCleanBooks: true,
+  },
 };
 
 export function decideOrchestratorTasks(
@@ -244,6 +287,12 @@ export function decideOrchestratorTasks(
       skipped,
     ),
   );
+  tasks.push(
+    ...advisorSignalTasks(
+      input.organization_id,
+      input.advisor_signals ?? [],
+    ),
+  );
 
   return {
     organization_id: input.organization_id,
@@ -252,6 +301,68 @@ export function decideOrchestratorTasks(
     tasks: sortTasks(tasks),
     skipped,
   };
+}
+
+function advisorSignalTasks(
+  organizationId: string,
+  rows: AdvisorSignalRow[],
+): OrchestratorTask[] {
+  return rows
+    .filter((row) => isScheduledDraftAdvisorSignal(organizationId, row))
+    .map((row) => advisorReviewTask(organizationId, row));
+}
+
+function isScheduledDraftAdvisorSignal(
+  organizationId: string,
+  row: AdvisorSignalRow,
+): boolean {
+  return row.organization_id === organizationId &&
+    row.status === "draft" &&
+    row.inputs?.scheduled === true;
+}
+
+function advisorReviewTask(
+  organizationId: string,
+  row: AdvisorSignalRow,
+): OrchestratorTask {
+  const period = typeof row.inputs?.scheduler_period === "string"
+    ? row.inputs.scheduler_period
+    : null;
+  const legalHorizonCount = Number(row.numbers?.legal_horizon_open_count ?? 0);
+  const legalHorizonReason = legalHorizonCount > 0
+    ? ` Includes ${legalHorizonCount} legal-horizon proposal signal(s) for review.`
+    : "";
+
+  return {
+    engine: "advisor",
+    action: "review_advice_note",
+    priority: advisorSignalPriority(row.kind, legalHorizonCount),
+    title: `Review advisor note: ${row.title}`,
+    reason:
+      `Scheduled advisor generated a ${row.kind} draft that needs review.${legalHorizonReason}`,
+    source: "advisor",
+    due_date: null,
+    period_label: period,
+    idempotency_key: `${organizationId}:advisor_note:${row.id}:review`,
+    payload: {
+      organization_id: organizationId,
+      advice_note_id: row.id,
+      kind: row.kind,
+      status: row.status,
+      scheduled_period: period,
+      legal_horizon_open_count: legalHorizonCount,
+      route: "/ask",
+    },
+  };
+}
+
+function advisorSignalPriority(
+  kind: string,
+  legalHorizonCount: number,
+): OrchestratorPriority {
+  if (legalHorizonCount > 0) return "normal";
+  if (kind === "year_end" || kind === "structuring") return "normal";
+  return "low";
 }
 
 function dueCalendarRows(
@@ -292,6 +403,7 @@ function calendarTask(
       period_start: row.period_start,
       period_end: row.period_end,
       due_date: row.due_date,
+      fy_start_year: row.fy_start_year,
       stage: row.stage,
       status: row.status,
       route: mapping.route,
@@ -448,7 +560,8 @@ function taskSortRank(task: OrchestratorTask): number {
 function sourceSortRank(source: OrchestratorTaskSource): number {
   if (source === "tax_calendar") return 0;
   if (source === "seasonal") return 1;
-  return 2;
+  if (source === "advisor") return 2;
+  return 3;
 }
 
 function dateSortValue(value: string | null): number {

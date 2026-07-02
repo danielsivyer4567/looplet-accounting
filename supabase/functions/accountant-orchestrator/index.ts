@@ -11,6 +11,7 @@ import {
 } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
 import {
+  type AdvisorSignalRow,
   type BooksHealthRow,
   type DecideInput,
   decideOrchestratorTasks,
@@ -20,12 +21,17 @@ import {
   type OrganizationProfile,
   type TaxCalendarRow,
 } from "../_shared/orchestrator/decide.ts";
+import {
+  dispatchOrchestratorTasks,
+  type DispatchSummary,
+} from "../_shared/orchestrator/dispatch.ts";
 
 type SupabaseAdmin = SupabaseClient;
 
 interface RequestBody {
   organization_id?: string;
   as_at_date?: string;
+  dispatch?: boolean;
 }
 
 export interface TaskNotification {
@@ -180,7 +186,7 @@ async function loadDecisionInput(
   orgId: string,
   asAtDate: string,
 ): Promise<DecideInput> {
-  const [calendarRes, healthRes, profileRes] = await Promise.all([
+  const [calendarRes, healthRes, profileRes, advisorRes] = await Promise.all([
     admin
       .from("v_tax_calendar")
       .select(
@@ -199,6 +205,17 @@ async function loadDecisionInput(
       .select("organization_id, entity_type, employees_count")
       .eq("organization_id", orgId)
       .maybeSingle(),
+    admin
+      .from("advice_notes")
+      .select(
+        "id, organization_id, kind, title, summary, status, inputs, numbers, created_at, updated_at",
+      )
+      .eq("organization_id", orgId)
+      .eq("status", "draft")
+      .contains("inputs", { scheduled: true })
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: false })
+      .limit(10),
   ]);
 
   if (calendarRes.error) {
@@ -210,6 +227,9 @@ async function loadDecisionInput(
   if (profileRes.error) {
     throw new Error(`business_profile: ${profileRes.error.message}`);
   }
+  if (advisorRes.error) {
+    throw new Error(`advice_notes: ${advisorRes.error.message}`);
+  }
 
   return {
     organization_id: orgId,
@@ -217,6 +237,7 @@ async function loadDecisionInput(
     tax_calendar: (calendarRes.data ?? []) as TaxCalendarRow[],
     books_health: (healthRes.data ?? null) as BooksHealthRow | null,
     profile: (profileRes.data ?? null) as OrganizationProfile | null,
+    advisor_signals: (advisorRes.data ?? []) as AdvisorSignalRow[],
   };
 }
 
@@ -231,6 +252,7 @@ async function runForOrg(
     emitted: number;
     task_count: number;
     skipped_count: number;
+    dispatch: DispatchSummary | null;
     error?: string;
   }
 > {
@@ -242,7 +264,8 @@ async function runForOrg(
       decision,
       (targetOrg, notification) => emitOnce(admin, targetOrg, notification),
     );
-    return { org: orgId, ok: true, ...summary };
+    const dispatch = await dispatchOrchestratorTasks(admin, decision);
+    return { org: orgId, ok: dispatch.failed === 0, ...summary, dispatch };
   } catch (err) {
     return {
       org: orgId,
@@ -250,6 +273,7 @@ async function runForOrg(
       emitted: 0,
       task_count: 0,
       skipped_count: 0,
+      dispatch: null,
       error: err instanceof Error ? err.message : String(err),
     };
   }

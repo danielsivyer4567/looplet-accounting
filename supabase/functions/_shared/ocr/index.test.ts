@@ -7,7 +7,7 @@
 // manual-entry stub rather than throwing.
 
 import { assertEquals, assertRejects, assertStringIncludes } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { extractBillData } from './index.ts';
+import { extractBillData, getActiveProvider } from './index.ts';
 
 const VALID_BILL_JSON = JSON.stringify({
   supplier_name: 'Test Supplier',
@@ -74,6 +74,54 @@ Deno.test('extractBillData falls through to the next provider when the first fai
     assertEquals(result.provider, 'anthropic');
     assertEquals(result.data.supplier_name, 'Test Supplier');
   });
+});
+
+Deno.test('getActiveProvider prefers MiniMax over legacy Groq when both are configured', async () => {
+  await withEnv(
+    {
+      OCR_PROVIDER: '',
+      MINIMAX_API_KEY: 'mm',
+      ANTHROPIC_API_KEY: 'an',
+      OPENAI_API_KEY: 'op',
+      GROQ_API_KEY: 'gr',
+    },
+    async () => {
+      assertEquals(getActiveProvider(), 'minimax');
+    },
+  );
+});
+
+Deno.test('extractBillData sends PDFs to Anthropic as native document blocks when selected', async () => {
+  await withEnv(
+    {
+      OCR_PROVIDER: 'anthropic',
+      MINIMAX_API_KEY: '',
+      ANTHROPIC_API_KEY: 'an',
+      OPENAI_API_KEY: '',
+      GROQ_API_KEY: '',
+    },
+    async () => {
+      let capturedBody: Record<string, unknown> | null = null;
+      globalThis.fetch = ((input: string | URL | Request, init?: RequestInit) => {
+        const url = String(input);
+        if (!url.includes('anthropic')) {
+          return Promise.resolve(new Response('not found', { status: 404 }));
+        }
+        capturedBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        return Promise.resolve(anthropicOk());
+      }) as typeof fetch;
+
+      const result = await extractBillData(new Uint8Array([37, 80, 68, 70]), 'application/pdf');
+      assertEquals(result.provider, 'anthropic');
+      assertEquals(result.data.supplier_name, 'Test Supplier');
+
+      const messages = (capturedBody?.['messages'] ?? []) as unknown as {
+        content: { type: string; source?: { media_type?: string } }[];
+      }[];
+      assertEquals(messages[0]?.content[0]?.type, 'document');
+      assertEquals(messages[0]?.content[0]?.source?.media_type, 'application/pdf');
+    },
+  );
 });
 
 Deno.test('extractBillData aggregates errors when every provider fails', async () => {

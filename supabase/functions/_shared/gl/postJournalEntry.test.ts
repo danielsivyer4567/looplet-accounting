@@ -18,14 +18,15 @@ class StubQuery implements PromiseLike<QueryResult<unknown>> {
     private readonly opts: { insertedId: string; insertError?: string; linesError?: string; deleted: string[] },
   ) {}
 
-  select(_columns: string): StubQuery {
+  select(): StubQuery {
     return this;
   }
-  eq(_column: string, value: unknown): StubQuery {
+  eq(...args: unknown[]): StubQuery {
+    const value = args[1];
     this.eqId = String(value);
     return this;
   }
-  is(_column: string, _value: unknown): StubQuery {
+  is(): StubQuery {
     return this;
   }
   insert(payload: unknown): StubQuery {

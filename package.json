@@ -21,6 +21,7 @@
     "test:integration": "vitest run tests",
     "test:tenant-isolation": "vitest run tests/tenant-isolation.test.ts",
     "wrap:live-audit": "node examples/wrap-up-live-blocker-audit.mjs",
+    "supabase:readiness": "node scripts/live-supabase-readiness.mjs",
     "guard:preflight": "node scripts/guard-preflight.mjs",
     "with-env": "node scripts/with-env-local.mjs --",
     "wrap:visual-smoke": "node examples/wrap-up-local-visual-smoke.mjs",

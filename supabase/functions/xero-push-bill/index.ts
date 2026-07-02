@@ -76,6 +76,40 @@ interface IntakeRule {
   xero_tax_type_override: string | null;
 }
 
+async function loadGlEvidence(
+  admin: SupabaseClient,
+  organizationId: string,
+  sourceType: 'bill' | 'invoice',
+  sourceId: string,
+): Promise<Record<string, unknown>> {
+  const { data, error } = await admin
+    .from('journal_entries')
+    .select('id, status, posted_at, entry_date, source_type, source_id')
+    .eq('organization_id', organizationId)
+    .eq('source_type', sourceType)
+    .eq('source_id', sourceId)
+    .order('entry_date', { ascending: false })
+    .limit(10);
+
+  if (error) {
+    return {
+      source_type: sourceType,
+      source_id: sourceId,
+      lookup_error: error.message,
+      journal_entries: [],
+      posted_count: 0,
+    };
+  }
+
+  const rows = (data ?? []) as Record<string, unknown>[];
+  return {
+    source_type: sourceType,
+    source_id: sourceId,
+    journal_entries: rows,
+    posted_count: rows.filter((row) => row.status === 'posted').length,
+  };
+}
+
 Deno.serve(async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
@@ -257,6 +291,7 @@ Deno.serve(async (req) => {
       organization_id,
       bill_id,
     ]);
+    const glEvidence = await loadGlEvidence(admin, organization_id, 'bill', bill_id);
 
     try {
       const data = await callXeroWithRetry<{ Invoices: { InvoiceID?: string }[] }>(
@@ -296,7 +331,7 @@ Deno.serve(async (req) => {
         status: 'success',
         idempotency_key: idempotencyKey,
         request: xeroInvoice,
-        response: data,
+        response: { ...data, looplet_gl_evidence: glEvidence },
       });
 
       return json({ ok: true, xero_invoice_id: xeroInvoiceId, was_stub: false });
@@ -327,7 +362,7 @@ Deno.serve(async (req) => {
         error_message: msg.slice(0, 500),
         idempotency_key: idempotencyKey,
         request: xeroInvoice,
-        response: null,
+        response: { looplet_gl_evidence: glEvidence },
       });
 
       return json({ ok: false, error: msg, xero_attempts: attempts + 1 }, 500);

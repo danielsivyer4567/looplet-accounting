@@ -15,6 +15,12 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import {
+  approveStagedEntity,
+  isSafeStagedAutoApproval,
+  toEntityKind,
+  type StagedEntityForApproval,
+} from '../_shared/onboarding/stagedEntityApproval.ts';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
@@ -27,13 +33,19 @@ interface RequestBody {
 
 interface CandidateRow {
   id: string;
+  organization_id: string;
+  canonical_key: string;
   display_name: string;
   primary_email: string | null;
+  abn: string | null;
   observed_domains: string[];
   sample_subjects: string[];
   predicted_kind: string;
+  predicted_category: string | null;
   confidence: number;
   status: string;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
 }
 
 Deno.serve(async (req) => {
@@ -95,7 +107,7 @@ Deno.serve(async (req) => {
     const catalogue = (cats ?? []) as { code: string; label: string; description: string | null }[];
     const validCodes = new Set(catalogue.map((c) => c.code));
 
-    const stats = { processed: 0, classified: 0, unchanged: 0, errors: 0 };
+    const stats = { processed: 0, classified: 0, auto_approved: 0, unchanged: 0, errors: 0 };
     let remaining = 0;
 
     for (let batch = 0; batch < max_batches; batch++) {
@@ -104,7 +116,9 @@ Deno.serve(async (req) => {
       // already touched.
       const { data: rows, error: rowsErr } = await admin
         .from('staged_entities')
-        .select('id, display_name, primary_email, observed_domains, sample_subjects, predicted_kind, confidence, status')
+        .select(
+          'id, organization_id, canonical_key, display_name, primary_email, abn, observed_domains, sample_subjects, predicted_kind, predicted_category, confidence, status, first_seen_at, last_seen_at',
+        )
         .eq('organization_id', organization_id)
         .in('status', ['pending', 'needs_review'])
         .or('predicted_kind.eq.unknown,confidence.lt.0.5')
@@ -126,17 +140,52 @@ Deno.serve(async (req) => {
         // Apply updates
         for (const u of updates) {
           if (!validCodes.has(u.category)) continue; // safety: never write a code we don't know
-          await admin
+          const kind = toEntityKind(u.kind);
+          if (!kind) continue;
+          const entity = batchRows.find((row) => row.id === u.id);
+          if (!entity) continue;
+          const confidence = Math.min(0.85, u.confidence); // never trust LLM at 1.0
+
+          const { error: updateErr } = await admin
             .from('staged_entities')
             .update({
               predicted_kind: u.kind,
               predicted_category: u.category,
               prediction_reason: `AI: ${u.reason}`,
-              confidence: Math.min(0.85, u.confidence), // never trust LLM at 1.0
+              confidence,
               status: 'pending', // LLM-classified rows still need user touch
             })
             .eq('id', u.id);
+          if (updateErr) {
+            console.error('staged_entities classify update failed', u.id, updateErr.message);
+            stats.errors += 1;
+            continue;
+          }
           stats.classified += 1;
+
+          if (isSafeStagedAutoApproval(kind, u.category, confidence)) {
+            try {
+              await approveStagedEntity(admin, {
+                ...(entity as StagedEntityForApproval),
+                predicted_kind: kind,
+                predicted_category: u.category,
+                confidence,
+              }, {
+                kind,
+                category: u.category,
+                confidence,
+                source: 'gmail-classify-ai',
+              });
+              stats.auto_approved += 1;
+            } catch (err) {
+              console.error('staged entity auto-approval failed', u.id, err);
+              stats.errors += 1;
+              await admin
+                .from('staged_entities')
+                .update({ status: 'needs_review' })
+                .eq('id', u.id);
+            }
+          }
         }
         stats.processed += batchRows.length;
         stats.unchanged += batchRows.length - updates.length;

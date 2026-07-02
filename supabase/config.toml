@@ -98,3 +98,9 @@ verify_jwt = true
 # the function forwards the caller token into Supabase so RLS/RPC org checks apply.
 [functions.advisor]
 verify_jwt = true
+
+# BAS lodgement pack: user-invoked review artifact over caller-visible
+# lodgements rows. JWT stays on; the function forwards the caller token into
+# Supabase so lodgements RLS scopes the row.
+[functions.bas-lodgement-pack]
+verify_jwt = true

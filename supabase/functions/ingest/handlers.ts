@@ -49,6 +49,13 @@ async function canonicalContentHash(
 }
 
 export async function ingestBill(db: SupabaseClient, orgId: string, payload: Record<string, unknown>) {
+  const supplierId = payload.supplier_id as string | undefined;
+  const jobId = payload.job_id as string | undefined;
+  if (supplierId) {
+    await requireOrgRecord(db, 'suppliers', supplierId, orgId, 'supplier');
+  }
+  if (jobId) await requireOrgRecord(db, 'jobs', jobId, orgId, 'job');
+
   // Dedupe key: stable hash of the org + the canonicalized whitelisted bill
   // fields. Mirrors bills-extract's content_sha256 cache so a re-push is a no-op.
   const contentSha256 = await canonicalContentHash(orgId, payload);
@@ -197,13 +204,9 @@ export async function ingestInvoice(db: SupabaseClient, orgId: string, payload: 
   if (!payload.due_date) throw new ValidationError('due_date is required');
 
   // Customer must belong to the key's org.
-  const { data: cust } = await db
-    .from('customers')
-    .select('id')
-    .eq('id', customerId)
-    .eq('organization_id', orgId)
-    .maybeSingle();
-  if (!cust) throw new ValidationError('customer not found for this organization');
+  await requireOrgRecord(db, 'customers', customerId, orgId, 'customer');
+  const jobId = payload.job_id as string | undefined;
+  if (jobId) await requireOrgRecord(db, 'jobs', jobId, orgId, 'job');
 
   // Dedupe on UNIQUE(org, invoice_number): re-push returns the existing row.
   const { data: existing } = await db
@@ -409,6 +412,7 @@ export async function ingestPayment(
     throw new ValidationError('amount_cents must be a positive integer');
   }
   if (!payload.payment_date) throw new ValidationError('payment_date is required for payment type');
+  await requireOrgRecord(db, 'invoices', invoiceId, orgId, 'invoice');
 
   const { data: job, error } = await db.rpc('enqueue_automation_job', {
     p_org_id: orgId,
@@ -458,4 +462,23 @@ function textField(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+async function requireOrgRecord(
+  db: SupabaseClient,
+  table: 'customers' | 'invoices' | 'jobs' | 'suppliers',
+  id: string,
+  orgId: string,
+  label: string,
+): Promise<void> {
+  const { data, error } = await db
+    .from(table)
+    .select('id')
+    .eq('id', id)
+    .eq('organization_id', orgId)
+    .maybeSingle();
+  if (error) throw new Error(`${label} lookup failed: ${error.message}`);
+  if (!data) {
+    throw new ValidationError(`${label} not found for this organization`);
+  }
 }

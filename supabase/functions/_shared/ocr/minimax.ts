@@ -11,8 +11,8 @@
  *
  * NOTE: MiniMax vision takes images only (JPEG/PNG/GIF/WEBP, <=10MB) — there is
  * no native PDF document input. PDFs are handled upstream by the born-digital
- * text-layer path; image-based PDFs fall back to the manual-entry stub in
- * index.ts (set OCR_PROVIDER=anthropic if you need PDFs OCR'd).
+ * text-layer path first; image-based PDFs are rasterized in index.ts and sent as
+ * page images. Set OCR_PROVIDER=anthropic when native PDF OCR is preferred.
  */
 
 import { EXTRACT_PROMPT, ocrTimeoutSignal, parseExtractedJson, type ExtractedBill } from './prompt.ts';

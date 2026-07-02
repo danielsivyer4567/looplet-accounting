@@ -89,6 +89,12 @@ interface RequestBody {
   target_ids?: string[];
 }
 
+interface CodingClassifierHandoff {
+  endpoint: 'coding-classifier';
+  ledger_path: 'coding_classifier_post_journal_entry';
+  response: unknown;
+}
+
 interface IntakeRule {
   id: string;
   // Loose on purpose: the live CHECK constraint (0006) only permits
@@ -207,6 +213,7 @@ async function routeBatch(
   let applied = 0;
   let noMatch = 0;
   let errors = 0;
+  let ledgerHandoffs = 0;
 
   // Bank txns have no independent coding step, so with no active rules there's
   // truly nothing to do. Bills still need the coding-classifier chain below
@@ -233,7 +240,10 @@ async function routeBatch(
         // Chain into coding-classifier whenever the bill actually exists in this
         // org, mirroring routeBill's single-target contract — a throw here counts
         // as a batch error for this id without aborting the rest of the batch.
-        if (result.found) await runCodingClassify(supabaseUrl, serviceKey, id);
+        if (result.found) {
+          await runCodingClassify(supabaseUrl, serviceKey, id);
+          ledgerHandoffs += 1;
+        }
       } else {
         matched = await applyFirstMatchingRuleForBankTxn(admin, orgId, id, rules);
       }
@@ -252,6 +262,7 @@ async function routeBatch(
     applied,
     no_match: noMatch,
     errors,
+    ledger_handoffs: ledgerHandoffs,
   });
 }
 
@@ -275,9 +286,9 @@ async function routeBill(
   // reaches this endpoint also gets GL/GST coded exactly once. Throwing here
   // surfaces as a non-2xx response, same observable/retryable contract as
   // the routing work above.
-  await runCodingClassify(supabaseUrl, serviceKey, billId);
+  const ledgerHandoff = await runCodingClassify(supabaseUrl, serviceKey, billId);
 
-  return json(outcome.payload);
+  return json({ ...outcome.payload, ledger_handoff: ledgerHandoff });
 }
 
 interface RouteOutcome {
@@ -363,7 +374,11 @@ async function routeBillCore(admin: SupabaseClient, orgId: string, billId: strin
 // Call into coding-classifier (GL/GST coding + >= AUTO_POST_THRESHOLD
 // auto-post) so a routed bill gets coded without callers needing to invoke a
 // second endpoint. Mirrors bills-extract's own throw-on-failure fetch pattern.
-async function runCodingClassify(supabaseUrl: string, serviceKey: string, billId: string): Promise<void> {
+async function runCodingClassify(
+  supabaseUrl: string,
+  serviceKey: string,
+  billId: string,
+): Promise<CodingClassifierHandoff> {
   const response = await fetch(`${supabaseUrl}/functions/v1/coding-classifier`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
@@ -374,6 +389,12 @@ async function runCodingClassify(supabaseUrl: string, serviceKey: string, billId
       `coding-classifier failed: ${response.status} ${await response.text().catch(() => '')}`.trim(),
     );
   }
+  const body = await response.json().catch(() => null);
+  return {
+    endpoint: 'coding-classifier',
+    ledger_path: 'coding_classifier_post_journal_entry',
+    response: body,
+  };
 }
 
 // Pulls the same intake_metadata keys coding-classifier reads, so a rule authored

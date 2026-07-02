@@ -18,6 +18,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { stpTransmissionGate } from '../payroll-export-stp/stp.ts';
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -147,5 +148,6 @@ Deno.serve(async (req) => {
       super_cents: Number(run.total_super_cents),
       net_cents:   Number(run.total_net_cents),
     },
+    stp_transmission_gate: stpTransmissionGate(),
   });
 });

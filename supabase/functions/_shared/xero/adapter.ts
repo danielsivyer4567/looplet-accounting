@@ -44,6 +44,40 @@ interface PushResult {
   isStub: boolean;
 }
 
+async function loadGlEvidence(
+  admin: SupabaseClient,
+  organizationId: string,
+  sourceType: 'bill' | 'invoice',
+  sourceId: string,
+): Promise<Record<string, unknown>> {
+  const { data, error } = await admin
+    .from('journal_entries')
+    .select('id, status, posted_at, entry_date, source_type, source_id')
+    .eq('organization_id', organizationId)
+    .eq('source_type', sourceType)
+    .eq('source_id', sourceId)
+    .order('entry_date', { ascending: false })
+    .limit(10);
+
+  if (error) {
+    return {
+      source_type: sourceType,
+      source_id: sourceId,
+      lookup_error: error.message,
+      journal_entries: [],
+      posted_count: 0,
+    };
+  }
+
+  const rows = (data ?? []) as Record<string, unknown>[];
+  return {
+    source_type: sourceType,
+    source_id: sourceId,
+    journal_entries: rows,
+    posted_count: rows.filter((row) => row.status === 'posted').length,
+  };
+}
+
 function isStubModeRequested(): boolean {
   return Deno.env.get('XERO_STUB_MODE') === 'true' || !Deno.env.get('XERO_CLIENT_ID');
 }
@@ -79,6 +113,13 @@ export async function pushBillToXero(args: PushArgs): Promise<PushResult> {
 
 async function pushBillStub(args: PushArgs): Promise<PushResult> {
   const stubId = `STUB-${args.bill.id.slice(0, 8).toUpperCase()}`;
+  const idempotencyKey = await resolveXeroIdempotencyKey(undefined, [
+    'xero',
+    'bill',
+    args.organizationId,
+    args.bill.id,
+  ]);
+  const glEvidence = await loadGlEvidence(args.admin, args.organizationId, 'bill', args.bill.id);
   await args.admin.from('xero_sync_log').insert({
     organization_id: args.organizationId,
     record_type: 'bill',
@@ -86,9 +127,9 @@ async function pushBillStub(args: PushArgs): Promise<PushResult> {
     xero_id: stubId,
     operation: 'push',
     status: 'success',
-    idempotency_key: crypto.randomUUID(),
+    idempotency_key: idempotencyKey,
     request: { stub: true, jobNumber: args.job.job_number },
-    response: { stub: true, id: stubId },
+    response: { stub: true, id: stubId, looplet_gl_evidence: glEvidence },
   });
   return { xeroInvoiceId: stubId, isStub: true };
 }
@@ -133,6 +174,7 @@ async function pushBillReal(args: PushArgs): Promise<PushResult> {
     organizationId,
     bill.id,
   ]);
+  const glEvidence = await loadGlEvidence(admin, organizationId, 'bill', bill.id);
   const data = await callXeroWithRetry<{ Invoices: { InvoiceID?: string }[] }>(
     admin,
     organizationId,
@@ -159,7 +201,7 @@ async function pushBillReal(args: PushArgs): Promise<PushResult> {
     status: 'success',
     idempotency_key: idempotencyKey,
     request: xeroInvoice,
-    response: data,
+    response: { ...data, looplet_gl_evidence: glEvidence },
   });
 
   return { xeroInvoiceId, isStub: false };

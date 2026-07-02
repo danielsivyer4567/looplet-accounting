@@ -43,6 +43,7 @@ pnpm-debug.log*
 # Test artefacts
 coverage/
 .nyc_output/
+tmp/
 
 # Generated types (regenerate via npm run supabase:types)
 src/lib/database.types.ts
