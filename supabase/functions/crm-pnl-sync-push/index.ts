@@ -120,6 +120,9 @@ Deno.serve(async (req) => {
     const updatedAt = new Date().toISOString();
 
     const payload = {
+      // Bumped only on a breaking payload change so the CRM receiver can pin a
+      // shape. See docs/CRM_PNL_SYNC_CONTRACT.md — additive fields do NOT bump.
+      schema_version: 1,
       crm_organization_id: org.crm_organization_id,
       updated_at: updatedAt,
       idempotency_key: `${body.organization_id}:${updatedAt}`,
