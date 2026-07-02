@@ -5,7 +5,11 @@ import { supabase } from '@/lib/supabase';
  * Maps directly to the `automation_confidence` DB enum.
  */
 export type AutomationConfidence =
-  'auto_post' | 'quick_confirm' | 'review_needed' | 'advisor_required' | 'blocked_external';
+  | 'auto_post'
+  | 'quick_confirm'
+  | 'review_needed'
+  | 'advisor_required'
+  | 'blocked_external';
 
 /**
  * Source kinds that can produce automation decisions.
@@ -16,7 +20,11 @@ export type DecisionSourceKind = 'bill_upload' | 'bank_match' | 'coding_suggesti
  * Decision kinds within a source.
  */
 export type DecisionKind =
-  'supplier_match' | 'category' | 'gst_treatment' | 'job_tag' | 'asset_treatment';
+  | 'supplier_match'
+  | 'category'
+  | 'gst_treatment'
+  | 'job_tag'
+  | 'asset_treatment';
 
 /**
  * A single automation decision record, mirroring the DB row.

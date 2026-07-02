@@ -175,7 +175,9 @@ export function BankCallbackPage() {
  * complete via webhook) — the two must be surfaced differently to the user.
  */
 type PollResult =
-  { outcome: 'connected'; connectionId: string } | { outcome: 'failed' } | { outcome: 'timeout' };
+  | { outcome: 'connected'; connectionId: string }
+  | { outcome: 'failed' }
+  | { outcome: 'timeout' };
 
 /**
  * Poll bank-job-poll every POLL_INTERVAL_MS ms for up to POLL_MAX_ATTEMPTS

@@ -4,7 +4,11 @@ import { useOrg } from '@/hooks/useOrg';
 import type { PeriodCheck } from '@/hooks/usePeriodClose';
 
 export type TaskConfidence =
-  'auto_post' | 'quick_confirm' | 'review_needed' | 'advisor_required' | 'blocked_external';
+  | 'auto_post'
+  | 'quick_confirm'
+  | 'review_needed'
+  | 'advisor_required'
+  | 'blocked_external';
 
 export type TaskKind =
   | 'onboarding_triage'

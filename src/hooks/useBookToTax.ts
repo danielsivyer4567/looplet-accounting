@@ -87,7 +87,10 @@ export interface BookToTax {
 // ---- cgt_calc shape (0144) ---------------------------------------------------------
 
 export type CgtConcessionStatus =
-  'fifteen_year_exempt' | 'active_asset_reduction' | 'discount_only' | 'none';
+  | 'fifteen_year_exempt'
+  | 'active_asset_reduction'
+  | 'discount_only'
+  | 'none';
 
 /** Per-event row in the CGT schedule (asset_type reused from useCgtEvents). */
 export interface CgtCalcEvent {
