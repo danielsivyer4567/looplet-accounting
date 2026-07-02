@@ -1,3 +1,11 @@
+/* Tailwind (preflight OFF — see tailwind.config.js). Utilities land in
+   @layer utilities; the unlayered legacy rules below always win, so existing
+   pages stay byte-for-byte unchanged. New tag-drop/shadcn UI opts in via
+   utility classes. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   /* Common variables */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
@@ -332,6 +340,22 @@ code {
   margin-top: 0.5rem;
 }
 
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.auth-divider span:first-child,
+.auth-divider span:last-child {
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
 .auth-row-between {
   display: flex;
   align-items: center;
@@ -418,6 +442,15 @@ code {
   outline: none;
 }
 
+/* Keyboard focus ring — only shows for keyboard users (:focus-visible), so it
+   never appears on mouse clicks but always gives a clear visible target when
+   tabbing through the UI. */
+.btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+
 .btn-primary {
   background-color: var(--accent-primary);
   color: var(--text-on-accent);
@@ -468,6 +501,31 @@ code {
   cursor: not-allowed;
   transform: none !important;
   box-shadow: none !important;
+}
+
+/* Skip link — visually hidden off-screen until it receives keyboard focus,
+   then it slides into the top-left so keyboard users can jump straight to the
+   main content landmark. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 2000;
+  padding: 0.5rem 1rem;
+  background-color: var(--accent-primary);
+  color: var(--text-on-accent);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 2px solid var(--text-on-accent);
+  outline-offset: 2px;
 }
 
 /* Forms styling */

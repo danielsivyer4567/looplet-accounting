@@ -59,6 +59,8 @@ vi.mock('@/hooks/useOrg', () => ({
     setCurrentOrg: vi.fn(),
     createOrganization: vi.fn(),
     refresh: vi.fn(),
+    accountantClientOrgs: [],
+    isAccountantOnly: false,
   }),
 }));
 

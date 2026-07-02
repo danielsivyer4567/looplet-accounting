@@ -6,7 +6,7 @@ import { GmailConnect } from '@/components/settings/GmailConnect';
 import { BankConnect } from '@/components/settings/BankConnect';
 import { XeroConnect } from '@/components/settings/XeroConnect';
 import { PayerBankDetails } from '@/components/settings/PayerBankDetails';
-import { ConnectorApiKeys } from '@/components/settings/ConnectorApiKeys';
+import { ApiKeys } from '@/components/settings/ApiKeys';
 import { SkeletonLine } from '@/components/Skeleton';
 import {
   User,
@@ -304,7 +304,7 @@ export function SettingsPage() {
                 <PayerBankDetails />
               </div>
               <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem' }}>
-                <ConnectorApiKeys organizationId={currentOrg?.id} />
+                <ApiKeys />
               </div>
               <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem' }}>
                 <h2

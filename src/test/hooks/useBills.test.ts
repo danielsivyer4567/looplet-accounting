@@ -20,6 +20,8 @@ async function setOrg(org: typeof testOrg | null) {
     setCurrentOrg: vi.fn(),
     createOrganization: vi.fn(),
     refresh: vi.fn(),
+    accountantClientOrgs: [],
+    isAccountantOnly: false,
   });
 }
 

@@ -8,12 +8,24 @@ import { extractBillDataOpenAI } from './openai.ts';
 import { extractBillDataAnthropic } from './anthropic.ts';
 import { extractBillDataMiniMax } from './minimax.ts';
 import type { ExtractedBill } from './prompt.ts';
+import { PROVIDER_CONTRACTS } from './quality.ts';
 
 export type OCRProvider = 'minimax' | 'groq' | 'openai' | 'kimi' | 'anthropic';
 
-// Providers that can read PDFs natively (vs image-only vision providers, which
-// rely on the upstream born-digital text path for PDFs).
-const PDF_CAPABLE: ReadonlySet<OCRProvider> = new Set(['anthropic']);
+// The provider contract (PDF capability, API-key env, robust-default order) is
+// declared once in quality.ts::PROVIDER_CONTRACTS. Both PDF routing and the
+// default-provider precedence read from it so there is a single source of truth.
+const PDF_CAPABLE: ReadonlySet<OCRProvider> = new Set(
+  (Object.values(PROVIDER_CONTRACTS)
+    .filter((c) => c.pdfCapable)
+    .map((c) => c.id) as OCRProvider[]),
+);
+
+// Robust default precedence: first configured provider wins. Anthropic is the
+// most robust for the messy inputs this business receives (native PDF +
+// structured-output schema) — set OCR_PROVIDER=anthropic to force it. MiniMax
+// leads only because it is the cheapest configured default.
+const DEFAULT_PRECEDENCE: readonly OCRProvider[] = ['minimax', 'anthropic', 'openai', 'groq'];
 
 export function getActiveProvider(): OCRProvider {
   const raw = (Deno.env.get('OCR_PROVIDER') ?? '').toLowerCase().trim();
@@ -23,11 +35,10 @@ export function getActiveProvider(): OCRProvider {
   ) {
     return raw;
   }
-  // Default precedence: MiniMax → Anthropic → OpenAI → Groq.
-  if (Deno.env.get('MINIMAX_API_KEY')) return 'minimax';
-  if (Deno.env.get('ANTHROPIC_API_KEY')) return 'anthropic';
-  if (Deno.env.get('OPENAI_API_KEY')) return 'openai';
-  if (Deno.env.get('GROQ_API_KEY')) return 'groq';
+  for (const provider of DEFAULT_PRECEDENCE) {
+    const env = PROVIDER_CONTRACTS[provider]?.apiKeyEnv;
+    if (env && Deno.env.get(env)) return provider;
+  }
   return 'minimax';
 }
 

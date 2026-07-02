@@ -1,5 +1,16 @@
 import { Link } from 'react-router-dom';
-import { FileSpreadsheet, Layers, TrendingUp, Coins, Calendar, Archive } from 'lucide-react';
+import {
+  FileSpreadsheet,
+  Layers,
+  TrendingUp,
+  Coins,
+  Calendar,
+  Archive,
+  Calculator,
+  ClipboardList,
+  Landmark,
+  PiggyBank,
+} from 'lucide-react';
 
 const REPORTS = [
   {
@@ -49,6 +60,38 @@ const REPORTS = [
       'Entity-aware draft return: GL mapped to tax-return labels, book-to-tax reconciliation to taxable income, offsets/credits to net tax, and the CGT schedule.',
     status: 'live',
     icon: Layers,
+  },
+  {
+    to: '/reports/fbt',
+    title: 'FBT Return',
+    description:
+      'Draft Fringe Benefits Tax return from curated benefit inputs, ATO gross-up rates, taxable-value rollups, and Tier-2 approval.',
+    status: 'live',
+    icon: Calculator,
+  },
+  {
+    to: '/reports/tpar',
+    title: 'TPAR',
+    description:
+      'Taxable Payments Annual Report export from paid subcontractor bills, supplier intake rules, ABN checks, and payment-run evidence.',
+    status: 'live',
+    icon: ClipboardList,
+  },
+  {
+    to: '/reports/franking',
+    title: 'Franking Register',
+    description:
+      'Company franking account movements, member dividend statements, benchmark percentage, and GL reconciliation.',
+    status: 'live',
+    icon: Landmark,
+  },
+  {
+    to: '/reports/sgc',
+    title: 'SGC Statement',
+    description:
+      'Quarterly super guarantee charge review with OTE recalculation, statutory 12% SG, shortfall rows, and draft SGC components.',
+    status: 'live',
+    icon: PiggyBank,
   },
 ];
 

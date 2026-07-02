@@ -56,7 +56,7 @@ const mockTransactions: MockTransaction[] = [
     type: 'outgoing',
     initial: 'U',
     color: '#10b981',
-    iconUrl: '/images/merchants/ubereats.png',
+    iconUrl: '/images/merchants/ubereats.webp',
   },
   {
     id: '2',
@@ -66,7 +66,7 @@ const mockTransactions: MockTransaction[] = [
     type: 'outgoing',
     initial: 'N',
     color: '#f97316',
-    iconUrl: '/images/merchants/nandos.png',
+    iconUrl: '/images/merchants/nandos.webp',
   },
   {
     id: '3',
@@ -77,7 +77,7 @@ const mockTransactions: MockTransaction[] = [
     status: 'declined',
     initial: 'N',
     color: '#f97316',
-    iconUrl: '/images/merchants/nandos.png',
+    iconUrl: '/images/merchants/nandos.webp',
   },
   {
     id: '4',
@@ -88,7 +88,7 @@ const mockTransactions: MockTransaction[] = [
     status: 'declined',
     initial: 'U',
     color: '#000000',
-    iconUrl: '/images/merchants/uber.png',
+    iconUrl: '/images/merchants/uber.webp',
   },
   {
     id: '5',
@@ -99,7 +99,7 @@ const mockTransactions: MockTransaction[] = [
     status: 'declined',
     initial: 'U',
     color: '#000000',
-    iconUrl: '/images/merchants/uber.png',
+    iconUrl: '/images/merchants/uber.webp',
   },
   {
     id: '6',
@@ -109,7 +109,7 @@ const mockTransactions: MockTransaction[] = [
     type: 'outgoing',
     initial: 'E',
     color: '#6366f1',
-    iconUrl: '/images/merchants/erdene.png',
+    iconUrl: '/images/merchants/erdene.webp',
   },
   {
     id: '7',
@@ -119,7 +119,7 @@ const mockTransactions: MockTransaction[] = [
     type: 'incoming',
     initial: 'M',
     color: '#eab308',
-    iconUrl: '/images/merchants/topup.png',
+    iconUrl: '/images/merchants/topup.webp',
   },
   {
     id: '8',
@@ -129,7 +129,7 @@ const mockTransactions: MockTransaction[] = [
     type: 'outgoing',
     initial: 'M',
     color: '#ef4444',
-    iconUrl: '/images/merchants/mcdonalds.png',
+    iconUrl: '/images/merchants/mcdonalds.webp',
   },
   {
     id: '9',
@@ -139,7 +139,7 @@ const mockTransactions: MockTransaction[] = [
     type: 'outgoing',
     initial: 'K',
     color: '#ef4444',
-    iconUrl: '/images/merchants/kfc.png',
+    iconUrl: '/images/merchants/kfc.webp',
   },
   {
     id: '10',
@@ -149,7 +149,7 @@ const mockTransactions: MockTransaction[] = [
     type: 'incoming',
     initial: 'M',
     color: '#eab308',
-    iconUrl: '/images/merchants/topup.png',
+    iconUrl: '/images/merchants/topup.webp',
   },
   {
     id: '11',
@@ -159,7 +159,7 @@ const mockTransactions: MockTransaction[] = [
     type: 'outgoing',
     initial: 'P',
     color: '#84cc16',
-    iconUrl: '/images/merchants/paymonade.png',
+    iconUrl: '/images/merchants/paymonade.webp',
   },
   {
     id: '12',
@@ -169,7 +169,7 @@ const mockTransactions: MockTransaction[] = [
     type: 'incoming',
     initial: 'M',
     color: '#eab308',
-    iconUrl: '/images/merchants/topup.png',
+    iconUrl: '/images/merchants/topup.webp',
   },
   {
     id: '13',
@@ -179,7 +179,7 @@ const mockTransactions: MockTransaction[] = [
     type: 'outgoing',
     initial: 'M',
     color: '#ef4444',
-    iconUrl: '/images/merchants/mcdonalds.png',
+    iconUrl: '/images/merchants/mcdonalds.webp',
   },
   {
     id: '14',
@@ -189,7 +189,7 @@ const mockTransactions: MockTransaction[] = [
     type: 'outgoing',
     initial: 'H',
     color: '#22c55e',
-    iconUrl: '/images/merchants/highland.png',
+    iconUrl: '/images/merchants/highland.webp',
   },
   {
     id: '15',
@@ -199,7 +199,7 @@ const mockTransactions: MockTransaction[] = [
     type: 'outgoing',
     initial: 'H',
     color: '#22c55e',
-    iconUrl: '/images/merchants/highland.png',
+    iconUrl: '/images/merchants/highland.webp',
   },
   {
     id: '16',
@@ -209,7 +209,7 @@ const mockTransactions: MockTransaction[] = [
     type: 'outgoing',
     initial: 'E',
     color: '#6366f1',
-    iconUrl: '/images/merchants/erdene.png',
+    iconUrl: '/images/merchants/erdene.webp',
   },
   {
     id: '17',
@@ -219,7 +219,7 @@ const mockTransactions: MockTransaction[] = [
     type: 'incoming',
     initial: 'M',
     color: '#eab308',
-    iconUrl: '/images/merchants/topup.png',
+    iconUrl: '/images/merchants/topup.webp',
   },
 ];
 

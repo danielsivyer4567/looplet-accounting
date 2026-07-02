@@ -16,7 +16,9 @@
  *   5. Replies via Resend with the digest as HTML.
  *
  * To wire up:
- *   - Set EMAIL_INBOUND_SECRET in Supabase secrets (any random string)
+ *   - Set EMAIL_INBOUND_SECRET in Supabase secrets (any random string). This is
+ *     MANDATORY: the function fails CLOSED (403) when it is unset/empty, since
+ *     verify_jwt=false makes the x-inbound-secret header the only auth gate.
  *   - Set MX record on accounting.looplet.com.au → your inbound provider
  *   - Configure provider webhook URL:
  *       https://dxoikltymmknxqpkpyhi.supabase.co/functions/v1/accountant-email-query
@@ -48,16 +50,37 @@ interface QueryIntent {
   organization_hint: string | null;
 }
 
-Deno.serve(async (req) => {
+/**
+ * Webhook auth — FAIL CLOSED. This is deployed verify_jwt=false, so the shared
+ * x-inbound-secret header is the ONLY gate. If EMAIL_INBOUND_SECRET is unset the
+ * endpoint MUST reject everything rather than wave traffic through: an unset
+ * secret previously skipped verification entirely, leaving a fully
+ * unauthenticated endpoint that anyone could POST forged inbound email to.
+ * Comparison is constant-time once both sides exist.
+ */
+export function isInboundAuthorized(
+  expectedSecret: string | null | undefined,
+  presentedHeader: string | null | undefined,
+): boolean {
+  const expected = expectedSecret ?? '';
+  if (expected.length === 0) return false; // fail closed: no secret configured
+  const got = presentedHeader ?? '';
+  if (got.length !== expected.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ got.charCodeAt(i);
+  return diff === 0;
+}
+
+async function handleEmailQuery(req: Request): Promise<Response> {
   const pre = preflight(req);
   if (pre) return pre;
 
   try {
-    // Auth: shared secret in header (since this is a public webhook)
+    // Auth: shared secret in header (since this is a public webhook). FAIL
+    // CLOSED — if EMAIL_INBOUND_SECRET is unset, reject (403) rather than allow.
     const expectedSecret = Deno.env.get('EMAIL_INBOUND_SECRET');
-    if (expectedSecret) {
-      const got = req.headers.get('x-inbound-secret');
-      if (got !== expectedSecret) return json({ ok: false, error: 'Forbidden' }, 403);
+    if (!isInboundAuthorized(expectedSecret, req.headers.get('x-inbound-secret'))) {
+      return json({ ok: false, error: 'Forbidden' }, 403);
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -151,7 +174,11 @@ Deno.serve(async (req) => {
     const msg = err instanceof Error ? err.message : String(err);
     return json({ ok: false, error: msg }, 500);
   }
-});
+}
+
+if (import.meta.main) {
+  Deno.serve(handleEmailQuery);
+}
 
 async function parseInbound(req: Request): Promise<ParsedEmail> {
   const ct = req.headers.get('content-type') ?? '';

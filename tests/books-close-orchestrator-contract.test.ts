@@ -191,7 +191,7 @@ describe('books close and orchestrator source contracts', () => {
   it('keeps approved payroll/STP and SMSF work at explicit external walls', () => {
     expect(payrollFinalisePayRun).toMatch(/stpTransmissionGate/);
     expect(payrollFinalisePayRun).toMatch(/stp_transmission_gate:\s*stpTransmissionGate\(\)/);
-    expect(payrollExportStp).toMatch(/blocked_action:\s*"stp_sbr_transmit"/);
+    expect(payrollExportStp).toMatch(/blocked_action:\s*['"]stp_sbr_transmit/);
     expect(payrollExportStp).toMatch(/transmit_enabled:\s*false/);
     expect(payrollExportStp).toMatch(/registered_tax_or_bas_agent/);
 

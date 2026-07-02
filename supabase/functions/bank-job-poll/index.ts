@@ -30,6 +30,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { getBasiqServerToken } from '../_shared/basiq/client.ts';
 
@@ -123,6 +124,16 @@ Deno.serve(async (req) => {
     //    retries and eventually gets the connectionId from the connections list fallback.
     const basiqStatus = (job.status ?? '').toLowerCase();
     if (basiqStatus === 'failed') {
+      const adminForFail = createClient(supabaseUrl, serviceKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      await persistLinkJob(adminForFail, {
+        organizationId: body.organization_id,
+        jobId: body.job_id,
+        basiqUserId,
+        status: 'failed',
+        connectionExternalId: null,
+      });
       return json({ ok: true, status: 'failed' });
     }
 
@@ -178,6 +189,22 @@ Deno.serve(async (req) => {
       ? 'pending'     // job done but no connectionId yet — frontend may retry once more
       : 'pending';    // still running
 
+    // DURABILITY (slice P1-02): persist the link-job state so a crashed poll or
+    // a closed browser tab does not lose the Connect job. Upserts on
+    // (provider, external_job_id) → polling the same job is a no-op refresh.
+    // Service-role write (RLS grants authenticated SELECT only). Best-effort:
+    // a persistence hiccup must not break the user-facing poll.
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    await persistLinkJob(admin, {
+      organizationId: body.organization_id,
+      jobId: body.job_id,
+      basiqUserId,
+      status: resolvedStatus === 'active' ? 'active' : basiqStatus === 'failed' ? 'failed' : 'processing',
+      connectionExternalId: connectionId ?? null,
+    });
+
     return json({
       ok: true,
       status: resolvedStatus,
@@ -189,6 +216,41 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: msg }, 500);
   }
 });
+
+/**
+ * Upsert the durable bank_link_jobs row for this Connect job. Best-effort:
+ * never throws into the poll path (the table may not exist on an older DB).
+ */
+async function persistLinkJob(
+  admin: SupabaseClient,
+  args: {
+    organizationId: string;
+    jobId: string;
+    basiqUserId: string;
+    status: 'processing' | 'active' | 'failed';
+    connectionExternalId: string | null;
+  },
+): Promise<void> {
+  try {
+    await admin.from('bank_link_jobs').upsert(
+      {
+        organization_id: args.organizationId,
+        provider: 'basiq',
+        external_job_id: args.jobId,
+        basiq_user_id: args.basiqUserId,
+        status: args.status,
+        connection_external_id: args.connectionExternalId,
+        completed_at: args.status === 'active' || args.status === 'failed'
+          ? new Date().toISOString()
+          : null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'provider,external_job_id' },
+    );
+  } catch {
+    // Durability ledger is best-effort; polling must still succeed.
+  }
+}
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {

@@ -1,15 +1,21 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Tag } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { useNotificationOrgScope } from '@/hooks/useNotificationOrgScope';
+import { isTagMentionNotification } from '@/lib/notificationMeta';
 
 interface NotificationRow {
   id: string;
+  organization_id: string;
   category: string;
   severity: 'info' | 'warning' | 'error';
   title: string;
   body: string | null;
   link: string | null;
+  resource_type: string | null;
+  resource_id: string | null;
   read_at: string | null;
   created_at: string;
 }
@@ -35,6 +41,7 @@ const PANEL_LIMIT = 8;
 
 export function NotificationBell() {
   const { currentOrg } = useOrg();
+  const { crossOrg, orgNameById, enterOrg } = useNotificationOrgScope();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [recent, setRecent] = useState<NotificationRow[]>([]);
@@ -42,29 +49,33 @@ export function NotificationBell() {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const fetchRecent = useCallback(async () => {
-    if (!currentOrg) {
+    if (!crossOrg && !currentOrg) {
       setRecent([]);
       setUnread(0);
       return;
     }
-    const { data: list } = await supabase
+    let listQuery = supabase
       .from('notifications')
-      .select('id, category, severity, title, body, link, read_at, created_at')
-      .eq('organization_id', currentOrg.id)
-      .is('dismissed_at', null)
+      .select(
+        'id, organization_id, category, severity, title, body, link, resource_type, resource_id, read_at, created_at',
+      )
+      .is('dismissed_at', null);
+    if (!crossOrg && currentOrg) listQuery = listQuery.eq('organization_id', currentOrg.id);
+    const { data: list } = await listQuery
       .order('read_at', { ascending: true, nullsFirst: true })
       .order('created_at', { ascending: false })
       .limit(PANEL_LIMIT);
     setRecent((list ?? []) as NotificationRow[]);
 
-    const { count } = await supabase
+    let countQuery = supabase
       .from('notifications')
       .select('id', { count: 'exact', head: true })
-      .eq('organization_id', currentOrg.id)
       .is('dismissed_at', null)
       .is('read_at', null);
+    if (!crossOrg && currentOrg) countQuery = countQuery.eq('organization_id', currentOrg.id);
+    const { count } = await countQuery;
     setUnread(count ?? 0);
-  }, [currentOrg]);
+  }, [currentOrg, crossOrg]);
 
   // Initial + polling
   useEffect(() => {
@@ -93,6 +104,7 @@ export function NotificationBell() {
         .eq('id', n.id);
     }
     setOpen(false);
+    enterOrg(n.organization_id);
     if (n.link) navigate(n.link);
     void fetchRecent();
   };
@@ -186,6 +198,7 @@ export function NotificationBell() {
             ) : (
               recent.map((n) => {
                 const isUnread = n.read_at == null;
+                const isTagMention = isTagMentionNotification(n);
                 return (
                   <button
                     key={n.id}
@@ -205,8 +218,21 @@ export function NotificationBell() {
                       alignItems: 'flex-start',
                     }}
                   >
-                    <span aria-hidden style={{ fontSize: 14, lineHeight: 1.2 }}>
-                      {ICON_MAP[n.category] ?? '🔔'}
+                    <span
+                      aria-hidden
+                      style={{
+                        fontSize: 14,
+                        lineHeight: 1.2,
+                        color: isTagMention ? '#86c7a3' : undefined,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      {isTagMention ? (
+                        <Tag size={14} strokeWidth={2.25} />
+                      ) : (
+                        (ICON_MAP[n.category] ?? '🔔')
+                      )}
                     </span>
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span
@@ -235,6 +261,35 @@ export function NotificationBell() {
                           }}
                         >
                           {n.body}
+                        </span>
+                      )}
+                      {crossOrg && orgNameById.get(n.organization_id) && (
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            fontSize: 10,
+                            color: '#86c7a3',
+                            marginTop: 3,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {orgNameById.get(n.organization_id)}
+                        </span>
+                      )}
+                      {isTagMention && n.link && (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            fontSize: 10,
+                            color: '#86c7a3',
+                            marginTop: 3,
+                            fontWeight: 700,
+                          }}
+                        >
+                          <Tag size={10} strokeWidth={2.4} />
+                          View tag
                         </span>
                       )}
                       <span style={{ display: 'block', fontSize: 10, color: '#555', marginTop: 3 }}>

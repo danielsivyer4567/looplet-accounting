@@ -169,6 +169,8 @@ export function useOrg() {
     setCurrentOrg: () => undefined,
     createOrganization: async () => ({ error: null }),
     refresh: async () => undefined,
+    accountantClientOrgs: [],
+    isAccountantOnly: false,
   };
 }
 `,

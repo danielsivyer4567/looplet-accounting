@@ -13,8 +13,10 @@ function renderAuthPage(element: React.ReactElement, overrides: Partial<AuthCont
     session: null,
     loading: false,
     signIn: vi.fn().mockResolvedValue({ error: null }),
+    signInWithGoogle: vi.fn().mockResolvedValue({ error: null }),
     signUp: vi.fn().mockResolvedValue({ error: null, needsEmailConfirmation: false }),
     resetPassword: vi.fn().mockResolvedValue({ error: null }),
+    setPassword: vi.fn().mockResolvedValue({ error: null }),
     signOut: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };

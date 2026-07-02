@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
 import { Modal } from './Modal';
 import { getBillFileUrl } from '@/hooks/useBill';
 import { SkeletonCard } from '@/components/Skeleton';
-
-// Worker must match the installed pdfjs version; served from CDN (same approach
-// as BankStatementImport).
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 export interface PreviewableBill {
   id: string;
@@ -25,6 +20,41 @@ interface State {
 }
 
 const INIT: State = { loading: true, imageUrl: null, pdfPages: [], noDoc: false, error: null };
+
+interface PdfViewport {
+  width: number;
+  height: number;
+}
+
+interface PdfPage {
+  getViewport: (args: { scale: number }) => PdfViewport;
+  render: (args: { canvasContext: CanvasRenderingContext2D; viewport: PdfViewport }) => {
+    promise: Promise<void>;
+  };
+}
+
+interface PdfDocument {
+  numPages: number;
+  getPage: (pageNumber: number) => Promise<PdfPage>;
+}
+
+interface PdfjsModule {
+  version: string;
+  GlobalWorkerOptions: { workerSrc: string };
+  getDocument: (args: { data: Uint8Array }) => { promise: Promise<PdfDocument> };
+}
+
+let pdfjsCache: PdfjsModule | null = null;
+
+async function loadPdfjs(): Promise<PdfjsModule> {
+  if (pdfjsCache) return pdfjsCache;
+  const pdfjs = (await import('pdfjs-dist')) as unknown as PdfjsModule;
+  // Worker must match the installed pdfjs version; served from CDN (same
+  // approach as BankStatementImport) and loaded only when previewing a PDF.
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+  pdfjsCache = pdfjs;
+  return pdfjs;
+}
 
 export function DocumentPreviewModal({
   bill,
@@ -67,8 +97,9 @@ export function DocumentPreviewModal({
       // PDF → render each page to a JPEG so it always displays (no reliance on
       // the browser's built-in PDF viewer).
       try {
+        const pdfjs = await loadPdfjs();
         const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
-        const doc = await pdfjsLib.getDocument({ data: bytes }).promise;
+        const doc = await pdfjs.getDocument({ data: bytes }).promise;
         const pages: string[] = [];
         for (let p = 1; p <= doc.numPages; p += 1) {
           if (cancelled) return;

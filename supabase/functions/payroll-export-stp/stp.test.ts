@@ -20,7 +20,14 @@ function slip(empId: string, name: string): StpSlip {
     gross_ordinary_cents: 200000, gross_overtime_cents: 0, gross_leave_cents: 0, gross_total_cents: 200000,
     payg_tax_cents: 40000, super_guarantee_cents: 23000, super_rate_pct: 11.5, net_pay_cents: 160000,
     ytd_gross_cents: 200000, ytd_tax_cents: 40000, ytd_super_cents: 23000,
-    employee: { id: empId, full_name: name, email: null, wage_components: null },
+    employee: {
+      id: empId,
+      full_name: name,
+      email: null,
+      wage_components: { stp_tax_treatment_code: "R" },
+      tfn: "123456782",
+      tfn_masked: "*****6782",
+    },
   };
 }
 

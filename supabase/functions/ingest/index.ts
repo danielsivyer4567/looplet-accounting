@@ -26,13 +26,13 @@
 //   intentionally does NOT carry per-table write authority derived from scopes,
 //   so writes must come through THIS function to be scope-checked.
 //
-// NOTE (read path): the api-gateway mints a `role=authenticated` org-scoped JWT
-//   for PostgREST. RLS scopes it to the key's single org, but it grants
-//   FULL-ORG READ to ANY valid key regardless of the key's scopes — read scopes
-//   are not currently enforced at the PostgREST layer. Treat any issued key as
-//   able to read all of its org's data over /rest/v1. Do not issue keys to
-//   parties who should not see the whole org; write authority is the scoped,
-//   enforced boundary. (Tracked for a future RLS read-scope claim.)
+// NOTE (read path): the api-gateway mints a `role=connector` org-scoped JWT for
+//   PostgREST. RLS scopes it to the key's single org, but it grants FULL-ORG READ
+//   to ANY valid key regardless of the key's scopes — read scopes are not
+//   currently enforced at the PostgREST layer. Treat any issued key as able to
+//   read all of its org's data over /rest/v1. The SELECT-only connector role
+//   denies direct PostgREST writes; write authority is the scoped, enforced
+//   boundary. (Tracked for a future RLS read-scope claim.)
 //
 // REQUIRES: supabase/config.toml -> [functions.ingest] verify_jwt = false
 import {

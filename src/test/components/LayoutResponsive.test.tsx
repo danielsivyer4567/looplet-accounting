@@ -18,6 +18,19 @@ vi.mock('@/hooks/useAccountantHeartbeat', () => ({
   useAccountantHeartbeat: () => undefined,
 }));
 
+vi.mock('@/hooks/useOrg', () => ({
+  useOrg: () => ({
+    organizations: [{ id: 'org-1', name: 'Affordable Fencing', organization_type: 'standard' }],
+    currentOrg: { id: 'org-1', name: 'Affordable Fencing', organization_type: 'standard' },
+    loading: false,
+    setCurrentOrg: vi.fn(),
+    createOrganization: vi.fn(),
+    refresh: vi.fn(),
+    accountantClientOrgs: [],
+    isAccountantOnly: false,
+  }),
+}));
+
 vi.mock('@/hooks/useTaxCalendar', () => ({
   buildObligationPrompt: () => 'Explain BAS due soon',
   useTaxCalendar: () => ({

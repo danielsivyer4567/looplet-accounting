@@ -1,10 +1,11 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Globe } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { BrandHeader } from '@/components/BrandHeader';
 
 export function LoginPage() {
-  const { signIn, resetPassword } = useAuth();
+  const { user, signIn, signInWithGoogle, resetPassword } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<'signin' | 'reset'>('signin');
   const [email, setEmail] = useState('');
@@ -12,6 +13,11 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
+
+  useEffect(() => {
+    if (user) navigate('/');
+  }, [navigate, user]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -39,14 +45,47 @@ export function LoginPage() {
     navigate('/');
   };
 
+  const onGoogleSignIn = async () => {
+    setGoogleBusy(true);
+    setError(null);
+    setNotice(null);
+    const { error } = await signInWithGoogle();
+    if (error) {
+      setError(error.message);
+      setGoogleBusy(false);
+    }
+  };
+
   const isReset = mode === 'reset';
 
   return (
     <div className="auth-shell">
-      <div className="auth-panel glass-panel animated-fade-in">
+      <a href="#login-main" className="skip-link">
+        Skip to sign-in form
+      </a>
+      <main id="login-main" className="auth-panel glass-panel animated-fade-in">
         <BrandHeader />
 
         <h2 className="auth-heading">{isReset ? 'Reset password' : 'Sign in to your account'}</h2>
+
+        {!isReset && (
+          <>
+            <button
+              type="button"
+              onClick={() => void onGoogleSignIn()}
+              disabled={busy || googleBusy}
+              className="btn"
+            >
+              <Globe size={16} aria-hidden="true" />
+              {googleBusy ? 'Opening Google…' : 'Continue with Google'}
+            </button>
+            <div className="auth-divider" aria-hidden="true">
+              <span />
+              <span>Email</span>
+              <span />
+            </div>
+          </>
+        )}
 
         <form className="auth-form" onSubmit={onSubmit}>
           <div className="form-group">
@@ -94,16 +133,12 @@ export function LoginPage() {
             </div>
           )}
 
-          {error && (
-            <div className="auth-alert badge badge-danger" role="alert">
-              {error}
-            </div>
-          )}
-          {notice && (
-            <div className="auth-alert auth-alert--plain badge badge-success" role="status">
-              {notice}
-            </div>
-          )}
+          <div role="status" aria-live="polite">
+            {error && <div className="auth-alert badge badge-danger">{error}</div>}
+            {notice && (
+              <div className="auth-alert auth-alert--plain badge badge-success">{notice}</div>
+            )}
+          </div>
 
           <button type="submit" disabled={busy} className="btn btn-primary">
             {busy
@@ -135,7 +170,7 @@ export function LoginPage() {
             </>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

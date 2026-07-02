@@ -54,8 +54,9 @@ components:
       bearerFormat: JWT
       description: >
         Short-lived (15 min) org-scoped JWT returned by `/functions/v1/api-gateway`.
-        Carries `role=authenticated` and an `organization_id` claim that RLS honours.
+        Carries `role=connector` and an `organization_id` claim that RLS honours.
         Read scopes are not granular; any valid key can exchange for full-org read.
+        The SELECT-only connector role denies direct PostgREST writes.
   schemas:
     Error:
       type: object
@@ -368,11 +369,11 @@ paths:
       summary: Exchange an API key for a short-lived org-scoped JWT
       description: >
         Validates the presented API key (SHA-256 hash lookup), then mints a
-        15-minute JWT with `role=authenticated` and the key's `organization_id`
+        15-minute JWT with `role=connector` and the key's `organization_id`
         claim. Use the returned token as a bearer against `/rest/v1` — RLS scopes
         all reads to that organization. Read scopes are not granular: the token
-        can read the whole org regardless of the key's scopes. Rate-limited per
-        key; logged.
+        can read the whole org regardless of the key's scopes. The SELECT-only
+        connector role denies direct PostgREST writes. Rate-limited per key; logged.
       security:
         - ApiKey: []
       responses:

@@ -6,11 +6,18 @@ export interface AuthContextValue {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
   signUp: (
     email: string,
     password: string,
   ) => Promise<{ error: Error | null; needsEmailConfirmation: boolean }>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
+  /**
+   * Set (or change) the signed-in user's password. Used by the accept-invite
+   * flow: a Supabase invite link signs the new user in passwordless, then they
+   * choose a password before accepting their pending org invites.
+   */
+  setPassword: (password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
