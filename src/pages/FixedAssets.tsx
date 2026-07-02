@@ -7,6 +7,7 @@ import {
   type DepreciationMethod,
   type DepreciationSchedule,
 } from '@/hooks/useFixedAssets';
+import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import {
@@ -112,7 +113,7 @@ export function FixedAssetsPage() {
           className="badge badge-danger"
           style={{ display: 'block', padding: '0.75rem', textTransform: 'none', marginTop: '1rem' }}
         >
-          Failed to load: {error}
+          {formatLoadError('fixed assets', error)}
         </div>
       </section>
     );

@@ -11,6 +11,7 @@ import { AdviceCard } from '@/components/AdviceCard';
 import { AdviceNoteView } from '@/components/AdviceNoteView';
 import { SkeletonCard } from '@/components/Skeleton';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
+import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoneyCompact } from '@/lib/money';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import {
@@ -489,7 +490,7 @@ export function DashboardPage() {
         className="badge badge-danger"
         style={{ padding: '1rem', width: '100%', justifyContent: 'center' }}
       >
-        Failed to load: {error}
+        {formatLoadError('dashboard', error)}
       </p>
     );
   }
@@ -618,7 +619,7 @@ export function DashboardPage() {
         </div>
 
         {/* Action Pill Buttons */}
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div className="dashboard-action-pills" style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="revolut-pill-btn">
             <Shuffle size={14} />
             <span>Move</span>
@@ -818,6 +819,7 @@ export function DashboardPage() {
       </div>
 
       <p
+        className="dashboard-formula"
         style={{
           color: 'var(--text-muted)',
           fontSize: '0.75rem',

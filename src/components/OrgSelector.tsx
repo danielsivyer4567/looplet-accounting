@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useOrg } from '@/hooks/useOrg';
+import { SkeletonLine } from '@/components/Skeleton';
 
 export function OrgSelector() {
   const { organizations, currentOrg, setCurrentOrg, createOrganization, loading } = useOrg();
@@ -9,7 +10,11 @@ export function OrgSelector() {
   const [busy, setBusy] = useState(false);
 
   if (loading) {
-    return <div style={{ color: '#666', fontSize: 12 }}>Loading orgs…</div>;
+    return (
+      <div style={{ padding: '0.75rem' }} aria-busy="true" aria-label="Loading organisations">
+        <SkeletonLine width="100%" height={14} />
+      </div>
+    );
   }
 
   if (organizations.length === 0 && !creating) {

@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react';
+import { cloneElement, isValidElement, useEffect, useId, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useBill, getBillFileUrl, type BillDetail as Bill } from '@/hooks/useBill';
 import { JobPicker } from '@/components/JobPicker';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { AllocationSplitButton } from '@/components/AllocationSplitButton';
+import { ArchiveButton } from '@/components/ArchiveButton';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
 import { useOrg } from '@/hooks/useOrg';
 import { ConfidenceBadge } from '@/components/ConfidenceBadge';
+import { DetailPageSkeleton, SkeletonLine } from '@/components/Skeleton';
 import type {
   AutomationConfidence,
   DecisionSourceKind,
@@ -152,11 +154,7 @@ export function BillDetailPage() {
   }, [bill]);
 
   if (loading) {
-    return (
-      <section className="animated-fade-in">
-        <p style={{ color: 'var(--text-muted)' }}>Loading bill details…</p>
-      </section>
-    );
+    return <DetailPageSkeleton tableCols={4} />;
   }
   if (error || !bill) {
     return (
@@ -424,6 +422,19 @@ export function BillDetailPage() {
               window.location.href = '/bills';
             }}
           />
+
+          <ArchiveButton
+            table="bills"
+            rowId={bill.id}
+            isArchived={!!bill.deleted_at}
+            onChange={(nowArchived) => {
+              if (nowArchived) {
+                window.location.href = '/bills';
+              } else {
+                void refresh();
+              }
+            }}
+          />
         </div>
       </div>
 
@@ -526,9 +537,13 @@ export function BillDetailPage() {
                 </p>
               )
             ) : (
-              <p style={{ color: 'var(--text-muted)', padding: '1.5rem', textAlign: 'center' }}>
-                Loading preview…
-              </p>
+              <div
+                style={{ padding: '1.5rem' }}
+                aria-busy="true"
+                aria-label="Loading bill preview"
+              >
+                <SkeletonLine width="70%" height={14} />
+              </div>
             )}
           </div>
         </div>
@@ -1065,6 +1080,11 @@ function EditField({
   hint?: string;
   children: React.ReactNode;
 }) {
+  const id = useId();
+  const control = isValidElement(children)
+    ? cloneElement(children as React.ReactElement<{ id?: string }>, { id })
+    : children;
+
   return (
     <div
       style={{
@@ -1076,9 +1096,9 @@ function EditField({
       }}
     >
       <div style={{ width: 130, flexShrink: 0, paddingTop: 6 }}>
-        <span className="form-label" style={{ fontSize: '0.725rem' }}>
+        <label htmlFor={id} className="form-label" style={{ fontSize: '0.725rem' }}>
           {label}
-        </span>
+        </label>
         {hint && (
           <div
             style={{
@@ -1092,7 +1112,7 @@ function EditField({
           </div>
         )}
       </div>
-      <div style={{ flex: 1 }}>{children}</div>
+      <div style={{ flex: 1 }}>{control}</div>
     </div>
   );
 }
@@ -1187,7 +1207,9 @@ function ExtractionHistory({ billId }: { billId: string }) {
       {open && (
         <div className="card" style={{ padding: '0.75rem 1rem' }}>
           {versions === null ? (
-            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.825rem' }}>Loading…</p>
+            <div aria-busy="true" aria-label="Loading extraction history">
+              <SkeletonLine width="55%" height={13} />
+            </div>
           ) : versions.length === 0 ? (
             <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.825rem' }}>
               No extraction history recorded yet.

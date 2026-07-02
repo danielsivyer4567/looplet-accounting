@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { downloadCsv } from '@/lib/csv';
+import { formatLoadError } from '@/lib/errorMessages';
 import { SkeletonTable } from '@/components/Skeleton';
 import {
   ChevronLeft,
@@ -34,10 +35,12 @@ export function CashFlowPage() {
   const [rows, setRows] = useState<AggRow[]>([]);
   const [openingBalance, setOpeningBalance] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
     setLoading(true);
+    setError(null);
 
     const [flowRes, bankRes] = await Promise.all([
       supabase
@@ -51,6 +54,15 @@ export function CashFlowPage() {
         .eq('organization_id', currentOrg.id)
         .is('deleted_at', null),
     ]);
+
+    const loadError = flowRes.error?.message ?? bankRes.error?.message;
+    if (loadError) {
+      setRows([]);
+      setOpeningBalance(0);
+      setError(loadError);
+      setLoading(false);
+      return;
+    }
 
     const opening = ((bankRes.data ?? []) as { current_balance_cents: number | null }[]).reduce(
       (sum, acct) => sum + (acct.current_balance_cents ?? 0),
@@ -206,6 +218,14 @@ export function CashFlowPage() {
 
       {loading ? (
         <SkeletonTable rows={6} cols={6} />
+      ) : error ? (
+        <div
+          role="alert"
+          className="badge badge-danger"
+          style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}
+        >
+          {formatLoadError('cash flow forecast', error)}
+        </div>
       ) : rows.length === 0 ? (
         <div
           style={{
@@ -220,7 +240,8 @@ export function CashFlowPage() {
           Nothing committed yet. Issue invoices and bills (with due dates) to populate the forecast.
         </div>
       ) : (
-        <div className="table-premium-container">
+        <>
+        <div className="cashflow-table-view table-premium-container">
           <table className="table-premium">
             <thead>
               <tr>
@@ -311,6 +332,52 @@ export function CashFlowPage() {
             </tbody>
           </table>
         </div>
+        <div className="cashflow-card-view" aria-label="Cash flow week cards">
+          {rows.map((r) => {
+            const rRunning = (r as AggRow & { running: number }).running;
+            return (
+              <article
+                key={`card-${r.week_start}`}
+                className="cashflow-mobile-card card"
+                aria-label={`Cash flow week ${r.week_start}`}
+              >
+                <div className="cashflow-mobile-card__header">
+                  <strong style={{ color: 'var(--text-title)' }}>Week {r.week_start}</strong>
+                  <strong
+                    style={{ color: r.net >= 0 ? 'var(--text-success)' : 'var(--text-danger)' }}
+                  >
+                    {formatMoney(r.net)}
+                  </strong>
+                </div>
+                <div className="cashflow-mobile-card__metrics">
+                  <div>
+                    <span>Inflow</span>
+                    <strong style={{ color: 'var(--text-success)' }}>
+                      {r.inflow > 0 ? formatMoney(r.inflow) : '—'}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>Outflow</span>
+                    <strong style={{ color: 'var(--text-danger)' }}>
+                      {r.outflow > 0 ? formatMoney(-r.outflow) : '—'}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>Projected running</span>
+                    <strong
+                      style={{
+                        color: rRunning >= 0 ? 'var(--text-title)' : 'var(--text-danger)',
+                      }}
+                    >
+                      {formatMoney(rRunning)}
+                    </strong>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+        </>
       )}
 
       {/* Info Disclaimer */}

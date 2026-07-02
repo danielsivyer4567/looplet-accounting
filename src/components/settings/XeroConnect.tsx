@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { SkeletonCard } from '@/components/Skeleton';
+import { formatLoadError } from '@/lib/errorMessages';
 
 interface XeroIntegration {
   id: string;
@@ -25,17 +27,25 @@ export function XeroConnect() {
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
     setLoading(true);
-    const { data } = await supabase
-      .from('xero_integrations')
-      .select(
-        'id, xero_tenant_id, xero_tenant_name, is_enabled, status, last_synced_at, last_error, token_expires_at',
-      )
-      .eq('organization_id', currentOrg.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    setIntegration(data as XeroIntegration | null);
-    setLoading(false);
+    setError(null);
+    try {
+      const { data, error: queryError } = await supabase
+        .from('xero_integrations')
+        .select(
+          'id, xero_tenant_id, xero_tenant_name, is_enabled, status, last_synced_at, last_error, token_expires_at',
+        )
+        .eq('organization_id', currentOrg.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (queryError) throw new Error(queryError.message);
+      setIntegration(data as XeroIntegration | null);
+    } catch (e) {
+      setError(formatLoadError('Xero integration', e instanceof Error ? e.message : String(e)));
+      setIntegration(null);
+    } finally {
+      setLoading(false);
+    }
   }, [currentOrg]);
 
   useEffect(() => {
@@ -80,7 +90,7 @@ export function XeroConnect() {
       sessionStorage.setItem('xero_oauth_state', body.state);
       window.location.href = body.auth_url;
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(`Could not start Xero connection. ${e instanceof Error ? e.message : String(e)}`);
       setConnecting(false);
     }
   };
@@ -123,7 +133,7 @@ export function XeroConnect() {
       setSuccessMessage(`Synced ${body.accounts_upserted} accounts from Xero.`);
       await refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(`Could not sync Xero accounts. ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setSyncing(false);
     }
@@ -152,7 +162,7 @@ export function XeroConnect() {
       setSuccessMessage(`Pulled ${body.payments_processed} payments from Xero.`);
       await refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(`Could not sync Xero payments. ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setSyncing(false);
     }
@@ -168,16 +178,16 @@ export function XeroConnect() {
       </p>
 
       {loading ? (
-        <p style={{ color: '#888' }}>Loading…</p>
+        <div aria-busy="true" aria-label="Loading Xero integration">
+          <SkeletonCard />
+        </div>
       ) : !integration || !integration.is_enabled ? (
         <button onClick={handleConnect} disabled={connecting} style={btnPrimXero}>
           {connecting ? 'Redirecting to Xero…' : '+ Connect Xero'}
         </button>
       ) : (
-        <div style={card}>
-          <div
-            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
-          >
+        <div className="settings-xero-card" style={card}>
+          <div className="settings-xero-card__content">
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                 <span style={{ fontSize: 15, fontWeight: 600 }}>
@@ -220,9 +230,7 @@ export function XeroConnect() {
               )}
             </div>
 
-            <div
-              style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}
-            >
+            <div className="settings-xero-card__actions">
               <button onClick={handleSyncAccounts} disabled={syncing} style={btnSmall}>
                 {syncing ? 'Syncing…' : 'Sync accounts'}
               </button>
@@ -237,7 +245,22 @@ export function XeroConnect() {
         </div>
       )}
 
-      {error && <p style={{ color: 'salmon', fontSize: 12, marginTop: '0.5rem' }}>{error}</p>}
+      {error && (
+        <div
+          role="alert"
+          className="badge badge-danger"
+          style={{
+            display: 'block',
+            width: 'fit-content',
+            maxWidth: 720,
+            padding: '0.625rem 0.75rem',
+            marginTop: '0.75rem',
+            textTransform: 'none',
+          }}
+        >
+          {error}
+        </div>
+      )}
       {successMessage && (
         <p style={{ color: '#86c7a3', fontSize: 12, marginTop: '0.5rem' }}>{successMessage}</p>
       )}

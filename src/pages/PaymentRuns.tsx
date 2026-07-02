@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
 import { usePaymentRuns, type PaymentRunRow } from '@/hooks/usePaymentRuns';
+import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import { Layers, Plus } from 'lucide-react';
@@ -62,7 +63,7 @@ export function PaymentRunsPage() {
           className="badge badge-danger"
           style={{ display: 'block', padding: '1rem', textTransform: 'none' }}
         >
-          Failed to load payment runs: {error}
+          {formatLoadError('payment runs', error)}
         </div>
       ) : runs.length === 0 ? (
         <div

@@ -1,10 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { enqueueJob } from '@/lib/automationJobs';
 import { useOrg } from '@/hooks/useOrg';
 import { useBooksHealth } from '@/hooks/useBooksHealth';
 import { usePeriodClose, type CloseResult } from '@/hooks/usePeriodClose';
+import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoney } from '@/lib/money';
+import { SkeletonTable } from '@/components/Skeleton';
 import {
   Activity,
   AlertTriangle,
@@ -14,6 +17,7 @@ import {
   FileText,
   Info,
   Lock,
+  RefreshCw,
   ShieldAlert,
 } from 'lucide-react';
 
@@ -38,11 +42,27 @@ interface LowConfBill {
   created_at: string;
 }
 
+/** Shared between the desktop table and the mobile card deck. */
+function flaggedIssues(b: LowConfBill): string[] {
+  const issues: string[] = [];
+  if (!b.supplier_name_raw) issues.push('missing supplier');
+  if (b.total_inc_gst_cents == null) issues.push('missing total');
+  if (b.total_inc_gst_cents === 0) issues.push('$0.00 amount');
+  if (b.ocr_confidence != null && b.ocr_confidence < 0.6)
+    issues.push(`${(b.ocr_confidence * 100).toFixed(0)}% OCR confidence`);
+  if (b.invoice_date && new Date(b.invoice_date) > new Date(Date.now() + 7 * 86400000))
+    issues.push('future date');
+  return issues;
+}
+
 export function QualityPage() {
   const { currentOrg } = useOrg();
   const [duplicates, setDuplicates] = useState<DupGroup[]>([]);
   const [lowConf, setLowConf] = useState<LowConfBill[]>([]);
   const [loading, setLoading] = useState(true);
+  const [repairBusy, setRepairBusy] = useState(false);
+  const [repairStatus, setRepairStatus] = useState<string | null>(null);
+  const [repairError, setRepairError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
@@ -64,6 +84,33 @@ export function QualityPage() {
   useEffect(() => void refresh(), [refresh]);
 
   if (!currentOrg) return null;
+
+  const queueOcrRepair = async () => {
+    setRepairBusy(true);
+    setRepairStatus(null);
+    setRepairError(null);
+    try {
+      const job = await enqueueJob({
+        organizationId: currentOrg.id,
+        jobKind: 'bill_extract',
+        sourceKind: null,
+        sourceId: null,
+        priority: 3,
+        maxAttempts: 3,
+        payload: {
+          mode: 'repair',
+          max: 20,
+          delay_ms: 2000,
+          source: 'quality_page',
+        },
+      });
+      setRepairStatus(`OCR repair queued (${job.id.slice(0, 8)}).`);
+    } catch (err) {
+      setRepairError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRepairBusy(false);
+    }
+  };
 
   return (
     <section
@@ -128,7 +175,9 @@ export function QualityPage() {
       <div>
         <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Possible Duplicates</h2>
         {loading ? (
-          <p style={{ color: 'var(--text-muted)' }}>Checking duplicates...</p>
+          <div aria-busy="true" aria-label="Loading duplicate bill checks">
+            <SkeletonTable rows={3} cols={4} />
+          </div>
         ) : duplicates.length === 0 ? (
           <div
             className="card"
@@ -214,7 +263,37 @@ export function QualityPage() {
       </div>
 
       <div>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Needs Manual Review</h2>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+            flexWrap: 'wrap',
+            marginBottom: '1rem',
+          }}
+        >
+          <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Needs Manual Review</h2>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => void queueOcrRepair()}
+            disabled={repairBusy || lowConf.length === 0}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <RefreshCw className="w-4 h-4" />
+            {repairBusy ? 'Queueing...' : 'Queue OCR repair'}
+          </button>
+        </div>
+        {(repairStatus || repairError) && (
+          <div aria-live="polite" style={{ marginBottom: '0.75rem' }}>
+            {repairStatus ? (
+              <span className="badge badge-success">{repairStatus}</span>
+            ) : (
+              <span className="badge badge-danger">OCR repair queue failed: {repairError}</span>
+            )}
+          </div>
+        )}
         {lowConf.length === 0 ? (
           <div
             className="card"
@@ -229,7 +308,8 @@ export function QualityPage() {
             </span>
           </div>
         ) : (
-          <div className="table-premium-container">
+          <>
+          <div className="quality-table-view table-premium-container">
             <table className="table-premium">
               <thead>
                 <tr>
@@ -244,18 +324,7 @@ export function QualityPage() {
               </thead>
               <tbody>
                 {lowConf.map((b) => {
-                  const issues: string[] = [];
-                  if (!b.supplier_name_raw) issues.push('missing supplier');
-                  if (b.total_inc_gst_cents == null) issues.push('missing total');
-                  if (b.total_inc_gst_cents === 0) issues.push('$0.00 amount');
-                  if (b.ocr_confidence != null && b.ocr_confidence < 0.6)
-                    issues.push(`${(b.ocr_confidence * 100).toFixed(0)}% OCR confidence`);
-                  if (
-                    b.invoice_date &&
-                    new Date(b.invoice_date) > new Date(Date.now() + 7 * 86400000)
-                  )
-                    issues.push('future date');
-
+                  const issues = flaggedIssues(b);
                   return (
                     <tr key={b.id}>
                       <td>
@@ -334,6 +403,60 @@ export function QualityPage() {
               </tbody>
             </table>
           </div>
+          <div className="quality-card-view" aria-label="Low confidence bill cards">
+            {lowConf.map((b) => {
+              const issues = flaggedIssues(b);
+              return (
+                <article
+                  key={`card-${b.id}`}
+                  className="quality-mobile-card card"
+                  aria-label={`Low confidence bill ${b.invoice_number ?? b.id}`}
+                >
+                  <div className="quality-mobile-card__header">
+                    <Link to={`/bills/${b.id}`} style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>
+                      {b.supplier_name_raw ?? 'Unknown supplier'}
+                    </Link>
+                    <span className="badge badge-neutral" style={{ textTransform: 'capitalize' }}>
+                      {b.status}
+                    </span>
+                  </div>
+                  <div className="quality-mobile-card__metrics">
+                    <div>
+                      <span>Invoice #</span>
+                      <strong>{b.invoice_number ?? '—'}</strong>
+                    </div>
+                    <div>
+                      <span>Date</span>
+                      <strong>{b.invoice_date ?? '—'}</strong>
+                    </div>
+                    <div>
+                      <span>Total</span>
+                      <strong>
+                        {b.total_inc_gst_cents != null ? formatMoney(b.total_inc_gst_cents) : '—'}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>OCR engine</span>
+                      <strong>{b.ocr_provider ?? '—'}</strong>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                    {issues.map((iss) => (
+                      <span
+                        key={iss}
+                        className="badge badge-danger"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', textTransform: 'none' }}
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        {iss}
+                      </span>
+                    ))}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          </>
         )}
       </div>
 
@@ -427,7 +550,7 @@ function BooksHealthHeader() {
               className="badge badge-danger"
               style={{ marginTop: '0.3rem', display: 'inline-block' }}
             >
-              Failed to load: {error}
+              {formatLoadError('quality dashboard', error)}
             </span>
           ) : (
             <div
@@ -622,7 +745,7 @@ function PeriodCloseSection() {
       </div>
 
       {error ? (
-        <span className="badge badge-danger">Failed to load checks: {error}</span>
+        <span className="badge badge-danger">{formatLoadError('quality checks', error)}</span>
       ) : loading ? (
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
           Running pre-flight checks…

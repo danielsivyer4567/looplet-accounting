@@ -6,6 +6,8 @@ import { GmailConnect } from '@/components/settings/GmailConnect';
 import { BankConnect } from '@/components/settings/BankConnect';
 import { XeroConnect } from '@/components/settings/XeroConnect';
 import { PayerBankDetails } from '@/components/settings/PayerBankDetails';
+import { ConnectorApiKeys } from '@/components/settings/ConnectorApiKeys';
+import { SkeletonLine } from '@/components/Skeleton';
 import {
   User,
   Lock,
@@ -300,6 +302,9 @@ export function SettingsPage() {
               </div>
               <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem' }}>
                 <PayerBankDetails />
+              </div>
+              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem' }}>
+                <ConnectorApiKeys organizationId={currentOrg?.id} />
               </div>
               <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem' }}>
                 <h2
@@ -910,7 +915,14 @@ export function SettingsPage() {
               )}
 
               {policiesLoading ? (
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading…</div>
+                <div
+                  style={{ display: 'grid', gap: '0.5rem' }}
+                  aria-busy="true"
+                  aria-label="Loading automation policies"
+                >
+                  <SkeletonLine width="60%" height={12} />
+                  <SkeletonLine width="45%" height={12} />
+                </div>
               ) : policies.length === 0 ? (
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                   No policies yet. The AI-computed confidence band applies to all decisions.
@@ -1008,6 +1020,21 @@ export function SettingsPage() {
           </span>
           Looplet syncs organizations dynamically. BAS submission alerts, tax deadlines, and OCR
           scanning cues are loaded contextually based on active company setups.
+          <Link
+            to="/roadmap"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              marginTop: '0.6rem',
+              color: 'var(--accent-primary)',
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+          >
+            <span>Open roadmap</span>
+            <ChevronRight size={14} />
+          </Link>
         </div>
       </div>
     </section>

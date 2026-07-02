@@ -59,6 +59,7 @@ import { ReceiptHubPage } from '@/pages/ReceiptHub';
 import { FixedAssetsPage } from '@/pages/FixedAssets';
 import { MyActivityPage } from '@/pages/MyActivity';
 import { LegalHorizonPage } from '@/pages/LegalHorizon';
+import { RoadmapPage } from '@/pages/Roadmap';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -137,6 +138,7 @@ export function App() {
             <Route path="scan" element={<ScanPage />} />
             <Route path="receipt-hub" element={<ReceiptHubPage />} />
             <Route path="my-activity" element={<MyActivityPage />} />
+            <Route path="roadmap" element={<RoadmapPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

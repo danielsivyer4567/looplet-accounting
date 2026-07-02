@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { useUnpaidBillsForRun, type UnpaidBillForRun } from '@/hooks/usePaymentRuns';
+import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import { ChevronLeft, Layers, CheckCircle, AlertTriangle } from 'lucide-react';
@@ -188,7 +189,7 @@ export function NewPaymentRunPage() {
           className="badge badge-danger"
           style={{ display: 'block', padding: '1rem', textTransform: 'none' }}
         >
-          Failed to load unpaid bills: {error}
+          {formatLoadError('unpaid bills', error)}
         </div>
       ) : bills.length === 0 ? (
         <div

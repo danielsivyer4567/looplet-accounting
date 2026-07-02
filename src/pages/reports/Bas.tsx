@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { useBasWorksheet } from '@/hooks/useBasWorksheet';
 import { formatMoney } from '@/lib/money';
+import { formatLoadError } from '@/lib/errorMessages';
 import { downloadCsv } from '@/lib/csv';
 import { SkeletonTable } from '@/components/Skeleton';
 import {
@@ -61,6 +62,7 @@ export function BasReportPage() {
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
     setLoading(true);
+    setError(null);
     const [bas, cov] = await Promise.all([
       supabase
         .from('v_bas_quarterly')
@@ -73,7 +75,7 @@ export function BasReportPage() {
         .select('*')
         .returns<CoverageRow[]>(),
     ]);
-    if (bas.error) setError(bas.error.message);
+    if (bas.error) setError(formatLoadError('BAS quarters', bas.error.message));
     setRows((bas.data ?? []) as BasRow[]);
     const covRows = (cov.data ?? []).filter((c) => c.organization_id === currentOrg.id);
     setCoverage(new Map(covRows.map((c) => [coverageKey(c.fy_start_year, c.quarter_num), c])));
@@ -261,6 +263,7 @@ export function BasReportPage() {
         <SkeletonTable rows={4} cols={10} />
       ) : error ? (
         <div
+          role="alert"
           className="badge badge-danger"
           style={{ display: 'block', padding: '1rem', textTransform: 'none' }}
         >
@@ -280,7 +283,8 @@ export function BasReportPage() {
           No BAS data yet. Issue invoices and process bills to start a BAS rollup.
         </div>
       ) : (
-        <div className="table-premium-container">
+        <>
+        <div className="bas-table-view table-premium-container">
           <table className="table-premium">
             <thead>
               <tr>
@@ -348,6 +352,62 @@ export function BasReportPage() {
             </tbody>
           </table>
         </div>
+        <div className="bas-card-view" aria-label="BAS quarter cards">
+          {rows.map((r) => (
+            <article
+              key={`card-${r.fy_start_year}-${r.quarter_num}`}
+              className="bas-mobile-card card"
+              aria-label={`BAS ${QUARTER_NAMES[r.quarter_num]} FY${r.fy_start_year}`}
+            >
+              <div className="bas-mobile-card__header">
+                <div>
+                  <strong style={{ color: 'var(--text-title)' }}>
+                    {QUARTER_NAMES[r.quarter_num]} · FY {r.fy_start_year}-
+                    {(r.fy_start_year + 1).toString().slice(2)}
+                  </strong>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '0.15rem' }}>
+                    Due {r.due_date}
+                  </div>
+                </div>
+                {isOverdue(r.due_date) && r.net_gst_cents > 0 && (
+                  <span className="badge badge-danger" style={{ fontSize: '0.625rem' }}>
+                    OVERDUE
+                  </span>
+                )}
+              </div>
+              <div className="bas-mobile-card__metrics">
+                <div>
+                  <span>Sales ex GST</span>
+                  <strong>{formatMoney(r.sales_ex_gst_cents)}</strong>
+                </div>
+                <div>
+                  <span>Purchases ex GST</span>
+                  <strong>{formatMoney(r.purchases_ex_gst_cents)}</strong>
+                </div>
+                <div>
+                  <span>GST collected</span>
+                  <strong style={{ color: 'var(--text-success)' }}>
+                    {formatMoney(r.gst_collected_cents)}
+                  </strong>
+                </div>
+                <div>
+                  <span>Net GST</span>
+                  <strong
+                    style={{
+                      color: r.net_gst_cents > 0 ? 'var(--text-danger)' : 'var(--text-success)',
+                    }}
+                  >
+                    {formatMoney(r.net_gst_cents)}
+                  </strong>
+                </div>
+              </div>
+              <div className="bas-mobile-card__coverage">
+                {renderCoverage(coverage.get(coverageKey(r.fy_start_year, r.quarter_num)))}
+              </div>
+            </article>
+          ))}
+        </div>
+        </>
       )}
 
       {/* Info Callout */}
@@ -476,8 +536,8 @@ function KpiCard({
 /**
  * Guided prep flow for one BAS quarter (SC-3.E.01): worksheet labels +
  * pre-lodge blockers (GST-treatment exceptions, GL/BAS reconciliation variance,
- * GST coverage) + a worksheet-PDF download + a Tier-2 approval request. Real lodgement/status
- * write-back stays server-side in the Phase-7 lodge flow.
+ * GST coverage) + a worksheet-PDF download + a draft lodgement/Tier-2 approval request.
+ * Real transport/write-back stays server-side in the Phase-7 lodge flow.
  */
 export function BasPrepCard({
   fy,
@@ -562,7 +622,7 @@ export function BasPrepCard({
     try {
       await requestLodgeApproval();
       setLodgeMsg(
-        'Lodge approval requested. The BAS will only be marked lodged after the approved lodge flow completes.',
+        'Draft lodgement created and approval requested. The BAS will only be submitted or marked lodged after the approved lodge flow completes.',
       );
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e));
@@ -586,7 +646,9 @@ export function BasPrepCard({
       </p>
 
       {loading ? (
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading worksheet...</div>
+        <div aria-busy="true" aria-label="Loading BAS worksheet">
+          <SkeletonTable rows={4} cols={5} />
+        </div>
       ) : error ? (
         <div
           className="badge badge-warning"

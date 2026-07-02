@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { BillDetailPage } from '@/pages/BillDetail';
+import {
+  clearSupabaseOperations,
+  getSupabaseOperations,
+  mockSupabaseResponse,
+} from '@/test/mocks/supabase';
 
 vi.mock('@/lib/supabase', () => import('@/test/mocks/supabase'));
 
@@ -24,7 +29,13 @@ vi.mock('@/hooks/useBill', () => ({
 vi.mock('@/components/JobPicker', () => ({ JobPicker: () => null }));
 vi.mock('@/components/MoveToOrgButton', () => ({ MoveToOrgButton: () => null }));
 vi.mock('@/components/AllocationSplitButton', () => ({ AllocationSplitButton: () => null }));
-vi.mock('@/lib/automationDecision', () => ({ recordOverride: vi.fn() }));
+const { mockRecordFeedback } = vi.hoisted(() => ({
+  mockRecordFeedback: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('@/lib/automationDecision', () => ({
+  recordOverride: vi.fn(),
+  recordFeedback: mockRecordFeedback,
+}));
 
 const mockBill = {
   id: 'bill-1',
@@ -56,6 +67,7 @@ const mockBill = {
   suggested_match_score: null,
   raw_extracted: { _extraction_method: 'ocr' },
   created_at: '2026-06-01T00:00:00Z',
+  deleted_at: null,
   line_items: [],
 };
 
@@ -71,6 +83,26 @@ const renderPage = () =>
 describe('BillDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearSupabaseOperations();
+    mockSupabaseResponse({ data: [], error: null });
+  });
+
+  it('renders a structured detail skeleton while the bill is loading', async () => {
+    const { useBill } = await import('@/hooks/useBill');
+    vi.mocked(useBill).mockReturnValue({
+      bill: null,
+      loading: true,
+      error: null,
+      refresh: vi.fn(),
+    });
+
+    renderPage();
+
+    expect(screen.getByRole('region', { name: /loading page/i })).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+    expect(screen.queryByText(/loading bill details/i)).not.toBeInTheDocument();
   });
 
   it('renders the bill supplier name', async () => {
@@ -172,5 +204,63 @@ describe('BillDetailPage', () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Review')).toBeInTheDocument());
     expect(screen.queryByText('Quick Confirm')).not.toBeInTheDocument();
+  });
+
+  it('edits extracted bill fields and saves the normalized update payload', async () => {
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    const { useBill } = await import('@/hooks/useBill');
+    vi.mocked(useBill).mockReturnValue({
+      bill: mockBill,
+      loading: false,
+      error: null,
+      refresh,
+    });
+
+    renderPage();
+    await waitFor(() => expect(screen.getAllByText('Acme Supplies').length).toBeGreaterThan(0));
+
+    fireEvent.click(screen.getByRole('button', { name: /edit details/i }));
+    fireEvent.change(screen.getByLabelText(/^supplier$/i), {
+      target: { value: 'Updated Supplies' },
+    });
+    fireEvent.change(screen.getByLabelText(/invoice #/i), { target: { value: 'INV-999' } });
+    fireEvent.change(screen.getByLabelText(/total inc gst/i), { target: { value: '2200.00' } });
+    fireEvent.change(screen.getByLabelText(/gst share/i), { target: { value: '200.00' } });
+    fireEvent.change(screen.getByLabelText(/subtotal ex gst/i), { target: { value: '2000.00' } });
+    fireEvent.change(screen.getByLabelText(/job reference/i), { target: { value: 'JOB-123' } });
+    fireEvent.change(screen.getByLabelText(/internal notes/i), {
+      target: { value: 'Reviewed against supplier PDF' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => {
+      const update = getSupabaseOperations().find(
+        (op) => op.table === 'bills' && op.method === 'update',
+      );
+      expect(update).toBeTruthy();
+      expect(update?.payload).toMatchObject({
+        supplier_name_raw: 'Updated Supplies',
+        supplier_abn: '12345678901',
+        invoice_number: 'INV-999',
+        invoice_date: '2026-06-01',
+        due_date: '2026-07-01',
+        total_inc_gst_cents: 220000,
+        gst_cents: 20000,
+        subtotal_ex_gst_cents: 200000,
+        job_reference_raw: 'JOB-123',
+        notes: 'Reviewed against supplier PDF',
+      });
+    });
+    expect(refresh).toHaveBeenCalled();
+    expect(mockRecordFeedback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-1',
+        sourceKind: 'supplier',
+        sourceId: 'bill-1',
+        newValue: 'Updated Supplies',
+        correctionReason: 'user_edit',
+      }),
+    );
   });
 });

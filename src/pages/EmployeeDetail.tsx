@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
+import { formatLoadError, formatActionError } from '@/lib/errorMessages';
+import { DetailPageSkeleton } from '@/components/Skeleton';
+import { ArchiveButton } from '@/components/ArchiveButton';
+import { EmployeeMoveToOrgButton } from '@/components/EmployeeMoveToOrgButton';
 import {
   ChevronLeft,
   User,
@@ -41,6 +45,7 @@ interface Employee {
   modern_award: string | null;
   classification_level: string | null;
   created_at: string;
+  deleted_at: string | null;
 }
 
 /** Row of v_award_rate_exceptions (SC-3.K.02) when this employee is flagged. */
@@ -107,6 +112,7 @@ function computeLoadedRate(w: WageComponents): number {
 export function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { currentOrg } = useOrg();
+  const navigate = useNavigate();
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [recentTs, setRecentTs] = useState<Timesheet[]>([]);
   const [allYearTs, setAllYearTs] = useState<Timesheet[]>([]);
@@ -186,7 +192,7 @@ export function EmployeeDetailPage() {
         .maybeSingle(),
     ]);
     if (empRes.error) {
-      setError(empRes.error.message);
+      setError(formatLoadError('this employee', empRes.error.message));
       setLoading(false);
       return;
     }
@@ -237,7 +243,7 @@ export function EmployeeDetailPage() {
     const { error: e } = await supabase.from('employees').update(payload).eq('id', employee.id);
     setSaving(false);
     if (e) {
-      setError(e.message);
+      setError(formatActionError('save this employee', e.message));
       return;
     }
     setEditing(false);
@@ -253,7 +259,7 @@ export function EmployeeDetailPage() {
     }
     const { error: e } = await supabase.from('timesheet_entries').update(newPatch).eq('id', tid);
     if (e) {
-      setError(e.message);
+      setError(formatActionError('update this timesheet entry', e.message));
       return;
     }
     void refresh();
@@ -266,7 +272,7 @@ export function EmployeeDetailPage() {
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', tid);
     if (e) {
-      setError(e.message);
+      setError(formatActionError('delete this timesheet entry', e.message));
       return;
     }
     void refresh();
@@ -314,12 +320,7 @@ export function EmployeeDetailPage() {
   }, [allYearTs, jobs]);
 
   if (!currentOrg) return null;
-  if (loading)
-    return (
-      <section>
-        <p style={{ color: 'var(--text-muted)' }}>Loading employee details…</p>
-      </section>
-    );
+  if (loading) return <DetailPageSkeleton tableCols={6} />;
   if (!employee) {
     return (
       <section className="animated-fade-in" style={{ padding: '2rem 0', textAlign: 'center' }}>
@@ -389,6 +390,27 @@ export function EmployeeDetailPage() {
               <Edit3 size={14} />
               <span>Edit Info</span>
             </button>
+          )}
+          {!editing && (
+            <EmployeeMoveToOrgButton
+              employeeId={employee.id}
+              currentOrgId={employee.organization_id}
+              onMoved={() => navigate('/employees')}
+            />
+          )}
+          {!editing && (
+            <ArchiveButton
+              table="employees"
+              rowId={employee.id}
+              isArchived={!!employee.deleted_at}
+              onChange={(nowArchived) => {
+                if (nowArchived) {
+                  navigate('/employees');
+                } else {
+                  void refresh();
+                }
+              }}
+            />
           )}
         </div>
       </div>
@@ -1127,7 +1149,7 @@ function LeaveBalancesPanel({
         .from('leave_balances')
         .update({ [field]: value })
         .eq('id', existing.id);
-      if (e) setErr(e.message);
+      if (e) setErr(formatActionError('update the leave balance', e.message));
     } else {
       const { error: e } = await supabase.from('leave_balances').insert({
         organization_id: orgId,
@@ -1136,7 +1158,7 @@ function LeaveBalancesPanel({
         hours_accrued: field === 'hours_accrued' ? value : 0,
         hours_taken: field === 'hours_taken' ? value : 0,
       });
-      if (e) setErr(e.message);
+      if (e) setErr(formatActionError('create the leave balance', e.message));
     }
     setBusy(null);
     onChange();
@@ -1390,7 +1412,7 @@ function LogTimeForm({
     });
     setBusy(false);
     if (error) {
-      setErr(error.message);
+      setErr(formatActionError('log this time entry', error.message));
       return;
     }
     onLogged();

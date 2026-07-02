@@ -120,11 +120,12 @@ describe('close_period() books-health blocking gate (SC-1.J.02)', () => {
           storage_key: `test/${RUN}.pdf`,
           original_filename: `${RUN}.pdf`,
           mime_type: 'application/pdf',
-        })
+      })
         .select('id')
         .single();
       expect(bill.error, `bill insert failed: ${bill.error?.message}`).toBeNull();
-      billId = bill.data!.id as string;
+      expect(bill.data, 'bill insert returned a row').toBeTruthy();
+      billId = (bill.data as { id: string }).id;
 
       const health = await admin.from('v_books_health').select('score, blocking').eq('organization_id', orgId).single();
       expect(health.error).toBeNull();

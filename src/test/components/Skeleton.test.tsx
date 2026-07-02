@@ -8,7 +8,12 @@
 
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
-import { SkeletonLine, SkeletonCard, SkeletonTable } from '@/components/Skeleton';
+import {
+  DetailPageSkeleton,
+  SkeletonLine,
+  SkeletonCard,
+  SkeletonTable,
+} from '@/components/Skeleton';
 
 // ---------------------------------------------------------------------------
 // SkeletonLine
@@ -83,5 +88,16 @@ describe('SkeletonTable', () => {
     // Header row has `cols` SkeletonLine divs
     const headerRow = tableRoot.children[0] as HTMLElement;
     expect(headerRow.children.length).toBe(3);
+  });
+});
+
+describe('DetailPageSkeleton', () => {
+  it('renders an accessible busy detail-page skeleton without loading text', () => {
+    const { container } = render(<DetailPageSkeleton cards={2} tableRows={2} tableCols={3} />);
+
+    const section = container.querySelector('section');
+    expect(section).toHaveAttribute('aria-busy', 'true');
+    expect(section).toHaveAccessibleName('Loading page');
+    expect(container.textContent).not.toMatch(/loading/i);
   });
 });

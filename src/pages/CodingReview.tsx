@@ -4,6 +4,7 @@ import { useOrg } from '@/hooks/useOrg';
 import { useCodingQueue, type CodingSuggestion } from '@/hooks/useCodingQueue';
 import { getBillFileUrl } from '@/hooks/useBill';
 import { supabase } from '@/lib/supabase';
+import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoney } from '@/lib/money';
 import { SkeletonLine } from '@/components/Skeleton';
 import { ListChecks, Eye, EyeOff, CheckCircle2, X, Pencil } from 'lucide-react';
@@ -302,7 +303,7 @@ export function CodingReviewPage() {
         className="badge badge-danger"
         style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}
       >
-        Failed to load: {error}
+        {formatLoadError('coding review queue', error)}
       </div>
     );
   }

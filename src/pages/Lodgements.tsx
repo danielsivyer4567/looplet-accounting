@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { FileCheck2, RefreshCw } from 'lucide-react';
+import { Download, FileCheck2, RefreshCw } from 'lucide-react';
 import { SkeletonTable } from '@/components/Skeleton';
 import { LodgeReadinessChecklist } from '@/components/lodge/LodgeReadinessChecklist';
+import { useBasLodgementPack } from '@/hooks/useBasLodgementPack';
 import { useLodgements, type LodgementRow, type LodgementStatus } from '@/hooks/useLodgements';
 
 const MUTED = 'var(--text-muted)';
@@ -68,7 +69,19 @@ function JsonBlock({ value, maxHeight }: { value: unknown; maxHeight: string }) 
   );
 }
 
-function DetailPanel({ lodgement }: { lodgement: LodgementRow }) {
+function DetailPanel({
+  lodgement,
+  packBusy,
+  packError,
+  onDownloadPack,
+}: {
+  lodgement: LodgementRow;
+  packBusy: boolean;
+  packError: string | null;
+  onDownloadPack: (lodgement: LodgementRow) => void;
+}) {
+  const canDownloadPack = lodgement.lodgement_type === 'bas';
+
   return (
     <aside className="card" style={{ padding: '1rem', alignSelf: 'start' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
@@ -80,6 +93,28 @@ function DetailPanel({ lodgement }: { lodgement: LodgementRow }) {
         </div>
         <StatusPill status={lodgement.status} />
       </div>
+
+      {canDownloadPack && (
+        <button
+          className="btn btn-secondary"
+          type="button"
+          onClick={() => onDownloadPack(lodgement)}
+          disabled={packBusy}
+          style={{ marginTop: '1rem' }}
+        >
+          <Download size={16} />
+          {packBusy ? 'Preparing pack...' : 'Download BAS pack'}
+        </button>
+      )}
+
+      {packError && (
+        <div
+          className="badge badge-danger"
+          style={{ display: 'block', padding: '0.75rem', marginTop: '0.75rem', textTransform: 'none' }}
+        >
+          BAS pack unavailable: {packError}
+        </div>
+      )}
 
       <dl
         style={{
@@ -120,6 +155,7 @@ function DetailPanel({ lodgement }: { lodgement: LodgementRow }) {
 
 export function LodgementsPage() {
   const { lodgements, loading, error, refresh } = useLodgements();
+  const { busyId: packBusyId, error: packError, downloadPack } = useBasLodgementPack();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = useMemo(
     () => lodgements.find((item) => item.id === selectedId) ?? null,
@@ -242,7 +278,16 @@ export function LodgementsPage() {
               </tbody>
             </table>
           </div>
-          {selected && <DetailPanel lodgement={selected} />}
+          {selected && (
+            <DetailPanel
+              lodgement={selected}
+              packBusy={packBusyId === selected.id}
+              packError={packError}
+              onDownloadPack={(lodgement) => {
+                void downloadPack(lodgement);
+              }}
+            />
+          )}
         </div>
       )}
     </section>

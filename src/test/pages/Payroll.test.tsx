@@ -67,6 +67,15 @@ beforeEach(() => {
 const renderSection = () => render(<SuperBatchSection fy={2025} quarter={4} />);
 
 describe('SuperBatchSection (SC-3.H.01)', () => {
+  it('uses a skeleton while the super batch is loading', () => {
+    h.loading = true;
+
+    renderSection();
+
+    expect(screen.getByLabelText(/loading super batch/i)).toHaveAttribute('aria-busy', 'true');
+    expect(screen.queryByText(/loading batch/i)).not.toBeInTheDocument();
+  });
+
   it('offers Generate in the empty state and calls generate on click', async () => {
     renderSection();
     expect(screen.getByText(/No batch for this quarter yet/)).toBeInTheDocument();

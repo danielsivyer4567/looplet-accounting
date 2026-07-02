@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { useAuth } from '@/hooks/useAuth';
+import { SkeletonTable } from '@/components/Skeleton';
 import { Clock, Mail, Activity as ActivityIcon, Layers, Info } from 'lucide-react';
 
 interface Session {
@@ -177,7 +178,9 @@ export function MyActivityPage() {
       </h2>
 
       {loading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Loading sessions…</p>
+        <div aria-busy="true" aria-label="Loading activity sessions">
+          <SkeletonTable rows={5} cols={6} />
+        </div>
       ) : sessions.length === 0 ? (
         <div
           style={{

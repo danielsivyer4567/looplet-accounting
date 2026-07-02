@@ -193,7 +193,7 @@ export function AutoSetupPage() {
 
       {!activeGmail ? (
         <div
-          className="card"
+          className="card autosetup-panel"
           style={{ maxWidth: '720px', borderLeft: '4px solid var(--accent-danger)' }}
         >
           <div
@@ -224,7 +224,10 @@ export function AutoSetupPage() {
           </Link>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '720px' }}>
+        <div
+          className="autosetup-panel"
+          style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '720px' }}
+        >
           {/* Active mailbox status card */}
           <div className="card">
             <div
@@ -246,7 +249,10 @@ export function AutoSetupPage() {
 
             {progress && progress.total_entities > 0 && <ProgressBar progress={progress} />}
 
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+            <div
+              className="autosetup-actions"
+              style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem', flexWrap: 'wrap' }}
+            >
               <button
                 onClick={runMine}
                 disabled={running || aiRunning || gmailLoading}
@@ -289,7 +295,7 @@ export function AutoSetupPage() {
           {progress && progress.total_entities > 0 && (
             <button
               onClick={() => navigate('/onboarding/triage')}
-              className="btn btn-primary"
+              className="btn btn-primary autosetup-triage-cta"
               style={{
                 padding: '0.75rem 1.5rem',
                 alignSelf: 'flex-start',

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { useGmailIntegrations } from '@/hooks/useGmailIntegrations';
+import { SkeletonTable } from '@/components/Skeleton';
 
 export function GmailConnect() {
   const { currentOrg } = useOrg();
@@ -130,7 +131,9 @@ export function GmailConnect() {
       </p>
 
       {loading ? (
-        <p style={{ color: '#888' }}>Loading…</p>
+        <div aria-busy="true" aria-label="Loading Gmail integrations">
+          <SkeletonTable rows={3} cols={5} />
+        </div>
       ) : integrations.length === 0 ? (
         <button
           onClick={handleConnect}
@@ -149,86 +152,142 @@ export function GmailConnect() {
           {connecting ? 'Connecting…' : '+ Connect Gmail'}
         </button>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-              <th style={th}>Mailbox</th>
-              <th style={th}>Last synced</th>
-              <th style={th}>Watch expires</th>
-              <th style={th}>Status</th>
-              <th style={th}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {integrations.map((g) => (
-              <tr key={g.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                <td style={td}>{g.gmail_address}</td>
-                <td style={td}>{g.last_synced_at?.slice(0, 16).replace('T', ' ') ?? '—'}</td>
-                <td style={td}>{g.watch_expires_at?.slice(0, 16).replace('T', ' ') ?? '—'}</td>
-                <td style={td}>
-                  <span
-                    style={{
-                      padding: '0.15rem 0.5rem',
-                      fontSize: 11,
-                      borderRadius: 3,
-                      background: g.is_active ? '#0d2f1f' : '#2a2a2a',
-                      color: g.is_active ? '#86c7a3' : '#888',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    {g.is_active ? 'active' : 'disabled'}
-                  </span>
-                  {g.last_error && (
-                    <div style={{ color: '#e9a3a3', fontSize: 11, marginTop: 4 }}>
-                      {g.last_error}
-                    </div>
-                  )}
-                </td>
-                <td style={td}>
-                  {g.is_active && (
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      <button
-                        onClick={() => handleBackfill(g.id, g.gmail_address)}
-                        disabled={backfilling === g.id}
-                        style={{
-                          background: '#1c5135',
-                          color: '#86c7a3',
-                          border: '1px solid #2da565',
-                          borderRadius: 3,
-                          fontSize: 11,
-                          padding: '0.2rem 0.5rem',
-                          cursor: backfilling === g.id ? 'wait' : 'pointer',
-                        }}
-                      >
-                        {backfilling === g.id ? 'Scanning…' : 'Backfill 6 months'}
-                      </button>
-                      <button
-                        onClick={() => handleDisconnect(g.id, g.gmail_address)}
-                        style={{
-                          background: 'transparent',
-                          color: '#e9a3a3',
-                          border: '1px solid #2a2a2a',
-                          borderRadius: 3,
-                          fontSize: 11,
-                          padding: '0.2rem 0.5rem',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Disconnect
-                      </button>
-                    </div>
-                  )}
-                </td>
+        <>
+          <table className="settings-responsive-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
+                <th style={th}>Mailbox</th>
+                <th style={th}>Last synced</th>
+                <th style={th}>Watch expires</th>
+                <th style={th}>Status</th>
+                <th style={th}></th>
               </tr>
+            </thead>
+            <tbody>
+              {integrations.map((g) => (
+                <tr key={g.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
+                  <td style={td}>{g.gmail_address}</td>
+                  <td style={td}>{g.last_synced_at?.slice(0, 16).replace('T', ' ') ?? '—'}</td>
+                  <td style={td}>{g.watch_expires_at?.slice(0, 16).replace('T', ' ') ?? '—'}</td>
+                  <td style={td}>
+                    <GmailStatus integration={g} />
+                  </td>
+                  <td style={td}>
+                    <GmailActions
+                      integration={g}
+                      backfilling={backfilling}
+                      onBackfill={handleBackfill}
+                      onDisconnect={handleDisconnect}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="settings-card-view" aria-label="Gmail integrations mobile cards">
+            {integrations.map((g) => (
+              <div key={g.id} className="settings-mobile-card">
+                <div className="settings-mobile-card__header">
+                  <strong>{g.gmail_address}</strong>
+                  <GmailStatus integration={g} />
+                </div>
+                <div className="settings-mobile-card__row">
+                  <span>Last synced</span>
+                  <strong>{g.last_synced_at?.slice(0, 16).replace('T', ' ') ?? '—'}</strong>
+                </div>
+                <div className="settings-mobile-card__row">
+                  <span>Watch expires</span>
+                  <strong>{g.watch_expires_at?.slice(0, 16).replace('T', ' ') ?? '—'}</strong>
+                </div>
+                <GmailActions
+                  integration={g}
+                  backfilling={backfilling}
+                  onBackfill={handleBackfill}
+                  onDisconnect={handleDisconnect}
+                />
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        </>
       )}
 
       {error && <p style={{ color: 'salmon', fontSize: 12, marginTop: '0.5rem' }}>{error}</p>}
       {backfillStatus && (
         <p style={{ color: '#86c7a3', fontSize: 12, marginTop: '0.5rem' }}>{backfillStatus}</p>
       )}
+    </div>
+  );
+}
+
+type GmailIntegration = ReturnType<typeof useGmailIntegrations>['integrations'][number];
+
+function GmailStatus({ integration }: { integration: GmailIntegration }) {
+  return (
+    <>
+      <span
+        style={{
+          padding: '0.15rem 0.5rem',
+          fontSize: 11,
+          borderRadius: 3,
+          background: integration.is_active ? '#0d2f1f' : '#2a2a2a',
+          color: integration.is_active ? '#86c7a3' : '#888',
+          textTransform: 'uppercase',
+        }}
+      >
+        {integration.is_active ? 'active' : 'disabled'}
+      </span>
+      {integration.last_error && (
+        <div style={{ color: '#e9a3a3', fontSize: 11, marginTop: 4 }}>{integration.last_error}</div>
+      )}
+    </>
+  );
+}
+
+function GmailActions({
+  integration,
+  backfilling,
+  onBackfill,
+  onDisconnect,
+}: {
+  integration: GmailIntegration;
+  backfilling: string | null;
+  onBackfill: (id: string, gmail: string) => Promise<void>;
+  onDisconnect: (id: string, gmail: string) => Promise<void>;
+}) {
+  if (!integration.is_active) return null;
+
+  return (
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      <button
+        onClick={() => void onBackfill(integration.id, integration.gmail_address)}
+        disabled={backfilling === integration.id}
+        style={{
+          background: '#1c5135',
+          color: '#86c7a3',
+          border: '1px solid #2da565',
+          borderRadius: 3,
+          fontSize: 11,
+          padding: '0.2rem 0.5rem',
+          cursor: backfilling === integration.id ? 'wait' : 'pointer',
+        }}
+      >
+        {backfilling === integration.id ? 'Scanning…' : 'Backfill 6 months'}
+      </button>
+      <button
+        onClick={() => void onDisconnect(integration.id, integration.gmail_address)}
+        style={{
+          background: 'transparent',
+          color: '#e9a3a3',
+          border: '1px solid #2a2a2a',
+          borderRadius: 3,
+          fontSize: 11,
+          padding: '0.2rem 0.5rem',
+          cursor: 'pointer',
+        }}
+      >
+        Disconnect
+      </button>
     </div>
   );
 }

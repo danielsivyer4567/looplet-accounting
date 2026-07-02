@@ -61,7 +61,7 @@ export function BankCallbackPage() {
         if (!resolvedConnectionId && jobId) {
           setStatus(`Job ${jobId.slice(0, 8)}… received. Waiting for bank connection to activate…`);
 
-          resolvedConnectionId = await pollForConnection(
+          const poll = await pollForConnection(
             jobId,
             currentOrg.id,
             session.access_token,
@@ -71,9 +71,19 @@ export function BankCallbackPage() {
             },
           );
 
-          if (!resolvedConnectionId) {
-            // Timeout or job failed — the bank connection may still complete via
-            // Basiq's webhook. Tell the user to check Settings in a moment.
+          if (poll.outcome === 'failed') {
+            // Hard failure — Basiq reported the job failed. This will NOT resolve
+            // later via webhook, so do not tell the user it's "still activating".
+            setError(
+              'The bank connection failed on Basiq — no accounts were linked. ' +
+                'Please try connecting again from Settings.',
+            );
+            return;
+          }
+
+          if (poll.outcome === 'timeout') {
+            // Only a timeout (job still pending) — the connection may still complete
+            // via Basiq's webhook. Tell the user to check Settings in a moment.
             setStatus(
               'Connection is still activating on Basiq — this can take up to 2 minutes. ' +
                 'Your accounts will appear in Settings once ready.',
@@ -81,6 +91,8 @@ export function BankCallbackPage() {
             setTimeout(() => navigate('/settings'), 4000);
             return;
           }
+
+          resolvedConnectionId = poll.connectionId;
         }
 
         // ── Path A / B resolved: call bank-exchange with the connectionId ──
@@ -158,16 +170,26 @@ export function BankCallbackPage() {
 }
 
 /**
+ * Outcome of polling bank-job-poll. `failed` is a terminal Basiq failure (won't
+ * resolve later), `timeout` means still pending after all attempts (may still
+ * complete via webhook) — the two must be surfaced differently to the user.
+ */
+type PollResult =
+  | { outcome: 'connected'; connectionId: string }
+  | { outcome: 'failed' }
+  | { outcome: 'timeout' };
+
+/**
  * Poll bank-job-poll every POLL_INTERVAL_MS ms for up to POLL_MAX_ATTEMPTS
- * attempts. Returns the connectionId string on success, or null on timeout
- * or job failure.
+ * attempts. Returns `connected` with the connectionId, `failed` if Basiq
+ * reported the job failed, or `timeout` if it never resolved in time.
  */
 async function pollForConnection(
   jobId: string,
   organizationId: string,
   accessToken: string,
   onProgress: (attempt: number) => void,
-): Promise<string | null> {
+): Promise<PollResult> {
   for (let attempt = 1; attempt <= POLL_MAX_ATTEMPTS; attempt++) {
     // Wait before polling (except on the very first attempt, give Basiq ~1s).
     await delay(attempt === 1 ? 1000 : POLL_INTERVAL_MS);
@@ -197,18 +219,18 @@ async function pollForConnection(
 
     if (data.status === 'failed') {
       console.error('Basiq job failed for jobId', jobId);
-      return null;
+      return { outcome: 'failed' };
     }
 
     if (data.status === 'active' && data.connection_id) {
-      return data.connection_id;
+      return { outcome: 'connected', connectionId: data.connection_id };
     }
 
     // status === 'pending' — continue polling.
   }
 
   // Exhausted all attempts.
-  return null;
+  return { outcome: 'timeout' };
 }
 
 function delay(ms: number): Promise<void> {

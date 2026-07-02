@@ -3,8 +3,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
+import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { AllocationSplitButton } from '@/components/AllocationSplitButton';
+import { DetailPageSkeleton } from '@/components/Skeleton';
+import { ArchiveButton } from '@/components/ArchiveButton';
 import {
   ArrowLeft,
   RefreshCw,
@@ -37,6 +40,7 @@ interface Subscription {
   is_personal: boolean;
   is_business: boolean;
   notes: string | null;
+  deleted_at: string | null;
 }
 
 interface BankTxn {
@@ -94,7 +98,7 @@ export function SubscriptionDetailPage() {
       .eq('organization_id', currentOrg.id)
       .maybeSingle();
     if (subRes.error) {
-      setError(subRes.error.message);
+      setError(formatLoadError('this subscription', subRes.error.message));
       setLoading(false);
       return;
     }
@@ -156,7 +160,7 @@ export function SubscriptionDetailPage() {
     const { error: e } = await supabase.from('subscriptions').update(payload).eq('id', sub.id);
     setSaving(false);
     if (e) {
-      setError(e.message);
+      setError(formatActionError('save this subscription', e.message));
       return;
     }
     setEditing(false);
@@ -218,11 +222,7 @@ export function SubscriptionDetailPage() {
 
   if (!currentOrg) return null;
   if (loading) {
-    return (
-      <section className="animated-fade-in" style={{ padding: '2rem 0' }}>
-        <p style={{ color: 'var(--text-muted)' }}>Loading subscription detail...</p>
-      </section>
-    );
+    return <DetailPageSkeleton tableCols={4} />;
   }
 
   if (!sub) {
@@ -294,6 +294,18 @@ export function SubscriptionDetailPage() {
                 currentOrgId={currentOrg.id}
                 fkColumnsToNull={['supplier_id']}
                 onMoved={() => navigate('/subscriptions')}
+              />
+              <ArchiveButton
+                table="subscriptions"
+                rowId={sub.id}
+                isArchived={!!sub.deleted_at}
+                onChange={(nowArchived) => {
+                  if (nowArchived) {
+                    navigate('/subscriptions');
+                  } else {
+                    void refresh();
+                  }
+                }}
               />
               <button className="btn btn-secondary" onClick={startEdit}>
                 <Edit2 className="w-4 h-4" /> Edit Details

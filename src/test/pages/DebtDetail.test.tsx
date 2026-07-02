@@ -110,6 +110,7 @@ const DEBT = {
   end_date: null,
   is_personal: false,
   notes: 'Business card',
+  deleted_at: null,
 };
 
 beforeEach(() => {
@@ -120,6 +121,7 @@ beforeEach(() => {
   h.inserts = [];
   h.updates = [];
   h.deletes = [];
+  vi.spyOn(window, 'confirm').mockReturnValue(true);
 });
 
 async function renderLoaded() {
@@ -127,6 +129,7 @@ async function renderLoaded() {
     <MemoryRouter initialEntries={['/debts/debt-1']}>
       <Routes>
         <Route path="/debts/:id" element={<DebtDetailPage />} />
+        <Route path="/debts" element={<div>Debts index</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -182,6 +185,19 @@ describe('DebtDetailPage', () => {
     expect(h.updates).toContainEqual({
       table: 'debts',
       payload: { current_balance_cents: 480_000 },
+    });
+  });
+
+  it('archives the debt account with a deleted_at soft-delete', async () => {
+    await renderLoaded();
+
+    fireEvent.click(screen.getByRole('button', { name: /^archive$/i }));
+
+    await waitFor(() => {
+      expect(h.updates).toContainEqual({
+        table: 'debts',
+        payload: { deleted_at: expect.any(String) },
+      });
     });
   });
 });

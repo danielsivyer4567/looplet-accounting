@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { SkeletonLine } from '@/components/Skeleton';
 
 /**
  * AllocationSplitButton — sibling to MoveToOrgButton, but instead of moving
@@ -181,7 +182,7 @@ export function AllocationSplitButton({
   const availableOrgs = otherOrgs.filter((o) => !splits.some((s) => s.organization_id === o.id));
 
   return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
+    <div className="allocation-split-control">
       <button
         onClick={() => setOpen(!open)}
         disabled={busy}
@@ -199,21 +200,7 @@ export function AllocationSplitButton({
         {busy ? 'Saving…' : (label ?? `⊟ Split${splits.length > 0 ? ` (${splits.length})` : ''}`)}
       </button>
       {open && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            right: 0,
-            marginTop: 4,
-            minWidth: 360,
-            background: '#1a1a1a',
-            border: '1px solid #2a2a2a',
-            borderRadius: 4,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-            zIndex: 100,
-            padding: '0.5rem 0.75rem',
-          }}
-        >
+        <div className="allocation-split-popover">
           <div
             style={{
               fontSize: 11,
@@ -227,7 +214,14 @@ export function AllocationSplitButton({
           </div>
 
           {loading ? (
-            <p style={{ fontSize: 12, color: '#888', margin: '0.5rem 0' }}>Loading splits…</p>
+            <div
+              style={{ display: 'grid', gap: '0.5rem', margin: '0.5rem 0' }}
+              aria-busy="true"
+              aria-label="Loading allocation splits"
+            >
+              <SkeletonLine width="80%" height={12} />
+              <SkeletonLine width="65%" height={12} />
+            </div>
           ) : (
             <>
               {/* Host row — implicit, not editable as a split row */}
@@ -250,16 +244,7 @@ export function AllocationSplitButton({
               {splits.map((s) => {
                 const org = organizations.find((o) => o.id === s.organization_id);
                 return (
-                  <div
-                    key={s.organization_id}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 3,
-                      padding: '0.5rem 0',
-                      borderBottom: '1px solid #1a1a1a',
-                    }}
-                  >
+                  <div key={s.organization_id} className="allocation-split-row">
                     <div
                       style={{
                         display: 'flex',
@@ -271,7 +256,7 @@ export function AllocationSplitButton({
                       <span style={{ fontSize: 12, color: '#ddd' }}>
                         {org?.name ?? s.organization_id.slice(0, 8)}
                       </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <div className="allocation-split-row__controls">
                         <input
                           type="number"
                           min={0}
@@ -375,7 +360,7 @@ export function AllocationSplitButton({
                 </span>
               </div>
 
-              <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+              <div className="allocation-split-actions">
                 <button
                   onClick={save}
                   disabled={busy || overTotal}

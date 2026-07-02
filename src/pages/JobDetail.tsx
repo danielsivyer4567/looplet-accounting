@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
+import { DetailPageSkeleton } from '@/components/Skeleton';
+import { ArchiveButton } from '@/components/ArchiveButton';
 import {
   ChevronLeft,
   Briefcase,
@@ -36,6 +38,7 @@ interface JobRow {
   customer_id: string | null;
   site_address: Record<string, unknown> | null;
   created_at: string;
+  deleted_at: string | null;
 }
 
 interface PnlRow {
@@ -191,12 +194,7 @@ export function JobDetailPage() {
   };
 
   if (!currentOrg) return null;
-  if (loading)
-    return (
-      <section>
-        <p style={{ color: 'var(--text-muted)' }}>Loading job details…</p>
-      </section>
-    );
+  if (loading) return <DetailPageSkeleton tableCols={5} />;
   if (!job) {
     return (
       <section className="animated-fade-in" style={{ padding: '2rem 0', textAlign: 'center' }}>
@@ -319,6 +317,18 @@ export function JobDetailPage() {
             fkColumnsToNull={['customer_id']}
             onMoved={() => {
               window.location.href = '/jobs';
+            }}
+          />
+          <ArchiveButton
+            table="jobs"
+            rowId={job.id}
+            isArchived={!!job.deleted_at}
+            onChange={(nowArchived) => {
+              if (nowArchived) {
+                window.location.href = '/jobs';
+              } else {
+                void refresh();
+              }
             }}
           />
         </div>

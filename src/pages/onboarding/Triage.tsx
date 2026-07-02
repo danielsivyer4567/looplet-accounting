@@ -8,11 +8,13 @@ import {
   type EntityKind,
 } from '@/hooks/onboarding/useStagedEntities';
 import { useIntakeCategories } from '@/hooks/useIntakeCategories';
+import { formatLoadError } from '@/lib/errorMessages';
+import { SkeletonTable } from '@/components/Skeleton';
 import { ChevronLeft, Globe } from 'lucide-react';
 
 export function TriagePage() {
   const { currentOrg } = useOrg();
-  const { entities, progress, refresh, loading } = useStagedEntities();
+  const { entities, progress, refresh, loading, error: loadError } = useStagedEntities();
   const { categories } = useIntakeCategories();
 
   const [busy, setBusy] = useState<string | null>(null);
@@ -70,7 +72,13 @@ export function TriagePage() {
   }, [entities]);
 
   if (!currentOrg) return <p style={{ color: 'var(--text-muted)' }}>Pick an organisation first.</p>;
-  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading triage list…</p>;
+  if (loading) {
+    return (
+      <section className="animated-fade-in" aria-busy="true" aria-label="Loading triage list">
+        <SkeletonTable rows={6} cols={5} />
+      </section>
+    );
+  }
 
   const remaining = (progress?.pending_count ?? 0) + (progress?.needs_review_count ?? 0);
 
@@ -743,7 +751,7 @@ export function TriagePage() {
               </div>
             </div>
 
-            <div className="table-premium-container">
+            <div className="table-premium-container triage-table-view">
               <table className="table-premium">
                 <thead>
                   <tr>
@@ -775,11 +783,45 @@ export function TriagePage() {
                 </tbody>
               </table>
             </div>
+            <div className="triage-card-view" aria-label={`${kindLabel(k)} mobile triage cards`}>
+              {rows.map((e) => (
+                <TriageCard
+                  key={e.id}
+                  entity={e}
+                  categories={categories}
+                  busy={busy === e.id}
+                  onApprove={(kind, category) =>
+                    updateOne(e, {
+                      status: 'approved',
+                      user_kind: kind,
+                      user_category: category,
+                    })
+                  }
+                  onDismiss={() => updateOne(e, { status: 'dismissed' })}
+                />
+              ))}
+            </div>
           </div>
         );
       })}
 
-      {entities.length === 0 && (
+      {loadError && (
+        <div
+          className="badge badge-danger"
+          role="alert"
+          style={{
+            display: 'block',
+            padding: '0.75rem',
+            marginBottom: '1rem',
+            textTransform: 'none',
+            textAlign: 'left',
+          }}
+        >
+          {formatLoadError('staged senders', loadError)}
+        </div>
+      )}
+
+      {!loadError && entities.length === 0 && (
         <div
           style={{
             padding: '3rem',
@@ -797,6 +839,12 @@ export function TriagePage() {
   );
 }
 
+interface IntakeCategoryOption {
+  code: string;
+  label: string;
+  xero_account_code: string | null;
+}
+
 function TriageRow({
   entity,
   categories,
@@ -805,11 +853,123 @@ function TriageRow({
   onDismiss,
 }: {
   entity: StagedEntity;
-  categories: { code: string; label: string; xero_account_code: string | null }[];
+  categories: IntakeCategoryOption[];
   busy: boolean;
   onApprove: (kind: EntityKind, category: string | null) => void;
   onDismiss: () => void;
 }) {
+  const decision = useTriageDecision(entity);
+
+  return (
+    <tr
+      style={{
+        opacity: decision.isReviewed ? 0.65 : 1,
+        transition: 'var(--transition-smooth)',
+      }}
+    >
+      <td>
+        <TriageSenderDetails entity={entity} />
+      </td>
+      <td>
+        <TriageSampleSubjects entity={entity} />
+      </td>
+      <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>
+        {entity.message_count}
+      </td>
+      <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>
+        {entity.attachment_count}
+      </td>
+      <td>
+        <TriageCategoryPicker
+          entity={entity}
+          categories={categories}
+          busy={busy}
+          decision={decision}
+        />
+      </td>
+      <td>
+        <TriageActions
+          entity={entity}
+          busy={busy}
+          decision={decision}
+          onApprove={onApprove}
+          onDismiss={onDismiss}
+        />
+      </td>
+    </tr>
+  );
+}
+
+function TriageCard({
+  entity,
+  categories,
+  busy,
+  onApprove,
+  onDismiss,
+}: {
+  entity: StagedEntity;
+  categories: IntakeCategoryOption[];
+  busy: boolean;
+  onApprove: (kind: EntityKind, category: string | null) => void;
+  onDismiss: () => void;
+}) {
+  const decision = useTriageDecision(entity);
+
+  return (
+    <article
+      className="triage-mobile-card"
+      style={{
+        opacity: decision.isReviewed ? 0.65 : 1,
+      }}
+    >
+      <div className="triage-mobile-card__header">
+        <TriageSenderDetails entity={entity} />
+        <span
+          className={`badge ${entity.status === 'approved' ? 'badge-success' : entity.status === 'dismissed' ? 'badge-neutral' : 'badge-info'}`}
+        >
+          {entity.status}
+        </span>
+      </div>
+      <div className="triage-mobile-card__metrics">
+        <div>
+          <span>Kind</span>
+          <strong>{kindActionLabel(decision.derivedKind)}</strong>
+        </div>
+        <div>
+          <span>Confidence</span>
+          <strong>{Math.round(entity.confidence * 100)}%</strong>
+        </div>
+        <div>
+          <span>Emails</span>
+          <strong>{entity.message_count}</strong>
+        </div>
+        <div>
+          <span>Files</span>
+          <strong>{entity.attachment_count}</strong>
+        </div>
+      </div>
+      <div className="triage-mobile-card__subjects">
+        <span>Sample subjects</span>
+        <TriageSampleSubjects entity={entity} />
+      </div>
+      <TriageCategoryPicker
+        entity={entity}
+        categories={categories}
+        busy={busy}
+        decision={decision}
+      />
+      <TriageActions
+        entity={entity}
+        busy={busy}
+        decision={decision}
+        onApprove={onApprove}
+        onDismiss={onDismiss}
+      />
+    </article>
+  );
+}
+
+function useTriageDecision(entity: StagedEntity) {
   const [kind, setKind] = useState<EntityKind>(entity.predicted_kind);
   const [category, setCategory] = useState<string | null>(entity.predicted_category);
 
@@ -825,171 +985,205 @@ function TriageRow({
     if (entity.sonar_suggested_kind) setKind(entity.sonar_suggested_kind);
   };
 
+  return { category, setCategory, isReviewed, derivedKind, sonarDiffers, applySonar };
+}
+
+function TriageSenderDetails({ entity }: { entity: StagedEntity }) {
   return (
-    <tr style={{ opacity: isReviewed ? 0.65 : 1, transition: 'var(--transition-smooth)' }}>
-      <td>
-        <div style={{ fontWeight: 700, color: 'var(--text-title)' }}>{entity.display_name}</div>
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.15rem' }}>
-          {entity.primary_email}
+    <div>
+      <div style={{ fontWeight: 700, color: 'var(--text-title)' }}>{entity.display_name}</div>
+      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.15rem' }}>
+        {entity.primary_email}
+      </div>
+      {entity.abn && (
+        <div
+          style={{
+            color: 'var(--text-success)',
+            fontSize: '0.7rem',
+            fontWeight: 600,
+            marginTop: '0.15rem',
+          }}
+        >
+          ABN: {entity.abn}
         </div>
-        {entity.abn && (
-          <div
-            style={{
-              color: 'var(--text-success)',
-              fontSize: '0.7rem',
-              fontWeight: 600,
-              marginTop: '0.15rem',
-            }}
-          >
-            ABN: {entity.abn}
-          </div>
-        )}
+      )}
 
-        {entity.sonar_summary && (
-          <div
-            style={{
-              marginTop: '0.5rem',
-              padding: '0.5rem',
-              background: 'var(--bg-hover)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: '0.775rem',
-              color: 'var(--text-body)',
-              maxWidth: '320px',
-              lineHeight: '1.4',
-            }}
-          >
-            <span style={{ color: 'var(--accent-info)', fontWeight: 700 }}>✦ Sonar Search:</span>{' '}
-            {entity.sonar_summary}
-            {entity.sonar_evidence_url && (
-              <a
-                href={entity.sonar_evidence_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  marginLeft: 6,
-                  color: 'var(--accent-primary)',
-                  fontSize: '0.7rem',
-                  fontWeight: 600,
-                }}
-              >
-                Source ↗
-              </a>
-            )}
-          </div>
-        )}
-      </td>
-      <td>
-        {entity.sample_subjects.slice(0, 2).map((s, i) => (
-          <div
-            key={i}
-            style={{
-              color: 'var(--text-muted)',
-              fontSize: '0.75rem',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: '240px',
-              marginBottom: '0.15rem',
-            }}
-          >
-            {s}
-          </div>
-        ))}
-      </td>
-      <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>
-        {entity.message_count}
-      </td>
-      <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>
-        {entity.attachment_count}
-      </td>
-      <td>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <select
-            value={category ?? ''}
-            onChange={(e) => setCategory(e.target.value || null)}
-            disabled={busy || isReviewed}
-            className="form-select"
-            style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem' }}
-          >
-            <option value="">— select category —</option>
-            {categories.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.label}
-                {c.xero_account_code ? ` (${c.xero_account_code})` : ''}
-              </option>
-            ))}
-          </select>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', paddingLeft: '0.25rem' }}>
-            Creates {kindActionLabel(derivedKind)} · {Math.round(entity.confidence * 100)}%
-            confidence
-          </div>
-
-          {sonarDiffers && !isReviewed && (
-            <button
-              onClick={applySonar}
-              disabled={busy}
-              className="btn btn-secondary"
+      {entity.sonar_summary && (
+        <div
+          style={{
+            marginTop: '0.5rem',
+            padding: '0.5rem',
+            background: 'var(--bg-hover)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: '0.775rem',
+            color: 'var(--text-body)',
+            maxWidth: '320px',
+            lineHeight: '1.4',
+          }}
+        >
+          <span style={{ color: 'var(--accent-info)', fontWeight: 700 }}>✦ Sonar Search:</span>{' '}
+          {entity.sonar_summary}
+          {entity.sonar_evidence_url && (
+            <a
+              href={entity.sonar_evidence_url}
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
-                marginTop: '0.25rem',
-                padding: '0.2rem 0.4rem',
+                marginLeft: 6,
+                color: 'var(--accent-primary)',
                 fontSize: '0.7rem',
-                color: 'var(--text-info)',
-                borderColor: 'var(--accent-info)',
-                alignSelf: 'flex-start',
+                fontWeight: 600,
               }}
-              title={`Sonar suggests: ${entity.sonar_suggested_category ?? '?'} (${entity.sonar_confidence != null ? Math.round(entity.sonar_confidence * 100) : '?'}%)`}
             >
-              ✦ Use Sonar's pick
-            </button>
+              Source ↗
+            </a>
           )}
         </div>
-      </td>
-      <td>
-        {isReviewed ? (
-          <span
-            className={`badge ${entity.status === 'approved' ? 'badge-success' : 'badge-neutral'}`}
-            style={{ padding: '0.35rem 0.75rem', display: 'inline-flex' }}
-          >
-            {entity.status}
-          </span>
-        ) : (
-          <div style={{ display: 'flex', gap: '0.25rem' }}>
-            <button
-              onClick={() => onApprove(derivedKind, category)}
-              disabled={busy || !category}
-              className="btn btn-primary"
-              style={{
-                padding: '0.35rem 0.75rem',
-                fontSize: '0.75rem',
-                flex: 1,
-                opacity: !category ? 0.5 : 1,
-                background: 'var(--accent-success)',
-                borderColor: 'var(--accent-success)',
-              }}
-              title={
-                !category ? 'Pick a category first' : `Approve as ${kindActionLabel(derivedKind)}`
-              }
-            >
-              {busy ? '…' : 'Approve'}
-            </button>
-            <button
-              onClick={onDismiss}
-              disabled={busy}
-              className="btn btn-secondary"
-              style={{
-                padding: '0.35rem 0.5rem',
-                fontSize: '0.75rem',
-                color: 'var(--text-danger)',
-                borderColor: 'var(--accent-danger)',
-              }}
-            >
-              ✕ Dismiss
-            </button>
-          </div>
-        )}
-      </td>
-    </tr>
+      )}
+    </div>
+  );
+}
+
+function TriageSampleSubjects({ entity }: { entity: StagedEntity }) {
+  return (
+    <>
+      {entity.sample_subjects.slice(0, 2).map((s, i) => (
+        <div
+          key={i}
+          style={{
+            color: 'var(--text-muted)',
+            fontSize: '0.75rem',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            maxWidth: '240px',
+            marginBottom: '0.15rem',
+          }}
+        >
+          {s}
+        </div>
+      ))}
+    </>
+  );
+}
+
+function TriageCategoryPicker({
+  entity,
+  categories,
+  busy,
+  decision,
+}: {
+  entity: StagedEntity;
+  categories: IntakeCategoryOption[];
+  busy: boolean;
+  decision: ReturnType<typeof useTriageDecision>;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+      <select
+        aria-label={`Category for ${entity.display_name}`}
+        value={decision.category ?? ''}
+        onChange={(e) => decision.setCategory(e.target.value || null)}
+        disabled={busy || decision.isReviewed}
+        className="form-select"
+        style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem' }}
+      >
+        <option value="">— select category —</option>
+        {categories.map((c) => (
+          <option key={c.code} value={c.code}>
+            {c.label}
+            {c.xero_account_code ? ` (${c.xero_account_code})` : ''}
+          </option>
+        ))}
+      </select>
+      <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', paddingLeft: '0.25rem' }}>
+        Creates {kindActionLabel(decision.derivedKind)} · {Math.round(entity.confidence * 100)}%
+        confidence
+      </div>
+
+      {decision.sonarDiffers && !decision.isReviewed && (
+        <button
+          onClick={decision.applySonar}
+          disabled={busy}
+          className="btn btn-secondary"
+          style={{
+            marginTop: '0.25rem',
+            padding: '0.2rem 0.4rem',
+            fontSize: '0.7rem',
+            color: 'var(--text-info)',
+            borderColor: 'var(--accent-info)',
+            alignSelf: 'flex-start',
+          }}
+          title={`Sonar suggests: ${entity.sonar_suggested_category ?? '?'} (${entity.sonar_confidence != null ? Math.round(entity.sonar_confidence * 100) : '?'}%)`}
+        >
+          ✦ Use Sonar's pick
+        </button>
+      )}
+    </div>
+  );
+}
+
+function TriageActions({
+  entity,
+  busy,
+  decision,
+  onApprove,
+  onDismiss,
+}: {
+  entity: StagedEntity;
+  busy: boolean;
+  decision: ReturnType<typeof useTriageDecision>;
+  onApprove: (kind: EntityKind, category: string | null) => void;
+  onDismiss: () => void;
+}) {
+  if (decision.isReviewed) {
+    return (
+      <span
+        className={`badge ${entity.status === 'approved' ? 'badge-success' : 'badge-neutral'}`}
+        style={{ padding: '0.35rem 0.75rem', display: 'inline-flex' }}
+      >
+        {entity.status}
+      </span>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: '0.25rem' }}>
+      <button
+        onClick={() => onApprove(decision.derivedKind, decision.category)}
+        disabled={busy || !decision.category}
+        className="btn btn-primary"
+        style={{
+          padding: '0.35rem 0.75rem',
+          fontSize: '0.75rem',
+          flex: 1,
+          opacity: !decision.category ? 0.5 : 1,
+          background: 'var(--accent-success)',
+          borderColor: 'var(--accent-success)',
+        }}
+        title={
+          !decision.category
+            ? 'Pick a category first'
+            : `Approve as ${kindActionLabel(decision.derivedKind)}`
+        }
+      >
+        {busy ? '…' : 'Approve'}
+      </button>
+      <button
+        onClick={onDismiss}
+        disabled={busy}
+        className="btn btn-secondary"
+        style={{
+          padding: '0.35rem 0.5rem',
+          fontSize: '0.75rem',
+          color: 'var(--text-danger)',
+          borderColor: 'var(--accent-danger)',
+        }}
+      >
+        ✕ Dismiss
+      </button>
+    </div>
   );
 }
 

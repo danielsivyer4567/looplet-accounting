@@ -7,6 +7,7 @@ import {
   type PaymentRunRow,
   type PaymentRunItem,
 } from '@/hooks/usePaymentRuns';
+import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import {
@@ -47,7 +48,7 @@ export function PaymentRunDetailPage() {
         className="badge badge-danger"
         style={{ display: 'block', padding: '1rem', textTransform: 'none' }}
       >
-        Error loading payment run: {error}
+        {formatLoadError('payment run', error)}
       </div>
     );
   }

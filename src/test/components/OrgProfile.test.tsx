@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OrgProfileForm } from '@/components/settings/OrgProfile';
@@ -7,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   updatePayload: null as Record<string, unknown> | null,
   eqCalls: [] as [string, unknown][],
   currentOrg: { id: 'org-1', name: 'Affordable Fencing', organization_type: 'standard' },
+  saveError: null as string | null,
 }));
 
 const org = {
@@ -46,7 +49,9 @@ vi.mock('@/lib/supabase', () => {
     });
     chain.maybeSingle = vi.fn(() => Promise.resolve({ data: org, error: null }));
     chain.then = (resolve: (value: unknown) => unknown) =>
-      Promise.resolve({ data: null, error: null }).then(resolve);
+      Promise.resolve(
+        mocks.saveError ? { data: null, error: { message: mocks.saveError } } : { data: null, error: null },
+      ).then(resolve);
     return chain;
   };
 
@@ -62,6 +67,35 @@ describe('OrgProfileForm', () => {
     mocks.refresh.mockClear();
     mocks.updatePayload = null;
     mocks.eqCalls = [];
+    mocks.saveError = null;
+  });
+
+  it('surfaces a categorized save action error instead of the raw message', async () => {
+    mocks.saveError = 'new row violates row-level security policy';
+    render(<OrgProfileForm />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /save profile/i }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          /could not save the organisation profile\. access policy blocked this request/i,
+        ),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByText('Saved.')).not.toBeInTheDocument();
+  });
+
+  it('uses responsive grid classes with a 768px single-column breakpoint', async () => {
+    const { container } = render(<OrgProfileForm />);
+    await screen.findByLabelText(/trading name/i);
+
+    expect(container.querySelectorAll('.org-profile-grid').length).toBeGreaterThan(0);
+
+    const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
+    expect(css).toMatch(
+      /@media \(max-width: 768px\)[\s\S]*\.org-profile-grid,[\s\S]*\.business-profile-grid\s*\{[\s\S]*grid-template-columns: 1fr/,
+    );
   });
 
   it('writes ABN and tax settings back to organizations.settings', async () => {
@@ -96,5 +130,16 @@ describe('OrgProfileForm', () => {
     expect(mocks.eqCalls).toContainEqual(['id', 'org-1']);
     expect(mocks.refresh).toHaveBeenCalled();
     expect(await screen.findByText('Saved.')).toBeInTheDocument();
+  });
+
+  it('uses a skeleton while the organisation profile is loading', async () => {
+    render(<OrgProfileForm />);
+
+    expect(screen.getByLabelText(/loading organisation profile/i)).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+    expect(await screen.findByLabelText(/trading name/i)).toBeInTheDocument();
+    expect(screen.queryByText(/loading org/i)).not.toBeInTheDocument();
   });
 });

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { useAuth } from '@/hooks/useAuth';
 import { formatMoney } from '@/lib/money';
+import { DetailPageSkeleton } from '@/components/Skeleton';
 import {
   ChevronLeft,
   Layers,
@@ -189,12 +190,7 @@ export function PayRunDetailPage() {
   };
 
   if (!currentOrg) return null;
-  if (loading)
-    return (
-      <section>
-        <p style={{ color: 'var(--text-muted)' }}>Loading pay run details…</p>
-      </section>
-    );
+  if (loading) return <DetailPageSkeleton tableCols={6} />;
   if (!run) {
     return (
       <section className="animated-fade-in" style={{ padding: '2rem 0', textAlign: 'center' }}>

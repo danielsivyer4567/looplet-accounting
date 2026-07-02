@@ -9,9 +9,9 @@ import { useOrg } from '@/hooks/useOrg';
  *   - the pre-lodge BLOCKERS: GST-treatment exceptions (v_gst_treatment_exceptions,
  *     SC-3.A.02), the GL-vs-BAS reconciliation variance (v_gst_reconciliation,
  *     SC-3.B.02), and GST data coverage (v_bas_gst_coverage, B3),
- * and exposes requestLodgeApproval() which opens a Tier-2 approval (request_approval,
- * SC-2.B.01) — the lodge itself is a stub until Phase 7 SC-7.E wires real DSP
- * lodgement, and the lodged-status write-back lands in SC-3.E.02.
+ * and exposes requestLodgeApproval() which creates/reuses a draft lodgement row
+ * and opens a Tier-2 approval against that exact payload. The lodge transport
+ * itself stays gated until Phase 7 SC-7.E wires real DSP lodgement.
  *
  * Best-effort: generate_bas_worksheet (0122) and the blocker views are
  * repo-only until the epic's deploy step, so each read degrades to null/0 + an
@@ -134,30 +134,21 @@ export function useBasWorksheet(fyStartYear: number | null, quarter: number | nu
   }, [refresh]);
 
   /**
-   * Open a Tier-2 approval to lodge this quarter's BAS. resource_id is the org
-   * (no per-BAS row exists until SC-3.E.02's obligation-status table); the period
-   * + net amount ride in the payload so the approval hash pins exactly what was
-   * approved. Throws on failure so the page can surface the message.
+   * Create/reuse a BAS lodgement draft and open a Tier-2 approval bound to the
+   * exact worksheet payload. Throws on failure so the page can surface the message.
    */
   const requestLodgeApproval = useCallback(async (): Promise<void> => {
     if (!currentOrg || fyStartYear == null || quarter == null) {
       throw new Error('Select a BAS quarter first.');
     }
-    const { error: err } = await supabase.rpc('request_approval', {
+    const { error: err } = await supabase.rpc('prepare_bas_lodgement_draft', {
       p_org: currentOrg.id,
-      p_resource_type: 'bas_lodgement',
-      p_resource_id: currentOrg.id,
-      p_risk_tier: 'tier2_approve',
-      p_payload: {
-        kind: 'bas_lodge',
-        fy_start_year: fyStartYear,
-        quarter,
-        net_amount_cents: worksheet?.summary?.['9_net_amount_cents'] ?? null,
-      },
+      p_fy_start_year: fyStartYear,
+      p_quarter: quarter,
     });
     if (err) throw new Error(err.message);
     await refresh();
-  }, [currentOrg, fyStartYear, quarter, worksheet, refresh]);
+  }, [currentOrg, fyStartYear, quarter, refresh]);
 
   return { worksheet, blockers, loading, error, refresh, requestLodgeApproval };
 }

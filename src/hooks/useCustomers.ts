@@ -40,6 +40,7 @@ export function useCustomers() {
       .from('customers')
       .select('id, name, email, phone, billing_address, abn, created_at')
       .eq('organization_id', currentOrg.id)
+      .is('deleted_at', null)
       .order('name', { ascending: true });
 
     if (queryErr) {

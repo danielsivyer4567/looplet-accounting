@@ -89,6 +89,7 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
     return (
       <button
         onClick={() => setOpen(true)}
+        className="bank-import-open-button"
         style={{
           marginTop: 12,
           marginLeft: 8,
@@ -108,6 +109,7 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
 
   return (
     <div
+      className="bank-import-card"
       style={{
         marginTop: 16,
         padding: 16,
@@ -128,7 +130,7 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
         rules apply.
       </p>
 
-      <div style={grid2}>
+      <div className="bank-import-grid" style={grid2}>
         <Field label="Bank">
           <input value={bank} onChange={(e) => setBank(e.target.value)} style={inp} />
         </Field>
@@ -144,7 +146,7 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
       </div>
       <p style={{ fontSize: 11, color: '#666', margin: '4px 0 8px' }}>{FORMAT_HINTS[format]}</p>
 
-      <div style={grid2}>
+      <div className="bank-import-grid" style={grid2}>
         <Field label="Account name">
           <input value={accountName} onChange={(e) => setAccountName(e.target.value)} style={inp} />
         </Field>
@@ -164,7 +166,7 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
         </Field>
       </div>
 
-      <div style={grid2}>
+      <div className="bank-import-grid" style={grid2}>
         <Field label="BSB (optional)">
           <input
             value={bsb}
@@ -227,7 +229,15 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
         {busy ? 'Importing…' : 'Import transactions'}
       </button>
 
-      {error && <p style={{ color: 'salmon', fontSize: 12, marginTop: 8 }}>{error}</p>}
+      {error && (
+        <div
+          role="alert"
+          className="badge badge-danger"
+          style={{ display: 'block', width: 'fit-content', marginTop: 8, textTransform: 'none' }}
+        >
+          {error}
+        </div>
+      )}
       {result && (
         <div
           style={{
@@ -280,8 +290,6 @@ const inp: React.CSSProperties = {
   fontSize: 12,
 };
 const grid2: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 1fr',
   gap: 12,
 };
 const closeBtn: React.CSSProperties = {

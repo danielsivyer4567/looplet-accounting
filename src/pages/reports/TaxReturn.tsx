@@ -11,6 +11,7 @@ import {
 import { useBookToTax, type BookToTax, type CgtCalc } from '@/hooks/useBookToTax';
 import { useApprovals } from '@/hooks/useApprovals';
 import { CgtEventsPanel } from '@/components/CgtEventsPanel';
+import { SkeletonTable } from '@/components/Skeleton';
 import { formatMoney } from '@/lib/money';
 import {
   ChevronLeft,
@@ -305,7 +306,9 @@ export function TaxReturnPage() {
       </div>
 
       {loading ? (
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Loading draft return…</div>
+        <div aria-busy="true" aria-label="Loading tax return draft">
+          <SkeletonTable rows={5} cols={4} />
+        </div>
       ) : (
         <>
           {/* Return labels (entity-aware) */}

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { formatLoadError, formatActionError } from '@/lib/errorMessages';
+import { SkeletonCard } from '@/components/Skeleton';
 
 interface BusinessProfile {
   organization_id: string;
@@ -70,7 +72,7 @@ export function BusinessProfileForm() {
       .select('*')
       .eq('organization_id', currentOrg.id)
       .maybeSingle();
-    if (error) setErr(error.message);
+    if (error) setErr(formatLoadError('the business profile', error.message));
     setProfile(
       data ? (data as BusinessProfile) : { ...EMPTY_PROFILE, organization_id: currentOrg.id },
     );
@@ -92,7 +94,7 @@ export function BusinessProfileForm() {
       .from('business_profile')
       .upsert(payload, { onConflict: 'organization_id' });
     setSaving(false);
-    if (error) setErr(error.message);
+    if (error) setErr(formatActionError('save the business profile', error.message));
     else setMsg('Saved. The /ask bot will use this profile on every question.');
   };
 
@@ -105,7 +107,7 @@ export function BusinessProfileForm() {
     });
     setSaving(false);
     if (error) {
-      setErr(error.message);
+      setErr(formatActionError('auto-detect the business profile', error.message));
       return;
     }
     const detected = data as Record<string, unknown>;
@@ -133,7 +135,13 @@ export function BusinessProfileForm() {
   const set = <K extends keyof BusinessProfile>(k: K, v: BusinessProfile[K]) =>
     setProfile((p) => ({ ...p, [k]: v }));
 
-  if (loading) return <p style={{ color: '#888' }}>Loading profile…</p>;
+  if (loading) {
+    return (
+      <div style={{ marginTop: '2rem' }} aria-busy="true" aria-label="Loading business profile">
+        <SkeletonCard />
+      </div>
+    );
+  }
 
   return (
     <div style={{ marginTop: '2rem' }}>
@@ -145,9 +153,9 @@ export function BusinessProfileForm() {
       </p>
 
       <div
+        className="business-profile-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(2, minmax(280px, 1fr))',
           gap: 16,
           maxWidth: 900,
         }}

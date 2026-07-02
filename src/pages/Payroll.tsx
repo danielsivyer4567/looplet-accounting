@@ -453,7 +453,9 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
       </p>
 
       {loading ? (
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading batch...</div>
+        <div aria-busy="true" aria-label="Loading super batch">
+          <SkeletonTable rows={3} cols={5} />
+        </div>
       ) : error ? (
         <div
           className="badge badge-warning"

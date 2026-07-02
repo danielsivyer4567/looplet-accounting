@@ -9,7 +9,15 @@ const worker = readFileSync(join(root, 'supabase/functions/automation-worker/ind
 const bankExchange = readFileSync(join(root, 'supabase/functions/bank-exchange/index.ts'), 'utf8');
 const bankWebhook = readFileSync(join(root, 'supabase/functions/bank-webhook/index.ts'), 'utf8');
 const bankSync = readFileSync(join(root, 'supabase/functions/bank-sync/index.ts'), 'utf8');
+const bankTransactionClassifier = readFileSync(
+  join(root, 'supabase/functions/bank-transaction-classifier/index.ts'),
+  'utf8',
+);
 const billsExtract = readFileSync(join(root, 'supabase/functions/bills-extract/index.ts'), 'utf8');
+const billsExtractBatch = readFileSync(
+  join(root, 'supabase/functions/bills-extract-batch/index.ts'),
+  'utf8',
+);
 const autoReconcile = readFileSync(
   join(root, 'supabase/functions/auto-reconcile/index.ts'),
   'utf8',
@@ -19,6 +27,7 @@ const xeroPushInvoice = readFileSync(
   join(root, 'supabase/functions/xero-push-invoice/index.ts'),
   'utf8',
 );
+const xeroAdapter = readFileSync(join(root, 'supabase/functions/_shared/xero/adapter.ts'), 'utf8');
 const atomicReconcileEvidenceMigration = readFileSync(
   join(root, 'supabase/migrations/20260701070000_reconcile_evidence_atomic.sql'),
   'utf8',
@@ -29,6 +38,19 @@ const xeroIdempotency = readFileSync(
 );
 const gmailPubsub = readFileSync(
   join(root, 'supabase/functions/gmail-pubsub-push/index.ts'),
+  'utf8',
+);
+const gmailClassifyAi = readFileSync(
+  join(root, 'supabase/functions/gmail-classify-ai/index.ts'),
+  'utf8',
+);
+const gmailMine = readFileSync(join(root, 'supabase/functions/gmail-mine/index.ts'), 'utf8');
+const gmailMineRefreshJobs = readFileSync(
+  join(root, 'supabase/migrations/20260702124500_gmail_mine_refresh_jobs.sql'),
+  'utf8',
+);
+const stagedEntityApproval = readFileSync(
+  join(root, 'supabase/functions/_shared/onboarding/stagedEntityApproval.ts'),
   'utf8',
 );
 const gmailIngest = readFileSync(join(root, 'supabase/functions/_shared/gmail/ingest.ts'), 'utf8');
@@ -72,12 +94,52 @@ describe('automation backbone source contracts', () => {
     expect(worker).toMatch(/organization_id:\s*job\.organization_id/);
   });
 
+  it('batch bill extraction jobs can drive repair-mode backfills', () => {
+    const billExtractCase = worker.match(/case 'bill_extract':[\s\S]*?case 'bank_sync':/)?.[0] ?? '';
+
+    expect(billsExtractBatch).toMatch(/mode\?:\s*'received'\s*\|\s*'repair'/);
+    expect(billsExtractBatch).toMatch(/body\.mode === 'repair' \? 'repair' : 'received'/);
+    expect(billsExtractBatch).toMatch(/force:\s*mode === 'repair'/);
+
+    expect(billExtractCase).toMatch(/function billExtractBatchMode|billExtractBatchMode/);
+    expect(worker).toMatch(/value === 'received' \|\| value === 'repair'/);
+    expect(billExtractCase).toMatch(/requestBody\['mode'\] = mode/);
+    expect(billExtractCase).toMatch(/requestBody\['max'\] = max/);
+    expect(billExtractCase).toMatch(/requestBody\['delay_ms'\] = delayMs/);
+    expect(billExtractCase).not.toMatch(/payload:\s*job\.payload/);
+  });
+
   it('payment jobs record invoice receipts and refuse AP bill shortcuts', () => {
     expect(automationJobs).toMatch(/\|\s*'payment_record'/);
     expect(appAutomationJobs).toMatch(/\|\s*'payment_record'/);
     expect(worker).toMatch(/case 'payment_record'/);
     expect(worker).toMatch(/from\('invoice_payments'\)[\s\S]*\.insert\(\{/);
     expect(worker).toMatch(/bill payment jobs require bank reconciliation or payment runs/i);
+  });
+
+  it('gmail mine refresh creates durable worker jobs instead of direct cron HTTP', () => {
+    expect(automationJobs).toMatch(/\|\s*'gmail_mine'/);
+    expect(appAutomationJobs).toMatch(/\|\s*'gmail_mine'/);
+    expect(worker).toMatch(/case 'gmail_mine'/);
+    expect(worker).toMatch(/`\$\{base\}\/gmail-mine`/);
+    expect(worker).toMatch(/integration_id:\s*integrationId/);
+    expect(worker).toMatch(/folder,\s*\}/);
+    expect(worker).toMatch(/requestBody\['page_token'\] = pageToken/);
+    expect(gmailMine).toMatch(/from\('staged_entities'\)/);
+    expect(gmailMine).toMatch(/\.upsert\(/);
+
+    expect(gmailMineRefreshJobs).toMatch(
+      /create or replace function public\.enqueue_gmail_mine_refresh_jobs/i,
+    );
+    expect(gmailMineRefreshJobs).toMatch(/insert into public\.automation_jobs/i);
+    expect(gmailMineRefreshJobs).toMatch(/'gmail_mine'/);
+    expect(gmailMineRefreshJobs).toMatch(/jsonb_build_object\([\s\S]*'integration_id', gi\.id/i);
+    expect(gmailMineRefreshJobs).toMatch(/cron\.schedule\([\s\S]*'gmail-mine-refresh'/i);
+    expect(gmailMineRefreshJobs).toMatch(
+      /select public\.enqueue_gmail_mine_refresh_jobs\(14, 100\)/i,
+    );
+    expect(gmailMineRefreshJobs).not.toMatch(/net\.http_post/i);
+    expect(gmailMineRefreshJobs).not.toMatch(/functions\/v1\/gmail-mine/i);
   });
 
   it('receipt and Xero queue dispatches match target function contracts', () => {
@@ -103,6 +165,9 @@ describe('automation backbone source contracts', () => {
       expect(source).toMatch(/headers:\s*\{\s*'Idempotency-Key': idempotencyKey\s*\}/);
     }
 
+    expect(xeroAdapter).toMatch(/resolveXeroIdempotencyKey/);
+    expect(xeroAdapter).not.toMatch(/idempotency_key:\s*crypto\.randomUUID\(\)/);
+
     expect(xeroIdempotency).toMatch(/UUID_RE/);
     expect(xeroIdempotency).toMatch(/crypto\.subtle\.digest\('SHA-256'/);
     expect(xeroIdempotency).toMatch(/fallbackParts\.join\(':'\)/);
@@ -125,6 +190,7 @@ describe('automation backbone source contracts', () => {
     const defaultKindsMatch = worker.match(/const DEFAULT_JOB_KINDS = \[([\s\S]*?)\] as const;/);
     expect(defaultKindsMatch?.[1]).toContain("'bill_extract'");
     expect(defaultKindsMatch?.[1]).toContain("'bank_sync'");
+    expect(defaultKindsMatch?.[1]).toContain("'gmail_mine'");
     expect(defaultKindsMatch?.[1]).toContain("'payment_record'");
     expect(defaultKindsMatch?.[1]).not.toContain("'browser_collect'");
     expect(worker).toMatch(/case 'browser_collect'/);
@@ -174,12 +240,34 @@ describe('automation backbone source contracts', () => {
     expect(bankSync).toMatch(/await runPostSyncFunction/);
     expect(bankSync).toMatch(/subscriptions-detect/);
     expect(bankSync).toMatch(/subscriptions-autoconfirm/);
+    expect(bankSync).toMatch(/bank-transaction-classifier/);
+    expect(bankSync).toMatch(/auto-reconcile/);
+    expect(bankSync).toMatch(/postSync\['bank_transaction_classifier'\]/);
+    expect(bankSync).toMatch(/postSync\['auto_reconcile'\]/);
     expect(bankSync).toMatch(/await runIntakeRouting/);
     expect(bankSync).toMatch(/post_sync:\s*postSync/);
     expect(bankSync).toMatch(/post_sync_errors/);
     expect(bankSync).toMatch(
       /return json\([\s\S]*\{ ok: false, results, post_sync: postSync, post_sync_errors: postSyncErrors \}[\s\S]*502[\s\S]*\)/,
     );
+  });
+
+  it('bank transaction classifier posts safe bank-only debit classifications through E1', () => {
+    expect(bankTransactionClassifier).toMatch(/import \{ postJournalEntry \}/);
+    expect(bankTransactionClassifier).toMatch(/BANK_TRANSACTION_ACCOUNT_CODES/);
+    expect(bankTransactionClassifier).toMatch(/matched_bill_reconciliation_owns_gl/);
+    expect(bankTransactionClassifier).toMatch(/matched_invoice_reconciliation_owns_gl/);
+    expect(bankTransactionClassifier).toMatch(/inbound_bank_transaction_reconciliation_owns_gl/);
+    expect(bankTransactionClassifier).toMatch(/personal_transaction_not_posted_to_business_gl/);
+    expect(bankTransactionClassifier).toMatch(/category_not_safe_for_bank_only_gl_post/);
+    expect(bankTransactionClassifier).toMatch(/sourceType:\s*'bank_transaction'/);
+    expect(bankTransactionClassifier).toMatch(/sourceId:\s*txn\.id/);
+    expect(bankTransactionClassifier).toMatch(/postBankTransactionJournal\(admin, postingDeps, txn, result\.category_code\)/);
+    expect(bankTransactionClassifier).toMatch(/glPost\.required && !glPost\.posted/);
+    expect(bankTransactionClassifier).toMatch(/coding_status:\s*'needs_review'/);
+    expect(bankTransactionClassifier).toMatch(/GL post failed/);
+    expect(bankTransactionClassifier).toMatch(/gl_posted/);
+    expect(bankTransactionClassifier).toMatch(/gl_failed/);
   });
 
   it('auto-reconcile applies matches and proof evidence transactionally', () => {
@@ -197,6 +285,12 @@ describe('automation backbone source contracts', () => {
     expect(atomicReconcileEvidenceMigration).toMatch(
       /insert into public\.reconciliation_evidence/i,
     );
+    expect(atomicReconcileEvidenceMigration).toMatch(/v_gl_evidence jsonb/i);
+    expect(atomicReconcileEvidenceMigration).toMatch(/from public\.journal_entries je/i);
+    expect(atomicReconcileEvidenceMigration).toMatch(/je\.source_type = 'bill'/i);
+    expect(atomicReconcileEvidenceMigration).toMatch(/je\.source_type = 'invoice'/i);
+    expect(atomicReconcileEvidenceMigration).toMatch(/'\{gl_evidence\}'/i);
+    expect(atomicReconcileEvidenceMigration).toMatch(/jsonb_set\(/i);
     expect(atomicReconcileEvidenceMigration).toMatch(/evidence_recorded/);
     expect(atomicReconcileEvidenceMigration).toMatch(
       /revoke all on function public\.reconcile_match_bill_with_evidence[\s\S]*from public, anon/i,
@@ -225,6 +319,16 @@ describe('automation backbone source contracts', () => {
     }
   });
 
+  it('gmail classifier can auto-approve safe high-confidence staged senders into intake rules', () => {
+    expect(gmailClassifyAi).toMatch(/approveStagedEntity/);
+    expect(gmailClassifyAi).toMatch(/isSafeStagedAutoApproval/);
+    expect(gmailClassifyAi).toMatch(/auto_approved:\s*0/);
+    expect(stagedEntityApproval).toMatch(/intake_rules/);
+    expect(stagedEntityApproval).toMatch(/resolved_rule_id/);
+    expect(stagedEntityApproval).toMatch(/AUTO_APPROVE_BLOCKED_CATEGORIES/);
+    expect(stagedEntityApproval).not.toMatch(/onConflict:\s*['"]organization_id,name['"]/);
+  });
+
   it('cron and webhook edge functions keep platform JWT disabled', () => {
     for (const fn of [
       'automation-worker',
@@ -232,6 +336,7 @@ describe('automation backbone source contracts', () => {
       'bank-webhook',
       'bank-sync',
       'auto-reconcile',
+      'bank-transaction-classifier',
     ]) {
       expect(config).toMatch(
         new RegExp(`\\[functions\\.${fn}\\][\\s\\S]*?verify_jwt\\s*=\\s*false`, 'i'),

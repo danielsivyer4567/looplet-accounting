@@ -1,11 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { useInvoices } from '@/hooks/useInvoices';
+import { useInvoices, type InvoiceListRow } from '@/hooks/useInvoices';
 import { useOrg } from '@/hooks/useOrg';
+import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
 import { SkeletonCard, SkeletonTable } from '@/components/Skeleton';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
+import { LoadMoreButton } from '@/components/LoadMoreButton';
 import { FileText, Plus, DollarSign, Wallet, Clock, type LucideIcon } from 'lucide-react';
 
 const STATUS_FILTERS = [
@@ -22,7 +24,7 @@ type Filter = (typeof STATUS_FILTERS)[number];
 export function InvoicesPage() {
   const { currentOrg } = useOrg();
   const [filter, setFilter] = useState<Filter>('all');
-  const { invoices, loading, error } = useInvoices(
+  const { invoices, loading, loadingMore, error, hasMore, loadMore } = useInvoices(
     filter === 'all' ? undefined : { status: filter },
   );
   const navigate = useNavigate();
@@ -262,10 +264,11 @@ export function InvoicesPage() {
         </>
       ) : error ? (
         <div
+          role="alert"
           className="badge badge-danger"
           style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}
         >
-          {error}
+          {formatLoadError('invoices', error)}
         </div>
       ) : invoices.length === 0 ? (
         <div
@@ -282,80 +285,151 @@ export function InvoicesPage() {
           No invoices yet. Raise one to start tracking Accounts Receivable.
         </div>
       ) : (
-        <div className="table-premium-container">
-          <table className="table-premium">
-            <thead>
-              <tr>
-                <th>Invoice #</th>
-                <th>Customer</th>
-                <th>Job</th>
-                <th>Issued</th>
-                <th>Due</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Total</th>
-                <th style={{ textAlign: 'right' }}>Paid</th>
-                <th style={{ textAlign: 'right' }}>Balance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.map((inv) => (
-                <tr
-                  key={inv.id}
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/invoices/${inv.id}`)}
-                >
-                  <td>
-                    <code style={{ fontSize: '0.775rem' }}>{inv.invoice_number}</code>
-                  </td>
-                  <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>
-                    {inv.customer?.name ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}
-                  </td>
-                  <td>
-                    {inv.job ? (
-                      <Link
-                        to={`/jobs/${inv.job.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                          fontWeight: 600,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                        }}
-                      >
-                        <code>{inv.job.job_number}</code>
-                      </Link>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)' }}>—</span>
-                    )}
-                  </td>
-                  <td>{inv.issue_date}</td>
-                  <td>{inv.due_date}</td>
-                  <td>
-                    <StatusPill status={inv.status} />
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                    {formatMoney(inv.total_inc_gst_cents)}
-                  </td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-success)' }}>
-                    {formatMoney(inv.amount_paid_cents)}
-                  </td>
-                  <td
-                    style={{
-                      textAlign: 'right',
-                      fontWeight: 700,
-                      color:
-                        inv.balance_due_cents > 0 ? 'var(--text-warning)' : 'var(--text-success)',
-                    }}
-                  >
-                    {formatMoney(inv.balance_due_cents)}
-                  </td>
+        <>
+          <div className="invoices-table-view table-premium-container">
+            <table className="table-premium">
+              <thead>
+                <tr>
+                  <th>Invoice #</th>
+                  <th>Customer</th>
+                  <th>Job</th>
+                  <th>Issued</th>
+                  <th>Due</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Total</th>
+                  <th style={{ textAlign: 'right' }}>Paid</th>
+                  <th style={{ textAlign: 'right' }}>Balance</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {invoices.map((inv) => (
+                  <tr
+                    key={inv.id}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => navigate(`/invoices/${inv.id}`)}
+                  >
+                    <td>
+                      <code style={{ fontSize: '0.775rem' }}>{inv.invoice_number}</code>
+                    </td>
+                    <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>
+                      {inv.customer?.name ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                    </td>
+                    <td>
+                      {inv.job ? (
+                        <Link
+                          to={`/jobs/${inv.job.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            fontWeight: 600,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                          }}
+                        >
+                          <code>{inv.job.job_number}</code>
+                        </Link>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      )}
+                    </td>
+                    <td>{inv.issue_date}</td>
+                    <td>{inv.due_date}</td>
+                    <td>
+                      <StatusPill status={inv.status} />
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                      {formatMoney(inv.total_inc_gst_cents)}
+                    </td>
+                    <td style={{ textAlign: 'right', color: 'var(--text-success)' }}>
+                      {formatMoney(inv.amount_paid_cents)}
+                    </td>
+                    <td
+                      style={{
+                        textAlign: 'right',
+                        fontWeight: 700,
+                        color:
+                          inv.balance_due_cents > 0
+                            ? 'var(--text-warning)'
+                            : 'var(--text-success)',
+                      }}
+                    >
+                      {formatMoney(inv.balance_due_cents)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="invoices-card-view" aria-label="Invoice cards">
+            {invoices.map((inv) => (
+              <InvoiceCard
+                key={inv.id}
+                invoice={inv}
+                onOpen={() => navigate(`/invoices/${inv.id}`)}
+              />
+            ))}
+          </div>
+          {hasMore && (
+            <LoadMoreButton
+              label="Load more invoices"
+              loading={loadingMore}
+              onClick={() => void loadMore()}
+            />
+          )}
+        </>
       )}
     </section>
+  );
+}
+
+function InvoiceCard({ invoice, onOpen }: { invoice: InvoiceListRow; onOpen: () => void }) {
+  return (
+    <article className="invoice-mobile-card card" aria-label={`Invoice ${invoice.invoice_number}`}>
+      <div className="invoice-mobile-card__header">
+        <div>
+          <a
+            href={`/invoices/${invoice.id}`}
+            onClick={(e) => {
+              e.preventDefault();
+              onOpen();
+            }}
+            style={{ fontWeight: 700, color: 'var(--accent-primary)', textDecoration: 'none' }}
+          >
+            <code>{invoice.invoice_number}</code>
+          </a>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.15rem' }}>
+            {invoice.customer?.name ?? 'No customer'}
+            {invoice.job ? ` · ${invoice.job.job_number}` : ''}
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '0.15rem' }}>
+            Issued {invoice.issue_date} · Due {invoice.due_date}
+          </div>
+        </div>
+        <StatusPill status={invoice.status} />
+      </div>
+      <div className="invoice-mobile-card__metrics">
+        <div>
+          <span>Total</span>
+          <strong>{formatMoney(invoice.total_inc_gst_cents)}</strong>
+        </div>
+        <div>
+          <span>Paid</span>
+          <strong style={{ color: 'var(--text-success)' }}>
+            {formatMoney(invoice.amount_paid_cents)}
+          </strong>
+        </div>
+        <div>
+          <span>Balance</span>
+          <strong
+            style={{
+              color: invoice.balance_due_cents > 0 ? 'var(--text-warning)' : 'var(--text-success)',
+            }}
+          >
+            {formatMoney(invoice.balance_due_cents)}
+          </strong>
+        </div>
+      </div>
+    </article>
   );
 }
 

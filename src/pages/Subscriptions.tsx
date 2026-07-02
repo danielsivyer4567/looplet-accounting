@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
+import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { AllocationSplitButton } from '@/components/AllocationSplitButton';
 import { SkeletonCard, SkeletonTable } from '@/components/Skeleton';
@@ -55,6 +56,7 @@ export function SubscriptionsPage() {
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
     setLoading(true);
+    setError(null);
     let q = supabase
       .from('subscriptions')
       .select('*')
@@ -63,7 +65,7 @@ export function SubscriptionsPage() {
       .order('amount_cents', { ascending: false });
     if (filter !== 'all') q = q.eq('status', filter);
     const { data, error: e } = await q;
-    if (e) setError(e.message);
+    if (e) setError(formatLoadError('subscriptions', e.message));
     setSubs((data ?? []) as Subscription[]);
     setLoading(false);
   }, [currentOrg, filter]);
@@ -108,7 +110,7 @@ export function SubscriptionsPage() {
   const setFlag = async (id: string, patch: Partial<Subscription>) => {
     const { error: e } = await supabase.from('subscriptions').update(patch).eq('id', id);
     if (e) {
-      setError(`Failed to update: ${e.message}`);
+      setError(formatActionError('update this subscription', e.message));
       return;
     }
     void refresh();
@@ -120,7 +122,7 @@ export function SubscriptionsPage() {
       .update({ status, reviewed_at: new Date().toISOString() })
       .eq('id', id);
     if (e) {
-      setError(`Failed to set status=${status}: ${e.message}`);
+      setError(formatActionError(`set this subscription to ${status}`, e.message));
       return;
     }
     void refresh();
@@ -315,138 +317,154 @@ export function SubscriptionsPage() {
             </p>
           </div>
         ) : (
-          <div className="table-premium-container">
-            <table className="table-premium">
-              <thead>
-                <tr>
-                  <th style={{ width: '40px' }}></th>
-                  <th>Merchant / Vendor</th>
-                  <th>Cadence</th>
-                  <th style={{ textAlign: 'right' }}>Amount</th>
-                  <th style={{ textAlign: 'right' }}>Monthly Eq.</th>
-                  <th style={{ textAlign: 'right' }}>Annual Eq.</th>
-                  <th>Status</th>
-                  <th>Classification</th>
-                  <th>Confidence</th>
-                  <th style={{ width: '220px' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {grouped.map((g) => {
-                  const groupKey = g.name.toLowerCase();
-                  const isGroup = g.rows.length > 1;
-                  const isOpen = expanded.has(groupKey);
+          <>
+            <div className="subscriptions-table-view table-premium-container">
+              <table className="table-premium">
+                <thead>
+                  <tr>
+                    <th style={{ width: '40px' }}></th>
+                    <th>Merchant / Vendor</th>
+                    <th>Cadence</th>
+                    <th style={{ textAlign: 'right' }}>Amount</th>
+                    <th style={{ textAlign: 'right' }}>Monthly Eq.</th>
+                    <th style={{ textAlign: 'right' }}>Annual Eq.</th>
+                    <th>Status</th>
+                    <th>Classification</th>
+                    <th>Confidence</th>
+                    <th style={{ width: '220px' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {grouped.map((g) => {
+                    const groupKey = g.name.toLowerCase();
+                    const isGroup = g.rows.length > 1;
+                    const isOpen = expanded.has(groupKey);
 
-                  if (!isGroup) {
-                    const s = g.rows[0];
-                    if (!s) return null;
+                    if (!isGroup) {
+                      const s = g.rows[0];
+                      if (!s) return null;
+                      return (
+                        <SubRow
+                          key={s.id}
+                          s={s}
+                          monthly={monthlyEquivalent(s)}
+                          indent={false}
+                          navigate={navigate}
+                          setFlag={setFlag}
+                          setStatus={setStatus}
+                          refresh={refresh}
+                        />
+                      );
+                    }
+
+                    const groupMonthly = g.rows.reduce((a, s) => a + monthlyEquivalent(s), 0);
+                    const groupAnnual = groupMonthly * 12;
+                    const distinctStatuses = new Set(g.rows.map((s) => s.status));
                     return (
-                      <SubRow
-                        key={s.id}
-                        s={s}
-                        monthly={monthlyEquivalent(s)}
-                        indent={false}
-                        navigate={navigate}
-                        setFlag={setFlag}
-                        setStatus={setStatus}
-                        refresh={refresh}
-                      />
-                    );
-                  }
-
-                  const groupMonthly = g.rows.reduce((a, s) => a + monthlyEquivalent(s), 0);
-                  const groupAnnual = groupMonthly * 12;
-                  const distinctStatuses = new Set(g.rows.map((s) => s.status));
-                  return (
-                    <g key={`group-wrapper:${groupKey}`}>
-                      <tr
-                        style={{
-                          borderBottom: '1px solid var(--border-subtle)',
-                          backgroundColor: 'var(--bg-hover)',
-                          cursor: 'pointer',
-                        }}
-                        onClick={() => toggleExpanded(groupKey)}
-                      >
-                        <td style={{ textAlign: 'center' }}>
-                          {isOpen ? (
-                            <ChevronDown className="w-4 h-4 text-muted" />
-                          ) : (
-                            <ChevronRight className="w-4 h-4 text-muted" />
-                          )}
-                        </td>
-                        <td>
-                          <div
+                      <g key={`group-wrapper:${groupKey}`}>
+                        <tr
+                          style={{
+                            borderBottom: '1px solid var(--border-subtle)',
+                            backgroundColor: 'var(--bg-hover)',
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => toggleExpanded(groupKey)}
+                        >
+                          <td style={{ textAlign: 'center' }}>
+                            {isOpen ? (
+                              <ChevronDown className="w-4 h-4 text-muted" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-muted" />
+                            )}
+                          </td>
+                          <td>
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                fontWeight: 600,
+                                color: 'var(--text-title)',
+                              }}
+                            >
+                              {g.name}
+                              <span
+                                style={{
+                                  fontSize: '0.75rem',
+                                  fontWeight: 400,
+                                  color: 'var(--text-muted)',
+                                  backgroundColor: 'var(--bg-card)',
+                                  padding: '0.1rem 0.4rem',
+                                  borderRadius: 'var(--radius-sm)',
+                                }}
+                              >
+                                {g.rows.length} variants
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ color: 'var(--text-muted)' }}>—</td>
+                          <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
+                          <td
                             style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.5rem',
+                              textAlign: 'right',
                               fontWeight: 600,
                               color: 'var(--text-title)',
                             }}
                           >
-                            {g.name}
-                            <span
-                              style={{
-                                fontSize: '0.75rem',
-                                fontWeight: 400,
-                                color: 'var(--text-muted)',
-                                backgroundColor: 'var(--bg-card)',
-                                padding: '0.1rem 0.4rem',
-                                borderRadius: 'var(--radius-sm)',
-                              }}
-                            >
-                              {g.rows.length} variants
+                            {formatMoney(groupMonthly)}
+                          </td>
+                          <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>
+                            {formatMoney(groupAnnual)}
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '0.25rem' }}>
+                              {Array.from(distinctStatuses).map((s) => (
+                                <StatusPill key={s} status={s} />
+                              ))}
+                            </div>
+                          </td>
+                          <td></td>
+                          <td></td>
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              Click to view details
                             </span>
-                          </div>
-                        </td>
-                        <td style={{ color: 'var(--text-muted)' }}>—</td>
-                        <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>—</td>
-                        <td
-                          style={{
-                            textAlign: 'right',
-                            fontWeight: 600,
-                            color: 'var(--text-title)',
-                          }}
-                        >
-                          {formatMoney(groupMonthly)}
-                        </td>
-                        <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>
-                          {formatMoney(groupAnnual)}
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '0.25rem' }}>
-                            {Array.from(distinctStatuses).map((s) => (
-                              <StatusPill key={s} status={s} />
-                            ))}
-                          </div>
-                        </td>
-                        <td></td>
-                        <td></td>
-                        <td onClick={(e) => e.stopPropagation()}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            Click to view details
-                          </span>
-                        </td>
-                      </tr>
-                      {isOpen &&
-                        g.rows.map((s) => (
-                          <SubRow
-                            key={s.id}
-                            s={s}
-                            monthly={monthlyEquivalent(s)}
-                            indent={true}
-                            navigate={navigate}
-                            setFlag={setFlag}
-                            setStatus={setStatus}
-                            refresh={refresh}
-                          />
-                        ))}
-                    </g>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                          </td>
+                        </tr>
+                        {isOpen &&
+                          g.rows.map((s) => (
+                            <SubRow
+                              key={s.id}
+                              s={s}
+                              monthly={monthlyEquivalent(s)}
+                              indent={true}
+                              navigate={navigate}
+                              setFlag={setFlag}
+                              setStatus={setStatus}
+                              refresh={refresh}
+                            />
+                          ))}
+                      </g>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="subscriptions-card-view" aria-label="Subscription cards">
+              {subs.map((s) => (
+                <SubscriptionCard
+                  key={s.id}
+                  s={s}
+                  monthly={monthlyEquivalent(s)}
+                  navigate={navigate}
+                  setFlag={setFlag}
+                  setStatus={setStatus}
+                  refresh={refresh}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
 
@@ -537,128 +555,238 @@ function SubRow({
         <StatusPill status={s.status} />
       </td>
       <td>
-        <div style={{ display: 'flex', gap: '0.25rem' }}>
-          <button
-            onClick={() =>
-              setFlag(s.id, {
-                is_business: !s.is_business,
-                is_personal: false,
-              } as Partial<Subscription>)
-            }
-            className="btn"
-            style={{
-              padding: '0.2rem 0.5rem',
-              fontSize: '0.7rem',
-              backgroundColor:
-                s.is_business && !s.is_personal ? 'var(--bg-success-subtle)' : 'var(--bg-hover)',
-              color: s.is_business && !s.is_personal ? 'var(--text-success)' : 'var(--text-muted)',
-              border: `1px solid ${s.is_business && !s.is_personal ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-subtle)'}`,
-            }}
-          >
-            Biz
-          </button>
-          <button
-            onClick={() =>
-              setFlag(s.id, {
-                is_personal: !s.is_personal,
-                is_business: false,
-              } as Partial<Subscription>)
-            }
-            className="btn"
-            style={{
-              padding: '0.2rem 0.5rem',
-              fontSize: '0.7rem',
-              backgroundColor: s.is_personal ? 'var(--bg-warning-subtle)' : 'var(--bg-hover)',
-              color: s.is_personal ? 'var(--text-warning)' : 'var(--text-muted)',
-              border: `1px solid ${s.is_personal ? 'rgba(245, 158, 11, 0.2)' : 'var(--border-subtle)'}`,
-            }}
-          >
-            Personal
-          </button>
-        </div>
+        <ClassificationControls s={s} setFlag={setFlag} />
       </td>
       <td>
-        {s.confidence != null ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>
-              {(s.confidence * 100).toFixed(0)}%
-            </span>
-            <div
-              style={{
-                width: '40px',
-                height: '4px',
-                backgroundColor: 'var(--border-subtle)',
-                borderRadius: '2px',
-                overflow: 'hidden',
-              }}
-            >
-              <div
-                style={{
-                  width: `${s.confidence * 100}%`,
-                  height: '100%',
-                  backgroundColor:
-                    s.confidence > 0.8
-                      ? 'var(--accent-success)'
-                      : s.confidence > 0.5
-                        ? 'var(--accent-warning)'
-                        : 'var(--accent-danger)',
-                }}
-              ></div>
-            </div>
-          </div>
-        ) : (
-          '—'
-        )}
+        <ConfidenceIndicator confidence={s.confidence} />
       </td>
       <td>
-        <div style={{ display: 'inline-flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-          {s.status !== 'confirmed' && (
-            <button
-              onClick={() => void setStatus(s.id, 'confirmed')}
-              className="btn btn-secondary"
-              style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', color: 'var(--text-success)' }}
-              title="Confirm this subscription"
-            >
-              <Check className="w-3 h-3" />
-            </button>
-          )}
-          {s.status !== 'dismissed' && (
-            <button
-              onClick={() => void setStatus(s.id, 'dismissed')}
-              className="btn btn-secondary"
-              style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', color: 'var(--text-danger)' }}
-              title="Dismiss"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-          {s.status === 'dismissed' && (
-            <button
-              onClick={() => void setStatus(s.id, 'candidate')}
-              className="btn btn-secondary"
-              style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}
-            >
-              Restore
-            </button>
-          )}
-          <AllocationSplitButton
-            resourceType="subscription"
-            resourceId={s.id}
-            hostOrgId={s.organization_id}
-            label="Split"
-            onSaved={() => refresh()}
-          />
-          <MoveToOrgButton
-            table="subscriptions"
-            rowId={s.id}
-            currentOrgId={s.organization_id}
-            fkColumnsToNull={['supplier_id']}
-            label="Move"
-            onMoved={() => refresh()}
-          />
-        </div>
+        <SubscriptionActions s={s} setStatus={setStatus} refresh={refresh} />
       </td>
     </tr>
+  );
+}
+
+function SubscriptionCard({
+  s,
+  monthly,
+  navigate,
+  setFlag,
+  setStatus,
+  refresh,
+}: {
+  s: Subscription;
+  monthly: number;
+  navigate: ReturnType<typeof useNavigate>;
+  setFlag: (id: string, patch: Partial<Subscription>) => Promise<void>;
+  setStatus: (id: string, status: 'confirmed' | 'dismissed' | 'candidate') => Promise<void>;
+  refresh: () => void;
+}) {
+  const annual = monthly * 12;
+  const sourceHint = s.merchant_canonical_key
+    ? s.merchant_canonical_key.replace(/^domain:/, '@').replace(/^email:/, '')
+    : '—';
+
+  return (
+    <article
+      className="subscription-mobile-card card"
+      aria-label={`Subscription ${s.merchant_name}`}
+      style={{ opacity: s.status === 'dismissed' ? 0.6 : 1 }}
+    >
+      <div className="subscription-mobile-card__header">
+        <div>
+          <a
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(`/subscriptions/${s.id}`);
+            }}
+            href={`/subscriptions/${s.id}`}
+            style={{
+              fontWeight: 700,
+              color: 'var(--accent-primary)',
+              textDecoration: 'none',
+            }}
+          >
+            {s.merchant_name}
+          </a>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.15rem' }}>
+            {sourceHint}
+          </div>
+        </div>
+        <StatusPill status={s.status} />
+      </div>
+
+      <div className="subscription-mobile-card__metrics">
+        <Metric label="Cadence" value={s.cadence} />
+        <Metric label="Amount" value={s.amount_cents > 0 ? formatMoney(s.amount_cents) : '—'} />
+        <Metric label="Monthly Eq." value={monthly > 0 ? formatMoney(monthly) : '—'} />
+        <Metric label="Annual Eq." value={annual > 0 ? formatMoney(annual) : '—'} />
+      </div>
+
+      <div className="subscription-mobile-card__row">
+        <span>Classification</span>
+        <ClassificationControls s={s} setFlag={setFlag} />
+      </div>
+      <div className="subscription-mobile-card__row">
+        <span>Confidence</span>
+        <ConfidenceIndicator confidence={s.confidence} />
+      </div>
+      <div className="subscription-mobile-card__actions">
+        <SubscriptionActions s={s} setStatus={setStatus} refresh={refresh} />
+      </div>
+    </article>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function ClassificationControls({
+  s,
+  setFlag,
+}: {
+  s: Subscription;
+  setFlag: (id: string, patch: Partial<Subscription>) => Promise<void>;
+}) {
+  return (
+    <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+      <button
+        onClick={() =>
+          void setFlag(s.id, {
+            is_business: !s.is_business,
+            is_personal: false,
+          } as Partial<Subscription>)
+        }
+        className="btn"
+        style={{
+          padding: '0.2rem 0.5rem',
+          fontSize: '0.7rem',
+          backgroundColor:
+            s.is_business && !s.is_personal ? 'var(--bg-success-subtle)' : 'var(--bg-hover)',
+          color: s.is_business && !s.is_personal ? 'var(--text-success)' : 'var(--text-muted)',
+          border: `1px solid ${s.is_business && !s.is_personal ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-subtle)'}`,
+        }}
+      >
+        Biz
+      </button>
+      <button
+        onClick={() =>
+          void setFlag(s.id, {
+            is_personal: !s.is_personal,
+            is_business: false,
+          } as Partial<Subscription>)
+        }
+        className="btn"
+        style={{
+          padding: '0.2rem 0.5rem',
+          fontSize: '0.7rem',
+          backgroundColor: s.is_personal ? 'var(--bg-warning-subtle)' : 'var(--bg-hover)',
+          color: s.is_personal ? 'var(--text-warning)' : 'var(--text-muted)',
+          border: `1px solid ${s.is_personal ? 'rgba(245, 158, 11, 0.2)' : 'var(--border-subtle)'}`,
+        }}
+      >
+        Personal
+      </button>
+    </div>
+  );
+}
+
+function ConfidenceIndicator({ confidence }: { confidence: number | null }) {
+  if (confidence == null) return <>—</>;
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>
+        {(confidence * 100).toFixed(0)}%
+      </span>
+      <div
+        style={{
+          width: '40px',
+          height: '4px',
+          backgroundColor: 'var(--border-subtle)',
+          borderRadius: '2px',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            width: `${confidence * 100}%`,
+            height: '100%',
+            backgroundColor:
+              confidence > 0.8
+                ? 'var(--accent-success)'
+                : confidence > 0.5
+                  ? 'var(--accent-warning)'
+                  : 'var(--accent-danger)',
+          }}
+        ></div>
+      </div>
+    </div>
+  );
+}
+
+function SubscriptionActions({
+  s,
+  setStatus,
+  refresh,
+}: {
+  s: Subscription;
+  setStatus: (id: string, status: 'confirmed' | 'dismissed' | 'candidate') => Promise<void>;
+  refresh: () => void;
+}) {
+  return (
+    <div style={{ display: 'inline-flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+      {s.status !== 'confirmed' && (
+        <button
+          onClick={() => void setStatus(s.id, 'confirmed')}
+          className="btn btn-secondary"
+          style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', color: 'var(--text-success)' }}
+          title="Confirm this subscription"
+        >
+          <Check className="w-3 h-3" />
+        </button>
+      )}
+      {s.status !== 'dismissed' && (
+        <button
+          onClick={() => void setStatus(s.id, 'dismissed')}
+          className="btn btn-secondary"
+          style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', color: 'var(--text-danger)' }}
+          title="Dismiss"
+        >
+          <X className="w-3 h-3" />
+        </button>
+      )}
+      {s.status === 'dismissed' && (
+        <button
+          onClick={() => void setStatus(s.id, 'candidate')}
+          className="btn btn-secondary"
+          style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}
+        >
+          Restore
+        </button>
+      )}
+      <AllocationSplitButton
+        resourceType="subscription"
+        resourceId={s.id}
+        hostOrgId={s.organization_id}
+        label="Split"
+        onSaved={() => refresh()}
+      />
+      <MoveToOrgButton
+        table="subscriptions"
+        rowId={s.id}
+        currentOrgId={s.organization_id}
+        fkColumnsToNull={['supplier_id']}
+        label="Move"
+        onMoved={() => refresh()}
+      />
+    </div>
   );
 }
 

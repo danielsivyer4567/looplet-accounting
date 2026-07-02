@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { Modal } from './Modal';
 import { getBillFileUrl } from '@/hooks/useBill';
+import { SkeletonCard } from '@/components/Skeleton';
 
 // Worker must match the installed pdfjs version; served from CDN (same approach
 // as BankStatementImport).
@@ -99,7 +100,11 @@ export function DocumentPreviewModal({
       wide
       title={bill?.supplier_name_raw || bill?.original_filename || 'Document'}
     >
-      {s.loading && <p style={{ color: '#888' }}>Loading document…</p>}
+      {s.loading && (
+        <div aria-busy="true" aria-label="Loading document preview">
+          <SkeletonCard />
+        </div>
+      )}
       {s.noDoc && (
         <p style={{ color: '#888', lineHeight: 1.5 }}>
           No source document for this transaction — it was imported from a CommBank statement, not

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { formatActionError } from '@/lib/errorMessages';
+import { SkeletonCard } from '@/components/Skeleton';
 
 interface OrgSettings {
   tax_rate_percent?: number;
@@ -48,7 +50,13 @@ export function OrgProfileForm() {
   }, [currentOrg]);
 
   if (!currentOrg) return null;
-  if (!org) return <p style={{ color: '#888', fontSize: 13 }}>Loading org…</p>;
+  if (!org) {
+    return (
+      <div aria-busy="true" aria-label="Loading organisation profile">
+        <SkeletonCard />
+      </div>
+    );
+  }
 
   const save = async () => {
     setErr(null);
@@ -64,7 +72,7 @@ export function OrgProfileForm() {
       .eq('id', org.id);
     setBusy(false);
     if (error) {
-      setErr(error.message);
+      setErr(formatActionError('save the organisation profile', error.message));
       return;
     }
     setMsg('Saved.');
@@ -82,7 +90,7 @@ export function OrgProfileForm() {
         Drives BAS reporting, tax set-aside %, and invoice defaults.
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, maxWidth: 720 }}>
+      <div className="org-profile-grid" style={{ display: 'grid', gap: 12, maxWidth: 720 }}>
         <Field label="Trading name">
           <input
             value={draft.name}
@@ -101,7 +109,7 @@ export function OrgProfileForm() {
       </div>
 
       <h3 style={{ fontSize: 13, marginTop: 18 }}>Tax & BAS</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, maxWidth: 720 }}>
+      <div className="org-profile-grid" style={{ display: 'grid', gap: 12, maxWidth: 720 }}>
         <Field label="GST registered?">
           <select
             value={draft.settings.gst_registered === false ? 'false' : 'true'}
@@ -126,7 +134,7 @@ export function OrgProfileForm() {
       </div>
 
       <h3 style={{ fontSize: 13, marginTop: 18 }}>Invoice defaults</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, maxWidth: 720 }}>
+      <div className="org-profile-grid" style={{ display: 'grid', gap: 12, maxWidth: 720 }}>
         <Field label="Default payment terms (days)">
           <input
             type="number"
