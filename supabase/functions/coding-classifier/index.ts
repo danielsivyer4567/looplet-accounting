@@ -667,19 +667,28 @@ Deno.serve(async (req: Request) => {
     // (organization_id IN get_accessible_org_ids()) decides visibility. An
     // authenticated user only sees bills in orgs they belong to → a bill in another
     // tenant returns no row (404). This closes the IDOR where any logged-in user could
-    // code/force-post into another org's ledger just by knowing a bill_id. A trusted
-    // backend caller presenting the service-role bearer still bypasses RLS exactly as
-    // before — the role travels in the JWT, so no key comparison is needed. The org is
-    // still derived from the bill (never trusted from the caller); all subsequent
-    // reads/writes stay on the service-role `admin` client, safe because access is now
-    // proven. (This fn isn't in config.toml, so verify_jwt defaults to true — but that
-    // only proves the JWT is a valid user, NOT org membership, so this RLS-scoped load
-    // is the actual tenant gate.)
-    const caller = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data: bill, error: billErr } = await caller
+    // code/force-post into another org's ledger just by knowing a bill_id.
+    //
+    // A trusted backend caller (intake-routing-apply / automation-worker) is detected
+    // by EXACT comparison of the bearer against SUPABASE_SERVICE_ROLE_KEY — the same
+    // hardened pattern as bank-discover/bills-extract/subscriptions-detect. Do NOT
+    // rely on "the role travels in the JWT": with new-format API keys the injected
+    // service key is `sb_secret_…` (not a JWT), so a caller-scoped PostgREST load
+    // with it fails with "Expected 3 parts in JWT". The org is still derived from
+    // the bill (never trusted from the caller); all subsequent reads/writes stay on
+    // the service-role `admin` client, safe because access is now proven. (This fn
+    // isn't in config.toml, so verify_jwt defaults to true — but that only proves
+    // the caller holds a valid key/JWT, NOT org membership, so this scoped load is
+    // the actual tenant gate for user callers.)
+    const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const isServiceCaller = bearer.length > 0 && bearer === serviceKey;
+    const billLoader = isServiceCaller
+      ? admin
+      : createClient(supabaseUrl, anonKey, {
+          global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
+    const { data: bill, error: billErr } = await billLoader
       .from("bills")
       .select(
         "id, organization_id, status, supplier_name_raw, invoice_number, invoice_date, original_filename, total_inc_gst_cents, gst_cents, subtotal_ex_gst_cents, gst_estimated, intake_metadata",
