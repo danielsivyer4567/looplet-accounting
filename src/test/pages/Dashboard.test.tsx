@@ -56,7 +56,11 @@ const pnl: RealtimePnl = {
 };
 
 vi.mock('@/hooks/useRealtimePnl', () => ({
-  useRealtimePnl: () => ({ pnl: mocks.pnlError ? null : pnl, loading: false, error: mocks.pnlError }),
+  useRealtimePnl: () => ({
+    pnl: mocks.pnlError ? null : pnl,
+    loading: false,
+    error: mocks.pnlError,
+  }),
 }));
 
 vi.mock('@/hooks/useAdviceNotes', () => ({

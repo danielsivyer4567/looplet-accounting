@@ -19,11 +19,7 @@ const REPLACED_LOADING_COPY: Record<string, RegExp[]> = {
   'src/components/DocumentPreviewModal.tsx': [/>Loading document/],
   'src/components/BankTransactionCodingQueue.tsx': [/>Loading coding queue/],
   'src/components/AllocationSplitButton.tsx': [/>Loading splits/],
-  'src/pages/AuditLog.tsx': [
-    />Loading correspondence/,
-    />Loading drafts/,
-    />Loading audit events/,
-  ],
+  'src/pages/AuditLog.tsx': [/>Loading correspondence/, />Loading drafts/, />Loading audit events/],
   'src/pages/Payroll.tsx': [/>Loading batch/],
   'src/pages/reports/Bas.tsx': [/>Loading worksheet/],
   'src/pages/Settings.tsx': [/>Loading…/],

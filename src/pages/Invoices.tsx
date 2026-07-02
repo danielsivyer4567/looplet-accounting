@@ -348,9 +348,7 @@ export function InvoicesPage() {
                         textAlign: 'right',
                         fontWeight: 700,
                         color:
-                          inv.balance_due_cents > 0
-                            ? 'var(--text-warning)'
-                            : 'var(--text-success)',
+                          inv.balance_due_cents > 0 ? 'var(--text-warning)' : 'var(--text-success)',
                       }}
                     >
                       {formatMoney(inv.balance_due_cents)}

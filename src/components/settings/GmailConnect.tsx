@@ -153,7 +153,10 @@ export function GmailConnect() {
         </button>
       ) : (
         <>
-          <table className="settings-responsive-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <table
+            className="settings-responsive-table"
+            style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}
+          >
             <thead>
               <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
                 <th style={th}>Mailbox</th>

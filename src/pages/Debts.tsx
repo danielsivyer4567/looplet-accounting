@@ -344,135 +344,152 @@ export function DebtsPage() {
           </div>
         ) : (
           <>
-          <div className="debts-table-view table-premium-container">
-            <table className="table-premium">
-              <thead>
-                <tr>
-                  <th>Account Name</th>
-                  <th>Kind</th>
-                  <th>Lender</th>
-                  <th style={{ textAlign: 'right' }}>Balance</th>
-                  <th style={{ textAlign: 'right' }}>Interest %</th>
-                  <th style={{ textAlign: 'right' }}>Min Payment</th>
-                  <th>Type</th>
-                  <th style={{ width: '40px' }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {debts.map((d) => (
-                  <tr
-                    key={d.id}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => navigate(`/debts/${d.id}`)}
-                  >
-                    <td>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.75rem',
-                          fontWeight: 600,
-                          color: 'var(--text-title)',
-                        }}
-                      >
-                        {getDebtIcon(d.kind)}
-                        {d.name}
-                      </div>
-                    </td>
-                    <td style={{ textTransform: 'capitalize' }}>{d.kind.replace(/_/g, ' ')}</td>
-                    <td>
-                      {d.lender_name ?? '—'}
-                      {d.account_number_last4 && (
-                        <span
+            <div className="debts-table-view table-premium-container">
+              <table className="table-premium">
+                <thead>
+                  <tr>
+                    <th>Account Name</th>
+                    <th>Kind</th>
+                    <th>Lender</th>
+                    <th style={{ textAlign: 'right' }}>Balance</th>
+                    <th style={{ textAlign: 'right' }}>Interest %</th>
+                    <th style={{ textAlign: 'right' }}>Min Payment</th>
+                    <th>Type</th>
+                    <th style={{ width: '40px' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {debts.map((d) => (
+                    <tr
+                      key={d.id}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => navigate(`/debts/${d.id}`)}
+                    >
+                      <td>
+                        <div
                           style={{
-                            color: 'var(--text-muted)',
-                            fontSize: '0.8rem',
-                            marginLeft: '0.25rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            fontWeight: 600,
+                            color: 'var(--text-title)',
                           }}
                         >
-                          •••• {d.account_number_last4}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-title)' }}>
-                      {formatMoney(d.current_balance_cents)}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      {d.interest_rate_pct != null
-                        ? `${Number(d.interest_rate_pct).toFixed(2)}%`
-                        : '—'}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      {d.minimum_payment_cents != null ? formatMoney(d.minimum_payment_cents) : '—'}
-                    </td>
-                    <td>
-                      {d.is_personal ? (
-                        <span className="badge badge-warning">Personal</span>
-                      ) : (
-                        <span className="badge badge-success">Business</span>
-                      )}
-                    </td>
-                    <td>
-                      <ChevronRight className="w-4 h-4 text-muted" style={{ opacity: 0.5 }} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="debts-card-view" aria-label="Debt account cards">
-            {debts.map((d) => (
-              <article
-                key={`card-${d.id}`}
-                className="debt-mobile-card card"
-                aria-label={`Debt ${d.name}`}
-              >
-                <div className="debt-mobile-card__header">
-                  <div>
-                    <a
-                      href={`/debts/${d.id}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        navigate(`/debts/${d.id}`);
-                      }}
-                      style={{ fontWeight: 700, color: 'var(--accent-primary)', textDecoration: 'none' }}
-                    >
-                      {d.name}
-                    </a>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.15rem', textTransform: 'capitalize' }}>
-                      {d.kind.replace(/_/g, ' ')} · {d.lender_name ?? 'No lender'}
-                      {d.account_number_last4 ? ` ·••• ${d.account_number_last4}` : ''}
+                          {getDebtIcon(d.kind)}
+                          {d.name}
+                        </div>
+                      </td>
+                      <td style={{ textTransform: 'capitalize' }}>{d.kind.replace(/_/g, ' ')}</td>
+                      <td>
+                        {d.lender_name ?? '—'}
+                        {d.account_number_last4 && (
+                          <span
+                            style={{
+                              color: 'var(--text-muted)',
+                              fontSize: '0.8rem',
+                              marginLeft: '0.25rem',
+                            }}
+                          >
+                            •••• {d.account_number_last4}
+                          </span>
+                        )}
+                      </td>
+                      <td
+                        style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-title)' }}
+                      >
+                        {formatMoney(d.current_balance_cents)}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        {d.interest_rate_pct != null
+                          ? `${Number(d.interest_rate_pct).toFixed(2)}%`
+                          : '—'}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        {d.minimum_payment_cents != null
+                          ? formatMoney(d.minimum_payment_cents)
+                          : '—'}
+                      </td>
+                      <td>
+                        {d.is_personal ? (
+                          <span className="badge badge-warning">Personal</span>
+                        ) : (
+                          <span className="badge badge-success">Business</span>
+                        )}
+                      </td>
+                      <td>
+                        <ChevronRight className="w-4 h-4 text-muted" style={{ opacity: 0.5 }} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="debts-card-view" aria-label="Debt account cards">
+              {debts.map((d) => (
+                <article
+                  key={`card-${d.id}`}
+                  className="debt-mobile-card card"
+                  aria-label={`Debt ${d.name}`}
+                >
+                  <div className="debt-mobile-card__header">
+                    <div>
+                      <a
+                        href={`/debts/${d.id}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigate(`/debts/${d.id}`);
+                        }}
+                        style={{
+                          fontWeight: 700,
+                          color: 'var(--accent-primary)',
+                          textDecoration: 'none',
+                        }}
+                      >
+                        {d.name}
+                      </a>
+                      <div
+                        style={{
+                          color: 'var(--text-muted)',
+                          fontSize: '0.75rem',
+                          marginTop: '0.15rem',
+                          textTransform: 'capitalize',
+                        }}
+                      >
+                        {d.kind.replace(/_/g, ' ')} · {d.lender_name ?? 'No lender'}
+                        {d.account_number_last4 ? ` ·••• ${d.account_number_last4}` : ''}
+                      </div>
+                    </div>
+                    {d.is_personal ? (
+                      <span className="badge badge-warning">Personal</span>
+                    ) : (
+                      <span className="badge badge-success">Business</span>
+                    )}
+                  </div>
+                  <div className="debt-mobile-card__metrics">
+                    <div>
+                      <span>Balance</span>
+                      <strong>{formatMoney(d.current_balance_cents)}</strong>
+                    </div>
+                    <div>
+                      <span>Interest</span>
+                      <strong>
+                        {d.interest_rate_pct != null
+                          ? `${Number(d.interest_rate_pct).toFixed(2)}%`
+                          : '—'}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Min payment</span>
+                      <strong>
+                        {d.minimum_payment_cents != null
+                          ? formatMoney(d.minimum_payment_cents)
+                          : '—'}
+                      </strong>
                     </div>
                   </div>
-                  {d.is_personal ? (
-                    <span className="badge badge-warning">Personal</span>
-                  ) : (
-                    <span className="badge badge-success">Business</span>
-                  )}
-                </div>
-                <div className="debt-mobile-card__metrics">
-                  <div>
-                    <span>Balance</span>
-                    <strong>{formatMoney(d.current_balance_cents)}</strong>
-                  </div>
-                  <div>
-                    <span>Interest</span>
-                    <strong>
-                      {d.interest_rate_pct != null
-                        ? `${Number(d.interest_rate_pct).toFixed(2)}%`
-                        : '—'}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>Min payment</span>
-                    <strong>
-                      {d.minimum_payment_cents != null ? formatMoney(d.minimum_payment_cents) : '—'}
-                    </strong>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
+                </article>
+              ))}
+            </div>
           </>
         )}
       </div>

@@ -152,59 +152,61 @@ export function CustomersPage() {
         </div>
       ) : (
         <>
-        <div className="customers-table-view table-premium-container">
-          <table className="table-premium">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Billing Address</th>
-                <th>ABN</th>
-              </tr>
-            </thead>
-            <tbody>
-              {customers.map((c) => (
-                <tr
-                  key={c.id}
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/customers/${c.id}`)}
-                >
-                  <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{c.name}</td>
-                  <td>
-                    {c.email ? (
-                      <span style={{ fontSize: '0.875rem' }}>{c.email}</span>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)' }}>—</span>
-                    )}
-                  </td>
-                  <td>
-                    {c.phone ? (
-                      <span style={{ fontSize: '0.875rem' }}>{c.phone}</span>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)' }}>—</span>
-                    )}
-                  </td>
-                  <td>
-                    <span style={{ fontSize: '0.875rem' }}>{formatAddress(c.billing_address)}</span>
-                  </td>
-                  <td>
-                    {c.abn ? (
-                      <code>{c.abn}</code>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)' }}>—</span>
-                    )}
-                  </td>
+          <div className="customers-table-view table-premium-container">
+            <table className="table-premium">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Billing Address</th>
+                  <th>ABN</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="customers-card-view" aria-label="Customer cards">
-          {customers.map((c) => (
-            <CustomerCard key={c.id} customer={c} onOpen={() => navigate(`/customers/${c.id}`)} />
-          ))}
-        </div>
+              </thead>
+              <tbody>
+                {customers.map((c) => (
+                  <tr
+                    key={c.id}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => navigate(`/customers/${c.id}`)}
+                  >
+                    <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{c.name}</td>
+                    <td>
+                      {c.email ? (
+                        <span style={{ fontSize: '0.875rem' }}>{c.email}</span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      )}
+                    </td>
+                    <td>
+                      {c.phone ? (
+                        <span style={{ fontSize: '0.875rem' }}>{c.phone}</span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      )}
+                    </td>
+                    <td>
+                      <span style={{ fontSize: '0.875rem' }}>
+                        {formatAddress(c.billing_address)}
+                      </span>
+                    </td>
+                    <td>
+                      {c.abn ? (
+                        <code>{c.abn}</code>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="customers-card-view" aria-label="Customer cards">
+            {customers.map((c) => (
+              <CustomerCard key={c.id} customer={c} onOpen={() => navigate(`/customers/${c.id}`)} />
+            ))}
+          </div>
         </>
       )}
     </section>

@@ -122,7 +122,9 @@ export function BankConnect() {
       // Open Basiq's hosted Connect UI
       window.location.href = body.url;
     } catch (e) {
-      setError(formatActionError('start the bank connection', e instanceof Error ? e.message : String(e)));
+      setError(
+        formatActionError('start the bank connection', e instanceof Error ? e.message : String(e)),
+      );
       setConnecting(false);
     }
   };
@@ -141,7 +143,9 @@ export function BankConnect() {
       });
       await refresh();
     } catch (e) {
-      setError(formatActionError('queue the bank sync', e instanceof Error ? e.message : String(e)));
+      setError(
+        formatActionError('queue the bank sync', e instanceof Error ? e.message : String(e)),
+      );
     } finally {
       setSyncingId(null);
     }
@@ -181,7 +185,9 @@ export function BankConnect() {
 
       await refresh();
     } catch (e) {
-      setError(formatActionError('disable this bank feed', e instanceof Error ? e.message : String(e)));
+      setError(
+        formatActionError('disable this bank feed', e instanceof Error ? e.message : String(e)),
+      );
     } finally {
       setDisablingId(null);
     }
@@ -236,7 +242,10 @@ export function BankConnect() {
         </div>
       ) : (
         <>
-          <table className="settings-responsive-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <table
+            className="settings-responsive-table"
+            style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}
+          >
             <thead>
               <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
                 <th style={th}>Bank</th>
@@ -440,7 +449,9 @@ function BankAccountDetails({
     <div style={compact ? accountListCompact : accountList} aria-label="Linked bank accounts">
       {accounts.map((account) => (
         <div key={account.id} style={accountCard}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div
+            style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}
+          >
             <strong>{account.name}</strong>
             <span style={{ color: account.is_active ? '#86c7a3' : '#aaa', fontSize: 11 }}>
               {account.is_active ? 'active' : 'inactive'}

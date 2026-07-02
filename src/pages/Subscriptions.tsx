@@ -702,9 +702,7 @@ function ConfidenceIndicator({ confidence }: { confidence: number | null }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>
-        {(confidence * 100).toFixed(0)}%
-      </span>
+      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{(confidence * 100).toFixed(0)}%</span>
       <div
         style={{
           width: '40px',

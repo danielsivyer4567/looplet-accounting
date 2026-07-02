@@ -32,10 +32,12 @@ export function useBasLodgementPack() {
     setBusyId(lodgement.id);
     setError(null);
     try {
-      const { data, error: fnErr } =
-        await supabase.functions.invoke<BasLodgementPackResponse>('bas-lodgement-pack', {
+      const { data, error: fnErr } = await supabase.functions.invoke<BasLodgementPackResponse>(
+        'bas-lodgement-pack',
+        {
           body: { lodgement_id: lodgement.id },
-        });
+        },
+      );
 
       if (fnErr) throw new Error(fnErr.message);
       if (!data?.pdf_base64) {

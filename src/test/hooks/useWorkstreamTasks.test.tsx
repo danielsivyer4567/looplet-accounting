@@ -1,6 +1,10 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchPreflightStatus, useWorkstreamTasks, type WorkstreamTask } from '@/hooks/useWorkstreamTasks';
+import {
+  fetchPreflightStatus,
+  useWorkstreamTasks,
+  type WorkstreamTask,
+} from '@/hooks/useWorkstreamTasks';
 
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -139,7 +143,11 @@ describe('useWorkstreamTasks', () => {
     mocks.rpc.mockImplementation((fn: string) =>
       fn === 'period_close_checks'
         ? rpcOk([
-            { check_name: 'trial_balance_balances', passed: false, detail: { message: 'Trial balance is out by 500 cents.' } },
+            {
+              check_name: 'trial_balance_balances',
+              passed: false,
+              detail: { message: 'Trial balance is out by 500 cents.' },
+            },
             { check_name: 'no_unposted_drafts', passed: true, detail: {} },
           ])
         : rpcOk(null),
@@ -160,7 +168,11 @@ describe('useWorkstreamTasks', () => {
     );
     expect(mocks.from).toHaveBeenCalledWith('v_books_health');
     expect(status.failedChecks).toEqual([
-      { check_name: 'trial_balance_balances', passed: false, detail: { message: 'Trial balance is out by 500 cents.' } },
+      {
+        check_name: 'trial_balance_balances',
+        passed: false,
+        detail: { message: 'Trial balance is out by 500 cents.' },
+      },
     ]);
     expect(status.booksHealthBlocking).toBe(true);
   });

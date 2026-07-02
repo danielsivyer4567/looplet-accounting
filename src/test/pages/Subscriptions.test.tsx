@@ -101,9 +101,7 @@ describe('SubscriptionsPage responsive layout', () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText(
-          /could not load subscriptions\. access policy blocked this request/i,
-        ),
+        screen.getByText(/could not load subscriptions\. access policy blocked this request/i),
       ).toBeInTheDocument(),
     );
     expect(screen.queryByText(/^new row violates/i)).not.toBeInTheDocument();

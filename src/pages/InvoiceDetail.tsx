@@ -941,7 +941,8 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   const child = isValidElement<{ id?: string }>(children) ? children : null;
   const labelable =
     child && typeof child.type === 'string' && ['input', 'select', 'textarea'].includes(child.type);
-  const controlId = labelable && child ? (child.props.id ?? `invoice-field-${generatedId}`) : undefined;
+  const controlId =
+    labelable && child ? (child.props.id ?? `invoice-field-${generatedId}`) : undefined;
   const labelledChild =
     labelable && child && controlId ? cloneElement(child, { id: controlId }) : children;
 

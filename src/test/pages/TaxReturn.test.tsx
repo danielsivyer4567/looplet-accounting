@@ -306,10 +306,7 @@ describe('TaxReturnPage (SC-4.I.02 / SC-4.I.03)', () => {
 
     renderPage();
 
-    expect(screen.getByLabelText(/loading tax return draft/i)).toHaveAttribute(
-      'aria-busy',
-      'true',
-    );
+    expect(screen.getByLabelText(/loading tax return draft/i)).toHaveAttribute('aria-busy', 'true');
     expect(screen.queryByText(/loading draft return/i)).not.toBeInTheDocument();
   });
 

@@ -166,12 +166,11 @@ export function useWorkstreamTasks() {
 
       if (!alreadyHasCloseTask && (failedChecks.length > 0 || booksHealthBlocking)) {
         const monthLabel = currentMonthLabel();
-        const checkSummary = failedChecks
-          .map((c) => c.detail?.message ?? c.check_name)
-          .join('; ');
-        const whyNow = failedChecks.length > 0
-          ? `Month-end close window is open and pre-flight checks are failing: ${checkSummary}.`
-          : 'Month-end close window is open and books-health is below the close threshold.';
+        const checkSummary = failedChecks.map((c) => c.detail?.message ?? c.check_name).join('; ');
+        const whyNow =
+          failedChecks.length > 0
+            ? `Month-end close window is open and pre-flight checks are failing: ${checkSummary}.`
+            : 'Month-end close window is open and books-health is below the close threshold.';
 
         derivedTasks.push({
           id: `derived-month-end-close-${orgId}`,

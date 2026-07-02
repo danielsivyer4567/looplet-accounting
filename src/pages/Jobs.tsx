@@ -161,7 +161,12 @@ export function JobsPage() {
         <div
           role="alert"
           className="badge badge-warning"
-          style={{ display: 'block', padding: '0.75rem', marginBottom: '1.5rem', textTransform: 'none' }}
+          style={{
+            display: 'block',
+            padding: '0.75rem',
+            marginBottom: '1.5rem',
+            textTransform: 'none',
+          }}
         >
           {formatLoadError('live job P&L', pnlError)} Job costs and margins below may show as zero
           until this resolves.
@@ -264,66 +269,68 @@ export function JobsPage() {
         </div>
       ) : (
         <>
-        <div className="jobs-table-view table-premium-container">
-          <table className="table-premium">
-            <thead>
-              <tr>
-                <th>Job #</th>
-                <th>Name</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Bills attached</th>
-                <th style={{ textAlign: 'right' }}>Bills suggested</th>
-                <th>Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {jobs.map((j) => {
-                const attached = getBillCount(j.attached_bills);
-                const suggested = getBillCount(j.suggested_bills);
-                const created = new Date(j.created_at).toLocaleDateString('en-AU', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                });
-                return (
-                  <tr
-                    key={j.id}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => void navigate(`/jobs/${j.id}`)}
-                  >
-                    <td>
-                      <code>{j.job_number}</code>
-                    </td>
-                    <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{j.name}</td>
-                    <td>
-                      <Pill status={j.status} />
-                    </td>
-                    <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                      {attached > 0 ? (
-                        <span style={{ color: 'var(--text-success)' }}>{attached}</span>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)' }}>0</span>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      {suggested > 0 ? (
-                        <span style={{ color: 'var(--text-warning)' }}>{suggested}</span>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)' }}>0</span>
-                      )}
-                    </td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>{created}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div className="jobs-card-view" aria-label="Job cards">
-          {jobs.map((j) => (
-            <JobCard key={j.id} job={j} onOpen={() => void navigate(`/jobs/${j.id}`)} />
-          ))}
-        </div>
+          <div className="jobs-table-view table-premium-container">
+            <table className="table-premium">
+              <thead>
+                <tr>
+                  <th>Job #</th>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Bills attached</th>
+                  <th style={{ textAlign: 'right' }}>Bills suggested</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {jobs.map((j) => {
+                  const attached = getBillCount(j.attached_bills);
+                  const suggested = getBillCount(j.suggested_bills);
+                  const created = new Date(j.created_at).toLocaleDateString('en-AU', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                  });
+                  return (
+                    <tr
+                      key={j.id}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => void navigate(`/jobs/${j.id}`)}
+                    >
+                      <td>
+                        <code>{j.job_number}</code>
+                      </td>
+                      <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{j.name}</td>
+                      <td>
+                        <Pill status={j.status} />
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                        {attached > 0 ? (
+                          <span style={{ color: 'var(--text-success)' }}>{attached}</span>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)' }}>0</span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        {suggested > 0 ? (
+                          <span style={{ color: 'var(--text-warning)' }}>{suggested}</span>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)' }}>0</span>
+                        )}
+                      </td>
+                      <td style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
+                        {created}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="jobs-card-view" aria-label="Job cards">
+            {jobs.map((j) => (
+              <JobCard key={j.id} job={j} onOpen={() => void navigate(`/jobs/${j.id}`)} />
+            ))}
+          </div>
         </>
       )}
     </section>

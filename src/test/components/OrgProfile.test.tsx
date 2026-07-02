@@ -50,7 +50,9 @@ vi.mock('@/lib/supabase', () => {
     chain.maybeSingle = vi.fn(() => Promise.resolve({ data: org, error: null }));
     chain.then = (resolve: (value: unknown) => unknown) =>
       Promise.resolve(
-        mocks.saveError ? { data: null, error: { message: mocks.saveError } } : { data: null, error: null },
+        mocks.saveError
+          ? { data: null, error: { message: mocks.saveError } }
+          : { data: null, error: null },
       ).then(resolve);
     return chain;
   };

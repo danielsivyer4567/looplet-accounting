@@ -88,7 +88,10 @@ describe('useJobs costing pipeline', () => {
   });
 
   it('still renders jobs but reports pnlError when the P&L pipeline fails (no silent zeros)', async () => {
-    state.pnl = { data: null as unknown as unknown[], error: { message: 'permission denied for view v_job_pnl' } };
+    state.pnl = {
+      data: null as unknown as unknown[],
+      error: { message: 'permission denied for view v_job_pnl' },
+    };
 
     const { result } = renderHook(() => useJobs());
     await waitFor(() => expect(result.current.loading).toBe(false));

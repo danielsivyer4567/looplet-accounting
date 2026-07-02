@@ -134,7 +134,9 @@ describe('BasPrepCard (SC-3.E.01)', () => {
     fireEvent.click(lodge);
     await waitFor(() => expect(h.requestLodgeApproval).toHaveBeenCalledTimes(1));
     expect(supabase.from).not.toHaveBeenCalledWith('obligation_status');
-    expect(await screen.findByText(/Draft lodgement created and approval requested/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Draft lodgement created and approval requested/i),
+    ).toBeInTheDocument();
   });
 
   it('disables approve-and-lodge and surfaces both blockers when exceptions or variance exist', () => {

@@ -534,8 +534,7 @@ export function ReconciliationPage() {
                       <span>Amount</span>
                       <strong
                         style={{
-                          color:
-                            m.amount_cents < 0 ? 'var(--text-danger)' : 'var(--text-success)',
+                          color: m.amount_cents < 0 ? 'var(--text-danger)' : 'var(--text-success)',
                         }}
                       >
                         {formatMoney(m.amount_cents)}

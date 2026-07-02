@@ -537,11 +537,7 @@ export function BillDetailPage() {
                 </p>
               )
             ) : (
-              <div
-                style={{ padding: '1.5rem' }}
-                aria-busy="true"
-                aria-label="Loading bill preview"
-              >
+              <div style={{ padding: '1.5rem' }} aria-busy="true" aria-label="Loading bill preview">
                 <SkeletonLine width="70%" height={14} />
               </div>
             )}

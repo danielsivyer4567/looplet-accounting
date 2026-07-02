@@ -110,7 +110,12 @@ function DetailPanel({
       {packError && (
         <div
           className="badge badge-danger"
-          style={{ display: 'block', padding: '0.75rem', marginTop: '0.75rem', textTransform: 'none' }}
+          style={{
+            display: 'block',
+            padding: '0.75rem',
+            marginTop: '0.75rem',
+            textTransform: 'none',
+          }}
         >
           BAS pack unavailable: {packError}
         </div>

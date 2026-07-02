@@ -44,7 +44,8 @@ vi.mock('@/lib/supabase', () => {
         error: result.error,
       });
     };
-    chain.then = (resolve: (value: unknown) => unknown) => Promise.resolve(resolved()).then(resolve);
+    chain.then = (resolve: (value: unknown) => unknown) =>
+      Promise.resolve(resolved()).then(resolve);
     return chain;
   };
 
@@ -159,9 +160,7 @@ describe('JobDetailPage', () => {
       expect(screen.getByText('Fence install')).toBeInTheDocument();
     });
 
-    expect(
-      screen.getByRole('img', { name: /job margin trend sparkline/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /job margin trend sparkline/i })).toBeInTheDocument();
     expect(screen.getByText(/Cumulative Revenue/i)).toBeInTheDocument();
     expect(screen.getByText(/Cumulative Cost/i)).toBeInTheDocument();
     expect(screen.getByText(/Cumulative Margin/i)).toBeInTheDocument();

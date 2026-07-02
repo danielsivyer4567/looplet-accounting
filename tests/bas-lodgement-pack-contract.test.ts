@@ -33,7 +33,9 @@ describe('BAS lodgement pack contract', () => {
   });
 
   it('wires the Lodgements page to download the BAS pack through the edge function', () => {
-    expect(hookSource).toMatch(/supabase\.functions\.invoke<BasLodgementPackResponse>\('bas-lodgement-pack'/);
+    expect(hookSource).toMatch(
+      /supabase\.functions\.invoke<BasLodgementPackResponse>\(\s*'bas-lodgement-pack'/,
+    );
     expect(hookSource).toMatch(/body:\s*\{\s*lodgement_id:\s*lodgement\.id\s*\}/);
     expect(hookSource).toMatch(/base64ToBlob\(data\.pdf_base64,\s*'application\/pdf'\)/);
     expect(pageSource).toMatch(/Download BAS pack/);

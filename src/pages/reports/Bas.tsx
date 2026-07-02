@@ -284,129 +284,135 @@ export function BasReportPage() {
         </div>
       ) : (
         <>
-        <div className="bas-table-view table-premium-container">
-          <table className="table-premium">
-            <thead>
-              <tr>
-                <th>FY</th>
-                <th>Quarter</th>
-                <th>Period</th>
-                <th>Due Date</th>
-                <th style={{ textAlign: 'right' }}>Sales ex GST</th>
-                <th style={{ textAlign: 'right' }}>Purchases ex GST</th>
-                <th style={{ textAlign: 'right' }}>GST Collected</th>
-                <th style={{ textAlign: 'right' }}>GST Paid</th>
-                <th style={{ textAlign: 'right' }}>Net GST</th>
-                <th style={{ textAlign: 'right' }}>Bill Coverage</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={`${r.fy_start_year}-${r.quarter_num}`}>
-                  <td>
-                    {r.fy_start_year}-{(r.fy_start_year + 1).toString().slice(2)}
-                  </td>
-                  <td style={{ fontWeight: 600 }}>{QUARTER_NAMES[r.quarter_num]}</td>
-                  <td>
-                    <code style={{ fontSize: '0.75rem' }}>
-                      {r.quarter_start} → {r.quarter_end}
-                    </code>
-                  </td>
-                  <td>
-                    {r.due_date}
-                    {isOverdue(r.due_date) && r.net_gst_cents > 0 && (
-                      <span
-                        className="badge badge-danger"
-                        style={{
-                          marginLeft: '0.5rem',
-                          padding: '0.15rem 0.35rem',
-                          fontSize: '0.625rem',
-                        }}
-                      >
-                        OVERDUE
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ textAlign: 'right' }}>{formatMoney(r.sales_ex_gst_cents)}</td>
-                  <td style={{ textAlign: 'right' }}>{formatMoney(r.purchases_ex_gst_cents)}</td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-success)' }}>
-                    {formatMoney(r.gst_collected_cents)}
-                  </td>
-                  <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>
-                    {formatMoney(r.gst_paid_cents)}
-                  </td>
-                  <td
-                    style={{
-                      textAlign: 'right',
-                      fontWeight: 700,
-                      color: r.net_gst_cents > 0 ? 'var(--text-danger)' : 'var(--text-success)',
-                    }}
-                  >
-                    {formatMoney(r.net_gst_cents)}
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    {renderCoverage(coverage.get(coverageKey(r.fy_start_year, r.quarter_num)))}
-                  </td>
+          <div className="bas-table-view table-premium-container">
+            <table className="table-premium">
+              <thead>
+                <tr>
+                  <th>FY</th>
+                  <th>Quarter</th>
+                  <th>Period</th>
+                  <th>Due Date</th>
+                  <th style={{ textAlign: 'right' }}>Sales ex GST</th>
+                  <th style={{ textAlign: 'right' }}>Purchases ex GST</th>
+                  <th style={{ textAlign: 'right' }}>GST Collected</th>
+                  <th style={{ textAlign: 'right' }}>GST Paid</th>
+                  <th style={{ textAlign: 'right' }}>Net GST</th>
+                  <th style={{ textAlign: 'right' }}>Bill Coverage</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="bas-card-view" aria-label="BAS quarter cards">
-          {rows.map((r) => (
-            <article
-              key={`card-${r.fy_start_year}-${r.quarter_num}`}
-              className="bas-mobile-card card"
-              aria-label={`BAS ${QUARTER_NAMES[r.quarter_num]} FY${r.fy_start_year}`}
-            >
-              <div className="bas-mobile-card__header">
-                <div>
-                  <strong style={{ color: 'var(--text-title)' }}>
-                    {QUARTER_NAMES[r.quarter_num]} · FY {r.fy_start_year}-
-                    {(r.fy_start_year + 1).toString().slice(2)}
-                  </strong>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '0.15rem' }}>
-                    Due {r.due_date}
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={`${r.fy_start_year}-${r.quarter_num}`}>
+                    <td>
+                      {r.fy_start_year}-{(r.fy_start_year + 1).toString().slice(2)}
+                    </td>
+                    <td style={{ fontWeight: 600 }}>{QUARTER_NAMES[r.quarter_num]}</td>
+                    <td>
+                      <code style={{ fontSize: '0.75rem' }}>
+                        {r.quarter_start} → {r.quarter_end}
+                      </code>
+                    </td>
+                    <td>
+                      {r.due_date}
+                      {isOverdue(r.due_date) && r.net_gst_cents > 0 && (
+                        <span
+                          className="badge badge-danger"
+                          style={{
+                            marginLeft: '0.5rem',
+                            padding: '0.15rem 0.35rem',
+                            fontSize: '0.625rem',
+                          }}
+                        >
+                          OVERDUE
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>{formatMoney(r.sales_ex_gst_cents)}</td>
+                    <td style={{ textAlign: 'right' }}>{formatMoney(r.purchases_ex_gst_cents)}</td>
+                    <td style={{ textAlign: 'right', color: 'var(--text-success)' }}>
+                      {formatMoney(r.gst_collected_cents)}
+                    </td>
+                    <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>
+                      {formatMoney(r.gst_paid_cents)}
+                    </td>
+                    <td
+                      style={{
+                        textAlign: 'right',
+                        fontWeight: 700,
+                        color: r.net_gst_cents > 0 ? 'var(--text-danger)' : 'var(--text-success)',
+                      }}
+                    >
+                      {formatMoney(r.net_gst_cents)}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      {renderCoverage(coverage.get(coverageKey(r.fy_start_year, r.quarter_num)))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="bas-card-view" aria-label="BAS quarter cards">
+            {rows.map((r) => (
+              <article
+                key={`card-${r.fy_start_year}-${r.quarter_num}`}
+                className="bas-mobile-card card"
+                aria-label={`BAS ${QUARTER_NAMES[r.quarter_num]} FY${r.fy_start_year}`}
+              >
+                <div className="bas-mobile-card__header">
+                  <div>
+                    <strong style={{ color: 'var(--text-title)' }}>
+                      {QUARTER_NAMES[r.quarter_num]} · FY {r.fy_start_year}-
+                      {(r.fy_start_year + 1).toString().slice(2)}
+                    </strong>
+                    <div
+                      style={{
+                        color: 'var(--text-muted)',
+                        fontSize: '0.72rem',
+                        marginTop: '0.15rem',
+                      }}
+                    >
+                      Due {r.due_date}
+                    </div>
+                  </div>
+                  {isOverdue(r.due_date) && r.net_gst_cents > 0 && (
+                    <span className="badge badge-danger" style={{ fontSize: '0.625rem' }}>
+                      OVERDUE
+                    </span>
+                  )}
+                </div>
+                <div className="bas-mobile-card__metrics">
+                  <div>
+                    <span>Sales ex GST</span>
+                    <strong>{formatMoney(r.sales_ex_gst_cents)}</strong>
+                  </div>
+                  <div>
+                    <span>Purchases ex GST</span>
+                    <strong>{formatMoney(r.purchases_ex_gst_cents)}</strong>
+                  </div>
+                  <div>
+                    <span>GST collected</span>
+                    <strong style={{ color: 'var(--text-success)' }}>
+                      {formatMoney(r.gst_collected_cents)}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>Net GST</span>
+                    <strong
+                      style={{
+                        color: r.net_gst_cents > 0 ? 'var(--text-danger)' : 'var(--text-success)',
+                      }}
+                    >
+                      {formatMoney(r.net_gst_cents)}
+                    </strong>
                   </div>
                 </div>
-                {isOverdue(r.due_date) && r.net_gst_cents > 0 && (
-                  <span className="badge badge-danger" style={{ fontSize: '0.625rem' }}>
-                    OVERDUE
-                  </span>
-                )}
-              </div>
-              <div className="bas-mobile-card__metrics">
-                <div>
-                  <span>Sales ex GST</span>
-                  <strong>{formatMoney(r.sales_ex_gst_cents)}</strong>
+                <div className="bas-mobile-card__coverage">
+                  {renderCoverage(coverage.get(coverageKey(r.fy_start_year, r.quarter_num)))}
                 </div>
-                <div>
-                  <span>Purchases ex GST</span>
-                  <strong>{formatMoney(r.purchases_ex_gst_cents)}</strong>
-                </div>
-                <div>
-                  <span>GST collected</span>
-                  <strong style={{ color: 'var(--text-success)' }}>
-                    {formatMoney(r.gst_collected_cents)}
-                  </strong>
-                </div>
-                <div>
-                  <span>Net GST</span>
-                  <strong
-                    style={{
-                      color: r.net_gst_cents > 0 ? 'var(--text-danger)' : 'var(--text-success)',
-                    }}
-                  >
-                    {formatMoney(r.net_gst_cents)}
-                  </strong>
-                </div>
-              </div>
-              <div className="bas-mobile-card__coverage">
-                {renderCoverage(coverage.get(coverageKey(r.fy_start_year, r.quarter_num)))}
-              </div>
-            </article>
-          ))}
-        </div>
+              </article>
+            ))}
+          </div>
         </>
       )}
 

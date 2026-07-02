@@ -56,13 +56,8 @@ export function SignupPage() {
         ✓
       </div>
       <h2 className="auth-heading">Account created</h2>
-      <p className="auth-copy">
-        Check your email to confirm your address, then sign in.
-      </p>
-      <Link
-        to="/login"
-        className="btn btn-primary"
-      >
+      <p className="auth-copy">Check your email to confirm your address, then sign in.</p>
+      <Link to="/login" className="btn btn-primary">
         Back to sign in
       </Link>
     </div>
@@ -105,35 +100,21 @@ export function SignupPage() {
         </div>
 
         {error && (
-          <div
-            className="auth-alert badge badge-danger"
-            role="alert"
-          >
+          <div className="auth-alert badge badge-danger" role="alert">
             {error}
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="btn btn-primary"
-        >
+        <button type="submit" disabled={busy} className="btn btn-primary">
           {busy ? 'Creating…' : 'Create account'}
         </button>
       </form>
 
       <div className="auth-footer">
-        Already have an account?{' '}
-        <Link to="/login">
-          Sign in
-        </Link>
+        Already have an account? <Link to="/login">Sign in</Link>
       </div>
     </div>
   );
 
-  return (
-    <div className="auth-shell">
-      {contentElement}
-    </div>
-  );
+  return <div className="auth-shell">{contentElement}</div>;
 }

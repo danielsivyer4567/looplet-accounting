@@ -83,10 +83,7 @@ describe('long-tail loading skeletons', () => {
       />,
     );
 
-    expect(screen.getByLabelText(/loading document preview/i)).toHaveAttribute(
-      'aria-busy',
-      'true',
-    );
+    expect(screen.getByLabelText(/loading document preview/i)).toHaveAttribute('aria-busy', 'true');
     expect(screen.queryByText(/loading document/i)).not.toBeInTheDocument();
   });
 });

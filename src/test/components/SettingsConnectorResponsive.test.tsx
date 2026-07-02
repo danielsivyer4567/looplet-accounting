@@ -217,7 +217,11 @@ describe('Settings connector responsive layouts', () => {
   it('has a breakpoint contract that swaps settings connector tables to cards on mobile', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
 
-    expect(css).toMatch(/@media \(max-width: 768px\)[\s\S]*\.settings-responsive-table\s*\{[\s\S]*display: none/);
-    expect(css).toMatch(/@media \(max-width: 768px\)[\s\S]*\.settings-card-view\s*\{[\s\S]*display: grid/);
+    expect(css).toMatch(
+      /@media \(max-width: 768px\)[\s\S]*\.settings-responsive-table\s*\{[\s\S]*display: none/,
+    );
+    expect(css).toMatch(
+      /@media \(max-width: 768px\)[\s\S]*\.settings-card-view\s*\{[\s\S]*display: grid/,
+    );
   });
 });

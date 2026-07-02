@@ -165,7 +165,14 @@ export function ConnectorApiKeys({ organizationId }: ConnectorApiKeysProps) {
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: '1rem',
+          alignItems: 'center',
+        }}
+      >
         <div>
           <h2
             style={{
@@ -226,7 +233,9 @@ export function ConnectorApiKeys({ organizationId }: ConnectorApiKeysProps) {
         </div>
       </div>
 
-      {error && <div style={{ color: 'var(--color-error, #ef4444)', fontSize: '0.8rem' }}>{error}</div>}
+      {error && (
+        <div style={{ color: 'var(--color-error, #ef4444)', fontSize: '0.8rem' }}>{error}</div>
+      )}
 
       {issuedSecret && (
         <div
@@ -280,7 +289,14 @@ export function ConnectorApiKeys({ organizationId }: ConnectorApiKeysProps) {
 
       {formOpen && (
         <div className="card" style={{ padding: '1rem', display: 'grid', gap: '0.85rem' }}>
-          <label style={{ display: 'grid', gap: '0.3rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+          <label
+            style={{
+              display: 'grid',
+              gap: '0.3rem',
+              fontSize: '0.78rem',
+              color: 'var(--text-muted)',
+            }}
+          >
             Name
             <input
               value={name}
@@ -321,7 +337,14 @@ export function ConnectorApiKeys({ organizationId }: ConnectorApiKeysProps) {
               ))}
             </div>
           </div>
-          <label style={{ display: 'grid', gap: '0.3rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+          <label
+            style={{
+              display: 'grid',
+              gap: '0.3rem',
+              fontSize: '0.78rem',
+              color: 'var(--text-muted)',
+            }}
+          >
             Rate limit per minute
             <input
               type="number"
@@ -381,9 +404,11 @@ export function ConnectorApiKeys({ organizationId }: ConnectorApiKeysProps) {
                 <div style={{ fontWeight: 700, fontSize: '0.86rem', color: 'var(--text-title)' }}>
                   {key.name} · {key.key_prefix}
                 </div>
-                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                  {key.scopes.join(', ') || 'no scopes'} · {key.rate_limit_per_min ?? 120}/min · last used{' '}
-                  {formatDate(key.last_used_at)}
+                <div
+                  style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}
+                >
+                  {key.scopes.join(', ') || 'no scopes'} · {key.rate_limit_per_min ?? 120}/min ·
+                  last used {formatDate(key.last_used_at)}
                   {key.revoked_at ? ` · revoked ${formatDate(key.revoked_at)}` : ''}
                 </div>
               </div>
@@ -417,9 +442,11 @@ export function ConnectorApiKeys({ organizationId }: ConnectorApiKeysProps) {
                 <div style={{ fontWeight: 700, color: 'var(--text-title)', fontSize: '0.82rem' }}>
                   {row.endpoint} · {row.status}
                 </div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.74rem', marginTop: '0.2rem' }}>
-                  {row.key_prefix ?? 'anonymous'} · {row.method ?? 'POST'} · {row.ingest_type ?? 'auth'} ·{' '}
-                  {formatDate(row.ts)}
+                <div
+                  style={{ color: 'var(--text-muted)', fontSize: '0.74rem', marginTop: '0.2rem' }}
+                >
+                  {row.key_prefix ?? 'anonymous'} · {row.method ?? 'POST'} ·{' '}
+                  {row.ingest_type ?? 'auth'} · {formatDate(row.ts)}
                 </div>
               </div>
             </div>

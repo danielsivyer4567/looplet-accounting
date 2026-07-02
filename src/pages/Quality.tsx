@@ -309,153 +309,165 @@ export function QualityPage() {
           </div>
         ) : (
           <>
-          <div className="quality-table-view table-premium-container">
-            <table className="table-premium">
-              <thead>
-                <tr>
-                  <th>Supplier Raw Name</th>
-                  <th>Invoice #</th>
-                  <th>Invoice Date</th>
-                  <th style={{ textAlign: 'right' }}>Total amount</th>
-                  <th>OCR Engine</th>
-                  <th>Status</th>
-                  <th>Flagged Issues</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lowConf.map((b) => {
-                  const issues = flaggedIssues(b);
-                  return (
-                    <tr key={b.id}>
-                      <td>
-                        <Link
-                          to={`/bills/${b.id}`}
+            <div className="quality-table-view table-premium-container">
+              <table className="table-premium">
+                <thead>
+                  <tr>
+                    <th>Supplier Raw Name</th>
+                    <th>Invoice #</th>
+                    <th>Invoice Date</th>
+                    <th style={{ textAlign: 'right' }}>Total amount</th>
+                    <th>OCR Engine</th>
+                    <th>Status</th>
+                    <th>Flagged Issues</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lowConf.map((b) => {
+                    const issues = flaggedIssues(b);
+                    return (
+                      <tr key={b.id}>
+                        <td>
+                          <Link
+                            to={`/bills/${b.id}`}
+                            style={{
+                              fontWeight: 600,
+                              color: 'var(--accent-primary)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                            }}
+                          >
+                            <FileText className="w-4 h-4 text-muted" />
+                            {b.supplier_name_raw ?? (
+                              <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>—</span>
+                            )}
+                          </Link>
+                        </td>
+                        <td>
+                          <code style={{ fontSize: '0.8rem', color: 'var(--text-title)' }}>
+                            {b.invoice_number ?? '—'}
+                          </code>
+                        </td>
+                        <td>{b.invoice_date ?? '—'}</td>
+                        <td
                           style={{
+                            textAlign: 'right',
                             fontWeight: 600,
-                            color: 'var(--accent-primary)',
+                            color: 'var(--text-title)',
+                          }}
+                        >
+                          {b.total_inc_gst_cents != null ? (
+                            formatMoney(b.total_inc_gst_cents)
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>—</span>
+                          )}
+                        </td>
+                        <td>
+                          <span
+                            style={{
+                              fontSize: '0.8rem',
+                              color: 'var(--text-muted)',
+                              fontFamily: 'monospace',
+                            }}
+                          >
+                            {b.ocr_provider ?? '—'}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            className="badge badge-neutral"
+                            style={{ textTransform: 'capitalize' }}
+                          >
+                            {b.status}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                            {issues.map((iss) => (
+                              <span
+                                key={iss}
+                                className="badge badge-danger"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.2rem',
+                                  textTransform: 'none',
+                                }}
+                              >
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                {iss}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="quality-card-view" aria-label="Low confidence bill cards">
+              {lowConf.map((b) => {
+                const issues = flaggedIssues(b);
+                return (
+                  <article
+                    key={`card-${b.id}`}
+                    className="quality-mobile-card card"
+                    aria-label={`Low confidence bill ${b.invoice_number ?? b.id}`}
+                  >
+                    <div className="quality-mobile-card__header">
+                      <Link
+                        to={`/bills/${b.id}`}
+                        style={{ fontWeight: 600, color: 'var(--accent-primary)' }}
+                      >
+                        {b.supplier_name_raw ?? 'Unknown supplier'}
+                      </Link>
+                      <span className="badge badge-neutral" style={{ textTransform: 'capitalize' }}>
+                        {b.status}
+                      </span>
+                    </div>
+                    <div className="quality-mobile-card__metrics">
+                      <div>
+                        <span>Invoice #</span>
+                        <strong>{b.invoice_number ?? '—'}</strong>
+                      </div>
+                      <div>
+                        <span>Date</span>
+                        <strong>{b.invoice_date ?? '—'}</strong>
+                      </div>
+                      <div>
+                        <span>Total</span>
+                        <strong>
+                          {b.total_inc_gst_cents != null ? formatMoney(b.total_inc_gst_cents) : '—'}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>OCR engine</span>
+                        <strong>{b.ocr_provider ?? '—'}</strong>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                      {issues.map((iss) => (
+                        <span
+                          key={iss}
+                          className="badge badge-danger"
+                          style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '0.35rem',
+                            gap: '0.2rem',
+                            textTransform: 'none',
                           }}
                         >
-                          <FileText className="w-4 h-4 text-muted" />
-                          {b.supplier_name_raw ?? (
-                            <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>—</span>
-                          )}
-                        </Link>
-                      </td>
-                      <td>
-                        <code style={{ fontSize: '0.8rem', color: 'var(--text-title)' }}>
-                          {b.invoice_number ?? '—'}
-                        </code>
-                      </td>
-                      <td>{b.invoice_date ?? '—'}</td>
-                      <td
-                        style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-title)' }}
-                      >
-                        {b.total_inc_gst_cents != null ? (
-                          formatMoney(b.total_inc_gst_cents)
-                        ) : (
-                          <span style={{ color: 'var(--text-muted)' }}>—</span>
-                        )}
-                      </td>
-                      <td>
-                        <span
-                          style={{
-                            fontSize: '0.8rem',
-                            color: 'var(--text-muted)',
-                            fontFamily: 'monospace',
-                          }}
-                        >
-                          {b.ocr_provider ?? '—'}
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          {iss}
                         </span>
-                      </td>
-                      <td>
-                        <span
-                          className="badge badge-neutral"
-                          style={{ textTransform: 'capitalize' }}
-                        >
-                          {b.status}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-                          {issues.map((iss) => (
-                            <span
-                              key={iss}
-                              className="badge badge-danger"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.2rem',
-                                textTransform: 'none',
-                              }}
-                            >
-                              <AlertTriangle className="w-3.5 h-3.5" />
-                              {iss}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="quality-card-view" aria-label="Low confidence bill cards">
-            {lowConf.map((b) => {
-              const issues = flaggedIssues(b);
-              return (
-                <article
-                  key={`card-${b.id}`}
-                  className="quality-mobile-card card"
-                  aria-label={`Low confidence bill ${b.invoice_number ?? b.id}`}
-                >
-                  <div className="quality-mobile-card__header">
-                    <Link to={`/bills/${b.id}`} style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>
-                      {b.supplier_name_raw ?? 'Unknown supplier'}
-                    </Link>
-                    <span className="badge badge-neutral" style={{ textTransform: 'capitalize' }}>
-                      {b.status}
-                    </span>
-                  </div>
-                  <div className="quality-mobile-card__metrics">
-                    <div>
-                      <span>Invoice #</span>
-                      <strong>{b.invoice_number ?? '—'}</strong>
+                      ))}
                     </div>
-                    <div>
-                      <span>Date</span>
-                      <strong>{b.invoice_date ?? '—'}</strong>
-                    </div>
-                    <div>
-                      <span>Total</span>
-                      <strong>
-                        {b.total_inc_gst_cents != null ? formatMoney(b.total_inc_gst_cents) : '—'}
-                      </strong>
-                    </div>
-                    <div>
-                      <span>OCR engine</span>
-                      <strong>{b.ocr_provider ?? '—'}</strong>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-                    {issues.map((iss) => (
-                      <span
-                        key={iss}
-                        className="badge badge-danger"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', textTransform: 'none' }}
-                      >
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                        {iss}
-                      </span>
-                    ))}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                  </article>
+                );
+              })}
+            </div>
           </>
         )}
       </div>

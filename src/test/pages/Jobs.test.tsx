@@ -233,7 +233,9 @@ describe('JobsPage', () => {
     renderPage();
 
     expect(
-      screen.getByText(/could not load jobs\. network or server connection issue: failed to fetch/i),
+      screen.getByText(
+        /could not load jobs\. network or server connection issue: failed to fetch/i,
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/^failed to load:/i)).not.toBeInTheDocument();
   });

@@ -539,11 +539,7 @@ function CreateSupplierForm({
         )}
 
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-          <button
-            onClick={submit}
-            disabled={busy || !name.trim()}
-            className="btn btn-primary"
-          >
+          <button onClick={submit} disabled={busy || !name.trim()} className="btn btn-primary">
             <Plus size={16} />
             <span>{busy ? 'Creating…' : 'Create supplier'}</span>
           </button>

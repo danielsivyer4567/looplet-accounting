@@ -453,7 +453,10 @@ function BillCard({
   onPreview: () => void;
 }) {
   return (
-    <article className="bill-mobile-card card" aria-label={`Bill ${bill.supplier_name_raw ?? 'unknown supplier'}`}>
+    <article
+      className="bill-mobile-card card"
+      aria-label={`Bill ${bill.supplier_name_raw ?? 'unknown supplier'}`}
+    >
       <div className="bill-mobile-card__header">
         <div>
           <a
@@ -473,7 +476,14 @@ function BillCard({
           {bill.is_probable_bill === false && (
             <span
               className="badge badge-danger"
-              style={{ fontSize: '9px', padding: '1px 5px', marginTop: '0.25rem', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+              style={{
+                fontSize: '9px',
+                padding: '1px 5px',
+                marginTop: '0.25rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '2px',
+              }}
               title="Classified by intake as not an invoice"
             >
               <AlertTriangle size={10} />

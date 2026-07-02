@@ -7,10 +7,7 @@ import { AuthContext, type AuthContextValue } from '@/contexts/auth-context';
 import { LoginPage } from '@/pages/Login';
 import { SignupPage } from '@/pages/Signup';
 
-function renderAuthPage(
-  element: React.ReactElement,
-  overrides: Partial<AuthContextValue> = {},
-) {
+function renderAuthPage(element: React.ReactElement, overrides: Partial<AuthContextValue> = {}) {
   const authValue: AuthContextValue = {
     user: null,
     session: null,
@@ -81,7 +78,9 @@ describe('Auth mobile layout', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 
-    await waitFor(() => expect(signUp).toHaveBeenCalledWith('owner@example.com', 'long-enough-password'));
+    await waitFor(() =>
+      expect(signUp).toHaveBeenCalledWith('owner@example.com', 'long-enough-password'),
+    );
 
     const doneHeading = screen.getByRole('heading', { name: /account created/i });
     expect(doneHeading.closest('.auth-panel')).toHaveClass('auth-panel--center');

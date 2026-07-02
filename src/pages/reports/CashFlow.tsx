@@ -241,142 +241,142 @@ export function CashFlowPage() {
         </div>
       ) : (
         <>
-        <div className="cashflow-table-view table-premium-container">
-          <table className="table-premium">
-            <thead>
-              <tr>
-                <th>Week Starting</th>
-                <th style={{ textAlign: 'right' }}>Inflow (Invoices)</th>
-                <th style={{ textAlign: 'right' }}>Outflow (Bills)</th>
-                <th style={{ textAlign: 'right' }}>Net</th>
-                <th style={{ textAlign: 'right' }}>Projected Running</th>
-                <th>Distribution (In vs Out)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => {
-                const inWidth = (r.inflow / max) * 100;
-                const outWidth = (r.outflow / max) * 100;
-                const rRunning = (r as AggRow & { running: number }).running;
-                return (
-                  <tr key={r.week_start}>
-                    <td style={{ fontWeight: 600 }}>{r.week_start}</td>
-                    <td style={{ textAlign: 'right', color: 'var(--text-success)' }}>
-                      {r.inflow > 0 ? formatMoney(r.inflow) : '—'}
-                    </td>
-                    <td style={{ textAlign: 'right', color: 'var(--text-danger)' }}>
-                      {r.outflow > 0 ? formatMoney(-r.outflow) : '—'}
-                    </td>
-                    <td
-                      style={{
-                        textAlign: 'right',
-                        fontWeight: 700,
-                        color: r.net >= 0 ? 'var(--text-success)' : 'var(--text-danger)',
-                      }}
-                    >
-                      {formatMoney(r.net)}
-                    </td>
-                    <td
-                      style={{
-                        textAlign: 'right',
-                        fontWeight: 600,
-                        color: rRunning >= 0 ? 'var(--text-title)' : 'var(--text-danger)',
-                      }}
-                    >
-                      {formatMoney(rRunning)}
-                    </td>
-                    <td>
-                      <div
+          <div className="cashflow-table-view table-premium-container">
+            <table className="table-premium">
+              <thead>
+                <tr>
+                  <th>Week Starting</th>
+                  <th style={{ textAlign: 'right' }}>Inflow (Invoices)</th>
+                  <th style={{ textAlign: 'right' }}>Outflow (Bills)</th>
+                  <th style={{ textAlign: 'right' }}>Net</th>
+                  <th style={{ textAlign: 'right' }}>Projected Running</th>
+                  <th>Distribution (In vs Out)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => {
+                  const inWidth = (r.inflow / max) * 100;
+                  const outWidth = (r.outflow / max) * 100;
+                  const rRunning = (r as AggRow & { running: number }).running;
+                  return (
+                    <tr key={r.week_start}>
+                      <td style={{ fontWeight: 600 }}>{r.week_start}</td>
+                      <td style={{ textAlign: 'right', color: 'var(--text-success)' }}>
+                        {r.inflow > 0 ? formatMoney(r.inflow) : '—'}
+                      </td>
+                      <td style={{ textAlign: 'right', color: 'var(--text-danger)' }}>
+                        {r.outflow > 0 ? formatMoney(-r.outflow) : '—'}
+                      </td>
+                      <td
                         style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          height: '14px',
-                          background: 'var(--bg-hover)',
-                          borderRadius: 'var(--radius-full)',
-                          overflow: 'hidden',
-                          padding: '2px',
-                          width: '120px',
+                          textAlign: 'right',
+                          fontWeight: 700,
+                          color: r.net >= 0 ? 'var(--text-success)' : 'var(--text-danger)',
                         }}
                       >
-                        {r.inflow > 0 && (
-                          <div
-                            style={{
-                              width: `${Math.max(inWidth, 5)}%`,
-                              height: '100%',
-                              background: 'var(--accent-success)',
-                              borderRadius:
-                                r.outflow > 0
-                                  ? 'var(--radius-full) 0 0 var(--radius-full)'
-                                  : 'var(--radius-full)',
-                            }}
-                          />
-                        )}
-                        {r.outflow > 0 && (
-                          <div
-                            style={{
-                              width: `${Math.max(outWidth, 5)}%`,
-                              height: '100%',
-                              background: 'var(--accent-danger)',
-                              borderRadius:
-                                r.inflow > 0
-                                  ? '0 var(--radius-full) var(--radius-full) 0'
-                                  : 'var(--radius-full)',
-                            }}
-                          />
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div className="cashflow-card-view" aria-label="Cash flow week cards">
-          {rows.map((r) => {
-            const rRunning = (r as AggRow & { running: number }).running;
-            return (
-              <article
-                key={`card-${r.week_start}`}
-                className="cashflow-mobile-card card"
-                aria-label={`Cash flow week ${r.week_start}`}
-              >
-                <div className="cashflow-mobile-card__header">
-                  <strong style={{ color: 'var(--text-title)' }}>Week {r.week_start}</strong>
-                  <strong
-                    style={{ color: r.net >= 0 ? 'var(--text-success)' : 'var(--text-danger)' }}
-                  >
-                    {formatMoney(r.net)}
-                  </strong>
-                </div>
-                <div className="cashflow-mobile-card__metrics">
-                  <div>
-                    <span>Inflow</span>
-                    <strong style={{ color: 'var(--text-success)' }}>
-                      {r.inflow > 0 ? formatMoney(r.inflow) : '—'}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>Outflow</span>
-                    <strong style={{ color: 'var(--text-danger)' }}>
-                      {r.outflow > 0 ? formatMoney(-r.outflow) : '—'}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>Projected running</span>
+                        {formatMoney(r.net)}
+                      </td>
+                      <td
+                        style={{
+                          textAlign: 'right',
+                          fontWeight: 600,
+                          color: rRunning >= 0 ? 'var(--text-title)' : 'var(--text-danger)',
+                        }}
+                      >
+                        {formatMoney(rRunning)}
+                      </td>
+                      <td>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            height: '14px',
+                            background: 'var(--bg-hover)',
+                            borderRadius: 'var(--radius-full)',
+                            overflow: 'hidden',
+                            padding: '2px',
+                            width: '120px',
+                          }}
+                        >
+                          {r.inflow > 0 && (
+                            <div
+                              style={{
+                                width: `${Math.max(inWidth, 5)}%`,
+                                height: '100%',
+                                background: 'var(--accent-success)',
+                                borderRadius:
+                                  r.outflow > 0
+                                    ? 'var(--radius-full) 0 0 var(--radius-full)'
+                                    : 'var(--radius-full)',
+                              }}
+                            />
+                          )}
+                          {r.outflow > 0 && (
+                            <div
+                              style={{
+                                width: `${Math.max(outWidth, 5)}%`,
+                                height: '100%',
+                                background: 'var(--accent-danger)',
+                                borderRadius:
+                                  r.inflow > 0
+                                    ? '0 var(--radius-full) var(--radius-full) 0'
+                                    : 'var(--radius-full)',
+                              }}
+                            />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="cashflow-card-view" aria-label="Cash flow week cards">
+            {rows.map((r) => {
+              const rRunning = (r as AggRow & { running: number }).running;
+              return (
+                <article
+                  key={`card-${r.week_start}`}
+                  className="cashflow-mobile-card card"
+                  aria-label={`Cash flow week ${r.week_start}`}
+                >
+                  <div className="cashflow-mobile-card__header">
+                    <strong style={{ color: 'var(--text-title)' }}>Week {r.week_start}</strong>
                     <strong
-                      style={{
-                        color: rRunning >= 0 ? 'var(--text-title)' : 'var(--text-danger)',
-                      }}
+                      style={{ color: r.net >= 0 ? 'var(--text-success)' : 'var(--text-danger)' }}
                     >
-                      {formatMoney(rRunning)}
+                      {formatMoney(r.net)}
                     </strong>
                   </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+                  <div className="cashflow-mobile-card__metrics">
+                    <div>
+                      <span>Inflow</span>
+                      <strong style={{ color: 'var(--text-success)' }}>
+                        {r.inflow > 0 ? formatMoney(r.inflow) : '—'}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Outflow</span>
+                      <strong style={{ color: 'var(--text-danger)' }}>
+                        {r.outflow > 0 ? formatMoney(-r.outflow) : '—'}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Projected running</span>
+                      <strong
+                        style={{
+                          color: rRunning >= 0 ? 'var(--text-title)' : 'var(--text-danger)',
+                        }}
+                      >
+                        {formatMoney(rRunning)}
+                      </strong>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         </>
       )}
 

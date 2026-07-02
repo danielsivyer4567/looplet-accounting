@@ -57,10 +57,7 @@ describe('XeroConnect', () => {
   it('uses a skeleton while the Xero integration is loading', async () => {
     render(<XeroConnect />);
 
-    expect(screen.getByLabelText(/loading xero integration/i)).toHaveAttribute(
-      'aria-busy',
-      'true',
-    );
+    expect(screen.getByLabelText(/loading xero integration/i)).toHaveAttribute('aria-busy', 'true');
     expect(await screen.findByRole('button', { name: /\+ connect xero/i })).toBeInTheDocument();
     expect(screen.queryByText(/^loading/i)).not.toBeInTheDocument();
   });

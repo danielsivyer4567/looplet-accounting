@@ -126,7 +126,9 @@ describe('Onboarding empty states', () => {
     expect(screen.getByText(/connect gmail first/i)).toBeInTheDocument();
     const settingsLink = screen.getByRole('link', { name: /go to settings/i });
     expect(settingsLink).toHaveAttribute('href', '/settings');
-    expect(screen.queryByRole('button', { name: /run auto setup mining/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /run auto setup mining/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('Auto Setup with Gmail but zero staged entities offers the initial mining action only', () => {
@@ -141,7 +143,9 @@ describe('Onboarding empty states', () => {
     expect(
       screen.queryByRole('button', { name: /ai-classify unknown senders/i }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /triage .* pending senders/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /triage .* pending senders/i }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/senders reviewed/i)).not.toBeInTheDocument();
   });
 

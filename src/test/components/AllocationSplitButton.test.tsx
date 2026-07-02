@@ -61,7 +61,9 @@ describe('AllocationSplitButton', () => {
     expect(screen.getByRole('combobox')).toHaveTextContent('Shared Org');
 
     const css = readFileSync(join(process.cwd(), 'src/index.css'), 'utf8');
-    expect(css).toMatch(/\.allocation-split-popover\s*{[\s\S]*width: min\(360px, calc\(100vw - 2rem\)\)/);
+    expect(css).toMatch(
+      /\.allocation-split-popover\s*{[\s\S]*width: min\(360px, calc\(100vw - 2rem\)\)/,
+    );
     expect(css).toMatch(
       /@media \(max-width: 768px\)[\s\S]*\.allocation-split-popover\s*{[\s\S]*position: fixed/,
     );

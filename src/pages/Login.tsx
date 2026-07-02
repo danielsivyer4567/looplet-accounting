@@ -46,9 +46,7 @@ export function LoginPage() {
       <div className="auth-panel glass-panel animated-fade-in">
         <BrandHeader />
 
-        <h2 className="auth-heading">
-          {isReset ? 'Reset password' : 'Sign in to your account'}
-        </h2>
+        <h2 className="auth-heading">{isReset ? 'Reset password' : 'Sign in to your account'}</h2>
 
         <form className="auth-form" onSubmit={onSubmit}>
           <div className="form-group">
@@ -97,27 +95,17 @@ export function LoginPage() {
           )}
 
           {error && (
-            <div
-              className="auth-alert badge badge-danger"
-              role="alert"
-            >
+            <div className="auth-alert badge badge-danger" role="alert">
               {error}
             </div>
           )}
           {notice && (
-            <div
-              className="auth-alert auth-alert--plain badge badge-success"
-              role="status"
-            >
+            <div className="auth-alert auth-alert--plain badge badge-success" role="status">
               {notice}
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={busy}
-            className="btn btn-primary"
-          >
+          <button type="submit" disabled={busy} className="btn btn-primary">
             {busy
               ? isReset
                 ? 'Sending…'
@@ -143,10 +131,7 @@ export function LoginPage() {
             </button>
           ) : (
             <>
-              New here?{' '}
-              <Link to="/signup">
-                Create an account
-              </Link>
+              New here? <Link to="/signup">Create an account</Link>
             </>
           )}
         </div>

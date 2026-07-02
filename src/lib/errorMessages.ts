@@ -11,7 +11,9 @@ export function classifyError(message: string): ErrorKind {
   if (/(network|failed to fetch|fetch failed|timeout|timed out|connection|offline)/.test(m)) {
     return 'network';
   }
-  if (/(invalid|validation|constraint|not-null|null value|check violation|23502|23503|23505)/.test(m)) {
+  if (
+    /(invalid|validation|constraint|not-null|null value|check violation|23502|23503|23505)/.test(m)
+  ) {
     return 'validation';
   }
   return 'database';
