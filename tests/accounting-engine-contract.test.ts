@@ -188,9 +188,11 @@ describe('accounting engine source contracts', () => {
     expect(superBatchSend).toMatch(/p_payload:\s*approvalPayload/);
     expect(superBatchSend).toMatch(/userClient\.rpc\("request_approval"/);
     expect(superBatchSend).toMatch(/Approval required before sending this super batch/);
-    expect(superBatchSend).toMatch(/update\(\{ status: "sent" \}\)/);
+    expect(superBatchSend).toMatch(/update\(\{\s*status:\s*"sent"/);
+    expect(superBatchSend).toMatch(/transport_mode:\s*"clearing_house_file"/);
+    expect(superBatchSend).toMatch(/live_dispatch_enabled:\s*false/);
+    expect(superBatchSend).toMatch(/manual_upload_required:\s*true/);
     expect(superBatchSend).toMatch(/\.in\("status", \["draft", "approved"\]\)/);
-    expect(superBatchSend).toMatch(/SEND IS A MARK-SENT STUB/);
   });
 
   it('sends stable Xero idempotency keys for bill and invoice pushes', () => {

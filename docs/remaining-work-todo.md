@@ -65,6 +65,10 @@ These are the highest-signal gaps right now.
 - [ ] Keep every legal/money/lodgement wall explicit: ATO/SBR lodgement, true
   and correct declaration, ABA release, super send, STP transmit, and SMSF
   independent audit must not become silent automation.
+- [x] Add source-controlled cleanup for the advisor security leftovers:
+  `check_rate_limit` / `deduct_credits` are dropped if present, and `pg_trgm` /
+  `vector` move from `public` into `extensions` with the affected search RPCs
+  requalified. Live application/proof remains under Stage 7.
 
 ## Executive Todo Board
 
@@ -96,9 +100,11 @@ or live Supabase evidence exist.
   ingest, worker, OCR,
   bank-classifier, auto-reconcile, BAS pack, Xero push, tenant isolation, and
   cron/secret behavior against the linked project. Current blocker from the
-  2026-07-02 live audit: `SUPABASE_DB_PASSWORD` is present but invalid for the
-  linked remote DB, and this shell lacks `SUPABASE_SERVICE_ROLE_KEY`,
-  `TEST_USER_JWT`, `TEST_ORG_ID`, and fixture IDs for deploy-gated tests.
+  2026-07-02 follow-up: Supabase env now passes readiness, but
+  `supabase db push --dry-run` stops on remote-only migration history entries
+  (`0220`-`0236` plus timestamped live repairs) missing from this branch. Do
+  not live-push more migrations until the branch/migration history is
+  reconciled.
 - [ ] Stage 8 - Product proof and polish:
   complete signed-in UI proof for the remaining operational screens, then run
   page-level mobile/card/table polish, auxiliary loading-state cleanup,
@@ -282,9 +288,10 @@ or live Supabase evidence exist.
   `expand_debt_kind_enum`, `bank_accounts_to_debts_pipeline`,
   `move_employee_to_org`. The other 8 were already live under `20260701*`
   timestamps. Details in `docs/proof-run-2026-07-02.md` → "Live apply — Stage 7
-  partial". Remaining: SIGNED-IN row proof (needs a fresh TEST_USER_JWT) that
-  timesheets feed `v_job_pnl`, a real credit-card/loan feed lands a debt row,
-  and an employee move runs the RPC end to end.
+  partial". Remaining: SIGNED-IN row proof that timesheets feed `v_job_pnl`, a
+  real credit-card/loan feed lands a debt row, and an employee move runs the RPC
+  end to end; use the current `TEST_USER_JWT` if accepted by GoTrue, otherwise
+  refresh it.
 - [ ] Run signed-in live smoke for Advisor and Receipt Hub.
 - [ ] Capture real Gmail watched-mailbox Pub/Sub event evidence.
 - [ ] Capture positive Basiq-style `bank-webhook` event proof.

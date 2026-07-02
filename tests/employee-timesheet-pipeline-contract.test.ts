@@ -17,7 +17,7 @@ describe('employee timesheet to job P&L contract', () => {
     expect(migration).toMatch(/te\.deleted_at is null/i);
     expect(migration).toMatch(/te\.job_id is not null/i);
     expect(migration).toMatch(/'wages'::text as category/i);
-    expect(migration).toMatch(/sum\(te\.total_cost_cents\)::bigint as total_cents/i);
+    expect(migration).toMatch(/sum\(te\.total_cost_cents\)::numeric as total_cents/i);
     expect(migration).toMatch(/union all select \* from timesheet_wage_costs/i);
   });
 
