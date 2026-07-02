@@ -82,7 +82,15 @@ These are the highest-signal gaps right now.
 - [x] Add source-controlled cleanup for the advisor security leftovers:
   `check_rate_limit` / `deduct_credits` are dropped if present, and `pg_trgm` /
   `vector` move from `public` into `extensions` with the affected search RPCs
-  requalified. Live application/proof remains under Stage 7.
+  requalified. **Live-applied and verified 2026-07-02**: both extensions
+  confirmed in `extensions` schema, `match_job_for_bill`/`match_legal_corpus`
+  proven working post-move, dead functions confirmed dropped, fresh advisor
+  re-scan confirms `extension_in_public` fully cleared. The migration's
+  `search()`/`search_index_set_embedding()` functions were split out to
+  `20260702171500_search_index_functions.sql` and deliberately NOT applied —
+  they depend on `public.search_index`, which per the item below is built and
+  dry-run-verified but not yet shipped live; that remains an explicit owner
+  decision, not bundled into this cleanup.
 
 ## Executive Todo Board
 
