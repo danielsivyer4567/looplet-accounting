@@ -1,0 +1,25 @@
+-- Defense-in-depth: organizations table held full base grants (SELECT/
+-- INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER) for BOTH anon and
+-- authenticated — same leftover blanket-grant pattern found on crm_sync_log
+-- (20260702163000). Advisor re-scan flagged `organizations_insert`'s
+-- WITH CHECK (true) as rls_policy_always_true.
+--
+-- The unconditional WITH CHECK itself is NOT a bug — it's the standard
+-- multi-tenant bootstrap pattern: a brand-new org has no existing row to
+-- scope organization_id-membership checks against, so INSERT must be
+-- unconditional for *some* role. That role should be `authenticated`
+-- (a real, logged-in Supabase Auth user creating their first org), never
+-- `anon` (no session at all). The SELECT/UPDATE/DELETE policies on this
+-- table are NOT flagged by the advisor as always-true, confirming they're
+-- already properly scoped to accessible orgs (get_accessible_org_ids()),
+-- which correctly returns empty for a caller with no auth.uid() regardless
+-- of grants — so this migration only needs to close the INSERT/write path,
+-- by removing anon's base privileges entirely (nothing in the frontend
+-- inserts into organizations directly — grepped repo-wide, 2026-07-02 — org
+-- creation, wherever it happens, does not rely on the anon role).
+--
+-- authenticated keeps every privilege unchanged, including the unconditional
+-- INSERT — this migration does not touch the bootstrap signup pattern.
+--
+-- Idempotent: REVOKE is safe to re-run.
+REVOKE ALL PRIVILEGES ON TABLE public.organizations FROM anon;
