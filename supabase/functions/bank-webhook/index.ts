@@ -1,14 +1,23 @@
 /**
  * bank-webhook — Basiq webhook receiver.
  *
- * Basiq events we care about:
- *   - transactions.updated → kick a sync for that connection
- *   - connection.updated   → refresh status + accounts
- *   - connection.invalid   → mark our row as 'expired' so user re-auths
+ * Event routing is delegated to _shared/basiq/durability.ts's
+ * classifyWebhookAction() (unit-tested — see durability.test.ts) rather than
+ * reimplemented inline here, so the mapping from Basiq event type → action
+ * ('sync' | 'mark_revoked' | 'mark_expired' | 'touch' | 'ignore') has one
+ * source of truth:
+ *   - sync         → kick a re-sync for that connection (transactions.updated,
+ *                     any *.updated event)
+ *   - mark_revoked → connection.invalid — user must re-authenticate
+ *   - mark_expired → "expired" or "error" event types — connection needs re-auth or retry
+ *   - touch        → unrecognised-but-present event type; just record receipt
+ *   - ignore       → empty/unknown type; still persisted as raw evidence, no action
  *
- * Auth: Basiq doesn't send a JWT. We verify via a shared secret in the URL
- * query: ?token=<secret> matching env BASIQ_WEBHOOK_VERIFY_TOKEN. Same pattern
- * as gmail-pubsub-push.
+ * Auth: Basiq doesn't send a JWT, and per durability.ts's documented provider
+ * constraint, Basiq's v3 webhooks carry no per-request HMAC signature either
+ * — verifyWebhookSignature() falls back to the shared URL-token gate
+ * (?token=<secret> matching BASIQ_WEBHOOK_VERIFY_TOKEN), FAILING CLOSED if
+ * unset. Same pattern as gmail-pubsub-push.
  *
  * Deployed --no-verify-jwt because Basiq sends no Supabase auth.
  */
@@ -16,42 +25,39 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import { sha256Hex } from '../_shared/apiKeys.ts';
-
-interface BasiqWebhookPayload {
-  type: string; // "transactions.updated" | "connection.updated" | etc.
-  data?:
-    | {
-        type?: string;
-        id?: string; // affected resource id
-        userId?: string;
-        connectionId?: string;
-        accountId?: string;
-      }
-    | Record<string, unknown>;
-  // Different Basiq event types use different shapes; we fall back to scanning
-}
+import {
+  classifyWebhookAction,
+  extractConnectionId,
+  parseWebhookEventType,
+  verifyWebhookSignature,
+} from '../_shared/basiq/durability.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ ok: false, error: 'POST only' }, 405);
 
   try {
-    // 1. Verify URL token — FAIL CLOSED. This function is deployed
-    // --no-verify-jwt (Basiq sends no Supabase auth), so the shared secret is
-    // the ONLY gate. If it isn't configured we must reject, not wave traffic
-    // through: an unset token previously skipped verification entirely, leaving
-    // a fully-unauthenticated endpoint that could flip connection state / kick
-    // service-role syncs for any org.
-    const expectedToken = Deno.env.get('BASIQ_WEBHOOK_VERIFY_TOKEN');
-    if (!expectedToken) {
-      return json(
-        { ok: false, error: 'Server misconfigured: BASIQ_WEBHOOK_VERIFY_TOKEN not set' },
-        500,
-      );
-    }
+    // 1. Parse payload first (read as text so we can both verify HMAC-over-body,
+    // if Basiq ever ships one, and hash the raw body for dedupe).
+    const bodyText = await req.text();
+
+    // 2. Verify — FAIL CLOSED. This function is deployed --no-verify-jwt
+    // (Basiq sends no Supabase auth), so this is the ONLY gate. An unset
+    // BASIQ_WEBHOOK_VERIFY_TOKEN must reject, not wave traffic through.
     const url = new URL(req.url);
-    if (url.searchParams.get('token') !== expectedToken) {
-      return json({ ok: false, error: 'Invalid webhook verification token' }, 401);
+    const authResult = await verifyWebhookSignature({
+      rawBody: bodyText,
+      signatureHeader: req.headers.get('x-basiq-signature'),
+      hmacSecret: Deno.env.get('BASIQ_WEBHOOK_HMAC_SECRET') ?? null,
+      urlToken: url.searchParams.get('token'),
+      expectedUrlToken: Deno.env.get('BASIQ_WEBHOOK_VERIFY_TOKEN') ?? null,
+    });
+    if (!authResult.ok) {
+      const status = authResult.reason === 'verify_token_not_configured' ? 500 : 401;
+      return json(
+        { ok: false, error: `Webhook auth failed: ${authResult.reason}` },
+        status,
+      );
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -63,17 +69,9 @@ Deno.serve(async (req) => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    // 2. Parse payload (read as text first so we can hash the raw body)
-    const bodyText = await req.text();
-    const payload = JSON.parse(bodyText) as BasiqWebhookPayload;
-    const type = payload?.type ?? 'unknown';
-    const data = (payload?.data ?? {}) as Record<string, unknown>;
-    const connection = data.connection as { id?: string } | undefined;
-    const connectionId =
-      (data.connectionId as string | undefined) ??
-      connection?.id ??
-      (data.id as string | undefined) ??
-      null;
+    const payload = JSON.parse(bodyText) as unknown;
+    const type = parseWebhookEventType(payload);
+    const connectionId = extractConnectionId(payload);
 
     // 3. Find the matching bank_connection
     const { data: conn } = await admin
@@ -117,11 +115,13 @@ Deno.serve(async (req) => {
         );
       }
     }
-    let action = duplicateDelivery ? 'duplicate_logged' : 'logged';
+    let action: string = duplicateDelivery ? 'duplicate_logged' : 'logged';
+    const webhookAction = classifyWebhookAction(type);
 
-    // 5. Update connection state + react
+    // 5. Update connection state + react — routing decided by
+    // classifyWebhookAction() (unit-tested), not reimplemented inline.
     if (conn) {
-      if (type.includes('transactions') || type.includes('updated')) {
+      if (webhookAction === 'sync') {
         // Trigger a sync and require observable acceptance. If this fails after
         // raw evidence was stored, a duplicate delivery will still retry the
         // action path because duplicates no longer return early.
@@ -150,22 +150,23 @@ Deno.serve(async (req) => {
             502,
           );
         }
-      } else if (type.includes('invalid') || type.includes('expired') || type.includes('error')) {
+      } else if (webhookAction === 'mark_revoked' || webhookAction === 'mark_expired') {
         action = 'marked_expired';
         await admin
           .from('bank_connections')
           .update({
-            status: type.includes('invalid') ? 'revoked' : 'expired',
+            status: webhookAction === 'mark_revoked' ? 'revoked' : 'expired',
             last_error: `Basiq webhook: ${type}`,
             webhook_received_at: new Date().toISOString(),
           })
           .eq('id', conn.id);
-      } else {
+      } else if (webhookAction === 'touch') {
         await admin
           .from('bank_connections')
           .update({ webhook_received_at: new Date().toISOString() })
           .eq('id', conn.id);
       }
+      // webhookAction === 'ignore' — raw evidence already persisted above, no action.
     }
 
     return json({ ok: true, type, action, matched: !!conn, duplicate: duplicateDelivery });

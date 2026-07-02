@@ -171,6 +171,9 @@ const LegalHorizonPage = lazy(() =>
 );
 const ClientsPage = lazy(() => import('@/pages/Clients').then((m) => ({ default: m.ClientsPage })));
 const RoadmapPage = lazy(() => import('@/pages/Roadmap').then((m) => ({ default: m.RoadmapPage })));
+const DataSharingPage = lazy(() =>
+  import('@/pages/DataSharing').then((m) => ({ default: m.DataSharingPage })),
+);
 
 function RouteFallback() {
   return <div style={{ padding: '2rem' }}>Loading...</div>;
@@ -271,6 +274,7 @@ export function App() {
               <Route path="receipt-hub" element={<ReceiptHubPage />} />
               <Route path="my-activity" element={<MyActivityPage />} />
               <Route path="roadmap" element={<RoadmapPage />} />
+              <Route path="data-sharing" element={<DataSharingPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

@@ -1,4 +1,5 @@
 import { Fragment, useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { enqueueJob } from '@/lib/automationJobs';
@@ -153,35 +154,32 @@ export function BankConnect() {
 
   const handleDisable = async (connection: BankConnectionRow) => {
     const ok = window.confirm(
-      `Disable syncing for ${connection.institution_name ?? 'this bank connection'}? Existing transactions stay in Looplet, but this feed will stop being picked up by bank-sync.`,
+      `Disable syncing for ${connection.institution_name ?? 'this bank connection'}? Existing transactions stay in Looplet. For a Basiq-connected bank, this also revokes the upstream consent so Basiq stops holding your data — this cannot be undone from here; you'll need to reconnect from scratch.`,
     );
     if (!ok) return;
 
     setError(null);
     setDisablingId(connection.id);
-    const disabledAt = new Date().toISOString();
     try {
-      const { error: connectionError } = await supabase
-        .from('bank_connections')
-        .update({
-          status: 'revoked',
-          last_error: null,
-          updated_at: disabledAt,
-          metadata: {
-            ...(connection.metadata ?? {}),
-            disabled_locally_at: disabledAt,
-          },
-        })
-        .eq('id', connection.id)
-        .eq('organization_id', currentOrg.id);
-      if (connectionError) throw new Error(connectionError.message);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in');
 
-      const { error: accountError } = await supabase
-        .from('bank_accounts')
-        .update({ is_active: false, updated_at: disabledAt })
-        .eq('bank_connection_id', connection.id)
-        .eq('organization_id', currentOrg.id);
-      if (accountError) throw new Error(accountError.message);
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bank-disconnect`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          organization_id: currentOrg.id,
+          bank_connection_id: connection.id,
+        }),
+      });
+      const resBody = await res.json();
+      if (!res.ok || !resBody.ok) throw new Error(resBody.error ?? `${res.status}`);
 
       await refresh();
     } catch (e) {
@@ -199,7 +197,8 @@ export function BankConnect() {
       <p style={{ color: '#888', fontSize: 13, marginBottom: '1rem', maxWidth: 720 }}>
         Connect your business bank accounts via Basiq (CommBank, NAB, Westpac, ANZ + 100s of
         others). Transactions are imported and matched against your bills + invoices, ready for you
-        to review and reconcile on the Reconciliation page.
+        to review and reconcile on the Reconciliation page.{' '}
+        <Link to="/data-sharing">How your data is shared and managed</Link>.
       </p>
 
       {loading ? (

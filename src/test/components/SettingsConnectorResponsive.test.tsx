@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BankConnect } from '@/components/settings/BankConnect';
 import { GmailConnect } from '@/components/settings/GmailConnect';
@@ -121,7 +122,12 @@ vi.mock('@/lib/supabase', () => {
     supabase: {
       from: vi.fn((table: string) => makeQuery(table)),
       auth: {
-        getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+        getSession: vi.fn(() =>
+          Promise.resolve({
+            data: { session: { access_token: 'test-token' } },
+            error: null,
+          }),
+        ),
       },
     },
   };
@@ -139,7 +145,11 @@ describe('Settings connector responsive layouts', () => {
 
   it('shows an aria-busy skeleton while bank connections are loading', () => {
     mocks.pending = true;
-    render(<BankConnect />);
+    render(
+      <MemoryRouter>
+        <BankConnect />
+      </MemoryRouter>,
+    );
 
     const loading = screen.getByLabelText('Loading bank connections');
     expect(loading).toBeInTheDocument();
@@ -153,7 +163,11 @@ describe('Settings connector responsive layouts', () => {
 
   it('shows a categorized load error instead of the connect CTA when bank connections fail to load', async () => {
     mocks.loadError = 'new row violates row-level security policy';
-    render(<BankConnect />);
+    render(
+      <MemoryRouter>
+        <BankConnect />
+      </MemoryRouter>,
+    );
 
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent(
@@ -176,7 +190,11 @@ describe('Settings connector responsive layouts', () => {
   });
 
   it('renders bank connections as mobile cards as well as the desktop table', async () => {
-    render(<BankConnect />);
+    render(
+      <MemoryRouter>
+        <BankConnect />
+      </MemoryRouter>,
+    );
 
     const cards = await screen.findByLabelText(/bank connections mobile cards/i);
     expect(cards).toHaveTextContent('NAB Business');
@@ -190,30 +208,37 @@ describe('Settings connector responsive layouts', () => {
     await waitFor(() => expect(screen.queryByLabelText(/loading bank connections/i)).toBeNull());
   });
 
-  it('disables a Basiq feed by revoking the connection and inactivating accounts', async () => {
-    render(<BankConnect />);
+  it('disables a Basiq feed via bank-disconnect, which purges the upstream connection', async () => {
+    const fetchMock = vi
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(
+        new Response(JSON.stringify({ ok: true, purged: true }), { status: 200 }),
+      );
+
+    render(
+      <MemoryRouter>
+        <BankConnect />
+      </MemoryRouter>,
+    );
 
     const disableButtons = await screen.findAllByRole('button', { name: /disable feed/i });
     const firstDisableButton = disableButtons[0];
     if (!firstDisableButton) throw new Error('Disable feed button was not rendered');
     fireEvent.click(firstDisableButton);
 
-    await waitFor(() =>
-      expect(mocks.operations).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            table: 'bank_connections',
-            method: 'update',
-            payload: expect.objectContaining({ status: 'revoked', last_error: null }),
-          }),
-          expect.objectContaining({
-            table: 'bank_accounts',
-            method: 'update',
-            payload: expect.objectContaining({ is_active: false }),
-          }),
-        ]),
-      ),
-    );
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/functions/v1/bank-disconnect');
+    expect(JSON.parse(init.body as string)).toEqual({
+      organization_id: 'org-1',
+      bank_connection_id: 'bank-1',
+    });
+    // The old direct-table-write path must be gone — disabling is server-mediated
+    // now so the upstream Basiq purge always happens alongside the local revoke.
+    expect(mocks.operations).toEqual([]);
+
+    fetchMock.mockRestore();
   });
 
   it('has a breakpoint contract that swaps settings connector tables to cards on mobile', () => {

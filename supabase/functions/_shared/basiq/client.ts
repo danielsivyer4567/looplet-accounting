@@ -24,14 +24,11 @@ export async function getBasiqServerToken(): Promise<string> {
     return cachedToken.value;
   }
 
-  // Basiq API keys are issued in two forms:
-  //   1. Pre-encoded: "<base64(client_id:client_secret)>" — use directly
-  //   2. Raw "client_id:client_secret" — needs base64
-  // A raw credential always contains the ':' separator; a pre-encoded one never does.
-  // (Do NOT also treat a trailing '=' as pre-encoded — a raw secret can legitimately
-  // end in '=', which would otherwise be sent unencoded and fail auth.)
-  const looksPreEncoded = !BASIQ_API_KEY.includes(':');
-  const authHeader = looksPreEncoded ? `Basic ${BASIQ_API_KEY}` : `Basic ${btoa(BASIQ_API_KEY)}`;
+  // Per Basiq's docs (api.basiq.io/reference/posttoken, "API key format"
+  // callout): unlike standard HTTP Basic Auth, the key is passed VERBATIM as
+  // issued from the dashboard — base64-encoding it produces a 400. Do not
+  // re-derive or transform BASIQ_API_KEY here under any circumstance.
+  const authHeader = `Basic ${BASIQ_API_KEY}`;
 
   const resp = await fetch(`${BASIQ_BASE}/token`, {
     method: 'POST',
@@ -100,15 +97,17 @@ async function basiqFetch<T = unknown>(path: string, init: RequestInit = {}): Pr
   throw new Error(lastErr || `Basiq ${path}: exhausted retries`);
 }
 
-/** Minimal subset of the Supabase client surface used by this module. */
-interface SupabaseQueryBuilder extends PromiseLike<{ data: unknown; error: unknown }> {
-  select(columns: string): SupabaseQueryBuilder;
-  update(values: Record<string, unknown>): SupabaseQueryBuilder;
-  eq(column: string, value: unknown): SupabaseQueryBuilder;
-  maybeSingle(): Promise<{ data: { basiq_user_id?: string; name?: string } | null }>;
-}
+/**
+ * Minimal subset of the Supabase client surface used by this module. Left loose
+ * (not chained-interface-checked) because the real supabase-js query builder's
+ * .select()/.update()/.eq() return progressively narrower generic types that
+ * don't structurally satisfy a hand-rolled chain interface — the chain works
+ * fine at runtime (this is a type-checker-only mismatch), so callers just pass
+ * their real SupabaseClient straight through.
+ */
 interface SupabaseLike {
-  from(table: string): SupabaseQueryBuilder;
+  // deno-lint-ignore no-explicit-any
+  from(table: string): any;
 }
 
 /** Get or create the Basiq user for an org. Persists basiq_user_id back to organizations. */
@@ -207,6 +206,33 @@ export async function getConnection(
     lastUsed: conn.lastUsed,
     expiryDate: conn.expiryDate,
   };
+}
+
+/**
+ * Purge all data Basiq holds for a connection (POST .../purge, 204 no body —
+ * NOT basiqFetch, which assumes a JSON body on success). Only valid for an
+ * active connection per Basiq's docs; call this BEFORE removing/disabling a
+ * bank feed so the upstream consent is actually torn down, not just hidden
+ * in our own bank_connections row.
+ */
+export async function purgeConnection(basiqUserId: string, connectionId: string): Promise<void> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const token = await getBasiqServerToken();
+    const resp = await fetch(
+      `${BASIQ_BASE}/users/${basiqUserId}/connections/${connectionId}/purge`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      },
+    );
+    if (resp.status === 204 || resp.ok) return;
+    if (resp.status === 401 && attempt === 0) {
+      cachedToken = null;
+      continue;
+    }
+    const text = await resp.text();
+    throw new Error(`Basiq purge ${connectionId} ${resp.status}: ${text.slice(0, 400)}`);
+  }
 }
 
 /** List all connections that exist for a Basiq user (server-side discovery). */
