@@ -10,8 +10,8 @@ WITH bill_costs AS (
     b.organization_id,
     b.job_id,
     'bills'::text AS category,
-    SUM(COALESCE(b.total_inc_gst_cents, 0))::bigint AS total_cents,
-    SUM(COALESCE(b.gst_cents, 0))::bigint AS gst_cents,
+    SUM(COALESCE(b.total_inc_gst_cents, 0))::numeric AS total_cents,
+    SUM(COALESCE(b.gst_cents, 0))::numeric AS gst_cents,
     COUNT(*)::int AS row_count
   FROM public.bills b
   WHERE b.deleted_at IS NULL
@@ -24,8 +24,8 @@ legacy_wage_costs AS (
     we.organization_id,
     we.job_id,
     'wages'::text AS category,
-    SUM(we.total_cost_cents)::bigint AS total_cents,
-    0::bigint AS gst_cents,
+    SUM(we.total_cost_cents)::numeric AS total_cents,
+    0::numeric AS gst_cents,
     COUNT(*)::int AS row_count
   FROM public.wage_entries we
   WHERE we.deleted_at IS NULL
@@ -37,8 +37,8 @@ timesheet_wage_costs AS (
     te.organization_id,
     te.job_id,
     'wages'::text AS category,
-    SUM(te.total_cost_cents)::bigint AS total_cents,
-    0::bigint AS gst_cents,
+    SUM(te.total_cost_cents)::numeric AS total_cents,
+    0::numeric AS gst_cents,
     COUNT(*)::int AS row_count
   FROM public.timesheet_entries te
   WHERE te.deleted_at IS NULL
@@ -50,8 +50,8 @@ overhead_costs AS (
     oa.organization_id,
     oa.job_id,
     'overhead'::text AS category,
-    SUM(oa.amount_cents)::bigint AS total_cents,
-    0::bigint AS gst_cents,
+    SUM(oa.amount_cents)::numeric AS total_cents,
+    0::numeric AS gst_cents,
     COUNT(*)::int AS row_count
   FROM public.overhead_allocations oa
   WHERE oa.job_id IS NOT NULL
@@ -61,6 +61,12 @@ SELECT * FROM bill_costs
 UNION ALL SELECT * FROM legacy_wage_costs
 UNION ALL SELECT * FROM timesheet_wage_costs
 UNION ALL SELECT * FROM overhead_costs;
+
+-- Respect the querying user's RLS on the base tables (matches v_job_pnl /
+-- v_bas_quarterly). CREATE OR REPLACE preserves this once set; a fresh build
+-- needs it explicit so the costs rollup can't leak cross-tenant via a
+-- definer view feeding the invoker v_job_pnl.
+ALTER VIEW public.v_job_costs SET (security_invoker = on);
 
 COMMENT ON VIEW public.v_job_costs IS
   'Running per-job cost rollup by category. Wages include legacy wage_entries and current timesheet_entries so Employee log-time rows flow into v_job_pnl.';

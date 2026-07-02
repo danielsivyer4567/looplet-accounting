@@ -275,18 +275,16 @@ or live Supabase evidence exist.
 - [ ] Run live BAS proof: apply current BAS migrations to a real org, include a
   `GST_ON_CAPITAL` fixture, verify G1/G10/G11/1A/1B/W labels.
 - [ ] Run tenant-isolation deploy gate with real Supabase CI secrets.
-- [ ] Apply/prove remaining DB hardening: notify org guard, period-lock money
-  table triggers, and any pending live migrations.
-  Local period-lock proof now includes `timesheet_entries`, and
-  `20260702133000_timesheet_entries_job_pnl.sql` must be applied live before
-  signed-in timesheets can be claimed as feeding `v_job_pnl`.
-  Local debt pipeline proof now also includes
-  `20260702134000_expand_debt_kind_enum.sql` and
-  `20260702134500_bank_accounts_to_debts_pipeline.sql`; these must be applied
-  live before imported credit-card/loan bank accounts can be claimed as feeding
-  Debts. Local employee multi-org proof now includes
-  `20260702135000_move_employee_to_org.sql`; it must be applied live before
-  signed-in employee moves can use the payroll-safe RPC.
+- [x] Apply pending audit migrations live (2026-07-02, via Supabase MCP): the
+  5 genuinely-pending `20260702*` migrations are now applied + verified on prod
+  — `debts_soft_delete`, `timesheet_entries_job_pnl` (v_job_costs now unions
+  `timesheet_entries` and is `security_invoker=on`),
+  `expand_debt_kind_enum`, `bank_accounts_to_debts_pipeline`,
+  `move_employee_to_org`. The other 8 were already live under `20260701*`
+  timestamps. Details in `docs/proof-run-2026-07-02.md` → "Live apply — Stage 7
+  partial". Remaining: SIGNED-IN row proof (needs a fresh TEST_USER_JWT) that
+  timesheets feed `v_job_pnl`, a real credit-card/loan feed lands a debt row,
+  and an employee move runs the RPC end to end.
 - [ ] Run signed-in live smoke for Advisor and Receipt Hub.
 - [ ] Capture real Gmail watched-mailbox Pub/Sub event evidence.
 - [ ] Capture positive Basiq-style `bank-webhook` event proof.
