@@ -18,7 +18,9 @@ Current state:
 - Latest live Supabase audit: `docs/live-supabase-production-audit-2026-07-02.md`.
 - Foundation hardening branch: pushed as draft PR
   <https://github.com/danielsivyer4567/looplet-accounting/pull/28>.
-- PR checks now pass: `Lint, Typecheck, Test, Build`, `Tenant Isolation
+- Finish-line integration branch: pushed as draft PR
+  <https://github.com/danielsivyer4567/looplet-accounting/pull/29>.
+- Foundation PR checks now pass: `Lint, Typecheck, Test, Build`, `Tenant Isolation
   (Deploy Blocker)`, and Cloudflare Pages. The Cloudflare failure root cause was
   the unsupported `[build]` block in `wrangler.toml`; it was removed, and the
   ignored SPA `_redirects` fallback was also removed because Pages' default SPA
@@ -65,7 +67,7 @@ These are the highest-signal gaps right now.
   dashboard, BAS coverage gate, quality repair, Gmail disconnect notification,
   org profile, connector keys, debt payment, subscription edit, employee log
   time, and MoveToOrg. Evidence:
-  `.claude/scratch/wrap-up-local-visual-smoke/2026-07-02T06-14-25-341Z/screenshots/`.
+  `.claude/scratch/wrap-up-local-visual-smoke/2026-07-02T07-41-48-045Z/screenshots/`.
 - [x] Deploy the two Edge Functions the live audit found missing:
   `ato-lodge` and `bas-lodgement-pack`. Evidence:
   `tmp/deploy-ato-lodge.log`, `tmp/deploy-bas-lodgement-pack.log`, and
