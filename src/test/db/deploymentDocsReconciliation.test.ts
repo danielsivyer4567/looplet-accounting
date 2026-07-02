@@ -29,14 +29,14 @@ describe('deployment docs reconciliation', () => {
     const runbook = readRepoFile('docs/MIGRATION_BASELINE_RUNBOOK.md');
     const p005Runbook = readRepoFile('docs/DEPLOY_PROOF_P0-05.md');
 
-    expect(latestMigration).toBe('20260702170000_extension_schema_and_orphan_function_cleanup.sql');
+    expect(latestMigration).toBe('20260702171500_search_index_functions.sql');
     expect(runbook).toContain(`Current local ceiling:** \`${latestMigration}\``);
     expect(runbook).toMatch(/supabase db push --linked --dry-run/);
     expect(runbook).toMatch(/Rollback \/ Abort/);
     expect(runbook).toMatch(/COMPLIANCE_BACKLOG/);
 
     expect(p005Runbook).toContain(
-      'ceiling is now `20260702170000_extension_schema_and_orphan_function_cleanup.sql`',
+      'ceiling is now `20260702171500_search_index_functions.sql`',
     );
     expect(p005Runbook).toContain('`0199`-`0207`');
     expect(p005Runbook).toContain('Only redeploy after `0199` has applied');
