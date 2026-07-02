@@ -38,6 +38,13 @@ jobs:
         run: npm run typecheck
 
       - name: Unit tests
+        env:
+          # The build job runs local unit/source-contract tests. Live Supabase
+          # deploy gates live in dedicated jobs and fail hard when their real
+          # secrets are missing; keep this broad unit sweep deterministic on PRs.
+          CI: ''
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://dxoikltymmknxqpkpyhi.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'ci-placeholder-anon-key' }}
         run: npm test
 
       - name: Build
