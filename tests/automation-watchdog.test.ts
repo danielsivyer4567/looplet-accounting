@@ -35,46 +35,49 @@ function firstId(rows: { id: string }[] | null): string | null {
 }
 
 describe('automation-watchdog scanners', () => {
-  itLive('bills_stuck_received: bill in received > 4h with no active job is detectable', async () => {
-    const client = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-    const { data: orgs } = await client.from('organizations').select('id').limit(1);
-    const orgId = firstId(orgs as { id: string }[] | null);
-    if (!orgId) return;
+  itLive(
+    'bills_stuck_received: bill in received > 4h with no active job is detectable',
+    async () => {
+      const client = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+      const { data: orgs } = await client.from('organizations').select('id').limit(1);
+      const orgId = firstId(orgs as { id: string }[] | null);
+      if (!orgId) return;
 
-    const cutoff4h = new Date(Date.now() - 4 * 3600 * 1000).toISOString();
+      const cutoff4h = new Date(Date.now() - 4 * 3600 * 1000).toISOString();
 
-    // Find a bill that is 'received' and older than 4h (or use DB NOW() offset)
-    // Query mirrors the scanner: bills.status='received', created_at < cutoff, no active job
-    const { data: bills } = await client
-      .from('bills')
-      .select('id, created_at')
-      .eq('organization_id', orgId)
-      .eq('status', 'received')
-      .lt('created_at', cutoff4h)
-      .is('deleted_at', null)
-      .limit(5);
-
-    // For each bill found, verify no active job exists (scanner would produce a retry signal)
-    const stuckBills: string[] = [];
-    for (const bill of (bills ?? []) as { id: string }[]) {
-      const { data: existing } = await client
-        .from('automation_jobs')
-        .select('id')
+      // Find a bill that is 'received' and older than 4h (or use DB NOW() offset)
+      // Query mirrors the scanner: bills.status='received', created_at < cutoff, no active job
+      const { data: bills } = await client
+        .from('bills')
+        .select('id, created_at')
         .eq('organization_id', orgId)
-        .eq('job_kind', 'bill_extract')
-        .eq('source_kind', 'bill')
-        .eq('source_id', bill.id)
-        .in('status', ['pending', 'claimed', 'completed'])
-        .limit(1);
-      if ((existing ?? []).length === 0) stuckBills.push(bill.id);
-    }
+        .eq('status', 'received')
+        .lt('created_at', cutoff4h)
+        .is('deleted_at', null)
+        .limit(5);
 
-    // If there are stuck bills, the scanner would produce retries.
-    // We can't assert count > 0 because test envs may not have aged data,
-    // but we verify the query runs without error.
-    expect(Array.isArray(bills)).toBe(true);
-    expect(Array.isArray(stuckBills)).toBe(true);
-  });
+      // For each bill found, verify no active job exists (scanner would produce a retry signal)
+      const stuckBills: string[] = [];
+      for (const bill of (bills ?? []) as { id: string }[]) {
+        const { data: existing } = await client
+          .from('automation_jobs')
+          .select('id')
+          .eq('organization_id', orgId)
+          .eq('job_kind', 'bill_extract')
+          .eq('source_kind', 'bill')
+          .eq('source_id', bill.id)
+          .in('status', ['pending', 'claimed', 'completed'])
+          .limit(1);
+        if ((existing ?? []).length === 0) stuckBills.push(bill.id);
+      }
+
+      // If there are stuck bills, the scanner would produce retries.
+      // We can't assert count > 0 because test envs may not have aged data,
+      // but we verify the query runs without error.
+      expect(Array.isArray(bills)).toBe(true);
+      expect(Array.isArray(stuckBills)).toBe(true);
+    },
+  );
 
   itLive('bills_no_job_allocation: bill > 8h with zero jobs is detectable', async () => {
     const client = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
@@ -170,98 +173,101 @@ describe('automation-watchdog scanners', () => {
     expect(typeof count === 'number' || count === null).toBe(true);
   });
 
-  itLive('job_consecutive_failures: terminal failed jobs detectable and dead-letterable', async () => {
-    const client = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-    const { data: orgs } = await client.from('organizations').select('id').limit(1);
-    const orgId = firstId(orgs as { id: string }[] | null);
-    if (!orgId) return;
+  itLive(
+    'job_consecutive_failures: terminal failed jobs detectable and dead-letterable',
+    async () => {
+      const client = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+      const { data: orgs } = await client.from('organizations').select('id').limit(1);
+      const orgId = firstId(orgs as { id: string }[] | null);
+      if (!orgId) return;
 
-    // Enqueue a job with max_attempts=1 and fail it past its limit
-    const { data: enqueued } = await client.rpc('enqueue_automation_job', {
-      p_org_id: orgId,
-      p_job_kind: 'xero_push',
-      p_source_kind: 'bill',
-      p_source_id: crypto.randomUUID(),
-      p_run_after: new Date(Date.now() - 1000).toISOString(),
-      p_max_attempts: 1,
-      p_payload: { test: true, watchdog_test: 'sc-03' },
-    });
-    const jobId = (enqueued as Record<string, unknown>).id as string;
+      // Enqueue a job with max_attempts=1 and fail it past its limit
+      const { data: enqueued } = await client.rpc('enqueue_automation_job', {
+        p_org_id: orgId,
+        p_job_kind: 'xero_push',
+        p_source_kind: 'bill',
+        p_source_id: crypto.randomUUID(),
+        p_run_after: new Date(Date.now() - 1000).toISOString(),
+        p_max_attempts: 1,
+        p_payload: { test: true, watchdog_test: 'sc-03' },
+      });
+      const jobId = (enqueued as Record<string, unknown>).id as string;
 
-    // Claim it and fail it — with max_attempts=1, fail_automation_job sets status='failed'
-    const workerId = `test-watchdog-${crypto.randomUUID().slice(0, 8)}`;
-    await client.rpc('claim_automation_jobs', {
-      p_worker_id: workerId,
-      p_limit: 1,
-    });
-    await client.rpc('fail_automation_job', {
-      p_job_id: jobId,
-      p_worker_id: workerId,
-      p_error: 'xero token expired (watchdog test)',
-    });
+      // Claim it and fail it — with max_attempts=1, fail_automation_job sets status='failed'
+      const workerId = `test-watchdog-${crypto.randomUUID().slice(0, 8)}`;
+      await client.rpc('claim_automation_jobs', {
+        p_worker_id: workerId,
+        p_limit: 1,
+      });
+      await client.rpc('fail_automation_job', {
+        p_job_id: jobId,
+        p_worker_id: workerId,
+        p_error: 'xero token expired (watchdog test)',
+      });
 
-    // Verify job is now 'failed' with attempts >= max_attempts
-    const { data: row } = await client
-      .from('automation_jobs')
-      .select('status, attempts, max_attempts')
-      .eq('id', jobId)
-      .single();
-    const j = row as Record<string, unknown>;
-    expect(j?.['status']).toBe('failed');
-    expect((j?.['attempts'] as number) >= (j?.['max_attempts'] as number)).toBe(true);
+      // Verify job is now 'failed' with attempts >= max_attempts
+      const { data: row } = await client
+        .from('automation_jobs')
+        .select('status, attempts, max_attempts')
+        .eq('id', jobId)
+        .single();
+      const j = row as Record<string, unknown>;
+      expect(j?.['status']).toBe('failed');
+      expect((j?.['attempts'] as number) >= (j?.['max_attempts'] as number)).toBe(true);
 
-    // Scanner query: finds jobs with status='failed' AND attempts >= 3 OR attempts >= max_attempts
-    const { data: terminalJobs, error: scanErr } = await client
-      .from('automation_jobs')
-      .select('id, job_kind, attempts, max_attempts, status')
-      .eq('organization_id', orgId)
-      .eq('status', 'failed')
-      .gte('attempts', 1)
-      .limit(20);
+      // Scanner query: finds jobs with status='failed' AND attempts >= 3 OR attempts >= max_attempts
+      const { data: terminalJobs, error: scanErr } = await client
+        .from('automation_jobs')
+        .select('id, job_kind, attempts, max_attempts, status')
+        .eq('organization_id', orgId)
+        .eq('status', 'failed')
+        .gte('attempts', 1)
+        .limit(20);
 
-    expect(scanErr).toBeNull();
-    const found = (terminalJobs ?? []) as Record<string, unknown>[];
-    const ourJob = found.find((j) => j['id'] === jobId);
-    expect(ourJob).toBeDefined();
+      expect(scanErr).toBeNull();
+      const found = (terminalJobs ?? []) as Record<string, unknown>[];
+      const ourJob = found.find((j) => j['id'] === jobId);
+      expect(ourJob).toBeDefined();
 
-    // Simulate watchdog dead-letter: direct update (no RPC since watchdog doesn't own the lock)
-    const { error: updateErr } = await client
-      .from('automation_jobs')
-      .update({ status: 'dead_lettered', locked_at: null, locked_by: null })
-      .eq('id', jobId)
-      .eq('status', 'failed');
-    expect(updateErr).toBeNull();
+      // Simulate watchdog dead-letter: direct update (no RPC since watchdog doesn't own the lock)
+      const { error: updateErr } = await client
+        .from('automation_jobs')
+        .update({ status: 'dead_lettered', locked_at: null, locked_by: null })
+        .eq('id', jobId)
+        .eq('status', 'failed');
+      expect(updateErr).toBeNull();
 
-    await client.from('automation_dead_letters').upsert(
-      {
-        organization_id: orgId,
-        original_job_id: jobId,
-        job_kind: 'xero_push',
-        source_kind: 'bill',
-        source_id: null,
-        last_error: 'watchdog: xero token expired (watchdog test)',
-        payload: null,
-        attempts: 1,
-      },
-      { onConflict: 'original_job_id', ignoreDuplicates: true },
-    );
+      await client.from('automation_dead_letters').upsert(
+        {
+          organization_id: orgId,
+          original_job_id: jobId,
+          job_kind: 'xero_push',
+          source_kind: 'bill',
+          source_id: null,
+          last_error: 'watchdog: xero token expired (watchdog test)',
+          payload: null,
+          attempts: 1,
+        },
+        { onConflict: 'original_job_id', ignoreDuplicates: true },
+      );
 
-    // Verify final state
-    const { data: finalRow } = await client
-      .from('automation_jobs')
-      .select('status')
-      .eq('id', jobId)
-      .single();
-    expect((finalRow as Record<string, unknown>)?.['status']).toBe('dead_lettered');
+      // Verify final state
+      const { data: finalRow } = await client
+        .from('automation_jobs')
+        .select('status')
+        .eq('id', jobId)
+        .single();
+      expect((finalRow as Record<string, unknown>)?.['status']).toBe('dead_lettered');
 
-    const { data: dlRow } = await client
-      .from('automation_dead_letters')
-      .select('original_job_id, last_error')
-      .eq('original_job_id', jobId)
-      .single();
-    expect((dlRow as Record<string, unknown>)?.['original_job_id']).toBe(jobId);
-    expect((dlRow as Record<string, unknown>)?.['last_error']).toContain('watchdog');
-  });
+      const { data: dlRow } = await client
+        .from('automation_dead_letters')
+        .select('original_job_id, last_error')
+        .eq('original_job_id', jobId)
+        .single();
+      expect((dlRow as Record<string, unknown>)?.['original_job_id']).toBe(jobId);
+      expect((dlRow as Record<string, unknown>)?.['last_error']).toContain('watchdog');
+    },
+  );
 
   itLive('retry outcome: enqueue_automation_job via watchdog signal', async () => {
     const client = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
@@ -419,7 +425,9 @@ describe('automation-watchdog self-healing scanners (J2-J4)', () => {
 
     // browser_collect must be the one kind BOTH lists agree is excluded from the default claim.
     expect(worker).toMatch(/const DEFAULT_JOB_KINDS = \[/);
-    expect(worker).not.toMatch(/const DEFAULT_JOB_KINDS = \[[\s\S]*?'browser_collect'[\s\S]*?\] as const;/);
+    expect(worker).not.toMatch(
+      /const DEFAULT_JOB_KINDS = \[[\s\S]*?'browser_collect'[\s\S]*?\] as const;/,
+    );
     expect(watchdog).toMatch(/const KNOWN_EXCLUDED_JOB_KINDS = \['browser_collect'\] as const;/);
   });
 
@@ -556,53 +564,58 @@ describe('automation-watchdog self-healing scanners (J2-J4)', () => {
     },
   );
 
-  itLive('pending_starvation: a known job_kind stuck pending past threshold is detectable', async () => {
-    const client = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-    const { data: orgs } = await client.from('organizations').select('id').limit(1);
-    const orgId = firstId(orgs as { id: string }[] | null);
-    if (!orgId) return;
+  itLive(
+    'pending_starvation: a known job_kind stuck pending past threshold is detectable',
+    async () => {
+      const client = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+      const { data: orgs } = await client.from('organizations').select('id').limit(1);
+      const orgId = firstId(orgs as { id: string }[] | null);
+      if (!orgId) return;
 
-    const { data: enqueued } = await client.rpc('enqueue_automation_job', {
-      p_org_id: orgId,
-      p_job_kind: 'bank_sync',
-      p_source_kind: 'bank_connection',
-      p_source_id: crypto.randomUUID(),
-      p_run_after: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
-      p_max_attempts: 3,
-      p_payload: { watchdog_test: 'j3-pending-starvation' },
-    });
-    const jobId = (enqueued as Record<string, unknown>).id as string;
+      const { data: enqueued } = await client.rpc('enqueue_automation_job', {
+        p_org_id: orgId,
+        p_job_kind: 'bank_sync',
+        p_source_kind: 'bank_connection',
+        p_source_id: crypto.randomUUID(),
+        p_run_after: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+        p_max_attempts: 3,
+        p_payload: { watchdog_test: 'j3-pending-starvation' },
+      });
+      const jobId = (enqueued as Record<string, unknown>).id as string;
 
-    const cutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-    const { data: stuck, error: scanErr } = await client
-      .from('automation_jobs')
-      .select('id, job_kind')
-      .eq('organization_id', orgId)
-      .eq('status', 'pending')
-      .in('job_kind', [
-        'bill_extract',
-        'bank_sync',
-        'receipt_sync',
-        'xero_push',
-        'bank_reconcile',
-        'gmail_backfill',
-        'coding_classify',
-        'payment_record',
-      ])
-      .lt('run_after', cutoff);
-    expect(scanErr).toBeNull();
-    const found = (stuck ?? []) as { id: string; job_kind: string }[];
-    expect(found.some((j) => j.id === jobId)).toBe(true);
+      const cutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const { data: stuck, error: scanErr } = await client
+        .from('automation_jobs')
+        .select('id, job_kind')
+        .eq('organization_id', orgId)
+        .eq('status', 'pending')
+        .in('job_kind', [
+          'bill_extract',
+          'bank_sync',
+          'receipt_sync',
+          'xero_push',
+          'bank_reconcile',
+          'gmail_backfill',
+          'gmail_mine',
+          'bill_code',
+          'coding_classify',
+          'payment_record',
+        ])
+        .lt('run_after', cutoff);
+      expect(scanErr).toBeNull();
+      const found = (stuck ?? []) as { id: string; job_kind: string }[];
+      expect(found.some((j) => j.id === jobId)).toBe(true);
 
-    // Cleanup: claim (scoped to this job's kind to avoid grabbing an unrelated pending job) + complete
-    const wId = `test-cleanup-${crypto.randomUUID().slice(0, 8)}`;
-    await client.rpc('claim_automation_jobs', {
-      p_worker_id: wId,
-      p_job_kinds: ['bank_sync'],
-      p_limit: 10,
-    });
-    await client.rpc('complete_automation_job', { p_job_id: jobId, p_worker_id: wId });
-  });
+      // Cleanup: claim (scoped to this job's kind to avoid grabbing an unrelated pending job) + complete
+      const wId = `test-cleanup-${crypto.randomUUID().slice(0, 8)}`;
+      await client.rpc('claim_automation_jobs', {
+        p_worker_id: wId,
+        p_job_kinds: ['bank_sync'],
+        p_limit: 10,
+      });
+      await client.rpc('complete_automation_job', { p_job_id: jobId, p_worker_id: wId });
+    },
+  );
 
   itLive('unreachable_job_kind: a job_kind with no worker handler is detectable', async () => {
     const client = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
@@ -629,6 +642,8 @@ describe('automation-watchdog self-healing scanners (J2-J4)', () => {
       'xero_push',
       'bank_reconcile',
       'gmail_backfill',
+      'gmail_mine',
+      'bill_code',
       'coding_classify',
       'payment_record',
       'browser_collect',

@@ -6,6 +6,10 @@ const root = process.cwd();
 const ingest = readFileSync(join(root, 'supabase/functions/ingest/index.ts'), 'utf8');
 const ingestHandlers = readFileSync(join(root, 'supabase/functions/ingest/handlers.ts'), 'utf8');
 const worker = readFileSync(join(root, 'supabase/functions/automation-worker/index.ts'), 'utf8');
+const watchdog = readFileSync(
+  join(root, 'supabase/functions/automation-watchdog/index.ts'),
+  'utf8',
+);
 const bankExchange = readFileSync(join(root, 'supabase/functions/bank-exchange/index.ts'), 'utf8');
 const bankWebhook = readFileSync(join(root, 'supabase/functions/bank-webhook/index.ts'), 'utf8');
 const bankSync = readFileSync(join(root, 'supabase/functions/bank-sync/index.ts'), 'utf8');
@@ -36,6 +40,18 @@ const xeroIdempotency = readFileSync(
   join(root, 'supabase/functions/_shared/xero/idempotency.ts'),
   'utf8',
 );
+const xeroOAuthStart = readFileSync(
+  join(root, 'supabase/functions/xero-oauth-start/index.ts'),
+  'utf8',
+);
+const xeroOAuthCallback = readFileSync(
+  join(root, 'supabase/functions/xero-oauth-callback/index.ts'),
+  'utf8',
+);
+const xeroOAuthState = readFileSync(
+  join(root, 'supabase/functions/_shared/xero/oauthState.ts'),
+  'utf8',
+);
 const gmailPubsub = readFileSync(
   join(root, 'supabase/functions/gmail-pubsub-push/index.ts'),
   'utf8',
@@ -47,6 +63,10 @@ const gmailClassifyAi = readFileSync(
 const gmailMine = readFileSync(join(root, 'supabase/functions/gmail-mine/index.ts'), 'utf8');
 const gmailMineRefreshJobs = readFileSync(
   join(root, 'supabase/migrations/20260702124500_gmail_mine_refresh_jobs.sql'),
+  'utf8',
+);
+const billCodeJobs = readFileSync(
+  join(root, 'supabase/migrations/20260702173000_bill_code_jobs.sql'),
   'utf8',
 );
 const stagedEntityApproval = readFileSync(
@@ -95,7 +115,8 @@ describe('automation backbone source contracts', () => {
   });
 
   it('batch bill extraction jobs can drive repair-mode backfills', () => {
-    const billExtractCase = worker.match(/case 'bill_extract':[\s\S]*?case 'bank_sync':/)?.[0] ?? '';
+    const billExtractCase =
+      worker.match(/case 'bill_extract':[\s\S]*?case 'bank_sync':/)?.[0] ?? '';
 
     expect(billsExtractBatch).toMatch(/mode\?:\s*'received'\s*\|\s*'repair'/);
     expect(billsExtractBatch).toMatch(/body\.mode === 'repair' \? 'repair' : 'received'/);
@@ -107,6 +128,24 @@ describe('automation backbone source contracts', () => {
     expect(billExtractCase).toMatch(/requestBody\['max'\] = max/);
     expect(billExtractCase).toMatch(/requestBody\['delay_ms'\] = delayMs/);
     expect(billExtractCase).not.toMatch(/payload:\s*job\.payload/);
+  });
+
+  it('bill coding has a durable worker job and enqueue cron', () => {
+    expect(automationJobs).toMatch(/\|\s*'bill_code'/);
+    expect(appAutomationJobs).toMatch(/\|\s*'bill_code'/);
+    expect(worker).toMatch(/case 'bill_code'/);
+    expect(worker).toMatch(/intake-routing-apply/);
+    expect(worker).toMatch(/target:\s*'bill'/);
+    expect(worker).toMatch(/target_id:\s*billId/);
+    expect(worker).toMatch(/bill_code requires bill_id/);
+    expect(worker).toMatch(/job\.job_kind === 'bill_code'[\s\S]*return false/);
+
+    expect(watchdog).toMatch(/'bill_code'/);
+    expect(billCodeJobs).toMatch(/create or replace function public\.enqueue_bill_code_jobs/i);
+    expect(billCodeJobs).toMatch(/job_kind[\s\S]*'bill_code'/i);
+    expect(billCodeJobs).toMatch(/not exists \([\s\S]*public\.coding_suggestions/i);
+    expect(billCodeJobs).toMatch(/cron\.schedule\([\s\S]*'bill-code-enqueue-every-5min'/i);
+    expect(billCodeJobs).not.toMatch(/net\.http_post/i);
   });
 
   it('payment jobs record invoice receipts and refuse AP bill shortcuts', () => {
@@ -173,6 +212,19 @@ describe('automation backbone source contracts', () => {
     expect(xeroIdempotency).toMatch(/fallbackParts\.join\(':'\)/);
   });
 
+  it('Xero OAuth state is HMAC-signed and callback verified', () => {
+    expect(xeroOAuthStart).toMatch(/createXeroOAuthState/);
+    expect(xeroOAuthState).toMatch(/XERO_OAUTH_STATE_SECRET/);
+    expect(xeroOAuthState).toMatch(/XERO_CLIENT_SECRET/);
+    expect(xeroOAuthState).toMatch(/crypto\.subtle\.sign\('HMAC'/);
+    expect(xeroOAuthState).toMatch(/safeEqual/);
+
+    expect(xeroOAuthCallback).toMatch(/verifyXeroOAuthState/);
+    expect(xeroOAuthCallback).toMatch(/organization_id, code, redirect_uri, state required/);
+    expect(xeroOAuthCallback).not.toContain('startsWith(`${body.organization_id}.`)');
+    expect(xeroOAuthStart).not.toMatch(/TODO[\s\S]*sign state/i);
+  });
+
   it('UI queues Xero pushes instead of direct edge fetches', () => {
     for (const source of [billsPage, invoiceDetailPage, reconciliationPage]) {
       expect(source).toMatch(/enqueueJob/);
@@ -191,6 +243,7 @@ describe('automation backbone source contracts', () => {
     expect(defaultKindsMatch?.[1]).toContain("'bill_extract'");
     expect(defaultKindsMatch?.[1]).toContain("'bank_sync'");
     expect(defaultKindsMatch?.[1]).toContain("'gmail_mine'");
+    expect(defaultKindsMatch?.[1]).toContain("'bill_code'");
     expect(defaultKindsMatch?.[1]).toContain("'payment_record'");
     expect(defaultKindsMatch?.[1]).not.toContain("'browser_collect'");
     expect(worker).toMatch(/case 'browser_collect'/);
@@ -262,7 +315,9 @@ describe('automation backbone source contracts', () => {
     expect(bankTransactionClassifier).toMatch(/category_not_safe_for_bank_only_gl_post/);
     expect(bankTransactionClassifier).toMatch(/sourceType:\s*'bank_transaction'/);
     expect(bankTransactionClassifier).toMatch(/sourceId:\s*txn\.id/);
-    expect(bankTransactionClassifier).toMatch(/postBankTransactionJournal\(admin, postingDeps, txn, result\.category_code\)/);
+    expect(bankTransactionClassifier).toMatch(
+      /postBankTransactionJournal\(admin, postingDeps, txn, result\.category_code\)/,
+    );
     expect(bankTransactionClassifier).toMatch(/glPost\.required && !glPost\.posted/);
     expect(bankTransactionClassifier).toMatch(/coding_status:\s*'needs_review'/);
     expect(bankTransactionClassifier).toMatch(/GL post failed/);

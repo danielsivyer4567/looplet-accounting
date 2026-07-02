@@ -56,6 +56,7 @@ const KNOWN_CLAIMABLE_JOB_KINDS = [
   'bank_reconcile',
   'gmail_backfill',
   'gmail_mine',
+  'bill_code',
   'coding_classify',
   'payment_record',
 ] as const;
