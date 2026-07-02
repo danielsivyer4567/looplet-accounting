@@ -18,12 +18,11 @@ Current state:
 - Latest live Supabase audit: `docs/live-supabase-production-audit-2026-07-02.md`.
 - Foundation hardening branch: pushed as draft PR
   <https://github.com/danielsivyer4567/looplet-accounting/pull/28>.
-- Latest PR checks on commit `eb6377b`: `Lint, Typecheck, Test, Build`,
-  `Tenant Isolation (Deploy Blocker)`, and Cloudflare Pages all pass. The
-  Cloudflare failure root cause was the unsupported `[build]` block in
-  `wrangler.toml`; it was removed, and the ignored SPA `_redirects` fallback was
-  also removed because Pages' default SPA fallback covers direct app-route
-  navigation. Evidence:
+- PR checks now pass: `Lint, Typecheck, Test, Build`, `Tenant Isolation
+  (Deploy Blocker)`, and Cloudflare Pages. The Cloudflare failure root cause was
+  the unsupported `[build]` block in `wrangler.toml`; it was removed, and the
+  ignored SPA `_redirects` fallback was also removed because Pages' default SPA
+  fallback covers direct app-route navigation. Evidence:
   `.claude/scratch/cloudflare-pages-logs/74f3de9b-logs.json`.
 - Latest Supabase checks on this branch: `npm run guard:preflight` and
   `npm run supabase:readiness` pass, but `supabase db push --dry-run` still
