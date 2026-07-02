@@ -12,8 +12,10 @@
  *   bank_reconcile  — forward to auto-reconcile edge fn
  *   gmail_backfill  — forward to gmail-backfill edge fn
  *   gmail_mine      — forward to gmail-mine edge fn
+ *   bill_code       — forward to intake-routing-apply for bill GL coding/posting
  *   coding_classify — forward to gmail-classify-ai edge fn
  *   payment_record  — record AR invoice receipts from ingest payment jobs
+ *   crm_pnl_sync    — forward to crm-pnl-sync-push (live job/org P&L to CRM)
  *
  * Browser collection is intentionally excluded from the default claim loop.
  * A dedicated browser runner must claim browser_collect jobs with its own
@@ -50,8 +52,10 @@ const DEFAULT_JOB_KINDS = [
   'bank_reconcile',
   'gmail_backfill',
   'gmail_mine',
+  'bill_code',
   'coding_classify',
   'payment_record',
+  'crm_pnl_sync',
 ] as const;
 
 // Exponential backoff delays per attempt (seconds): 60, 300, 900
@@ -247,6 +251,36 @@ async function dispatchJob(
       return { ok: res.ok, detail: body };
     }
 
+    case 'bill_code': {
+      const pl = objectPayload(job.payload);
+      const billId =
+        stringValue(pl['bill_id']) ?? (job.source_kind === 'bill' ? job.source_id : null);
+      if (!billId) {
+        return { ok: false, detail: { error: 'bill_code requires bill_id' } };
+      }
+      const res = await fetch(`${base}/intake-routing-apply`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          organization_id: job.organization_id,
+          target: 'bill',
+          target_id: billId,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      return { ok: res.ok, detail: body };
+    }
+
+    case 'crm_pnl_sync': {
+      const res = await fetch(`${base}/crm-pnl-sync-push`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ organization_id: job.organization_id }),
+      });
+      const body = await res.json().catch(() => ({}));
+      return { ok: res.ok, detail: body };
+    }
+
     case 'coding_classify': {
       const pl = objectPayload(job.payload);
       const res = await fetch(`${base}/gmail-classify-ai`, {
@@ -287,6 +321,18 @@ async function isAlreadyComplete(
   serviceKey: string,
   job: AutomationJob,
 ): Promise<boolean> {
+  // Bill coding is idempotent at the domain layer: routing only fills blanks,
+  // coding_suggestions is one-live-row-per-bill, and journal posting checks for
+  // an existing posted source. Let repair/backlog jobs re-drive a bill if a prior
+  // completed job did not leave a live suggestion.
+  if (job.job_kind === 'bill_code') return false;
+
+  // crm_pnl_sync is a recurring push, not a one-shot job — source_kind/source_id
+  // (organization/organization_id) never changes between enqueues, so the
+  // default "skip if a completed job with the same source exists" check would
+  // silently block every sync after the first one ever succeeded.
+  if (job.job_kind === 'crm_pnl_sync') return false;
+
   if (!job.source_id || !job.source_kind) return false;
   const admin = makeAdminClient(supabaseUrl, serviceKey);
   const { data } = await admin
