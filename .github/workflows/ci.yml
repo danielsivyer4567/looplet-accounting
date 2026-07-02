@@ -77,7 +77,7 @@ jobs:
           # (not silently skip) — see tests/tenant-isolation.test.ts.
           CI: 'true'
           VITE_SUPABASE_URL: ${{ vars.TEST_SUPABASE_URL || 'https://dxoikltymmknxqpkpyhi.supabase.co' }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
   deploy:
