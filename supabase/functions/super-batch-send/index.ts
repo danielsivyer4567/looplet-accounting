@@ -1,20 +1,14 @@
 // Edge function: super-batch-send  (SC-3.G.01)
 //
-// Sends a quarterly super batch (SC-3.F.01) to the clearing house — behind the
+// Generates an approved SuperStream/clearing-house transport payload — behind the
 // Tier-2 approval gate. Refuses unless a matching approved `approvals` row exists
 // (is_action_approved, SC-2.B.03); on first refusal it records the pending Tier-2
 // request bound to this exact batch, so an admin can approve it.
 //
-// On approval it transitions the batch draft/approved → 'sent'. The transition is
-// the idempotency boundary: the UPDATE is scoped to status IN ('draft','approved'),
-// so re-invoking an already-sent batch matches zero rows and returns success
-// without a second send (race-safe — a concurrent send can't double-flip).
-//
-// SEND IS A MARK-SENT STUB: no real clearing house is wired yet. Real SuperStream
-// dispatch — and its required clearing-house secret (fail closed if unset, like the
-// other gated fns, per [[looplet-edge-fn-secrets]]) — is future work; the approval
-// gate, idempotency and status transition here are real. A clearing-house request
-// reference would be persisted on a future super_batches column.
+// On approval it builds build_superstream_payload(batch), refuses if fund details
+// are incomplete, and transitions draft/approved → sent with a payload hash and
+// manual clearing-house-file response. This is the documented transport path until
+// a provider-specific API endpoint is configured; it does not pretend live payment.
 //
 // Request body: { organization_id: uuid, super_batch_id: uuid }
 // Deploy with verify_jwt=false (self-auths via getUser + membership, like
@@ -36,6 +30,18 @@ interface SuperBatchRow {
   line_count: number;
   fy_start_year: number;
   quarter: number;
+  transport_payload_hash: string | null;
+}
+
+interface SuperstreamPayload {
+  schema_version: "build_superstream_payload:v1";
+  summary?: {
+    ready_for_external_upload?: boolean;
+    validation_error_count?: number;
+  };
+  evidence?: {
+    input_hash?: string;
+  };
 }
 
 function json(body: unknown, status = 200): Response {
@@ -89,7 +95,9 @@ Deno.serve(async (req: Request) => {
 
   const { data: batch, error: batchErr } = await admin
     .from("super_batches")
-    .select("id, organization_id, status, total_super_cents, line_count, fy_start_year, quarter")
+    .select(
+      "id, organization_id, status, total_super_cents, line_count, fy_start_year, quarter, transport_payload_hash",
+    )
     .eq("id", super_batch_id)
     .eq("organization_id", organization_id)
     .maybeSingle<SuperBatchRow>();
@@ -148,11 +156,49 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  // Approved → mark-sent stub. The conditional UPDATE (status IN draft/approved) is
-  // the idempotency guard: a concurrent/repeat send matches zero rows.
+  // build_superstream_payload is SECURITY INVOKER — it re-checks organization_id
+  // IN get_accessible_org_ids() itself, which resolves via auth.uid(). Must go
+  // through userClient (the caller's own session), never admin (service-role has
+  // no auth.uid(), so get_accessible_org_ids() would always return empty and the
+  // authz check inside build_superstream_payload would always fail). Same fix
+  // shape as request_approval above — this was the one call in this function that
+  // used admin by mistake; membership was already proven above via the
+  // organization_memberships check, so re-checking via userClient here is safe
+  // and correct, not redundant paranoia.
+  const { data: payload, error: payloadErr } = await userClient.rpc("build_superstream_payload", {
+    p_batch_id: super_batch_id,
+  });
+  if (payloadErr)
+    return json({ ok: false, error: `Payload build failed: ${payloadErr.message}` }, 500);
+  const superstreamPayload = payload as SuperstreamPayload | null;
+  if (!superstreamPayload?.summary?.ready_for_external_upload) {
+    return json(
+      {
+        ok: false,
+        error: "Super batch is missing fund details required for clearing-house upload.",
+        validation_error_count: superstreamPayload?.summary?.validation_error_count ?? null,
+        payload: superstreamPayload,
+      },
+      422,
+    );
+  }
+  const payloadHash = superstreamPayload.evidence?.input_hash ?? crypto.randomUUID();
+
+  // Approved → export lifecycle. The conditional UPDATE (status IN draft/approved) is
+  // the idempotency guard: a concurrent/repeat export matches zero rows.
   const { data: updated, error: updErr } = await admin
     .from("super_batches")
-    .update({ status: "sent" })
+    .update({
+      status: "sent",
+      transport_mode: "clearing_house_file",
+      transport_payload_hash: payloadHash,
+      transported_at: new Date().toISOString(),
+      transport_response: {
+        live_dispatch_enabled: false,
+        manual_upload_required: true,
+        source_version: "build_superstream_payload:v1",
+      },
+    })
     .eq("id", super_batch_id)
     .eq("organization_id", organization_id)
     .in("status", ["draft", "approved"])
@@ -167,9 +213,13 @@ Deno.serve(async (req: Request) => {
   return json({
     ok: true,
     sent: true,
+    transport_mode: "clearing_house_file",
+    manual_upload_required: true,
     super_batch_id,
     status: "sent",
     total_super_cents: approvalPayload.total_super_cents,
     line_count: approvalPayload.line_count,
+    payload_hash: payloadHash,
+    payload: superstreamPayload,
   });
 });
