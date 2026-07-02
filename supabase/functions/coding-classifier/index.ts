@@ -186,6 +186,75 @@ function domainOf(email: string): string {
   return at >= 0 ? email.slice(at + 1).toLowerCase() : "";
 }
 
+// Priority a learned rule gets, ranked by how specifically the signal identifies
+// a supplier — mirrors BASE_CONFIDENCE's ordering so a learned sender_address rule
+// always outranks a coarser sender_domain/sender_name rule for the same supplier.
+const LEARNED_RULE_PRIORITY: Record<"sender_address" | "sender_domain" | "sender_name", number> = {
+  sender_address: 100,
+  sender_domain: 70,
+  sender_name: 40,
+};
+
+// Pick the most specific available signal off a bill to learn a rule from — an
+// exact sender address if the email metadata has one, else the extracted supplier
+// name as a last resort (weakest signal, only fires when nothing else was
+// captured, e.g. an uploaded PDF with no email metadata).
+function learnableMatcher(
+  bill: Bill,
+): { type: "sender_address" | "sender_name"; value: string } | null {
+  const meta = bill.intake_metadata;
+  const sender = pickString(meta, ["email_sender", "from", "sender"]);
+  if (sender !== "") {
+    return { type: "sender_address", value: sender.toLowerCase() };
+  }
+  const fromName = pickString(meta, ["from_name", "sender_name"]);
+  if (fromName !== "") {
+    return { type: "sender_name", value: fromName };
+  }
+  const supplierName = (bill.supplier_name_raw ?? "").trim();
+  if (supplierName !== "") {
+    return { type: "sender_name", value: supplierName };
+  }
+  return null;
+}
+
+// A human coding a bill in the review queue (accept/override) is a strong signal:
+// they just told us definitively how this supplier's bills should be coded. Learn
+// a reusable intake_rules row from it so the next bill from the same sender
+// auto-clears instead of landing back in the queue. Best-effort: a rule-write
+// failure must never fail the human's decision (the journal is already posted).
+async function learnRuleFromDecision(
+  admin: SupabaseClient,
+  bill: Bill,
+  accountCode: string,
+  taxCode: string | null,
+): Promise<void> {
+  const matcher = learnableMatcher(bill);
+  if (!matcher) return;
+  try {
+    const { data: existing } = await admin
+      .from("intake_rules")
+      .select("id")
+      .eq("organization_id", bill.organization_id)
+      .eq("matcher_type", matcher.type)
+      .eq("matcher_value", matcher.value)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (existing) return; // a rule for this sender already exists — don't shadow it
+    await admin.from("intake_rules").insert({
+      organization_id: bill.organization_id,
+      matcher_type: matcher.type,
+      matcher_priority: LEARNED_RULE_PRIORITY[matcher.type],
+      matcher_value: matcher.value,
+      xero_account_code_override: accountCode,
+      xero_tax_type_override: taxCode,
+      notes: `Learned from coding review decision on bill ${bill.id}`,
+    });
+  } catch {
+    // Best-effort learning only — never surface this as a decision failure.
+  }
+}
+
 function isMatcherType(t: string): t is MatcherType {
   return (
     t === "sender_address" ||
@@ -632,6 +701,9 @@ async function handleDecision(
     })
     .eq("id", row.id);
   if (updErr) return json({ ok: false, error: `update suggestion: ${updErr.message}` }, 500);
+
+  // Fire-and-forget: don't hold up the response on rule learning.
+  void learnRuleFromDecision(admin, bill, accountCode, taxCode);
 
   return json({
     ok: true,
