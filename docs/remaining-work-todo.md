@@ -16,6 +16,16 @@ Current state:
 - Human/legal gate nodes: 8.
 - Latest local proof run: `docs/proof-run-2026-07-02.md`.
 - Latest live Supabase audit: `docs/live-supabase-production-audit-2026-07-02.md`.
+- Foundation hardening branch: pushed as draft PR
+  <https://github.com/danielsivyer4567/looplet-accounting/pull/28>.
+- Latest GitHub Actions CI on PR commit `47e2cf9`: `Lint, Typecheck, Test,
+  Build` passed and `Tenant Isolation (Deploy Blocker)` passed. The separate
+  Cloudflare Pages external check still reports "Build failed" and only exposes
+  logs through the Cloudflare dashboard link.
+- Latest Supabase checks on this branch: `npm run guard:preflight` and
+  `npm run supabase:readiness` pass, but `supabase db push --dry-run` still
+  stops on remote-only migration history entries before applying any new
+  migration.
 - Evidence-based completion estimate after the latest live audit and follow-up
   remediation: about 85%
   overall product readiness. Local source-contract wiring is 100%, but live
@@ -53,7 +63,7 @@ These are the highest-signal gaps right now.
   dashboard, BAS coverage gate, quality repair, Gmail disconnect notification,
   org profile, connector keys, debt payment, subscription edit, employee log
   time, and MoveToOrg. Evidence:
-  `.claude/scratch/wrap-up-local-visual-smoke/2026-07-01T17-54-18-203Z/`.
+  `.claude/scratch/wrap-up-local-visual-smoke/2026-07-02T06-14-25-341Z/screenshots/`.
 - [x] Deploy the two Edge Functions the live audit found missing:
   `ato-lodge` and `bas-lodgement-pack`. Evidence:
   `tmp/deploy-ato-lodge.log`, `tmp/deploy-bas-lodgement-pack.log`, and
