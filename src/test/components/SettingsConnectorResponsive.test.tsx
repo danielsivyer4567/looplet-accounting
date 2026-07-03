@@ -211,9 +211,7 @@ describe('Settings connector responsive layouts', () => {
   it('disables a Basiq feed via bank-disconnect, which purges the upstream connection', async () => {
     const fetchMock = vi
       .spyOn(global, 'fetch')
-      .mockResolvedValue(
-        new Response(JSON.stringify({ ok: true, purged: true }), { status: 200 }),
-      );
+      .mockResolvedValue(new Response(JSON.stringify({ ok: true, purged: true }), { status: 200 }));
 
     render(
       <MemoryRouter>

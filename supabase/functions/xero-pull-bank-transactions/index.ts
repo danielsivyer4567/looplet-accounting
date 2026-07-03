@@ -41,7 +41,7 @@ interface XeroBankTransaction {
   Total?: number;
   Reference?: string;
   Contact?: { Name?: string };
-  LineItems?: Array<{ AccountCode?: string; Description?: string }>;
+  LineItems?: { AccountCode?: string; Description?: string }[];
   Status?: string;
 }
 

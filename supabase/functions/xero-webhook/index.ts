@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
       const payload = safeParse(rawBody) as
         | { events?: unknown[]; firstEventSequence?: number; lastEventSequence?: number }
         | null;
-      const events = Array.isArray(payload?.events) ? payload!.events : [];
+      const events = payload?.events && Array.isArray(payload.events) ? payload.events : [];
       const payloadHash = await sha256Hex(rawBody);
       const providerEventId =
         `xero:${payload?.firstEventSequence ?? ''}:${payload?.lastEventSequence ?? ''}`;
@@ -103,7 +103,7 @@ async function hmacSha256Base64(key: string, message: string): Promise<string> {
   const sig = await crypto.subtle.sign('HMAC', cryptoKey, enc.encode(message));
   const bytes = new Uint8Array(sig);
   let bin = '';
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  for (const byte of bytes) bin += String.fromCharCode(byte);
   return btoa(bin);
 }
 

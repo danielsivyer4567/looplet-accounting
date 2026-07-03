@@ -563,42 +563,14 @@ export function Layout() {
                       Apps
                     </h4>
 
-                    <div className="app-switch-btn" style={{ background: '#000' }}>
-                      <div style={{ fontSize: '14px', fontWeight: 800 }}>R</div>
-                      <span style={{ fontSize: '8px' }}>Personal</span>
-                    </div>
-
                     <div className="app-switch-btn" style={{ background: '#0a192f' }}>
-                      <div style={{ fontSize: '14px', fontWeight: 800 }}>R</div>
-                      <span style={{ fontSize: '8px' }}>Business</span>
-                    </div>
-
-                    <div className="app-switch-btn" style={{ background: '#3b2f2f' }}>
-                      <div style={{ fontSize: '14px', fontWeight: 800 }}>R</div>
-                      <span style={{ fontSize: '8px' }}>Invest</span>
-                    </div>
-
-                    <div
-                      className="app-switch-btn"
-                      style={{ background: 'linear-gradient(45deg, #f06, #4a90e2)' }}
-                    >
-                      <div style={{ fontSize: '14px', fontWeight: 800 }}>R</div>
-                      <span style={{ fontSize: '8px' }}>Revolut X</span>
-                    </div>
-
-                    <div className="app-switch-btn" style={{ background: '#1c2d3d' }}>
-                      <div style={{ fontSize: '14px', fontWeight: 800 }}>R</div>
-                      <span style={{ fontSize: '8px' }}>People</span>
+                      <div style={{ fontSize: '14px', fontWeight: 800 }}>L</div>
+                      <span style={{ fontSize: '8px' }}>Accounting</span>
                     </div>
 
                     <div className="app-switch-btn" style={{ background: '#134e4a' }}>
-                      <div style={{ fontSize: '14px', fontWeight: 800 }}>R</div>
-                      <span style={{ fontSize: '8px' }}>GlobalHire</span>
-                    </div>
-
-                    <div className="app-switch-btn" style={{ background: '#1e3a8a' }}>
-                      <div style={{ fontSize: '14px', fontWeight: 800 }}>R</div>
-                      <span style={{ fontSize: '8px' }}>POS</span>
+                      <div style={{ fontSize: '14px', fontWeight: 800 }}>L</div>
+                      <span style={{ fontSize: '8px' }}>CRM</span>
                     </div>
                   </div>
                 )}

@@ -186,21 +186,21 @@ export function JobsPage() {
           >
             <KpiCard label="Active Jobs" value={activeCount} type="success" icon={Briefcase} />
             <KpiCard
-              label="Total Revenue"
+              label="Total Revenue (all-time)"
               value={totalRevenue}
               formatter={formatMoney}
               type="info"
               icon={FileSpreadsheet}
             />
             <KpiCard
-              label="Total Job Cost"
+              label="Total Job Cost (all-time)"
               value={totalCost}
               formatter={formatMoney}
               type="neutral"
               icon={FileSpreadsheet}
             />
             <KpiCard
-              label="Gross Margin"
+              label="Gross Margin (all-time)"
               value={totalProfit}
               formatter={formatMoney}
               type={totalProfit >= 0 ? 'success' : 'danger'}

@@ -458,7 +458,7 @@ export function SettingsPage() {
                           lineHeight: 1.4,
                         }}
                       >
-                        I am happy to receive emails about Revolut products, services and offers
+                        I am happy to receive emails about Looplet products, services and offers
                         that may interest me
                       </div>
                     </div>
@@ -487,7 +487,7 @@ export function SettingsPage() {
                           lineHeight: 1.4,
                         }}
                       >
-                        I am happy to receive push notifications about Revolut products, services
+                        I am happy to receive push notifications about Looplet products, services
                         and offers that may interest me
                       </div>
                     </div>
@@ -516,7 +516,7 @@ export function SettingsPage() {
                           lineHeight: 1.4,
                         }}
                       >
-                        I'm happy to see recommendations about Revolut products, services and offers
+                        I'm happy to see recommendations about Looplet products, services and offers
                         that may interest me
                       </div>
                     </div>
@@ -545,8 +545,8 @@ export function SettingsPage() {
                           lineHeight: 1.4,
                         }}
                       >
-                        I'm happy for Revolut to share my name, email address, and app events with
-                        social media platforms to allow Revolut to advertise to me and others like
+                        I'm happy for Looplet to share my name, email address, and app events with
+                        social media platforms to allow Looplet to advertise to me and others like
                         me
                       </div>
                     </div>
@@ -593,7 +593,7 @@ export function SettingsPage() {
                           lineHeight: 1.4,
                         }}
                       >
-                        I want to receive notifications about promotions from Revolut partners
+                        I want to receive notifications about promotions from Looplet partners
                       </div>
                     </div>
                     <label className="switch">

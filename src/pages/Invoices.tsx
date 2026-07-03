@@ -38,8 +38,9 @@ export function InvoicesPage() {
     );
   }
 
-  // Aggregate KPIs over the *full* (unfiltered) result
+  // Aggregate KPIs over the invoices loaded so far (paginated — see loadedSub label)
   const totalInvoiced = invoices.reduce((a, i) => a + (i.total_inc_gst_cents ?? 0), 0);
+  const loadedSub = hasMore ? `first ${invoices.length} loaded — partial total` : undefined;
   const totalPaid = invoices.reduce((a, i) => a + (i.amount_paid_cents ?? 0), 0);
   const totalOwing = invoices.reduce((a, i) => a + (i.balance_due_cents ?? 0), 0);
   const overdueCount = invoices.filter((i) => i.status === 'overdue').length;
@@ -153,6 +154,7 @@ export function InvoicesPage() {
           value={totalInvoiced}
           type="info"
           icon={FileText}
+          sub={loadedSub}
           formatter={formatMoney}
         />
         <Kpi
@@ -160,7 +162,7 @@ export function InvoicesPage() {
           value={totalPaid}
           type="success"
           icon={Wallet}
-          sub={`${invoices.length} invoices`}
+          sub={loadedSub ?? `${invoices.length} invoices`}
           formatter={formatMoney}
         />
         <Kpi
@@ -168,6 +170,7 @@ export function InvoicesPage() {
           value={totalOwing}
           type={totalOwing > 0 ? 'warning' : 'neutral'}
           icon={DollarSign}
+          sub={loadedSub}
           formatter={formatMoney}
         />
         <Kpi
@@ -443,7 +446,7 @@ function Kpi({
   value: number;
   type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
   icon: LucideIcon;
-  sub?: string;
+  sub?: string | undefined;
   formatter?: (val: number) => string;
 }) {
   return (

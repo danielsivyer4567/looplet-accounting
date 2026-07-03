@@ -71,8 +71,9 @@ export function BillsPage() {
     );
   }
 
-  // Aggregate KPIs
+  // Aggregate KPIs over the bills loaded so far (paginated — see loadedSub label)
   const totalBilled = bills.reduce((a, b) => a + (b.total_inc_gst_cents ?? 0), 0);
+  const loadedSub = hasMore ? `first ${bills.length} loaded — partial total` : undefined;
   const totalPaid = bills
     .filter((b) => b.status === 'paid')
     .reduce((a, b) => a + (b.total_inc_gst_cents ?? 0), 0);
@@ -179,6 +180,7 @@ export function BillsPage() {
           value={totalBilled}
           type="neutral"
           icon={FileText}
+          sub={loadedSub}
           formatter={formatMoney}
         />
         <Kpi
@@ -186,7 +188,7 @@ export function BillsPage() {
           value={totalPaid}
           type="success"
           icon={Wallet}
-          sub={`${bills.filter((b) => b.status === 'paid').length} bills`}
+          sub={loadedSub ?? `${bills.filter((b) => b.status === 'paid').length} bills`}
           formatter={formatMoney}
         />
         <Kpi
@@ -194,6 +196,7 @@ export function BillsPage() {
           value={totalOutstanding}
           type={totalOutstanding > 0 ? 'danger' : 'neutral'}
           icon={DollarSign}
+          sub={loadedSub}
           formatter={formatMoney}
         />
       </div>
@@ -359,6 +362,15 @@ export function BillsPage() {
                           </span>
                         )}
                       </div>
+                    </td>
+                    <td>
+                      {b.invoice_number ? (
+                        <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                          {b.invoice_number}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      )}
                     </td>
                     <td>
                       {b.attached_job?.job_number ? (
@@ -553,7 +565,7 @@ function Kpi({
   value: number;
   type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
   icon: LucideIcon;
-  sub?: string;
+  sub?: string | undefined;
   formatter?: (val: number) => string;
 }) {
   return (

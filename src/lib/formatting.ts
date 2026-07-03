@@ -26,3 +26,10 @@ export function currentFyStartYear(): number {
   const now = new Date();
   return now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
 }
+
+/** Short label for the current AU financial year window, e.g. "FY26–27 (from 1 Jul 2026)". */
+export function currentFyLabel(): string {
+  const start = currentFyStartYear();
+  const endShort = String((start + 1) % 100).padStart(2, '0');
+  return `FY${String(start % 100).padStart(2, '0')}–${endShort} (from 1 Jul ${start})`;
+}

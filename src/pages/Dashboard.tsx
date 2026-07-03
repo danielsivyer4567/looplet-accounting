@@ -12,6 +12,7 @@ import { AdviceNoteView } from '@/components/AdviceNoteView';
 import { SkeletonCard } from '@/components/Skeleton';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
 import { formatLoadError } from '@/lib/errorMessages';
+import { currentFyLabel } from '@/lib/formatting';
 import { formatMoneyCompact } from '@/lib/money';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import {
@@ -614,7 +615,7 @@ export function DashboardPage() {
             }}
           >
             <span>🇦🇺</span>
-            <span>Personal • AUD</span>
+            <span>Take-home this {currentFyLabel()} • AUD</span>
           </div>
         </div>
 

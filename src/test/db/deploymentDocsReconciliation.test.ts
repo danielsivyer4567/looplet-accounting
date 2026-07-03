@@ -35,9 +35,7 @@ describe('deployment docs reconciliation', () => {
     expect(runbook).toMatch(/Rollback \/ Abort/);
     expect(runbook).toMatch(/COMPLIANCE_BACKLOG/);
 
-    expect(p005Runbook).toContain(
-      'ceiling is now `20260702171500_search_index_functions.sql`',
-    );
+    expect(p005Runbook).toContain('ceiling is now `20260702171500_search_index_functions.sql`');
     expect(p005Runbook).toContain('`0199`-`0207`');
     expect(p005Runbook).toContain('Only redeploy after `0199` has applied');
     expect(p005Runbook).toContain('production Pages deployed and signed-in P0-05 proof complete');

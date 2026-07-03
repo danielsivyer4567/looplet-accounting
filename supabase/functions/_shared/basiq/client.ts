@@ -107,6 +107,7 @@ async function basiqFetch<T = unknown>(path: string, init: RequestInit = {}): Pr
  */
 interface SupabaseLike {
   // deno-lint-ignore no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from(table: string): any;
 }
 
