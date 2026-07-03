@@ -15,8 +15,12 @@ import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { createXeroOAuthState } from '../_shared/xero/oauthState.ts';
 
 const XERO_AUTHORIZE_URL = 'https://login.xero.com/identity/connect/authorize';
+// Fine-grained scopes Xero actually grants for this app (verified against a live
+// token). Overridable via XERO_SCOPES (set in prod to exactly this list so a
+// reconnect can't silently narrow access). Covers bank transactions, payments,
+// and P&L/Balance-Sheet/Aged reports for the pull-first model.
 const DEFAULT_SCOPES =
-  'openid profile email offline_access accounting.invoices accounting.contacts accounting.settings.read accounting.transactions.read accounting.reports.read';
+  'openid profile email offline_access accounting.invoices accounting.contacts accounting.settings.read accounting.payments accounting.attachments accounting.reports.aged.read accounting.reports.profitandloss.read accounting.reports.balancesheet.read accounting.banktransactions';
 
 Deno.serve(async (req) => {
   const pre = preflight(req);
