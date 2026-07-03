@@ -12,16 +12,19 @@ describe('LodgeReadinessChecklist', () => {
     expect(LODGE_REQUIREMENTS.every((r) => r.done === false)).toBe(true);
   });
 
-  it('renders a blocked header and a TODO for every unmet requirement', () => {
+  it('renders a disabled header and an awaiting row per unmet requirement, with no dev-TODO copy', () => {
     render(<LodgeReadinessChecklist />);
 
-    expect(screen.getByRole('heading', { name: /Lodgement blocked/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Lodgement disabled/i })).toBeInTheDocument();
 
-    // Every requirement shows as an outstanding TODO with its blocking secrets.
-    const todos = screen.getAllByText(/^TODO — /);
-    expect(todos).toHaveLength(LODGE_REQUIREMENTS.length);
-    expect(screen.getByText(/ATO_M2M_KEYSTORE_REF/)).toBeInTheDocument();
-    expect(screen.getByText(/SBR_TAXONOMY_BASE_URL/)).toBeInTheDocument();
+    const awaiting = screen.getAllByText(/^Awaiting — /);
+    expect(awaiting).toHaveLength(LODGE_REQUIREMENTS.length);
+
+    // Product copy, not developer artefacts: no TODO markers, slice tags, or secret names.
+    expect(screen.queryByText(/TODO/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/SC-DEPLOY/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/ATO_M2M_KEYSTORE_REF/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/mock script/i)).not.toBeInTheDocument();
   });
 
   it('flips to a ready header once every requirement is done', () => {
@@ -29,6 +32,6 @@ describe('LodgeReadinessChecklist', () => {
     render(<LodgeReadinessChecklist requirements={allDone} />);
 
     expect(screen.getByRole('heading', { name: /Lodgement ready/i })).toBeInTheDocument();
-    expect(screen.queryByText(/^TODO — /)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Awaiting — /)).not.toBeInTheDocument();
   });
 });

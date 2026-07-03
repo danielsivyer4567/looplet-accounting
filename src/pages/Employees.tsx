@@ -437,9 +437,12 @@ export function EmployeesPage() {
           color: 'var(--text-muted)',
         }}
       >
-        💡 <strong>Future payroll roadmap:</strong> Gross to net superannuation calculations, Single
-        Touch Payroll (STP) export options, leaves records, and staff self-service timesheet
-        logging.
+        💡 <strong>Payroll lives in its own module:</strong> pay runs, gross-to-net with super, and
+        STP export are under{' '}
+        <Link to="/payroll" style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
+          Payroll
+        </Link>
+        .
       </div>
     </section>
   );

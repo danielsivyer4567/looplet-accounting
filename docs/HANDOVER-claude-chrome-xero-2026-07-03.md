@@ -24,12 +24,18 @@ secret. This handover fixes both, then does the OAuth connect.
    URIs already include `accounting.looplet.com.au/auth/callback/xero` and
    several `localhost:5173` entries).
 2. Open its **Configuration** page → **Redirect URIs** → **Add another URI**.
-3. Add EXACTLY this (character-for-character, no trailing slash):
+3. Add BOTH of these, EXACTLY (character-for-character, no trailing slash):
    ```
-   https://looplet-accounting.pages.dev/settings/xero-callback
+   https://looplet-accounting.pages.dev/settings/xero-callback     ← prod (required)
+   http://localhost:4000/settings/xero-callback                    ← local dev (this app runs on port 4000, not 5173)
    ```
+   NOTE: the existing `localhost:5173/...` entries are the CRM's dev server —
+   the Accounting app runs on **port 4000**, which is why its localhost isn't
+   there yet.
 4. Save. Do NOT remove any existing redirect URIs — the CRM and other
-   environments rely on them.
+   environments rely on them (see the consolidation note: the CRM's Xero
+   redirects stay until the CRM is switched to reading financials from
+   Accounting).
 
 ## Step 2 — Get a client secret we can use
 

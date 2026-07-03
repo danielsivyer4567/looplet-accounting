@@ -6,6 +6,8 @@ import { useAdviceNotes, type AdviceNote, type AdviceNoteKind } from '@/hooks/us
 import { useTaxCalendar, type TaxObligation } from '@/hooks/useTaxCalendar';
 import { useOnboardingProgress } from '@/hooks/onboarding/useStagedEntities';
 import { useWorkstreamTasks, type WorkstreamTask, type TaskKind } from '@/hooks/useWorkstreamTasks';
+import { useRecentActivity } from '@/hooks/useRecentActivity';
+import { supabase } from '@/lib/supabase';
 import { IntentLauncher } from '@/components/IntentLauncher';
 import { AdviceCard } from '@/components/AdviceCard';
 import { AdviceNoteView } from '@/components/AdviceNoteView';
@@ -36,193 +38,14 @@ import {
   CalendarClock,
 } from 'lucide-react';
 
-interface MockTransaction {
-  id: string;
-  merchant: string;
-  date: string;
-  amount: number;
-  type: 'incoming' | 'outgoing';
-  status?: 'declined' | 'completed';
-  initial: string;
-  color: string;
-  iconUrl?: string;
-}
+const FEED_COLORS = ['#6366f1', '#10b981', '#f97316', '#eab308', '#ef4444', '#22c55e', '#0ea5e9'];
 
-const mockTransactions: MockTransaction[] = [
-  {
-    id: '1',
-    merchant: 'Uber Eats',
-    date: 'Jun 20, 9:41 PM',
-    amount: -42.78,
-    type: 'outgoing',
-    initial: 'U',
-    color: '#10b981',
-    iconUrl: '/images/merchants/ubereats.webp',
-  },
-  {
-    id: '2',
-    merchant: 'Nandos Coomera Bp',
-    date: 'Jun 20, 10:51 AM',
-    amount: -40.75,
-    type: 'outgoing',
-    initial: 'N',
-    color: '#f97316',
-    iconUrl: '/images/merchants/nandos.webp',
-  },
-  {
-    id: '3',
-    merchant: 'Nandos Coomera Bp',
-    date: 'Declined • Jun 20, 10:50 AM',
-    amount: -40.75,
-    type: 'outgoing',
-    status: 'declined',
-    initial: 'N',
-    color: '#f97316',
-    iconUrl: '/images/merchants/nandos.webp',
-  },
-  {
-    id: '4',
-    merchant: 'Uber',
-    date: 'Declined • Jun 19, 11:00 PM',
-    amount: -9.99,
-    type: 'outgoing',
-    status: 'declined',
-    initial: 'U',
-    color: '#000000',
-    iconUrl: '/images/merchants/uber.webp',
-  },
-  {
-    id: '5',
-    merchant: 'Uber',
-    date: 'Declined • Jun 19, 11:00 PM',
-    amount: -9.99,
-    type: 'outgoing',
-    status: 'declined',
-    initial: 'U',
-    color: '#000000',
-    iconUrl: '/images/merchants/uber.webp',
-  },
-  {
-    id: '6',
-    merchant: 'Erdene B',
-    date: 'Jun 19, 6:51 PM • Inv29',
-    amount: -1038.0,
-    type: 'outgoing',
-    initial: 'E',
-    color: '#6366f1',
-    iconUrl: '/images/merchants/erdene.webp',
-  },
-  {
-    id: '7',
-    merchant: 'Money added via ••9815',
-    date: 'Jun 19, 6:50 PM',
-    amount: 1000.0,
-    type: 'incoming',
-    initial: 'M',
-    color: '#eab308',
-    iconUrl: '/images/merchants/topup.webp',
-  },
-  {
-    id: '8',
-    merchant: "McDonald's",
-    date: 'Jun 19, 4:00 PM',
-    amount: -53.1,
-    type: 'outgoing',
-    initial: 'M',
-    color: '#ef4444',
-    iconUrl: '/images/merchants/mcdonalds.webp',
-  },
-  {
-    id: '9',
-    merchant: 'Kfc',
-    date: 'Jun 18, 8:08 PM',
-    amount: -35.85,
-    type: 'outgoing',
-    initial: 'K',
-    color: '#ef4444',
-    iconUrl: '/images/merchants/kfc.webp',
-  },
-  {
-    id: '10',
-    merchant: 'Money added via ••9815',
-    date: 'Jun 18, 8:05 PM',
-    amount: 250.0,
-    type: 'incoming',
-    initial: 'M',
-    color: '#eab308',
-    iconUrl: '/images/merchants/topup.webp',
-  },
-  {
-    id: '11',
-    merchant: 'Paymonade',
-    date: 'Jun 17, 7:26 PM',
-    amount: -420.0,
-    type: 'outgoing',
-    initial: 'P',
-    color: '#84cc16',
-    iconUrl: '/images/merchants/paymonade.webp',
-  },
-  {
-    id: '12',
-    merchant: 'Money added via ••9815',
-    date: 'Jun 17, 7:25 PM',
-    amount: 420.0,
-    type: 'incoming',
-    initial: 'M',
-    color: '#eab308',
-    iconUrl: '/images/merchants/topup.webp',
-  },
-  {
-    id: '13',
-    merchant: "McDonald's",
-    date: 'Jun 15, 9:42 PM',
-    amount: -28.9,
-    type: 'outgoing',
-    initial: 'M',
-    color: '#ef4444',
-    iconUrl: '/images/merchants/mcdonalds.webp',
-  },
-  {
-    id: '14',
-    merchant: 'Highland Reserve Conve',
-    date: 'Jun 15, 7:34 AM',
-    amount: -225.0,
-    type: 'outgoing',
-    initial: 'H',
-    color: '#22c55e',
-    iconUrl: '/images/merchants/highland.webp',
-  },
-  {
-    id: '15',
-    merchant: 'Highland Reserve Conve',
-    date: 'Jun 15, 7:33 AM',
-    amount: -22.47,
-    type: 'outgoing',
-    initial: 'H',
-    color: '#22c55e',
-    iconUrl: '/images/merchants/highland.webp',
-  },
-  {
-    id: '16',
-    merchant: 'Erdene B',
-    date: 'Jun 12, 6:36 PM • Inv28',
-    amount: -1038.0,
-    type: 'outgoing',
-    initial: 'E',
-    color: '#6366f1',
-    iconUrl: '/images/merchants/erdene.webp',
-  },
-  {
-    id: '17',
-    merchant: 'Money added via ••9815',
-    date: 'Jun 12, 6:34 PM',
-    amount: 1200.0,
-    type: 'incoming',
-    initial: 'M',
-    color: '#eab308',
-    iconUrl: '/images/merchants/topup.webp',
-  },
-];
+/** Stable colour per label so the same supplier/customer always gets the same badge. */
+function feedColor(label: string): string {
+  let hash = 0;
+  for (let i = 0; i < label.length; i++) hash = (hash * 31 + label.charCodeAt(i)) | 0;
+  return FEED_COLORS[Math.abs(hash) % FEED_COLORS.length] as string;
+}
 
 const YEAR_END_PRIORITY: Partial<Record<AdviceNoteKind, number>> = {
   year_end: 0,
@@ -398,6 +221,12 @@ export function DashboardPage() {
   const { progress: onboardingProgress, loading: onboardingProgressLoading } =
     useOnboardingProgress();
   const { tasks: todayTasks, loading: todayLoading } = useWorkstreamTasks();
+  const { items: activityItems, loading: activityLoading } = useRecentActivity();
+  const [payerDetails, setPayerDetails] = useState<{
+    name: string;
+    bsb: string;
+    account: string;
+  } | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'local' | 'international'>('local');
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -414,6 +243,30 @@ export function DashboardPage() {
     onboardingProgressLoading || onboardingProgress == null
       ? 0
       : onboardingProgress.pending_count + onboardingProgress.needs_review_count;
+
+  useEffect(() => {
+    if (!currentOrg) {
+      setPayerDetails(null);
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from('organizations')
+      .select('settings')
+      .eq('id', currentOrg.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        const s = (data?.settings ?? {}) as Record<string, unknown>;
+        const bsb = typeof s['payer_bsb'] === 'string' ? s['payer_bsb'] : '';
+        const account = typeof s['payer_account'] === 'string' ? s['payer_account'] : '';
+        const name = typeof s['payer_name'] === 'string' ? s['payer_name'] : '';
+        setPayerDetails(bsb && account ? { name: name || currentOrg.name, bsb, account } : null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentOrg]);
 
   useEffect(() => {
     if (selectedAdviceNoteId && !adviceNotes.some((note) => note.id === selectedAdviceNoteId)) {
@@ -497,37 +350,25 @@ export function DashboardPage() {
   }
 
   const balanceCents = pnl?.really_yours_cents ?? 0;
-  const transactionTotalCents = mockTransactions.reduce(
-    (sum, tx) => sum + Math.round(tx.amount * 100),
-    0,
-  );
+  const feedChronological = activityItems.slice().reverse();
+  const transactionTotalCents = feedChronological.reduce((sum, tx) => sum + tx.amountCents, 0);
   let runningPulseCents = balanceCents - transactionTotalCents;
-  const cashPulseItems = mockTransactions
-    .slice()
-    .reverse()
-    .map((tx) => {
-      runningPulseCents += Math.round(tx.amount * 100);
-      return {
-        label: tx.date.split('•')[0]?.trim() ?? tx.date,
-        value: runningPulseCents,
-      };
-    });
+  const cashPulseItems = feedChronological.length
+    ? feedChronological.map((tx) => {
+        runningPulseCents += tx.amountCents;
+        return { label: tx.sub.split('•')[0]?.trim() ?? tx.sub, value: runningPulseCents };
+      })
+    : [{ label: 'No activity yet', value: balanceCents }];
   let runningSpendCents = 0;
   let runningIncomeCents = 0;
-  const spendPulseItems = mockTransactions
-    .slice()
-    .reverse()
-    .map((tx) => {
-      if (tx.amount < 0) runningSpendCents += Math.abs(Math.round(tx.amount * 100));
-      return { label: tx.date.split('•')[0]?.trim() ?? tx.date, value: runningSpendCents };
-    });
-  const incomePulseItems = mockTransactions
-    .slice()
-    .reverse()
-    .map((tx) => {
-      if (tx.amount > 0) runningIncomeCents += Math.round(tx.amount * 100);
-      return { label: tx.date.split('•')[0]?.trim() ?? tx.date, value: runningIncomeCents };
-    });
+  const spendPulseItems = feedChronological.map((tx) => {
+    if (tx.amountCents < 0) runningSpendCents += Math.abs(tx.amountCents);
+    return { label: tx.sub.split('•')[0]?.trim() ?? tx.sub, value: runningSpendCents };
+  });
+  const incomePulseItems = feedChronological.map((tx) => {
+    if (tx.amountCents > 0) runningIncomeCents += tx.amountCents;
+    return { label: tx.sub.split('•')[0]?.trim() ?? tx.sub, value: runningIncomeCents };
+  });
   const costMixItems = [
     {
       label: 'Bills',
@@ -621,14 +462,14 @@ export function DashboardPage() {
 
         {/* Action Pill Buttons */}
         <div className="dashboard-action-pills" style={{ display: 'flex', gap: '0.5rem' }}>
-          <button className="revolut-pill-btn">
+          <Link to="/payment-runs" className="revolut-pill-btn">
             <Shuffle size={14} />
             <span>Move</span>
-          </button>
-          <button className="revolut-pill-btn">
+          </Link>
+          <Link to="/reports" className="revolut-pill-btn">
             <FileText size={14} />
             <span>Statement</span>
-          </button>
+          </Link>
           <button onClick={() => setDrawerOpen(true)} className="revolut-pill-btn">
             <Building2 size={14} />
             <span>Account details</span>
@@ -720,7 +561,25 @@ export function DashboardPage() {
           boxShadow: 'var(--shadow-sm)',
         }}
       >
-        {mockTransactions.map((tx, idx) => (
+        {activityLoading && activityItems.length === 0 && (
+          <div style={{ padding: '1rem 1.25rem' }}>
+            <SkeletonCard />
+          </div>
+        )}
+        {!activityLoading && activityItems.length === 0 && (
+          <div
+            style={{
+              padding: '1.5rem 1.25rem',
+              textAlign: 'center',
+              color: 'var(--text-muted)',
+              fontSize: '0.85rem',
+            }}
+          >
+            No money activity yet — upload a bill, raise an invoice, or import a bank statement and
+            it shows up here.
+          </div>
+        )}
+        {activityItems.map((tx, idx) => (
           <div
             key={tx.id}
             style={{
@@ -728,35 +587,27 @@ export function DashboardPage() {
               alignItems: 'center',
               padding: '0.85rem 1.25rem',
               borderBottom:
-                idx === mockTransactions.length - 1 ? 'none' : '1px solid var(--border-subtle)',
+                idx === activityItems.length - 1 ? 'none' : '1px solid var(--border-subtle)',
               gap: '1rem',
               transition: 'var(--transition-smooth)',
             }}
             className="transaction-row"
           >
-            {/* Merchant Brand Icon or Initial Badge */}
+            {/* Counterparty Initial Badge */}
             <div
               className="merchant-icon"
               style={{
-                backgroundColor: tx.iconUrl ? 'transparent' : tx.color,
+                backgroundColor: feedColor(tx.label),
                 overflow: 'hidden',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              {tx.iconUrl ? (
-                <img
-                  src={tx.iconUrl}
-                  alt={tx.merchant}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                />
-              ) : (
-                tx.initial
-              )}
+              {tx.label.charAt(0).toUpperCase()}
             </div>
 
-            {/* Merchant Details */}
+            {/* Counterparty Details */}
             <div style={{ flex: 1 }}>
               <div
                 style={{
@@ -765,7 +616,7 @@ export function DashboardPage() {
                   fontSize: '0.875rem',
                 }}
               >
-                {tx.merchant}
+                {tx.label}
               </div>
               <div
                 style={{
@@ -774,7 +625,7 @@ export function DashboardPage() {
                   marginTop: '0.15rem',
                 }}
               >
-                {tx.date}
+                {tx.sub}
               </div>
             </div>
 
@@ -783,17 +634,13 @@ export function DashboardPage() {
               style={{
                 fontWeight: 700,
                 fontSize: '0.875rem',
-                color:
-                  tx.status === 'declined'
-                    ? 'var(--text-muted)'
-                    : tx.type === 'incoming'
-                      ? 'var(--text-success)'
-                      : 'var(--text-title)',
-                textDecoration: tx.status === 'declined' ? 'line-through' : 'none',
+                color: tx.amountCents > 0 ? 'var(--text-success)' : 'var(--text-title)',
               }}
             >
-              {tx.type === 'incoming' ? '+' : '-'}A$
-              {Math.abs(tx.amount).toLocaleString('en-AU', { minimumFractionDigits: 2 })}
+              {tx.amountCents > 0 ? '+' : '-'}A$
+              {(Math.abs(tx.amountCents) / 100).toLocaleString('en-AU', {
+                minimumFractionDigits: 2,
+              })}
             </div>
           </div>
         ))}
@@ -806,16 +653,16 @@ export function DashboardPage() {
             borderTop: '1px solid var(--border-subtle)',
           }}
         >
-          <span
+          <Link
+            to="/reconciliation"
             style={{
               fontSize: '0.8rem',
               color: 'var(--accent-primary)',
               fontWeight: 600,
-              cursor: 'pointer',
             }}
           >
             See all
-          </span>
+          </Link>
         </div>
       </div>
 
@@ -942,61 +789,66 @@ export function DashboardPage() {
                   For domestic transfers only
                 </p>
 
-                {/* Beneficiary */}
-                <DetailRow
-                  label="Beneficiary"
-                  value="Daniel Sivyer"
-                  onCopy={() => handleCopy('Daniel Sivyer', 'beneficiary')}
-                  isCopied={copiedField === 'beneficiary'}
-                />
-
-                {/* Account */}
-                <DetailRow
-                  label="Account"
-                  value="100554161"
-                  onCopy={() => handleCopy('100554161', 'account')}
-                  isCopied={copiedField === 'account'}
-                />
-
-                {/* BSB Number */}
-                <DetailRow
-                  label="BSB Number"
-                  value="772772"
-                  onCopy={() => handleCopy('772772', 'bsb')}
-                  isCopied={copiedField === 'bsb'}
-                />
-
-                {/* Bank Name & Address */}
-                <DetailRow
-                  label="Bank name and address"
-                  value="Revolut Payments Australia Pty Ltd Level 28, 161 Castlereagh Street, 2000, Sydney, NSW, Australia"
-                  onCopy={() =>
-                    handleCopy(
-                      'Revolut Payments Australia Pty Ltd Level 28, 161 Castlereagh Street, 2000, Sydney, NSW, Australia',
-                      'bank',
-                    )
-                  }
-                  isCopied={copiedField === 'bank'}
-                />
-
-                {/* Share Button */}
-                <button
-                  onClick={() =>
-                    handleCopy(
-                      'BSB: 772772, Account: 100554161, Beneficiary: Daniel Sivyer',
-                      'share',
-                    )
-                  }
-                  className="btn btn-primary"
-                  style={{
-                    width: '100%',
-                    borderRadius: '9999px',
-                    marginTop: '0.5rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  {copiedField === 'share' ? 'Copied details!' : 'Share details'}
-                </button>
+                {payerDetails ? (
+                  <>
+                    <DetailRow
+                      label="Beneficiary"
+                      value={payerDetails.name}
+                      onCopy={() => handleCopy(payerDetails.name, 'beneficiary')}
+                      isCopied={copiedField === 'beneficiary'}
+                    />
+                    <DetailRow
+                      label="Account"
+                      value={payerDetails.account}
+                      onCopy={() => handleCopy(payerDetails.account, 'account')}
+                      isCopied={copiedField === 'account'}
+                    />
+                    <DetailRow
+                      label="BSB Number"
+                      value={payerDetails.bsb}
+                      onCopy={() => handleCopy(payerDetails.bsb, 'bsb')}
+                      isCopied={copiedField === 'bsb'}
+                    />
+                    <button
+                      onClick={() =>
+                        handleCopy(
+                          `BSB: ${payerDetails.bsb}, Account: ${payerDetails.account}, Beneficiary: ${payerDetails.name}`,
+                          'share',
+                        )
+                      }
+                      className="btn btn-primary"
+                      style={{
+                        width: '100%',
+                        borderRadius: '9999px',
+                        marginTop: '0.5rem',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {copiedField === 'share' ? 'Copied details!' : 'Share details'}
+                    </button>
+                  </>
+                ) : (
+                  <div
+                    style={{
+                      backgroundColor: 'var(--bg-app)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '8px',
+                      padding: '1rem',
+                      fontSize: '0.85rem',
+                      color: 'var(--text-muted)',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Add your organisation&apos;s bank details in{' '}
+                    <Link
+                      to="/settings"
+                      style={{ color: 'var(--accent-primary)', fontWeight: 600 }}
+                    >
+                      Settings → Payments
+                    </Link>{' '}
+                    to show and share your receiving account here.
+                  </div>
+                )}
 
                 {/* Advisory lists */}
                 <div
@@ -1010,25 +862,16 @@ export function DashboardPage() {
                   }}
                 >
                   <AdvisoryItem
-                    icon="🏦"
-                    text="Your money is protected by bank guarantee. Learn more"
-                    link="Learn more"
-                  />
-                  <AdvisoryItem
-                    icon="⚡"
-                    text="Transfers usually arrive in minutes. In some cases, it may take 1 business day"
+                    icon="💡"
+                    text="These are your organisation's receiving details from Settings — put them on invoices so customers can pay you"
                   />
                   <AdvisoryItem
                     icon="🇦🇺"
-                    text="Only local transfers are accepted. For international transfers, please use the SWIFT details found above"
-                  />
-                  <AdvisoryItem
-                    icon="💡"
-                    text="Use these details to receive transfers from an Australian dollar bank account"
+                    text="Australian BSB + account transfers only — payments usually land the same or next business day"
                   />
                   <AdvisoryItem
                     icon="🔄"
-                    text="Give these details to merchants to set up Direct Debits or PayTo agreements and automatically pay off your recurring bills"
+                    text="Payment runs and ABA files generated by Looplet draw on the payer details saved in Settings"
                   />
                 </div>
 
@@ -1052,7 +895,9 @@ export function DashboardPage() {
                   >
                     Documents
                   </div>
-                  <div
+                  <Link
+                    to="/reports"
+                    onClick={() => setDrawerOpen(false)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -1060,7 +905,7 @@ export function DashboardPage() {
                       backgroundColor: 'var(--bg-app)',
                       padding: '0.75rem 1rem',
                       borderRadius: '8px',
-                      cursor: 'pointer',
+                      textDecoration: 'none',
                     }}
                   >
                     <div
@@ -1077,7 +922,7 @@ export function DashboardPage() {
                       <span>Account statement</span>
                     </div>
                     <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
-                  </div>
+                  </Link>
                 </div>
               </div>
             ) : (
@@ -1101,8 +946,9 @@ export function DashboardPage() {
                     lineHeight: 1.5,
                   }}
                 >
-                  Upgrade account settings or check standard SWIFT routing to deposit funds from
-                  foreign accounts.
+                  Looplet tracks AUD accounts. To receive from overseas, use your bank&apos;s own
+                  SWIFT details — the payment lands in your AUD account and imports here like any
+                  other transaction.
                 </p>
               </div>
             )}

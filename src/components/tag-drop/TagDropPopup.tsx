@@ -18,8 +18,6 @@ import {
   FileText,
   MapPin,
   MessageSquare,
-  Monitor,
-  Image as ImageIcon,
   ChevronDown,
 } from 'lucide-react';
 import type { StaffMember, UploadedFile, TagPopupPosition } from './types';
@@ -240,38 +238,22 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
           </p>
         )}
 
-        {/* Attachments + actions — Screen / Image / Voice are deferred (no
-            durable upload yet), so only Paint is enabled here too. */}
+        {/* Attachments + actions — only capture modes with durable upload are
+            offered (Paint today); undurable modes are omitted entirely. */}
         <div className="flex items-center gap-1.5 px-4 py-3">
-          {(
-            [
-              { icon: Monitor, label: 'Screen', deferred: true },
-              { icon: ImageIcon, label: 'Image', deferred: true },
-              { icon: Mic, label: 'Voice', deferred: true },
-              { icon: Palette, label: 'Paint', deferred: false },
-            ] as const
-          ).map(({ icon: Icon, label, deferred }) => (
+          {([{ icon: Palette, label: 'Paint' }] as const).map(({ icon: Icon, label }) => (
             <button
               key={label}
               type="button"
-              disabled={deferred}
-              aria-disabled={deferred || undefined}
-              onClick={deferred ? undefined : onPaintClick}
-              title={deferred ? `${label} capture is coming soon` : label}
+              onClick={onPaintClick}
+              title={label}
               className={cn(
                 'flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-semibold transition-colors',
-                deferred
-                  ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-500'
-                  : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800',
+                'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800',
               )}
             >
               <Icon className="h-3.5 w-3.5" />
               {label}
-              {deferred && (
-                <span className="rounded-full bg-slate-200 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-700 dark:text-slate-300">
-                  Soon
-                </span>
-              )}
             </button>
           ))}
           <div className="ml-auto flex items-center gap-2">
@@ -534,16 +516,13 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
               </label>
 
               {/* Screen / Image / Voice capture is NOT wired to durable storage
-                  yet — the tag-attachments bucket + uploader (SC-2D/2E) were
-                  never built, so a captured blob/base64 preview would not
-                  survive a reload. Until that lands these controls are
-                  disabled + labelled "Soon" so we never persist a dead URL.
+                  (the tag-attachments bucket + uploader were never built), so
+                  those controls are omitted entirely rather than shown dead.
                   Comments, drawings (Paint), mentions and deep links all
-                  persist today and stay fully enabled. */}
+                  persist today. */}
               <p className="text-[10px] text-slate-400">
-                Screen, image and voice capture are coming soon. Use{' '}
-                <span className="font-semibold text-slate-500">Paint</span> to annotate the page —
-                drawings, comments and @mentions save with the tag.
+                Use <span className="font-semibold text-slate-500">Paint</span> to annotate the page
+                — drawings, comments and @mentions save with the tag.
               </p>
 
               {/* File Previews */}
@@ -587,34 +566,8 @@ export const TagDropPopup: React.FC<TagDropPopupProps> = ({
                 </div>
               )}
 
-              {/* Media Action Buttons — Screen / Image / Voice are deferred
-                  (no durable upload yet); only Paint persists, so only it is
-                  enabled. */}
+              {/* Media Action Buttons — only durable capture modes are shown. */}
               <div className="grid grid-cols-4 gap-2">
-                {(
-                  [
-                    { icon: Monitor, label: 'Screen' },
-                    { icon: ImageIcon, label: 'Image' },
-                    { icon: Mic, label: 'Voice' },
-                  ] as const
-                ).map(({ icon: Icon, label }) => (
-                  <Button
-                    key={label}
-                    variant="outline"
-                    size="sm"
-                    disabled
-                    aria-disabled="true"
-                    title={`${label} capture is coming soon`}
-                    className="relative flex flex-col items-center justify-center gap-1 h-16 bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 border rounded-xl"
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="text-[10px] font-medium">{label}</span>
-                    <span className="absolute top-1 right-1 rounded-full bg-slate-200 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-700 dark:text-slate-300">
-                      Soon
-                    </span>
-                  </Button>
-                ))}
-
                 <Button
                   variant="outline"
                   size="sm"

@@ -1020,21 +1020,6 @@ export function SettingsPage() {
           </span>
           Looplet syncs organizations dynamically. BAS submission alerts, tax deadlines, and OCR
           scanning cues are loaded contextually based on active company setups.
-          <Link
-            to="/roadmap"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.25rem',
-              marginTop: '0.6rem',
-              color: 'var(--accent-primary)',
-              fontWeight: 700,
-              textDecoration: 'none',
-            }}
-          >
-            <span>Open roadmap</span>
-            <ChevronRight size={14} />
-          </Link>
         </div>
       </div>
     </section>

@@ -26,6 +26,7 @@ live function. Do not deploy these by default; use a staging ticket and proof.
 | `automation-watchdog`          | live-active | false           | 13           | Background anomaly/healing scanner; cron/service-secret gated.          |
 | `automation-worker`            | live-active | false           | 16           | Automation job drainer; cron/service-secret gated.                     |
 | `bank-csv-import`              | live-active | true            | 39           |                                                                        |
+| `bank-disconnect`              | local-only  | n/a             | n/a          | Pending deploy: bank connection teardown.                              |
 | `bank-discover`                | live-active | true            | 28           |                                                                        |
 | `bank-exchange`                | live-active | true            | 40           |                                                                        |
 | `bank-job-poll`                | live-active | true            | 37           |                                                                        |
@@ -33,6 +34,7 @@ live function. Do not deploy these by default; use a staging ticket and proof.
 | `bank-statement-extract`       | live-active | true            | 37           |                                                                        |
 | `bank-sync`                    | live-active | true            | 43           |                                                                        |
 | `bank-sync-all`                | live-active | false           | 41           |                                                                        |
+| `bank-transaction-attach-job`  | local-only  | n/a             | n/a          | Pending deploy: attach bank txn to job.                                |
 | `bank-transaction-classifier`   | live-active | false           | 22           | Bank transaction coding classifier; cron/user auth paths.               |
 | `bank-webhook`                 | live-active | false           | 41           |                                                                        |
 | `bas-lodgement-pack`           | live-active | true            | 5            | BAS review pack builder; not ATO transport.                            |
@@ -42,6 +44,7 @@ live function. Do not deploy these by default; use a staging ticket and proof.
 | `bills-extract`                | live-active | true            | 62           |                                                                        |
 | `bills-extract-batch`          | live-active | true            | 42           |                                                                        |
 | `coding-classifier`            | live-active | true            | 1            | Deployed 2026-06-30; fails closed if connector signing secret missing. |
+| `crm-pnl-sync-push`            | local-only  | n/a             | n/a          | Pending deploy: CRM P&L push (endpoint secrets uncoordinated).         |
 | `depreciation-run`             | live-active | false           | 1            | Deployed 2026-06-30; cron secret/service-role auth gate.               |
 | `div7a-agreement`              | live-active | true            | 1            | Deployed 2026-06-30; document generation only.                         |
 | `employee-tfn-save`            | live-active | false           | 1            | Deployed 2026-06-30; self-auth + TFN vault path.                       |
@@ -80,10 +83,12 @@ live function. Do not deploy these by default; use a staging ticket and proof.
 | `working-papers`               | live-active | true            | 1            | Deployed 2026-06-30; working-paper bundle prep only.                   |
 | `xero-oauth-callback`          | live-active | false           | 42           |                                                                        |
 | `xero-oauth-start`             | live-active | true            | 42           |                                                                        |
+| `xero-pull-bank-transactions`  | local-only  | n/a             | n/a          | Pending deploy: Xero pull-first bank transactions.                     |
 | `xero-push-bill`               | live-active | false           | 35           |                                                                        |
 | `xero-push-invoice`            | live-active | false           | 35           |                                                                        |
 | `xero-sync-accounts`           | live-active | false           | 35           |                                                                        |
 | `xero-sync-payments`           | live-active | false           | 35           |                                                                        |
+| `xero-webhook`                 | local-only  | n/a             | n/a          | Pending deploy: Xero webhook receiver (ITR validated).                 |
 
 ## Deployment Notes
 

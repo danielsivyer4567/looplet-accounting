@@ -1,4 +1,4 @@
-import { readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -24,13 +24,14 @@ describe('production security and performance polish', () => {
     expect(vite).toMatch(/supabase-vendor/);
   });
 
-  it('keeps large dashboard merchant assets optimized as WebP thumbnails', () => {
+  it('ships no mock merchant assets — the dashboard feed is real data only', () => {
     const dashboard = readRepoFile('src/pages/Dashboard.tsx');
-    const merchantAsset = statSync(join(root, 'public/images/merchants/topup.webp'));
 
-    expect(dashboard).toMatch(/\/images\/merchants\/topup\.webp/);
-    expect(dashboard).not.toMatch(/\/images\/merchants\/[^']+\.png/);
-    expect(merchantAsset.size).toBeLessThan(10_000);
+    // The old hardcoded transaction feed shipped fake merchant thumbnails;
+    // the feed now renders real bills/invoices/bank rows with initial badges.
+    expect(dashboard).not.toMatch(/\/images\/merchants\//);
+    expect(dashboard).not.toMatch(/mockTransactions/);
+    expect(existsSync(join(root, 'public/images/merchants'))).toBe(false);
   });
 
   it('disables production sourcemaps and publishes baseline security headers', () => {
@@ -45,12 +46,15 @@ describe('production security and performance polish', () => {
     expect(headers).toMatch(/Strict-Transport-Security:/);
   });
 
-  it('keeps Edge Function CORS origin configurable instead of permanently wildcarded', () => {
+  it('keeps Edge Function CORS origin configurable, with auth as the security boundary', () => {
     const cors = readRepoFile('supabase/functions/_shared/cors.ts');
 
-    expect(cors).toMatch(/Deno\.env\.get\('APP_ORIGIN'\)/);
-    expect(cors).toMatch(/Deno\.env\.get\('SITE_URL'\)/);
+    // Deliberate contract (see fix(cors) de7e52e): permissive default so every
+    // app domain works, with CORS_ALLOWED_ORIGIN as the explicit pin. CORS must
+    // never silently pin to the email SITE_URL/APP_ORIGIN again.
+    expect(cors).toMatch(/Deno\.env\.get\('CORS_ALLOWED_ORIGIN'\)/);
     expect(cors).toMatch(/'Access-Control-Allow-Origin': allowedOrigin/);
-    expect(cors).not.toMatch(/'Access-Control-Allow-Origin': '\*'/);
+    expect(cors).not.toMatch(/Deno\.env\.get\('APP_ORIGIN'\)/);
+    expect(cors).not.toMatch(/Deno\.env\.get\('SITE_URL'\)/);
   });
 });

@@ -28,7 +28,8 @@ export function BalanceSheetPage() {
   const [rows, setRows] = useState<BalanceSheetRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [asOfDate, setAsOfDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  // v_balance_sheet reflects the live ledger, so the report is always "as at today".
+  const asOfDate = new Date().toISOString().slice(0, 10);
 
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
@@ -152,23 +153,14 @@ export function BalanceSheetPage() {
           flexWrap: 'wrap',
         }}
       >
-        <div
-          className="form-group"
-          style={{ marginBottom: 0, flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}
-        >
-          <span className="form-label" style={{ fontSize: '0.725rem', whiteSpace: 'nowrap' }}>
-            As of Date
-          </span>
-          <input
-            type="date"
-            value={asOfDate}
-            onChange={(e) => setAsOfDate(e.target.value)}
-            className="form-input"
-            style={{ width: '150px', padding: '0.4rem 0.625rem' }}
-          />
-        </div>
         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-          (Currently always reflects today; historical date range options coming soon)
+          As at{' '}
+          {new Date(asOfDate).toLocaleDateString('en-AU', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          })}{' '}
+          — live position from your current ledger
         </span>
       </div>
 

@@ -1,16 +1,17 @@
 /**
- * P0-04 — Media attachment scope (persist-or-defer).
+ * P0-04 — Media attachment scope (persist-or-hide).
  *
  * Durable media upload (image / audio / video) is NOT wired: the
  * `tag-attachments` storage bucket exists (migration 0200) but no uploader was
  * ever built, so a captured base64/blob preview URL would not survive a reload.
  * Rather than pretend to support it, the Screen / Image / Voice controls are
- * disabled and labelled "Soon". The paths that DO persist — comments, drawings
- * (Paint), @mentions / staff notify, deep links — stay fully enabled.
+ * omitted entirely (no dead buttons, no "coming soon" copy). The paths that DO
+ * persist — comments, drawings (Paint), @mentions / staff notify, deep links —
+ * stay fully enabled.
  *
  * These tests pin that contract on the presentational popup (no full manager /
- * Supabase needed): deferred media controls are inert + labelled, while the
- * comment and mention paths still render and fire their callbacks.
+ * Supabase needed): undurable media controls are absent, while the comment and
+ * mention paths still render and fire their callbacks.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -60,35 +61,14 @@ function makeProps(overrides: Partial<TagDropPopupProps> = {}): TagDropPopupProp
 }
 
 describe('TagDropPopup — media attachment scope (fresh tag)', () => {
-  it('disables the Screen / Image / Voice controls and labels them deferred', () => {
+  it('omits the Screen / Image / Voice controls entirely — no dead buttons, no coming-soon copy', () => {
     render(<TagDropPopup {...makeProps()} />);
 
     for (const label of ['Screen', 'Image', 'Voice']) {
-      const button = screen.getByRole('button', { name: new RegExp(label, 'i') });
-      expect(button).toBeDisabled();
-      expect(button).toHaveAttribute('title', expect.stringMatching(/coming soon/i));
+      expect(screen.queryByRole('button', { name: new RegExp(label, 'i') })).toBeNull();
     }
-
-    // Each deferred control carries a visible "Soon" badge, and the panel
-    // explains capture is coming soon — we never claim media is supported.
-    expect(screen.getAllByText(/^Soon$/i).length).toBeGreaterThanOrEqual(3);
-    expect(screen.getByText(/coming soon/i)).toBeInTheDocument();
-  });
-
-  it('does not invoke the deferred media handlers when their controls are clicked', () => {
-    const onImageUpload = vi.fn();
-    const onAudioRecord = vi.fn();
-    const onToggleScreenRecord = vi.fn();
-    render(<TagDropPopup {...makeProps({ onImageUpload, onAudioRecord, onToggleScreenRecord })} />);
-
-    // Disabled buttons swallow the click — no fake/unpersisted media is created.
-    fireEvent.click(screen.getByRole('button', { name: /Image/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Voice/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Screen/i }));
-
-    expect(onImageUpload).not.toHaveBeenCalled();
-    expect(onAudioRecord).not.toHaveBeenCalled();
-    expect(onToggleScreenRecord).not.toHaveBeenCalled();
+    expect(screen.queryByText(/coming soon/i)).toBeNull();
+    expect(screen.queryByText(/^Soon$/i)).toBeNull();
   });
 
   it('keeps the Paint (drawing) control enabled — drawings persist', () => {
@@ -129,7 +109,7 @@ describe('TagDropPopup — media attachment scope (reply bar)', () => {
   const replyProps = () =>
     makeProps({ isReplyMode: true, selectedStaff: [accountantStaff], activeConversationId: 't1' });
 
-  it('disables the deferred media chips and keeps Paint clickable', () => {
+  it('omits the undurable media chips and keeps Paint clickable', () => {
     const onPaintClick = vi.fn();
     const onImageUpload = vi.fn();
     render(
@@ -137,7 +117,7 @@ describe('TagDropPopup — media attachment scope (reply bar)', () => {
     );
 
     for (const label of ['Screen', 'Image', 'Voice']) {
-      expect(screen.getByRole('button', { name: new RegExp(label, 'i') })).toBeDisabled();
+      expect(screen.queryByRole('button', { name: new RegExp(label, 'i') })).toBeNull();
     }
 
     const paint = screen.getByRole('button', { name: /Paint/i });

@@ -90,7 +90,6 @@ const navItems: NavItem[] = [
   { to: '/quality', label: 'Quality', icon: CheckCircle, area: 'Advisor' },
   { to: '/onboarding', label: 'Auto Setup', icon: Sparkles, area: 'Setup' },
   { to: '/settings', label: 'Settings', icon: Settings, area: 'Setup' },
-  { to: '/roadmap', label: 'Roadmap', icon: Wrench, area: 'Setup' },
 ];
 
 function SidebarContent({ items, onNavClick }: { items: NavItem[]; onNavClick?: () => void }) {

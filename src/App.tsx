@@ -170,7 +170,6 @@ const LegalHorizonPage = lazy(() =>
   import('@/pages/LegalHorizon').then((m) => ({ default: m.LegalHorizonPage })),
 );
 const ClientsPage = lazy(() => import('@/pages/Clients').then((m) => ({ default: m.ClientsPage })));
-const RoadmapPage = lazy(() => import('@/pages/Roadmap').then((m) => ({ default: m.RoadmapPage })));
 const DataSharingPage = lazy(() =>
   import('@/pages/DataSharing').then((m) => ({ default: m.DataSharingPage })),
 );
@@ -273,7 +272,6 @@ export function App() {
               <Route path="scan" element={<ScanPage />} />
               <Route path="receipt-hub" element={<ReceiptHubPage />} />
               <Route path="my-activity" element={<MyActivityPage />} />
-              <Route path="roadmap" element={<RoadmapPage />} />
               <Route path="data-sharing" element={<DataSharingPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

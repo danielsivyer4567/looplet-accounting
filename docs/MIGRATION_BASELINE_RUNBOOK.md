@@ -2,12 +2,12 @@
 
 **Status:** active finish-line runbook.
 **Project:** `dxoikltymmknxqpkpyhi`.
-**Current local ceiling:** `20260702171500_search_index_functions.sql`.
+**Current local ceiling:** `20260703160000_xero_webhook_events.sql`.
 
 This runbook supersedes older warnings that named `0080`, `0207`, or `0236` as
 the local ceiling. The source tree now carries numbered migrations through
 `0236` plus timestamped hardening repairs through
-`20260702171500_search_index_functions.sql`.
+`20260703160000_xero_webhook_events.sql`.
 
 ## Baseline Status
 
@@ -65,7 +65,7 @@ redefinitions + orphaned-function drops) was live-applied and verified
 directly (`supabase db query --linked`, bypassing the blocked `db push
 --dry-run`) since the remote history ledger was not reconciled with the local
 timestamped files. Its `search()`/`search_index_set_embedding()` functions
-were split out to `20260702171500_search_index_functions.sql` — these are
+were split out to `20260703160000_xero_webhook_events.sql` — these are
 **NOT applied**, since they depend on `public.search_index`
 (`20260701140000_universal_search_index.sql`, built + dry-run-verified but
 never shipped live — an explicit product decision pending, not a bug). Do not

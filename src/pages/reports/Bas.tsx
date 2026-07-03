@@ -444,8 +444,8 @@ export function BasReportPage() {
           >
             BAS Reporting Details
           </span>
-          Future updates will support PAYG withholding rollup calculations, ATO BAS lodgement SBR
-          integrations, and year-over-year comparative charts.
+          Figures are compiled from your verified bills, invoices and payroll for the selected
+          quarter. Review each label against your records before lodging with the ATO.
         </div>
       </div>
     </section>

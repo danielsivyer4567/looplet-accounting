@@ -59,6 +59,7 @@ const KNOWN_CLAIMABLE_JOB_KINDS = [
   'bill_code',
   'coding_classify',
   'payment_record',
+  'crm_pnl_sync',
 ] as const;
 const KNOWN_EXCLUDED_JOB_KINDS = ['browser_collect'] as const;
 const ALL_KNOWN_JOB_KINDS: readonly string[] = [
