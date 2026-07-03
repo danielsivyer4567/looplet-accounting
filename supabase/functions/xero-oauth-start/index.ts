@@ -16,7 +16,7 @@ import { createXeroOAuthState } from '../_shared/xero/oauthState.ts';
 
 const XERO_AUTHORIZE_URL = 'https://login.xero.com/identity/connect/authorize';
 const DEFAULT_SCOPES =
-  'openid profile email offline_access accounting.invoices accounting.contacts accounting.settings.read';
+  'openid profile email offline_access accounting.invoices accounting.contacts accounting.settings.read accounting.transactions.read accounting.reports.read';
 
 Deno.serve(async (req) => {
   const pre = preflight(req);
