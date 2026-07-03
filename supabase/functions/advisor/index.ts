@@ -136,6 +136,23 @@ export interface ScheduledAdviceResult {
   advice_note_id: string | null;
 }
 
+export interface LegalHorizonSignal {
+  id: string;
+  title: string;
+  summary: string | null;
+  topic: string | null;
+  stage: string;
+  confidence: number;
+  proposed_effective_from: string | null;
+  source_url: string | null;
+  source_excerpt: string | null;
+}
+
+interface LegalHorizonLoadResult {
+  signals: LegalHorizonSignal[];
+  source_errors: string[];
+}
+
 export function selectSeasonalModes(
   asAt: Date | string = new Date(),
 ): AdviceNoteKind[] {
@@ -200,6 +217,92 @@ function safeEqual(a: string, b: string): boolean {
   let out = 0;
   for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return out === 0;
+}
+
+function legalHorizonSignal(row: Record<string, unknown>): LegalHorizonSignal {
+  return {
+    id: String(row.id ?? ""),
+    title: String(row.title ?? "Untitled legal horizon item"),
+    summary: typeof row.summary === "string" ? row.summary : null,
+    topic: typeof row.topic === "string" ? row.topic : null,
+    stage: String(row.stage ?? "announced"),
+    confidence: Math.max(0, Math.min(1, Number(row.confidence ?? 0))),
+    proposed_effective_from:
+      typeof row.proposed_effective_from === "string"
+        ? row.proposed_effective_from
+        : null,
+    source_url: typeof row.source_url === "string" ? row.source_url : null,
+    source_excerpt: typeof row.source_excerpt === "string"
+      ? row.source_excerpt
+      : null,
+  };
+}
+
+export async function loadLegalHorizonSignals(
+  admin: SupabaseClientLike,
+): Promise<LegalHorizonLoadResult> {
+  const { data, error } = await admin
+    .from("legal_horizon")
+    .select(
+      "id,title,summary,topic,stage,confidence,proposed_effective_from,source_url,source_excerpt",
+    )
+    .eq("status", "open")
+    .is("deleted_at", null)
+    .order("proposed_effective_from", { ascending: true })
+    .limit(8);
+
+  if (error) {
+    return {
+      signals: [],
+      source_errors: [`legal_horizon: ${error.message}`],
+    };
+  }
+
+  return {
+    signals: Array.isArray(data)
+      ? data.map((row) => legalHorizonSignal(row as Record<string, unknown>))
+      : [],
+    source_errors: [],
+  };
+}
+
+export function attachLegalHorizonContext(
+  noteArgs: CreateAdviceNoteArgs,
+  signals: LegalHorizonSignal[],
+): CreateAdviceNoteArgs {
+  if (signals.length === 0) return noteArgs;
+
+  const items = signals.map((signal) => ({
+    id: signal.id,
+    title: signal.title,
+    summary: signal.summary,
+    topic: signal.topic,
+    stage: signal.stage,
+    confidence: signal.confidence,
+    proposed_effective_from: signal.proposed_effective_from,
+    source_url: signal.source_url,
+  }));
+
+  return {
+    ...noteArgs,
+    p_inputs: {
+      ...noteArgs.p_inputs,
+      legal_horizon: {
+        source: "legal_horizon",
+        status: "proposal_context_only",
+        items,
+      },
+    },
+    p_numbers: {
+      ...noteArgs.p_numbers,
+      legal_horizon_open_count: items.length,
+    },
+    p_assumptions: {
+      ...noteArgs.p_assumptions,
+      legal_horizon_notice:
+        "Legal-horizon rows are proposed or pending changes only. They are not enacted-law citations and require registered-agent review before action.",
+    },
+  };
 }
 
 export interface CashFlowForecastRow {
@@ -991,21 +1094,25 @@ async function runScheduledAdvisor(
   if (!org) throw new Error("organization not found or deleted");
 
   const facts = await loadAdvisoryFacts(advisoryFactsClient(admin), orgId);
+  const legalHorizon = await loadLegalHorizonSignals(admin);
   const scheduledModes = selectSeasonalModes(asAt);
   const results: ScheduledAdviceResult[] = [];
 
   for (const scheduledMode of scheduledModes) {
     const period = scheduledPeriodForMode(scheduledMode, asAt);
     const noteArgs = withScheduledInputs(
-      await buildAdviceNoteForMode({
-        mode: scheduledMode,
-        orgId,
-        facts,
-        client: admin,
-        body,
-        cgtDisposal: null,
-        asAt,
-      }),
+      attachLegalHorizonContext(
+        await buildAdviceNoteForMode({
+          mode: scheduledMode,
+          orgId,
+          facts,
+          client: admin,
+          body,
+          cgtDisposal: null,
+          asAt,
+        }),
+        legalHorizon.signals,
+      ),
       period,
       asAt,
     );
@@ -1015,7 +1122,7 @@ async function runScheduledAdvisor(
   return {
     scheduled_modes: scheduledModes,
     results,
-    source_errors: facts.source_errors,
+    source_errors: [...facts.source_errors, ...legalHorizon.source_errors],
   };
 }
 

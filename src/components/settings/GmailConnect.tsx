@@ -2,8 +2,23 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { useGmailIntegrations } from '@/hooks/useGmailIntegrations';
+import { SkeletonTable } from '@/components/Skeleton';
 
-export function GmailConnect() {
+interface GmailConnectProps {
+  title?: string;
+  description?: string;
+  connectLabel?: string;
+  reconnectLabel?: string;
+  showContainerSpacing?: boolean;
+}
+
+export function GmailConnect({
+  title = 'Gmail intake',
+  description = 'Connect a mailbox so supplier invoices arrive automatically. We watch the INBOX label only and pull PDF / image attachments. You can list specific senders below to filter further.',
+  connectLabel = '+ Connect Gmail',
+  reconnectLabel = 'Reconnect',
+  showContainerSpacing = true,
+}: GmailConnectProps) {
   const { currentOrg } = useOrg();
   const { integrations, loading, refresh } = useGmailIntegrations();
   const [connecting, setConnecting] = useState(false);
@@ -13,6 +28,11 @@ export function GmailConnect() {
 
   if (!currentOrg) return null;
 
+  // Starts the Google OAuth flow. Used both for the first connect and to
+  // reconnect a mailbox whose grant was revoked/expired: the OAuth callback
+  // upserts on (organization_id, gmail_address) and flips is_active back to
+  // true + clears last_error, so reconnecting the SAME mailbox revives the
+  // disabled row in place (no duplicate, no orphaned bills).
   const handleConnect = async () => {
     setError(null);
     setConnecting(true);
@@ -121,16 +141,39 @@ export function GmailConnect() {
     }
   };
 
+  const disconnected = integrations.filter((g) => !g.is_active);
+  const formatDate = (value: string | null | undefined) =>
+    value?.slice(0, 16).replace('T', ' ') ?? '—';
+
   return (
-    <div style={{ marginTop: '2rem' }}>
-      <h2 style={{ fontSize: 18, marginBottom: '0.5rem' }}>Gmail intake</h2>
-      <p style={{ color: '#888', fontSize: 13, marginBottom: '1rem' }}>
-        Connect a mailbox so supplier invoices arrive automatically. We watch the INBOX label only
-        and pull PDF / image attachments. You can list specific senders below to filter further.
-      </p>
+    <div style={{ marginTop: showContainerSpacing ? '2rem' : 0 }}>
+      <h2 style={{ fontSize: 18, marginBottom: '0.5rem' }}>{title}</h2>
+      <p style={{ color: '#888', fontSize: 13, marginBottom: '1rem' }}>{description}</p>
+
+      {disconnected.length > 0 && (
+        <div
+          role="alert"
+          style={{
+            border: '1px solid #7a5a22',
+            background: '#2a1f0c',
+            color: '#e3b873',
+            borderRadius: 4,
+            padding: '0.6rem 0.75rem',
+            fontSize: 13,
+            marginBottom: '1rem',
+          }}
+        >
+          {disconnected.length === 1
+            ? `${disconnected[0]?.gmail_address ?? 'That mailbox'} was disconnected — invoice intake from it has stopped. `
+            : `${disconnected.length} Gmail mailboxes were disconnected — invoice intake from them has stopped. `}
+          Use the <strong>Reconnect</strong> button below to restore it.
+        </div>
+      )}
 
       {loading ? (
-        <p style={{ color: '#888' }}>Loading…</p>
+        <div aria-busy="true" aria-label="Loading Gmail integrations">
+          <SkeletonTable rows={2} cols={5} />
+        </div>
       ) : integrations.length === 0 ? (
         <button
           onClick={handleConnect}
@@ -146,26 +189,113 @@ export function GmailConnect() {
             fontWeight: 600,
           }}
         >
-          {connecting ? 'Connecting…' : '+ Connect Gmail'}
+          {connecting ? 'Connecting…' : connectLabel}
         </button>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
-              <th style={th}>Mailbox</th>
-              <th style={th}>Last synced</th>
-              <th style={th}>Watch expires</th>
-              <th style={th}>Status</th>
-              <th style={th}></th>
-            </tr>
-          </thead>
-          <tbody>
+        <>
+          <table
+            className="settings-responsive-table"
+            style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}
+          >
+            <thead>
+              <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
+                <th style={th}>Mailbox</th>
+                <th style={th}>Last synced</th>
+                <th style={th}>Watch expires</th>
+                <th style={th}>Status</th>
+                <th style={th}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {integrations.map((g) => (
+                <tr key={g.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
+                  <td style={td}>{g.gmail_address}</td>
+                  <td style={td}>{formatDate(g.last_synced_at)}</td>
+                  <td style={td}>{formatDate(g.watch_expires_at)}</td>
+                  <td style={td}>
+                    <span
+                      style={{
+                        padding: '0.15rem 0.5rem',
+                        fontSize: 11,
+                        borderRadius: 3,
+                        background: g.is_active ? '#0d2f1f' : '#2a2a2a',
+                        color: g.is_active ? '#86c7a3' : '#888',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {g.is_active ? 'active' : 'disabled'}
+                    </span>
+                    {g.last_error && (
+                      <div style={{ color: '#e9a3a3', fontSize: 11, marginTop: 4 }}>
+                        {g.last_error}
+                      </div>
+                    )}
+                  </td>
+                  <td style={td}>
+                    {g.is_active ? (
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        <button
+                          onClick={() => handleBackfill(g.id, g.gmail_address)}
+                          disabled={backfilling === g.id}
+                          style={{
+                            background: '#1c5135',
+                            color: '#86c7a3',
+                            border: '1px solid #2da565',
+                            borderRadius: 3,
+                            fontSize: 11,
+                            padding: '0.2rem 0.5rem',
+                            cursor: backfilling === g.id ? 'wait' : 'pointer',
+                          }}
+                        >
+                          {backfilling === g.id ? 'Scanning…' : 'Backfill 6 months'}
+                        </button>
+                        <button
+                          onClick={() => handleDisconnect(g.id, g.gmail_address)}
+                          style={{
+                            background: 'transparent',
+                            color: '#e9a3a3',
+                            border: '1px solid #2a2a2a',
+                            borderRadius: 3,
+                            fontSize: 11,
+                            padding: '0.2rem 0.5rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Disconnect
+                        </button>
+                      </div>
+                    ) : (
+                      // Disabled row: offer a one-click reconnect. Reconnecting the
+                      // same Google account upserts this row back to active.
+                      <button
+                        onClick={handleConnect}
+                        disabled={connecting}
+                        title={`Reconnect ${g.gmail_address} via Google`}
+                        style={{
+                          background: '#3a2a12',
+                          color: '#e3b873',
+                          border: '1px solid #7a5a22',
+                          borderRadius: 3,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          padding: '0.2rem 0.5rem',
+                          cursor: connecting ? 'wait' : 'pointer',
+                        }}
+                      >
+                        {connecting ? 'Reconnecting…' : reconnectLabel}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="settings-card-view" aria-label="Gmail integrations mobile cards">
             {integrations.map((g) => (
-              <tr key={g.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
-                <td style={td}>{g.gmail_address}</td>
-                <td style={td}>{g.last_synced_at?.slice(0, 16).replace('T', ' ') ?? '—'}</td>
-                <td style={td}>{g.watch_expires_at?.slice(0, 16).replace('T', ' ') ?? '—'}</td>
-                <td style={td}>
+              <div key={g.id} className="settings-mobile-card">
+                <div className="settings-mobile-card__header">
+                  <strong>{g.gmail_address}</strong>
                   <span
                     style={{
                       padding: '0.15rem 0.5rem',
@@ -178,15 +308,21 @@ export function GmailConnect() {
                   >
                     {g.is_active ? 'active' : 'disabled'}
                   </span>
-                  {g.last_error && (
-                    <div style={{ color: '#e9a3a3', fontSize: 11, marginTop: 4 }}>
-                      {g.last_error}
-                    </div>
-                  )}
-                </td>
-                <td style={td}>
-                  {g.is_active && (
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                </div>
+                <div className="settings-mobile-card__row">
+                  <span>Last synced</span>
+                  <strong>{formatDate(g.last_synced_at)}</strong>
+                </div>
+                <div className="settings-mobile-card__row">
+                  <span>Watch expires</span>
+                  <strong>{formatDate(g.watch_expires_at)}</strong>
+                </div>
+                {g.last_error && (
+                  <div style={{ color: '#e9a3a3', fontSize: 11, marginTop: 4 }}>{g.last_error}</div>
+                )}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                  {g.is_active ? (
+                    <>
                       <button
                         onClick={() => handleBackfill(g.id, g.gmail_address)}
                         disabled={backfilling === g.id}
@@ -216,13 +352,31 @@ export function GmailConnect() {
                       >
                         Disconnect
                       </button>
-                    </div>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleConnect}
+                      disabled={connecting}
+                      title={`Reconnect ${g.gmail_address} via Google`}
+                      style={{
+                        background: '#3a2a12',
+                        color: '#e3b873',
+                        border: '1px solid #7a5a22',
+                        borderRadius: 3,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        padding: '0.2rem 0.5rem',
+                        cursor: connecting ? 'wait' : 'pointer',
+                      }}
+                    >
+                      {connecting ? 'Reconnecting…' : reconnectLabel}
+                    </button>
                   )}
-                </td>
-              </tr>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        </>
       )}
 
       {error && <p style={{ color: 'salmon', fontSize: 12, marginTop: '0.5rem' }}>{error}</p>}

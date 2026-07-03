@@ -6,6 +6,8 @@ import { GmailConnect } from '@/components/settings/GmailConnect';
 import { BankConnect } from '@/components/settings/BankConnect';
 import { XeroConnect } from '@/components/settings/XeroConnect';
 import { PayerBankDetails } from '@/components/settings/PayerBankDetails';
+import { ApiKeys } from '@/components/settings/ApiKeys';
+import { SkeletonLine } from '@/components/Skeleton';
 import {
   User,
   Lock,
@@ -302,6 +304,9 @@ export function SettingsPage() {
                 <PayerBankDetails />
               </div>
               <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem' }}>
+                <ApiKeys />
+              </div>
+              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem' }}>
                 <h2
                   style={{
                     fontSize: '1.15rem',
@@ -453,7 +458,7 @@ export function SettingsPage() {
                           lineHeight: 1.4,
                         }}
                       >
-                        I am happy to receive emails about Revolut products, services and offers
+                        I am happy to receive emails about Looplet products, services and offers
                         that may interest me
                       </div>
                     </div>
@@ -482,7 +487,7 @@ export function SettingsPage() {
                           lineHeight: 1.4,
                         }}
                       >
-                        I am happy to receive push notifications about Revolut products, services
+                        I am happy to receive push notifications about Looplet products, services
                         and offers that may interest me
                       </div>
                     </div>
@@ -511,7 +516,7 @@ export function SettingsPage() {
                           lineHeight: 1.4,
                         }}
                       >
-                        I'm happy to see recommendations about Revolut products, services and offers
+                        I'm happy to see recommendations about Looplet products, services and offers
                         that may interest me
                       </div>
                     </div>
@@ -540,8 +545,8 @@ export function SettingsPage() {
                           lineHeight: 1.4,
                         }}
                       >
-                        I'm happy for Revolut to share my name, email address, and app events with
-                        social media platforms to allow Revolut to advertise to me and others like
+                        I'm happy for Looplet to share my name, email address, and app events with
+                        social media platforms to allow Looplet to advertise to me and others like
                         me
                       </div>
                     </div>
@@ -588,7 +593,7 @@ export function SettingsPage() {
                           lineHeight: 1.4,
                         }}
                       >
-                        I want to receive notifications about promotions from Revolut partners
+                        I want to receive notifications about promotions from Looplet partners
                       </div>
                     </div>
                     <label className="switch">
@@ -910,7 +915,14 @@ export function SettingsPage() {
               )}
 
               {policiesLoading ? (
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading…</div>
+                <div
+                  style={{ display: 'grid', gap: '0.5rem' }}
+                  aria-busy="true"
+                  aria-label="Loading automation policies"
+                >
+                  <SkeletonLine width="60%" height={12} />
+                  <SkeletonLine width="45%" height={12} />
+                </div>
               ) : policies.length === 0 ? (
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                   No policies yet. The AI-computed confidence band applies to all decisions.

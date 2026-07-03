@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrg } from '@/hooks/useOrg';
+import { SkeletonTable } from '@/components/Skeleton';
 import { ChevronLeft, Users, Plus, Trash2, CheckCircle, Clock } from 'lucide-react';
 
 type OrgRole = 'viewer' | 'employee' | 'accountant' | 'admin' | 'owner';
@@ -389,7 +390,9 @@ export function TeamPage() {
       )}
 
       {loading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Loading members…</p>
+        <div aria-busy="true" aria-label="Loading team members">
+          <SkeletonTable rows={5} cols={isAdminPlus ? 5 : 4} />
+        </div>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">

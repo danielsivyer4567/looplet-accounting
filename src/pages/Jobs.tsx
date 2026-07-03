@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { cloneElement, isValidElement, useEffect, useId, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
 import { useJobs } from '@/hooks/useJobs';
-import type { JobStatus } from '@/hooks/useJobs';
+import type { JobStatus, JobListRow } from '@/hooks/useJobs';
 import { supabase } from '@/lib/supabase';
+import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { SkeletonTable } from '@/components/Skeleton';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
@@ -19,7 +20,7 @@ function getBillCount(val: [{ count: number }] | []): number {
 
 export function JobsPage() {
   const { currentOrg } = useOrg();
-  const { jobs, loading, error, refresh } = useJobs();
+  const { jobs, loading, error, pnlError, refresh } = useJobs();
   const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
 
@@ -154,6 +155,24 @@ export function JobsPage() {
         </div>
       )}
 
+      {/* Non-blocking P&L pipeline warning — list still renders, but costs/margins
+          may be missing if v_job_pnl failed to load. */}
+      {!loading && !error && pnlError && (
+        <div
+          role="alert"
+          className="badge badge-warning"
+          style={{
+            display: 'block',
+            padding: '0.75rem',
+            marginBottom: '1.5rem',
+            textTransform: 'none',
+          }}
+        >
+          {formatLoadError('live job P&L', pnlError)} Job costs and margins below may show as zero
+          until this resolves.
+        </div>
+      )}
+
       {/* Stat cards */}
       {!loading && !error && (
         <>
@@ -167,21 +186,21 @@ export function JobsPage() {
           >
             <KpiCard label="Active Jobs" value={activeCount} type="success" icon={Briefcase} />
             <KpiCard
-              label="Total Revenue"
+              label="Total Revenue (all-time)"
               value={totalRevenue}
               formatter={formatMoney}
               type="info"
               icon={FileSpreadsheet}
             />
             <KpiCard
-              label="Total Job Cost"
+              label="Total Job Cost (all-time)"
               value={totalCost}
               formatter={formatMoney}
               type="neutral"
               icon={FileSpreadsheet}
             />
             <KpiCard
-              label="Gross Margin"
+              label="Gross Margin (all-time)"
               value={totalProfit}
               formatter={formatMoney}
               type={totalProfit >= 0 ? 'success' : 'danger'}
@@ -233,7 +252,7 @@ export function JobsPage() {
           className="badge badge-danger"
           style={{ display: 'block', padding: '1rem', textTransform: 'none' }}
         >
-          Failed to load: {error}
+          {formatLoadError('jobs', error)}
         </div>
       ) : jobs.length === 0 ? (
         <div
@@ -249,63 +268,118 @@ export function JobsPage() {
           No jobs yet for {currentOrg.name}.
         </div>
       ) : (
-        <div className="table-premium-container">
-          <table className="table-premium">
-            <thead>
-              <tr>
-                <th>Job #</th>
-                <th>Name</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Bills attached</th>
-                <th style={{ textAlign: 'right' }}>Bills suggested</th>
-                <th>Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {jobs.map((j) => {
-                const attached = getBillCount(j.attached_bills);
-                const suggested = getBillCount(j.suggested_bills);
-                const created = new Date(j.created_at).toLocaleDateString('en-AU', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                });
-                return (
-                  <tr
-                    key={j.id}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => void navigate(`/jobs/${j.id}`)}
-                  >
-                    <td>
-                      <code>{j.job_number}</code>
-                    </td>
-                    <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{j.name}</td>
-                    <td>
-                      <Pill status={j.status} />
-                    </td>
-                    <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                      {attached > 0 ? (
-                        <span style={{ color: 'var(--text-success)' }}>{attached}</span>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)' }}>0</span>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      {suggested > 0 ? (
-                        <span style={{ color: 'var(--text-warning)' }}>{suggested}</span>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)' }}>0</span>
-                      )}
-                    </td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>{created}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="jobs-table-view table-premium-container">
+            <table className="table-premium">
+              <thead>
+                <tr>
+                  <th>Job #</th>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Bills attached</th>
+                  <th style={{ textAlign: 'right' }}>Bills suggested</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {jobs.map((j) => {
+                  const attached = getBillCount(j.attached_bills);
+                  const suggested = getBillCount(j.suggested_bills);
+                  const created = new Date(j.created_at).toLocaleDateString('en-AU', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                  });
+                  return (
+                    <tr
+                      key={j.id}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => void navigate(`/jobs/${j.id}`)}
+                    >
+                      <td>
+                        <code>{j.job_number}</code>
+                      </td>
+                      <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{j.name}</td>
+                      <td>
+                        <Pill status={j.status} />
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                        {attached > 0 ? (
+                          <span style={{ color: 'var(--text-success)' }}>{attached}</span>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)' }}>0</span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        {suggested > 0 ? (
+                          <span style={{ color: 'var(--text-warning)' }}>{suggested}</span>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)' }}>0</span>
+                        )}
+                      </td>
+                      <td style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
+                        {created}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="jobs-card-view" aria-label="Job cards">
+            {jobs.map((j) => (
+              <JobCard key={j.id} job={j} onOpen={() => void navigate(`/jobs/${j.id}`)} />
+            ))}
+          </div>
+        </>
       )}
     </section>
+  );
+}
+
+function JobCard({ job, onOpen }: { job: JobListRow; onOpen: () => void }) {
+  const attached = getBillCount(job.attached_bills);
+  const suggested = getBillCount(job.suggested_bills);
+  const created = new Date(job.created_at).toLocaleDateString('en-AU', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+  return (
+    <article className="job-mobile-card card" aria-label={`Job ${job.job_number}`}>
+      <div className="job-mobile-card__header">
+        <div>
+          <a
+            href={`/jobs/${job.id}`}
+            onClick={(e) => {
+              e.preventDefault();
+              onOpen();
+            }}
+            style={{ fontWeight: 700, color: 'var(--accent-primary)', textDecoration: 'none' }}
+          >
+            <code>{job.job_number}</code> · {job.name}
+          </a>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '0.15rem' }}>
+            Created {created}
+          </div>
+        </div>
+        <Pill status={job.status} />
+      </div>
+      <div className="job-mobile-card__metrics">
+        <div>
+          <span>Bills attached</span>
+          <strong style={{ color: attached > 0 ? 'var(--text-success)' : 'var(--text-body)' }}>
+            {attached}
+          </strong>
+        </div>
+        <div>
+          <span>Bills suggested</span>
+          <strong style={{ color: suggested > 0 ? 'var(--text-warning)' : 'var(--text-body)' }}>
+            {suggested}
+          </strong>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -381,7 +455,7 @@ function CreateJobForm({
       .single();
     setBusy(false);
     if (error) {
-      setErr(error.message);
+      setErr(formatActionError('create the job', error.message));
       return;
     }
     onCreated(data.id);
@@ -497,6 +571,7 @@ function CreateJobForm({
       </div>
       {err && (
         <div
+          role="alert"
           className="badge badge-danger"
           style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}
         >
@@ -508,12 +583,17 @@ function CreateJobForm({
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  const id = useId();
+  const control = isValidElement(children)
+    ? cloneElement(children as React.ReactElement<{ id?: string }>, { id })
+    : children;
+
   return (
     <div className="form-group" style={{ marginBottom: 0 }}>
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>
+      <label htmlFor={id} className="form-label" style={{ fontSize: '0.725rem' }}>
         {label}
-      </span>
-      <div style={{ marginTop: '0.25rem' }}>{children}</div>
+      </label>
+      <div style={{ marginTop: '0.25rem' }}>{control}</div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { useAuth } from '@/hooks/useAuth';
 import { formatMoney } from '@/lib/money';
+import { DetailPageSkeleton } from '@/components/Skeleton';
 import {
   ChevronLeft,
   Layers,
@@ -189,12 +190,7 @@ export function PayRunDetailPage() {
   };
 
   if (!currentOrg) return null;
-  if (loading)
-    return (
-      <section>
-        <p style={{ color: 'var(--text-muted)' }}>Loading pay run details…</p>
-      </section>
-    );
+  if (loading) return <DetailPageSkeleton tableCols={6} />;
   if (!run) {
     return (
       <section className="animated-fade-in" style={{ padding: '2rem 0', textAlign: 'center' }}>
@@ -543,9 +539,9 @@ export function PayRunDetailPage() {
           >
             ATO Single Touch Payroll (STP) Phase 2
           </span>
-          STP file is generated in Phase 2 JSON format ready for secure handoff to your registered
-          tax/BAS agent. Direct ATO lodgement requires SBR-gateway infrastructure configured on your
-          organization profile.
+          STP file is generated in Phase 2 JSON format from encrypted TFN vault records and a
+          redacted draft lifecycle row is stored in the lodgement ledger. Direct ATO lodgement
+          remains disabled until SBR-gateway infrastructure is provisioned.
         </div>
       </div>
     </section>

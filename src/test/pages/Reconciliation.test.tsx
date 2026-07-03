@@ -1,4 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReconciliationPage } from '@/pages/Reconciliation';
@@ -38,10 +40,22 @@ const mocks = vi.hoisted(() => {
     score: 0.95,
   };
 
+  const matchedTxn = {
+    id: 'txn-matched-1',
+    posted_at: '2026-06-28T00:00:00Z',
+    description: 'Customer paid INV-0006',
+    amount_cents: 8800,
+    reference: 'INV-0006',
+    matched_bill_id: null,
+    matched_invoice_id: 'inv-2',
+    bank_account_id: 'bank-1',
+    manually_matched: false,
+  };
+
   const responseFor = (table: string, bankQueryNumber: number): QueryResult => {
     if (table === 'bank_transactions') {
       return {
-        data: bankQueryNumber % 2 === 1 ? [unmatchedTxn] : [],
+        data: bankQueryNumber % 2 === 1 ? [unmatchedTxn] : [matchedTxn],
         error: null,
       };
     }
@@ -135,6 +149,28 @@ describe('ReconciliationPage', () => {
           p_match_confidence: 1.0,
         }),
       ),
+    );
+  });
+
+  it('renders recently matched transactions as mobile cards as well as a desktop table', async () => {
+    renderPage();
+
+    const cards = await screen.findByLabelText(/recently matched mobile cards/i);
+    expect(cards).toHaveTextContent('Customer paid INV-0006');
+    expect(cards).toHaveTextContent('Date');
+    expect(cards).toHaveTextContent('Amount');
+    expect(cards).toHaveTextContent('Matched to');
+    expect(screen.getByRole('table')).toHaveClass('table-premium');
+  });
+
+  it('has a breakpoint contract for recently matched table-to-card layout', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
+
+    expect(css).toMatch(
+      /@media \(max-width: 768px\)[\s\S]*\.reconciliation-table-view\s*\{[\s\S]*display: none/,
+    );
+    expect(css).toMatch(
+      /@media \(max-width: 768px\)[\s\S]*\.reconciliation-card-view\s*\{[\s\S]*display: grid/,
     );
   });
 });

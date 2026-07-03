@@ -22,7 +22,9 @@ export function downloadCsv(filename: string, rows: Record<string, unknown>[]): 
   const body = rows.map((row) => columns.map((col) => escapeCell(row[col])).join(',')).join('\n');
   const csv = `${header}\n${body}`;
 
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  // Prepend a UTF-8 BOM so Excel on Windows decodes the file as UTF-8 rather than the
+  // locale ANSI codepage — without it, accented names and em dashes become mojibake.
+  const blob = new Blob(['﻿', csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

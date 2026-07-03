@@ -101,6 +101,7 @@ const SUBSCRIPTION = {
   is_personal: false,
   is_business: true,
   notes: null,
+  deleted_at: null,
 };
 
 beforeEach(() => {
@@ -109,6 +110,7 @@ beforeEach(() => {
     bank_transactions: { data: [], error: null },
   };
   h.updates = [];
+  vi.spyOn(window, 'confirm').mockReturnValue(true);
 });
 
 async function renderLoaded() {
@@ -116,6 +118,7 @@ async function renderLoaded() {
     <MemoryRouter initialEntries={['/subscriptions/sub-1']}>
       <Routes>
         <Route path="/subscriptions/:id" element={<SubscriptionDetailPage />} />
+        <Route path="/subscriptions" element={<div>Subscriptions index</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -152,6 +155,19 @@ describe('SubscriptionDetailPage', () => {
           is_business: false,
           notes: 'Moved to personal card',
         },
+      });
+    });
+  });
+
+  it('archives a subscription with a deleted_at soft-delete', async () => {
+    await renderLoaded();
+
+    fireEvent.click(screen.getByRole('button', { name: /^archive$/i }));
+
+    await waitFor(() => {
+      expect(h.updates).toContainEqual({
+        table: 'subscriptions',
+        payload: { deleted_at: expect.any(String) },
       });
     });
   });

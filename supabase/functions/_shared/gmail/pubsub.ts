@@ -2,7 +2,15 @@ export interface GmailPubSubIngestResult {
   rejected: { reason: string }[];
 }
 
-const RETRYABLE_REJECTION_PREFIXES = ['storage ', 'bill insert '];
+const RETRYABLE_REJECTION_PREFIXES = [
+  'storage ',
+  'bill insert ',
+  // A failed job enqueue rolls the bill back (see ingest paths), so a replay must
+  // re-create + re-enqueue it rather than treating the message as durably processed.
+  'bill_extract enqueue ',
+  // A failed intake-rule lookup bails before any insert; replay re-evaluates the rules.
+  'rule lookup ',
+];
 const RETRYABLE_HTTP_STATUSES = new Set([401, 403, 429]);
 
 export function hasRetryableGmailIngestFailure(result: GmailPubSubIngestResult): boolean {

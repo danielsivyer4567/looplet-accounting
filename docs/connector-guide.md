@@ -4,7 +4,8 @@ Integrate any external system with Looplet Accounting without a human login. The
 connector API has three surfaces:
 
 - **Read** — query your org's data via Supabase PostgREST (`/rest/v1`).
-- **Ingest** — push bills, bank transactions, and invoices in (`/functions/v1/ingest`).
+- **Ingest** — push bills, bank transactions, invoices, stored bill documents,
+  and invoice payments in (`/functions/v1/ingest`).
 - **POS receipts** — push structured merchant receipts in (`/functions/v1/receipt-webhook`).
 
 Everything is **organization-scoped**: a key belongs to exactly one organization,
@@ -16,7 +17,8 @@ service-role key is never used by integrations.
 > organization** over the Read API (PostgREST), regardless of its `scopes`. Read
 > scopes (e.g. `read:financials`) are advisory today; they do **not** narrow what
 > a key can read within its org. **Write** authority _is_ enforced per type
-> (`write:bills` / `write:bank` / `write:invoices` / `write:receipts`) by the
+> (`write:bills` / `write:bank` / `write:invoices` / `write:documents` /
+> `write:payments` / `write:receipts`) by the
 > ingest and receipt endpoints. Treat
 > issuing any key as granting full-org read, and grant write scopes minimally.
 
@@ -33,7 +35,15 @@ the owning org), via the `issue_api_key` RPC:
 select * from issue_api_key(
   p_organization_id => '<your-org-uuid>',
   p_name            => 'Acme POS connector',
-  p_scopes          => array['read:financials','write:bills','write:invoices','write:receipts'],
+  p_scopes          => array[
+    'read:financials',
+    'write:bills',
+    'write:bank',
+    'write:invoices',
+    'write:documents',
+    'write:payments',
+    'write:receipts'
+  ],
   p_expires_at      => null,           -- or a timestamptz
   p_rate_limit_per_min => 120
 );
@@ -62,6 +72,8 @@ Authorization: Bearer llp_ab12cd34.0f1e2d3c...
 | `write:bills`     | `POST /ingest` with `type=bill`                                 |
 | `write:bank`      | `POST /ingest` with `type=bank_transaction`                     |
 | `write:invoices`  | `POST /ingest` with `type=invoice`                              |
+| `write:documents` | `POST /ingest` with `type=document`                             |
+| `write:payments`  | `POST /ingest` with `type=payment`                              |
 | `write:receipts`  | `POST /receipt-webhook` for POS receipt ingestion               |
 | `admin:keys`      | Implies all scopes                                              |
 
@@ -133,7 +145,7 @@ POST /functions/v1/ingest
 Authorization: Bearer llp_ab12cd34.0f1e2d3c...
 Content-Type: application/json
 
-{ "type": "<bill|bank_transaction|invoice>", "payload": { ... } }
+{ "type": "<bill|bank_transaction|invoice|document|payment>", "payload": { ... } }
 ```
 
 `organization_id` is always pinned to the key — any value in the body is ignored.
@@ -175,6 +187,7 @@ call returns success. The response includes the routing outcome:
 
 Dedup: a byte-identical re-push (same org + same payload), or a collision on
 `(organization_id, supplier_id, invoice_number)`, returns `"deduped": true`.
+If supplied, `supplier_id` and `job_id` must also belong to your organization.
 
 ### Bank transaction (`write:bank`)
 
@@ -212,8 +225,11 @@ for deduped records.
 }
 ```
 
-`customer_id` must belong to your org. Dedup on
-`(organization_id, invoice_number)`.
+`customer_id` must belong to your org, and `job_id` must also belong to your
+org if supplied. Dedup on
+`(organization_id, invoice_number)`. Invoices always start at the database
+default (`draft`). The API deliberately ignores raw `status` writes; status
+transitions must go through the app/RPC workflow.
 
 ### Document (`write:documents`)
 
@@ -269,7 +285,8 @@ Supplier bill payments are deliberately **not** accepted through generic payment
 ingest. AP bills must be settled through bank reconciliation or payment runs so
 Looplet keeps bank evidence, amount guards, and audit trails intact.
 
-**`Idempotency-Key` header is required**. `invoice_id` is required.
+**`Idempotency-Key` header is required**. `invoice_id` is required and must
+belong to your organization.
 
 ```bash
 curl -s -X POST \
@@ -413,7 +430,7 @@ Looplet. A dependency-free reference bridge is in
 | Status | `error`                    | Meaning                                                         |
 | ------ | -------------------------- | --------------------------------------------------------------- |
 | 400    | `invalid_json`             | Body was not valid JSON                                         |
-| 400    | `unsupported_type`         | `type` not in bill/bank_transaction/invoice, or missing payload |
+| 400    | `unsupported_type`         | `type` not in bill/bank_transaction/invoice/document/payment, or missing payload |
 | 400    | receipt validation message | Receipt payload/identity/idempotency/totals failed validation   |
 | 401    | `invalid_api_key`          | Missing, malformed, expired, or revoked key                     |
 | 403    | `insufficient_scope`       | Key lacks the scope for that ingest type                        |

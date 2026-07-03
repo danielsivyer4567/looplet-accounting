@@ -3,7 +3,17 @@
  * Default model: gpt-4o. Highest accuracy, paid per token.
  */
 
-import { EXTRACT_PROMPT, parseExtractedJson, type ExtractedBill } from './prompt.ts';
+import { EXTRACT_PROMPT, ocrTimeoutSignal, parseExtractedJson, type ExtractedBill } from './prompt.ts';
+
+/** Chunked base64 — String.fromCharCode(...bytes) blows the call stack ~125k bytes. */
+function toBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
 
 export async function extractBillDataOpenAI(
   imageBytes: Uint8Array,
@@ -15,7 +25,7 @@ export async function extractBillDataOpenAI(
   const model = Deno.env.get('OPENAI_VISION_MODEL') ?? 'gpt-4o';
   const baseUrl = Deno.env.get('OPENAI_BASE_URL') ?? 'https://api.openai.com/v1';
 
-  const base64 = btoa(String.fromCharCode(...imageBytes));
+  const base64 = toBase64(imageBytes);
   const dataUrl = `data:${mimeType};base64,${base64}`;
 
   const res = await fetch(`${baseUrl}/chat/completions`, {
@@ -38,6 +48,7 @@ export async function extractBillDataOpenAI(
       ],
       response_format: { type: 'json_object' },
     }),
+    signal: ocrTimeoutSignal(),
   });
 
   if (!res.ok) {

@@ -1,0 +1,18 @@
+-- Defense-in-depth: crm_sync_log was created as service-role-only by design
+-- (see 0001_initial_schema.sql:767-768 — "crm_sync_log is admin-only for v1
+-- ...access is via service-role only", and the RLS-enabled-zero-policy state
+-- confirmed intentional in that migration's own acceptance-check comment).
+--
+-- RLS-enabled-with-no-policy already denies all row access to anon/
+-- authenticated by Postgres default (nobody but service_role/table owner can
+-- see or touch a row), so this was NOT an active exploit — verified via
+-- get_advisors re-scan 2026-07-02, which flags it as INFO not a live gap.
+-- But anon/authenticated still held full base table grants (SELECT/INSERT/
+-- UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER) — one layer away from exposure
+-- if RLS were ever accidentally disabled or a policy added with a bug. Table
+-- has 0 rows and zero application-code references (grepped repo-wide,
+-- confirmed 2026-07-02) — Phase 8 (CRM sync) is not yet built — so revoking
+-- now cannot break anything.
+--
+-- Idempotent: REVOKE is safe to re-run.
+REVOKE ALL PRIVILEGES ON TABLE public.crm_sync_log FROM anon, authenticated;

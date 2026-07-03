@@ -27,6 +27,9 @@ export function useJobs() {
   const [jobs, setJobs] = useState<JobListRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Non-blocking: the job list still renders if only the P&L pipeline fails,
+  // but the failure must be observable rather than showing silent zeros.
+  const [pnlError, setPnlError] = useState<string | null>(null);
 
   const fetch = useCallback(async () => {
     if (!currentOrg) {
@@ -36,19 +39,21 @@ export function useJobs() {
     }
     setLoading(true);
     setError(null);
+    setPnlError(null);
 
     // Fetch jobs + bill counts in parallel with v_job_pnl for live numbers
-    const [{ data: jobsData, error: jobsErr }, { data: pnlData }] = await Promise.all([
-      supabase
-        .from('jobs')
-        .select(
-          'id, job_number, name, status, created_at, attached_bills:bills!job_id(count), suggested_bills:bills!suggested_job_id(count)',
-        )
-        .eq('organization_id', currentOrg.id)
-        .order('created_at', { ascending: false })
-        .limit(200),
-      supabase.from('v_job_pnl').select('*').eq('organization_id', currentOrg.id),
-    ]);
+    const [{ data: jobsData, error: jobsErr }, { data: pnlData, error: pnlErr }] =
+      await Promise.all([
+        supabase
+          .from('jobs')
+          .select(
+            'id, job_number, name, status, created_at, attached_bills:bills!job_id(count), suggested_bills:bills!suggested_job_id(count)',
+          )
+          .eq('organization_id', currentOrg.id)
+          .order('created_at', { ascending: false })
+          .limit(200),
+        supabase.from('v_job_pnl').select('*').eq('organization_id', currentOrg.id),
+      ]);
 
     if (jobsErr) {
       setError(jobsErr.message);
@@ -64,6 +69,8 @@ export function useJobs() {
         ...(pnlByJob.get(j.id) ?? {}),
       }));
       setJobs(merged);
+      // Surface a P&L-pipeline failure without blanking the whole list.
+      setPnlError(pnlErr ? pnlErr.message : null);
     }
     setLoading(false);
   }, [currentOrg]);
@@ -72,5 +79,5 @@ export function useJobs() {
     void fetch();
   }, [fetch]);
 
-  return { jobs, loading, error, refresh: fetch };
+  return { jobs, loading, error, pnlError, refresh: fetch };
 }

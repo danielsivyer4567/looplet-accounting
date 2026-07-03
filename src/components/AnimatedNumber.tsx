@@ -31,7 +31,8 @@ export function AnimatedNumber({
       const easeProgress = progress * (2 - progress);
       const current = startValue + easeProgress * (endValue - startValue);
 
-      setDisplayValue(current);
+      // Counts and cents are integers — never surface fractional frames
+      setDisplayValue(Math.round(current));
 
       if (progress < 1) {
         animationFrameId = requestAnimationFrame(step);
@@ -41,7 +42,13 @@ export function AnimatedNumber({
     };
 
     animationFrameId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(animationFrameId);
+    // rAF pauses in background tabs, which would freeze a mid-animation value;
+    // snap to the final value once the duration has elapsed regardless.
+    const snapTimerId = setTimeout(() => setDisplayValue(endValue), duration + 100);
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      clearTimeout(snapTimerId);
+    };
   }, [value, duration]);
 
   return <>{formatter(displayValue)}</>;

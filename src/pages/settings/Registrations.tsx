@@ -3,6 +3,7 @@ import { useOrg } from '@/hooks/useOrg';
 import { useAsic, type AsicFiling } from '@/hooks/useAsic';
 import { useRegistrations, type RegistrationLine } from '@/hooks/useRegistrations';
 import { SkeletonTable } from '@/components/Skeleton';
+import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoney } from '@/lib/money';
 import {
   AlertTriangle,
@@ -367,7 +368,7 @@ export function RegistrationsPage() {
           className="badge badge-danger"
           style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}
         >
-          Failed to load your business profile: {error}
+          {formatLoadError('business profile', error)}
         </div>
       ) : !payload ? (
         <div style={noticeCardStyle}>No business profile found for {currentOrg.name} yet.</div>

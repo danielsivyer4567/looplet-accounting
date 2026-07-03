@@ -5,6 +5,7 @@ import { useOrg } from '@/hooks/useOrg';
 import { useSmsf, useSmsfFund, type SmsfFundRow, type SmsfMemberRow } from '@/hooks/useSmsf';
 import { SkeletonTable } from '@/components/Skeleton';
 import { titleCase, formatDay, currentFyStartYear } from '@/lib/formatting';
+import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoney } from '@/lib/money';
 import { AlertTriangle, CheckCircle2, Download, FileText, PiggyBank } from 'lucide-react';
 
@@ -360,7 +361,7 @@ export function SmsfPage() {
           className="badge badge-danger"
           style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}
         >
-          Failed to load: {error}
+          {formatLoadError('SMSF funds', error)}
         </div>
       ) : funds.length === 0 ? (
         <div style={noticeCardStyle}>No SMSF recorded for {currentOrg.name} yet.</div>

@@ -60,12 +60,21 @@ Revenue is booked **ex-GST** ($1,000). The GST sits in its own liability
 account, never in income. This is the fix for the audit finding that the
 current P&L mixes GST-inclusive revenue.
 
-## How P&L and Balance Sheet derive from `v_trial_balance`
+## How P&L and Balance Sheet derive from posted journals
 
-Both reports are simple roll-ups of the trial balance — no more stitching
-across `invoices`/`bills`/`debts`:
+Reports are GL roll-ups — no more stitching across
+`invoices`/`bills`/`debts`.
 
-**Profit & Loss** = the income and expense accounts:
+`v_trial_balance` remains the cumulative account snapshot. The statutory
+statement RPC now reads posted `journal_entries` / `journal_lines` directly so
+date semantics are correct:
+
+- **Profit & Loss** is scoped to the requested AU financial year.
+- **Balance Sheet** is an as-at snapshot at the requested FY end.
+- Prior-period income/expense balances are carried as opening retained earnings
+  until formal year-end closing journals move them into an equity account.
+
+**Profit & Loss** = the period income and expense accounts:
 
 ```text
 income  total  = −SUM(net_cents) WHERE account_type = 'income'   -- flip credit-normal sign
@@ -73,21 +82,56 @@ expense total  =  SUM(net_cents) WHERE account_type = 'expense'
 net profit     = income total − expense total
 ```
 
-Because revenue is posted ex-GST, the P&L is now GST-clean by construction.
+Because revenue is posted ex-GST, the P&L is GST-clean by construction.
 
-**Balance Sheet** = the asset, liability and equity accounts:
+## BAS worksheet GST labels
+
+`generate_bas_worksheet_gst()` now keeps the original BAS quarter sales source
+for G1 and 1A, but no longer reports G10 as a hard-coded zero. Purchase labels
+use the same allocation-aware bill scope as `v_bas_quarterly`, then split
+G10/G11 with the GST treatment configured on the bill line account first and the
+supplier second:
+
+- `GST_ON_CAPITAL` account/supplier treatment flows to **G10 capital purchases**.
+- Everything else in the in-scope bill allocation flows to **G11 non-capital
+  purchases**.
+- 1B remains the allocation-aware GST paid total for the same bill scope.
+
+If a bill has no line totals, supplier-level `GST_ON_CAPITAL` classifies the
+whole allocated bill as capital; otherwise it falls back to G11.
+
+The full `generate_bas_worksheet()` payload derives `quarter_start`,
+`quarter_end`, and `due_date` directly from the requested AU FY/quarter through
+`au_bas_quarter()`. It no longer depends on activity existing in
+`v_bas_quarterly`, so nil and bills-only quarters still produce complete period
+metadata for prep, approval, and PDF generation.
+
+`prepare_bas_lodgement_draft()` is the local draft handoff into the append-only
+`lodgements` ledger. It creates or reuses a BAS draft row for the exact worksheet
+payload, stores the Postgres `jsonb::text` SHA-256 payload hash, then opens a
+Tier-2 approval against that lodgement id and same payload. It does not transmit
+anything to the ATO; DSP/EVTE/SBR transport remains fail-closed.
+
+`bas-lodgement-pack` is the review artifact handoff for that draft row. The edge
+function reads a caller-visible BAS `lodgements` row through the user's JWT/RLS,
+renders a PDF from the immutable payload, and returns a JSON bundle plus
+`pdf_base64` for download from the Lodgements page. The pack explicitly records
+that ATO transmission is not included and a human declaration is still required.
+
+**Balance Sheet** = asset, liability and equity accounts as at period end:
 
 ```text
 assets       =  SUM(net_cents) WHERE account_type = 'asset'
 liabilities  = −SUM(net_cents) WHERE account_type = 'liability'   -- flip credit-normal sign
 equity       = −SUM(net_cents) WHERE account_type = 'equity'
--- identity (after period close): assets = liabilities + equity + net profit
+retained     =  prior-period income − prior-period expenses
+current year =  period income − period expenses
+identity     =  assets = liabilities + equity + retained + current year
 ```
 
-A later epic will add the `v_profit_and_loss` / `v_balance_sheet_gl` views on
-top of `v_trial_balance` and migrate callers off the `0041` / `0047`
-approximations. The approximation views remain in place until then so nothing
-breaks during the transition.
+The older approximation views remain in place until callers are migrated, but
+`generate_statutory_statements()` is now the authoritative GL-derived P&L /
+Balance Sheet source.
 
 ## Security model
 

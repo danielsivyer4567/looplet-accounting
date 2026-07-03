@@ -1,10 +1,25 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { OrgContext } from './org-context';
-import type { Organization } from './org-context';
+import type { Organization, OrgRole } from './org-context';
 
 export type { Organization } from './org-context';
+
+/** Shape of an org embedded in the membership query (business_profile is an array embed). */
+interface EmbeddedOrg {
+  id: string;
+  name: string;
+  abn: string | null;
+  organization_type: Organization['organization_type'];
+  business_profile: { entity_type: string | null } | { entity_type: string | null }[] | null;
+}
+
+interface MembershipRow {
+  role_enum: OrgRole | null;
+  accepted_at: string | null;
+  organizations: EmbeddedOrg | EmbeddedOrg[] | null;
+}
 
 const LS_CURRENT_ORG = 'looplet:current-org-id';
 
@@ -22,21 +37,49 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setLoading(true);
-    // Memberships → orgs (RLS does the filtering automatically)
+    // Memberships → orgs (RLS does the org-id filtering automatically). We carry
+    // the caller's role_enum/accepted_at and the org's entity_type so the client
+    // picker and role-aware landing can reason about accountant access.
+    //
+    // PENDING-INVITE GATE (P0-01): a pending membership (accepted_at IS NULL) is
+    // created the moment a user is invited; it must NOT surface the org until the
+    // invite is accepted. get_accessible_org_ids() (migration 0203) already drops
+    // pending orgs at the RLS layer, but this row read is keyed on user_id and
+    // still returns the caller's own pending membership rows. We exclude them
+    // here (server-side .not filter) so a pending org is never listed/selectable.
     const { data, error } = await supabase
       .from('organization_memberships')
-      .select('organization_id, organizations(id, name, organization_type)')
-      .eq('user_id', user.id);
+      .select(
+        'role_enum, accepted_at, organizations(id, name, abn, organization_type, business_profile(entity_type))',
+      )
+      .eq('user_id', user.id)
+      .not('accepted_at', 'is', null);
     if (error) {
       console.error('Failed to load organizations', error);
       setOrganizations([]);
       setLoading(false);
       return;
     }
-    const orgs: Organization[] = (data ?? [])
-      .map((row: { organizations: Organization | Organization[] | null }) => {
+    const orgs: Organization[] = ((data as MembershipRow[] | null) ?? [])
+      .map((row): Organization | null => {
+        // Defense in depth: never surface a pending (un-accepted) membership,
+        // even if the server filter above is bypassed. accepted_at IS NULL =
+        // invite not yet accepted → the org is not yet accessible.
+        if (!row.accepted_at) return null;
         const o = Array.isArray(row.organizations) ? row.organizations[0] : row.organizations;
-        return o ?? null;
+        if (!o) return null;
+        const profile = Array.isArray(o.business_profile)
+          ? o.business_profile[0]
+          : o.business_profile;
+        return {
+          id: o.id,
+          name: o.name,
+          organization_type: o.organization_type,
+          abn: o.abn,
+          role_enum: row.role_enum,
+          accepted_at: row.accepted_at,
+          entity_type: profile?.entity_type ?? null,
+        };
       })
       .filter((o): o is Organization => o !== null);
     setOrganizations(orgs);
@@ -74,9 +117,29 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
     return { error: null };
   };
 
+  // An "accountant client" is any org where the caller's only relationship is the
+  // accountant role. isAccountantOnly gates the non-billable / role-aware landing.
+  const accountantClientOrgs = useMemo(
+    () => organizations.filter((o) => o.role_enum === 'accountant'),
+    [organizations],
+  );
+  const isAccountantOnly = useMemo(
+    () => organizations.length > 0 && organizations.every((o) => o.role_enum === 'accountant'),
+    [organizations],
+  );
+
   return (
     <OrgContext.Provider
-      value={{ organizations, currentOrg, loading, setCurrentOrg, createOrganization, refresh }}
+      value={{
+        organizations,
+        currentOrg,
+        loading,
+        setCurrentOrg,
+        createOrganization,
+        refresh,
+        accountantClientOrgs,
+        isAccountantOnly,
+      }}
     >
       {children}
     </OrgContext.Provider>

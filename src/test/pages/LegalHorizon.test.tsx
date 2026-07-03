@@ -112,6 +112,15 @@ describe('LegalHorizonPage', () => {
     expect(screen.queryByRole('link', { name: /View source/i })).toBeNull();
   });
 
+  it('uses a skeleton while upcoming changes are loading', () => {
+    h.state.loading = true;
+
+    render(<LegalHorizonPage />);
+
+    expect(screen.getByLabelText(/loading legal horizon/i)).toHaveAttribute('aria-busy', 'true');
+    expect(screen.queryByText(/^loading/i)).not.toBeInTheDocument();
+  });
+
   it('lets accountants trigger a Sonar scan from the page', () => {
     h.state.runSonarScan.mockResolvedValueOnce(true);
 

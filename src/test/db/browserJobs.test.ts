@@ -227,10 +227,13 @@ describe('browser_collect job kind', () => {
     const kind = 'browser_collect';
     const supportedKinds = [
       'bill_extract',
+      'bank_sync',
       'receipt_sync',
       'xero_push',
       'bank_reconcile',
       'gmail_backfill',
+      'gmail_mine',
+      'bill_code',
       'coding_classify',
       'payment_record',
       'browser_collect',

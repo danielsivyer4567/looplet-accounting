@@ -2,6 +2,7 @@ import { useRef, useState, type DragEvent, type ChangeEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
 import { useBillUpload, type UploadResult } from '@/hooks/useBillUpload';
+import { GmailConnect } from '@/components/settings/GmailConnect';
 
 export function BillUploadPage() {
   const { currentOrg } = useOrg();
@@ -126,6 +127,24 @@ export function BillUploadPage() {
       ) : (
         <ProgressBox stage={stage} busy={busy} />
       )}
+
+      <div
+        style={{
+          marginTop: '2rem',
+          padding: '1.25rem',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 8,
+          background: 'var(--bg-card)',
+        }}
+      >
+        <GmailConnect
+          title="Google document intake"
+          description="Connect Gmail to pull supplier invoices, receipts, and bill attachments from Google. Looplet stores each PDF or image as a bill, then runs extraction automatically."
+          connectLabel="+ Connect Google mailbox"
+          reconnectLabel="Reconnect Google mailbox"
+          showContainerSpacing={false}
+        />
+      </div>
     </section>
   );
 }

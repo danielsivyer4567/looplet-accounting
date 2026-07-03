@@ -10,8 +10,10 @@
  * We do NOT mock the DOM. All assertions are on rendered output.
  */
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { CustomersPage } from '@/pages/Customers';
 import { mockSupabaseResponse } from '@/test/mocks/supabase';
 import type { CustomerRow } from '@/hooks/useCustomers';
@@ -43,13 +45,14 @@ vi.mock('@/hooks/useOrg', () => ({
 // useCustomers: controlled stub
 let _mockCustomers: CustomerRow[] = [];
 let _mockLoading = false;
+let _mockError: string | null = null;
 const _mockRefresh = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('@/hooks/useCustomers', () => ({
   useCustomers: () => ({
     customers: _mockCustomers,
     loading: _mockLoading,
-    error: null,
+    error: _mockError,
     refresh: _mockRefresh,
   }),
 }));
@@ -91,6 +94,7 @@ describe('CustomersPage', () => {
   beforeEach(() => {
     _mockCustomers = [];
     _mockLoading = false;
+    _mockError = null;
     _mockRefresh.mockClear();
     mockNavigate.mockClear();
     mockSupabaseResponse({ data: [], error: null });
@@ -103,7 +107,8 @@ describe('CustomersPage', () => {
 
   it('renders the page heading', () => {
     renderPage();
-    expect(screen.getByRole('heading', { name: /customers/i })).toBeInTheDocument();
+    // Level 1 to disambiguate from the empty-state "No customers yet" h3.
+    expect(screen.getByRole('heading', { level: 1, name: /customers/i })).toBeInTheDocument();
   });
 
   it('renders the "+ New customer" button', () => {
@@ -126,8 +131,26 @@ describe('CustomersPage', () => {
   it('renders a row per customer in the table', () => {
     _mockCustomers = SAMPLE_CUSTOMERS;
     renderPage();
-    expect(screen.getByText('Acme Corp')).toBeInTheDocument();
-    expect(screen.getByText('Beta Builders')).toBeInTheDocument();
+    // Rendered in both the desktop table and the mobile card deck.
+    expect(screen.getAllByText('Acme Corp').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Beta Builders').length).toBeGreaterThan(0);
+  });
+
+  it('renders customers as mobile cards alongside the desktop table', () => {
+    _mockCustomers = SAMPLE_CUSTOMERS;
+    const { container } = renderPage();
+
+    const table = screen.getByRole('table');
+    expect(table).toHaveClass('table-premium');
+    expect(table.closest('.customers-table-view')).toBeInTheDocument();
+
+    const cards = screen.getByLabelText('Customer cards');
+    expect(cards).toHaveClass('customers-card-view');
+    expect(container.querySelector('.customer-mobile-card')).toBeInTheDocument();
+    // Card-scoped assertions for the first customer.
+    const acmeLink = within(cards).getByRole('link', { name: 'Acme Corp' });
+    expect(acmeLink).toHaveAttribute('href', '/customers/cust-1');
+    expect(within(cards).getByText(/1 main st, brisbane/i)).toBeInTheDocument();
   });
 
   // -------------------------------------------------------------------------
@@ -158,6 +181,25 @@ describe('CustomersPage', () => {
     });
   });
 
+  it('surfaces a categorized create action error instead of a raw message', async () => {
+    mockSupabaseResponse({
+      data: null,
+      error: { message: 'new row violates row-level security policy for table "customers"' },
+    });
+
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /\+ new customer/i }));
+    fireEvent.change(screen.getByPlaceholderText(/customer name or business/i), {
+      target: { value: 'Blocked Customer' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create customer/i }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/could not create the customer/i);
+    expect(alert).toHaveTextContent(/access policy blocked this request/i);
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
   it('cancel button closes the create form without submitting', () => {
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: /\+ new customer/i }));
@@ -178,7 +220,19 @@ describe('CustomersPage', () => {
   it('shows empty-state message when no customers exist', () => {
     _mockCustomers = [];
     renderPage();
+    expect(screen.getByText(/no customers yet/i)).toBeInTheDocument();
     expect(screen.getByText(/no customers found/i)).toBeInTheDocument();
+  });
+
+  it('empty state offers an inline call-to-action that opens the create form', () => {
+    _mockCustomers = [];
+    renderPage();
+
+    const cta = screen.getByRole('button', { name: /add your first customer/i });
+    expect(cta).toBeInTheDocument();
+
+    fireEvent.click(cta);
+    expect(screen.getByRole('heading', { name: /new customer/i })).toBeInTheDocument();
   });
 
   // -------------------------------------------------------------------------
@@ -192,5 +246,29 @@ describe('CustomersPage', () => {
     expect(container.querySelector('table')).not.toBeInTheDocument();
     // A skeleton div should exist
     expect(container.querySelector('div')).toBeInTheDocument();
+  });
+
+  it('classifies load errors instead of showing generic failed-to-load copy', () => {
+    _mockError = 'permission denied for table customers';
+
+    renderPage();
+
+    expect(
+      screen.getByText(
+        /could not load customers\. authentication or permission issue: permission denied for table customers/i,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/^failed to load:/i)).not.toBeInTheDocument();
+  });
+
+  it('has a max-width: 768px breakpoint that swaps the customers table for the card deck', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
+
+    expect(css).toMatch(
+      /@media \(max-width: 768px\)[\s\S]*\.customers-table-view[\s\S]*\{[\s\S]*display: none/,
+    );
+    expect(css).toMatch(
+      /@media \(max-width: 768px\)[\s\S]*\.customers-card-view[\s\S]*\{[\s\S]*display: grid/,
+    );
   });
 });

@@ -3,11 +3,13 @@ info:
   title: Looplet Accounting Connector API
   version: '1.0.0'
   description: >
-    External connector API for Looplet Accounting. Two surfaces:
+    External connector API for Looplet Accounting. Three surfaces:
 
       1. **Read API** — Supabase PostgREST at `/rest/v1`. Authenticate with a
          short-lived org-scoped JWT obtained from `POST /functions/v1/api-gateway`.
          Row-Level Security scopes every read to the key's organization.
+         Read scopes are not granular today: any valid key gets full-org read
+         over PostgREST, regardless of the key's `scopes`.
 
       2. **Ingest API** — `POST /functions/v1/ingest` pushes bills, bank
          transactions, invoices, stored documents, and invoice payments in.
@@ -23,7 +25,8 @@ info:
 
     All API keys are organization-bound. The raw service-role key is NEVER
     accepted at the edge. Every external call is rate-limited per key and logged
-    to `api_request_log`.
+    to `api_request_log`. Treat issuing any key as granting full-org read; write
+    authority is enforced per ingest type by the write endpoints.
 servers:
   - url: https://dxoikltymmknxqpkpyhi.supabase.co
     description: Production
@@ -51,7 +54,9 @@ components:
       bearerFormat: JWT
       description: >
         Short-lived (15 min) org-scoped JWT returned by `/functions/v1/api-gateway`.
-        Carries `role=authenticated` and an `organization_id` claim that RLS honours.
+        Carries `role=connector` and an `organization_id` claim that RLS honours.
+        Read scopes are not granular; any valid key can exchange for full-org read.
+        The SELECT-only connector role denies direct PostgREST writes.
   schemas:
     Error:
       type: object
@@ -112,10 +117,10 @@ components:
       required: [ok]
     BillPayload:
       type: object
-      description: Scope required - write:bills. Dedup on org + content hash and UNIQUE(org, supplier_id, invoice_number).
+      description: Scope required - write:bills. Dedup on org + content hash and UNIQUE(org, supplier_id, invoice_number). supplier_id and job_id must belong to the key's org if supplied.
       properties:
-        supplier_id: { type: string, format: uuid }
-        job_id: { type: string, format: uuid }
+        supplier_id: { type: string, format: uuid, description: Must belong to the key's org if supplied. }
+        job_id: { type: string, format: uuid, description: Must belong to the key's org if supplied. }
         supplier_name_raw: { type: string }
         supplier_abn: { type: string }
         invoice_number: { type: string }
@@ -152,7 +157,7 @@ components:
       properties:
         invoice_number: { type: string }
         customer_id: { type: string, format: uuid, description: Must belong to the key's org. }
-        job_id: { type: string, format: uuid }
+        job_id: { type: string, format: uuid, description: Must belong to the key's org if supplied. }
         issue_date: { type: string, format: date }
         due_date: { type: string, format: date }
         terms_days: { type: integer, default: 14 }
@@ -161,7 +166,6 @@ components:
         total_inc_gst_cents: { type: integer }
         currency_code: { type: string, default: AUD }
         notes: { type: string }
-        status: { type: string, enum: [draft, sent, partially_paid, paid, overdue, void] }
     DocumentPayload:
       type: object
       description: >
@@ -365,9 +369,11 @@ paths:
       summary: Exchange an API key for a short-lived org-scoped JWT
       description: >
         Validates the presented API key (SHA-256 hash lookup), then mints a
-        15-minute JWT with `role=authenticated` and the key's `organization_id`
+        15-minute JWT with `role=connector` and the key's `organization_id`
         claim. Use the returned token as a bearer against `/rest/v1` — RLS scopes
-        all reads to that organization. Rate-limited per key; logged.
+        all reads to that organization. Read scopes are not granular: the token
+        can read the whole org regardless of the key's scopes. The SELECT-only
+        connector role denies direct PostgREST writes. Rate-limited per key; logged.
       security:
         - ApiKey: []
       responses:
@@ -495,6 +501,7 @@ paths:
         full PostgREST query grammar (`select`, filters, `order`, `limit`, etc).
         Examples of readable resources: `bills`, `invoices`, `bank_transactions`,
         `jobs`, `customers`, `suppliers`, and reporting views (`v_customer_pnl`, ...).
+        Read scopes are advisory only today; a gateway JWT has full-org read.
       security:
         - BearerJWT: []
       parameters:

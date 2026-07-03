@@ -3,6 +3,7 @@ import { CheckCheck, RefreshCw, Zap, CheckCircle, Loader2 } from 'lucide-react';
 import { useAllocationQueue } from '@/hooks/useAllocationQueue';
 import { useOrg } from '@/hooks/useOrg';
 import { supabase } from '@/lib/supabase';
+import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 
@@ -282,7 +283,7 @@ export function AllocationQueuePanel() {
           className="badge badge-danger"
           style={{ display: 'block', padding: '0.5rem 0.75rem', textTransform: 'none' }}
         >
-          Failed to load queue: {error}
+          {formatLoadError('allocation queue', error)}
         </div>
       )}
 

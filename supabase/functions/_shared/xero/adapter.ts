@@ -8,6 +8,7 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { callXeroWithRetry, xeroFetch, XeroApiError } from './auth.ts';
+import { resolveXeroIdempotencyKey } from './idempotency.ts';
 
 interface BillForPush {
   id: string;
@@ -41,6 +42,40 @@ interface PushArgs {
 interface PushResult {
   xeroInvoiceId: string;
   isStub: boolean;
+}
+
+async function loadGlEvidence(
+  admin: SupabaseClient,
+  organizationId: string,
+  sourceType: 'bill' | 'invoice',
+  sourceId: string,
+): Promise<Record<string, unknown>> {
+  const { data, error } = await admin
+    .from('journal_entries')
+    .select('id, status, posted_at, entry_date, source_type, source_id')
+    .eq('organization_id', organizationId)
+    .eq('source_type', sourceType)
+    .eq('source_id', sourceId)
+    .order('entry_date', { ascending: false })
+    .limit(10);
+
+  if (error) {
+    return {
+      source_type: sourceType,
+      source_id: sourceId,
+      lookup_error: error.message,
+      journal_entries: [],
+      posted_count: 0,
+    };
+  }
+
+  const rows = (data ?? []) as Record<string, unknown>[];
+  return {
+    source_type: sourceType,
+    source_id: sourceId,
+    journal_entries: rows,
+    posted_count: rows.filter((row) => row.status === 'posted').length,
+  };
 }
 
 function isStubModeRequested(): boolean {
@@ -78,6 +113,13 @@ export async function pushBillToXero(args: PushArgs): Promise<PushResult> {
 
 async function pushBillStub(args: PushArgs): Promise<PushResult> {
   const stubId = `STUB-${args.bill.id.slice(0, 8).toUpperCase()}`;
+  const idempotencyKey = await resolveXeroIdempotencyKey(undefined, [
+    'xero',
+    'bill',
+    args.organizationId,
+    args.bill.id,
+  ]);
+  const glEvidence = await loadGlEvidence(args.admin, args.organizationId, 'bill', args.bill.id);
   await args.admin.from('xero_sync_log').insert({
     organization_id: args.organizationId,
     record_type: 'bill',
@@ -85,9 +127,9 @@ async function pushBillStub(args: PushArgs): Promise<PushResult> {
     xero_id: stubId,
     operation: 'push',
     status: 'success',
-    idempotency_key: crypto.randomUUID(),
+    idempotency_key: idempotencyKey,
     request: { stub: true, jobNumber: args.job.job_number },
-    response: { stub: true, id: stubId },
+    response: { stub: true, id: stubId, looplet_gl_evidence: glEvidence },
   });
   return { xeroInvoiceId: stubId, isStub: true };
 }
@@ -124,8 +166,15 @@ async function pushBillReal(args: PushArgs): Promise<PushResult> {
     Status: 'AUTHORISED',
   };
 
-  // 3. POST to Xero with idempotency-key
-  const idempotencyKey = crypto.randomUUID();
+  // 3. POST to Xero with a STABLE idempotency-key so a retry after a lost response
+  // reuses the same key and Xero dedups it, rather than creating a duplicate ACCPAY.
+  const idempotencyKey = await resolveXeroIdempotencyKey(undefined, [
+    'xero',
+    'bill',
+    organizationId,
+    bill.id,
+  ]);
+  const glEvidence = await loadGlEvidence(admin, organizationId, 'bill', bill.id);
   const data = await callXeroWithRetry<{ Invoices: { InvoiceID?: string }[] }>(
     admin,
     organizationId,
@@ -152,7 +201,7 @@ async function pushBillReal(args: PushArgs): Promise<PushResult> {
     status: 'success',
     idempotency_key: idempotencyKey,
     request: xeroInvoice,
-    response: data,
+    response: { ...data, looplet_gl_evidence: glEvidence },
   });
 
   return { xeroInvoiceId, isStub: false };
@@ -178,13 +227,22 @@ async function resolveOrCreateContact(
   const existing = found?.Contacts?.[0];
   if (existing?.ContactID) return existing.ContactID;
 
-  // Create
+  // Create with a stable idempotency key derived from the supplier name so two
+  // concurrent pushes for the same supplier don't race past the check-then-create
+  // and produce duplicate Xero contacts.
+  const contactIdempotencyKey = await resolveXeroIdempotencyKey(undefined, [
+    'xero',
+    'contact',
+    organizationId,
+    name.trim().toLowerCase(),
+  ]);
   const created = await callXeroWithRetry<{ Contacts: { ContactID?: string }[] }>(
     admin,
     organizationId,
     (ctx) =>
       xeroFetch(ctx, '/api.xro/2.0/Contacts', {
         method: 'POST',
+        headers: { 'Idempotency-Key': contactIdempotencyKey },
         body: JSON.stringify({ Contacts: [{ Name: name, IsSupplier: true }] }),
       }),
   );

@@ -11,11 +11,11 @@
  *
  * NOTE: MiniMax vision takes images only (JPEG/PNG/GIF/WEBP, <=10MB) — there is
  * no native PDF document input. PDFs are handled upstream by the born-digital
- * text-layer path; image-based PDFs fall back to the manual-entry stub in
- * index.ts (set OCR_PROVIDER=anthropic if you need PDFs OCR'd).
+ * text-layer path first; image-based PDFs are rasterized in index.ts and sent as
+ * page images. Set OCR_PROVIDER=anthropic when native PDF OCR is preferred.
  */
 
-import { EXTRACT_PROMPT, parseExtractedJson, type ExtractedBill } from './prompt.ts';
+import { EXTRACT_PROMPT, ocrTimeoutSignal, parseExtractedJson, type ExtractedBill } from './prompt.ts';
 
 /** Chunked base64 — String.fromCharCode(...bytes) blows the call stack ~125k bytes. */
 function toBase64(bytes: Uint8Array): string {
@@ -67,6 +67,7 @@ export async function extractBillDataMiniMax(
         },
       ],
     }),
+    signal: ocrTimeoutSignal(),
   });
 
   if (!res.ok) {

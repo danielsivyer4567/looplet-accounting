@@ -1,4 +1,12 @@
-import { useEffect, useState, useCallback } from 'react';
+import {
+  cloneElement,
+  isValidElement,
+  useCallback,
+  useEffect,
+  useId,
+  useState,
+  type ReactNode,
+} from 'react';
 import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
@@ -6,6 +14,8 @@ import { formatMoney } from '@/lib/money';
 import { enqueueJob } from '@/lib/automationJobs';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { XeroStatusPill } from '@/components/XeroStatusPill';
+import { DetailPageSkeleton } from '@/components/Skeleton';
+import { ArchiveButton } from '@/components/ArchiveButton';
 import {
   ChevronLeft,
   Save,
@@ -52,6 +62,7 @@ interface Invoice {
   xero_invoice_id: string | null;
   xero_synced_at: string | null;
   metadata: Record<string, unknown>;
+  deleted_at: string | null;
   customer: Customer | null;
   job: Job | null;
 }
@@ -292,7 +303,7 @@ export function InvoiceDetailPage() {
               description: l.description.trim(),
               quantity: l.quantity,
               unit_price_cents: l.unit_price_cents,
-              gst_treatment: l.gst_treatment === 'zero' ? 'free' : l.gst_treatment,
+              gst_treatment: l.gst_treatment,
               line_total_ex_gst_cents: l.line_total_ex_gst_cents,
               line_gst_cents: l.line_gst_cents,
               line_total_inc_gst_cents: l.line_total_inc_gst_cents,
@@ -394,11 +405,7 @@ export function InvoiceDetailPage() {
 
   if (!currentOrg) return null;
   if (loading) {
-    return (
-      <section className="animated-fade-in">
-        <p style={{ color: 'var(--text-muted)' }}>Loading invoice details…</p>
-      </section>
-    );
+    return <DetailPageSkeleton tableCols={6} />;
   }
   if (!isNew && !invoice) {
     return (
@@ -494,6 +501,19 @@ export function InvoiceDetailPage() {
               fkColumnsToNull={['customer_id', 'job_id']}
               onMoved={() => {
                 window.location.href = '/invoices';
+              }}
+            />
+
+            <ArchiveButton
+              table="invoices"
+              rowId={invoice.id}
+              isArchived={!!invoice.deleted_at}
+              onChange={(nowArchived) => {
+                if (nowArchived) {
+                  window.location.href = '/invoices';
+                } else {
+                  void refresh();
+                }
               }}
             />
           </div>
@@ -670,6 +690,7 @@ export function InvoiceDetailPage() {
                 <td>
                   {editing ? (
                     <input
+                      aria-label={`Line ${l.line_number} description`}
                       value={l.description}
                       onChange={(e) => updateLine(i, { description: e.target.value })}
                       placeholder="e.g. Fence install — 30m"
@@ -683,6 +704,7 @@ export function InvoiceDetailPage() {
                 <td style={{ textAlign: 'right' }}>
                   {editing ? (
                     <input
+                      aria-label={`Line ${l.line_number} quantity`}
                       type="number"
                       step="0.01"
                       value={l.quantity}
@@ -697,6 +719,7 @@ export function InvoiceDetailPage() {
                 <td style={{ textAlign: 'right' }}>
                   {editing ? (
                     <input
+                      aria-label={`Line ${l.line_number} unit price excluding GST`}
                       type="number"
                       step="0.01"
                       value={(l.unit_price_cents / 100).toFixed(2)}
@@ -715,6 +738,7 @@ export function InvoiceDetailPage() {
                 <td>
                   {editing ? (
                     <select
+                      aria-label={`Line ${l.line_number} GST treatment`}
                       value={l.gst_treatment}
                       onChange={(e) =>
                         updateLine(i, {
@@ -739,6 +763,7 @@ export function InvoiceDetailPage() {
                 {editing && (
                   <td style={{ textAlign: 'right' }}>
                     <button
+                      aria-label={`Remove line ${l.line_number}`}
                       onClick={() => removeLine(i)}
                       className="btn btn-ghost"
                       style={{ color: 'var(--text-danger)', padding: '0.2rem 0.4rem' }}
@@ -911,13 +936,22 @@ export function InvoiceDetailPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  const generatedId = useId();
+  const child = isValidElement<{ id?: string }>(children) ? children : null;
+  const labelable =
+    child && typeof child.type === 'string' && ['input', 'select', 'textarea'].includes(child.type);
+  const controlId =
+    labelable && child ? (child.props.id ?? `invoice-field-${generatedId}`) : undefined;
+  const labelledChild =
+    labelable && child && controlId ? cloneElement(child, { id: controlId }) : children;
+
   return (
     <div className="form-group">
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>
+      <label className="form-label" htmlFor={controlId} style={{ fontSize: '0.725rem' }}>
         {label}
-      </span>
-      <div style={{ marginTop: '0.25rem' }}>{children}</div>
+      </label>
+      <div style={{ marginTop: '0.25rem' }}>{labelledChild}</div>
     </div>
   );
 }

@@ -7,8 +7,8 @@ import type { SuperBatch } from '@/hooks/useSuperBatch';
  * section with a mocked useSuperBatch so no Supabase/network is needed — the runtime
  * look (Preview MCP unavailable, per D.02/F.04/E.01). Asserts: empty state offers
  * Generate (calls generate); a draft batch lists per-employee SG + total and the
- * Approve&send button invokes send + surfaces the gate verdict (approval-pending);
- * an already-sent batch disables send.
+ * Approve&export button invokes send + surfaces the gate verdict (approval-pending);
+ * an already-exported batch disables export.
  */
 
 const h = vi.hoisted(() => ({
@@ -18,7 +18,6 @@ const h = vi.hoisted(() => ({
   refresh: vi.fn(),
   generate: vi.fn(),
   send: vi.fn(),
-  markObligationStatus: vi.fn(),
 }));
 
 vi.mock('@/hooks/useSuperBatch', () => ({
@@ -30,9 +29,6 @@ vi.mock('@/hooks/useSuperBatch', () => ({
     generate: h.generate,
     send: h.send,
   }),
-}));
-vi.mock('@/hooks/useTaxCalendar', () => ({
-  markObligationStatus: (a: unknown) => h.markObligationStatus(a),
 }));
 vi.mock('@/hooks/useOrg', () => ({
   useOrg: () => ({ currentOrg: { id: 'org-1', name: 'Test Org' } }),
@@ -49,8 +45,26 @@ const BATCH: SuperBatch = {
   fy_start_year: 2025,
   quarter: 4,
   lines: [
-    { id: 'l1', employee_id: 'e1', employee_name: 'Emp A', super_cents: 57500 },
-    { id: 'l2', employee_id: 'e2', employee_name: 'Emp B', super_cents: 34500 },
+    {
+      id: 'l1',
+      employee_id: 'e1',
+      employee_name: 'Emp A',
+      super_cents: 57500,
+      fund_name: 'Aware Super',
+      fund_usi: 'Aware123',
+      member_number: 'MEM1',
+      validation_errors: [],
+    },
+    {
+      id: 'l2',
+      employee_id: 'e2',
+      employee_name: 'Emp B',
+      super_cents: 34500,
+      fund_name: 'Hostplus',
+      fund_usi: 'Host123',
+      member_number: 'MEM2',
+      validation_errors: [],
+    },
   ],
 };
 
@@ -61,12 +75,20 @@ beforeEach(() => {
   h.refresh = vi.fn();
   h.generate = vi.fn();
   h.send = vi.fn();
-  h.markObligationStatus = vi.fn();
 });
 
 const renderSection = () => render(<SuperBatchSection fy={2025} quarter={4} />);
 
 describe('SuperBatchSection (SC-3.H.01)', () => {
+  it('uses a skeleton while the super batch is loading', () => {
+    h.loading = true;
+
+    renderSection();
+
+    expect(screen.getByLabelText(/loading super batch/i)).toHaveAttribute('aria-busy', 'true');
+    expect(screen.queryByText(/loading batch/i)).not.toBeInTheDocument();
+  });
+
   it('offers Generate in the empty state and calls generate on click', async () => {
     renderSection();
     expect(screen.getByText(/No batch for this quarter yet/)).toBeInTheDocument();
@@ -74,44 +96,46 @@ describe('SuperBatchSection (SC-3.H.01)', () => {
     await waitFor(() => expect(h.generate).toHaveBeenCalledTimes(1));
   });
 
-  it('lists per-employee SG + total and sends via the approve-gate (pending verdict)', async () => {
+  it('lists per-employee SG/fund details + total and exports via the approve-gate', async () => {
     h.batch = BATCH;
     h.send = vi.fn().mockResolvedValue({ ok: false, approval_id: 'appr-1' });
     renderSection();
 
     expect(screen.getByText('Emp A')).toBeInTheDocument();
+    expect(screen.getByText(/Aware Super/)).toBeInTheDocument();
+    expect(screen.getByText('MEM1')).toBeInTheDocument();
     expect(screen.getByText('Emp B')).toBeInTheDocument();
     expect(screen.getByText(/Total \(2 employees\)/)).toBeInTheDocument();
 
-    const sendBtn = screen.getByRole('button', { name: /Approve & send/i });
+    const sendBtn = screen.getByRole('button', { name: /Approve & export/i });
     expect(sendBtn).not.toBeDisabled();
     fireEvent.click(sendBtn);
     await waitFor(() => expect(h.send).toHaveBeenCalledTimes(1));
     expect(await screen.findByText(/Approval requested/)).toBeInTheDocument();
-    // A refused (pending) send must NOT flip the obligation — only a real send does.
-    expect(h.markObligationStatus).not.toHaveBeenCalled();
   });
 
-  it('flips the super obligation to paid on a successful send (SC-3.H.02)', async () => {
+  it('exports a successful clearing-house file without marking the obligation paid', async () => {
     h.batch = BATCH;
-    h.send = vi.fn().mockResolvedValue({ ok: true, sent: true });
-    h.markObligationStatus = vi.fn().mockResolvedValue(undefined);
+    h.send = vi.fn().mockResolvedValue({
+      ok: true,
+      sent: true,
+      payload: { schema_version: 'build_superstream_payload:v1' },
+    });
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:superstream');
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
     renderSection();
 
-    fireEvent.click(screen.getByRole('button', { name: /Approve & send/i }));
-    await waitFor(() => expect(h.markObligationStatus).toHaveBeenCalledTimes(1));
-    expect(h.markObligationStatus).toHaveBeenCalledWith({
-      organizationId: 'org-1',
-      obligationKey: 'super',
-      periodLabel: 'Q4 FY2025-26',
-      status: 'paid',
-    });
-    expect(await screen.findByText(/quarter paid/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Approve & export/i }));
+    await waitFor(() => expect(h.send).toHaveBeenCalledTimes(1));
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText(/manual upload/)).toBeInTheDocument();
+    createObjectURL.mockRestore();
+    revokeObjectURL.mockRestore();
   });
 
-  it('disables Approve & send for an already-sent batch', () => {
+  it('disables Approve & export for an already-sent batch', () => {
     h.batch = { ...BATCH, status: 'sent' };
     renderSection();
-    expect(screen.getByRole('button', { name: /Approve & send/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Approve & export/i })).toBeDisabled();
   });
 });

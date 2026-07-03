@@ -199,14 +199,14 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} style={openBtn}>
+      <button onClick={() => setOpen(true)} className="bank-import-open-button" style={openBtn}>
         ⬆ Import PDF statement
       </button>
     );
   }
 
   return (
-    <div style={card}>
+    <div className="bank-import-card" style={card}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <h3 style={{ fontSize: 14, margin: 0 }}>Import PDF bank statement</h3>
         <button onClick={() => setOpen(false)} style={closeBtn}>
@@ -218,7 +218,7 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
         vision-OCR; transactions are deduped against existing rows.
       </p>
 
-      <div style={grid2}>
+      <div className="bank-import-grid" style={grid2}>
         <Field label="Bank">
           <input value={bank} onChange={(e) => setBank(e.target.value)} style={inp} />
         </Field>
@@ -226,7 +226,7 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
           <input value={accountName} onChange={(e) => setAccountName(e.target.value)} style={inp} />
         </Field>
       </div>
-      <div style={grid2}>
+      <div className="bank-import-grid" style={grid2}>
         <Field label="Account type">
           <select
             value={accountType}
@@ -242,7 +242,7 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
           </select>
         </Field>
         <Field label="BSB / last 4 (optional)">
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div className="bank-import-split">
             <input
               value={bsb}
               onChange={(e) => setBsb(e.target.value)}
@@ -270,24 +270,34 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
         />
       </Field>
 
-      <button onClick={handleImport} disabled={busy || files.length === 0} style={primaryBtn}>
-        {busy
-          ? 'Working…'
-          : `Extract & import ${files.length ? `(${files.length} file${files.length === 1 ? '' : 's'})` : ''}`}
-      </button>
-      {busy && (
-        <button
-          onClick={() => {
-            cancelRef.current = true;
-          }}
-          style={{ ...ghostBtn, marginLeft: 8 }}
-        >
-          Cancel
+      <div className="bank-import-actions">
+        <button onClick={handleImport} disabled={busy || files.length === 0} style={primaryBtn}>
+          {busy
+            ? 'Working…'
+            : `Extract & import ${files.length ? `(${files.length} file${files.length === 1 ? '' : 's'})` : ''}`}
         </button>
-      )}
+        {busy && (
+          <button
+            onClick={() => {
+              cancelRef.current = true;
+            }}
+            style={{ ...ghostBtn, marginLeft: 8 }}
+          >
+            Cancel
+          </button>
+        )}
+      </div>
 
       {progress && <p style={{ marginTop: 8, fontSize: 12, color: '#aaa' }}>⏳ {progress}</p>}
-      {error && <p style={{ color: 'salmon', fontSize: 12, marginTop: 8 }}>{error}</p>}
+      {error && (
+        <div
+          role="alert"
+          className="badge badge-danger"
+          style={{ display: 'block', width: 'fit-content', marginTop: 8, textTransform: 'none' }}
+        >
+          {error}
+        </div>
+      )}
       {result && (
         <div style={successBox}>
           ✓ Imported <strong>{result.imported}</strong> transactions
@@ -357,7 +367,7 @@ const inp: React.CSSProperties = {
   borderRadius: 3,
   fontSize: 12,
 };
-const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 };
+const grid2: React.CSSProperties = { gap: 12 };
 const card: React.CSSProperties = {
   marginTop: 16,
   padding: 16,

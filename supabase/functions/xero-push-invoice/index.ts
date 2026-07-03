@@ -60,6 +60,40 @@ interface InvoiceLineItem {
   account_code: string | null;
 }
 
+async function loadGlEvidence(
+  admin: SupabaseClient,
+  organizationId: string,
+  sourceType: 'bill' | 'invoice',
+  sourceId: string,
+): Promise<Record<string, unknown>> {
+  const { data, error } = await admin
+    .from('journal_entries')
+    .select('id, status, posted_at, entry_date, source_type, source_id')
+    .eq('organization_id', organizationId)
+    .eq('source_type', sourceType)
+    .eq('source_id', sourceId)
+    .order('entry_date', { ascending: false })
+    .limit(10);
+
+  if (error) {
+    return {
+      source_type: sourceType,
+      source_id: sourceId,
+      lookup_error: error.message,
+      journal_entries: [],
+      posted_count: 0,
+    };
+  }
+
+  const rows = (data ?? []) as Record<string, unknown>[];
+  return {
+    source_type: sourceType,
+    source_id: sourceId,
+    journal_entries: rows,
+    posted_count: rows.filter((row) => row.status === 'posted').length,
+  };
+}
+
 Deno.serve(async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
@@ -235,6 +269,7 @@ Deno.serve(async (req) => {
       organization_id,
       invoice_id,
     ]);
+    const glEvidence = await loadGlEvidence(admin, organization_id, 'invoice', invoice_id);
 
     try {
       const data = await callXeroWithRetry<{ Invoices: { InvoiceID?: string }[] }>(
@@ -274,7 +309,7 @@ Deno.serve(async (req) => {
         status: 'success',
         idempotency_key: idempotencyKey,
         request: xeroInvoice,
-        response: data,
+        response: { ...data, looplet_gl_evidence: glEvidence },
       });
 
       return json({ ok: true, xero_invoice_id: xeroInvoiceId, was_stub: false });
@@ -303,7 +338,7 @@ Deno.serve(async (req) => {
         error_message: msg.slice(0, 500),
         idempotency_key: idempotencyKey,
         request: xeroInvoice,
-        response: null,
+        response: { looplet_gl_evidence: glEvidence },
       });
 
       return json({ ok: false, error: msg, xero_attempts: attempts + 1 }, 500);
@@ -345,12 +380,22 @@ async function resolveOrCreateContact(
     return existing.ContactID;
   }
 
+  // Create with a stable idempotency key derived from the name so two concurrent
+  // xero_push jobs for the same new customer don't race past the check-then-create
+  // above and produce duplicate Xero contacts.
+  const contactIdempotencyKey = await resolveXeroIdempotencyKey(undefined, [
+    'xero',
+    'contact',
+    organizationId,
+    name.trim().toLowerCase(),
+  ]);
   const created = await callXeroWithRetry<{ Contacts: { ContactID?: string }[] }>(
     admin,
     organizationId,
     (ctx) =>
       xeroFetch(ctx, '/api.xro/2.0/Contacts', {
         method: 'POST',
+        headers: { 'Idempotency-Key': contactIdempotencyKey },
         body: JSON.stringify({
           Contacts: [{ Name: name, IsSupplier: isSupplier, IsCustomer: !isSupplier }],
         }),

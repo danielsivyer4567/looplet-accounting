@@ -40,6 +40,8 @@
 
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { postJournalEntry } from '../_shared/gl/postJournalEntry.ts';
+import type { GlAdminClient } from '../_shared/gl/client.ts';
 
 // ── Thresholds ────────────────────────────────────────────────────────────────
 const AUTO_CODE_THRESHOLD = 0.88;  // silent auto-post
@@ -48,17 +50,44 @@ const HISTORY_AGREE_RATIO = 0.70;  // majority vote floor for history match
 const BATCH_LIMIT         = 100;   // transactions per invocation
 const MINIMAX_MODEL       = 'MiniMax-Text-01';
 const MINIMAX_BASE_URL    = 'https://api.minimax.io/v1';
+const BANK_ACCOUNT_CODE   = '1000';
+
+// Only categories that are safe to book from a bank line alone are posted here.
+// Customer receipts, payroll/statutory payments, personal rows, and capital items
+// stay on their specialised paths so D4 never creates a duplicate or legal/tax
+// shortcut journal.
+const BANK_TRANSACTION_ACCOUNT_CODES: Record<string, string> = {
+  materials: '5000',
+  subcontractor: '5100',
+  fuel: '6100',
+  motor_vehicle: '6100',
+  insurance: '6200',
+  telephone_internet: '6300',
+  subscriptions_saas: '6400',
+  professional_fees: '6500',
+  bank_fees: '6600',
+  office_supplies: '6900',
+  marketing: '6900',
+  meals_entertainment: '6900',
+  rent: '6900',
+  training: '6900',
+  travel: '6900',
+  uniform_ppe: '6900',
+  utilities: '6900',
+};
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface BankTxn {
   id: string;
   organization_id: string;
+  bank_account_id: string;
   description: string;
   amount_cents: number;
   posted_at: string;
   reference: string | null;
   category_external: string | null;
   matched_bill_id: string | null;
+  matched_invoice_id: string | null;
   coding_status: string;
   is_personal: boolean;
 }
@@ -102,6 +131,20 @@ interface RequestBody {
   decision?: 'accept' | 'override';
   category_code?: string;
   job_id?: string;
+}
+
+interface PostingDeps {
+  supabaseUrl: string;
+  anonKey: string;
+  connectorJwtSecret: string | undefined;
+}
+
+interface BankTxnJournalResult {
+  source: 'bank_transaction_classifier';
+  required: boolean;
+  posted: boolean;
+  journal_entry_id: string | null;
+  reason: string | null;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -494,7 +537,8 @@ async function upsertSuggestion(
     .maybeSingle();
 
   if (existing) {
-    await admin.from('bank_tx_coding_suggestions').update(row).eq('id', existing.id);
+    const { error } = await admin.from('bank_tx_coding_suggestions').update(row).eq('id', existing.id);
+    if (error) throw new Error(`update suggestion: ${error.message}`);
     return existing.id as string;
   }
   const { data, error } = await admin
@@ -506,13 +550,156 @@ async function upsertSuggestion(
   return data.id as string;
 }
 
+function bankJournalSkipReason(txn: BankTxn, categoryCode: string | null): string | null {
+  if (txn.is_personal || categoryCode === 'personal_expense') {
+    return 'personal_transaction_not_posted_to_business_gl';
+  }
+  if (txn.matched_bill_id) return 'matched_bill_reconciliation_owns_gl';
+  if (txn.matched_invoice_id) return 'matched_invoice_reconciliation_owns_gl';
+  if (!categoryCode || categoryCode === 'uncategorized') return 'uncategorized_requires_review';
+  if (txn.amount_cents >= 0) return 'inbound_bank_transaction_reconciliation_owns_gl';
+  if (!(categoryCode in BANK_TRANSACTION_ACCOUNT_CODES)) {
+    return 'category_not_safe_for_bank_only_gl_post';
+  }
+  return null;
+}
+
+async function postBankTransactionJournal(
+  admin: SupabaseClient,
+  deps: PostingDeps,
+  txn: BankTxn,
+  categoryCode: string | null,
+): Promise<BankTxnJournalResult> {
+  const skipReason = bankJournalSkipReason(txn, categoryCode);
+  if (skipReason) {
+    return {
+      source: 'bank_transaction_classifier',
+      required: false,
+      posted: false,
+      journal_entry_id: null,
+      reason: skipReason,
+    };
+  }
+
+  const amountCents = Math.abs(Number(txn.amount_cents));
+  if (!Number.isFinite(amountCents) || amountCents <= 0) {
+    return {
+      source: 'bank_transaction_classifier',
+      required: false,
+      posted: false,
+      journal_entry_id: null,
+      reason: 'zero_or_invalid_amount',
+    };
+  }
+
+  const { data: existing, error: existingError } = await admin
+    .from('journal_entries')
+    .select('id')
+    .eq('source_type', 'bank_transaction')
+    .eq('source_id', txn.id)
+    .eq('status', 'posted')
+    .maybeSingle();
+  if (existingError) {
+    return {
+      source: 'bank_transaction_classifier',
+      required: true,
+      posted: false,
+      journal_entry_id: null,
+      reason: `check existing journal: ${existingError.message}`,
+    };
+  }
+  if (existing?.id) {
+    return {
+      source: 'bank_transaction_classifier',
+      required: true,
+      posted: true,
+      journal_entry_id: existing.id as string,
+      reason: 'already_posted',
+    };
+  }
+
+  const expenseCode = BANK_TRANSACTION_ACCOUNT_CODES[categoryCode as string];
+  const { data: accounts, error: accountsError } = await admin
+    .from('chart_of_accounts')
+    .select('id, code')
+    .eq('organization_id', txn.organization_id)
+    .eq('is_active', true)
+    .in('code', [expenseCode, BANK_ACCOUNT_CODE]);
+  if (accountsError) {
+    return {
+      source: 'bank_transaction_classifier',
+      required: true,
+      posted: false,
+      journal_entry_id: null,
+      reason: `resolve accounts: ${accountsError.message}`,
+    };
+  }
+
+  const accountIds = new Map<string, string>();
+  for (const row of (accounts ?? []) as { id: string; code: string }[]) {
+    accountIds.set(row.code, row.id);
+  }
+  const expenseId = accountIds.get(expenseCode);
+  const bankId = accountIds.get(BANK_ACCOUNT_CODE);
+  if (!expenseId || !bankId) {
+    return {
+      source: 'bank_transaction_classifier',
+      required: true,
+      posted: false,
+      journal_entry_id: null,
+      reason: `missing active account ${!expenseId ? expenseCode : BANK_ACCOUNT_CODE}`,
+    };
+  }
+
+  const result = await postJournalEntry({
+    admin: admin as unknown as GlAdminClient,
+    supabaseUrl: deps.supabaseUrl,
+    anonKey: deps.anonKey,
+    connectorJwtSecret: deps.connectorJwtSecret,
+  }, {
+    organizationId: txn.organization_id,
+    sourceType: 'bank_transaction',
+    sourceId: txn.id,
+    entryDate: txn.posted_at.slice(0, 10),
+    memo: `Bank auto-coded: ${txn.description}`,
+    lines: [
+      {
+        account_id: expenseId,
+        debit_cents: amountCents,
+        credit_cents: 0,
+        description: txn.description,
+      },
+      {
+        account_id: bankId,
+        debit_cents: 0,
+        credit_cents: amountCents,
+        description: txn.description,
+      },
+    ],
+  });
+
+  return {
+    source: 'bank_transaction_classifier',
+    required: true,
+    posted: result.posted,
+    journal_entry_id: result.journalEntryId,
+    reason: result.reason,
+  };
+}
+
 // ── Classify one transaction ───────────────────────────────────────────────────
 async function classifyOne(
   admin: SupabaseClient,
   txn: BankTxn,
   rules: BankCodingRule[],
   categories: IntakeCategory[],
-): Promise<{ status: string; category_code: string | null; confidence: number }> {
+  postingDeps: PostingDeps,
+): Promise<{
+  status: string;
+  category_code: string | null;
+  confidence: number;
+  gl_post: BankTxnJournalResult | null;
+}> {
   // Run category cascade + job matching concurrently
   const [jobMatch, stage1] = await Promise.all([
     matchJob(admin, txn.organization_id, txn),
@@ -546,27 +733,59 @@ async function classifyOne(
   const jobScore = jobMatch?.score ?? null;
 
   if (result.confidence >= AUTO_CODE_THRESHOLD && result.category_code !== 'uncategorized') {
+    const glPost = await postBankTransactionJournal(admin, postingDeps, txn, result.category_code);
+    if (glPost.required && !glPost.posted) {
+      await upsertSuggestion(admin, txn, {
+        ...result,
+        rationale: { ...result.rationale, gl_post: glPost },
+      }, jobId);
+      const { error: reviewUpdateError } = await admin.from('bank_transactions').update({
+        coding_status: 'needs_review',
+        ...(jobId ? { suggested_job_id: jobId, suggested_job_score: jobScore } : {}),
+      }).eq('id', txn.id);
+      if (reviewUpdateError) throw new Error(`mark bank transaction for review: ${reviewUpdateError.message}`);
+      return {
+        status: 'needs_review',
+        category_code: result.category_code,
+        confidence: result.confidence,
+        gl_post: glPost,
+      };
+    }
+
     // Auto-code: write directly onto the bank_transactions row, no human needed
-    await admin.from('bank_transactions').update({
+    const { error } = await admin.from('bank_transactions').update({
       auto_category_code: result.category_code,
-      applied_intake_rule_id: result.rule_id,
       coding_status: 'auto_coded',
       ...(jobId ? { suggested_job_id: jobId, suggested_job_score: jobScore } : {}),
     }).eq('id', txn.id);
+    if (error) throw new Error(`auto-code bank transaction: ${error.message}`);
 
-    return { status: 'auto_coded', category_code: result.category_code, confidence: result.confidence };
+    const { error: cleanupError } = await admin
+      .from('bank_tx_coding_suggestions')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('bank_transaction_id', txn.id)
+      .is('deleted_at', null);
+    if (cleanupError) throw new Error(`cleanup auto-coded suggestion: ${cleanupError.message}`);
+
+    return {
+      status: 'auto_coded',
+      category_code: result.category_code,
+      confidence: result.confidence,
+      gl_post: glPost,
+    };
   }
 
   // Write suggestion + set coding_status
   await upsertSuggestion(admin, txn, result, jobId);
 
   const newStatus = result.confidence >= SUGGEST_THRESHOLD ? 'suggested' : 'needs_review';
-  await admin.from('bank_transactions').update({
+  const { error: txnUpdateError } = await admin.from('bank_transactions').update({
     coding_status: newStatus,
     ...(jobId ? { suggested_job_id: jobId, suggested_job_score: jobScore } : {}),
   }).eq('id', txn.id);
+  if (txnUpdateError) throw new Error(`update bank transaction coding status: ${txnUpdateError.message}`);
 
-  return { status: newStatus, category_code: result.category_code, confidence: result.confidence };
+  return { status: newStatus, category_code: result.category_code, confidence: result.confidence, gl_post: null };
 }
 
 // ── Human decision handler ────────────────────────────────────────────────────
@@ -574,6 +793,7 @@ async function handleDecision(
   admin: SupabaseClient,
   body: RequestBody,
   orgId: string,
+  postingDeps: PostingDeps,
 ): Promise<Response> {
   const { bank_transaction_id, decision, category_code } = body;
   if (!bank_transaction_id || !decision) {
@@ -582,7 +802,7 @@ async function handleDecision(
 
   const { data: txn } = await admin
     .from('bank_transactions')
-    .select('id, organization_id, description, amount_cents')
+    .select('id, organization_id, bank_account_id, description, amount_cents, posted_at, reference, category_external, matched_bill_id, matched_invoice_id, coding_status, is_personal')
     .eq('id', bank_transaction_id)
     .eq('organization_id', orgId)
     .maybeSingle();
@@ -605,6 +825,16 @@ async function handleDecision(
   }
 
   const newStatus = decision === 'override' ? 'overridden' : 'accepted';
+  const glPost = await postBankTransactionJournal(admin, postingDeps, txn as BankTxn, finalCode);
+  if (glPost.required && !glPost.posted) {
+    return json({
+      ok: false,
+      error: `GL post failed: ${glPost.reason ?? 'unknown'}`,
+      bank_transaction_id,
+      category_code: finalCode,
+      gl_post: glPost,
+    }, 409);
+  }
 
   // Update suggestion status
   if (suggestion) {
@@ -642,6 +872,7 @@ async function handleDecision(
     status: 'classified',
     category_code: finalCode,
     decision,
+    gl_post: glPost,
   });
 }
 
@@ -699,7 +930,11 @@ Deno.serve(async (req: Request) => {
         .eq('id', body.bank_transaction_id)
         .maybeSingle();
       if (!txnOrg) return json({ ok: false, error: 'transaction not found' }, 404);
-      return handleDecision(admin, body, txnOrg.organization_id as string);
+      return handleDecision(admin, body, txnOrg.organization_id as string, {
+        supabaseUrl,
+        anonKey,
+        connectorJwtSecret: Deno.env.get('CONNECTOR_JWT_SECRET'),
+      });
     }
 
     // ── Batch classification path ──────────────────────────────────────────
@@ -723,7 +958,7 @@ Deno.serve(async (req: Request) => {
     const [txnRes, rulesRes, catRes] = await Promise.all([
       admin
         .from('bank_transactions')
-        .select('id, organization_id, description, amount_cents, posted_at, reference, category_external, matched_bill_id, coding_status, is_personal')
+        .select('id, organization_id, bank_account_id, description, amount_cents, posted_at, reference, category_external, matched_bill_id, matched_invoice_id, coding_status, is_personal')
         .eq('organization_id', orgId)
         .in('coding_status', ['unclassified', 'needs_review'])
         .order('posted_at', { ascending: false })
@@ -753,16 +988,26 @@ Deno.serve(async (req: Request) => {
       auto_coded: 0,
       suggested: 0,
       needs_review: 0,
+      gl_posted: 0,
+      gl_skipped: 0,
+      gl_failed: 0,
       errors: [] as { id: string; error: string }[],
     };
 
     // Classify sequentially to avoid hammering the LLM API concurrently
     for (const txn of transactions) {
       try {
-        const outcome = await classifyOne(admin, txn, rules, categories);
+        const outcome = await classifyOne(admin, txn, rules, categories, {
+          supabaseUrl,
+          anonKey,
+          connectorJwtSecret: Deno.env.get('CONNECTOR_JWT_SECRET'),
+        });
         if      (outcome.status === 'auto_coded')   stats.auto_coded++;
         else if (outcome.status === 'suggested')    stats.suggested++;
         else                                         stats.needs_review++;
+        if (outcome.gl_post?.posted) stats.gl_posted++;
+        else if (outcome.gl_post && !outcome.gl_post.required) stats.gl_skipped++;
+        else if (outcome.gl_post?.required && !outcome.gl_post.posted) stats.gl_failed++;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         stats.errors.push({ id: txn.id, error: msg });

@@ -23,6 +23,7 @@ export function useSuppliers(pageSize = 100) {
   const [suppliers, setSuppliers] = useState<SupplierRow[]>([]);
   const [spendMap, setSpendMap] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const offsetRef = useRef(0);
@@ -33,9 +34,14 @@ export function useSuppliers(pageSize = 100) {
         setSuppliers([]);
         setSpendMap(new Map());
         setLoading(false);
+        setLoadingMore(false);
         return;
       }
-      setLoading(true);
+      if (reset) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
       setError(null);
 
       const from = reset ? 0 : offsetRef.current;
@@ -64,7 +70,11 @@ export function useSuppliers(pageSize = 100) {
       if (suppliersRes.error) {
         setError(suppliersRes.error.message);
         if (reset) setSuppliers([]);
-        setLoading(false);
+        if (reset) {
+          setLoading(false);
+        } else {
+          setLoadingMore(false);
+        }
         return;
       }
 
@@ -89,7 +99,11 @@ export function useSuppliers(pageSize = 100) {
         setSpendMap(map);
       }
 
-      setLoading(false);
+      if (reset) {
+        setLoading(false);
+      } else {
+        setLoadingMore(false);
+      }
     },
     [currentOrg, pageSize],
   );
@@ -107,6 +121,7 @@ export function useSuppliers(pageSize = 100) {
     suppliers,
     spendMap,
     loading,
+    loadingMore,
     error,
     refresh: () => {
       offsetRef.current = 0;

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
+import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { SkeletonTable } from '@/components/Skeleton';
 import { Contact, Plus, Wallet, Clock, X, Users, Calculator, type LucideIcon } from 'lucide-react';
 
@@ -52,6 +53,7 @@ export function EmployeesPage() {
   const [loading, setLoading] = useState(true);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [showLogTime, setShowLogTime] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
@@ -81,6 +83,17 @@ export function EmployeesPage() {
         .gte('work_date', sinceStr)
         .order('work_date', { ascending: false }),
     ]);
+    const loadErr = empRes.error ?? jobsRes.error ?? tsRes.error;
+    if (loadErr) {
+      // A failed load must not masquerade as "no employees added yet".
+      setLoadError(formatLoadError('employees', loadErr.message));
+      setEmployees([]);
+      setJobs([]);
+      setTimesheets([]);
+      setLoading(false);
+      return;
+    }
+    setLoadError(null);
     setEmployees((empRes.data ?? []) as Employee[]);
     setJobs((jobsRes.data ?? []) as Job[]);
     setTimesheets((tsRes.data ?? []) as unknown as Timesheet[]);
@@ -192,6 +205,19 @@ export function EmployeesPage() {
       <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Staff Roster</h2>
       {loading ? (
         <SkeletonTable rows={4} cols={6} />
+      ) : loadError ? (
+        <div
+          role="alert"
+          className="badge badge-danger"
+          style={{
+            display: 'block',
+            padding: '0.75rem',
+            textTransform: 'none',
+            marginBottom: '2rem',
+          }}
+        >
+          {loadError}
+        </div>
       ) : employees.length === 0 ? (
         <div
           style={{
@@ -208,54 +234,122 @@ export function EmployeesPage() {
           No employees added yet. Add staff to start tracking timesheets and job costs.
         </div>
       ) : (
-        <div className="table-premium-container" style={{ marginBottom: '2.5rem' }}>
-          <table className="table-premium">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Role</th>
-                <th>Email</th>
-                <th style={{ textAlign: 'right' }}>Base Rate</th>
-                <th style={{ textAlign: 'right' }}>Loaded Rate</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {employees.map((e) => {
-                const w = e.wage_components ?? {};
-                const loaded = w.loaded_hourly_rate_cents ?? computeLoadedRate(w);
-                return (
-                  <tr
-                    key={e.id}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => navigate(`/employees/${e.id}`)}
-                  >
-                    <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{e.full_name}</td>
-                    <td>{e.role ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
-                    <td>{e.email ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
-                    <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>
-                      {w.base_hourly_rate != null ? `$${w.base_hourly_rate.toFixed(2)}/hr` : '—'}
-                    </td>
-                    <td
-                      style={{
-                        textAlign: 'right',
-                        fontWeight: 600,
-                        fontFamily: 'ui-monospace, monospace',
-                      }}
+        <>
+          <div
+            className="employees-table-view table-premium-container"
+            style={{ marginBottom: '2.5rem' }}
+          >
+            <table className="table-premium">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Role</th>
+                  <th>Email</th>
+                  <th style={{ textAlign: 'right' }}>Base Rate</th>
+                  <th style={{ textAlign: 'right' }}>Loaded Rate</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {employees.map((e) => {
+                  const w = e.wage_components ?? {};
+                  const loaded = w.loaded_hourly_rate_cents ?? computeLoadedRate(w);
+                  return (
+                    <tr
+                      key={e.id}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => navigate(`/employees/${e.id}`)}
                     >
-                      {loaded > 0 ? `${formatMoney(loaded)}/hr` : '—'}
-                    </td>
-                    <td>
-                      <span className={`badge ${e.is_active ? 'badge-success' : 'badge-neutral'}`}>
-                        {e.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{e.full_name}</td>
+                      <td>{e.role ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
+                      <td>{e.email ?? <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'ui-monospace, monospace' }}>
+                        {w.base_hourly_rate != null ? `$${w.base_hourly_rate.toFixed(2)}/hr` : '—'}
+                      </td>
+                      <td
+                        style={{
+                          textAlign: 'right',
+                          fontWeight: 600,
+                          fontFamily: 'ui-monospace, monospace',
+                        }}
+                      >
+                        {loaded > 0 ? `${formatMoney(loaded)}/hr` : '—'}
+                      </td>
+                      <td>
+                        <span
+                          className={`badge ${e.is_active ? 'badge-success' : 'badge-neutral'}`}
+                        >
+                          {e.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div
+            className="employees-card-view"
+            aria-label="Employee cards"
+            style={{ marginBottom: '2.5rem' }}
+          >
+            {employees.map((e) => {
+              const w = e.wage_components ?? {};
+              const loaded = w.loaded_hourly_rate_cents ?? computeLoadedRate(w);
+              return (
+                <article
+                  key={`card-${e.id}`}
+                  className="employee-mobile-card card"
+                  aria-label={`Employee ${e.full_name}`}
+                >
+                  <div className="employee-mobile-card__header">
+                    <div>
+                      <a
+                        href={`/employees/${e.id}`}
+                        onClick={(ev) => {
+                          ev.preventDefault();
+                          navigate(`/employees/${e.id}`);
+                        }}
+                        style={{
+                          fontWeight: 700,
+                          color: 'var(--accent-primary)',
+                          textDecoration: 'none',
+                        }}
+                      >
+                        {e.full_name}
+                      </a>
+                      <div
+                        style={{
+                          color: 'var(--text-muted)',
+                          fontSize: '0.75rem',
+                          marginTop: '0.15rem',
+                        }}
+                      >
+                        {e.role ?? 'No role'}
+                        {e.email ? ` · ${e.email}` : ''}
+                      </div>
+                    </div>
+                    <span className={`badge ${e.is_active ? 'badge-success' : 'badge-neutral'}`}>
+                      {e.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <div className="employee-mobile-card__metrics">
+                    <div>
+                      <span>Base rate</span>
+                      <strong>
+                        {w.base_hourly_rate != null ? `$${w.base_hourly_rate.toFixed(2)}/hr` : '—'}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Loaded rate</span>
+                      <strong>{loaded > 0 ? `${formatMoney(loaded)}/hr` : '—'}</strong>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {/* Recent Timesheets List */}
@@ -343,9 +437,12 @@ export function EmployeesPage() {
           color: 'var(--text-muted)',
         }}
       >
-        💡 <strong>Future payroll roadmap:</strong> Gross to net superannuation calculations, Single
-        Touch Payroll (STP) export options, leaves records, and staff self-service timesheet
-        logging.
+        💡 <strong>Payroll lives in its own module:</strong> pay runs, gross-to-net with super, and
+        STP export are under{' '}
+        <Link to="/payroll" style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
+          Payroll
+        </Link>
+        .
       </div>
     </section>
   );
@@ -392,7 +489,7 @@ function AddEmployeeForm({
     });
     setBusy(false);
     if (error) {
-      setErr(error.message);
+      setErr(formatActionError('add the employee', error.message));
       return;
     }
     onAdded();
@@ -622,7 +719,7 @@ function LogTimeForm({
     });
     setBusy(false);
     if (error) {
-      setErr(error.message);
+      setErr(formatActionError('log this time entry', error.message));
       return;
     }
     onLogged();

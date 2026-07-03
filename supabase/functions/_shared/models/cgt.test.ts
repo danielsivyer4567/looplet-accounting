@@ -131,3 +131,72 @@ Deno.test("modelCgt reports missing size-test evidence instead of treating it as
     "no turnover bracket or net asset value supplied for small-business size test",
   ]);
 });
+
+function cgtInput(over: Partial<Parameters<typeof modelCgt>[1]>) {
+  return {
+    proceeds_cents: 50_000_000,
+    cost_base_cents: 20_000_000,
+    acquired_date: "2010-01-01",
+    disposal_date: "2026-06-30",
+    is_active_asset: true,
+    ...over,
+  };
+}
+
+Deno.test("12-month hold: exactly one year (on the anniversary) does NOT qualify for the discount", () => {
+  // Acquired 2024-01-01, disposed 2024-12-31 = 365 days but a day short of the
+  // anniversary — the old `>= 365` check wrongly granted the discount here.
+  const r = modelCgt(facts("under_2m"), cgtInput({
+    acquired_date: "2024-01-01",
+    disposal_date: "2024-12-31",
+  }));
+  assertEquals(r.flags.discount_12_month_eligible, false);
+  assertEquals(r.discounted_gain_cents, r.gross_gain_cents); // no 50% discount
+});
+
+Deno.test("12-month hold: strictly more than a year qualifies", () => {
+  const r = modelCgt(facts("under_2m"), cgtInput({
+    acquired_date: "2024-07-01",
+    disposal_date: "2025-07-02", // > 12-month anniversary; disposal FY 2025-26
+  }));
+  assertEquals(r.flags.discount_12_month_eligible, true);
+  assertEquals(r.discounted_gain_cents, Math.round(r.gross_gain_cents / 2));
+});
+
+Deno.test("12-month hold: leap-year acquisition uses the anniversary, not a 365-day count", () => {
+  // Acquired 29 Feb 2024; anniversary normalises to 1 Mar 2025.
+  const onAnniversary = modelCgt(facts("under_2m"), cgtInput({
+    acquired_date: "2024-02-29",
+    disposal_date: "2025-03-01", // == anniversary → not strictly after → ineligible
+  }));
+  assertEquals(onAnniversary.flags.discount_12_month_eligible, false);
+
+  const dayAfter = modelCgt(facts("under_2m"), cgtInput({
+    acquired_date: "2024-02-29",
+    disposal_date: "2025-03-02", // strictly after → eligible
+  }));
+  assertEquals(dayAfter.flags.discount_12_month_eligible, true);
+});
+
+Deno.test("unparseable dates drop the discount but WARN instead of silently overstating the gain", () => {
+  const r = modelCgt(facts("under_2m"), cgtInput({
+    acquired_date: "not-a-date",
+    disposal_date: "2026-06-30",
+  }));
+  assertEquals(r.flags.discount_12_month_eligible, false);
+  assertEquals(
+    r.warnings.some((w) => w.includes("unparseable")),
+    true,
+  );
+});
+
+Deno.test("a disposal in a different financial year warns that the stamped rates may not apply", () => {
+  const r = modelCgt(facts("under_2m"), cgtInput({
+    acquired_date: "2016-01-01",
+    disposal_date: "2018-06-30", // FY 2017-18, not the stamped 2025-26
+  }));
+  assertEquals(
+    r.warnings.some((w) => w.includes("FY 2017-18")),
+    true,
+  );
+});

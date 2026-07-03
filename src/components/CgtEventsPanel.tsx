@@ -7,6 +7,7 @@ import {
   type CgtEventInput,
   type CgtAssetType,
 } from '@/hooks/useCgtEvents';
+import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoney, centsToDollars } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import { Coins, Plus, Pencil, Trash2, X } from 'lucide-react';
@@ -130,7 +131,7 @@ export function CgtEventsPanel() {
           className="badge badge-danger"
           style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}
         >
-          Failed to load: {error}
+          {formatLoadError('CGT events', error)}
         </div>
       )}
 

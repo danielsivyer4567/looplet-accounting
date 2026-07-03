@@ -12,6 +12,7 @@ import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { ConfidenceBadge } from '@/components/ConfidenceBadge';
 import type { AutomationConfidence } from '@/lib/automationDecision';
 import { AllocationQueuePanel } from '@/components/AllocationQueuePanel';
+import { LoadMoreButton } from '@/components/LoadMoreButton';
 import {
   Plus,
   Eye,
@@ -34,7 +35,11 @@ export function BillsPage() {
   const { currentOrg } = useOrg();
   const [filter, setFilter] = useState<BillListRow['status'] | null>(null);
   const [showNonBills, setShowNonBills] = useState(false);
-  const { bills, loading, error, refresh } = useBills(filter ?? undefined, 100, showNonBills);
+  const { bills, loading, loadingMore, error, refresh, hasMore, loadMore } = useBills(
+    filter ?? undefined,
+    100,
+    showNonBills,
+  );
   const [repushingId, setRepushingId] = useState<string | null>(null);
   const [previewBill, setPreviewBill] = useState<BillListRow | null>(null);
   const navigate = useNavigate();
@@ -66,8 +71,9 @@ export function BillsPage() {
     );
   }
 
-  // Aggregate KPIs
+  // Aggregate KPIs over the bills loaded so far (paginated — see loadedSub label)
   const totalBilled = bills.reduce((a, b) => a + (b.total_inc_gst_cents ?? 0), 0);
+  const loadedSub = hasMore ? `first ${bills.length} loaded — partial total` : undefined;
   const totalPaid = bills
     .filter((b) => b.status === 'paid')
     .reduce((a, b) => a + (b.total_inc_gst_cents ?? 0), 0);
@@ -174,6 +180,7 @@ export function BillsPage() {
           value={totalBilled}
           type="neutral"
           icon={FileText}
+          sub={loadedSub}
           formatter={formatMoney}
         />
         <Kpi
@@ -181,7 +188,7 @@ export function BillsPage() {
           value={totalPaid}
           type="success"
           icon={Wallet}
-          sub={`${bills.filter((b) => b.status === 'paid').length} bills`}
+          sub={loadedSub ?? `${bills.filter((b) => b.status === 'paid').length} bills`}
           formatter={formatMoney}
         />
         <Kpi
@@ -189,6 +196,7 @@ export function BillsPage() {
           value={totalOutstanding}
           type={totalOutstanding > 0 ? 'danger' : 'neutral'}
           icon={DollarSign}
+          sub={loadedSub}
           formatter={formatMoney}
         />
       </div>
@@ -306,110 +314,232 @@ export function BillsPage() {
           No bills found{filter ? ` with status "${filter}"` : ''}.
         </div>
       ) : (
-        <div className="table-premium-container">
-          <table className="table-premium">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Supplier</th>
-                <th>Invoice #</th>
-                <th>Job</th>
-                <th style={{ textAlign: 'right' }}>Total</th>
-                <th>Status</th>
-                <th>Conf.</th>
-                <th>Xero</th>
-                <th style={{ width: '80px' }}>Doc</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bills.map((b) => (
-                <tr
-                  key={b.id}
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/bills/${b.id}`)}
-                >
-                  <td style={{ whiteSpace: 'nowrap' }}>{b.invoice_date ?? '—'}</td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-title)' }}>
-                        {b.supplier_name_raw ?? (
-                          <span style={{ color: 'var(--text-muted)' }}>—</span>
-                        )}
-                      </span>
-                      {b.is_probable_bill === false && (
-                        <span
-                          className="badge badge-danger"
-                          style={{
-                            fontSize: '9px',
-                            padding: '1px 5px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '2px',
-                          }}
-                          title="Classified by intake as not an invoice"
-                        >
-                          <AlertTriangle size={10} />
-                          {b.document_kind ?? 'non-invoice'}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    {b.attached_job?.job_number ? (
-                      <code style={{ color: 'var(--accent-success)', fontWeight: 600 }}>
-                        {b.attached_job.job_number}
-                      </code>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)' }}>—</span>
-                    )}
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                    {formatMoney(b.total_inc_gst_cents)}
-                  </td>
-                  <td>
-                    <StatusBadge status={b.status} />
-                  </td>
-                  <td>
-                    {b.automation_confidence ? (
-                      <ConfidenceBadge
-                        confidence={b.automation_confidence as AutomationConfidence}
-                      />
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-                    )}
-                  </td>
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <XeroStatusPill
-                      xeroStatus={b.xero_status}
-                      onRepush={() => handleRepush(b)}
-                      repushBusy={repushingId === b.id}
-                    />
-                  </td>
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => setPreviewBill(b)}
-                      title="View source document"
-                      className="btn btn-secondary"
-                      style={{
-                        padding: '0.25rem 0.5rem',
-                        fontSize: '0.725rem',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                      }}
-                    >
-                      <Eye size={12} />
-                      <span>View</span>
-                    </button>
-                  </td>
+        <>
+          <div className="bills-table-view table-premium-container">
+            <table className="table-premium">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Supplier</th>
+                  <th>Invoice #</th>
+                  <th>Job</th>
+                  <th style={{ textAlign: 'right' }}>Total</th>
+                  <th>Status</th>
+                  <th>Conf.</th>
+                  <th>Xero</th>
+                  <th style={{ width: '80px' }}>Doc</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {bills.map((b) => (
+                  <tr
+                    key={b.id}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => navigate(`/bills/${b.id}`)}
+                  >
+                    <td style={{ whiteSpace: 'nowrap' }}>{b.invoice_date ?? '—'}</td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text-title)' }}>
+                          {b.supplier_name_raw ?? (
+                            <span style={{ color: 'var(--text-muted)' }}>—</span>
+                          )}
+                        </span>
+                        {b.is_probable_bill === false && (
+                          <span
+                            className="badge badge-danger"
+                            style={{
+                              fontSize: '9px',
+                              padding: '1px 5px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px',
+                            }}
+                            title="Classified by intake as not an invoice"
+                          >
+                            <AlertTriangle size={10} />
+                            {b.document_kind ?? 'non-invoice'}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      {b.invoice_number ? (
+                        <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                          {b.invoice_number}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      )}
+                    </td>
+                    <td>
+                      {b.attached_job?.job_number ? (
+                        <code style={{ color: 'var(--accent-success)', fontWeight: 600 }}>
+                          {b.attached_job.job_number}
+                        </code>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                      {formatMoney(b.total_inc_gst_cents)}
+                    </td>
+                    <td>
+                      <StatusBadge status={b.status} />
+                    </td>
+                    <td>
+                      {b.automation_confidence ? (
+                        <ConfidenceBadge
+                          confidence={b.automation_confidence as AutomationConfidence}
+                        />
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
+                      )}
+                    </td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <XeroStatusPill
+                        xeroStatus={b.xero_status}
+                        onRepush={() => handleRepush(b)}
+                        repushBusy={repushingId === b.id}
+                      />
+                    </td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => setPreviewBill(b)}
+                        title="View source document"
+                        className="btn btn-secondary"
+                        style={{
+                          padding: '0.25rem 0.5rem',
+                          fontSize: '0.725rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                        }}
+                      >
+                        <Eye size={12} />
+                        <span>View</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="bills-card-view" aria-label="Bill cards">
+            {bills.map((b) => (
+              <BillCard
+                key={b.id}
+                bill={b}
+                repushBusy={repushingId === b.id}
+                onOpen={() => navigate(`/bills/${b.id}`)}
+                onRepush={() => handleRepush(b)}
+                onPreview={() => setPreviewBill(b)}
+              />
+            ))}
+          </div>
+          {hasMore && (
+            <LoadMoreButton
+              label="Load more bills"
+              loading={loadingMore}
+              onClick={() => void loadMore()}
+            />
+          )}
+        </>
       )}
       <DocumentPreviewModal bill={previewBill} onClose={() => setPreviewBill(null)} />
     </section>
+  );
+}
+
+function BillCard({
+  bill,
+  repushBusy,
+  onOpen,
+  onRepush,
+  onPreview,
+}: {
+  bill: BillListRow;
+  repushBusy: boolean;
+  onOpen: () => void;
+  onRepush: () => void;
+  onPreview: () => void;
+}) {
+  return (
+    <article
+      className="bill-mobile-card card"
+      aria-label={`Bill ${bill.supplier_name_raw ?? 'unknown supplier'}`}
+    >
+      <div className="bill-mobile-card__header">
+        <div>
+          <a
+            href={`/bills/${bill.id}`}
+            onClick={(e) => {
+              e.preventDefault();
+              onOpen();
+            }}
+            style={{ fontWeight: 700, color: 'var(--accent-primary)', textDecoration: 'none' }}
+          >
+            {bill.supplier_name_raw ?? 'Unknown supplier'}
+          </a>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.15rem' }}>
+            {bill.invoice_date ?? 'No date'}
+            {bill.attached_job?.job_number ? ` · ${bill.attached_job.job_number}` : ''}
+          </div>
+          {bill.is_probable_bill === false && (
+            <span
+              className="badge badge-danger"
+              style={{
+                fontSize: '9px',
+                padding: '1px 5px',
+                marginTop: '0.25rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '2px',
+              }}
+              title="Classified by intake as not an invoice"
+            >
+              <AlertTriangle size={10} />
+              {bill.document_kind ?? 'non-invoice'}
+            </span>
+          )}
+        </div>
+        <StatusBadge status={bill.status} />
+      </div>
+
+      <div className="bill-mobile-card__metrics">
+        <div>
+          <span>Total</span>
+          <strong>{formatMoney(bill.total_inc_gst_cents)}</strong>
+        </div>
+        <div>
+          <span>Confidence</span>
+          <strong>
+            {bill.automation_confidence ? (
+              <ConfidenceBadge confidence={bill.automation_confidence as AutomationConfidence} />
+            ) : (
+              '—'
+            )}
+          </strong>
+        </div>
+      </div>
+
+      <div className="bill-mobile-card__row">
+        <span>Xero</span>
+        <XeroStatusPill xeroStatus={bill.xero_status} onRepush={onRepush} repushBusy={repushBusy} />
+      </div>
+
+      <div className="bill-mobile-card__actions">
+        <button
+          onClick={onPreview}
+          title="View source document"
+          className="btn btn-secondary"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+        >
+          <Eye size={14} />
+          <span>View document</span>
+        </button>
+      </div>
+    </article>
   );
 }
 
@@ -435,7 +565,7 @@ function Kpi({
   value: number;
   type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
   icon: LucideIcon;
-  sub?: string;
+  sub?: string | undefined;
   formatter?: (val: number) => string;
 }) {
   return (

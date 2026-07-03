@@ -15,10 +15,21 @@
  *   bas_coverage_gap          → task    info: books health blocking BAS (blocked_external)
  *   payroll_super_overdue     → task    warning: payroll/super obligation overdue
  *   job_consecutive_failures  → dead_letter + task: failed jobs at max_attempts get dead-lettered
+ *   claimed_lock_expired      → reap (or dead_letter if attempts exhausted): a worker claimed a job
+ *                               and never completed/failed it (crash, timeout, cold-start kill).
+ *                               claim_automation_jobs only ever re-claims status='pending' rows, so a
+ *                               stale 'claimed' row is otherwise stuck forever.
+ *   pending_starvation        → task    critical: a known, worker-claimable job_kind has jobs stuck
+ *                               in 'pending' well past their run_after — the drainer isn't keeping up
+ *                               (or isn't running at all).
+ *   unreachable_job_kind      → task    critical: a job_kind outside the worker's claimable set (and
+ *                               outside the explicitly-excluded set, e.g. browser_collect) is sitting
+ *                               in 'pending' — it will NEVER be claimed until code changes, unlike
+ *                               pending_starvation which is a capacity/uptime problem.
  *
  * ATO/DSP/SBR lodgement is NEVER actioned — surfaced as blocked_external findings only.
  *
- * Output: { ok, stats: { orgs_scanned, retries_enqueued, tasks_created, dead_lettered, errors[] } }
+ * Output: { ok, stats: { orgs_scanned, retries_enqueued, tasks_created, dead_lettered, locks_reaped, errors[] } }
  */
 
 import { corsHeaders, preflight } from '../_shared/cors.ts';
@@ -29,8 +40,41 @@ import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // Types
 // ---------------------------------------------------------------------------
 
-type OutcomeKind = 'retry' | 'task' | 'blocked_external' | 'dead_letter';
+type OutcomeKind = 'retry' | 'task' | 'blocked_external' | 'dead_letter' | 'reap';
 type FindingSeverity = 'info' | 'warning' | 'critical';
+
+// Mirrors automation-worker's DEFAULT_JOB_KINDS + the one kind it deliberately excludes
+// (browser_collect, owned by a dedicated runner — see automation-worker/index.ts).
+// Kept as a literal list (not shared code) so automation-worker's own contract test can
+// keep asserting against its own literal source; automation-backbone-contract.test.ts
+// cross-checks these two lists stay in sync.
+const KNOWN_CLAIMABLE_JOB_KINDS = [
+  'bill_extract',
+  'bank_sync',
+  'receipt_sync',
+  'xero_push',
+  'bank_reconcile',
+  'gmail_backfill',
+  'gmail_mine',
+  'bill_code',
+  'coding_classify',
+  'payment_record',
+  'crm_pnl_sync',
+] as const;
+const KNOWN_EXCLUDED_JOB_KINDS = ['browser_collect'] as const;
+const ALL_KNOWN_JOB_KINDS: readonly string[] = [
+  ...KNOWN_CLAIMABLE_JOB_KINDS,
+  ...KNOWN_EXCLUDED_JOB_KINDS,
+];
+
+// A claim's lock (p_lock_secs=120 in claim_automation_jobs) is the worker's own retry
+// window; this is a generous multiple of it so a slow-but-alive dispatch isn't reaped
+// out from under a worker that's still running.
+const LOCK_EXPIRY_SECS = 300;
+// Worker cron runs every 2 minutes; 5 missed cycles is a solid signal something is wrong.
+const PENDING_STARVATION_MINUTES = 10;
+// Unreachable-kind jobs never get claimed regardless of backlog, so a short window is enough.
+const UNREACHABLE_KIND_MINUTES = 15;
 
 interface ScanResult {
   kind: OutcomeKind;
@@ -46,6 +90,7 @@ interface WatchdogStats {
   retries_enqueued: number;
   tasks_created: number;
   dead_lettered: number;
+  locks_reaped: number;
   errors: string[];
 }
 
@@ -343,6 +388,107 @@ async function scanJobConsecutiveFailures(admin: SupabaseClient, orgId: string):
     }));
 }
 
+/**
+ * Jobs stuck in 'claimed' whose lock has expired (worker crashed/timed out mid-run).
+ * claim_automation_jobs only re-claims status='pending' rows, so a stale 'claimed' row
+ * is otherwise invisible to every other scanner and sits forever.
+ */
+async function scanLockExpiry(admin: SupabaseClient, orgId: string): Promise<ScanResult[]> {
+  const cutoff = new Date(Date.now() - LOCK_EXPIRY_SECS * 1000).toISOString();
+  const { data: jobs } = await admin
+    .from('automation_jobs')
+    .select('id, job_kind, attempts, max_attempts, locked_by, locked_at')
+    .eq('organization_id', orgId)
+    .eq('status', 'claimed')
+    .lt('locked_at', cutoff);
+
+  return (
+    (jobs ?? []) as {
+      id: string;
+      job_kind: string;
+      attempts: number;
+      max_attempts: number;
+      locked_by: string | null;
+      locked_at: string;
+    }[]
+  ).map((j) => ({
+    kind: j.attempts >= j.max_attempts ? 'dead_letter' : 'reap',
+    org_id: orgId,
+    signal: 'claimed_lock_expired',
+    resource_type: 'automation_job',
+    resource_id: j.id,
+    detail: {
+      job_id: j.id,
+      job_kind: j.job_kind,
+      locked_by: j.locked_by,
+      locked_at: j.locked_at,
+      attempts: j.attempts,
+      max_attempts: j.max_attempts,
+      last_error: 'expired lock — worker crashed or timed out',
+    },
+  }));
+}
+
+/**
+ * Known, worker-claimable job_kinds with jobs still 'pending' well past their run_after.
+ * Signals the drainer isn't keeping up (or the cron isn't running at all) — distinct from
+ * unreachable_job_kind, which is a code-contract gap rather than a capacity/uptime one.
+ */
+async function scanPendingStarvation(admin: SupabaseClient, orgId: string): Promise<ScanResult[]> {
+  const cutoff = new Date(Date.now() - PENDING_STARVATION_MINUTES * 60 * 1000).toISOString();
+  const { data: jobs } = await admin
+    .from('automation_jobs')
+    .select('job_kind')
+    .eq('organization_id', orgId)
+    .eq('status', 'pending')
+    .in('job_kind', [...KNOWN_CLAIMABLE_JOB_KINDS])
+    .lt('run_after', cutoff);
+
+  const counts = new Map<string, number>();
+  for (const j of (jobs ?? []) as { job_kind: string }[]) {
+    counts.set(j.job_kind, (counts.get(j.job_kind) ?? 0) + 1);
+  }
+
+  return [...counts.entries()].map(([jobKind, count]) => ({
+    kind: 'task' as OutcomeKind,
+    org_id: orgId,
+    signal: 'pending_starvation',
+    resource_type: 'automation_job_kind',
+    resource_id: jobKind,
+    detail: { job_kind: jobKind, count, threshold_minutes: PENDING_STARVATION_MINUTES },
+  }));
+}
+
+/**
+ * Jobs whose job_kind is outside both the worker's claimable set and the explicitly
+ * excluded set (browser_collect). These will NEVER be claimed until code changes —
+ * a config-drift / dead-handler bug, not a backlog.
+ */
+async function scanUnreachableJobKinds(admin: SupabaseClient, orgId: string): Promise<ScanResult[]> {
+  const cutoff = new Date(Date.now() - UNREACHABLE_KIND_MINUTES * 60 * 1000).toISOString();
+  const { data: jobs } = await admin
+    .from('automation_jobs')
+    .select('job_kind')
+    .eq('organization_id', orgId)
+    .eq('status', 'pending')
+    .lt('run_after', cutoff);
+
+  const counts = new Map<string, number>();
+  for (const j of (jobs ?? []) as { job_kind: string }[]) {
+    if (ALL_KNOWN_JOB_KINDS.includes(j.job_kind)) continue;
+    counts.set(j.job_kind, (counts.get(j.job_kind) ?? 0) + 1);
+  }
+
+  return [...counts.entries()].map(([jobKind, count]) => ({
+    kind: 'task' as OutcomeKind,
+    org_id: orgId,
+    signal: 'unreachable_job_kind',
+    resource_type: 'automation_job_kind',
+    resource_id: jobKind,
+    detail: { job_kind: jobKind, count, threshold_minutes: UNREACHABLE_KIND_MINUTES },
+  }));
+}
+
 // ---------------------------------------------------------------------------
 // Outcome handlers
 // ---------------------------------------------------------------------------
@@ -376,6 +522,9 @@ async function handleTask(
     job_consecutive_failures: 'Automation job failing repeatedly',
     gmail_watch_stale: 'Gmail watch silent — may need renewal',
     bas_coverage_gap: 'Books health blocking BAS preparation',
+    claimed_lock_expired: 'Automation job stuck — worker crashed mid-run',
+    pending_starvation: 'Automation queue backing up',
+    unreachable_job_kind: 'Automation job type is never processed',
   };
 
   const descMap: Record<string, string> = {
@@ -387,6 +536,9 @@ async function handleTask(
     job_consecutive_failures: `Job ${result.detail['job_kind']} has failed ${result.detail['attempts']} time(s)`,
     gmail_watch_stale: `Gmail integration silent since ${result.detail['last_synced_at']}`,
     bas_coverage_gap: `Books score ${result.detail['score']}/100 — ${result.detail['uncoded_count']} uncoded transactions`,
+    claimed_lock_expired: `Job ${result.detail['job_kind']} (${result.detail['job_id']}) dead-lettered after its worker lock expired with no retries left`,
+    pending_starvation: `${result.detail['count']} ${result.detail['job_kind']} job(s) pending more than ${result.detail['threshold_minutes']} minutes — the worker cron may be down`,
+    unreachable_job_kind: `${result.detail['count']} job(s) of kind "${result.detail['job_kind']}" have no worker handler — they will never run`,
   };
 
   const fixUrlMap: Record<string, string> = {
@@ -398,6 +550,9 @@ async function handleTask(
     job_consecutive_failures: '/settings/automation',
     gmail_watch_stale: '/settings/integrations',
     bas_coverage_gap: '/reconciliation',
+    claimed_lock_expired: '/settings/automation',
+    pending_starvation: '/settings/automation',
+    unreachable_job_kind: '/settings/automation',
   };
 
   // Use INSERT ... ON CONFLICT DO NOTHING — safe with the functional unique index
@@ -419,8 +574,11 @@ async function handleTask(
 }
 
 /**
- * Dead-letter a terminal 'failed' job directly via service_role writes.
- * The RPC requires the caller to be the locking worker; the watchdog uses direct SQL instead.
+ * Dead-letter a terminal job directly via service_role writes. Terminal here means
+ * 'failed' (worker-side max_attempts) or 'claimed' with an expired lock and no attempts
+ * left (scanLockExpiry) — the same two source statuses dead_letter_automation_job itself
+ * allows. The RPC requires the caller to be the locking worker; the watchdog uses direct
+ * SQL instead.
  */
 async function handleDeadLetter(admin: SupabaseClient, result: ScanResult): Promise<void> {
   const jobId = result.resource_id;
@@ -430,7 +588,7 @@ async function handleDeadLetter(admin: SupabaseClient, result: ScanResult): Prom
     .from('automation_jobs')
     .update({ status: 'dead_lettered', locked_at: null, locked_by: null })
     .eq('id', jobId)
-    .eq('status', 'failed');
+    .in('status', ['failed', 'claimed']);
 
   if (updateErr) throw new Error(`dead_letter update: ${updateErr.message}`);
 
@@ -467,6 +625,30 @@ async function handleDeadLetter(admin: SupabaseClient, result: ScanResult): Prom
   );
 }
 
+/**
+ * Reclaim a job whose lock expired but still has retry budget left: reset it to
+ * 'pending' so the next claim_automation_jobs run can pick it up again. Guarded by
+ * status='claimed' so a job the owning worker completed/failed in the meantime
+ * (race between the scan read and this write) is left alone.
+ */
+async function handleReap(admin: SupabaseClient, result: ScanResult): Promise<void> {
+  const jobId = result.resource_id;
+  if (!jobId) return;
+
+  const { error } = await admin
+    .from('automation_jobs')
+    .update({
+      status: 'pending',
+      locked_at: null,
+      locked_by: null,
+      last_error: `watchdog: reaped expired lock (held by ${result.detail['locked_by'] ?? 'unknown worker'})`,
+    })
+    .eq('id', jobId)
+    .eq('status', 'claimed');
+
+  if (error) throw new Error(`reap update: ${error.message}`);
+}
+
 // ---------------------------------------------------------------------------
 // Per-org scan runner
 // ---------------------------------------------------------------------------
@@ -487,6 +669,9 @@ async function scanOrg(
     scanBasCoverageGap,
     scanPayrollSuperOverdue,
     scanJobConsecutiveFailures,
+    scanLockExpiry,
+    scanPendingStarvation,
+    scanUnreachableJobKinds,
   ];
 
   const results: ScanResult[] = [];
@@ -507,8 +692,10 @@ async function scanOrg(
         await handleRetry(admin, result);
         stats.retries_enqueued += 1;
       } else if (result.kind === 'task') {
-        const severity: FindingSeverity =
-          result.signal === 'xero_push_dead_letter' ? 'critical' : 'warning';
+        const criticalSignals = ['xero_push_dead_letter', 'pending_starvation', 'unreachable_job_kind'];
+        const severity: FindingSeverity = criticalSignals.includes(result.signal)
+          ? 'critical'
+          : 'warning';
         await handleTask(admin, result, severity);
         stats.tasks_created += 1;
       } else if (result.kind === 'blocked_external') {
@@ -520,6 +707,9 @@ async function scanOrg(
         // Also surface as a critical finding in the Today feed
         await handleTask(admin, result, 'critical');
         stats.tasks_created += 1;
+      } else if (result.kind === 'reap') {
+        await handleReap(admin, result);
+        stats.locks_reaped += 1;
       }
     } catch (err) {
       stats.errors.push(
@@ -565,6 +755,7 @@ Deno.serve(async (req) => {
       retries_enqueued: 0,
       tasks_created: 0,
       dead_lettered: 0,
+      locks_reaped: 0,
       errors: [],
     };
 

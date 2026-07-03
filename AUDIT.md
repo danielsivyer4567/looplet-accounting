@@ -145,7 +145,10 @@ and no auto-reconciler/heartbeat release proof has been captured yet.
 
 - [x] `public.notify()` anon-executable revoked (0055). Deeper fix (org guard `p_org IN (SELECT get_accessible_org_ids())`) still TODO. **(high)**
 - [ ] 26 SECURITY DEFINER functions executable by PUBLIC + 27 with mutable `search_path` — add `SET search_path=''`, `REVOKE EXECUTE FROM PUBLIC`. **(medium)**
-- [ ] Drop orphaned cross-product functions `deduct_credits` / `check_rate_limit` / `is_agency_user` (anon execute already revoked in 0055). **(medium)**
+- [x] Drop orphaned legacy product-credit functions `deduct_credits` /
+      `check_rate_limit` if present; keep `is_agency_user()` because it is a real
+      base-schema helper, not missing-table drift. See
+      `20260702170000_extension_schema_and_orphan_function_cleanup.sql`. **(medium)**
 - [ ] Add audit triggers to `bank_transactions` / `invoice_payments` / `payment_runs`. **(medium)**
 - [ ] 61 unindexed FKs incl. `bank_transactions.matched_*`, `invoices.job_id/customer_id`, 5 line-item `organization_id`. **(medium, non-functional)**
 - [x] **Tenant-isolation CI gate is now real/code-complete**: `tests/tenant-isolation.test.ts` self-seeds two orgs and asserts cross-tenant RLS through anon-key/JWT clients; `.github/workflows/ci.yml` runs it as a dedicated deploy-blocker job and the test hard-fails in CI when required Supabase env is missing. Local no-secret proof on 2026-06-29: `npm run test:tenant-isolation` skipped 1 file / 6 tests by design. Remaining test gap: core accounting coverage for GST split, reconciliation, payroll, ABA, and Xero push is still not complete. **(gate fixed; accounting tests remain high priority)**

@@ -308,8 +308,17 @@ async function loadBusinessContext(
   // LIVE FINANCIALS
   const pnl = pnlR.data as Record<string, unknown> | null;
   if (pnl) {
+    const now = new Date();
+    const fyStartYear = now.getUTCMonth() + 1 >= 7 ? now.getUTCFullYear() : now.getUTCFullYear() - 1;
+    const fyStart = `${fyStartYear}-07-01`;
+    const daysIntoFy = Math.floor((now.getTime() - Date.parse(fyStart)) / 86_400_000) + 1;
     parts.push('');
-    parts.push('=== LIVE FINANCIALS (current FY) ===');
+    parts.push(`=== LIVE FINANCIALS (current FY, from ${fyStart} — day ${daysIntoFy} of the financial year) ===`);
+    if (daysIntoFy <= 31) {
+      parts.push(
+        `NOTE: the financial year just started, so near-zero figures here are expected and do NOT mean the business has no history. Prior-FY totals are excluded from this section by design — say so if the user asks about revenue/profit.`,
+      );
+    }
     parts.push(`Revenue (inc GST): ${fmt(pnl.revenue_inc_gst_cents)}`);
     parts.push(`Total cost: ${fmt(pnl.total_cost_cents)}`);
     parts.push(`Gross profit: ${fmt(pnl.gross_profit_cents)}`);

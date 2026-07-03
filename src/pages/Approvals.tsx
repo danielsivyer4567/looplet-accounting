@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApprovals, type ApprovalRow } from '@/hooks/useApprovals';
+import { SkeletonCard } from '@/components/Skeleton';
 import { ShieldCheck, CheckCircle2, X } from 'lucide-react';
 
 const MUTED = 'var(--text-muted, #6b7280)';
@@ -155,7 +156,9 @@ export function ApprovalsPage() {
       {error && <ErrorBadge message={error} />}
 
       {loading ? (
-        <div style={{ color: MUTED }}>Loading…</div>
+        <div aria-busy="true" aria-label="Loading approvals">
+          <SkeletonCard />
+        </div>
       ) : pending.length === 0 ? (
         <div className="card" style={{ padding: '1.5rem', textAlign: 'center', color: MUTED }}>
           Nothing awaiting approval. Tier-2 actions (paying a payment run, finalising payroll)

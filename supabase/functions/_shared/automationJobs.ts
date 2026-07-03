@@ -19,6 +19,8 @@ export type AutomationJobKind =
   | 'xero_push'
   | 'bank_reconcile'
   | 'gmail_backfill'
+  | 'gmail_mine'
+  | 'bill_code'
   | 'coding_classify'
   | 'payment_record'
   | 'browser_collect';

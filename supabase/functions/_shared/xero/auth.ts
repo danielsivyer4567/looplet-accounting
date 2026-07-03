@@ -116,21 +116,40 @@ export async function loadAndRefreshXero(
     expires_in?: number;
   };
 
-  // CRITICAL: Xero rotates refresh tokens. Persist immediately — a crash
-  // between here and the update() below would lock the user out.
+  // CRITICAL: Xero rotates refresh tokens and invalidates the OLD one the instant the
+  // new one is issued. The new refresh token exists only in-memory until this update()
+  // persists it — and supabase-js returns { error } rather than throwing, so a
+  // silently-dropped error here would re-send the now-invalid old token next time and
+  // permanently wedge the org. Persist with a short retry, then fail loudly if it
+  // still won't stick (surfaces the failure; a genuine persist loss may need reconnect).
   const newAccess = refreshData.access_token;
   const newRefresh = refreshData.refresh_token ?? refreshToken;
-
-  await admin
-    .from('xero_integrations')
-    .update({
-      access_token_encrypted: await encryptToken(newAccess),
-      refresh_token_encrypted: await encryptToken(newRefresh),
-      token_expires_at: new Date(Date.now() + (refreshData.expires_in ?? 1800) * 1000).toISOString(),
-      last_error: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', integration.id);
+  const tokenUpdate = {
+    access_token_encrypted: await encryptToken(newAccess),
+    refresh_token_encrypted: await encryptToken(newRefresh),
+    token_expires_at: new Date(Date.now() + (refreshData.expires_in ?? 1800) * 1000).toISOString(),
+    last_error: null,
+    updated_at: new Date().toISOString(),
+  };
+  let persistErr: { message: string } | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { error: err } = await admin
+      .from('xero_integrations')
+      .update(tokenUpdate)
+      .eq('id', integration.id);
+    if (!err) {
+      persistErr = null;
+      break;
+    }
+    persistErr = err;
+    if (attempt < 2) await new Promise((r) => setTimeout(r, 250 * (attempt + 1)));
+  }
+  if (persistErr) {
+    throw new XeroApiError(
+      `Xero token rotated but persistence failed — reconnect may be required: ${persistErr.message}`,
+      500,
+    );
+  }
 
   return {
     accessToken: newAccess,
@@ -171,6 +190,15 @@ export async function callXeroWithRetry<T = unknown>(
 
   if (response.status === 401) {
     ctx = await loadAndRefreshXero(admin, organizationId, true);
+    response = await doCall(ctx);
+  }
+
+  // Transient throttle/5xx: back off once (honouring Retry-After) and retry, rather
+  // than treating a temporary condition as fatal and burning the caller's attempt.
+  if (response.status === 429 || response.status >= 500) {
+    const retryAfter = parseInt(response.headers.get('Retry-After') ?? '', 10);
+    const waitSecs = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter, 60) : 5;
+    await new Promise((r) => setTimeout(r, waitSecs * 1000));
     response = await doCall(ctx);
   }
 

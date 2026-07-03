@@ -62,21 +62,8 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
 import { requireEnv } from "../_shared/env.ts";
-
-// Cadence -> number of monthly periods to spread across. MUST stay in sync with the
-// CASE inside accrue_recurring_bill (0098): that CASE is only a fallback for a NULL
-// p_periods, whereas this driver always passes p_periods EXPLICITLY (forward note b)
-// to avoid the RPC re-running detect_recurring_bills per bill — so the mapping lives
-// in both places by design. Cadences mapping to 1 (monthly/fortnightly/weekly) have
-// no multi-period spread and are skipped (forward note c).
-const CADENCE_PERIODS: Record<string, number> = {
-  yearly: 12,
-  semi_annual: 6,
-  quarterly: 3,
-  monthly: 1,
-  fortnightly: 1,
-  weekly: 1,
-};
+import { isExactSecret, isExactServiceRoleBearer } from "../_shared/serviceRole.ts";
+import { planAccrualJobs, type RecurringSeries } from "./logic.ts";
 
 // Default expense leg when a bill has no coding suggestion to source a code from.
 // Matches accrue_recurring_bill's own p_expense_account_code default (0098).
@@ -84,12 +71,6 @@ const DEFAULT_EXPENSE_CODE = "6900";
 
 interface RequestBody {
   organization_id?: string;
-}
-
-// Only the fields the driver needs from detect_recurring_bills (SC-1.I.01).
-interface RecurringSeries {
-  cadence: string;
-  bill_ids: string[];
 }
 
 // One row of accrue_recurring_bill's RETURNS TABLE (SC-1.I.02); we only read reused.
@@ -112,14 +93,6 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-}
-
-/** Constant-time string compare; false on length mismatch. */
-function safeEqual(a: string, b: string): boolean {
-  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
-  let out = 0;
-  for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return out === 0;
 }
 
 // The HMAC signing key is static per deployment; import it once per isolate.
@@ -164,9 +137,8 @@ Deno.serve(async (req: Request) => {
     // function is cron/admin-driven only.
     const url = new URL(req.url);
     const urlSecret = url.searchParams.get("secret");
-    const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
-    const isServiceRole = safeEqual(bearer, serviceKey);
-    const secretOk = !!cronSecret && safeEqual(urlSecret ?? "", cronSecret);
+    const isServiceRole = isExactServiceRoleBearer(req.headers.get("Authorization"), serviceKey);
+    const secretOk = !!cronSecret && isExactSecret(urlSecret, cronSecret);
     if (!isServiceRole && !secretOk) return json({ ok: false, error: "Unauthorized" }, 401);
 
     const body = (await req.json().catch(() => ({}))) as RequestBody;
@@ -227,25 +199,17 @@ Deno.serve(async (req: Request) => {
       // Qualifying series = cadence > monthly. Take each series' MOST-RECENT bill
       // (bill_ids is chronological asc, 0098) — the current lump to spread.
       //
-      // SELECTION POLICY (forward note): only the most-recent bill is accrued, never
-      // the whole back-catalogue. Accruals are forward-facing — they spread the
-      // current lump from the bill's own month onward (accrue_recurring_bill's
-      // p_start_period default). Older bills in a multi-year series would backdate
-      // accrual journals into already-closed/locked periods (post_journal_entry would
-      // reject them) for no benefit. The monthly cron is idempotent and extends a
-      // series forward as new lumps arrive; it never backdates. A rare historical
-      // backfill is a manual accrue_recurring_bill call with an explicit p_periods/
-      // p_start_period, not this driver's job.
-      const jobs: { billId: string; periods: number }[] = [];
-      for (const s of rows) {
-        const periods = CADENCE_PERIODS[s.cadence];
-        if (!periods || periods <= 1) {
-          stats.skipped_short_cadence += 1;
-          continue;
-        }
-        const billId = s.bill_ids[s.bill_ids.length - 1];
-        if (billId) jobs.push({ billId, periods });
-      }
+      // SELECTION POLICY (forward note, see logic.ts): only the most-recent bill is
+      // accrued, never the whole back-catalogue. Accruals are forward-facing — they
+      // spread the current lump from the bill's own month onward (accrue_recurring_
+      // bill's p_start_period default). Older bills in a multi-year series would
+      // backdate accrual journals into already-closed/locked periods (post_journal_
+      // entry would reject them) for no benefit. The monthly cron is idempotent and
+      // extends a series forward as new lumps arrive; it never backdates. A rare
+      // historical backfill is a manual accrue_recurring_bill call with an explicit
+      // p_periods/p_start_period, not this driver's job.
+      const { jobs, skippedShortCadence } = planAccrualJobs(rows);
+      stats.skipped_short_cadence += skippedShortCadence;
       if (jobs.length === 0) continue;
 
       // Expense code per bill (forward note d): reuse the coding-classifier's

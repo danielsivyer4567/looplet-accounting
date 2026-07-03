@@ -7,6 +7,9 @@ const h = vi.hoisted(() => ({
   loading: false,
   error: null as string | null,
   refresh: vi.fn(),
+  downloadPack: vi.fn(),
+  packBusyId: null as string | null,
+  packError: null as string | null,
 }));
 
 vi.mock('@/hooks/useLodgements', () => ({
@@ -15,6 +18,14 @@ vi.mock('@/hooks/useLodgements', () => ({
     loading: h.loading,
     error: h.error,
     refresh: h.refresh,
+  }),
+}));
+
+vi.mock('@/hooks/useBasLodgementPack', () => ({
+  useBasLodgementPack: () => ({
+    busyId: h.packBusyId,
+    error: h.packError,
+    downloadPack: h.downloadPack,
   }),
 }));
 
@@ -43,6 +54,9 @@ describe('LodgementsPage', () => {
     h.loading = false;
     h.error = null;
     h.refresh = vi.fn();
+    h.downloadPack = vi.fn();
+    h.packBusyId = null;
+    h.packError = null;
   });
 
   it('lists lodgements and opens submitted payload details', () => {
@@ -58,6 +72,15 @@ describe('LodgementsPage', () => {
     expect(screen.getByRole('heading', { name: 'Submitted payload' })).toBeInTheDocument();
     expect(screen.getByText(/net_gst_cents/)).toBeInTheDocument();
     expect(screen.getByText(/accepted/)).toBeInTheDocument();
+  });
+
+  it('downloads a BAS review pack for the selected lodgement', () => {
+    render(<LodgementsPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /View payload/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Download BAS pack/i }));
+
+    expect(h.downloadPack).toHaveBeenCalledWith(ROW);
   });
 
   it('refreshes without mutating lodgements', () => {

@@ -3,6 +3,7 @@ import {
   type LegalHorizonRow,
   type LegalChangeStage,
 } from '@/hooks/useLegalHorizon';
+import { SkeletonCard } from '@/components/Skeleton';
 import { CalendarClock, RefreshCw } from 'lucide-react';
 
 const MUTED = 'var(--text-muted, #6b7280)';
@@ -206,7 +207,9 @@ export function LegalHorizonPage() {
       )}
 
       {loading ? (
-        <div style={{ color: MUTED }}>Loading…</div>
+        <div aria-busy="true" aria-label="Loading legal horizon">
+          <SkeletonCard />
+        </div>
       ) : items.length === 0 ? (
         <div className="card" style={{ padding: '1.5rem', textAlign: 'center', color: MUTED }}>
           No upcoming changes on the radar right now. Run a Sonar scan to sweep official sources

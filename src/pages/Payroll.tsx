@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { useSuperBatch } from '@/hooks/useSuperBatch';
-import { markObligationStatus } from '@/hooks/useTaxCalendar';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
@@ -357,13 +356,24 @@ export function PayrollPage() {
 
 export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number }) {
   const { batch, loading, error, generate, send } = useSuperBatch(fy, quarter);
-  const { currentOrg } = useOrg();
   const [busy, setBusy] = useState<null | 'generate' | 'send'>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const fyLabel = `Q${quarter} FY${fy}-${String((fy + 1) % 100).padStart(2, '0')}`;
   const isSent = batch !== null && (batch.status === 'sent' || batch.status === 'confirmed');
+
+  const downloadPayload = (payload: Record<string, unknown>, filename: string) => {
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const handleGenerate = async (): Promise<void> => {
     setBusy('generate');
@@ -386,28 +396,16 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
     try {
       const r = await send();
       if (r.sent || r.already_sent) {
-        // Write-back (SC-3.H.02): a sent batch means this quarter's super is paid.
-        // Flip the obligation via the generic obligation_status overlay (SC-3.E.02)
-        // so v_tax_calendar reports the super quarter as paid. PROVISIONAL, mirroring
-        // Bas.tsx: Phase 7 moves this write server-side (the edge fn flips the
-        // obligation when it marks the batch sent). Best-effort — a failed write-back
-        // must not present as a send failure (the send already succeeded).
-        let calNote = ' The tax calendar now shows this quarter paid.';
-        if (currentOrg) {
-          try {
-            await markObligationStatus({
-              organizationId: currentOrg.id,
-              obligationKey: 'super',
-              periodLabel: fyLabel,
-              status: 'paid',
-            });
-          } catch {
-            calNote = ' (Sent, but the tax-calendar status could not be updated.)';
-          }
+        if (r.payload) {
+          downloadPayload(r.payload, `superstream-${fyLabel.replace(/\s+/g, '-')}.json`);
         }
-        setMsg((r.sent ? 'Super batch sent.' : 'Super batch already sent.') + calNote);
+        setMsg(
+          r.sent
+            ? 'SuperStream clearing-house file exported for manual upload. Mark the obligation paid only after clearing-house/payment confirmation.'
+            : 'Super batch already exported.',
+        );
       } else if (r.approval_id) {
-        setMsg('Approval requested - pending Tier-2 approval before this batch can send.');
+        setMsg('Approval requested - pending Tier-2 approval before this batch can export.');
       } else {
         setActionError(r.error ?? 'Send was refused.');
       }
@@ -448,12 +446,15 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
         </button>
       </div>
       <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 1rem' }}>
-        Quarterly super guarantee per employee from finalised pay runs. Sending is gated behind a
-        Tier-2 approval.
+        Quarterly super guarantee per employee from finalised pay runs. Export is Tier-2 gated and
+        produces a clearing-house upload file; live SuperStream API dispatch remains disabled until
+        a provider transport is configured.
       </p>
 
       {loading ? (
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading batch...</div>
+        <div aria-busy="true" aria-label="Loading super batch">
+          <SkeletonTable rows={3} cols={5} />
+        </div>
       ) : error ? (
         <div
           className="badge badge-warning"
@@ -473,6 +474,8 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
               <thead>
                 <tr>
                   <th>Employee</th>
+                  <th>Fund</th>
+                  <th>Member</th>
                   <th style={{ textAlign: 'right' }}>Super guarantee</th>
                 </tr>
               </thead>
@@ -480,11 +483,25 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
                 {batch.lines.map((l) => (
                   <tr key={l.id}>
                     <td>{l.employee_name}</td>
+                    <td>
+                      {l.fund_usi ? (
+                        <>
+                          {l.fund_name ?? 'Super fund'} · <code>{l.fund_usi}</code>
+                        </>
+                      ) : (
+                        <span className="badge badge-warning">Missing fund</span>
+                      )}
+                    </td>
+                    <td>
+                      {l.member_number ?? (
+                        <span className="badge badge-warning">Missing member</span>
+                      )}
+                    </td>
                     <td style={{ textAlign: 'right' }}>{formatMoney(l.super_cents)}</td>
                   </tr>
                 ))}
                 <tr style={{ fontWeight: 700 }}>
-                  <td>
+                  <td colSpan={3}>
                     Total ({batch.line_count} {batch.line_count === 1 ? 'employee' : 'employees'})
                   </td>
                   <td style={{ textAlign: 'right' }}>{formatMoney(batch.total_super_cents)}</td>
@@ -517,10 +534,10 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
               className="btn btn-primary"
               onClick={handleSend}
               disabled={busy !== null || isSent || batch.line_count === 0}
-              title={isSent ? 'Already sent' : 'Open a Tier-2 approval and send'}
+              title={isSent ? 'Already exported' : 'Open a Tier-2 approval and export'}
             >
               {busy === 'send' ? <Loader2 size={14} /> : <Send size={14} />}
-              <span>Approve &amp; send</span>
+              <span>Approve &amp; export</span>
             </button>
           </div>
           {msg && (

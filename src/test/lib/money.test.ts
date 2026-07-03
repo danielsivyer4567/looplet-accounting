@@ -34,6 +34,15 @@ describe('centsToDollars', () => {
   it('converts negative cents', () => {
     expect(centsToDollars(-500)).toBe(-5);
   });
+
+  it('coerces NaN to 0 (fail safe against an upstream 0/0)', () => {
+    expect(centsToDollars(NaN)).toBe(0);
+  });
+
+  it('coerces non-finite values to 0', () => {
+    expect(centsToDollars(Infinity)).toBe(0);
+    expect(centsToDollars(-Infinity)).toBe(0);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -120,5 +129,27 @@ describe('formatMoneyCompact', () => {
   it('handles null', () => {
     const result = formatMoneyCompact(null);
     expect(result).toMatch(/0\.00/);
+  });
+
+  it('degrades NaN to $0.00 rather than "$NaNM"', () => {
+    expect(formatMoneyCompact(NaN)).toMatch(/0\.00/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// formatMoney — non-finite fallback (regression guard)
+// ---------------------------------------------------------------------------
+
+describe('formatMoney non-finite inputs', () => {
+  it('renders $0.00 for NaN instead of "$NaN"', () => {
+    const result = formatMoney(NaN);
+    expect(result).toMatch(/0\.00/);
+    expect(result).not.toMatch(/NaN/);
+  });
+
+  it('renders $0.00 for Infinity instead of "$∞"', () => {
+    const result = formatMoney(Infinity);
+    expect(result).toMatch(/0\.00/);
+    expect(result).not.toMatch(/∞/);
   });
 });

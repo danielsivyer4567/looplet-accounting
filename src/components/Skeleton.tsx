@@ -140,3 +140,44 @@ export function SkeletonTable({ rows = 5, cols = 5 }: SkeletonTableProps) {
     </div>
   );
 }
+
+interface DetailPageSkeletonProps {
+  cards?: number;
+  tableRows?: number;
+  tableCols?: number;
+}
+
+export function DetailPageSkeleton({
+  cards = 3,
+  tableRows = 4,
+  tableCols = 5,
+}: DetailPageSkeletonProps) {
+  return (
+    <section className="animated-fade-in" aria-busy="true" aria-label="Loading page">
+      <div style={{ marginBottom: '1rem' }}>
+        <SkeletonLine width="8rem" height={12} />
+      </div>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '1rem',
+          marginBottom: '1.5rem',
+        }}
+      >
+        {Array.from({ length: cards }).map((_, index) => (
+          <SkeletonCard key={index} />
+        ))}
+      </div>
+      <div
+        className="card"
+        style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}
+      >
+        <SkeletonLine width="40%" height={18} />
+        <SkeletonLine width="70%" height={12} />
+        <SkeletonLine width="55%" height={12} />
+      </div>
+      <SkeletonTable rows={tableRows} cols={tableCols} />
+    </section>
+  );
+}

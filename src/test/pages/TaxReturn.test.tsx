@@ -36,6 +36,7 @@ const h = vi.hoisted(() => ({
     pending: [] as ApprovalRow[],
     isApprovedResult: false,
     requestApproval: vi.fn(),
+    isApproved: vi.fn(),
     refresh: vi.fn(),
   },
 }));
@@ -51,7 +52,7 @@ vi.mock('@/hooks/useApprovals', () => ({
     approve: vi.fn(),
     reject: vi.fn(),
     requestApproval: h.approvals.requestApproval,
-    isApproved: vi.fn(async () => h.approvals.isApprovedResult),
+    isApproved: h.approvals.isApproved,
   }),
 }));
 vi.mock('@/hooks/useOrg', () => ({
@@ -283,12 +284,12 @@ const withCompanyData = () => {
 beforeEach(() => {
   h.ret = { taxReturn: null, taxPayable: null, loading: false, error: null, refresh: vi.fn() };
   h.book = { bookToTax: null, cgt: null, loading: false, error: null, refresh: vi.fn() };
-  h.approvals = {
-    pending: [],
-    isApprovedResult: false,
-    requestApproval: vi.fn(),
-    refresh: vi.fn(),
-  };
+  h.approvals.pending = [];
+  h.approvals.isApprovedResult = false;
+  h.approvals.requestApproval.mockReset();
+  h.approvals.isApproved.mockReset();
+  h.approvals.isApproved.mockImplementation(async () => h.approvals.isApprovedResult);
+  h.approvals.refresh.mockReset();
 });
 
 const renderPage = () =>
@@ -299,6 +300,16 @@ const renderPage = () =>
   );
 
 describe('TaxReturnPage (SC-4.I.02 / SC-4.I.03)', () => {
+  it('uses a skeleton while the draft return is loading', () => {
+    h.ret = { taxReturn: null, taxPayable: null, loading: true, error: null, refresh: vi.fn() };
+    h.book = { bookToTax: null, cgt: null, loading: true, error: null, refresh: vi.fn() };
+
+    renderPage();
+
+    expect(screen.getByLabelText(/loading tax return draft/i)).toHaveAttribute('aria-busy', 'true');
+    expect(screen.queryByText(/loading draft return/i)).not.toBeInTheDocument();
+  });
+
   it('renders the entity-aware return, reconciliation, tax-payable waterfall and CGT schedule', () => {
     withCompanyData();
     renderPage();

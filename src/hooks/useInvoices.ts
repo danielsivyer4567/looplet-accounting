@@ -24,6 +24,7 @@ export function useInvoices(
   const { currentOrg } = useOrg();
   const [invoices, setInvoices] = useState<InvoiceListRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const offsetRef = useRef(0);
@@ -33,9 +34,14 @@ export function useInvoices(
       if (!currentOrg) {
         setInvoices([]);
         setLoading(false);
+        setLoadingMore(false);
         return;
       }
-      setLoading(true);
+      if (reset) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
       setError(null);
       const from = reset ? 0 : offsetRef.current;
       const to = from + pageSize - 1;
@@ -74,7 +80,11 @@ export function useInvoices(
         offsetRef.current = from + fetched.length;
         setHasMore(fetched.length === pageSize);
       }
-      setLoading(false);
+      if (reset) {
+        setLoading(false);
+      } else {
+        setLoadingMore(false);
+      }
     },
     [currentOrg, filter?.status, filter?.customerId, filter?.jobId, pageSize],
   );
@@ -91,6 +101,7 @@ export function useInvoices(
   return {
     invoices,
     loading,
+    loadingMore,
     error,
     refresh: () => {
       offsetRef.current = 0;

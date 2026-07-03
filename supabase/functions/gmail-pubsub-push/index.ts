@@ -33,7 +33,7 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
-import { hasExistingGmailBill } from '../_shared/gmail/dedupe.ts';
+import { existingGmailAttachmentIds } from '../_shared/gmail/dedupe.ts';
 import { loadAndRefreshGmail } from '../_shared/gmail/auth.ts';
 import { hasRetryableGmailIngestFailure } from '../_shared/gmail/pubsub.ts';
 
@@ -158,33 +158,71 @@ async function processNotification(
 
     const startHistoryId = integ.last_history_id ?? notif.historyId;
 
-    // Pull history delta — what messages are new since startHistoryId?
-    const histResp = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded&labelId=INBOX`,
-      { headers: { Authorization: `Bearer ${accessToken}` } },
-    );
+    // Page through the FULL history delta following nextPageToken before advancing the
+    // cursor — ignoring pagination silently drops every message past the first page.
+    const messageIds = new Set<string>();
+    let latestHistoryId: string | undefined;
+    let pageToken: string | undefined;
+    let historyExpired = false;
+    do {
+      const params = new URLSearchParams({
+        startHistoryId,
+        historyTypes: 'messageAdded',
+        labelId: 'INBOX',
+      });
+      if (pageToken) params.set('pageToken', pageToken);
+      const histResp = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/history?${params.toString()}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      );
 
-    if (!histResp.ok) {
-      const t = await histResp.text();
+      if (!histResp.ok) {
+        // 404 = startHistoryId too old for Gmail to replay. Handled below with a
+        // cursor re-seed so ingestion resumes instead of freezing forever.
+        if (histResp.status === 404) {
+          historyExpired = true;
+          break;
+        }
+        const t = await histResp.text();
+        await admin
+          .from('gmail_integrations')
+          .update({ last_error: `history.list ${histResp.status}: ${t.slice(0, 200)}` })
+          .eq('id', integ.id);
+        return; // transient — leave the cursor for replay
+      }
+
+      const hist = (await histResp.json()) as {
+        history?: { messagesAdded?: { message: { id: string } }[] }[];
+        historyId?: string;
+        nextPageToken?: string;
+      };
+      for (const h of hist.history ?? []) {
+        for (const m of h.messagesAdded ?? []) {
+          if (m.message?.id) messageIds.add(m.message.id);
+        }
+      }
+      if (hist.historyId) latestHistoryId = hist.historyId;
+      pageToken = hist.nextPageToken;
+    } while (pageToken);
+
+    if (historyExpired) {
+      // Fallback: the cursor is too old to replay the delta. Re-seed it to the current
+      // notification's historyId so forward progress resumes on the next push, and
+      // record the one-time gap rather than livelocking on the same expired cursor.
       await admin
         .from('gmail_integrations')
-        .update({ last_error: `history.list ${histResp.status}: ${t.slice(0, 200)}` })
+        .update({
+          last_history_id: notif.historyId,
+          last_synced_at: new Date().toISOString(),
+          last_error:
+            `history expired (404) at startHistoryId ${startHistoryId}; ` +
+            `cursor re-seeded to ${notif.historyId}, prior gap not backfilled`,
+        })
         .eq('id', integ.id);
       return;
     }
 
-    const hist = (await histResp.json()) as {
-      history?: { messagesAdded?: { message: { id: string } }[] }[];
-      historyId?: string;
-    };
-
-    const newHistoryId = hist.historyId ?? notif.historyId;
-    const messageIds = new Set<string>();
-    for (const h of hist.history ?? []) {
-      for (const m of h.messagesAdded ?? []) {
-        if (m.message?.id) messageIds.add(m.message.id);
-      }
-    }
+    const newHistoryId = latestHistoryId ?? notif.historyId;
 
     if (messageIds.size === 0) {
       await markHistoryProcessed(admin, integ.id, newHistoryId);
@@ -278,7 +316,11 @@ async function ingestMessage(
 ): Promise<IngestResult> {
   const result: IngestResult = { bills: [], rejected: [], duplicates: 0 };
 
-  if (await hasExistingGmailBill(admin, integ.organization_id, messageId)) {
+  // Per-(message, attachment) dedup: a mid-message retry should re-ingest only the
+  // attachments that didn't land, not skip the whole message. A message fully ingested
+  // by the legacy per-message path (bills exist, no attachment ids) is skipped wholesale.
+  const seen = await existingGmailAttachmentIds(admin, integ.organization_id, messageId);
+  if (seen.hasAnyBill && seen.attachmentIds.size === 0) {
     result.duplicates = 1;
     return result;
   }
@@ -323,11 +365,18 @@ async function ingestMessage(
   // Match against intake_rules (user-curated classification rules from triage).
   // If a rule matches and is_personal=true → skip the email entirely.
   // If a rule matches with category info → pre-fill on the bill so bills-extract can skip OCR.
-  const { data: ruleRows } = await admin.rpc('match_intake_rule', {
+  const { data: ruleRows, error: ruleErr } = await admin.rpc('match_intake_rule', {
     p_org_id: integ.organization_id,
     p_sender_email: fromAddress,
     p_subject: subject,
   });
+  if (ruleErr) {
+    // A failed rule lookup would silently disable personal-skip and rule pre-fill and
+    // ingest the email as a plain bill. Bail retryably BEFORE any insert so a replay
+    // re-evaluates the rules with nothing to duplicate.
+    result.rejected.push({ message_id: messageId, reason: `rule lookup ${ruleErr.message}` });
+    return result;
+  }
   const rule = (ruleRows as IntakeRuleMatch[] | null)?.[0];
 
   if (rule?.is_personal) {
@@ -363,6 +412,11 @@ async function ingestMessage(
   for (const part of attachments) {
     const attachmentId = part.body?.attachmentId;
     if (!attachmentId) continue;
+    // Skip only the attachments already ingested for this message (partial-retry safe).
+    if (seen.attachmentIds.has(attachmentId)) {
+      result.duplicates += 1;
+      continue;
+    }
     const attResp = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } },
@@ -408,6 +462,7 @@ async function ingestMessage(
         suggested_job_id: rule?.job_id ?? null,
         intake_metadata: {
           gmail_message_id: messageId,
+          gmail_attachment_id: attachmentId,
           gmail_thread_id: msg.threadId,
           from: fromAddress,
           subject,
@@ -449,6 +504,10 @@ async function ingestMessage(
       },
     });
     if (jobErr) {
+      // Roll the bill back so a replay re-creates AND re-enqueues it, rather than
+      // leaving an orphan bill stuck in 'received' with no OCR job (the per-attachment
+      // dedup would otherwise block re-ingestion forever).
+      await admin.from('bills').delete().eq('id', bill.id);
       result.rejected.push({
         message_id: messageId,
         reason: `bill_extract enqueue ${jobErr.message}`,

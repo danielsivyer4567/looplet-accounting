@@ -1,7 +1,9 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { TaxTimeline } from '@/components/TaxTimeline';
 import { buildObligationPrompt, type TaxObligation } from '@/hooks/useTaxCalendar';
+
+vi.mock('@/lib/supabase', () => import('@/test/mocks/supabase'));
 
 function obligation(overrides: Partial<TaxObligation> = {}): TaxObligation {
   return {

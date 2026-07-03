@@ -18,9 +18,108 @@ export interface GmailTokens {
 
 interface IntegrationRow {
   id: string;
+  organization_id: string;
+  gmail_address: string | null;
   encrypted_refresh_token: string;
   encrypted_access_token: string | null;
   access_token_expires_at: string | null;
+}
+
+/**
+ * Thrown when a Gmail token refresh fails fatally (revoked grant / dead
+ * connection) — i.e. an HTTP 400/401 or an `invalid_grant` body from Google.
+ * Callers can `instanceof`-check this to distinguish "this mailbox is dead,
+ * stop trying" from a transient blip (5xx / network) worth retrying.
+ *
+ * Before this is thrown, the integration has already been flagged via
+ * `flagGmailConnectionError()` (is_active=false + last_error + in-app notify),
+ * so callers do NOT need to flag it again — they just stop processing.
+ */
+export class GmailInvalidGrantError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'GmailInvalidGrantError';
+    this.status = status;
+  }
+}
+
+/**
+ * True if `message` indicates the Gmail connection is dead (refresh token
+ * revoked/expired or the watch call rejected the credentials) rather than a
+ * transient error. Shared by every path (refresh, watch renew, push, backfill)
+ * so "fatal" means the same thing everywhere.
+ */
+export function isFatalGmailAuthError(message: string): boolean {
+  // invalid_grant / unauthorized_client => revoked or expired refresh token.
+  // 400/401 => bad/expired credentials. 403 => scope revoked or access denied
+  // (e.g. history.list after the user removed our app). All require a reconnect;
+  // none recover on retry. 404 (stale historyId) and 5xx are NOT fatal.
+  return /invalid_grant|unauthorized_client|access_denied|\(40[013]\)|\b40[013]\b/i.test(message);
+}
+
+/**
+ * Flag a Gmail integration as broken: disable it (when fatal), record the
+ * error on the row so the Settings UI can surface a "Reconnect" banner, and —
+ * for a fatal disconnect — emit a single in-app notification via the existing
+ * SECURITY DEFINER `notify()` RPC so the user is pinged proactively instead of
+ * silently no-op'ing every sync.
+ *
+ * Mirrors Xero's `flagConnectionError(disable=true)`. Idempotent enough for the
+ * paths that call it: a fresh notification is emitted each time a fatal error
+ * recurs, but the daily watch-renew cron only retries `is_active=true` rows, so
+ * once disabled it stops re-notifying until the user reconnects.
+ *
+ * Best-effort: failures to write/notify are swallowed (logged) so they never
+ * mask the underlying auth error the caller is about to surface.
+ */
+export async function flagGmailConnectionError(
+  admin: unknown,
+  integration: { id: string; organization_id: string; gmail_address?: string | null },
+  errorMessage: string,
+  disable: boolean,
+): Promise<void> {
+  const client = admin as SupabaseLike & {
+    rpc?(fn: string, args: Record<string, unknown>): PromiseLike<{ error: unknown }>;
+  };
+
+  const update: Record<string, unknown> = { last_error: errorMessage.slice(0, 500) };
+  if (disable) update.is_active = false;
+
+  try {
+    const { error } = await client
+      .from('gmail_integrations')
+      .update(update)
+      .eq('id', integration.id);
+    if (error) console.error('flagGmailConnectionError: integration update failed', error);
+  } catch (err) {
+    console.error('flagGmailConnectionError: failed to update integration row', err);
+  }
+
+  // Only ping the user on a fatal disconnect — a transient blip that doesn't
+  // disable the integration shouldn't spam the bell.
+  if (!disable || typeof client.rpc !== 'function') return;
+
+  const mailbox = integration.gmail_address ?? 'a connected mailbox';
+  try {
+    const { error } = await client.rpc('notify', {
+      p_org: integration.organization_id,
+      p_category: 'connection_expiring',
+      p_title: `Gmail disconnected: ${mailbox}`,
+      p_body:
+        `We can no longer access ${mailbox} — the connection was revoked or expired, ` +
+        `so invoice intake from this mailbox has stopped. Reconnect it from Settings to resume.`,
+      p_link: '/settings',
+      p_severity: 'warning',
+      p_user_id: null,
+      p_resource_type: 'gmail_integration',
+      p_resource_id: integration.id,
+      p_metadata: { reason: errorMessage.slice(0, 200) },
+    });
+    if (error) console.error('flagGmailConnectionError: notify() failed', error);
+  } catch (err) {
+    console.error('flagGmailConnectionError: notify() threw', err);
+  }
 }
 
 /**
@@ -55,7 +154,9 @@ export async function loadAndRefreshGmail(
   const client = admin as SupabaseLike;
   const { data, error } = await client
     .from('gmail_integrations')
-    .select('id, encrypted_refresh_token, encrypted_access_token, access_token_expires_at')
+    .select(
+      'id, organization_id, gmail_address, encrypted_refresh_token, encrypted_access_token, access_token_expires_at',
+    )
     .eq('id', integrationId)
     .single();
 
@@ -98,7 +199,19 @@ export async function loadAndRefreshGmail(
 
   if (!resp.ok) {
     const txt = await resp.text();
-    throw new Error(`Gmail token refresh failed (${resp.status}): ${txt.slice(0, 200)}`);
+    const detail = `Gmail token refresh failed (${resp.status}): ${txt.slice(0, 200)}`;
+    // A 400/401 (typically Google's `invalid_grant`) means the refresh token is
+    // dead — the user revoked access, changed password, or the grant expired.
+    // Retrying never recovers it, so DISABLE the integration and ping the user
+    // (mirrors Xero's flagConnectionError(disable=true)). Every Gmail path —
+    // watch-renew, pubsub-push, backfill, mine — flows through here, so the
+    // disable + notify is consistent across all of them. A 5xx / network error
+    // is left transient: flag last_error only, keep is_active=true so the next
+    // run can retry.
+    const fatal = isFatalGmailAuthError(detail) || resp.status === 400 || resp.status === 401;
+    await flagGmailConnectionError(client, row, `token refresh: ${detail}`, fatal);
+    if (fatal) throw new GmailInvalidGrantError(detail, resp.status);
+    throw new Error(detail);
   }
 
   const tok = (await resp.json()) as {

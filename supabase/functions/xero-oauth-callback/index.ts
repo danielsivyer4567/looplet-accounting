@@ -12,6 +12,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { encryptToken } from '../_shared/xero/crypto.ts';
+import { verifyXeroOAuthState } from '../_shared/xero/oauthState.ts';
 
 const XERO_TOKEN_URL = 'https://identity.xero.com/connect/token';
 const XERO_CONNECTIONS_URL = 'https://api.xero.com/connections';
@@ -20,7 +21,7 @@ interface RequestBody {
   organization_id: string;
   code: string;
   redirect_uri: string;
-  state?: string;
+  state: string;
 }
 
 Deno.serve(async (req) => {
@@ -52,8 +53,8 @@ Deno.serve(async (req) => {
     });
 
     const body = (await req.json()) as RequestBody;
-    if (!body.organization_id || !body.code || !body.redirect_uri) {
-      return json({ ok: false, error: 'organization_id, code, redirect_uri required' }, 400);
+    if (!body.organization_id || !body.code || !body.redirect_uri || !body.state) {
+      return json({ ok: false, error: 'organization_id, code, redirect_uri, state required' }, 400);
     }
 
     // Verify caller has access to this org via RLS
@@ -64,8 +65,8 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (orgErr || !org) return json({ ok: false, error: 'Organisation not accessible' }, 403);
 
-    // Optional CSRF check: state must start with the org id
-    if (body.state && !body.state.startsWith(`${body.organization_id}.`)) {
+    // CSRF + org binding: state is org.nonce.HMAC(org.nonce).
+    if (!(await verifyXeroOAuthState(body.state, body.organization_id))) {
       return json({ ok: false, error: 'state mismatch' }, 400);
     }
 

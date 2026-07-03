@@ -1,0 +1,322 @@
+{
+  "generated_at": "2026-07-02",
+  "project_ref": "dxoikltymmknxqpkpyhi",
+  "evidence": "supabase functions list --project-ref dxoikltymmknxqpkpyhi --output json",
+  "local_function_count": 76,
+  "live_observed_count": 69,
+  "local_only": [
+    "ato-correspondence",
+    "bank-disconnect",
+    "bank-transaction-attach-job",
+    "crm-pnl-sync-push",
+    "lodgements",
+    "xero-pull-bank-transactions",
+    "xero-webhook"
+  ],
+  "functions": [
+    {
+      "name": "accountant-email-query",
+      "deploy_by_default": true
+    },
+    {
+      "name": "accountant-orchestrator",
+      "deploy_by_default": true
+    },
+    {
+      "name": "accountant-session-digest",
+      "deploy_by_default": true
+    },
+    {
+      "name": "accruals-run",
+      "deploy_by_default": true
+    },
+    {
+      "name": "advisor",
+      "deploy_by_default": true
+    },
+    {
+      "name": "api-gateway",
+      "deploy_by_default": true
+    },
+    {
+      "name": "ask-bot",
+      "deploy_by_default": true
+    },
+    {
+      "name": "ato-correspondence",
+      "deploy_by_default": false
+    },
+    {
+      "name": "ato-lodge",
+      "deploy_by_default": true
+    },
+    {
+      "name": "auto-reconcile",
+      "deploy_by_default": true
+    },
+    {
+      "name": "automation-watchdog",
+      "deploy_by_default": true
+    },
+    {
+      "name": "automation-worker",
+      "deploy_by_default": true
+    },
+    {
+      "name": "bank-csv-import",
+      "deploy_by_default": true
+    },
+    {
+      "name": "bank-disconnect",
+      "deploy_by_default": false
+    },
+    {
+      "name": "bank-discover",
+      "deploy_by_default": true
+    },
+    {
+      "name": "bank-exchange",
+      "deploy_by_default": true
+    },
+    {
+      "name": "bank-job-poll",
+      "deploy_by_default": true
+    },
+    {
+      "name": "bank-link-token",
+      "deploy_by_default": true
+    },
+    {
+      "name": "bank-statement-extract",
+      "deploy_by_default": true
+    },
+    {
+      "name": "bank-sync",
+      "deploy_by_default": true
+    },
+    {
+      "name": "bank-sync-all",
+      "deploy_by_default": true
+    },
+    {
+      "name": "bank-transaction-attach-job",
+      "deploy_by_default": false
+    },
+    {
+      "name": "bank-transaction-classifier",
+      "deploy_by_default": true
+    },
+    {
+      "name": "bank-webhook",
+      "deploy_by_default": true
+    },
+    {
+      "name": "bas-lodgement-pack",
+      "deploy_by_default": true
+    },
+    {
+      "name": "bas-worksheet-pdf",
+      "deploy_by_default": true
+    },
+    {
+      "name": "bills-allocate-batch",
+      "deploy_by_default": true
+    },
+    {
+      "name": "bills-attach",
+      "deploy_by_default": true
+    },
+    {
+      "name": "bills-extract",
+      "deploy_by_default": true
+    },
+    {
+      "name": "bills-extract-batch",
+      "deploy_by_default": true
+    },
+    {
+      "name": "coding-classifier",
+      "deploy_by_default": true
+    },
+    {
+      "name": "crm-pnl-sync-push",
+      "deploy_by_default": false
+    },
+    {
+      "name": "depreciation-run",
+      "deploy_by_default": true
+    },
+    {
+      "name": "div7a-agreement",
+      "deploy_by_default": true
+    },
+    {
+      "name": "employee-tfn-save",
+      "deploy_by_default": true
+    },
+    {
+      "name": "eofy-pack",
+      "deploy_by_default": true
+    },
+    {
+      "name": "gmail-backfill",
+      "deploy_by_default": true
+    },
+    {
+      "name": "gmail-classify-ai",
+      "deploy_by_default": true
+    },
+    {
+      "name": "gmail-mine",
+      "deploy_by_default": true
+    },
+    {
+      "name": "gmail-oauth-callback",
+      "deploy_by_default": true
+    },
+    {
+      "name": "gmail-oauth-start",
+      "deploy_by_default": true
+    },
+    {
+      "name": "gmail-pubsub-push",
+      "deploy_by_default": true
+    },
+    {
+      "name": "gmail-watch-renew",
+      "deploy_by_default": true
+    },
+    {
+      "name": "ingest",
+      "deploy_by_default": true
+    },
+    {
+      "name": "intake-routing-apply",
+      "deploy_by_default": true
+    },
+    {
+      "name": "legal-corpus-ingest",
+      "deploy_by_default": true
+    },
+    {
+      "name": "legal-corpus-sync",
+      "deploy_by_default": true
+    },
+    {
+      "name": "legal-horizon-run",
+      "deploy_by_default": true
+    },
+    {
+      "name": "legal-horizon-scan",
+      "deploy_by_default": true
+    },
+    {
+      "name": "lodgements",
+      "deploy_by_default": false
+    },
+    {
+      "name": "notifications-cron",
+      "deploy_by_default": true
+    },
+    {
+      "name": "payment-runs-aba-export",
+      "deploy_by_default": true
+    },
+    {
+      "name": "payment-runs-create",
+      "deploy_by_default": true
+    },
+    {
+      "name": "payment-runs-mark-paid",
+      "deploy_by_default": true
+    },
+    {
+      "name": "payroll-create-pay-run",
+      "deploy_by_default": true
+    },
+    {
+      "name": "payroll-export-stp",
+      "deploy_by_default": true
+    },
+    {
+      "name": "payroll-finalise-pay-run",
+      "deploy_by_default": true
+    },
+    {
+      "name": "payroll-termination",
+      "deploy_by_default": true
+    },
+    {
+      "name": "receipt-sync-dispatch",
+      "deploy_by_default": true
+    },
+    {
+      "name": "receipt-webhook",
+      "deploy_by_default": true
+    },
+    {
+      "name": "smsf-audit-pack",
+      "deploy_by_default": true
+    },
+    {
+      "name": "staged-entities-enrich-sonar",
+      "deploy_by_default": true
+    },
+    {
+      "name": "subscriptions-autoconfirm",
+      "deploy_by_default": true
+    },
+    {
+      "name": "subscriptions-detect",
+      "deploy_by_default": true
+    },
+    {
+      "name": "super-batch-send",
+      "deploy_by_default": true
+    },
+    {
+      "name": "team-invite",
+      "deploy_by_default": true
+    },
+    {
+      "name": "trust-minute",
+      "deploy_by_default": true
+    },
+    {
+      "name": "working-papers",
+      "deploy_by_default": true
+    },
+    {
+      "name": "xero-oauth-callback",
+      "deploy_by_default": true
+    },
+    {
+      "name": "xero-oauth-start",
+      "deploy_by_default": true
+    },
+    {
+      "name": "xero-pull-bank-transactions",
+      "deploy_by_default": false
+    },
+    {
+      "name": "xero-push-bill",
+      "deploy_by_default": true
+    },
+    {
+      "name": "xero-push-invoice",
+      "deploy_by_default": true
+    },
+    {
+      "name": "xero-sync-accounts",
+      "deploy_by_default": true
+    },
+    {
+      "name": "xero-sync-payments",
+      "deploy_by_default": true
+    },
+    {
+      "name": "xero-webhook",
+      "deploy_by_default": false
+    }
+  ]
+}

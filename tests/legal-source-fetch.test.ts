@@ -114,4 +114,13 @@ describe('legal source fetching', () => {
       /search surface/,
     );
   });
+
+  it('decodes an out-of-range numeric HTML entity without throwing (leaves it literal)', () => {
+    // &#x110000; is above the Unicode max; String.fromCodePoint would throw RangeError
+    // and crash the whole source fetch. It must be left in place instead.
+    const out = htmlToPlainLegalText('<p>section &#x110000; text &amp; more</p>');
+    expect(out).toContain('&#x110000;');
+    expect(out).toContain('&'); // valid entities still decode
+    expect(out).toContain('more');
+  });
 });

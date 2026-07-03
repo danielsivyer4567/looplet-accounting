@@ -1,7 +1,15 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
-type ArchivableTable = 'suppliers' | 'customers' | 'jobs' | 'bills' | 'invoices' | 'subscriptions';
+type ArchivableTable =
+  | 'suppliers'
+  | 'customers'
+  | 'jobs'
+  | 'bills'
+  | 'invoices'
+  | 'subscriptions'
+  | 'employees'
+  | 'debts';
 
 interface ArchiveButtonProps {
   /** Supabase table name to update. */

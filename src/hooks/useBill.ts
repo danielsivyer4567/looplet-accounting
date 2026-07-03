@@ -43,6 +43,7 @@ export interface BillDetail {
   suggested_match_score: number | null;
   raw_extracted: { _extraction_method?: string } | null;
   created_at: string;
+  deleted_at: string | null;
   line_items: BillLineItem[];
   attached_job?: { id: string; job_number: string; name: string } | null;
   suggested_job?: { id: string; job_number: string; name: string } | null;

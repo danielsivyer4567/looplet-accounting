@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { Fragment, useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
@@ -450,7 +450,7 @@ export function ReconciliationPage() {
               <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>
                 Recently matched (last 20)
               </h2>
-              <div className="table-premium-container">
+              <div className="table-premium-container reconciliation-table-view">
                 <table className="table-premium">
                   <thead>
                     <tr>
@@ -463,7 +463,7 @@ export function ReconciliationPage() {
                   </thead>
                   <tbody>
                     {matched.map((m) => (
-                      <>
+                      <Fragment key={m.id}>
                         <tr key={m.id}>
                           <td style={{ whiteSpace: 'nowrap' }}>{m.posted_at.slice(0, 10)}</td>
                           <td>
@@ -490,70 +490,16 @@ export function ReconciliationPage() {
                             {formatMoney(m.amount_cents)}
                           </td>
                           <td>
-                            {m.matched_bill_id && (
-                              <Link
-                                to={`/bills/${m.matched_bill_id}`}
-                                className="badge badge-info"
-                                style={{ textDecoration: 'none' }}
-                              >
-                                bill →
-                              </Link>
-                            )}
-                            {m.matched_invoice_id && (
-                              <Link
-                                to={`/invoices/${m.matched_invoice_id}`}
-                                className="badge badge-success"
-                                style={{ textDecoration: 'none' }}
-                              >
-                                invoice →
-                              </Link>
-                            )}
+                            <MatchedTarget txn={m} />
                           </td>
                           <td style={{ textAlign: 'right' }}>
-                            <div
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.35rem',
-                                justifyContent: 'flex-end',
-                              }}
-                            >
-                              <button
-                                onClick={() => void loadEvidence(m.id)}
-                                className="btn btn-secondary"
-                                style={{
-                                  padding: '0.25rem 0.4rem',
-                                  fontSize: '0.7rem',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '0.2rem',
-                                }}
-                                title="Why this match?"
-                              >
-                                <Info size={11} />
-                                <span>Why?</span>
-                                {expandedEvidenceId === m.id ? (
-                                  <ChevronUp size={10} />
-                                ) : (
-                                  <ChevronDown size={10} />
-                                )}
-                              </button>
-                              <button
-                                onClick={() => void undoMatch(m)}
-                                disabled={busyId === m.id}
-                                className="btn btn-secondary"
-                                style={{
-                                  padding: '0.25rem 0.5rem',
-                                  fontSize: '0.725rem',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '0.25rem',
-                                }}
-                              >
-                                <RotateCcw size={12} />
-                                <span>Undo</span>
-                              </button>
-                            </div>
+                            <MatchedActions
+                              txn={m}
+                              busy={busyId === m.id}
+                              expanded={expandedEvidenceId === m.id}
+                              onLoadEvidence={loadEvidence}
+                              onUndo={undoMatch}
+                            />
                           </td>
                         </tr>
                         {expandedEvidenceId === m.id && (
@@ -563,10 +509,53 @@ export function ReconciliationPage() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              <div className="reconciliation-card-view" aria-label="Recently matched mobile cards">
+                {matched.map((m) => (
+                  <div key={m.id} className="reconciliation-mobile-card">
+                    <div className="reconciliation-mobile-card__header">
+                      <strong>{m.description}</strong>
+                      {!m.manually_matched && (
+                        <span className="badge badge-info" style={{ fontSize: '9px' }}>
+                          auto
+                        </span>
+                      )}
+                    </div>
+                    <div className="reconciliation-mobile-card__row">
+                      <span>Date</span>
+                      <strong>{m.posted_at.slice(0, 10)}</strong>
+                    </div>
+                    <div className="reconciliation-mobile-card__row">
+                      <span>Amount</span>
+                      <strong
+                        style={{
+                          color: m.amount_cents < 0 ? 'var(--text-danger)' : 'var(--text-success)',
+                        }}
+                      >
+                        {formatMoney(m.amount_cents)}
+                      </strong>
+                    </div>
+                    <div className="reconciliation-mobile-card__row">
+                      <span>Matched to</span>
+                      <MatchedTarget txn={m} />
+                    </div>
+                    <MatchedActions
+                      txn={m}
+                      busy={busyId === m.id}
+                      expanded={expandedEvidenceId === m.id}
+                      onLoadEvidence={loadEvidence}
+                      onUndo={undoMatch}
+                    />
+                    {expandedEvidenceId === m.id && (
+                      <EvidencePanel rows={evidenceCache.get(m.id) ?? []} />
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -608,6 +597,89 @@ export function ReconciliationPage() {
         </>
       )}
     </section>
+  );
+}
+
+function MatchedTarget({ txn }: { txn: BankTxn }) {
+  return (
+    <div style={{ display: 'inline-flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+      {txn.matched_bill_id && (
+        <Link
+          to={`/bills/${txn.matched_bill_id}`}
+          className="badge badge-info"
+          style={{ textDecoration: 'none' }}
+        >
+          bill →
+        </Link>
+      )}
+      {txn.matched_invoice_id && (
+        <Link
+          to={`/invoices/${txn.matched_invoice_id}`}
+          className="badge badge-success"
+          style={{ textDecoration: 'none' }}
+        >
+          invoice →
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function MatchedActions({
+  txn,
+  busy,
+  expanded,
+  onLoadEvidence,
+  onUndo,
+}: {
+  txn: BankTxn;
+  busy: boolean;
+  expanded: boolean;
+  onLoadEvidence: (txnId: string) => Promise<void>;
+  onUndo: (txn: BankTxn) => Promise<void>;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.35rem',
+        justifyContent: 'flex-end',
+        flexWrap: 'wrap',
+      }}
+    >
+      <button
+        onClick={() => void onLoadEvidence(txn.id)}
+        className="btn btn-secondary"
+        style={{
+          padding: '0.25rem 0.4rem',
+          fontSize: '0.7rem',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.2rem',
+        }}
+        title="Why this match?"
+      >
+        <Info size={11} />
+        <span>Why?</span>
+        {expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+      </button>
+      <button
+        onClick={() => void onUndo(txn)}
+        disabled={busy}
+        className="btn btn-secondary"
+        style={{
+          padding: '0.25rem 0.5rem',
+          fontSize: '0.725rem',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.25rem',
+        }}
+      >
+        <RotateCcw size={12} />
+        <span>Undo</span>
+      </button>
+    </div>
   );
 }
 

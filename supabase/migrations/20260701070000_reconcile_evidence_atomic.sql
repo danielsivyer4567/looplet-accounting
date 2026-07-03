@@ -25,6 +25,7 @@ AS $$
 DECLARE
   v_result jsonb;
   v_org uuid;
+  v_gl_evidence jsonb;
 BEGIN
   v_result := public.reconcile_match_bill(
     p_bank_transaction_id,
@@ -46,6 +47,28 @@ BEGIN
     RAISE EXCEPTION 'bank transaction % missing after bill match', p_bank_transaction_id;
   END IF;
 
+  SELECT jsonb_build_object(
+    'source_type', 'bill',
+    'source_id', p_bill_id,
+    'journal_entries', COALESCE(
+      jsonb_agg(jsonb_build_object(
+        'id', je.id,
+        'status', je.status,
+        'posted_at', je.posted_at,
+        'entry_date', je.entry_date,
+        'source_type', je.source_type,
+        'source_id', je.source_id
+      ) ORDER BY je.entry_date DESC, je.created_at DESC) FILTER (WHERE je.id IS NOT NULL),
+      '[]'::jsonb
+    ),
+    'posted_count', COUNT(*) FILTER (WHERE je.status = 'posted')
+  )
+    INTO v_gl_evidence
+  FROM public.journal_entries je
+  WHERE je.organization_id = v_org
+    AND je.source_type = 'bill'
+    AND je.source_id = p_bill_id;
+
   INSERT INTO public.reconciliation_evidence (
     bank_transaction_id,
     organization_id,
@@ -58,7 +81,12 @@ BEGIN
     p_bank_transaction_id,
     v_org,
     COALESCE(p_reason_codes, '{}'::text[]),
-    COALESCE(p_score_components, '{}'::jsonb),
+    jsonb_set(
+      COALESCE(p_score_components, '{}'::jsonb),
+      '{gl_evidence}',
+      v_gl_evidence,
+      true
+    ),
     true,
     NULL
   );
@@ -84,6 +112,7 @@ AS $$
 DECLARE
   v_result jsonb;
   v_org uuid;
+  v_gl_evidence jsonb;
 BEGIN
   v_result := public.reconcile_match_invoice(
     p_bank_transaction_id,
@@ -106,6 +135,28 @@ BEGIN
     RAISE EXCEPTION 'bank transaction % missing after invoice match', p_bank_transaction_id;
   END IF;
 
+  SELECT jsonb_build_object(
+    'source_type', 'invoice',
+    'source_id', p_invoice_id,
+    'journal_entries', COALESCE(
+      jsonb_agg(jsonb_build_object(
+        'id', je.id,
+        'status', je.status,
+        'posted_at', je.posted_at,
+        'entry_date', je.entry_date,
+        'source_type', je.source_type,
+        'source_id', je.source_id
+      ) ORDER BY je.entry_date DESC, je.created_at DESC) FILTER (WHERE je.id IS NOT NULL),
+      '[]'::jsonb
+    ),
+    'posted_count', COUNT(*) FILTER (WHERE je.status = 'posted')
+  )
+    INTO v_gl_evidence
+  FROM public.journal_entries je
+  WHERE je.organization_id = v_org
+    AND je.source_type = 'invoice'
+    AND je.source_id = p_invoice_id;
+
   INSERT INTO public.reconciliation_evidence (
     bank_transaction_id,
     organization_id,
@@ -118,7 +169,12 @@ BEGIN
     p_bank_transaction_id,
     v_org,
     COALESCE(p_reason_codes, '{}'::text[]),
-    COALESCE(p_score_components, '{}'::jsonb),
+    jsonb_set(
+      COALESCE(p_score_components, '{}'::jsonb),
+      '{gl_evidence}',
+      v_gl_evidence,
+      true
+    ),
     true,
     NULL
   );
@@ -183,9 +239,9 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.reconcile_match_bill_with_evidence IS
-  'Applies a bill bank match and writes reconciliation_evidence in the same transaction.';
+  'Applies a bill bank match and writes reconciliation_evidence, including posted GL evidence for the bill, in the same transaction.';
 COMMENT ON FUNCTION public.reconcile_match_invoice_with_evidence IS
-  'Applies an invoice bank match and writes reconciliation_evidence in the same transaction.';
+  'Applies an invoice bank match and writes reconciliation_evidence, including posted GL evidence for the invoice, in the same transaction.';
 COMMENT ON FUNCTION public.record_reconciliation_skip_evidence IS
   'Writes org-scoped reconciliation evidence for an ambiguous auto-reconcile skip.';
 

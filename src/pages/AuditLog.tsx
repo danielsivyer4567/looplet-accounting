@@ -9,6 +9,7 @@ import {
   type WorkingPapersResult,
 } from '@/hooks/useAssurance';
 import { downloadCsv } from '@/lib/csv';
+import { SkeletonTable } from '@/components/Skeleton';
 import {
   CheckCircle,
   ChevronLeft,
@@ -480,7 +481,9 @@ function CorrespondencePanel({
       </label>
 
       {loading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Loading correspondence…</p>
+        <div aria-busy="true" aria-label="Loading correspondence">
+          <SkeletonTable rows={3} cols={4} />
+        </div>
       ) : correspondence.length === 0 ? (
         <div
           style={{
@@ -595,7 +598,9 @@ function DraftsPanel({
       </div>
 
       {loading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Loading drafts…</p>
+        <div aria-busy="true" aria-label="Loading correspondence drafts">
+          <SkeletonTable rows={3} cols={5} />
+        </div>
       ) : drafts.length === 0 ? (
         <div
           style={{
@@ -1054,7 +1059,9 @@ export function AuditLogPage() {
       )}
 
       {loading && rows.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>Loading audit events…</p>
+        <div aria-busy="true" aria-label="Loading audit events">
+          <SkeletonTable rows={6} cols={6} />
+        </div>
       ) : rows.length === 0 ? (
         <div
           style={{

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
@@ -8,6 +10,7 @@ import type { TaxObligation } from '@/hooks/useTaxCalendar';
 import type { WorkstreamTask } from '@/hooks/useWorkstreamTasks';
 
 const mocks = vi.hoisted(() => ({
+  pnlError: null as string | null,
   adviceNotes: [] as AdviceNote[],
   obligations: [] as TaxObligation[],
   onboardingProgress: {
@@ -53,7 +56,11 @@ const pnl: RealtimePnl = {
 };
 
 vi.mock('@/hooks/useRealtimePnl', () => ({
-  useRealtimePnl: () => ({ pnl, loading: false, error: null }),
+  useRealtimePnl: () => ({
+    pnl: mocks.pnlError ? null : pnl,
+    loading: false,
+    error: mocks.pnlError,
+  }),
 }));
 
 vi.mock('@/hooks/useAdviceNotes', () => ({
@@ -145,6 +152,7 @@ const june30Obligation: TaxObligation = {
 
 describe('Dashboard advice cards', () => {
   beforeEach(() => {
+    mocks.pnlError = null;
     mocks.signOff.mockReset();
     mocks.dismiss.mockReset();
     mocks.obligations = [june30Obligation];
@@ -190,6 +198,19 @@ describe('Dashboard advice cards', () => {
     fireEvent.click(firstOpenButton);
     expect(screen.getByRole('heading', { name: 'Year-end planning levers' })).toBeInTheDocument();
     expect(screen.getByText('General information only.')).toBeInTheDocument();
+  });
+
+  it('classifies dashboard load errors instead of showing generic failed-to-load copy', () => {
+    mocks.pnlError = 'permission denied for table v_realtime_pnl';
+
+    renderDashboard();
+
+    expect(
+      screen.getByText(
+        /could not load dashboard\. authentication or permission issue: permission denied for table v_realtime_pnl/i,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/^failed to load:/i)).not.toBeInTheDocument();
   });
 
   it('renders workstream tasks in the Today feed', () => {
@@ -354,6 +375,51 @@ describe('Dashboard advice cards', () => {
     expect(screen.getByRole('link', { name: /review 12 staged senders/i })).toHaveAttribute(
       'href',
       '/onboarding/triage',
+    );
+  });
+});
+
+describe('Dashboard mobile layout', () => {
+  beforeEach(() => {
+    mocks.pnlError = null;
+    mocks.adviceNotes = [];
+    mocks.obligations = [];
+    mocks.workstreamTasks = [];
+    mocks.onboardingProgress = {
+      total_entities: 0,
+      pending_count: 0,
+      needs_review_count: 0,
+      approved_count: 0,
+      dismissed_count: 0,
+      pct_complete: 100,
+      is_complete: true,
+    };
+  });
+
+  it('tags the account action pills and the P&L formula line with responsive classes', () => {
+    const { container } = renderDashboard();
+
+    // Header action pills (Move / Statement / Account details) that must wrap on mobile.
+    const pills = container.querySelector('.dashboard-action-pills');
+    expect(pills).toBeInTheDocument();
+    expect(pills?.querySelectorAll('.revolut-pill-btn').length).toBe(3);
+
+    // The really_yours P&L formula line that must wrap its <code> on mobile.
+    const formula = container.querySelector('.dashboard-formula');
+    expect(formula).toBeInTheDocument();
+    expect(formula?.querySelector('code')).toHaveTextContent(
+      'really_yours = gross_profit - gst_set_aside - tax_set_aside',
+    );
+  });
+
+  it('has a max-width: 768px breakpoint that wraps the action pills and the formula code', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
+
+    expect(css).toMatch(
+      /@media \(max-width: 768px\)[\s\S]*\.dashboard-action-pills\s*\{[\s\S]*flex-wrap: wrap/,
+    );
+    expect(css).toMatch(
+      /@media \(max-width: 768px\)[\s\S]*\.dashboard-formula code\s*\{[\s\S]*word-break: break-word/,
     );
   });
 });

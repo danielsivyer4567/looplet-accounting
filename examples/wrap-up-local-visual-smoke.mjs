@@ -89,7 +89,9 @@ import { EmployeeDetailPage } from '@/pages/EmployeeDetail';
 import { SubscriptionDetailPage } from '@/pages/SubscriptionDetail';
 import { BasReportPage } from '@/pages/reports/Bas';
 import { NotificationsPage } from '@/pages/Notifications';
+import { QualityPage } from '@/pages/Quality';
 import { OrgProfileForm } from '@/components/settings/OrgProfile';
+import { ConnectorApiKeys } from '@/components/settings/ConnectorApiKeys';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import '@/index.css';
 
@@ -99,10 +101,12 @@ function Shell({ children }: { children: React.ReactNode }) {
       <nav style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
         <Link to="/dashboard">Dashboard</Link>
         <Link to="/settings-org">Org profile</Link>
+        <Link to="/connector-keys">Connector keys</Link>
         <Link to="/debts/debt-1">Debt</Link>
         <Link to="/subscriptions/sub-1">Subscription</Link>
         <Link to="/employees/emp-1">Employee</Link>
         <Link to="/reports/bas">BAS</Link>
+        <Link to="/quality">Quality</Link>
         <Link to="/notifications">Alerts</Link>
         <Link to="/move">Move</Link>
       </nav>
@@ -132,10 +136,12 @@ createRoot(document.getElementById('root')!).render(
         <Routes>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/settings-org" element={<OrgProfileForm />} />
+          <Route path="/connector-keys" element={<ConnectorApiKeys organizationId="org-1" />} />
           <Route path="/debts/:id" element={<DebtDetailPage />} />
           <Route path="/subscriptions/:id" element={<SubscriptionDetailPage />} />
           <Route path="/employees/:id" element={<EmployeeDetailPage />} />
           <Route path="/reports/bas" element={<BasReportPage />} />
+          <Route path="/quality" element={<QualityPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/move" element={<MoveProbe />} />
           <Route path="*" element={<DashboardPage />} />
@@ -163,6 +169,8 @@ export function useOrg() {
     setCurrentOrg: () => undefined,
     createOrganization: async () => ({ error: null }),
     refresh: async () => undefined,
+    accountantClientOrgs: [],
+    isAccountantOnly: false,
   };
 }
 `,
@@ -402,6 +410,37 @@ const basCoverage = {
   gst_ready: false,
 };
 
+const booksHealth = {
+  organization_id: 'org-1',
+  uncoded_count: 8,
+  unreconciled_count: 12,
+  open_period_count: 2,
+  coverage_pct: 72.5,
+  score: 76,
+  blocking: true,
+};
+
+const duplicateBill = {
+  organization_id: 'org-1',
+  supplier_id: 'supplier-1',
+  invoice_date: '2026-06-14',
+  total_inc_gst_cents: 242000,
+  bill_ids: ['bill-dup-1', 'bill-dup-2'],
+  dup_count: 2,
+};
+
+const lowConfidenceBill = {
+  id: 'bill-low-1',
+  supplier_name_raw: 'Reece Plumbing',
+  invoice_number: 'INV-1042',
+  invoice_date: '2026-06-12',
+  total_inc_gst_cents: null,
+  ocr_provider: 'groq',
+  ocr_confidence: 0.41,
+  status: 'received',
+  created_at: '2026-06-12T00:00:00Z',
+};
+
 const basWorksheet = {
   organization_id: 'org-1',
   fy_start_year: 2025,
@@ -432,6 +471,31 @@ const gmailDisconnectNotification = {
   metadata: { gmail_address: 'accounts@example.com' },
 };
 
+const connectorKey = {
+  id: 'key-1',
+  organization_id: 'org-1',
+  name: 'Main connector',
+  key_prefix: 'llp_main',
+  scopes: ['read:financials', 'write:bills'],
+  last_used_at: '2026-07-01T01:00:00Z',
+  expires_at: null,
+  revoked_at: null,
+  created_at: '2026-07-01T00:00:00Z',
+  rate_limit_per_min: 120,
+};
+
+const apiRequestLog = {
+  id: 1,
+  organization_id: 'org-1',
+  api_key_id: 'key-1',
+  key_prefix: 'llp_main',
+  endpoint: 'ingest',
+  method: 'POST',
+  ingest_type: 'bill',
+  status: 200,
+  ts: '2026-07-01T01:01:00Z',
+};
+
 const tableData: Record<string, unknown[]> = {
   organizations: [org],
   debts: [debt],
@@ -447,9 +511,14 @@ const tableData: Record<string, unknown[]> = {
   allocation_splits: [],
   v_bas_quarterly: [basQuarter],
   v_bas_gst_coverage: [basCoverage],
+  v_books_health: [booksHealth],
+  v_duplicate_bills: [duplicateBill],
+  v_low_confidence_bills: [lowConfidenceBill],
   v_gst_treatment_exceptions: [],
   v_gst_reconciliation: [{ organization_id: 'org-1', variance_cents: 0 }],
   notifications: [gmailDisconnectNotification],
+  api_keys: [connectorKey],
+  api_request_log: [apiRequestLog],
 };
 
 function mutations() {
@@ -526,6 +595,42 @@ export const supabase = {
   from: (table: string) => makeQuery(table),
   rpc: async (name: string, args?: unknown) => {
     if (name === 'generate_bas_worksheet') return { data: basWorksheet, error: null };
+    if (name === 'period_close_checks') {
+      return {
+        data: [
+          { check_name: 'trial_balance_balanced', passed: true, detail: { message: 'Balanced' } },
+          {
+            check_name: 'uncoded_transactions',
+            passed: false,
+            detail: { message: '8 transactions still need coding' },
+          },
+        ],
+        error: null,
+      };
+    }
+    if (name === 'enqueue_automation_job') {
+      mutations().push({ table: 'automation_jobs', method: 'rpc', payload: args });
+      return {
+        data: {
+          id: 'job-repair-1',
+          organization_id: 'org-1',
+          job_kind: 'bill_extract',
+          status: 'pending',
+        },
+        error: null,
+      };
+    }
+    if (name === 'issue_api_key') {
+      mutations().push({ table: 'api_keys', method: 'rpc', payload: args });
+      return {
+        data: [{ id: 'key-new', api_key: 'llp_new.visualsecret', key_prefix: 'llp_new' }],
+        error: null,
+      };
+    }
+    if (name === 'revoke_api_key') {
+      mutations().push({ table: 'api_keys', method: 'rpc', payload: args });
+      return { data: true, error: null };
+    }
     if (name === 'request_approval') {
       mutations().push({ table: 'approval_requests', method: 'rpc', payload: args });
       return { data: null, error: null };
@@ -592,6 +697,28 @@ async function runSmoke(port) {
     checks.basCoverageNoOverflow = await noHorizontalOverflow(page);
     screenshots.basCoverageGate = await screenshot(page, 'bas-coverage-gate.png');
 
+    await visit(page, port, '/quality');
+    await expectVisible(page, 'text=Data Quality');
+    await expectVisible(page, 'text=Reece Plumbing');
+    await page.getByRole('button', { name: /queue ocr repair/i }).click();
+    await expectVisible(page, 'text=OCR repair queued (job-repa).');
+    checks.qualityRepairJobQueued = await hasMutation(page, 'automation_jobs', {
+      p_org_id: 'org-1',
+      p_job_kind: 'bill_extract',
+      p_source_kind: null,
+      p_source_id: null,
+      p_priority: 3,
+      p_max_attempts: 3,
+      p_payload: {
+        mode: 'repair',
+        max: 20,
+        delay_ms: 2000,
+        source: 'quality_page',
+      },
+    });
+    checks.qualityNoOverflow = await noHorizontalOverflow(page);
+    screenshots.qualityRepair = await screenshot(page, 'quality-repair.png');
+
     await visit(page, port, '/notifications');
     await expectVisible(page, 'text=Reconnect Gmail');
     await expectVisible(page, 'text=Gmail disconnected');
@@ -613,6 +740,24 @@ async function runSmoke(port) {
       settings: { tax_rate_percent: 31 },
     });
     screenshots.orgProfile = await screenshot(page, 'org-profile.png');
+
+    await visit(page, port, '/connector-keys');
+    await expectVisible(page, 'text=Connector API keys');
+    await expectVisible(page, 'text=Main connector · llp_main');
+    await expectVisible(page, 'text=ingest · 200');
+    await page.getByRole('button', { name: /issue key/i }).click();
+    await page.getByLabel('Name').fill('Portal connector');
+    await page.getByLabel('write:bank').check();
+    await page.getByRole('button', { name: /create key/i }).click();
+    await expectVisible(page, 'text=llp_new.visualsecret');
+    checks.connectorKeyIssued = await hasMutation(page, 'api_keys', {
+      p_name: 'Portal connector',
+      p_scopes: ['read:financials', 'write:bank'],
+    });
+    await page.getByRole('button', { name: /revoke Main connector/i }).click();
+    checks.connectorKeyRevoked = await hasMutation(page, 'api_keys', { p_key_id: 'key-1' });
+    checks.connectorKeysNoOverflow = await noHorizontalOverflow(page);
+    screenshots.connectorKeys = await screenshot(page, 'connector-keys.png');
 
     await visit(page, port, '/debts/debt-1');
     await expectVisible(page, 'text=Visa Business Card');

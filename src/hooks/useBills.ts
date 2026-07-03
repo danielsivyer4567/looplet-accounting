@@ -39,6 +39,7 @@ export function useBills(
   const { currentOrg } = useOrg();
   const [bills, setBills] = useState<BillListRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const offsetRef = useRef(0);
@@ -48,9 +49,14 @@ export function useBills(
       if (!currentOrg) {
         setBills([]);
         setLoading(false);
+        setLoadingMore(false);
         return;
       }
-      setLoading(true);
+      if (reset) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
       const from = reset ? 0 : offsetRef.current;
       const to = from + pageSize - 1;
 
@@ -111,7 +117,11 @@ export function useBills(
         offsetRef.current = from + fetched.length;
         setHasMore(fetched.length === pageSize);
       }
-      setLoading(false);
+      if (reset) {
+        setLoading(false);
+      } else {
+        setLoadingMore(false);
+      }
     },
     [currentOrg, statusFilter, pageSize, includeNonBills],
   );
@@ -128,6 +138,7 @@ export function useBills(
   return {
     bills,
     loading,
+    loadingMore,
     error,
     refresh: () => {
       offsetRef.current = 0;

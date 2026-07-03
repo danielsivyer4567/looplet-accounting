@@ -61,11 +61,13 @@ export function useStagedEntities() {
   const [entities, setEntities] = useState<StagedEntity[]>([]);
   const [progress, setProgress] = useState<OnboardingProgress | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
     setLoading(true);
-    const [{ data: rows }, { data: prog }] = await Promise.all([
+    setError(null);
+    const [{ data: rows, error: rowsErr }, { data: prog, error: progErr }] = await Promise.all([
       supabase
         .from('staged_entities')
         .select('*')
@@ -73,14 +75,21 @@ export function useStagedEntities() {
         .order('message_count', { ascending: false }),
       supabase.rpc('onboarding_progress', { p_org_id: currentOrg.id }),
     ]);
-    setEntities((rows ?? []) as StagedEntity[]);
-    setProgress(((prog as OnboardingProgress[] | null)?.[0] as OnboardingProgress) ?? null);
+    const queryErr = rowsErr ?? progErr;
+    if (queryErr) {
+      setError(queryErr.message);
+      setEntities([]);
+      setProgress(null);
+    } else {
+      setEntities((rows ?? []) as StagedEntity[]);
+      setProgress(((prog as OnboardingProgress[] | null)?.[0] as OnboardingProgress) ?? null);
+    }
     setLoading(false);
   }, [currentOrg]);
 
   useEffect(() => void refresh(), [refresh]);
 
-  return { entities, progress, loading, refresh };
+  return { entities, progress, loading, error, refresh };
 }
 
 export function useOnboardingProgress() {

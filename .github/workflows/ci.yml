@@ -38,7 +38,17 @@ jobs:
         run: npm run typecheck
 
       - name: Unit tests
+        env:
+          # The build job runs local unit/source-contract tests. Live Supabase
+          # deploy gates live in dedicated jobs and fail hard when their real
+          # secrets are missing; keep this broad unit sweep deterministic on PRs.
+          CI: ''
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://dxoikltymmknxqpkpyhi.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'ci-placeholder-anon-key' }}
         run: npm test
+
+      - name: Accounting engine tests
+        run: npm run test:accounting
 
       - name: Build
         env:
@@ -70,7 +80,7 @@ jobs:
           # (not silently skip) — see tests/tenant-isolation.test.ts.
           CI: 'true'
           VITE_SUPABASE_URL: ${{ vars.TEST_SUPABASE_URL || 'https://dxoikltymmknxqpkpyhi.supabase.co' }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
   deploy:

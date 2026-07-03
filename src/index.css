@@ -1,3 +1,11 @@
+/* Tailwind (preflight OFF — see tailwind.config.js). Utilities land in
+   @layer utilities; the unlayered legacy rules below always win, so existing
+   pages stay byte-for-byte unchanged. New tag-drop/shadcn UI opts in via
+   utility classes. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   /* Common variables */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
@@ -249,6 +257,174 @@ code {
   box-shadow: var(--shadow-glass);
 }
 
+/* Auth screens */
+.auth-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, rgba(0, 0, 0, 0) 90%),
+    var(--bg-app);
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.auth-panel {
+  width: min(100%, 420px);
+  padding: 2.5rem 2rem;
+}
+
+.auth-panel--center {
+  text-align: center;
+}
+
+.auth-brand {
+  text-align: center;
+  margin-bottom: 2rem;
+  min-width: 0;
+}
+
+.auth-brand__logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.85rem;
+}
+
+.auth-brand__title {
+  margin: 0;
+  font-family: var(--font-script);
+  font-weight: 600;
+  font-size: 2.4rem;
+  line-height: 1.1;
+  color: var(--text-title);
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.auth-brand__subtitle {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  margin: 0.5rem 0 0;
+}
+
+.auth-heading {
+  font-size: 1.25rem;
+  line-height: 1.25;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  letter-spacing: 0;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.auth-form .form-group {
+  margin-bottom: 0;
+}
+
+.auth-form .btn,
+.auth-panel > .btn {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.625rem;
+}
+
+.auth-form .btn {
+  margin-top: 0.5rem;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.auth-divider span:first-child,
+.auth-divider span:last-child {
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+.auth-row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.auth-inline-button {
+  background: none;
+  border: none;
+  color: var(--accent-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.775rem;
+  font-weight: 600;
+  padding: 0;
+  text-align: left;
+}
+
+.auth-inline-button:hover {
+  color: var(--accent-primary-hover);
+  text-decoration: underline;
+}
+
+.auth-alert {
+  width: 100%;
+  justify-content: center;
+  padding: 0.625rem;
+  text-align: center;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.auth-alert--plain {
+  text-transform: none;
+}
+
+.auth-footer {
+  margin-top: 1.75rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.auth-footer a {
+  font-weight: 600;
+}
+
+.auth-copy {
+  color: var(--text-body);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0 0 1.5rem;
+}
+
+.auth-confirm-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-success-subtle);
+  color: var(--text-success);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-bottom: 1rem;
+}
+
 /* Premium Buttons */
 .btn {
   display: inline-flex;
@@ -264,6 +440,15 @@ code {
   transition: var(--transition-smooth);
   border: 1px solid transparent;
   outline: none;
+}
+
+/* Keyboard focus ring — only shows for keyboard users (:focus-visible), so it
+   never appears on mouse clicks but always gives a clear visible target when
+   tabbing through the UI. */
+.btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
 }
 
 .btn-primary {
@@ -316,6 +501,31 @@ code {
   cursor: not-allowed;
   transform: none !important;
   box-shadow: none !important;
+}
+
+/* Skip link — visually hidden off-screen until it receives keyboard focus,
+   then it slides into the top-left so keyboard users can jump straight to the
+   main content landmark. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 2000;
+  padding: 0.5rem 1rem;
+  background-color: var(--accent-primary);
+  color: var(--text-on-accent);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 2px solid var(--text-on-accent);
+  outline-offset: 2px;
 }
 
 /* Forms styling */
@@ -447,6 +657,609 @@ code {
 
 .table-premium tr:hover td {
   background-color: var(--bg-hover);
+}
+
+.subscriptions-card-view {
+  display: none;
+}
+
+.subscription-mobile-card {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.subscription-mobile-card__header,
+.subscription-mobile-card__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.subscription-mobile-card__row > span {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.subscription-mobile-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.subscription-mobile-card__metrics span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.subscription-mobile-card__metrics strong {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--text-title);
+  font-size: 0.9rem;
+}
+
+.subscription-mobile-card__actions {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.bills-card-view,
+.suppliers-card-view,
+.customers-card-view,
+.jobs-card-view,
+.invoices-card-view,
+.bas-card-view,
+.cashflow-card-view,
+.quality-card-view,
+.debts-card-view,
+.employees-card-view {
+  display: none;
+}
+
+.bill-mobile-card,
+.supplier-mobile-card,
+.customer-mobile-card,
+.job-mobile-card,
+.invoice-mobile-card,
+.bas-mobile-card,
+.cashflow-mobile-card,
+.quality-mobile-card,
+.debt-mobile-card,
+.employee-mobile-card {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.bill-mobile-card__header,
+.bill-mobile-card__row,
+.supplier-mobile-card__header,
+.customer-mobile-card__header,
+.customer-mobile-card__row,
+.job-mobile-card__header,
+.invoice-mobile-card__header,
+.bas-mobile-card__header,
+.cashflow-mobile-card__header,
+.quality-mobile-card__header,
+.debt-mobile-card__header,
+.employee-mobile-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.bill-mobile-card__row > span,
+.customer-mobile-card__row > span {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.bill-mobile-card__metrics,
+.supplier-mobile-card__metrics,
+.job-mobile-card__metrics,
+.bas-mobile-card__metrics,
+.cashflow-mobile-card__metrics,
+.quality-mobile-card__metrics,
+.debt-mobile-card__metrics,
+.employee-mobile-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.invoice-mobile-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.bill-mobile-card__metrics span,
+.supplier-mobile-card__metrics span,
+.job-mobile-card__metrics span,
+.invoice-mobile-card__metrics span,
+.bas-mobile-card__metrics span,
+.cashflow-mobile-card__metrics span,
+.quality-mobile-card__metrics span,
+.debt-mobile-card__metrics span,
+.employee-mobile-card__metrics span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.bill-mobile-card__metrics strong,
+.supplier-mobile-card__metrics strong,
+.job-mobile-card__metrics strong,
+.invoice-mobile-card__metrics strong,
+.bas-mobile-card__metrics strong,
+.cashflow-mobile-card__metrics strong,
+.quality-mobile-card__metrics strong,
+.debt-mobile-card__metrics strong,
+.employee-mobile-card__metrics strong {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--text-title);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.bill-mobile-card__actions {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.bill-mobile-card__actions button {
+  width: 100%;
+  justify-content: center;
+}
+
+.org-profile-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.business-profile-grid {
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+}
+
+.settings-card-view {
+  display: none;
+  gap: 0.75rem;
+}
+
+.settings-mobile-card {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 0.85rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.settings-mobile-card__header,
+.settings-mobile-card__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.settings-mobile-card__header strong,
+.settings-mobile-card__row strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.settings-mobile-card__row span {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+}
+
+.reconciliation-card-view {
+  display: none;
+  gap: 0.75rem;
+}
+
+.reconciliation-mobile-card {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.reconciliation-mobile-card__header,
+.reconciliation-mobile-card__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.reconciliation-mobile-card__header strong,
+.reconciliation-mobile-card__row strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.reconciliation-mobile-card__row span {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+}
+
+.triage-card-view {
+  display: none;
+  gap: 0.75rem;
+}
+
+.triage-mobile-card {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.triage-mobile-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.triage-mobile-card__header > :first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.triage-mobile-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.triage-mobile-card__metrics span,
+.triage-mobile-card__subjects > span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.triage-mobile-card__metrics strong {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--text-title);
+  font-size: 0.9rem;
+}
+
+.triage-mobile-card__subjects {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.settings-xero-card__content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.settings-xero-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  align-items: flex-end;
+}
+
+.settings-xero-card code {
+  overflow-wrap: anywhere;
+}
+
+.bank-import-card {
+  width: 100%;
+}
+
+.bank-import-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.bank-import-split {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.bank-import-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.allocation-split-control {
+  position: relative;
+  display: inline-block;
+}
+
+.allocation-split-popover {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  width: min(360px, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  padding: 0.5rem 0.75rem;
+  box-sizing: border-box;
+}
+
+.allocation-split-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.allocation-split-row__controls,
+.allocation-split-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.allocation-split-actions {
+  margin-top: 0.625rem;
+}
+
+@media (max-width: 768px) {
+  .auth-shell {
+    align-items: flex-start;
+    padding: 1rem;
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .auth-panel {
+    margin: 1rem 0;
+    padding: 1.5rem 1rem;
+  }
+
+  .auth-brand {
+    margin-bottom: 1.5rem;
+  }
+
+  .auth-brand__title {
+    font-size: 2rem;
+  }
+
+  .auth-brand__subtitle,
+  .auth-footer {
+    font-size: 0.8125rem;
+  }
+
+  .auth-heading {
+    font-size: 1.125rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .auth-row-between {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .auth-inline-button {
+    min-height: 32px;
+  }
+
+  .subscriptions-table-view {
+    display: none;
+  }
+
+  .subscriptions-card-view {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .bills-table-view,
+  .suppliers-table-view,
+  .customers-table-view,
+  .jobs-table-view,
+  .invoices-table-view,
+  .bas-table-view,
+  .cashflow-table-view,
+  .quality-table-view,
+  .debts-table-view,
+  .employees-table-view {
+    display: none;
+  }
+
+  .bills-card-view,
+  .suppliers-card-view,
+  .customers-card-view,
+  .jobs-card-view,
+  .invoices-card-view,
+  .bas-card-view,
+  .cashflow-card-view,
+  .quality-card-view,
+  .debts-card-view,
+  .employees-card-view {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .allocations-main {
+    margin-right: 0 !important;
+  }
+
+  .allocation-preview-pane {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .settings-responsive-table {
+    display: none;
+  }
+
+  .settings-card-view {
+    display: grid;
+  }
+
+  .reconciliation-table-view {
+    display: none;
+  }
+
+  .reconciliation-card-view {
+    display: grid;
+  }
+
+  .triage-table-view {
+    display: none;
+  }
+
+  .triage-card-view {
+    display: grid;
+  }
+
+  .settings-xero-card__content {
+    display: grid;
+  }
+
+  .settings-xero-card__actions {
+    align-items: stretch;
+  }
+
+  .settings-xero-card__actions button {
+    width: 100%;
+  }
+
+  .bank-import-open-button {
+    width: 100%;
+    margin-left: 0 !important;
+  }
+
+  .bank-import-card {
+    max-width: 100% !important;
+  }
+
+  .bank-import-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bank-import-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 5rem;
+  }
+
+  .bank-import-actions {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .allocation-split-control {
+    display: block;
+    width: 100%;
+  }
+
+  .allocation-split-control > button {
+    width: 100%;
+  }
+
+  .allocation-split-popover {
+    position: fixed;
+    left: 1rem;
+    right: 1rem;
+    top: auto;
+    bottom: 1rem;
+    width: auto;
+    max-width: none;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+  }
+
+  .allocation-split-row__controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    width: 100%;
+  }
+
+  .allocation-split-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .allocation-split-actions button {
+    width: 100%;
+  }
+
+  .bank-import-actions button {
+    width: 100%;
+    margin-left: 0 !important;
+  }
+
+  .autosetup-panel {
+    max-width: 100% !important;
+  }
+
+  .autosetup-actions {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .autosetup-actions button {
+    width: 100%;
+  }
+
+  .autosetup-triage-cta {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .org-profile-grid,
+  .business-profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-action-pills {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .dashboard-action-pills .revolut-pill-btn {
+    flex: 1 1 auto;
+  }
+
+  .dashboard-formula {
+    flex-wrap: wrap;
+  }
+
+  .dashboard-formula code {
+    white-space: normal;
+    word-break: break-word;
+    max-width: 100%;
+  }
 }
 
 /* Micro-animations */

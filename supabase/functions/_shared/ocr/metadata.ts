@@ -47,6 +47,12 @@ export interface DocumentMetadata {
   raw?: Record<string, unknown>;
 }
 
+/** Parse an EXIF date value to ISO, returning undefined (never throwing) on a malformed value. */
+function toIsoOrUndefined(value: unknown): string | undefined {
+  const d = new Date(String(value));
+  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
+}
+
 const PDF_TITLE_INVOICE_PATTERNS = [
   /^Invoice\s+(?:#|No\.?\s*|INV[\s:#]*)?(\d{3,12})\s*[-–—]\s*(.+)$/i,  // "Invoice #1234 - ACME Pty Ltd"
   /^(Tax\s+)?Invoice\s+(\d{3,12})$/i,                                    // "Invoice 1234"
@@ -131,9 +137,12 @@ async function extractImageMetadata(
       if (data.Software) out.software_creator = String(data.Software);
       if (data.Make) out.camera_make = String(data.Make);
       if (data.Model) out.camera_model = String(data.Model);
-      if (data.DateTimeOriginal) out.taken_at = new Date(String(data.DateTimeOriginal)).toISOString();
-      if (data.CreateDate) out.created_at = new Date(String(data.CreateDate)).toISOString();
-      if (data.ModifyDate) out.modified_at = new Date(String(data.ModifyDate)).toISOString();
+      // A malformed EXIF date ('0000:00:00 00:00:00' is a common camera/scanner
+      // artifact) makes new Date(...).toISOString() throw, which would discard ALL
+      // other already-parsed metadata via the outer catch. Guard each conversion.
+      if (data.DateTimeOriginal) out.taken_at = toIsoOrUndefined(data.DateTimeOriginal) ?? out.taken_at;
+      if (data.CreateDate) out.created_at = toIsoOrUndefined(data.CreateDate) ?? out.created_at;
+      if (data.ModifyDate) out.modified_at = toIsoOrUndefined(data.ModifyDate) ?? out.modified_at;
       if (typeof data.latitude === 'number') out.gps_latitude = data.latitude;
       if (typeof data.longitude === 'number') out.gps_longitude = data.longitude;
       if (data.title) out.title = String(data.title);

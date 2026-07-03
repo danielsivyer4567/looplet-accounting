@@ -6,6 +6,7 @@ import { useJobs } from '@/hooks/useJobs';
 import type { JobListRow } from '@/hooks/useJobs';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
+import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { SkeletonLine } from '@/components/Skeleton';
 import { GitPullRequest, Eye, EyeOff, CheckCircle2, ChevronRight, X } from 'lucide-react';
 
@@ -70,6 +71,7 @@ function BillPreviewPane({ bill, onClose }: { bill: AllocationQueueRow; onClose:
       }}
       role="complementary"
       aria-label="Bill PDF preview"
+      className="allocation-preview-pane"
     >
       {/* Header */}
       <div
@@ -238,7 +240,7 @@ export function AllocationsPage() {
         className="badge badge-danger"
         style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}
       >
-        Failed to load: {error}
+        {formatLoadError('allocation queue', error)}
       </div>
     );
   }
@@ -326,11 +328,16 @@ export function AllocationsPage() {
 
   const rejectSuggestion = async (billId: string) => {
     setBusyId(billId);
-    await supabase
+    setActionError(null);
+    const { error: rejectErr } = await supabase
       .from('bills')
       .update({ suggested_job_id: null, suggested_match_score: null })
       .eq('id', billId);
-    await refresh();
+    if (rejectErr) {
+      setActionError(formatActionError('reject this suggestion', rejectErr.message));
+    } else {
+      await refresh();
+    }
     setBusyId(null);
   };
 
@@ -345,11 +352,14 @@ export function AllocationsPage() {
     )
       return;
     setBulkBusy(true);
+    setActionError(null);
     setBulkMsg(`Attaching 0 / ${billsWithSuggestion.length}…`);
     let n = 0;
+    let failed = 0;
+    let firstErr: string | null = null;
     for (const b of billsWithSuggestion) {
       if (!b.suggested_job_id) continue;
-      await supabase
+      const { error: attachErr } = await supabase
         .from('bills')
         .update({
           job_id: b.suggested_job_id,
@@ -358,17 +368,30 @@ export function AllocationsPage() {
           status: 'attached',
         })
         .eq('id', b.bill_id);
-      n += 1;
+      if (attachErr) {
+        failed += 1;
+        if (!firstErr) firstErr = attachErr.message;
+      } else {
+        n += 1;
+      }
       setBulkMsg(`Attaching ${n} / ${billsWithSuggestion.length}…`);
     }
-    setBulkMsg(`✓ Attached ${n} bills.`);
+    setBulkMsg(
+      failed > 0
+        ? `Attached ${n} of ${billsWithSuggestion.length}; ${failed} failed.`
+        : `✓ Attached ${n} bills.`,
+    );
+    if (firstErr) {
+      setActionError(formatActionError('attach some bills', firstErr));
+    }
     setBulkBusy(false);
     await refresh();
   };
 
   const quickAssignToJob = async (billId: string, jobId: string) => {
     setBusyId(billId);
-    await supabase
+    setActionError(null);
+    const { error: assignErr } = await supabase
       .from('bills')
       .update({
         job_id: jobId,
@@ -377,7 +400,11 @@ export function AllocationsPage() {
         status: 'attached',
       })
       .eq('id', billId);
-    await refresh();
+    if (assignErr) {
+      setActionError(formatActionError('assign this bill to the job', assignErr.message));
+    } else {
+      await refresh();
+    }
     setBusyId(null);
   };
 
@@ -390,7 +417,7 @@ export function AllocationsPage() {
           marginRight: previewOpen ? '420px' : 0,
           transition: 'margin-right 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
-        className="animated-fade-in"
+        className="animated-fade-in allocations-main"
       >
         <div style={{ marginBottom: '1.5rem' }}>
           <h1

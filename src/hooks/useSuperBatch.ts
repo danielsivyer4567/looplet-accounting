@@ -21,6 +21,10 @@ export interface SuperBatchLine {
   employee_id: string;
   employee_name: string;
   super_cents: number;
+  fund_name: string | null;
+  fund_usi: string | null;
+  member_number: string | null;
+  validation_errors: string[];
 }
 
 export interface SuperBatch {
@@ -37,6 +41,11 @@ export interface SuperSendResult {
   ok: boolean;
   sent?: boolean;
   already_sent?: boolean;
+  manual_upload_required?: boolean;
+  transport_mode?: 'clearing_house_file' | 'api';
+  payload_hash?: string;
+  payload?: Record<string, unknown>;
+  validation_error_count?: number | null;
   approval_id?: string | null;
   error?: string;
 }
@@ -78,7 +87,9 @@ export function useSuperBatch(fyStartYear: number | null, quarter: number | null
     const row = b as unknown as Omit<SuperBatch, 'lines'>;
     const { data: lines } = await supabase
       .from('super_batch_lines' as never)
-      .select('id, employee_id, employee_name, super_cents')
+      .select(
+        'id, employee_id, employee_name, super_cents, fund_name, fund_usi, member_number, validation_errors',
+      )
       .eq('batch_id', row.id)
       .order('employee_name');
     setBatch({ ...row, lines: (lines ?? []) as unknown as SuperBatchLine[] });

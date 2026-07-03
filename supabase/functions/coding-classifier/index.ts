@@ -43,6 +43,32 @@ const GST_INPUT_CODE = "1200"; // GST receivable (input credits) — the PURCHAS
 const ACCOUNTS_PAYABLE_CODE = "2000";
 const BANK_CODE = "1000";
 
+// intake_categories.xero_account_code predates the internal Looplet COA seed and
+// often contains Xero-template codes (for example 500/478/485). Those do not
+// resolve against seed_default_chart_of_accounts(), so default category matches
+// must prefer this app-native mapping. Explicit per-rule overrides still win.
+const DEFAULT_CATEGORY_ACCOUNT_CODES: Record<string, string> = {
+  materials: "5000",
+  subcontractor: "5100",
+  plant_equipment: "1500",
+  fuel: "6100",
+  motor_vehicle: "6100",
+  insurance: "6200",
+  telephone_internet: "6300",
+  subscriptions_saas: "6400",
+  professional_fees: "6500",
+  bank_fees: "6600",
+  employee_wages: "6000",
+  office_supplies: "6900",
+  marketing: "6900",
+  meals_entertainment: "6900",
+  rent: "6900",
+  training: "6900",
+  travel: "6900",
+  uniform_ppe: "6900",
+  utilities: "6900",
+};
+
 // Canonical live intake_rules.matcher_type values (0006 CHECK constraint). NOTE:
 // the older intake-routing-apply switches on stale names ('email_sender' etc.) and
 // silently misses the live 'sender_address' rules — we match the canonical set.
@@ -115,6 +141,13 @@ interface Classification {
   rationale: Record<string, unknown>;
 }
 
+// One row from detect_capital_purchases (0094) — only used to test candidacy
+// (p_bill_id restricts it to this one bill, so a non-empty result IS the answer).
+interface CapitalCandidateRow {
+  bill_id: string;
+  suggested_asset_account_code: string | null;
+}
+
 interface JournalLine {
   account_id: string;
   debit_cents: number;
@@ -151,6 +184,75 @@ function pickString(obj: Record<string, unknown> | null, keys: string[]): string
 function domainOf(email: string): string {
   const at = email.lastIndexOf("@");
   return at >= 0 ? email.slice(at + 1).toLowerCase() : "";
+}
+
+// Priority a learned rule gets, ranked by how specifically the signal identifies
+// a supplier — mirrors BASE_CONFIDENCE's ordering so a learned sender_address rule
+// always outranks a coarser sender_domain/sender_name rule for the same supplier.
+const LEARNED_RULE_PRIORITY: Record<"sender_address" | "sender_domain" | "sender_name", number> = {
+  sender_address: 100,
+  sender_domain: 70,
+  sender_name: 40,
+};
+
+// Pick the most specific available signal off a bill to learn a rule from — an
+// exact sender address if the email metadata has one, else the extracted supplier
+// name as a last resort (weakest signal, only fires when nothing else was
+// captured, e.g. an uploaded PDF with no email metadata).
+function learnableMatcher(
+  bill: Bill,
+): { type: "sender_address" | "sender_name"; value: string } | null {
+  const meta = bill.intake_metadata;
+  const sender = pickString(meta, ["email_sender", "from", "sender"]);
+  if (sender !== "") {
+    return { type: "sender_address", value: sender.toLowerCase() };
+  }
+  const fromName = pickString(meta, ["from_name", "sender_name"]);
+  if (fromName !== "") {
+    return { type: "sender_name", value: fromName };
+  }
+  const supplierName = (bill.supplier_name_raw ?? "").trim();
+  if (supplierName !== "") {
+    return { type: "sender_name", value: supplierName };
+  }
+  return null;
+}
+
+// A human coding a bill in the review queue (accept/override) is a strong signal:
+// they just told us definitively how this supplier's bills should be coded. Learn
+// a reusable intake_rules row from it so the next bill from the same sender
+// auto-clears instead of landing back in the queue. Best-effort: a rule-write
+// failure must never fail the human's decision (the journal is already posted).
+async function learnRuleFromDecision(
+  admin: SupabaseClient,
+  bill: Bill,
+  accountCode: string,
+  taxCode: string | null,
+): Promise<void> {
+  const matcher = learnableMatcher(bill);
+  if (!matcher) return;
+  try {
+    const { data: existing } = await admin
+      .from("intake_rules")
+      .select("id")
+      .eq("organization_id", bill.organization_id)
+      .eq("matcher_type", matcher.type)
+      .eq("matcher_value", matcher.value)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (existing) return; // a rule for this sender already exists — don't shadow it
+    await admin.from("intake_rules").insert({
+      organization_id: bill.organization_id,
+      matcher_type: matcher.type,
+      matcher_priority: LEARNED_RULE_PRIORITY[matcher.type],
+      matcher_value: matcher.value,
+      xero_account_code_override: accountCode,
+      xero_tax_type_override: taxCode,
+      notes: `Learned from coding review decision on bill ${bill.id}`,
+    });
+  } catch {
+    // Best-effort learning only — never surface this as a decision failure.
+  }
 }
 
 function isMatcherType(t: string): t is MatcherType {
@@ -222,7 +324,10 @@ function classify(bill: Bill, rules: IntakeRule[], categories: Map<string, Categ
     const cat = rule.category_code ? categories.get(rule.category_code) ?? null : null;
     const accountOverride = rule.xero_account_code_override?.trim();
     const taxOverride = rule.xero_tax_type_override?.trim();
-    const accountCode = (accountOverride || cat?.xero_account_code) ?? null;
+    const defaultAccountCode = rule.category_code
+      ? DEFAULT_CATEGORY_ACCOUNT_CODES[rule.category_code] ?? null
+      : null;
+    const accountCode = (accountOverride || defaultAccountCode || cat?.xero_account_code) ?? null;
     const taxCode = (taxOverride || cat?.xero_tax_type) ?? null;
 
     let confidence = BASE_CONFIDENCE[rule.matcher_type];
@@ -243,7 +348,13 @@ function classify(bill: Bill, rules: IntakeRule[], categories: Map<string, Categ
         matcher_priority: rule.matcher_priority,
         hit_count: rule.hit_count,
         category_code: rule.category_code,
-        account_source: accountOverride ? "rule_override" : cat ? "category" : "none",
+        account_source: accountOverride
+          ? "rule_override"
+          : defaultAccountCode
+            ? "default_category_coa"
+            : cat
+              ? "category"
+              : "none",
         tax_source: taxOverride ? "rule_override" : cat ? "category" : "none",
       },
     };
@@ -300,6 +411,45 @@ async function setRationaleStatus(
 ): Promise<void> {
   const { error } = await admin.from("coding_suggestions").update({ status, rationale }).eq("id", suggestionId);
   if (error) throw new Error(`update suggestion status: ${error.message}`);
+}
+
+// Capital-purchase detection (0094 SC-1.F.01/.F.02): a bill that looks like an
+// asset purchase (material cost base, not already expense-coded, not already
+// capitalised) must never silently auto-post as a period expense — it needs a
+// human to confirm the asset in the Fixed Assets register instead. This checks
+// candidacy with the single-bill fast path (p_bill_id) and, if eligible, drafts
+// the `proposed` fixed_assets row via propose_capitalisation (idempotent on
+// source_bill_id — safe to call on every classify run). Both RPCs are SECURITY
+// INVOKER; the service-role admin client bypasses RLS (rolbypassrls) exactly
+// like every other write in this function. Best-effort: a detection/propose
+// failure must never block the ordinary coding path, so errors are logged and
+// swallowed rather than surfaced to the caller.
+async function detectAndProposeCapitalAsset(
+  admin: SupabaseClient,
+  bill: Bill,
+): Promise<{ isCandidate: boolean; fixedAssetId: string | null }> {
+  const { data, error } = await admin.rpc("detect_capital_purchases", {
+    p_org: bill.organization_id,
+    p_bill_id: bill.id,
+  });
+  if (error) {
+    console.error(`detect_capital_purchases failed for bill ${bill.id}: ${error.message}`);
+    return { isCandidate: false, fixedAssetId: null };
+  }
+  const rows = (data ?? []) as CapitalCandidateRow[];
+  if (rows.length === 0) return { isCandidate: false, fixedAssetId: null };
+
+  const { data: assetId, error: proposeErr } = await admin.rpc("propose_capitalisation", {
+    p_bill_id: bill.id,
+  });
+  if (proposeErr) {
+    console.error(`propose_capitalisation failed for bill ${bill.id}: ${proposeErr.message}`);
+    // Still a capital candidate even though the draft write failed — the auto-post
+    // guard below must hold regardless, so a transient write failure can't let a
+    // capital purchase slip through as an auto-posted expense.
+    return { isCandidate: true, fixedAssetId: null };
+  }
+  return { isCandidate: true, fixedAssetId: (assetId as string) ?? null };
 }
 
 async function resolveAccounts(admin: SupabaseClient, orgId: string, codes: string[]): Promise<Map<string, string>> {
@@ -552,6 +702,9 @@ async function handleDecision(
     .eq("id", row.id);
   if (updErr) return json({ ok: false, error: `update suggestion: ${updErr.message}` }, 500);
 
+  // Fire-and-forget: don't hold up the response on rule learning.
+  void learnRuleFromDecision(admin, bill, accountCode, taxCode);
+
   return json({
     ok: true,
     bill_id: bill.id,
@@ -586,19 +739,28 @@ Deno.serve(async (req: Request) => {
     // (organization_id IN get_accessible_org_ids()) decides visibility. An
     // authenticated user only sees bills in orgs they belong to → a bill in another
     // tenant returns no row (404). This closes the IDOR where any logged-in user could
-    // code/force-post into another org's ledger just by knowing a bill_id. A trusted
-    // backend caller presenting the service-role bearer still bypasses RLS exactly as
-    // before — the role travels in the JWT, so no key comparison is needed. The org is
-    // still derived from the bill (never trusted from the caller); all subsequent
-    // reads/writes stay on the service-role `admin` client, safe because access is now
-    // proven. (This fn isn't in config.toml, so verify_jwt defaults to true — but that
-    // only proves the JWT is a valid user, NOT org membership, so this RLS-scoped load
-    // is the actual tenant gate.)
-    const caller = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data: bill, error: billErr } = await caller
+    // code/force-post into another org's ledger just by knowing a bill_id.
+    //
+    // A trusted backend caller (intake-routing-apply / automation-worker) is detected
+    // by EXACT comparison of the bearer against SUPABASE_SERVICE_ROLE_KEY — the same
+    // hardened pattern as bank-discover/bills-extract/subscriptions-detect. Do NOT
+    // rely on "the role travels in the JWT": with new-format API keys the injected
+    // service key is `sb_secret_…` (not a JWT), so a caller-scoped PostgREST load
+    // with it fails with "Expected 3 parts in JWT". The org is still derived from
+    // the bill (never trusted from the caller); all subsequent reads/writes stay on
+    // the service-role `admin` client, safe because access is now proven. (This fn
+    // isn't in config.toml, so verify_jwt defaults to true — but that only proves
+    // the caller holds a valid key/JWT, NOT org membership, so this scoped load is
+    // the actual tenant gate for user callers.)
+    const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const isServiceCaller = bearer.length > 0 && bearer === serviceKey;
+    const billLoader = isServiceCaller
+      ? admin
+      : createClient(supabaseUrl, anonKey, {
+          global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
+    const { data: bill, error: billErr } = await billLoader
       .from("bills")
       .select(
         "id, organization_id, status, supplier_name_raw, invoice_number, invoice_date, original_filename, total_inc_gst_cents, gst_cents, subtotal_ex_gst_cents, gst_estimated, intake_metadata",
@@ -619,8 +781,10 @@ Deno.serve(async (req: Request) => {
       return await handleDecision(admin, supabaseUrl, anonKey, typedBill, body.decision, body, jwt);
     }
 
-    // Independent queries — the org-scoped active rules and the global category map.
-    const [rulesRes, catRes] = await Promise.all([
+    // Independent queries — the org-scoped active rules, the global category map,
+    // and capital-purchase candidacy (0094). Capital detection runs alongside the
+    // coding rules lookup since it only reads/writes fixed_assets, never bills.
+    const [rulesRes, catRes, capital] = await Promise.all([
       admin
         .from("intake_rules")
         .select(
@@ -630,6 +794,7 @@ Deno.serve(async (req: Request) => {
         .eq("is_active", true)
         .order("matcher_priority", { ascending: false }),
       admin.from("intake_categories").select("code, xero_account_code, xero_tax_type"),
+      detectAndProposeCapitalAsset(admin, typedBill),
     ]);
     if (rulesRes.error) return json({ ok: false, error: rulesRes.error.message }, 500);
     if (catRes.error) return json({ ok: false, error: catRes.error.message }, 500);
@@ -646,7 +811,18 @@ Deno.serve(async (req: Request) => {
     let status = "needs_review";
     let journalEntryId: string | null = null;
 
-    if (classification.confidence >= AUTO_POST_THRESHOLD && classification.accountCode) {
+    // A capital-purchase candidate NEVER auto-posts as a period expense, even at
+    // >= AUTO_POST_THRESHOLD confidence — it needs a human to confirm the asset in
+    // the Fixed Assets register (propose_capitalisation already drafted the
+    // `proposed` row above). Coding stays in the review queue with the capital
+    // rationale so the reviewer knows to look there instead of accepting the
+    // expense coding.
+    if (capital.isCandidate) {
+      await setRationaleStatus(admin, suggestionId, "needs_review", {
+        ...classification.rationale,
+        capital_purchase: { candidate: true, fixed_asset_id: capital.fixedAssetId },
+      });
+    } else if (classification.confidence >= AUTO_POST_THRESHOLD && classification.accountCode) {
       const result = await postBillJournal(admin, supabaseUrl, anonKey, typedBill, classification.accountCode);
       if (result.posted) {
         status = "auto_posted";
@@ -673,6 +849,8 @@ Deno.serve(async (req: Request) => {
       account_code: classification.accountCode,
       tax_code: classification.taxCode,
       journal_entry_id: journalEntryId,
+      capital_purchase_candidate: capital.isCandidate,
+      fixed_asset_id: capital.fixedAssetId,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

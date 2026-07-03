@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
+import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { SkeletonTable } from '@/components/Skeleton';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
@@ -96,15 +97,18 @@ export function DebtsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
     setLoading(true);
+    setLoadError(null);
     const [debtsRes, paysRes] = await Promise.all([
       supabase
         .from('debts')
         .select('*')
         .eq('organization_id', currentOrg.id)
+        .is('deleted_at', null)
         .order('current_balance_cents', { ascending: false }),
       supabase
         .from('debt_payments')
@@ -113,6 +117,15 @@ export function DebtsPage() {
         .order('paid_at', { ascending: false })
         .limit(20),
     ]);
+    const loadErr = debtsRes.error ?? paysRes.error;
+    if (loadErr) {
+      // A failed load must not masquerade as "no debts tracked yet".
+      setLoadError(formatLoadError('debts', loadErr.message));
+      setDebts([]);
+      setPayments([]);
+      setLoading(false);
+      return;
+    }
     setDebts((debtsRes.data ?? []) as Debt[]);
     setPayments((paysRes.data ?? []) as Payment[]);
     setLoading(false);
@@ -308,6 +321,14 @@ export function DebtsPage() {
         <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Active Debt Accounts</h2>
         {loading ? (
           <SkeletonTable rows={4} cols={7} />
+        ) : loadError ? (
+          <div
+            role="alert"
+            className="badge badge-danger"
+            style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}
+          >
+            {loadError}
+          </div>
         ) : debts.length === 0 ? (
           <div
             className="card"
@@ -322,82 +343,154 @@ export function DebtsPage() {
             </p>
           </div>
         ) : (
-          <div className="table-premium-container">
-            <table className="table-premium">
-              <thead>
-                <tr>
-                  <th>Account Name</th>
-                  <th>Kind</th>
-                  <th>Lender</th>
-                  <th style={{ textAlign: 'right' }}>Balance</th>
-                  <th style={{ textAlign: 'right' }}>Interest %</th>
-                  <th style={{ textAlign: 'right' }}>Min Payment</th>
-                  <th>Type</th>
-                  <th style={{ width: '40px' }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {debts.map((d) => (
-                  <tr
-                    key={d.id}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => navigate(`/debts/${d.id}`)}
-                  >
-                    <td>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.75rem',
-                          fontWeight: 600,
-                          color: 'var(--text-title)',
-                        }}
-                      >
-                        {getDebtIcon(d.kind)}
-                        {d.name}
-                      </div>
-                    </td>
-                    <td style={{ textTransform: 'capitalize' }}>{d.kind.replace(/_/g, ' ')}</td>
-                    <td>
-                      {d.lender_name ?? '—'}
-                      {d.account_number_last4 && (
-                        <span
+          <>
+            <div className="debts-table-view table-premium-container">
+              <table className="table-premium">
+                <thead>
+                  <tr>
+                    <th>Account Name</th>
+                    <th>Kind</th>
+                    <th>Lender</th>
+                    <th style={{ textAlign: 'right' }}>Balance</th>
+                    <th style={{ textAlign: 'right' }}>Interest %</th>
+                    <th style={{ textAlign: 'right' }}>Min Payment</th>
+                    <th>Type</th>
+                    <th style={{ width: '40px' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {debts.map((d) => (
+                    <tr
+                      key={d.id}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => navigate(`/debts/${d.id}`)}
+                    >
+                      <td>
+                        <div
                           style={{
-                            color: 'var(--text-muted)',
-                            fontSize: '0.8rem',
-                            marginLeft: '0.25rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            fontWeight: 600,
+                            color: 'var(--text-title)',
                           }}
                         >
-                          •••• {d.account_number_last4}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-title)' }}>
-                      {formatMoney(d.current_balance_cents)}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      {d.interest_rate_pct != null
-                        ? `${Number(d.interest_rate_pct).toFixed(2)}%`
-                        : '—'}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      {d.minimum_payment_cents != null ? formatMoney(d.minimum_payment_cents) : '—'}
-                    </td>
-                    <td>
-                      {d.is_personal ? (
-                        <span className="badge badge-warning">Personal</span>
-                      ) : (
-                        <span className="badge badge-success">Business</span>
-                      )}
-                    </td>
-                    <td>
-                      <ChevronRight className="w-4 h-4 text-muted" style={{ opacity: 0.5 }} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                          {getDebtIcon(d.kind)}
+                          {d.name}
+                        </div>
+                      </td>
+                      <td style={{ textTransform: 'capitalize' }}>{d.kind.replace(/_/g, ' ')}</td>
+                      <td>
+                        {d.lender_name ?? '—'}
+                        {d.account_number_last4 && (
+                          <span
+                            style={{
+                              color: 'var(--text-muted)',
+                              fontSize: '0.8rem',
+                              marginLeft: '0.25rem',
+                            }}
+                          >
+                            •••• {d.account_number_last4}
+                          </span>
+                        )}
+                      </td>
+                      <td
+                        style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-title)' }}
+                      >
+                        {formatMoney(d.current_balance_cents)}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        {d.interest_rate_pct != null
+                          ? `${Number(d.interest_rate_pct).toFixed(2)}%`
+                          : '—'}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        {d.minimum_payment_cents != null
+                          ? formatMoney(d.minimum_payment_cents)
+                          : '—'}
+                      </td>
+                      <td>
+                        {d.is_personal ? (
+                          <span className="badge badge-warning">Personal</span>
+                        ) : (
+                          <span className="badge badge-success">Business</span>
+                        )}
+                      </td>
+                      <td>
+                        <ChevronRight className="w-4 h-4 text-muted" style={{ opacity: 0.5 }} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="debts-card-view" aria-label="Debt account cards">
+              {debts.map((d) => (
+                <article
+                  key={`card-${d.id}`}
+                  className="debt-mobile-card card"
+                  aria-label={`Debt ${d.name}`}
+                >
+                  <div className="debt-mobile-card__header">
+                    <div>
+                      <a
+                        href={`/debts/${d.id}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigate(`/debts/${d.id}`);
+                        }}
+                        style={{
+                          fontWeight: 700,
+                          color: 'var(--accent-primary)',
+                          textDecoration: 'none',
+                        }}
+                      >
+                        {d.name}
+                      </a>
+                      <div
+                        style={{
+                          color: 'var(--text-muted)',
+                          fontSize: '0.75rem',
+                          marginTop: '0.15rem',
+                          textTransform: 'capitalize',
+                        }}
+                      >
+                        {d.kind.replace(/_/g, ' ')} · {d.lender_name ?? 'No lender'}
+                        {d.account_number_last4 ? ` ·••• ${d.account_number_last4}` : ''}
+                      </div>
+                    </div>
+                    {d.is_personal ? (
+                      <span className="badge badge-warning">Personal</span>
+                    ) : (
+                      <span className="badge badge-success">Business</span>
+                    )}
+                  </div>
+                  <div className="debt-mobile-card__metrics">
+                    <div>
+                      <span>Balance</span>
+                      <strong>{formatMoney(d.current_balance_cents)}</strong>
+                    </div>
+                    <div>
+                      <span>Interest</span>
+                      <strong>
+                        {d.interest_rate_pct != null
+                          ? `${Number(d.interest_rate_pct).toFixed(2)}%`
+                          : '—'}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Min payment</span>
+                      <strong>
+                        {d.minimum_payment_cents != null
+                          ? formatMoney(d.minimum_payment_cents)
+                          : '—'}
+                      </strong>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
@@ -507,7 +600,7 @@ function AddDebtForm({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
     });
     setBusy(false);
     if (error) {
-      setErr(error.message);
+      setErr(formatActionError('add the debt', error.message));
       return;
     }
     onAdded();

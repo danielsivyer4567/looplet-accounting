@@ -186,3 +186,18 @@ export function imageMediaType(mime: string): string {
   if (mime.startsWith('image/')) return mime;
   return 'image/png';
 }
+
+/**
+ * Per-provider request deadline for OCR fetches. A hung provider must not stall the
+ * whole edge invocation until the wall-clock kill — instead the fetch aborts and the
+ * caller's fallback loop moves to the next provider. Override with OCR_TIMEOUT_MS.
+ */
+export function ocrTimeoutSignal(): AbortSignal {
+  // Read the override without a bare `Deno` reference so this module stays importable
+  // from the Node/vitest typecheck (bills/router.ts pulls it in); the global is present
+  // at runtime on the Deno edge runtime.
+  const denoEnv = (globalThis as { Deno?: { env?: { get(k: string): string | undefined } } })
+    .Deno?.env;
+  const ms = Number(denoEnv?.get('OCR_TIMEOUT_MS'));
+  return AbortSignal.timeout(Number.isFinite(ms) && ms > 0 ? ms : 45_000);
+}

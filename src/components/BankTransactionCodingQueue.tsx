@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Check, CheckCheck, ChevronDown, Tag, Zap } from 'lucide-react';
 import { formatMoney } from '@/lib/money';
 import { useBankCodingQueue, type CodingQueueRow } from '@/hooks/useBankCodingQueue';
+import { SkeletonTable } from '@/components/Skeleton';
 
 const CATEGORY_OPTIONS = [
   { code: 'materials', label: 'Materials' },
@@ -242,15 +243,8 @@ export function BankTransactionCodingQueue() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          padding: '2rem',
-          textAlign: 'center',
-          color: 'var(--text-muted)',
-          fontSize: '0.875rem',
-        }}
-      >
-        Loading coding queue…
+      <div aria-busy="true" aria-label="Loading coding queue">
+        <SkeletonTable rows={4} cols={5} />
       </div>
     );
   }

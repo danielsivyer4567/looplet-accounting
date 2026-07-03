@@ -1,5 +1,6 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
+  attachLegalHorizonContext,
   type BudgetVarianceRow,
   buildCgtAdviceNote,
   buildFbtAdviceNote,
@@ -10,6 +11,7 @@ import {
   buildYearEndAdviceNote,
   type CashFlowForecastRow,
   type CreateAdviceNoteArgs,
+  loadLegalHorizonSignals,
   scheduledPeriodForMode,
   selectSeasonalModes,
   summarizeForecast,
@@ -178,6 +180,128 @@ Deno.test("scheduledPeriodForMode dedupes forecast weekly and seasonal notes by 
     scheduledPeriodForMode("structuring", "2026-10-15"),
     "fy:2026-2027",
   );
+});
+
+Deno.test("loadLegalHorizonSignals reads open proposal context without treating it as settled law", async () => {
+  const calls: { relation: string; columns: string; filters: string[] } = {
+    relation: "",
+    columns: "",
+    filters: [],
+  };
+  const rows = [
+    {
+      id: "horizon-1",
+      title: "Instant asset write-off threshold change",
+      summary: "Budget measure announced but not enacted.",
+      topic: "instant asset write-off",
+      stage: "announced",
+      confidence: 0.82,
+      proposed_effective_from: "2026-07-01",
+      source_url: "https://example.test/budget",
+      source_excerpt: "Proposed measure",
+    },
+  ];
+  const query = {
+    eq(column: string, value: unknown) {
+      calls.filters.push(`eq:${column}:${String(value)}`);
+      return this;
+    },
+    contains() {
+      return this;
+    },
+    is(column: string, value: unknown) {
+      calls.filters.push(`is:${column}:${String(value)}`);
+      return this;
+    },
+    order(column: string) {
+      calls.filters.push(`order:${column}`);
+      return this;
+    },
+    limit(count: number) {
+      calls.filters.push(`limit:${count}`);
+      return this;
+    },
+    select() {
+      return this;
+    },
+    update() {
+      return this;
+    },
+    insert() {
+      return this;
+    },
+    single() {
+      return Promise.resolve({ data: rows[0], error: null });
+    },
+    maybeSingle() {
+      return Promise.resolve({ data: rows[0], error: null });
+    },
+    then(resolve: (value: unknown) => unknown, reject?: (reason: unknown) => unknown) {
+      return Promise.resolve({ data: rows, error: null }).then(resolve, reject);
+    },
+  };
+  const admin = {
+    from(relation: string) {
+      calls.relation = relation;
+      return {
+        select(columns: string) {
+          calls.columns = columns;
+          return query;
+        },
+      };
+    },
+  };
+
+  const result = await loadLegalHorizonSignals(admin as never);
+
+  assertEquals(calls.relation, "legal_horizon");
+  assertEquals(calls.filters.includes("eq:status:open"), true);
+  assertEquals(calls.filters.includes("is:deleted_at:null"), true);
+  assertEquals(calls.filters.includes("limit:8"), true);
+  assertEquals(result.source_errors, []);
+  assertEquals(result.signals[0]?.title, "Instant asset write-off threshold change");
+  assertEquals(result.signals[0]?.confidence, 0.82);
+});
+
+Deno.test("attachLegalHorizonContext marks horizon rows as proposal-only advisor context", () => {
+  const base: CreateAdviceNoteArgs = {
+    p_org: "org-1",
+    p_kind: "forecast",
+    p_title: "Cash-flow forecast",
+    p_summary: "Draft forecast.",
+    p_inputs: { mode: "forecast" },
+    p_numbers: { runway_weeks: 3 },
+    p_assumptions: {},
+    p_citations: ["https://www.ato.gov.au/existing-law"],
+    p_disclaimer: "General information only.",
+  };
+
+  const note = attachLegalHorizonContext(base, [
+    {
+      id: "horizon-1",
+      title: "Division 7A reform announced",
+      summary: "Proposal only.",
+      topic: "Division 7A",
+      stage: "announced",
+      confidence: 0.74,
+      proposed_effective_from: "2027-07-01",
+      source_url: "https://example.test/div7a",
+      source_excerpt: "Announced reform",
+    },
+  ]);
+
+  const horizon = note.p_inputs.legal_horizon as {
+    status: string;
+    items: { title: string; source_url: string | null }[];
+  };
+  assertEquals(horizon.status, "proposal_context_only");
+  assertEquals(horizon.items[0]?.title, "Division 7A reform announced");
+  assertEquals(note.p_numbers.legal_horizon_open_count, 1);
+  assertEquals(
+    typeof note.p_assumptions.legal_horizon_notice,
+    "string",
+  );
+  assertEquals(note.p_citations, ["https://www.ato.gov.au/existing-law"]);
 });
 
 Deno.test("buildForecastAdviceNote echoes runway and largest budget variances into numbers", () => {

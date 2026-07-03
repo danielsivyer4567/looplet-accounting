@@ -11,8 +11,11 @@
  *   xero_push       — forward to xero-push-bill edge fn
  *   bank_reconcile  — forward to auto-reconcile edge fn
  *   gmail_backfill  — forward to gmail-backfill edge fn
+ *   gmail_mine      — forward to gmail-mine edge fn
+ *   bill_code       — forward to intake-routing-apply for bill GL coding/posting
  *   coding_classify — forward to gmail-classify-ai edge fn
  *   payment_record  — record AR invoice receipts from ingest payment jobs
+ *   crm_pnl_sync    — forward to crm-pnl-sync-push (live job/org P&L to CRM)
  *
  * Browser collection is intentionally excluded from the default claim loop.
  * A dedicated browser runner must claim browser_collect jobs with its own
@@ -48,8 +51,11 @@ const DEFAULT_JOB_KINDS = [
   'xero_push',
   'bank_reconcile',
   'gmail_backfill',
+  'gmail_mine',
+  'bill_code',
   'coding_classify',
   'payment_record',
+  'crm_pnl_sync',
 ] as const;
 
 // Exponential backoff delays per attempt (seconds): 60, 300, 900
@@ -100,13 +106,17 @@ async function dispatchJob(
       const billId =
         stringValue(pl['bill_id']) ?? (job.source_kind === 'bill' ? job.source_id : null);
       const endpoint = billId ? 'bills-extract' : 'bills-extract-batch';
-      const requestBody = billId
+      const requestBody: Record<string, unknown> = billId
         ? { bill_id: billId, force: booleanValue(pl['force']) }
-        : {
-            organization_id: job.organization_id,
-            source_id: job.source_id,
-            payload: job.payload,
-          };
+        : { organization_id: job.organization_id };
+      if (!billId) {
+        const mode = billExtractBatchMode(pl['mode']);
+        const max = numberValue(pl['max']);
+        const delayMs = numberValue(pl['delay_ms']);
+        if (mode) requestBody['mode'] = mode;
+        if (max && Number.isInteger(max) && max > 0) requestBody['max'] = max;
+        if (delayMs && Number.isFinite(delayMs) && delayMs > 0) requestBody['delay_ms'] = delayMs;
+      }
       const res = await fetch(`${base}/${endpoint}`, {
         method: 'POST',
         headers,
@@ -213,6 +223,64 @@ async function dispatchJob(
       return { ok: res.ok, detail: body };
     }
 
+    case 'gmail_mine': {
+      const pl = objectPayload(job.payload);
+      const integrationId =
+        stringValue(pl['integration_id']) ??
+        (job.source_kind === 'gmail_integration' ? job.source_id : null);
+      if (!integrationId) {
+        return { ok: false, detail: { error: 'gmail_mine requires integration_id' } };
+      }
+      const days = numberValue(pl['days']);
+      const max = numberValue(pl['max']);
+      const folder = pl['folder'] === 'sent' ? 'sent' : 'inbox';
+      const requestBody: Record<string, unknown> = {
+        integration_id: integrationId,
+        folder,
+      };
+      if (days && Number.isInteger(days) && days > 0) requestBody['days'] = days;
+      if (max && Number.isInteger(max) && max > 0) requestBody['max'] = max;
+      const pageToken = stringValue(pl['page_token']);
+      if (pageToken) requestBody['page_token'] = pageToken;
+      const res = await fetch(`${base}/gmail-mine`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody),
+      });
+      const body = await res.json().catch(() => ({}));
+      return { ok: res.ok, detail: body };
+    }
+
+    case 'bill_code': {
+      const pl = objectPayload(job.payload);
+      const billId =
+        stringValue(pl['bill_id']) ?? (job.source_kind === 'bill' ? job.source_id : null);
+      if (!billId) {
+        return { ok: false, detail: { error: 'bill_code requires bill_id' } };
+      }
+      const res = await fetch(`${base}/intake-routing-apply`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          organization_id: job.organization_id,
+          target: 'bill',
+          target_id: billId,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      return { ok: res.ok, detail: body };
+    }
+
+    case 'crm_pnl_sync': {
+      const res = await fetch(`${base}/crm-pnl-sync-push`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ organization_id: job.organization_id }),
+      });
+      const body = await res.json().catch(() => ({}));
+      return { ok: res.ok, detail: body };
+    }
+
     case 'coding_classify': {
       const pl = objectPayload(job.payload);
       const res = await fetch(`${base}/gmail-classify-ai`, {
@@ -253,6 +321,18 @@ async function isAlreadyComplete(
   serviceKey: string,
   job: AutomationJob,
 ): Promise<boolean> {
+  // Bill coding is idempotent at the domain layer: routing only fills blanks,
+  // coding_suggestions is one-live-row-per-bill, and journal posting checks for
+  // an existing posted source. Let repair/backlog jobs re-drive a bill if a prior
+  // completed job did not leave a live suggestion.
+  if (job.job_kind === 'bill_code') return false;
+
+  // crm_pnl_sync is a recurring push, not a one-shot job — source_kind/source_id
+  // (organization/organization_id) never changes between enqueues, so the
+  // default "skip if a completed job with the same source exists" check would
+  // silently block every sync after the first one ever succeeded.
+  if (job.job_kind === 'crm_pnl_sync') return false;
+
   if (!job.source_id || !job.source_kind) return false;
   const admin = makeAdminClient(supabaseUrl, serviceKey);
   const { data } = await admin
@@ -429,6 +509,9 @@ async function recordPayment(
     .eq('invoice_id', invoiceId)
     .eq('amount_cents', amountCents)
     .eq('reference', reference)
+    // limit(1) so a pre-existing duplicate pair doesn't make maybeSingle() throw and
+    // burn the job's retries re-recording a payment that is already there.
+    .limit(1)
     .maybeSingle();
   if (existingErr) {
     return { ok: false, detail: { error: `payment dedupe lookup failed: ${existingErr.message}` } };
@@ -477,6 +560,10 @@ function numberValue(value: unknown): number | null {
 
 function booleanValue(value: unknown): boolean {
   return value === true;
+}
+
+function billExtractBatchMode(value: unknown): 'received' | 'repair' | null {
+  return value === 'received' || value === 'repair' ? value : null;
 }
 
 function paidAtIso(value: unknown): string | null {

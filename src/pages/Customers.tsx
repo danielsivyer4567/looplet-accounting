@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
 import { useCustomers } from '@/hooks/useCustomers';
-import type { BillingAddress } from '@/hooks/useCustomers';
+import type { BillingAddress, CustomerRow } from '@/hooks/useCustomers';
 import { supabase } from '@/lib/supabase';
+import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { SkeletonTable } from '@/components/Skeleton';
 import { Plus, Users, X } from 'lucide-react';
 
@@ -114,73 +115,138 @@ export function CustomersPage() {
           className="badge badge-danger"
           style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}
         >
-          Failed to load: {error}
+          {formatLoadError('customers', error)}
         </div>
       ) : customers.length === 0 ? (
         <div
           style={{
-            padding: '2.5rem',
+            padding: '2.5rem 2rem',
             background: 'var(--bg-card)',
             border: '1px dashed var(--border-subtle)',
             borderRadius: 'var(--radius-md)',
             color: 'var(--text-muted)',
             textAlign: 'center',
-            fontSize: '0.9rem',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '0.75rem',
           }}
         >
-          No customers found for {currentOrg.name}. Add one to get started.
+          <Users size={40} style={{ color: 'var(--accent-primary)', opacity: 0.7 }} />
+          <h3 style={{ margin: 0, color: 'var(--text-title)', fontSize: '1.1rem' }}>
+            No customers yet
+          </h3>
+          <p style={{ margin: 0, fontSize: '0.9rem', maxWidth: '420px' }}>
+            No customers found for {currentOrg.name}. Add your first customer to start raising
+            invoices and tracking who owes you.
+          </p>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="btn btn-primary"
+            aria-label="Add your first customer"
+            style={{ marginTop: '0.25rem' }}
+          >
+            <Plus size={16} />
+            <span>Add your first customer</span>
+          </button>
         </div>
       ) : (
-        <div className="table-premium-container">
-          <table className="table-premium">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Billing Address</th>
-                <th>ABN</th>
-              </tr>
-            </thead>
-            <tbody>
-              {customers.map((c) => (
-                <tr
-                  key={c.id}
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/customers/${c.id}`)}
-                >
-                  <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{c.name}</td>
-                  <td>
-                    {c.email ? (
-                      <span style={{ fontSize: '0.875rem' }}>{c.email}</span>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)' }}>—</span>
-                    )}
-                  </td>
-                  <td>
-                    {c.phone ? (
-                      <span style={{ fontSize: '0.875rem' }}>{c.phone}</span>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)' }}>—</span>
-                    )}
-                  </td>
-                  <td>
-                    <span style={{ fontSize: '0.875rem' }}>{formatAddress(c.billing_address)}</span>
-                  </td>
-                  <td>
-                    {c.abn ? (
-                      <code>{c.abn}</code>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)' }}>—</span>
-                    )}
-                  </td>
+        <>
+          <div className="customers-table-view table-premium-container">
+            <table className="table-premium">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Billing Address</th>
+                  <th>ABN</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {customers.map((c) => (
+                  <tr
+                    key={c.id}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => navigate(`/customers/${c.id}`)}
+                  >
+                    <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{c.name}</td>
+                    <td>
+                      {c.email ? (
+                        <span style={{ fontSize: '0.875rem' }}>{c.email}</span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      )}
+                    </td>
+                    <td>
+                      {c.phone ? (
+                        <span style={{ fontSize: '0.875rem' }}>{c.phone}</span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      )}
+                    </td>
+                    <td>
+                      <span style={{ fontSize: '0.875rem' }}>
+                        {formatAddress(c.billing_address)}
+                      </span>
+                    </td>
+                    <td>
+                      {c.abn ? (
+                        <code>{c.abn}</code>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="customers-card-view" aria-label="Customer cards">
+            {customers.map((c) => (
+              <CustomerCard key={c.id} customer={c} onOpen={() => navigate(`/customers/${c.id}`)} />
+            ))}
+          </div>
+        </>
       )}
     </section>
+  );
+}
+
+function CustomerCard({ customer, onOpen }: { customer: CustomerRow; onOpen: () => void }) {
+  const address = formatAddress(customer.billing_address);
+  return (
+    <article className="customer-mobile-card card" aria-label={`Customer ${customer.name}`}>
+      <div className="customer-mobile-card__header">
+        <div>
+          <a
+            href={`/customers/${customer.id}`}
+            onClick={(e) => {
+              e.preventDefault();
+              onOpen();
+            }}
+            style={{ fontWeight: 700, color: 'var(--accent-primary)', textDecoration: 'none' }}
+          >
+            {customer.name}
+          </a>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.15rem' }}>
+            {customer.email ?? 'No email'}
+            {customer.phone ? ` · ${customer.phone}` : ''}
+          </div>
+          {customer.abn && (
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '0.15rem' }}>
+              ABN: <code>{customer.abn}</code>
+            </div>
+          )}
+        </div>
+      </div>
+      {address !== '—' && (
+        <div className="customer-mobile-card__row">
+          <span>Billing</span>
+          <span style={{ textAlign: 'right', fontSize: '0.8rem' }}>{address}</span>
+        </div>
+      )}
+    </article>
   );
 }
 
@@ -229,7 +295,7 @@ function CreateCustomerForm({
       .single();
     setBusy(false);
     if (error) {
-      setErr(error.message);
+      setErr(formatActionError('create the customer', error.message));
       return;
     }
     onCreated(data.id);
@@ -345,6 +411,7 @@ function CreateCustomerForm({
 
         {err && (
           <div
+            role="alert"
             className="badge badge-danger"
             style={{ display: 'block', padding: '0.625rem', textTransform: 'none' }}
           >

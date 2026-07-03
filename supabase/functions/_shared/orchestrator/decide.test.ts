@@ -128,6 +128,75 @@ Deno.test("late July prioritizes overdue STP finalisation ahead of upcoming supe
   assertEquals(result.tasks[2]?.action, "run_advisor_forecast");
 });
 
+Deno.test("scheduled advisor notes feed the orchestrator as review tasks", () => {
+  const result = decide({
+    as_at_date: "2026-05-01",
+    advisor_signals: [
+      {
+        id: "note-1",
+        organization_id: "org-1",
+        kind: "forecast",
+        title: "Cash-flow forecast and legal horizon brief",
+        summary: "Draft forecast with proposal context.",
+        status: "draft",
+        inputs: {
+          scheduled: true,
+          scheduler_period: "week:2026-04-27",
+          legal_horizon: {
+            status: "proposal_context_only",
+          },
+        },
+        numbers: {
+          legal_horizon_open_count: 2,
+        },
+      },
+      {
+        id: "note-2",
+        organization_id: "org-1",
+        kind: "forecast",
+        title: "Manual note",
+        summary: "Not scheduled.",
+        status: "draft",
+        inputs: { scheduled: false },
+        numbers: {},
+      },
+      {
+        id: "note-3",
+        organization_id: "other-org",
+        kind: "forecast",
+        title: "Other org note",
+        summary: "Wrong tenant.",
+        status: "draft",
+        inputs: { scheduled: true },
+        numbers: {},
+      },
+      {
+        id: "note-4",
+        organization_id: "org-1",
+        kind: "forecast",
+        title: "Issued note",
+        summary: "Already handled.",
+        status: "issued",
+        inputs: { scheduled: true },
+        numbers: {},
+      },
+    ],
+  });
+
+  const advisorTasks = result.tasks.filter((task) =>
+    task.action === "review_advice_note"
+  );
+
+  assertEquals(advisorTasks.length, 1);
+  assertEquals(advisorTasks[0]?.source, "advisor");
+  assertEquals(advisorTasks[0]?.engine, "advisor");
+  assertEquals(advisorTasks[0]?.priority, "normal");
+  assertEquals(advisorTasks[0]?.period_label, "week:2026-04-27");
+  assertEquals(advisorTasks[0]?.payload.advice_note_id, "note-1");
+  assertEquals(advisorTasks[0]?.payload.legal_horizon_open_count, 2);
+  assertEquals(advisorTasks[0]?.payload.route, "/ask");
+});
+
 Deno.test("quarter-end BAS due soon selects the BAS preparation engine", () => {
   const result = decide({
     as_at_date: "2026-04-20",
@@ -138,6 +207,80 @@ Deno.test("quarter-end BAS due soon selects the BAS preparation engine", () => {
   assertEquals(result.tasks[0]?.action, "prepare_bas");
   assertEquals(result.tasks[0]?.priority, "high");
   assertEquals(result.tasks[0]?.payload.obligation_key, "bas");
+});
+
+Deno.test("specialist obligation rows reach the mapped compliance draft engines", () => {
+  const result = decide({
+    as_at_date: "2026-06-20",
+    tax_calendar: [
+      obligation({
+        obligation_key: "tpar",
+        category: "tpar",
+        title: "TPAR FY2025-26",
+        period_label: "FY2025-26",
+      }),
+      obligation({
+        obligation_key: "fbt_instalment",
+        category: "fbt",
+        title: "FBT instalment Q4 FY2025-26",
+        period_label: "Q4 FY2025-26",
+      }),
+      obligation({
+        obligation_key: "payroll_tax",
+        category: "payroll_tax",
+        title: "Payroll tax Jun 2026",
+        period_label: "Jun 2026",
+      }),
+      obligation({
+        obligation_key: "tbar",
+        category: "smsf",
+        title: "TBAR Q4 FY2025-26",
+        period_label: "Q4 FY2025-26",
+      }),
+      obligation({
+        obligation_key: "trust_distribution",
+        category: "trust",
+        title: "Trust distribution resolution FY2025-26",
+        period_label: "FY2025-26",
+      }),
+      obligation({
+        obligation_key: "div7a",
+        category: "div7a",
+        title: "Division 7A review FY2025-26",
+        period_label: "FY2025-26",
+      }),
+      obligation({
+        obligation_key: "sgc",
+        category: "sgc",
+        title: "SGC review Q4 FY2025-26",
+        period_label: "Q4 FY2025-26",
+      }),
+      obligation({
+        obligation_key: "franking_account",
+        category: "franking",
+        title: "Franking account review FY2025-26",
+        period_label: "FY2025-26",
+      }),
+      obligation({
+        obligation_key: "cgt",
+        category: "cgt",
+        title: "CGT review FY2025-26",
+        period_label: "FY2025-26",
+      }),
+    ],
+  });
+
+  const actions = result.tasks.map((task) => task.action);
+  assert(actions.includes("prepare_tpar"));
+  assert(actions.includes("prepare_fbt_instalment"));
+  assert(actions.includes("prepare_payroll_tax"));
+  assert(actions.includes("prepare_tbar"));
+  assert(actions.includes("prepare_trust_distribution_resolution"));
+  assert(actions.includes("prepare_div7a_review"));
+  assert(actions.includes("prepare_sgc_review"));
+  assert(actions.includes("prepare_franking_account_review"));
+  assert(actions.includes("prepare_cgt_review"));
+  assertEquals(result.skipped, []);
 });
 
 Deno.test("books-health blocking creates a remediation task and skips books-dependent engines", () => {

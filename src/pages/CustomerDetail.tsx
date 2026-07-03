@@ -5,6 +5,7 @@ import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { ArchiveButton } from '@/components/ArchiveButton';
+import { DetailPageSkeleton } from '@/components/Skeleton';
 import {
   ChevronLeft,
   Plus,
@@ -150,12 +151,7 @@ export function CustomerDetailPage() {
   };
 
   if (!currentOrg) return null;
-  if (loading)
-    return (
-      <section>
-        <p style={{ color: 'var(--text-muted)' }}>Loading customer details…</p>
-      </section>
-    );
+  if (loading) return <DetailPageSkeleton tableCols={5} />;
   if (!customer) {
     return (
       <section className="animated-fade-in" style={{ padding: '2rem 0', textAlign: 'center' }}>

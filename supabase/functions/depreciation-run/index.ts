@@ -50,6 +50,8 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
 import { requireEnv } from "../_shared/env.ts";
+import { isExactSecret, isExactServiceRoleBearer } from "../_shared/serviceRole.ts";
+import { assetName, resolveTargetDate, type ScheduleRow } from "./logic.ts";
 
 // Reserved chart-of-accounts codes seeded by 0097 (extends seed_default_chart_of_accounts).
 // NOTE: like coding-classifier (0073's 1000/1200/2000), this couples posting to the
@@ -65,15 +67,6 @@ interface RequestBody {
   period?: string;
 }
 
-// depreciation_schedules row with its parent asset embedded (inner-joined so the
-// status='active' filter prunes the parent rows; name is only for the memo).
-interface ScheduleRow {
-  id: string;
-  organization_id: string;
-  fixed_asset_id: string;
-  fixed_assets: { name: string | null } | { name: string | null }[] | null;
-}
-
 interface PostResult {
   posted: boolean;
   journalEntryId: string | null;
@@ -85,46 +78,6 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-}
-
-/** Constant-time string compare; false on length mismatch. */
-function safeEqual(a: string, b: string): boolean {
-  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
-  let out = 0;
-  for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return out === 0;
-}
-
-function pad2(n: number): string {
-  return String(n).padStart(2, "0");
-}
-
-// Last day of the given UTC month as YYYY-MM-DD. Day 0 of the next month is the
-// last day of this one; this is the canonical per-(schedule, month) idempotency key.
-function monthEndISO(year: number, monthIndex0: number): string {
-  const d = new Date(Date.UTC(year, monthIndex0 + 1, 0));
-  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
-}
-
-// Resolve the target month-end date: the month of an explicit `period`, else the
-// PREVIOUS calendar month (post the month that just closed). Throws on a malformed
-// period so the caller gets a 400 rather than a silently-wrong posting date.
-function resolveTargetDate(period: string | undefined): string {
-  if (period && period.trim() !== "") {
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(period.trim());
-    if (!m) throw new Error(`invalid period (want YYYY-MM-DD): ${period}`);
-    const year = Number(m[1]);
-    const month = Number(m[2]); // 1-12
-    if (month < 1 || month > 12) throw new Error(`invalid period month: ${period}`);
-    return monthEndISO(year, month - 1);
-  }
-  const now = new Date();
-  return monthEndISO(now.getUTCFullYear(), now.getUTCMonth() - 1);
-}
-
-function assetName(row: ScheduleRow): string | null {
-  const fa = Array.isArray(row.fixed_assets) ? row.fixed_assets[0] : row.fixed_assets;
-  return fa?.name ?? null;
 }
 
 async function resolveAccounts(admin: SupabaseClient, orgId: string, codes: string[]): Promise<Map<string, string>> {
@@ -235,9 +188,8 @@ Deno.serve(async (req: Request) => {
     // function is cron/admin-driven only.
     const url = new URL(req.url);
     const urlSecret = url.searchParams.get("secret");
-    const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
-    const isServiceRole = safeEqual(bearer, serviceKey);
-    const secretOk = !!cronSecret && safeEqual(urlSecret ?? "", cronSecret);
+    const isServiceRole = isExactServiceRoleBearer(req.headers.get("Authorization"), serviceKey);
+    const secretOk = !!cronSecret && isExactSecret(urlSecret, cronSecret);
     if (!isServiceRole && !secretOk) return json({ ok: false, error: "Unauthorized" }, 401);
 
     const body = (await req.json().catch(() => ({}))) as RequestBody;

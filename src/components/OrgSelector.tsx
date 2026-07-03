@@ -1,15 +1,27 @@
 import { useState, type FormEvent } from 'react';
 import { useOrg } from '@/hooks/useOrg';
+import { SkeletonLine } from '@/components/Skeleton';
 
 export function OrgSelector() {
-  const { organizations, currentOrg, setCurrentOrg, createOrganization, loading } = useOrg();
+  const {
+    organizations,
+    currentOrg,
+    setCurrentOrg,
+    createOrganization,
+    loading,
+    isAccountantOnly,
+  } = useOrg();
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   if (loading) {
-    return <div style={{ color: '#666', fontSize: 12 }}>Loading orgs…</div>;
+    return (
+      <div style={{ padding: '0.75rem' }} aria-busy="true" aria-label="Loading organisations">
+        <SkeletonLine width="100%" height={14} />
+      </div>
+    );
   }
 
   if (organizations.length === 0 && !creating) {
@@ -116,20 +128,24 @@ export function OrgSelector() {
           </option>
         ))}
       </select>
-      <button
-        onClick={() => setCreating(true)}
-        style={{
-          padding: '0.3rem',
-          fontSize: 12,
-          background: 'transparent',
-          color: '#888',
-          border: '1px dashed #444',
-          borderRadius: 4,
-          cursor: 'pointer',
-        }}
-      >
-        + New organisation
-      </button>
+      {/* Accountants are non-billable client-only users — never nudge them to
+          create their own (billable) org. See docs/ACCOUNTANT_PORTAL.md. */}
+      {!isAccountantOnly && (
+        <button
+          onClick={() => setCreating(true)}
+          style={{
+            padding: '0.3rem',
+            fontSize: 12,
+            background: 'transparent',
+            color: '#888',
+            border: '1px dashed #444',
+            borderRadius: 4,
+            cursor: 'pointer',
+          }}
+        >
+          + New organisation
+        </button>
+      )}
     </div>
   );
 }

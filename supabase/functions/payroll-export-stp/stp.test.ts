@@ -6,6 +6,7 @@ import {
   buildStpEvent,
   cessationTypeCode,
   etpCode,
+  stpTransmissionGate,
   type StpOrg,
   type StpRun,
   type StpSlip,
@@ -19,7 +20,14 @@ function slip(empId: string, name: string): StpSlip {
     gross_ordinary_cents: 200000, gross_overtime_cents: 0, gross_leave_cents: 0, gross_total_cents: 200000,
     payg_tax_cents: 40000, super_guarantee_cents: 23000, super_rate_pct: 11.5, net_pay_cents: 160000,
     ytd_gross_cents: 200000, ytd_tax_cents: 40000, ytd_super_cents: 23000,
-    employee: { id: empId, full_name: name, email: null, wage_components: null },
+    employee: {
+      id: empId,
+      full_name: name,
+      email: null,
+      wage_components: { stp_tax_treatment_code: "R" },
+      tfn: "123456782",
+      tfn_masked: "*****6782",
+    },
   };
 }
 
@@ -42,9 +50,23 @@ interface PayEvent {
 const payEvent = (stp: Record<string, unknown>) => (stp as { pay_event: PayEvent }).pay_event;
 
 Deno.test("ordinary run: no termination block, no ETP on any employee", () => {
-  const pe = payEvent(buildStpEvent({ run: run(null), org: ORG, slips: [slip("e1", "A")], generatedBy: "t" }));
+  const stp = buildStpEvent({ run: run(null), org: ORG, slips: [slip("e1", "A")], generatedBy: "t" });
+  const pe = payEvent(stp);
   assertEquals(pe.termination, null);
   assertEquals(pe.employees[0].etp, null);
+  assertEquals(
+    (stp as { transmission_gate: ReturnType<typeof stpTransmissionGate> }).transmission_gate,
+    stpTransmissionGate(),
+  );
+});
+
+Deno.test("STP export is explicitly transmit-gated, not an SBR submission", () => {
+  const gate = stpTransmissionGate();
+  assertEquals(gate.approval_required, true);
+  assertEquals(gate.blocked_action, "stp_sbr_transmit");
+  assertEquals(gate.transmit_enabled, false);
+  assertEquals(gate.handoff, "registered_tax_or_bas_agent");
+  assertEquals(gate.external_wall.includes("ATO/DSP/SBR"), true);
 });
 
 Deno.test("genuine redundancy: cessation code R + excluded ETP code R on the terminated employee only", () => {
@@ -87,6 +109,45 @@ Deno.test("resignation: cessation code V + non-excluded ETP code O", () => {
   assertEquals(pe.termination?.cessation_type_code, "V");
   assertEquals(pe.employees[0].etp?.code, "O");
   assertEquals(pe.employees[0].etp?.taxable_cents, 5_000_000);
+});
+
+Deno.test("termination without a pay slip in the run is flagged (ETP not silently dropped)", () => {
+  const meta = {
+    termination: {
+      employee_id: "e-missing",
+      cessation_date: "2026-06-30",
+      reason: "resignation",
+      etp: { taxable_cents: 5_000_000, tax_free_cents: 0, tax_withheld_cents: 1_600_000 },
+    },
+  };
+  const stp = buildStpEvent({
+    run: run(meta),
+    org: ORG,
+    slips: [slip("e1", "A")], // terminated employee e-missing has NO slip
+    generatedBy: "t",
+  });
+  const notes = (stp as { notes: string[] }).notes;
+  assertEquals(
+    notes.some((n) => n.includes("e-missing") && n.includes("no pay slip")),
+    true,
+  );
+  // No ETP block is emitted for the absent employee (there is no slip to carry it).
+  const pe = payEvent(stp);
+  assertEquals(pe.employees.every((x) => x.etp === null), true);
+});
+
+Deno.test("termination WITH a matching slip emits no orphan-ETP note", () => {
+  const meta = {
+    termination: {
+      employee_id: "e1",
+      cessation_date: "2026-06-30",
+      reason: "resignation",
+      etp: { taxable_cents: 5_000_000, tax_free_cents: 0, tax_withheld_cents: 1_600_000 },
+    },
+  };
+  const stp = buildStpEvent({ run: run(meta), org: ORG, slips: [slip("e1", "A")], generatedBy: "t" });
+  const notes = (stp as { notes: string[] }).notes;
+  assertEquals(notes.some((n) => n.includes("no pay slip")), false);
 });
 
 Deno.test("code mappers", () => {

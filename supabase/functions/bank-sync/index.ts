@@ -168,6 +168,32 @@ Deno.serve(async (req) => {
       }
     }
 
+    try {
+      postSync['bank_transaction_classifier'] = await runPostSyncFunction(
+        supabaseUrl,
+        serviceKey,
+        'bank-transaction-classifier',
+        body.organization_id,
+      );
+    } catch (err) {
+      postSyncErrors.push(
+        `bank-transaction-classifier: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    try {
+      postSync['auto_reconcile'] = await runPostSyncFunction(
+        supabaseUrl,
+        serviceKey,
+        'auto-reconcile',
+        body.organization_id,
+      );
+    } catch (err) {
+      postSyncErrors.push(
+        `auto-reconcile: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
     if (postSyncErrors.length > 0) {
       return json(
         { ok: false, results, post_sync: postSync, post_sync_errors: postSyncErrors },
@@ -184,7 +210,11 @@ Deno.serve(async (req) => {
 async function runPostSyncFunction(
   supabaseUrl: string,
   serviceKey: string,
-  functionName: 'subscriptions-detect' | 'subscriptions-autoconfirm',
+  functionName:
+    | 'subscriptions-detect'
+    | 'subscriptions-autoconfirm'
+    | 'bank-transaction-classifier'
+    | 'auto-reconcile',
   orgId: string,
 ): Promise<unknown> {
   const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {

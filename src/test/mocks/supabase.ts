@@ -164,6 +164,7 @@ export const supabase = {
       data: { subscription: { unsubscribe: vi.fn() } },
     }),
     signInWithPassword: vi.fn().mockResolvedValue({ data: {}, error: null }),
+    updateUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
     signOut: vi.fn().mockResolvedValue({ error: null }),
   },
 

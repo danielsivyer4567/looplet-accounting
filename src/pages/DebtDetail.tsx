@@ -3,7 +3,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
+import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
+import { DetailPageSkeleton } from '@/components/Skeleton';
+import { ArchiveButton } from '@/components/ArchiveButton';
 import {
   ArrowLeft,
   Plus,
@@ -34,6 +37,7 @@ interface Debt {
   end_date: string | null;
   is_personal: boolean;
   notes: string | null;
+  deleted_at: string | null;
 }
 
 interface Payment {
@@ -89,7 +93,7 @@ export function DebtDetailPage() {
         .order('paid_at', { ascending: false }),
     ]);
     if (debtRes.error) {
-      setError(debtRes.error.message);
+      setError(formatLoadError('this debt', debtRes.error.message));
       setLoading(false);
       return;
     }
@@ -135,7 +139,7 @@ export function DebtDetailPage() {
     const { error: e } = await supabase.from('debts').update(payload).eq('id', debt.id);
     setSaving(false);
     if (e) {
-      setError(e.message);
+      setError(formatActionError('save this debt', e.message));
       return;
     }
     setEditing(false);
@@ -148,7 +152,7 @@ export function DebtDetailPage() {
     const p = payments.find((x) => x.id === pid);
     const { error: e } = await supabase.from('debt_payments').delete().eq('id', pid);
     if (e) {
-      setError(e.message);
+      setError(formatActionError('delete this payment', e.message));
       return;
     }
     if (p && p.principal_cents) {
@@ -162,11 +166,7 @@ export function DebtDetailPage() {
 
   if (!currentOrg) return null;
   if (loading) {
-    return (
-      <section className="animated-fade-in" style={{ padding: '2rem 0' }}>
-        <p style={{ color: 'var(--text-muted)' }}>Loading debt detail...</p>
-      </section>
-    );
+    return <DetailPageSkeleton tableCols={4} />;
   }
 
   if (!debt) {
@@ -243,6 +243,18 @@ export function DebtDetailPage() {
                 rowId={debt.id}
                 currentOrgId={currentOrg.id}
                 onMoved={() => navigate('/debts')}
+              />
+              <ArchiveButton
+                table="debts"
+                rowId={debt.id}
+                isArchived={!!debt.deleted_at}
+                onChange={(nowArchived) => {
+                  if (nowArchived) {
+                    navigate('/debts');
+                  } else {
+                    void refresh();
+                  }
+                }}
               />
               <button className="btn btn-secondary" onClick={startEdit}>
                 <Edit2 className="w-4 h-4" /> Edit Account
@@ -689,7 +701,7 @@ function RecordPaymentModal({
     });
     if (insertErr) {
       setBusy(false);
-      setErr(insertErr.message);
+      setErr(formatActionError('record this payment', insertErr.message));
       return;
     }
     if (principalC > 0) {
@@ -699,7 +711,7 @@ function RecordPaymentModal({
         .eq('id', debt.id);
       if (updErr) {
         setBusy(false);
-        setErr(updErr.message);
+        setErr(formatActionError('update the debt balance', updErr.message));
         return;
       }
     }

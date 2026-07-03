@@ -4,6 +4,7 @@ import { useOrg } from '@/hooks/useOrg';
 import { useTrusts } from '@/hooks/useTrusts';
 import { SkeletonTable } from '@/components/Skeleton';
 import { titleCase, formatDay } from '@/lib/formatting';
+import { formatLoadError } from '@/lib/errorMessages';
 import { Landmark } from 'lucide-react';
 
 // Shared styling for the page's dashed "notice" cards (not-a-trust gate + empty list).
@@ -82,7 +83,7 @@ export function TrustsPage() {
           className="badge badge-danger"
           style={{ display: 'block', padding: '0.75rem', textTransform: 'none' }}
         >
-          Failed to load: {error}
+          {formatLoadError('trusts', error)}
         </div>
       ) : trusts.length === 0 ? (
         <div style={noticeCardStyle}>No trusts recorded for {currentOrg.name} yet.</div>
