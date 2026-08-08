@@ -1,0 +1,5 @@
+{
+  "max_intent_body_lines": 6,
+  "max_named_anchors": 5,
+  "duty": "INTENT = chat prose before tools (never Shell/Write/fence). OBJECTIVE=postcondition; tag edit:path|NEW:path; Done-when ≤5 decidable predicates; finish every tag this turn; no drip; then Session+hot+HANDOFF."
+}

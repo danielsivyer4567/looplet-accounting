@@ -1,0 +1,18 @@
+---
+description: Type discipline — escape hatches are design bugs
+globs: ["**/*.ts","**/*.tsx","**/*.rs","**/*.py","**/*.go","**/*.java","**/*.kt"]
+alwaysApply: false
+---
+
+# Types
+
+Fix the design; don't silence the compiler. Escape hatch = design bug.
+Do not add suppressions just to pass CI.
+
+Prefer: sum types over parallel booleans; the repo's fallible-op idiom
+(Result, error returns, checked exceptions — match neighbors);
+explicit public signatures; schema-inferred types when schemas exist;
+one nullish convention per repo.
+
+Language bans (`any`, blind casts, unwrap, ignored errors) live in
+TOOLCHAIN.md / Semgrep / Clippy when present — not re-stated here.

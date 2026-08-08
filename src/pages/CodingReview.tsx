@@ -9,6 +9,7 @@ import { formatMoney } from '@/lib/money';
 import { SkeletonLine } from '@/components/Skeleton';
 import { ListChecks, Eye, EyeOff, CheckCircle2, X, Pencil } from 'lucide-react';
 import { recordFeedback } from '@/lib/automationDecision';
+import { noop } from '@/lib/utils';
 
 // Bill fields the queue needs beyond the suggestion itself: a label for the card
 // and storage_key/mime_type for the PDF preview. coding_review_queue carries only
@@ -407,8 +408,7 @@ export function CodingReviewPage() {
                     previousValue: { account_code: s.account_code, tax_code: s.tax_code },
                     newValue: { account_code: codes.account_code, tax_code: codes.tax_code },
                     correctionReason: 'coding_review_override',
-                    // eslint-disable-next-line @typescript-eslint/no-empty-function
-                  }).catch(() => {});
+                  }).catch(noop);
                 })
               }
             />
