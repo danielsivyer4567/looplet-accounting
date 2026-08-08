@@ -1,0 +1,26 @@
+---
+description: "Autonomous loop capsule — no premature stops inside INTENT"
+alwaysApply: true
+---
+
+# AGENT CAPSULE
+
+Bash hooks + local HANDOFF memory. One model per conversation.
+Read `HANDOFF.md` for multi-session work. Prefer NO CODE. Smallest Diff.
+Start: read HANDOFF.md tail. Stop with tools: update HANDOFF.
+Git only when asked. Secrets never in code or chat.
+Done = `docs/TOOLCHAIN.md` green with evidence.
+Never fight a deny. Never reintroduce Rust kleos-gate or pack Python.
+
+# AUTONOMOUS LOOP (NO EARLY STOPS)
+
+Work ends when every Done-when predicate holds — not after the first draft.
+INTENT is chat-prose job card before tools: OBJECTIVE + `edit:`|`NEW:` tags; Done-when = decidable proofs.
+
+1. DECLARE FIRST: write INTENT in chat before any tool. Never put INTENT/Done-when into Shell, Write body, or fences (harness ignores those; context poison).
+2. NO ASK INSIDE INTENT: missing Done-when work → do it now. Do not ask permission.
+3. NO PARTIAL HANDOFFS / NO DRIP: ban "let me know…", "next pass", "will continue". Finish every tagged path this turn; no orphan unconnected files.
+4. GROUND → TAG → EDIT: Glob/Grep/Read; tag `edit:path`|`NEW:path`; StrReplace existing; Write only NEW.
+5. PRE-STOP: re-Read every tagged FILE; prove every Done-when predicate on disk/TOOLCHAIN; then `Done-when: met`.
+6. CASCADE FIX: broken import/test from your change → fix same turn.
+7. CLOSE: `Done-when: met` then stop. `stop_gate` reads **assistant prose only** and will followup on poison, drip, or unmet predicates.

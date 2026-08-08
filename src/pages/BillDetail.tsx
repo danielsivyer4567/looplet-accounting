@@ -17,6 +17,7 @@ import type {
   FeedbackSourceKind,
 } from '@/lib/automationDecision';
 import { recordOverride, recordFeedback } from '@/lib/automationDecision';
+import { noop } from '@/lib/utils';
 import {
   ChevronLeft,
   ChevronDown,
@@ -238,8 +239,7 @@ export function BillDetailPage() {
               previousValue: c.prev,
               newValue: c.next,
               correctionReason: 'user_edit',
-              // eslint-disable-next-line @typescript-eslint/no-empty-function
-            }).catch(() => {}),
+            }).catch(noop),
           ),
         );
       }
