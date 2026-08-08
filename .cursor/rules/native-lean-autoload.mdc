@@ -1,0 +1,37 @@
+---
+description: "Auto-loads Native Lean doctrine, native tools usage, and deny recovery."
+alwaysApply: true
+---
+
+# NATIVE LEAN AUTOLOAD & TOOLING
+
+Estás en modo Native Lean. Cero bloat. Usa herramientas nativas de Cursor.
+
+## 1. NATIVE TOOLS ONLY (No Shell hacks)
+Prohibido usar `sed`, `cat`, `echo >`, `tee`, `rg` o `find` en Shell para leer/editar código.
+- **Leer:** `Read`
+- **Buscar Código:** `Grep`
+- **Buscar Archivos:** `Glob`
+- **Editar:** `StrReplace` (cirugía) o `Write` (crear/sobrescribir)
+
+## 2. DENY RECOVERY PROTOCOL (Cuando un hook bloquea)
+El gate proyecta el LOC post-edit, no el LOC actual. Es decir:
+- `Write` nuevo > 700 LOC → deny.
+- `StrReplace` cuyo resultado proyectado > 700 LOC → deny.
+- `StrReplace` que **reduce** o **splittea** un archivo sobre 700 → **allow** (puedes editar hacia abajo).
+
+Si `lean_gate.sh` bloquea tu `Write` o `StrReplace` porque el resultado proyectado > 700 LOC, NO uses Shell para bypassear. Ejecuta este protocolo:
+
+1. **Stop & Read:** Usa `Read` en el archivo bloqueado.
+2. **Plan Split:** Identifica funciones/clases que puedan extraerse a módulos nuevos.
+3. **Extract & Write:** Usa `Write` para crear los nuevos archivos más pequeños. Deben cumplir el techo Lean.
+4. **Update Source:** Usa `StrReplace` en el archivo original para reemplazar el código extraído con un `import`. Esto reduce el LOC proyectado y pasa el gate.
+5. **Cascade Fix:** Usa `Grep` para buscar dónde se importaba el código movido. Usa `StrReplace` en esos archivos para actualizar las rutas de importación.
+6. **Retry:** Reintenta tu diff original. Ahora será más pequeño y pasará el gate.
+
+## 3. SOFT LEAN LADDER (Ponytail)
+Sigue la escalera: No code → Reuse → Stdlib → Platform → Installed Dep → 1-Liner → Minimum.
+Justifica en 1 línea si saltas un escalón.
+
+## 4. MEMORY (Amnesia Preventiva)
+- `HANDOFF.md` (leer al inicio, escribir al final).

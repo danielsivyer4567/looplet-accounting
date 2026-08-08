@@ -47,11 +47,47 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
 }
 
 // ---------------------------------------------------------------------------
-// Suppress noisy console.error from React (e.g. act() warnings) in tests.
-// Remove this block if you want to see full React warnings during test runs.
+// Bare `localStorage` global (Node ≥22 ships an experimental one)
 // ---------------------------------------------------------------------------
-// const originalError = console.error.bind(console);
-// vi.spyOn(console, 'error').mockImplementation((...args) => {
-//   if (typeof args[0] === 'string' && args[0].includes('Warning:')) return;
-//   originalError(...args);
-// });
+// Node ships an experimental `localStorage` global that resolves to undefined
+// unless --localstorage-file is passed, and it shadows jsdom's working
+// window.localStorage. Tests (and app code) that touch the bare global then
+// crash with "Cannot read properties of undefined (reading 'clear')". In jsdom,
+// install a minimal in-memory polyfill on BOTH the bare global and window so
+// every reference resolves to the same store.
+if (typeof window !== 'undefined') {
+  const memStore = new Map<string, string>();
+  const polyfill: Storage = {
+    get length() {
+      return memStore.size;
+    },
+    clear: () => memStore.clear(),
+    getItem: (key: string) => memStore.get(key) ?? null,
+    key: (index: number) => Array.from(memStore.keys())[index] ?? null,
+    removeItem: (key: string) => {
+      memStore.delete(key);
+    },
+    setItem: (key: string, value: string) => {
+      memStore.set(key, value);
+    },
+  };
+
+  try {
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: polyfill,
+      writable: true,
+      configurable: true,
+    });
+  } catch {
+    // Non-configurable on some runtimes — ignore.
+  }
+  try {
+    Object.defineProperty(window, 'localStorage', {
+      value: polyfill,
+      writable: true,
+      configurable: true,
+    });
+  } catch {
+    // Non-configurable on some runtimes — ignore.
+  }
+}
