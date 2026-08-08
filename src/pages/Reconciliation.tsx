@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { ConfidenceBadge } from '@/components/ConfidenceBadge';
 import { recordFeedback, type AutomationConfidence } from '@/lib/automationDecision';
+import { noop } from '@/lib/utils';
 import { enqueueJob } from '@/lib/automationJobs';
 
 interface BankTxn {
@@ -195,8 +196,7 @@ export function ReconciliationPage() {
         sourceId: txnId,
         newValue: { matched_bill_id: billId },
         correctionReason: 'reconciliation_confirm',
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-      }).catch(() => {});
+      }).catch(noop);
 
       try {
         await enqueueJob({
@@ -241,8 +241,7 @@ export function ReconciliationPage() {
         sourceId: txnId,
         newValue: { matched_invoice_id: invoiceId, amount_cents: amountCents },
         correctionReason: 'reconciliation_confirm',
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-      }).catch(() => {});
+      }).catch(noop);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -289,8 +288,7 @@ export function ReconciliationPage() {
             : { matched_invoice_id: txn.matched_invoice_id },
           newValue: { action: 'undo_auto_match' },
           correctionReason: 'auto_match_overridden',
-          // eslint-disable-next-line @typescript-eslint/no-empty-function
-        }).catch(() => {});
+        }).catch(noop);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
