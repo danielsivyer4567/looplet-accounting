@@ -14,7 +14,9 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { boundedInt } from '../_shared/authGuards.ts';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { authorizeOrgCaller, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 
 const SONAR_URL = 'https://api.perplexity.ai/chat/completions';
 // 'sonar' = small online model. 'sonar-pro' is more expensive. Small is plenty for this.
@@ -65,13 +67,24 @@ Deno.serve(async (req) => {
     const body = (await req.json()) as RequestBody;
     if (!body.organization_id) return json({ ok: false, error: 'organization_id required' }, 400);
 
-    const batchSize = body.batch_size ?? 15;
-    const maxBatches = body.max_batches ?? 4;
-    const onlyUnenriched = body.only_unenriched !== false; // default true
-
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
+
+    // Enrichment spends Perplexity credit and rewrites the organisation's staged entities, so the caller must be the
+    // service role or an accepted accountant-or-higher member of that organisation.
+    const access = await authorizeOrgCaller(
+      req.headers.get('Authorization'),
+      body.organization_id,
+      supabaseOrgAccessDeps(admin, serviceKey),
+      'accountant',
+    );
+    if (!access.ok) return json({ ok: false, error: access.error }, access.status);
+
+    // Caller-chosen sizes are capped so one request cannot run an unbounded paid batch.
+    const batchSize = boundedInt(body.batch_size, 15, 1, 25);
+    const maxBatches = boundedInt(body.max_batches, 4, 1, 10);
+    const onlyUnenriched = body.only_unenriched !== false; // default true
 
     // Load category catalogue (Sonar must pick from these)
     const { data: cats, error: catErr } = await admin
