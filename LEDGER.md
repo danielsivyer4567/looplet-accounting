@@ -9,7 +9,7 @@
 | INC-01 | August implant leftovers are gone and build configs pass an integrity check (.cursor, HANDOFF.md, hidden push-script ignores, postcss/vite/tailwind, lifecycle scripts) | done | done @ 6c72991e, awaiting independent verify |
 | INC-02 | Credentials exposed by the August implant are rotated and recorded (Supabase service-role/JWT secret/DB password/access tokens, Cloudflare token, integration keys, GitHub PATs) | blocked | BLOCKED: Rotation of credentials exposed between 2026-08-08 and 2026-08-29 has not been recorded. (needs: Daniel rotates the Supabase service-role key, JWT secret, DB password and access tokens, the Cloudflare API token (and GitHub repo secrets), Xero/Gmail/Groq/Perplexity/Resend keys, ENCRYPTION_KEY and GitHub PATs, then confirms the rotation record.) |
 | SEC-01 | intake-routing-apply accepts only the service role or an accepted member of the target organisation | done | done @ 7b4a9917, awaiting independent verify |
-| SEC-02 | staged-entities-enrich-sonar, bank-statement-extract, crm-pnl-sync-push and ato-lodge refuse unauthenticated calls | open | not run |
+| SEC-02 | staged-entities-enrich-sonar, bank-statement-extract, crm-pnl-sync-push and ato-lodge refuse unauthenticated calls | done | done @ 61965c01, awaiting independent verify |
 | SEC-03 | Payment-run, ABA export, mark-paid, super-batch and termination functions require an accepted admin or owner | open | not run |
 | SEC-04 | Xero and Gmail OAuth state is signed, bound to the user and mandatory on callback | open | not run |
 | SEC-05 | Writes to money tables (payees, bills, invoices, journals, period locks, employees, payment runs) need an accountant or admin role; viewers are read-only | open | not run |

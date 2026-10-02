@@ -280,7 +280,7 @@
       "title": "staged-entities-enrich-sonar, bank-statement-extract, crm-pnl-sync-push and ato-lodge refuse unauthenticated calls",
       "area": "security",
       "priority": 11,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/authGuards.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/edge-auth-guards.test.ts\""
@@ -292,7 +292,60 @@
         "supabase/functions/ato-lodge",
         "supabase/functions/_shared/authGuards.ts"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/authGuards.test.ts\"",
+          "exit": 1,
+          "head": "34938f1ee35d4ed570e387db20c0c0ad01fc57c7",
+          "dirty": [],
+          "at": "2026-10-02T23:09:45.495Z",
+          "ms": 400,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-02-001.log",
+          "log_sha256": "76f33ba7a5bd3b7942738b4e164938de18117e5bac712bf84ab6e88e37c7909e"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/edge-auth-guards.test.ts\"",
+          "exit": 1,
+          "head": "34938f1ee35d4ed570e387db20c0c0ad01fc57c7",
+          "dirty": [],
+          "at": "2026-10-02T23:09:47.316Z",
+          "ms": 1820,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-02-002.log",
+          "log_sha256": "171e254041c37a53811914e1e7abe05b1f195ad8be8b04fb9daf3e98c7a552b3"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/authGuards.test.ts\"",
+          "exit": 0,
+          "head": "61965c01572229e88d90f5639b67f96c47c304ad",
+          "dirty": [],
+          "at": "2026-10-02T23:12:46.097Z",
+          "ms": 1294,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-02-003.log",
+          "log_sha256": "3a0be9d1b8617873a6a380a653963dd0519ad3acef53c2d8e3451922348b71a4"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/edge-auth-guards.test.ts\"",
+          "exit": 0,
+          "head": "61965c01572229e88d90f5639b67f96c47c304ad",
+          "dirty": [],
+          "at": "2026-10-02T23:12:48.002Z",
+          "ms": 1904,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-02-004.log",
+          "log_sha256": "f75d56bd889729fe01242dae152c94796166db627a4a6d9305d9932cba911f2b"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -300,8 +353,45 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T23:09:44.875Z",
+          "event": "start",
+          "head": "34938f1ee35d4ed570e387db20c0c0ad01fc57c7",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T23:09:47.316Z",
+          "event": "run",
+          "head": "34938f1ee35d4ed570e387db20c0c0ad01fc57c7",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-02T23:12:48.002Z",
+          "event": "run",
+          "head": "61965c01572229e88d90f5639b67f96c47c304ad",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-02T23:12:48.121Z",
+          "event": "done",
+          "head": "61965c01572229e88d90f5639b67f96c47c304ad",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-02T23:12:48.107Z",
+        "head": "61965c01572229e88d90f5639b67f96c47c304ad",
+        "by": "claude-worker",
+        "runs": [
+          3,
+          4
+        ]
+      }
     },
     {
       "id": "SEC-03",
@@ -1421,5 +1511,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-02T23:09:04.529Z"
+  "updated_at": "2026-10-02T23:12:48.135Z"
 }
