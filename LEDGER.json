@@ -193,7 +193,7 @@
       "title": "intake-routing-apply accepts only the service role or an accepted member of the target organisation",
       "area": "security",
       "priority": 10,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/intake-routing-apply/auth.test.ts\""
       ],
@@ -201,7 +201,34 @@
         "supabase/functions/intake-routing-apply",
         "supabase/functions/_shared"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/intake-routing-apply/auth.test.ts\"",
+          "exit": 1,
+          "head": "52af8905225c7cbd4365244169969c20431fcaa8",
+          "dirty": [],
+          "at": "2026-10-02T23:07:33.583Z",
+          "ms": 227,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-01-001.log",
+          "log_sha256": "7d09a92932de2b3b5e7aaa667d436bdce3dc02f989a1544a77120bdc2d1ad777"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/intake-routing-apply/auth.test.ts\"",
+          "exit": 0,
+          "head": "7b4a991766821eb59fa9ba1439514f4289e6ea3e",
+          "dirty": [],
+          "at": "2026-10-02T23:09:04.304Z",
+          "ms": 740,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-01-002.log",
+          "log_sha256": "45ee8ead65d878a9a38f3752a7543a552f42ad667cff18253382722dd7540327"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -209,8 +236,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T23:07:33.230Z",
+          "event": "start",
+          "head": "52af8905225c7cbd4365244169969c20431fcaa8",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T23:07:33.584Z",
+          "event": "run",
+          "head": "52af8905225c7cbd4365244169969c20431fcaa8",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-02T23:09:04.305Z",
+          "event": "run",
+          "head": "7b4a991766821eb59fa9ba1439514f4289e6ea3e",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-02T23:09:04.514Z",
+          "event": "done",
+          "head": "7b4a991766821eb59fa9ba1439514f4289e6ea3e",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-02T23:09:04.499Z",
+        "head": "7b4a991766821eb59fa9ba1439514f4289e6ea3e",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "SEC-02",
@@ -1358,5 +1421,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-02T23:06:20.412Z"
+  "updated_at": "2026-10-02T23:09:04.529Z"
 }
