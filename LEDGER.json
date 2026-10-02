@@ -295,6 +295,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-01-005.log",
           "log_sha256": "63ac26710848d5a9f316ff637cbbd53f9d7afb4691ae5ad3b66221f99e4f5610"
+        },
+        {
+          "n": 6,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/intake-routing-apply/auth.test.ts\"",
+          "exit": 0,
+          "head": "a456e08059551f05b6102c0b73e201c10d2eb3bf",
+          "dirty": [],
+          "at": "2026-10-02T23:27:27.467Z",
+          "ms": 619,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-01-006.log",
+          "log_sha256": "01ae6fc0e5fe5326082fb5606f06c008adaa89d015d200d80b2d393be9258d97"
         }
       ],
       "notes": [],
@@ -387,14 +400,39 @@
           "event": "done",
           "head": "577ef865db7dc31e2f30d9f82725986def32359c",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T23:27:16.979Z",
+          "event": "stale",
+          "head": "a456e08059551f05b6102c0b73e201c10d2eb3bf",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/functions/_shared/oauthState.test.ts",
+            "supabase/functions/_shared/oauthState.ts",
+            "supabase/functions/_shared/xero/oauthState.ts"
+          ]
+        },
+        {
+          "at": "2026-10-02T23:27:27.468Z",
+          "event": "run",
+          "head": "a456e08059551f05b6102c0b73e201c10d2eb3bf",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-02T23:27:27.595Z",
+          "event": "done",
+          "head": "a456e08059551f05b6102c0b73e201c10d2eb3bf",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-02T23:21:03.805Z",
-        "head": "577ef865db7dc31e2f30d9f82725986def32359c",
+        "at": "2026-10-02T23:27:27.580Z",
+        "head": "a456e08059551f05b6102c0b73e201c10d2eb3bf",
         "by": "claude-worker",
         "runs": [
-          5
+          6
         ]
       }
     },
@@ -847,7 +885,7 @@
       "title": "Writes to money tables (payees, bills, invoices, journals, period locks, employees, payment runs) need an accountant or admin role; viewers are read-only",
       "area": "security",
       "priority": 14,
-      "status": "open",
+      "status": "in_progress",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/money-table-roles.sql\""
       ],
@@ -855,7 +893,21 @@
         "supabase/migrations",
         "tests/db-sql/money-table-roles.sql"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/money-table-roles.sql\"",
+          "exit": 1,
+          "head": "a456e08059551f05b6102c0b73e201c10d2eb3bf",
+          "dirty": [],
+          "at": "2026-10-02T23:27:28.103Z",
+          "ms": 224,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-05-001.log",
+          "log_sha256": "a9a974f1a30d7642eda550954823deb96fad3d1117e221f1a1ceccb7c7f3a7fc"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -863,6 +915,20 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T23:27:27.760Z",
+          "event": "start",
+          "head": "a456e08059551f05b6102c0b73e201c10d2eb3bf",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T23:27:28.104Z",
+          "event": "run",
+          "head": "a456e08059551f05b6102c0b73e201c10d2eb3bf",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
         }
       ]
     },
@@ -1954,5 +2020,5 @@
       ]
     }
   ],
-  "updated_at": "2026-10-02T23:27:16.757Z"
+  "updated_at": "2026-10-02T23:27:28.119Z"
 }
