@@ -222,7 +222,7 @@
       "title": "intake-routing-apply accepts only the service role or an accepted member of the target organisation",
       "area": "security",
       "priority": 10,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/intake-routing-apply/auth.test.ts\""
       ],
@@ -282,6 +282,19 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/SEC-01-004.log",
           "log_sha256": "c5e7945cdfa73144da27c08534381f2e1d709253ee572c850ee2e356cb070722"
+        },
+        {
+          "n": 5,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/intake-routing-apply/auth.test.ts\"",
+          "exit": 0,
+          "head": "577ef865db7dc31e2f30d9f82725986def32359c",
+          "dirty": [],
+          "at": "2026-10-02T23:21:03.689Z",
+          "ms": 739,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-01-005.log",
+          "log_sha256": "63ac26710848d5a9f316ff637cbbd53f9d7afb4691ae5ad3b66221f99e4f5610"
         }
       ],
       "notes": [],
@@ -350,23 +363,38 @@
           "head": "ba9534a77bea6048369dc3e0753679980edbcf4e",
           "actor": "claude-verifier",
           "by": "claude-verifier (independent subagent)"
+        },
+        {
+          "at": "2026-10-02T23:20:42.501Z",
+          "event": "stale",
+          "head": "577ef865db7dc31e2f30d9f82725986def32359c",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/functions/_shared/orgRole.test.ts",
+            "supabase/functions/_shared/orgRole.ts"
+          ]
+        },
+        {
+          "at": "2026-10-02T23:21:03.691Z",
+          "event": "run",
+          "head": "577ef865db7dc31e2f30d9f82725986def32359c",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-02T23:21:03.820Z",
+          "event": "done",
+          "head": "577ef865db7dc31e2f30d9f82725986def32359c",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-02T23:12:58.173Z",
-        "head": "23b7b5387c1d76f44a34b269250f4c8d3bdb3f7e",
+        "at": "2026-10-02T23:21:03.805Z",
+        "head": "577ef865db7dc31e2f30d9f82725986def32359c",
         "by": "claude-worker",
         "runs": [
-          3
-        ]
-      },
-      "verified": {
-        "at": "2026-10-02T23:19:31.848Z",
-        "head": "ba9534a77bea6048369dc3e0753679980edbcf4e",
-        "by": "claude-verifier (independent subagent)",
-        "note": "Read orgRole.ts, serviceRole.ts and the handler: the guard runs before any service-role read, the organisation id comes only from the body and target rows are re-checked against it, an empty service key returns 500 before the guard, the anon/publishable key and forged service_role JWTs fall through to auth.getUser and get 401, pending invites and other-organisation memberships get 403, the ranking matches require_role (0210) and the org_role enum (0039), all backend callers (bills-extract, bank-csv-import, bank-sync, automation-worker and also ingest/handlers.ts) send the exact service-role bearer, and deno check on index.ts passes. Residual: the tests exercise auth.ts with fakes rather than the HTTP handler, and a membership-lookup error message is echoed in the 500 body.",
-        "runs": [
-          4
+          5
         ]
       }
     },
@@ -750,7 +778,13 @@
         "supabase/migrations"
       ],
       "runs": [],
-      "notes": [],
+      "notes": [
+        {
+          "at": "2026-10-02T23:21:03.905Z",
+          "by": "claude-worker",
+          "text": "Add a per-user rate limit for paid AI endpoints (bank-statement-extract, staged-entities-enrich-sonar, ask-bot and similar): public sign-up lets anyone become an org owner, so membership alone does not stop credit abuse (raised by the SEC-02 verifier)."
+        }
+      ],
       "history": [
         {
           "at": "2026-10-02T22:50:10.244Z",
@@ -1745,5 +1779,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-02T23:20:42.277Z"
+  "updated_at": "2026-10-02T23:21:03.905Z"
 }
