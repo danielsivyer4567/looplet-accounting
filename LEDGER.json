@@ -778,6 +778,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-03-004.log",
           "log_sha256": "ceb7047eed2256958476df30da4b0919ea1d3ff65cd98dd0129a527feb036de5"
+        },
+        {
+          "n": 5,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/orgRole.test.ts\"",
+          "exit": 0,
+          "head": "73ce785cb5e43ea6f144d70d3fa0fe90a5d0c1c5",
+          "dirty": [],
+          "at": "2026-10-02T23:37:08.456Z",
+          "ms": 640,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-03-005.log",
+          "log_sha256": "edac3523da6c0cedf189aec184e0023e82533b639dc62bf9134492cb98b05c6f"
+        },
+        {
+          "n": 6,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\"",
+          "exit": 0,
+          "head": "73ce785cb5e43ea6f144d70d3fa0fe90a5d0c1c5",
+          "dirty": [],
+          "at": "2026-10-02T23:37:10.233Z",
+          "ms": 1776,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-03-006.log",
+          "log_sha256": "8eeb05cb60c76c57ac9a5d3e82b22cf6017dfbad40f3f46af73f80a2fee5b787"
         }
       ],
       "notes": [
@@ -785,6 +811,11 @@
           "at": "2026-10-02T23:20:42.277Z",
           "by": "claude-worker",
           "text": "Scope widened with the same fix: payroll-create-pay-run, payroll-export-stp and employee-tfn-save checked admin/owner without accepted_at; the wiring test covers all eight functions."
+        },
+        {
+          "at": "2026-10-02T23:37:10.440Z",
+          "by": "claude-worker",
+          "text": "Verifier finding fixed: payment-runs-create and payment-runs-mark-paid bill writes are scoped to the organisation; team-invite now requires an accepted admin. The database-side cause (child rows such as payment_run_items.bill_id and pay_slips.employee_id pointing at another organisation) is handled in SEC-05."
         }
       ],
       "history": [
@@ -821,15 +852,39 @@
           "event": "done",
           "head": "5ba716bb25cdff9447c9a972750d1b0cbab82743",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T23:37:07.593Z",
+          "event": "stale",
+          "head": "73ce785cb5e43ea6f144d70d3fa0fe90a5d0c1c5",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/functions/payment-runs-create/index.ts",
+            "supabase/functions/payment-runs-mark-paid/index.ts"
+          ]
+        },
+        {
+          "at": "2026-10-02T23:37:10.233Z",
+          "event": "run",
+          "head": "73ce785cb5e43ea6f144d70d3fa0fe90a5d0c1c5",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-02T23:37:10.357Z",
+          "event": "done",
+          "head": "73ce785cb5e43ea6f144d70d3fa0fe90a5d0c1c5",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-02T23:20:42.098Z",
-        "head": "5ba716bb25cdff9447c9a972750d1b0cbab82743",
+        "at": "2026-10-02T23:37:10.342Z",
+        "head": "73ce785cb5e43ea6f144d70d3fa0fe90a5d0c1c5",
         "by": "claude-worker",
         "runs": [
-          3,
-          4
+          5,
+          6
         ]
       }
     },
@@ -2135,5 +2190,5 @@
       ]
     }
   ],
-  "updated_at": "2026-10-02T23:35:04.655Z"
+  "updated_at": "2026-10-02T23:37:10.441Z"
 }
