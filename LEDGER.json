@@ -8,7 +8,7 @@
       "title": "August implant leftovers are gone and build configs pass an integrity check (.cursor, HANDOFF.md, hidden push-script ignores, postcss/vite/tailwind, lifecycle scripts)",
       "area": "incident",
       "priority": 1,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-build-config-integrity.mjs\""
       ],
@@ -72,6 +72,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/INC-01-004.log",
           "log_sha256": "3df8e656fce3e3f42d27831bc7b9ce190332186bfadcc811504acfd39669aa0a"
+        },
+        {
+          "n": 5,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-build-config-integrity.mjs\"",
+          "exit": 0,
+          "head": "ba9534a77bea6048369dc3e0753679980edbcf4e",
+          "dirty": [],
+          "at": "2026-10-02T23:19:26.408Z",
+          "ms": 382,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/INC-01-005.log",
+          "log_sha256": "3e54d7be48554fbf5a85f82cfbdc3d67de2370cc4d9936ff843d6b7f4ebd60ea"
         }
       ],
       "notes": [],
@@ -140,6 +153,13 @@
           "event": "done",
           "head": "6c72991eb659ff3abd89da513ad896d4d05ec59f",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T23:19:26.437Z",
+          "event": "verified",
+          "head": "ba9534a77bea6048369dc3e0753679980edbcf4e",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -148,6 +168,15 @@
         "by": "claude-worker",
         "runs": [
           4
+        ]
+      },
+      "verified": {
+        "at": "2026-10-02T23:19:26.423Z",
+        "head": "ba9534a77bea6048369dc3e0753679980edbcf4e",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Beyond the gate run I confirmed postcss.config.js, vite.config.ts and tailwind.config.js are byte-identical to the pre-implant blobs (ceb0925^), package.json has no install lifecycle scripts, there is no tracked or on-disk .cursor/, HANDOFF.md, .githooks/, state/, branch_structure.json or temp push script and no core.hooksPath or .git/hooks entry, and both quote styles of the loader marker are in the indicator list (the real ceb0925 payload used the double-quoted form and also trips the size, eval/spawn, network and long-line checks). Residual: the gate is heuristic (exact substrings; the eval/network checks cover only the five root config names, not e.g. .postcssrc*) and is not wired into CI; the four-file exemption is acceptable because nothing builds or imports those files; origin/main still tracks .cursor/, HANDOFF.md and the hidden .gitignore block until this branch merges.",
+        "runs": [
+          5
         ]
       }
     },
@@ -193,7 +222,7 @@
       "title": "intake-routing-apply accepts only the service role or an accepted member of the target organisation",
       "area": "security",
       "priority": 10,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/intake-routing-apply/auth.test.ts\""
       ],
@@ -240,6 +269,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-01-003.log",
           "log_sha256": "e56c2b4159ed7c7641274df140ccab39db089d4c2ac018e2c82114ba9302640a"
+        },
+        {
+          "n": 4,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/intake-routing-apply/auth.test.ts\"",
+          "exit": 0,
+          "head": "ba9534a77bea6048369dc3e0753679980edbcf4e",
+          "dirty": [],
+          "at": "2026-10-02T23:19:31.833Z",
+          "ms": 934,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-01-004.log",
+          "log_sha256": "c5e7945cdfa73144da27c08534381f2e1d709253ee572c850ee2e356cb070722"
         }
       ],
       "notes": [],
@@ -301,6 +343,13 @@
           "event": "done",
           "head": "23b7b5387c1d76f44a34b269250f4c8d3bdb3f7e",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T23:19:31.944Z",
+          "event": "verified",
+          "head": "ba9534a77bea6048369dc3e0753679980edbcf4e",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -310,6 +359,15 @@
         "runs": [
           3
         ]
+      },
+      "verified": {
+        "at": "2026-10-02T23:19:31.848Z",
+        "head": "ba9534a77bea6048369dc3e0753679980edbcf4e",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read orgRole.ts, serviceRole.ts and the handler: the guard runs before any service-role read, the organisation id comes only from the body and target rows are re-checked against it, an empty service key returns 500 before the guard, the anon/publishable key and forged service_role JWTs fall through to auth.getUser and get 401, pending invites and other-organisation memberships get 403, the ranking matches require_role (0210) and the org_role enum (0039), all backend callers (bills-extract, bank-csv-import, bank-sync, automation-worker and also ingest/handlers.ts) send the exact service-role bearer, and deno check on index.ts passes. Residual: the tests exercise auth.ts with fakes rather than the HTTP handler, and a membership-lookup error message is echoed in the 500 body.",
+        "runs": [
+          4
+        ]
       }
     },
     {
@@ -317,7 +375,7 @@
       "title": "staged-entities-enrich-sonar, bank-statement-extract, crm-pnl-sync-push and ato-lodge refuse unauthenticated calls",
       "area": "security",
       "priority": 11,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/authGuards.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/edge-auth-guards.test.ts\""
@@ -381,6 +439,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-02-004.log",
           "log_sha256": "f75d56bd889729fe01242dae152c94796166db627a4a6d9305d9932cba911f2b"
+        },
+        {
+          "n": 5,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/authGuards.test.ts\"",
+          "exit": 0,
+          "head": "ba9534a77bea6048369dc3e0753679980edbcf4e",
+          "dirty": [],
+          "at": "2026-10-02T23:19:37.893Z",
+          "ms": 1060,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-02-005.log",
+          "log_sha256": "e0e24c93edf13826344150db77e27e8b83312be603d86154928c0a6a7d4b433a"
+        },
+        {
+          "n": 6,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/edge-auth-guards.test.ts\"",
+          "exit": 0,
+          "head": "ba9534a77bea6048369dc3e0753679980edbcf4e",
+          "dirty": [],
+          "at": "2026-10-02T23:19:39.610Z",
+          "ms": 1716,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-02-006.log",
+          "log_sha256": "29972e75e04a8355012b537278af4b3c59a1a008f5976ded7edd9ca83d69f2d5"
         }
       ],
       "notes": [],
@@ -418,6 +502,13 @@
           "event": "done",
           "head": "61965c01572229e88d90f5639b67f96c47c304ad",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T23:19:39.638Z",
+          "event": "verified",
+          "head": "ba9534a77bea6048369dc3e0753679980edbcf4e",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -427,6 +518,16 @@
         "runs": [
           3,
           4
+        ]
+      },
+      "verified": {
+        "at": "2026-10-02T23:19:39.624Z",
+        "head": "ba9534a77bea6048369dc3e0753679980edbcf4e",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read all four handlers: each guard runs before any table read, Groq/Perplexity/CRM call or config-health output; enrich-sonar takes the organisation only from the body and caps batches at 25x10; Triage.tsx and BankStatementImport.tsx send the user session token and automation-worker sends the service-role bearer to crm-pnl-sync-push; deno check on all four index.ts files and the ato-lodge handler tests pass. Residual: bank-statement-extract and ato-lodge accept any signed-in user and public sign-up is enabled, so Groq credit is still spendable by anyone who registers (no membership check or rate limit); the enrich-sonar persist step (pre-existing) updates staged_entities by the model-returned id without restricting to the batch ids or the organisation; the vitest wiring test is only a source-order scan.",
+        "runs": [
+          5,
+          6
         ]
       }
     },
@@ -1589,5 +1690,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-02T23:13:13.349Z"
+  "updated_at": "2026-10-02T23:19:39.653Z"
 }
