@@ -11,7 +11,7 @@
 | SEC-01 | intake-routing-apply accepts only the service role or an accepted member of the target organisation | done | done @ 577ef865, awaiting independent verify |
 | SEC-02 | staged-entities-enrich-sonar, bank-statement-extract, crm-pnl-sync-push and ato-lodge refuse unauthenticated calls | done | done @ c67804c9, awaiting independent verify |
 | SEC-03 | Payment-run, ABA export, mark-paid, super-batch and termination functions require an accepted admin or owner | done | done @ 5ba716bb, awaiting independent verify |
-| SEC-04 | Xero and Gmail OAuth state is signed, bound to the user and mandatory on callback | in_progress | last run FAIL @ beae7c89 |
+| SEC-04 | Xero and Gmail OAuth state is signed, bound to the user and mandatory on callback | done | done @ e2d26751, awaiting independent verify |
 | SEC-05 | Writes to money tables (payees, bills, invoices, journals, period locks, employees, payment runs) need an accountant or admin role; viewers are read-only | open | not run |
 | SEC-06 | CI uses least-privilege permissions, SHA-pinned actions and a deploy job separate from build | open | not run |
 | SEC-07 | Hardening: CORS allow-list, constant-time secret checks, bundled pdf.js worker, cron secrets in headers, generic error responses | open | not run |

@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/pages/OAuthCallbackState.test.tsx"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+   Start at  09:27:15
+   Duration  1.12s (transform 77ms, setup 55ms, import 131ms, tests 350ms, environment 472ms)
+

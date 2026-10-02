@@ -728,7 +728,7 @@
       "title": "Xero and Gmail OAuth state is signed, bound to the user and mandatory on callback",
       "area": "security",
       "priority": 13,
-      "status": "in_progress",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/oauthState.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/OAuthCallbackState.test.tsx\""
@@ -767,6 +767,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-04-002.log",
           "log_sha256": "9dee552f0c0da3be7b1673cd31b92eccb9da825500ca75e6fcbb228236f11b1b"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/oauthState.test.ts\"",
+          "exit": 0,
+          "head": "e2d26751a87e771ce8766d245a3773114e1df8ff",
+          "dirty": [],
+          "at": "2026-10-02T23:27:14.568Z",
+          "ms": 646,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-04-003.log",
+          "log_sha256": "bf89bf284b6a426af7a66545eeae9fcc93e65ecdbba66b2a84aa79671df0771a"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/OAuthCallbackState.test.tsx\"",
+          "exit": 0,
+          "head": "e2d26751a87e771ce8766d245a3773114e1df8ff",
+          "dirty": [],
+          "at": "2026-10-02T23:27:16.630Z",
+          "ms": 2060,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-04-004.log",
+          "log_sha256": "20cd57e943b1783ff5724443b6c0414e95efebe35e52b9c1f24b900dc11d151d"
         }
       ],
       "notes": [],
@@ -790,8 +816,31 @@
           "actor": "claude-worker",
           "ok": false,
           "role": "worker"
+        },
+        {
+          "at": "2026-10-02T23:27:16.631Z",
+          "event": "run",
+          "head": "e2d26751a87e771ce8766d245a3773114e1df8ff",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-02T23:27:16.742Z",
+          "event": "done",
+          "head": "e2d26751a87e771ce8766d245a3773114e1df8ff",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-02T23:27:16.727Z",
+        "head": "e2d26751a87e771ce8766d245a3773114e1df8ff",
+        "by": "claude-worker",
+        "runs": [
+          3,
+          4
+        ]
+      }
     },
     {
       "id": "SEC-05",
@@ -1905,5 +1954,5 @@
       ]
     }
   ],
-  "updated_at": "2026-10-02T23:21:56.615Z"
+  "updated_at": "2026-10-02T23:27:16.757Z"
 }
