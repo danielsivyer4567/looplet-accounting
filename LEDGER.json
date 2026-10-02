@@ -1055,7 +1055,7 @@
       "title": "Writes to money tables (payees, bills, invoices, journals, period locks, employees, payment runs) need an accountant or admin role; viewers are read-only",
       "area": "security",
       "priority": 14,
-      "status": "in_progress",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/money-table-roles.sql\""
       ],
@@ -1076,6 +1076,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-05-001.log",
           "log_sha256": "a9a974f1a30d7642eda550954823deb96fad3d1117e221f1a1ceccb7c7f3a7fc"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/money-table-roles.sql\"",
+          "exit": 0,
+          "head": "d8455163c489993ca76cfc775c9307322ad7c3a3",
+          "dirty": [],
+          "at": "2026-10-02T23:52:28.383Z",
+          "ms": 41001,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-05-002.log",
+          "log_sha256": "2f7d0e56013fef65b06e5fa225c87a505df490f26eb82aa9b6d1a0269b65c35f"
         }
       ],
       "notes": [],
@@ -1099,8 +1112,30 @@
           "actor": "claude-worker",
           "ok": false,
           "role": "worker"
+        },
+        {
+          "at": "2026-10-02T23:52:28.385Z",
+          "event": "run",
+          "head": "d8455163c489993ca76cfc775c9307322ad7c3a3",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-02T23:52:28.586Z",
+          "event": "done",
+          "head": "d8455163c489993ca76cfc775c9307322ad7c3a3",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-02T23:52:28.571Z",
+        "head": "d8455163c489993ca76cfc775c9307322ad7c3a3",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "SEC-06",
@@ -2188,7 +2223,37 @@
           "actor": "claude-worker"
         }
       ]
+    },
+    {
+      "id": "MIG-01",
+      "title": "Every migration applies in order to a fresh database, so the history can rebuild the schema (no known failures left)",
+      "area": "database",
+      "priority": 30,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs --strict\""
+      ],
+      "paths": [
+        "supabase/migrations",
+        "scripts/db/known-migration-failures.json"
+      ],
+      "runs": [],
+      "notes": [
+        {
+          "at": "2026-10-02T23:52:28.870Z",
+          "by": "claude-worker",
+          "text": "Nine migrations fail on a fresh database (see scripts/db/known-migration-failures.json): a GROUP BY error in get_workstream_tasks (0200 and 20260701160000) that also breaks 0202 and 0204; a stray duplicate $$; in 0203; an index on deleted_at before the column exists in 0206; public.organisations misspelt in 0208; and 0232/0236 duplicating 0201/0205. Production history is not reconciled with local files (docs/MIGRATION_BASELINE_RUNBOOK.md), so fixes must not change what production already ran."
+        }
+      ],
+      "history": [
+        {
+          "at": "2026-10-02T23:52:28.772Z",
+          "event": "added",
+          "head": "d8455163c489993ca76cfc775c9307322ad7c3a3",
+          "actor": "claude-worker"
+        }
+      ]
     }
   ],
-  "updated_at": "2026-10-02T23:37:10.441Z"
+  "updated_at": "2026-10-02T23:52:28.870Z"
 }

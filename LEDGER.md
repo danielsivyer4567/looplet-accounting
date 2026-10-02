@@ -2,7 +2,7 @@
 
 **Goal:** Old Looplet Accounting (accounting.looplet.com.au) made legitimate, secure, modern and connected to Redbark bank feeds. Local proof first; production deploys, migrations and credential use need Daniel's explicit yes.
 
-**Progress:** 4/48 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
+**Progress:** 4/49 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
 
 | ID | Item | Status | Proof |
 |---|---|---|---|
@@ -12,7 +12,7 @@
 | SEC-02 | staged-entities-enrich-sonar, bank-statement-extract, crm-pnl-sync-push and ato-lodge refuse unauthenticated calls | verified | verified by claude-verifier (independent subagent) @ 60b94a38 |
 | SEC-03 | Payment-run, ABA export, mark-paid, super-batch and termination functions require an accepted admin or owner | done | done @ 73ce785c, awaiting independent verify |
 | SEC-04 | Xero and Gmail OAuth state is signed, bound to the user and mandatory on callback | verified | verified by claude-verifier (independent subagent) @ 60b94a38 |
-| SEC-05 | Writes to money tables (payees, bills, invoices, journals, period locks, employees, payment runs) need an accountant or admin role; viewers are read-only | in_progress | last run FAIL @ a456e080 |
+| SEC-05 | Writes to money tables (payees, bills, invoices, journals, period locks, employees, payment runs) need an accountant or admin role; viewers are read-only | done | done @ d8455163, awaiting independent verify |
 | SEC-06 | CI uses least-privilege permissions, SHA-pinned actions and a deploy job separate from build | open | not run |
 | SEC-07 | Hardening: CORS allow-list, constant-time secret checks, bundled pdf.js worker, cron secrets in headers, generic error responses | open | not run |
 | PAY-01 | Pay runs calculate wages from the base hourly rate, not the loaded cost rate | open | not run |
@@ -54,5 +54,6 @@
 | DEPLOY | Production (accounting.looplet.com.au and the edge functions) serves the verified build after Daniel says go | blocked | BLOCKED: Production changes need the owner's explicit approval. (needs: Daniel reviews screenshots and the verified ledger, then says go for the production deploy.) |
 | SEC-08 | bills-allocate-batch checks the caller's own accepted membership and needs accountant or higher to change allocations | open | not run |
 | SEC-09 | accountant-email-query matches the sender's accepted accountant memberships by role_enum, so the emailed activity digest works | open | not run |
+| MIG-01 | Every migration applies in order to a fresh database, so the history can rebuild the schema (no known failures left) | open | not run |
 
 Acceptance commands, every run, exit codes and log hashes are in LEDGER.json; logs are in .ledger/logs/.
