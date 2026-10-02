@@ -403,7 +403,7 @@
       "title": "staged-entities-enrich-sonar, bank-statement-extract, crm-pnl-sync-push and ato-lodge refuse unauthenticated calls",
       "area": "security",
       "priority": 11,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/authGuards.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/edge-auth-guards.test.ts\""
@@ -493,6 +493,32 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/SEC-02-006.log",
           "log_sha256": "29972e75e04a8355012b537278af4b3c59a1a008f5976ded7edd9ca83d69f2d5"
+        },
+        {
+          "n": 7,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/authGuards.test.ts\"",
+          "exit": 0,
+          "head": "c67804c9c47d6aa5679dce7b8dd3b020b7e9d696",
+          "dirty": [],
+          "at": "2026-10-02T23:21:35.503Z",
+          "ms": 684,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-02-007.log",
+          "log_sha256": "ca35d5d6afd5ccc91817c8ff94c6b56f2d15f5606f7c1b07854fb182aa7cacde"
+        },
+        {
+          "n": 8,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/edge-auth-guards.test.ts\"",
+          "exit": 0,
+          "head": "c67804c9c47d6aa5679dce7b8dd3b020b7e9d696",
+          "dirty": [],
+          "at": "2026-10-02T23:21:37.253Z",
+          "ms": 1749,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-02-008.log",
+          "log_sha256": "137040a089dfeebef1dca0ce40302a9262d55ec1480704e6c3b73eb794cdd709"
         }
       ],
       "notes": [],
@@ -537,25 +563,38 @@
           "head": "ba9534a77bea6048369dc3e0753679980edbcf4e",
           "actor": "claude-verifier",
           "by": "claude-verifier (independent subagent)"
+        },
+        {
+          "at": "2026-10-02T23:21:34.557Z",
+          "event": "stale",
+          "head": "c67804c9c47d6aa5679dce7b8dd3b020b7e9d696",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/functions/staged-entities-enrich-sonar/index.ts"
+          ]
+        },
+        {
+          "at": "2026-10-02T23:21:37.253Z",
+          "event": "run",
+          "head": "c67804c9c47d6aa5679dce7b8dd3b020b7e9d696",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-02T23:21:37.368Z",
+          "event": "done",
+          "head": "c67804c9c47d6aa5679dce7b8dd3b020b7e9d696",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-02T23:12:48.107Z",
-        "head": "61965c01572229e88d90f5639b67f96c47c304ad",
+        "at": "2026-10-02T23:21:37.352Z",
+        "head": "c67804c9c47d6aa5679dce7b8dd3b020b7e9d696",
         "by": "claude-worker",
         "runs": [
-          3,
-          4
-        ]
-      },
-      "verified": {
-        "at": "2026-10-02T23:19:39.624Z",
-        "head": "ba9534a77bea6048369dc3e0753679980edbcf4e",
-        "by": "claude-verifier (independent subagent)",
-        "note": "Read all four handlers: each guard runs before any table read, Groq/Perplexity/CRM call or config-health output; enrich-sonar takes the organisation only from the body and caps batches at 25x10; Triage.tsx and BankStatementImport.tsx send the user session token and automation-worker sends the service-role bearer to crm-pnl-sync-push; deno check on all four index.ts files and the ato-lodge handler tests pass. Residual: bank-statement-extract and ato-lodge accept any signed-in user and public sign-up is enabled, so Groq credit is still spendable by anyone who registers (no membership check or rate limit); the enrich-sonar persist step (pre-existing) updates staged_entities by the model-returned id without restricting to the batch ids or the organisation; the vitest wiring test is only a source-order scan.",
-        "runs": [
-          5,
-          6
+          7,
+          8
         ]
       }
     },
@@ -1779,5 +1818,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-02T23:21:03.905Z"
+  "updated_at": "2026-10-02T23:21:37.381Z"
 }
