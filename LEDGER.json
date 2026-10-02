@@ -536,7 +536,7 @@
       "title": "Payment-run, ABA export, mark-paid, super-batch and termination functions require an accepted admin or owner",
       "area": "security",
       "priority": 12,
-      "status": "in_progress",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/orgRole.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\""
@@ -575,9 +575,41 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-03-002.log",
           "log_sha256": "a4fe2b7c13cc573c6167330321c77c0875a696854853382ea768952a07c2b0e8"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/orgRole.test.ts\"",
+          "exit": 0,
+          "head": "5ba716bb25cdff9447c9a972750d1b0cbab82743",
+          "dirty": [],
+          "at": "2026-10-02T23:20:40.243Z",
+          "ms": 784,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-03-003.log",
+          "log_sha256": "8542c1984f296b4869f4916075acbbcfbb7e04800309eda42d9e86763d39f424"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\"",
+          "exit": 0,
+          "head": "5ba716bb25cdff9447c9a972750d1b0cbab82743",
+          "dirty": [],
+          "at": "2026-10-02T23:20:42.003Z",
+          "ms": 1759,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-03-004.log",
+          "log_sha256": "ceb7047eed2256958476df30da4b0919ea1d3ff65cd98dd0129a527feb036de5"
         }
       ],
-      "notes": [],
+      "notes": [
+        {
+          "at": "2026-10-02T23:20:42.277Z",
+          "by": "claude-worker",
+          "text": "Scope widened with the same fix: payroll-create-pay-run, payroll-export-stp and employee-tfn-save checked admin/owner without accepted_at; the wiring test covers all eight functions."
+        }
+      ],
       "history": [
         {
           "at": "2026-10-02T22:50:09.825Z",
@@ -598,8 +630,31 @@
           "actor": "claude-worker",
           "ok": false,
           "role": "worker"
+        },
+        {
+          "at": "2026-10-02T23:20:42.004Z",
+          "event": "run",
+          "head": "5ba716bb25cdff9447c9a972750d1b0cbab82743",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-02T23:20:42.113Z",
+          "event": "done",
+          "head": "5ba716bb25cdff9447c9a972750d1b0cbab82743",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-02T23:20:42.098Z",
+        "head": "5ba716bb25cdff9447c9a972750d1b0cbab82743",
+        "by": "claude-worker",
+        "runs": [
+          3,
+          4
+        ]
+      }
     },
     {
       "id": "SEC-04",
@@ -1690,5 +1745,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-02T23:19:39.653Z"
+  "updated_at": "2026-10-02T23:20:42.277Z"
 }
