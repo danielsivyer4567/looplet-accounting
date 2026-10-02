@@ -10,7 +10,7 @@ const CONFIDENCE_LABELS: Record<AutomationConfidence, string> = {
 
 const CONFIDENCE_COLORS: Record<AutomationConfidence, string> = {
   auto_post: 'var(--accent-success)',
-  quick_confirm: '#0075ff',
+  quick_confirm: 'var(--accent-primary)',
   review_needed: '#f59e0b',
   advisor_required: '#ef4444',
   blocked_external: '#dc2626',

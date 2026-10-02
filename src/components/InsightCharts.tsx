@@ -33,7 +33,7 @@ const toneColor: Record<InsightTone, string> = {
 };
 
 const subtleBg: Record<InsightTone, string> = {
-  primary: 'rgba(99, 102, 241, 0.12)',
+  primary: 'rgba(54, 95, 228, 0.12)',
   success: 'var(--bg-success-subtle)',
   warning: 'var(--bg-warning-subtle)',
   danger: 'var(--bg-danger-subtle)',

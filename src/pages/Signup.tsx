@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { AuthShell } from '@/components/AuthShell';
 import { BrandHeader } from '@/components/BrandHeader';
 
 /**
@@ -116,5 +117,5 @@ export function SignupPage() {
     </div>
   );
 
-  return <div className="auth-shell">{contentElement}</div>;
+  return <AuthShell>{contentElement}</AuthShell>;
 }

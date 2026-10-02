@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Globe } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { AuthShell } from '@/components/AuthShell';
 import { BrandHeader } from '@/components/BrandHeader';
 
 export function LoginPage() {
@@ -59,14 +60,15 @@ export function LoginPage() {
   const isReset = mode === 'reset';
 
   return (
-    <div className="auth-shell">
+    <AuthShell>
       <a href="#login-main" className="skip-link">
         Skip to sign-in form
       </a>
       <main id="login-main" className="auth-panel glass-panel animated-fade-in">
         <BrandHeader />
 
-        <h2 className="auth-heading">{isReset ? 'Reset password' : 'Sign in to your account'}</h2>
+        <h2 className="auth-heading">{isReset ? 'Reset password' : 'Welcome back.'}</h2>
+        {!isReset && <p className="auth-subheading">Sign in to your account.</p>}
 
         {!isReset && (
           <>
@@ -74,7 +76,7 @@ export function LoginPage() {
               type="button"
               onClick={() => void onGoogleSignIn()}
               disabled={busy || googleBusy}
-              className="btn"
+              className="btn btn-secondary"
             >
               <Globe size={16} aria-hidden="true" />
               {googleBusy ? 'Opening Google…' : 'Continue with Google'}
@@ -171,6 +173,6 @@ export function LoginPage() {
           )}
         </div>
       </main>
-    </div>
+    </AuthShell>
   );
 }

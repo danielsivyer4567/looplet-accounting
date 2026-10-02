@@ -35,7 +35,7 @@ describe('Auth mobile layout', () => {
   it('renders login in the responsive auth shell without fixed inline viewport styles', () => {
     renderAuthPage(<LoginPage />);
 
-    const heading = screen.getByRole('heading', { name: /sign in to your account/i });
+    const heading = screen.getByRole('heading', { name: /welcome back/i });
     const shell = heading.closest('.auth-shell');
     const panel = heading.closest('.auth-panel');
 
@@ -97,7 +97,7 @@ describe('Auth mobile layout', () => {
     const mobileBlock = css.slice(css.indexOf('@media (max-width: 768px)'));
 
     expect(css).toMatch(/\.auth-shell\s*\{[\s\S]*min-height:\s*100dvh/);
-    expect(css).toMatch(/\.auth-panel\s*\{[\s\S]*width:\s*min\(100%, 420px\)/);
+    expect(css).toMatch(/\.auth-panel\s*\{[\s\S]*width:\s*min\(100%, 480px\)/);
     expect(mobileBlock).toMatch(/\.auth-shell\s*\{[\s\S]*align-items:\s*flex-start/);
     expect(mobileBlock).toMatch(/\.auth-panel\s*\{[\s\S]*padding:\s*1\.5rem 1rem/);
     expect(mobileBlock).toMatch(/\.auth-row-between\s*\{[\s\S]*flex-direction:\s*column/);

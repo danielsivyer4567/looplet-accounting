@@ -38,7 +38,7 @@ import {
   CalendarClock,
 } from 'lucide-react';
 
-const FEED_COLORS = ['#6366f1', '#10b981', '#f97316', '#eab308', '#ef4444', '#22c55e', '#0ea5e9'];
+const FEED_COLORS = ['#365fe4', '#10b981', '#f97316', '#eab308', '#ef4444', '#22c55e', '#0ea5e9'];
 
 /** Stable colour per label so the same supplier/customer always gets the same badge. */
 function feedColor(label: string): string {
@@ -999,7 +999,7 @@ function DetailRow({
           style={{
             fontSize: '0.85rem',
             color:
-              label.includes('BSB') || label.includes('Account') ? '#0075ff' : 'var(--text-title)',
+              label.includes('BSB') || label.includes('Account') ? 'var(--accent-primary)' : 'var(--text-title)',
             fontWeight: 600,
             lineHeight: 1.4,
             wordBreak: 'break-word',
@@ -1047,7 +1047,7 @@ const TASK_ICONS: Record<TaskKind, typeof Clock> = {
 
 const CONFIDENCE_COLORS: Record<string, string> = {
   auto_post: 'var(--accent-success)',
-  quick_confirm: '#0075ff',
+  quick_confirm: 'var(--accent-primary)',
   review_needed: '#f59e0b',
   advisor_required: '#ef4444',
   blocked_external: '#dc2626',
@@ -1241,7 +1241,7 @@ function TodayFeed({ tasks, loading }: { tasks: WorkstreamTask[]; loading: boole
                       alignItems: 'center',
                     }}
                   >
-                    <span style={{ fontSize: '0.75rem', color: '#0075ff', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 600 }}>
                       {task.suggested_action}
                     </span>
                     {task.impact_cents != null && task.impact_cents !== 0 && (
@@ -1280,7 +1280,7 @@ function AdvisoryItem({ icon, text, link }: { icon: string; text: string; link?:
         {link ? (
           <>
             {text.replace(link, '')}
-            <span style={{ color: '#0075ff', cursor: 'pointer', fontWeight: 600 }}>{link}</span>
+            <span style={{ color: 'var(--accent-primary)', cursor: 'pointer', fontWeight: 600 }}>{link}</span>
           </>
         ) : (
           text

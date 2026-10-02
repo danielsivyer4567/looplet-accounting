@@ -462,7 +462,7 @@ export function AskPage() {
                     alignSelf: 'flex-end',
                     maxWidth: '80%',
                     padding: '0.75rem 1.25rem',
-                    background: 'linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%)',
+                    background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-hover) 100%)',
                     color: '#fff',
                     borderRadius: 'var(--radius-md) var(--radius-md) 0 var(--radius-md)',
                     fontSize: '0.9rem',

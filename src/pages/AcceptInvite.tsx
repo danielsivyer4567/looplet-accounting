@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrg } from '@/hooks/useOrg';
+import { AuthShell } from '@/components/AuthShell';
 import { BrandHeader } from '@/components/BrandHeader';
 
 /**
@@ -237,34 +238,8 @@ export function AcceptInvitePage() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        width: '100vw',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background:
-          'radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, rgba(0,0,0,0) 90%), var(--bg-app)',
-        padding: '1.5rem',
-        boxSizing: 'border-box',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        overflowY: 'auto',
-      }}
-    >
-      <div
-        className="glass-panel animated-fade-in"
-        style={{
-          maxWidth: '420px',
-          width: '100%',
-          padding: '2.5rem 2rem',
-          boxSizing: 'border-box',
-        }}
-      >
-        {content}
-      </div>
-    </div>
+    <AuthShell>
+      <div className="auth-panel glass-panel animated-fade-in">{content}</div>
+    </AuthShell>
   );
 }

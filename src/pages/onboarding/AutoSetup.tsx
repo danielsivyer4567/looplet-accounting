@@ -280,7 +280,7 @@ export function AutoSetupPage() {
                   className="btn btn-secondary"
                   style={{
                     padding: '0.625rem 1.25rem',
-                    border: '1px solid rgba(99, 102, 241, 0.4)',
+                    border: '1px solid rgba(54, 95, 228, 0.4)',
                     color: 'var(--accent-primary)',
                   }}
                 >
@@ -299,7 +299,7 @@ export function AutoSetupPage() {
               style={{
                 padding: '0.75rem 1.5rem',
                 alignSelf: 'flex-start',
-                background: 'linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%)',
+                background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-hover) 100%)',
                 fontSize: '0.9rem',
                 borderRadius: 'var(--radius-md)',
                 boxShadow: 'var(--shadow-md)',
