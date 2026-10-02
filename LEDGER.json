@@ -728,7 +728,7 @@
       "title": "Xero and Gmail OAuth state is signed, bound to the user and mandatory on callback",
       "area": "security",
       "priority": 13,
-      "status": "open",
+      "status": "in_progress",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/oauthState.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/OAuthCallbackState.test.tsx\""
@@ -741,7 +741,34 @@
         "src/pages/XeroCallback.tsx",
         "src/pages/GmailCallback.tsx"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/oauthState.test.ts\"",
+          "exit": 1,
+          "head": "beae7c897cb3b14217e7007916fe23ce2cceede2",
+          "dirty": [],
+          "at": "2026-10-02T23:21:53.712Z",
+          "ms": 284,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-04-001.log",
+          "log_sha256": "45d3ed73f62ef17389f3ae58c72cdf8f53773687f87d4320fa4478c06553971f"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/OAuthCallbackState.test.tsx\"",
+          "exit": 1,
+          "head": "beae7c897cb3b14217e7007916fe23ce2cceede2",
+          "dirty": [],
+          "at": "2026-10-02T23:21:56.600Z",
+          "ms": 2887,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-04-002.log",
+          "log_sha256": "9dee552f0c0da3be7b1673cd31b92eccb9da825500ca75e6fcbb228236f11b1b"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -749,6 +776,20 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T23:21:53.299Z",
+          "event": "start",
+          "head": "beae7c897cb3b14217e7007916fe23ce2cceede2",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T23:21:56.601Z",
+          "event": "run",
+          "head": "beae7c897cb3b14217e7007916fe23ce2cceede2",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
         }
       ]
     },
@@ -1816,7 +1857,53 @@
         "need": "Daniel reviews screenshots and the verified ledger, then says go for the production deploy.",
         "at": "2026-10-02T22:50:14.469Z"
       }
+    },
+    {
+      "id": "SEC-08",
+      "title": "bills-allocate-batch checks the caller's own accepted membership and needs accountant or higher to change allocations",
+      "area": "security",
+      "priority": 14,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bills-allocate-batch/auth.test.ts\""
+      ],
+      "paths": [
+        "supabase/functions/bills-allocate-batch"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T23:21:47.342Z",
+          "event": "added",
+          "head": "beae7c897cb3b14217e7007916fe23ce2cceede2",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "SEC-09",
+      "title": "accountant-email-query matches the sender's accepted accountant memberships by role_enum, so the emailed activity digest works",
+      "area": "security",
+      "priority": 14,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/accountant-email-query/match.test.ts\""
+      ],
+      "paths": [
+        "supabase/functions/accountant-email-query"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T23:21:47.428Z",
+          "event": "added",
+          "head": "beae7c897cb3b14217e7007916fe23ce2cceede2",
+          "actor": "claude-worker"
+        }
+      ]
     }
   ],
-  "updated_at": "2026-10-02T23:21:37.381Z"
+  "updated_at": "2026-10-02T23:21:56.615Z"
 }
