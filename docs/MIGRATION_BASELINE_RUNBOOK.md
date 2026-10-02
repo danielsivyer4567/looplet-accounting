@@ -2,12 +2,19 @@
 
 **Status:** active finish-line runbook.
 **Project:** `dxoikltymmknxqpkpyhi`.
-**Current local ceiling:** `20260703160000_xero_webhook_events.sql`.
+**Current local ceiling:** `20261003120000_money_table_write_roles.sql`.
 
 This runbook supersedes older warnings that named `0080`, `0207`, or `0236` as
 the local ceiling. The source tree now carries numbered migrations through
 `0236` plus timestamped hardening repairs through
-`20260703160000_xero_webhook_events.sql`.
+`20261003120000_money_table_write_roles.sql`.
+
+`20261003120000_money_table_write_roles.sql` (SEC-05: money-table writes need a role; payment-run items
+and pay slips must reference their own organisation) exists in source only. It has **not** been
+applied to the project; apply it with the rest of the release after the baseline check below.
+`node scripts/db/run-pg-sql-tests.mjs tests/db-sql/money-table-roles.sql` proves it against a fresh
+local database. Nine older migrations do not apply to a fresh database; they are listed with reasons in
+`scripts/db/known-migration-failures.json`.
 
 ## Baseline Status
 
