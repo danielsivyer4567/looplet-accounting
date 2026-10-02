@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
 
   // TFNs are stored only by an ACCEPTED admin or owner; a pending admin invite is not enough.
   const access = await authorizeOrgMember(user.id, organizationId, supabaseOrgAccessDeps(admin, serviceKey), 'admin');
-  if (!access.ok) return json({ ok: false, error: 'Only an admin or owner can store employee TFNs' }, access.status);
+  if (!access.ok) return json({ ok: false, error: 'Only admin or owner can store employee TFNs' }, access.status);
 
   const { data: employee, error: employeeErr } = await admin
     .from('employees')
