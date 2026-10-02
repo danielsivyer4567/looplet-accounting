@@ -30,14 +30,17 @@ const row: LegalHorizonRow = {
   last_seen_at: '2026-06-01T00:00:00Z',
 };
 
+// A chainable stand-in for a Supabase query builder. Typed explicitly because each method returns the object itself.
+type TableQuery = Record<string, ReturnType<typeof vi.fn>>;
+
 function tableQuery(data: unknown, error: { message: string } | null = null) {
-  const query = {
+  const query: TableQuery = {
     select: vi.fn(() => query),
     eq: vi.fn(() => query),
     is: vi.fn(() => query),
     order: vi.fn(() => query),
     limit: vi.fn(() => query),
-    then: vi.fn((resolve) => Promise.resolve({ data, error }).then(resolve)),
+    then: vi.fn((resolve: (value: unknown) => unknown) => Promise.resolve({ data, error }).then(resolve)),
   };
   return query;
 }
