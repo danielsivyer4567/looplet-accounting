@@ -8,7 +8,7 @@
       "title": "August implant leftovers are gone and build configs pass an integrity check (.cursor, HANDOFF.md, hidden push-script ignores, postcss/vite/tailwind, lifecycle scripts)",
       "area": "incident",
       "priority": 1,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-build-config-integrity.mjs\""
       ],
@@ -59,6 +59,19 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/INC-01-003.log",
           "log_sha256": "4b44d3b0a744fcd72159b4f730f409cc22f42f71654861c5cad614124ea0873c"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-build-config-integrity.mjs\"",
+          "exit": 0,
+          "head": "6c72991eb659ff3abd89da513ad896d4d05ec59f",
+          "dirty": [],
+          "at": "2026-10-02T23:06:20.285Z",
+          "ms": 420,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/INC-01-004.log",
+          "log_sha256": "3df8e656fce3e3f42d27831bc7b9ce190332186bfadcc811504acfd39669aa0a"
         }
       ],
       "notes": [],
@@ -103,23 +116,38 @@
           "head": "2e6b75feb9ff9b0223f1670e32484e5b67c0b167",
           "actor": "claude-verifier",
           "by": "claude-verifier (independent subagent)"
+        },
+        {
+          "at": "2026-10-02T23:06:19.733Z",
+          "event": "stale",
+          "head": "6c72991eb659ff3abd89da513ad896d4d05ec59f",
+          "actor": "claude-worker",
+          "files": [
+            ".gitignore",
+            "scripts/check-build-config-integrity.mjs"
+          ]
+        },
+        {
+          "at": "2026-10-02T23:06:20.285Z",
+          "event": "run",
+          "head": "6c72991eb659ff3abd89da513ad896d4d05ec59f",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-02T23:06:20.398Z",
+          "event": "done",
+          "head": "6c72991eb659ff3abd89da513ad896d4d05ec59f",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-02T22:59:26.878Z",
-        "head": "2e6b75feb9ff9b0223f1670e32484e5b67c0b167",
+        "at": "2026-10-02T23:06:20.383Z",
+        "head": "6c72991eb659ff3abd89da513ad896d4d05ec59f",
         "by": "claude-worker",
         "runs": [
-          2
-        ]
-      },
-      "verified": {
-        "at": "2026-10-02T23:02:21.375Z",
-        "head": "2e6b75feb9ff9b0223f1670e32484e5b67c0b167",
-        "by": "claude-verifier (independent subagent)",
-        "note": "Beyond the passing command I confirmed postcss.config.js is byte-identical to the pre-implant blob 2aa7205, no tracked or on-disk .cursor/HANDOFF.md/state/branch_structure/temp push-bat residue, no git hooks or core.hooksPath, no pre/post npm scripts, plain owner-authored vite/vitest/tailwind/eslint configs, CI workflows and .mcp.json, no indicator or _0x hits, and that the gate fails (40 problems, exit 1) on an exported ceb0925 tree; residual limits: the gate is heuristic, tracked-only and not wired into CI, its global.i indicator uses a single quote while the real payload used a double quote (still caught via ETH_RPC_URL and line length), the benign ceb0925 cover edits to src/lib/supabase.ts, src/lib/utils.ts and src/test/setup.ts remain, and origin/main plus other remote branches still track .cursor/ and HANDOFF.md, with origin/audit/completion-scorecard, origin/integrate/finish-line-foundation and origin/mario/chore/production-readiness-pass still carrying the live postcss payload.",
-        "runs": [
-          3
+          4
         ]
       }
     },
@@ -1330,5 +1358,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-02T23:02:21.405Z"
+  "updated_at": "2026-10-02T23:06:20.412Z"
 }

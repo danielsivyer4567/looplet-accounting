@@ -1,0 +1,2 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/check-build-config-integrity.mjs"
+Build-config integrity check passed: 1042 tracked files, 5 build configs, no implant indicators.
