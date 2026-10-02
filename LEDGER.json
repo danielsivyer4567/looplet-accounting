@@ -1,0 +1,1242 @@
+{
+  "version": 1,
+  "goal": "Old Looplet Accounting (accounting.looplet.com.au) made legitimate, secure, modern and connected to Redbark bank feeds. Local proof first; production deploys, migrations and credential use need Daniel's explicit yes.",
+  "created_at": "2026-10-02T22:50:09.447Z",
+  "items": [
+    {
+      "id": "INC-01",
+      "title": "August implant leftovers are gone and build configs pass an integrity check (.cursor, HANDOFF.md, hidden push-script ignores, postcss/vite/tailwind, lifecycle scripts)",
+      "area": "incident",
+      "priority": 1,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-build-config-integrity.mjs\""
+      ],
+      "paths": [
+        "postcss.config.js",
+        "vite.config.ts",
+        "tailwind.config.js",
+        "package.json",
+        ".gitignore",
+        "scripts/check-build-config-integrity.mjs"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:09.507Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "INC-02",
+      "title": "Credentials exposed by the August implant are rotated and recorded (Supabase service-role/JWT secret/DB password/access tokens, Cloudflare token, integration keys, GitHub PATs)",
+      "area": "incident",
+      "priority": 2,
+      "status": "blocked",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-rotation-record.mjs\""
+      ],
+      "paths": [
+        "docs/security/ROTATION-2026-10.md",
+        "scripts/check-rotation-record.mjs"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:09.585Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T22:50:13.996Z",
+          "event": "blocked",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker",
+          "reason": "Rotation of credentials exposed between 2026-08-08 and 2026-08-29 has not been recorded.",
+          "need": "Daniel rotates the Supabase service-role key, JWT secret, DB password and access tokens, the Cloudflare API token (and GitHub repo secrets), Xero/Gmail/Groq/Perplexity/Resend keys, ENCRYPTION_KEY and GitHub PATs, then confirms the rotation record."
+        }
+      ],
+      "blocked": {
+        "reason": "Rotation of credentials exposed between 2026-08-08 and 2026-08-29 has not been recorded.",
+        "need": "Daniel rotates the Supabase service-role key, JWT secret, DB password and access tokens, the Cloudflare API token (and GitHub repo secrets), Xero/Gmail/Groq/Perplexity/Resend keys, ENCRYPTION_KEY and GitHub PATs, then confirms the rotation record.",
+        "at": "2026-10-02T22:50:13.996Z"
+      }
+    },
+    {
+      "id": "SEC-01",
+      "title": "intake-routing-apply accepts only the service role or an accepted member of the target organisation",
+      "area": "security",
+      "priority": 10,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/intake-routing-apply/auth.test.ts\""
+      ],
+      "paths": [
+        "supabase/functions/intake-routing-apply",
+        "supabase/functions/_shared"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:09.663Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "SEC-02",
+      "title": "staged-entities-enrich-sonar, bank-statement-extract, crm-pnl-sync-push and ato-lodge refuse unauthenticated calls",
+      "area": "security",
+      "priority": 11,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/authGuards.test.ts\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/edge-auth-guards.test.ts\""
+      ],
+      "paths": [
+        "supabase/functions/staged-entities-enrich-sonar",
+        "supabase/functions/bank-statement-extract",
+        "supabase/functions/crm-pnl-sync-push",
+        "supabase/functions/ato-lodge",
+        "supabase/functions/_shared/authGuards.ts"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:09.748Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "SEC-03",
+      "title": "Payment-run, ABA export, mark-paid, super-batch and termination functions require an accepted admin or owner",
+      "area": "security",
+      "priority": 12,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/orgRole.test.ts\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\""
+      ],
+      "paths": [
+        "supabase/functions/payment-runs-create",
+        "supabase/functions/payment-runs-aba-export",
+        "supabase/functions/payment-runs-mark-paid",
+        "supabase/functions/super-batch-send",
+        "supabase/functions/payroll-termination",
+        "supabase/functions/_shared/orgRole.ts"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:09.825Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "SEC-04",
+      "title": "Xero and Gmail OAuth state is signed, bound to the user and mandatory on callback",
+      "area": "security",
+      "priority": 13,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/oauthState.test.ts\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/OAuthCallbackState.test.tsx\""
+      ],
+      "paths": [
+        "supabase/functions/xero-oauth-start",
+        "supabase/functions/xero-oauth-callback",
+        "supabase/functions/gmail-oauth-start",
+        "supabase/functions/gmail-oauth-callback",
+        "src/pages/XeroCallback.tsx",
+        "src/pages/GmailCallback.tsx"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:09.988Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "SEC-05",
+      "title": "Writes to money tables (payees, bills, invoices, journals, period locks, employees, payment runs) need an accountant or admin role; viewers are read-only",
+      "area": "security",
+      "priority": 14,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/money-table-roles.sql\""
+      ],
+      "paths": [
+        "supabase/migrations",
+        "tests/db-sql/money-table-roles.sql"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:10.072Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "SEC-06",
+      "title": "CI uses least-privilege permissions, SHA-pinned actions and a deploy job separate from build",
+      "area": "security",
+      "priority": 15,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\""
+      ],
+      "paths": [
+        ".github/workflows"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:10.159Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "SEC-07",
+      "title": "Hardening: CORS allow-list, constant-time secret checks, bundled pdf.js worker, cron secrets in headers, generic error responses",
+      "area": "security",
+      "priority": 16,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/cors.test.ts\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/hardening-contract.test.ts\""
+      ],
+      "paths": [
+        "supabase/functions/_shared",
+        "src/components/settings/BankStatementImport.tsx",
+        "src/components/DocumentPreviewModal.tsx",
+        "public/_headers",
+        "supabase/migrations"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:10.244Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "PAY-01",
+      "title": "Pay runs calculate wages from the base hourly rate, not the loaded cost rate",
+      "area": "payroll",
+      "priority": 20,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/calc.test.ts\""
+      ],
+      "paths": [
+        "supabase/functions/payroll-create-pay-run"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:10.325Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "PAY-02",
+      "title": "Super defaults to the statutory rate (12%) and a pay run never applies less than the SG rate for the pay date",
+      "area": "payroll",
+      "priority": 21,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeSuperDefault.test.tsx\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/super.test.ts\""
+      ],
+      "paths": [
+        "src/pages/Employees.tsx",
+        "src/pages/EmployeeDetail.tsx",
+        "supabase/functions/payroll-create-pay-run"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:10.411Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "PAY-03",
+      "title": "PAYG withholding uses the financial year of the pay date and fails loudly instead of returning $0 when no table applies",
+      "area": "payroll",
+      "priority": 22,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-year-selection.sql\""
+      ],
+      "paths": [
+        "supabase/migrations",
+        "tests/db-sql/payg-year-selection.sql"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:10.578Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "PAY-04",
+      "title": "FY2026-27 PAYG withholding tables match the ATO schedule (NAT 1004) worked examples",
+      "area": "payroll",
+      "priority": 23,
+      "status": "blocked",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-2026-27-ato-examples.sql\""
+      ],
+      "paths": [
+        "supabase/migrations",
+        "tests/db-sql/payg-2026-27-ato-examples.sql"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:10.654Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T22:50:14.156Z",
+          "event": "blocked",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker",
+          "reason": "The FY2026-27 withholding coefficients must come from the ATO published schedule, not be guessed.",
+          "need": "Official ATO NAT 1004 (Schedule 1) coefficients and worked examples for 1 July 2026 onwards, sourced and checked."
+        }
+      ],
+      "blocked": {
+        "reason": "The FY2026-27 withholding coefficients must come from the ATO published schedule, not be guessed.",
+        "need": "Official ATO NAT 1004 (Schedule 1) coefficients and worked examples for 1 July 2026 onwards, sourced and checked.",
+        "at": "2026-10-02T22:50:14.156Z"
+      }
+    },
+    {
+      "id": "PAY-05",
+      "title": "Payday Super (from 1 July 2026) drives super due dates instead of quarterly batching",
+      "area": "payroll",
+      "priority": 24,
+      "status": "blocked",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payday-super.sql\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/PaydaySuper.test.tsx\""
+      ],
+      "paths": [
+        "supabase/migrations",
+        "src/pages/Payroll.tsx"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:10.732Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T22:50:14.234Z",
+          "event": "blocked",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker",
+          "reason": "Payday Super start date and rules must be confirmed against legislation before changing super due dates.",
+          "need": "Confirmation that Payday Super applies from 1 July 2026 and the final due-date rule (e.g. within 7 days of payday)."
+        }
+      ],
+      "blocked": {
+        "reason": "Payday Super start date and rules must be confirmed against legislation before changing super due dates.",
+        "need": "Confirmation that Payday Super applies from 1 July 2026 and the final due-date rule (e.g. within 7 days of payday).",
+        "at": "2026-10-02T22:50:14.234Z"
+      }
+    },
+    {
+      "id": "XERO-01",
+      "title": "Bills and invoices are never marked synced to Xero unless Xero accepted them (no STUB ids in production)",
+      "area": "legitimacy",
+      "priority": 30,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/xero/adapter.test.ts\""
+      ],
+      "paths": [
+        "supabase/functions/_shared/xero",
+        "supabase/functions/bills-attach",
+        "supabase/functions/_shared/bills",
+        "supabase/functions/receipt-sync-dispatch"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:10.807Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "FAKE-01",
+      "title": "Receipt Hub has no POS simulator, fake receipts or hard-coded demo figures",
+      "area": "legitimacy",
+      "priority": 31,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ReceiptHubNoDemo.test.tsx\""
+      ],
+      "paths": [
+        "src/pages/ReceiptHub.tsx",
+        "src/components/Layout.tsx"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:10.893Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "FAKE-02",
+      "title": "The Scan page describes only the checks it really runs (no simulated AI audit)",
+      "area": "legitimacy",
+      "priority": 32,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ScanHonest.test.tsx\""
+      ],
+      "paths": [
+        "src/pages/Scan.tsx"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:11.058Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "CONSENT-01",
+      "title": "Settings has no pre-ticked, unsaved or unrelated template consent switches",
+      "area": "legitimacy",
+      "priority": 33,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/SettingsConsent.test.tsx\""
+      ],
+      "paths": [
+        "src/pages/Settings.tsx"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:11.137Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "LEGAL-01",
+      "title": "A privacy policy, terms of service and collection notice are published, linked, and accepted at sign-up",
+      "area": "legitimacy",
+      "priority": 34,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LegalPages.test.tsx\""
+      ],
+      "paths": [
+        "src/pages",
+        "src/App.tsx"
+      ],
+      "runs": [],
+      "notes": [
+        {
+          "at": "2026-10-02T22:50:14.544Z",
+          "by": "claude-worker",
+          "text": "Drafts can be written here, but a qualified reviewer must approve the privacy policy and terms before they are published or this item is verified."
+        }
+      ],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:11.214Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "AI-01",
+      "title": "AI answers and advice are labelled general information, and the model is allowed to recommend an accountant",
+      "area": "legitimacy",
+      "priority": 35,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AiDisclaimer.test.tsx\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/ask-bot/prompt.test.ts\""
+      ],
+      "paths": [
+        "src/pages/Ask.tsx",
+        "src/components/AdviceCard.tsx",
+        "supabase/functions/ask-bot",
+        "supabase/functions/advisor"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:11.342Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "TFN-01",
+      "title": "TFNs are never returned to the browser or stored in plain text",
+      "area": "legitimacy",
+      "priority": 36,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/tfn-handling.test.ts\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/trust-tfn-encryption.sql\""
+      ],
+      "paths": [
+        "supabase/functions/payroll-export-stp",
+        "src/pages/PayRunDetail.tsx",
+        "supabase/migrations"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:11.425Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "LODGE-01",
+      "title": "Nothing claims to lodge with the ATO or send to a super fund when it only prepares a file",
+      "area": "legitimacy",
+      "priority": 37,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LodgementWording.test.tsx\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/super-batch-send/status.test.ts\""
+      ],
+      "paths": [
+        "src/pages",
+        "src/components/IntentLauncher.tsx",
+        "src/components/Layout.tsx",
+        "supabase/functions/super-batch-send"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:11.502Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "BANK-01",
+      "title": "Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs",
+      "area": "bank",
+      "priority": 40,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\""
+      ],
+      "paths": [
+        "supabase/functions",
+        "src",
+        "public/_headers",
+        ".mcp.json",
+        "docs",
+        ".env.example"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:11.666Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "BANK-02",
+      "title": "Redbark client pages accounts and transactions, splits truncated date windows, converts dollars to exact cents and skips pending rows",
+      "area": "bank",
+      "priority": 41,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/redbark/client.test.ts\""
+      ],
+      "paths": [
+        "supabase/functions/_shared/redbark"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:11.752Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "BANK-03",
+      "title": "bank-webhook verifies Redbark signatures and timestamps, stores the event before acting and dispatches one sync per linked connection",
+      "area": "bank",
+      "priority": 42,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/bankfeed/webhook.test.ts supabase/functions/bank-webhook/handler.test.ts\""
+      ],
+      "paths": [
+        "supabase/functions/bank-webhook",
+        "supabase/functions/_shared/bankfeed"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:11.832Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "BANK-04",
+      "title": "bank-sync imports Redbark transactions idempotently on (bank account, provider id) and keeps the post-sync chain",
+      "area": "bank",
+      "priority": 43,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bank-sync/sync.test.ts\""
+      ],
+      "paths": [
+        "supabase/functions/bank-sync",
+        "supabase/functions/bank-sync-all",
+        "supabase/functions/_shared/redbark"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:11.911Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "BANK-05",
+      "title": "Admins can list Redbark accounts and link each one to a bank account with an import-from date",
+      "area": "bank",
+      "priority": 44,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bank-feed-link/link.test.ts\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/BankFeedLink.test.tsx\""
+      ],
+      "paths": [
+        "supabase/functions/bank-feed-accounts",
+        "supabase/functions/bank-feed-link",
+        "src/components/settings/BankConnect.tsx"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:11.993Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "BANK-06",
+      "title": "Redbark migrations apply cleanly and enforce one organisation per Redbark connection",
+      "area": "bank",
+      "priority": 45,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/redbark-migrations.sql\""
+      ],
+      "paths": [
+        "supabase/migrations",
+        "tests/db-sql/redbark-migrations.sql"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:12.145Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "BANK-07",
+      "title": "Redbark is live: migrations applied, functions deployed, secrets set and the destination delivering into the books",
+      "area": "bank",
+      "priority": 46,
+      "status": "blocked",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/live/check-redbark-live.mjs\""
+      ],
+      "paths": [
+        "scripts/live/check-redbark-live.mjs"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:12.231Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T22:50:14.311Z",
+          "event": "blocked",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker",
+          "reason": "Deploying needs a Supabase access token, function secrets and credential rotation first.",
+          "need": "Daniel: credential rotation (INC-02), a scoped Supabase access token for project looplet accounting (Database + Edge functions), the Redbark API key and webhook secret entered at a hidden prompt, and an explicit yes to deploy."
+        }
+      ],
+      "blocked": {
+        "reason": "Deploying needs a Supabase access token, function secrets and credential rotation first.",
+        "need": "Daniel: credential rotation (INC-02), a scoped Supabase access token for project looplet accounting (Database + Edge functions), the Redbark API key and webhook secret entered at a hidden prompt, and an explicit yes to deploy.",
+        "at": "2026-10-02T22:50:14.311Z"
+      }
+    },
+    {
+      "id": "STP-01",
+      "title": "Employees TFNs can be captured securely so the STP export can complete",
+      "area": "broken",
+      "priority": 50,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeTfnCapture.test.tsx\""
+      ],
+      "paths": [
+        "src/pages/EmployeeDetail.tsx",
+        "supabase/functions/employee-tfn-save"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:12.312Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "CSP-01",
+      "title": "PDF previews and the microphone feature work under the production security headers",
+      "area": "broken",
+      "priority": 51,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/csp-headers.test.ts\""
+      ],
+      "paths": [
+        "public/_headers"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:12.396Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "BAS-01",
+      "title": "BAS includes credit notes, supports cash basis and computes W3/W4 instead of hard-coded zeros",
+      "area": "broken",
+      "priority": 52,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bas-correctness.sql\""
+      ],
+      "paths": [
+        "supabase/migrations",
+        "tests/db-sql/bas-correctness.sql"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:12.558Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "GST-01",
+      "title": "No GST credit is invented when GST is missing or the supplier is not GST-registered",
+      "area": "broken",
+      "priority": 53,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/gstNoInvention.test.ts\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/receipt-webhook/gst.test.ts\""
+      ],
+      "paths": [
+        "src/pages/ReceiptHub.tsx",
+        "src/pages/BillDetail.tsx",
+        "supabase/functions/receipt-webhook"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:12.649Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "TAX-01",
+      "title": "The tax set-aside uses GST-exclusive figures for one financial year",
+      "area": "broken",
+      "priority": 54,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/tax-set-aside.sql\""
+      ],
+      "paths": [
+        "supabase/migrations",
+        "tests/db-sql/tax-set-aside.sql"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:12.725Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "INV-01",
+      "title": "Invoices can be issued as a tax invoice (PDF with \"Tax invoice\", ABN and GST) and sent",
+      "area": "broken",
+      "priority": 55,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/TaxInvoiceIssue.test.tsx\""
+      ],
+      "paths": [
+        "src/pages/InvoiceDetail.tsx"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:12.880Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "DATE-01",
+      "title": "Default dates use Australian local time, not UTC",
+      "area": "broken",
+      "priority": 56,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/localDates.test.ts\""
+      ],
+      "paths": [
+        "src/lib",
+        "src/pages",
+        "src/hooks"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:12.960Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "SEED-01",
+      "title": "New organisations do not inherit the pilot business known-sender list",
+      "area": "broken",
+      "priority": 57,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/known-senders-seed.sql\""
+      ],
+      "paths": [
+        "supabase/migrations",
+        "tests/db-sql/known-senders-seed.sql"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:13.045Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "XERO-02",
+      "title": "The Xero bank pull writes schema-valid rows (real connection, valid account type)",
+      "area": "broken",
+      "priority": 58,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/xero-pull-bank-transactions/rows.test.ts\""
+      ],
+      "paths": [
+        "supabase/functions/xero-pull-bank-transactions"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:13.124Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "BS-01",
+      "title": "The balance sheet does not count credit-card and loan balances as both cash and debts",
+      "area": "broken",
+      "priority": 59,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/balance-sheet-debts.sql\""
+      ],
+      "paths": [
+        "supabase/migrations",
+        "tests/db-sql/balance-sheet-debts.sql"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:13.204Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "CI-01",
+      "title": "CI runs the Deno edge-function tests and reports environment-gated test files instead of skipping them silently",
+      "area": "broken",
+      "priority": 60,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-test-coverage.test.ts\""
+      ],
+      "paths": [
+        ".github/workflows",
+        "vitest.config.ts"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:13.285Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "UI-01",
+      "title": "Light theme polish: themed colours everywhere, no hard-coded dark-only colours, auth screens in the new style",
+      "area": "ui",
+      "priority": 70,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-hardcoded-colours.mjs\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AuthMobile.test.tsx\""
+      ],
+      "paths": [
+        "src",
+        "index.html",
+        "scripts/check-hardcoded-colours.mjs"
+      ],
+      "runs": [],
+      "notes": [
+        {
+          "at": "2026-10-02T22:50:14.605Z",
+          "by": "claude-worker",
+          "text": "Theme and colour work already committed: cbe0910 (light theme, auth shell) and 2735b7e (336 colours themed, contrast, focus, tables). Acceptance scripts still to be written."
+        }
+      ],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:13.368Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "UI-02",
+      "title": "Shared PageHeader, Stat, StatusBadge, EmptyState, Alert and Field replace page-local copies",
+      "area": "ui",
+      "priority": 71,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/SharedPrimitives.test.tsx\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-ui-duplication.mjs\""
+      ],
+      "paths": [
+        "src/components/ui",
+        "src/pages",
+        "scripts/check-ui-duplication.mjs"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:13.518Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "UI-03",
+      "title": "Modern app shell: labelled sectioned sidebar, top bar with breadcrumbs, org switcher, user menu, command palette",
+      "area": "ui",
+      "priority": 72,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/AppShell.test.tsx\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/LayoutResponsive.test.tsx\""
+      ],
+      "paths": [
+        "src/components/Layout.tsx",
+        "src/components/OrgSelector.tsx",
+        "src/components/NotificationBell.tsx"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:13.596Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "UI-04",
+      "title": "Accessibility: contrast-safe colour tokens, keyboard focus everywhere, labelled icon buttons, no text under 11px",
+      "area": "ui",
+      "priority": 73,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-a11y-tokens.mjs\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/a11y/IconButtons.test.tsx\""
+      ],
+      "paths": [
+        "src/index.css",
+        "src/components",
+        "src/pages",
+        "scripts/check-a11y-tokens.mjs"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:13.752Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "SHIP",
+      "title": "Ship gate: typecheck, lint, the full test suite (Vitest and Deno) and the production build all pass",
+      "area": "release",
+      "priority": 90,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run typecheck\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run lint\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"set -a && . ./.env.production && set +a && npx vitest run \"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run build\""
+      ],
+      "paths": [
+        "src",
+        "supabase",
+        "tests",
+        "package.json",
+        "vite.config.ts",
+        "index.html",
+        "public"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:13.837Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "DEPLOY",
+      "title": "Production (accounting.looplet.com.au and the edge functions) serves the verified build after Daniel says go",
+      "area": "release",
+      "priority": 95,
+      "status": "blocked",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/live/check-production.mjs\""
+      ],
+      "paths": [
+        "scripts/live/check-production.mjs"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-02T22:50:13.916Z",
+          "event": "added",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T22:50:14.469Z",
+          "event": "blocked",
+          "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
+          "actor": "claude-worker",
+          "reason": "Production changes need the owner's explicit approval.",
+          "need": "Daniel reviews screenshots and the verified ledger, then says go for the production deploy."
+        }
+      ],
+      "blocked": {
+        "reason": "Production changes need the owner's explicit approval.",
+        "need": "Daniel reviews screenshots and the verified ledger, then says go for the production deploy.",
+        "at": "2026-10-02T22:50:14.469Z"
+      }
+    }
+  ],
+  "updated_at": "2026-10-02T22:50:14.605Z"
+}
