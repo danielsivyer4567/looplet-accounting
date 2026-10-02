@@ -44,3 +44,38 @@ describe('payment, payroll, super, termination and TFN functions require an acce
     });
   }
 });
+
+describe('payment-run bill writes stay inside the authorised organisation', () => {
+  // Each statement that writes bills, from `.from('bills')` to the end of the chain.
+  const billWrites = (src: string) =>
+    [...src.matchAll(/\.from\('bills'\)\s*\.update\([\s\S]*?;/g)].map((m) => m[0]);
+
+  it('payment-runs-create links only the loaded bills of this organisation, never raw request ids', () => {
+    const src = source('payment-runs-create');
+    const writes = billWrites(src);
+    expect(writes).toHaveLength(1);
+    expect(writes[0]).toContain(".in('id', linkedBillIds)");
+    expect(writes[0]).toContain(".eq('organization_id', organization_id)");
+    expect(src).toContain('const linkedBillIds = items.map((item) => item.bill_id);');
+    expect(writes[0]).not.toContain('bill_ids');
+  });
+
+  it('payment-runs-mark-paid reads items and marks bills paid only within the run organisation', () => {
+    const src = source('payment-runs-mark-paid');
+    const writes = billWrites(src);
+    expect(writes).toHaveLength(1);
+    expect(writes[0]).toContain(".eq('organization_id', organization_id)");
+    const itemsLoad = src.slice(src.indexOf(".from('payment_run_items')"), src.indexOf("if (itemsErr)"));
+    expect(itemsLoad).toContain(".eq('organization_id', organization_id)");
+  });
+});
+
+describe('team-invite', () => {
+  it('requires an accepted admin or owner before inviting, so a pending admin invite cannot invite others', () => {
+    const src = source('team-invite');
+    const guard = at(src, "authorizeOrgMember(user.id, organization_id, supabaseOrgAccessDeps(adminClient, serviceKey), 'admin')");
+    expect(guard).toBeLessThan(at(src, '.insert('));
+    expect(src).toContain('ROLE_RANK[access.caller.role as OrgRole]');
+    expect(src).not.toMatch(/userClient\s*\.from\('organization_memberships'\)/);
+  });
+});

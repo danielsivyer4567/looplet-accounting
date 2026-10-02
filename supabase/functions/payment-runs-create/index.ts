@@ -245,10 +245,13 @@ Deno.serve(async (req) => {
   // --------------------------------------------------------------------------
   // 9. Mark bills as part of this run
   // --------------------------------------------------------------------------
+  // Only the bills loaded above (already filtered to this organisation), never the raw ids from the request body.
+  const linkedBillIds = items.map((item) => item.bill_id);
   const { error: billUpdateErr } = await admin
     .from('bills')
     .update({ payment_run_id })
-    .in('id', bill_ids);
+    .in('id', linkedBillIds)
+    .eq('organization_id', organization_id);
 
   if (billUpdateErr) {
     return json({ ok: false, error: `Failed to link bills: ${billUpdateErr.message}` }, 500);

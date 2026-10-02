@@ -27,6 +27,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { authorizeOrgMember, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 
 type OrgRole = 'viewer' | 'employee' | 'accountant' | 'admin' | 'owner';
 
@@ -105,28 +106,14 @@ Deno.serve(async (req) => {
   }
 
   // --------------------------------------------------------------------------
-  // 3. Verify caller has admin+ role for this org
-  //    We read from organization_memberships via the userClient (RLS applies).
+  // 3. Verify caller is an ACCEPTED admin or owner of this org (a pending admin
+  //    invite must not be able to invite others).
   // --------------------------------------------------------------------------
-  const { data: callerMembership, error: memErr } = await userClient
-    .from('organization_memberships')
-    .select('role_enum')
-    .eq('user_id', user.id)
-    .eq('organization_id', organization_id)
-    .maybeSingle();
-
-  if (memErr) {
-    return json({ ok: false, error: 'Failed to verify membership' }, 500);
+  const access = await authorizeOrgMember(user.id, organization_id, supabaseOrgAccessDeps(adminClient, serviceKey), 'admin');
+  if (!access.ok || access.caller.kind !== 'member') {
+    return json({ ok: false, error: 'Only an admin or owner can invite members' }, access.ok ? 403 : access.status);
   }
-
-  if (!callerMembership || callerMembership.role_enum === null) {
-    return json({ ok: false, error: 'You are not a member of this organisation' }, 403);
-  }
-
-  const callerRank = ROLE_RANK[callerMembership.role_enum as OrgRole] ?? -1;
-  if (callerRank < ROLE_RANK['admin']) {
-    return json({ ok: false, error: 'Only admin or owner can invite members' }, 403);
-  }
+  const callerRank = ROLE_RANK[access.caller.role as OrgRole] ?? -1;
 
   // Cannot invite someone to a role higher than your own
   if (ROLE_RANK[normalizedRole] > callerRank) {
