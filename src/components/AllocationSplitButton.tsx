@@ -204,7 +204,7 @@ export function AllocationSplitButton({
           <div
             style={{
               fontSize: 11,
-              color: '#666',
+              color: 'var(--text-muted)',
               textTransform: 'uppercase',
               letterSpacing: 0.5,
               marginBottom: 6,
@@ -231,14 +231,14 @@ export function AllocationSplitButton({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '0.4rem 0',
-                  borderBottom: '1px solid #2a2a2a',
+                  borderBottom: '1px solid var(--border-subtle)',
                   fontSize: 12,
                 }}
               >
-                <span style={{ color: '#86c7a3' }}>
-                  ★ {hostOrgName} <span style={{ color: '#666' }}>(host)</span>
+                <span style={{ color: 'var(--text-success)' }}>
+                  ★ {hostOrgName} <span style={{ color: 'var(--text-muted)' }}>(host)</span>
                 </span>
-                <span style={{ color: '#86c7a3', fontWeight: 600 }}>{hostShare.toFixed(2)}%</span>
+                <span style={{ color: 'var(--text-success)', fontWeight: 600 }}>{hostShare.toFixed(2)}%</span>
               </div>
 
               {splits.map((s) => {
@@ -253,7 +253,7 @@ export function AllocationSplitButton({
                         gap: 6,
                       }}
                     >
-                      <span style={{ fontSize: 12, color: '#ddd' }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-body)' }}>
                         {org?.name ?? s.organization_id.slice(0, 8)}
                       </span>
                       <div className="allocation-split-row__controls">
@@ -267,23 +267,23 @@ export function AllocationSplitButton({
                           style={{
                             width: 70,
                             padding: '3px 5px',
-                            background: '#000',
-                            color: '#ddd',
-                            border: '1px solid #333',
+                            background: 'var(--bg-panel)',
+                            color: 'var(--text-body)',
+                            border: '1px solid var(--border-subtle)',
                             borderRadius: 3,
                             fontSize: 12,
                             textAlign: 'right',
                           }}
                         />
-                        <span style={{ fontSize: 12, color: '#888' }}>%</span>
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>%</span>
                         <button
                           onClick={() => removeRow(s.organization_id)}
                           style={{
                             marginLeft: 4,
                             padding: '0.15rem 0.4rem',
                             background: 'transparent',
-                            color: '#888',
-                            border: '1px solid #333',
+                            color: 'var(--text-muted)',
+                            border: '1px solid var(--border-subtle)',
                             borderRadius: 3,
                             fontSize: 11,
                             cursor: 'pointer',
@@ -301,9 +301,9 @@ export function AllocationSplitButton({
                       style={{
                         width: '100%',
                         padding: '3px 5px',
-                        background: '#000',
-                        color: '#aaa',
-                        border: '1px solid #222',
+                        background: 'var(--bg-panel)',
+                        color: 'var(--text-muted)',
+                        border: '1px solid var(--border-subtle)',
                         borderRadius: 3,
                         fontSize: 11,
                         boxSizing: 'border-box',
@@ -324,9 +324,9 @@ export function AllocationSplitButton({
                     style={{
                       width: '100%',
                       padding: '5px 8px',
-                      background: '#000',
-                      color: '#ddd',
-                      border: '1px solid #333',
+                      background: 'var(--bg-panel)',
+                      color: 'var(--text-body)',
+                      border: '1px solid var(--border-subtle)',
                       borderRadius: 3,
                       fontSize: 12,
                     }}
@@ -368,7 +368,7 @@ export function AllocationSplitButton({
                     flex: 1,
                     padding: '0.4rem',
                     background: overTotal ? '#3d1818' : '#1c4868',
-                    color: '#fff',
+                    color: 'var(--text-title)',
                     border: '1px solid ' + (overTotal ? '#7d3838' : '#5096d8'),
                     borderRadius: 3,
                     fontSize: 12,
@@ -384,8 +384,8 @@ export function AllocationSplitButton({
                   style={{
                     padding: '0.4rem 0.75rem',
                     background: 'transparent',
-                    color: '#888',
-                    border: '1px solid #333',
+                    color: 'var(--text-muted)',
+                    border: '1px solid var(--border-subtle)',
                     borderRadius: 3,
                     fontSize: 12,
                     cursor: 'pointer',
@@ -394,7 +394,7 @@ export function AllocationSplitButton({
                   cancel
                 </button>
               </div>
-              {err && <p style={{ margin: '0.5rem 0 0', color: 'salmon', fontSize: 11 }}>{err}</p>}
+              {err && <p style={{ margin: '0.5rem 0 0', color: 'var(--text-danger)', fontSize: 11 }}>{err}</p>}
             </>
           )}
         </div>

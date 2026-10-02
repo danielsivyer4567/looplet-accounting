@@ -158,7 +158,7 @@ const DrawingModal: React.FC<DrawingModalProps> = ({ onSave, onCancel }) => {
   const [drawingState, setDrawingState] = useState<DrawingState>({
     isActive: false,
     tool: 'pencil' as DrawingTool,
-    color: '#ef4444',
+    color: 'var(--text-danger)',
     lineWidth: 3,
     isSmartShapeEnabled: false,
   });

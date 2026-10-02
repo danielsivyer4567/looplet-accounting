@@ -482,7 +482,7 @@ export function SubscriptionsPage() {
       >
         <Info
           className="w-5 h-5 text-accent-primary"
-          style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--accent-primary)' }}
+          style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--text-link)' }}
         />
         <div>
           <strong style={{ color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>
@@ -529,7 +529,7 @@ function SubRow({
               navigate(`/subscriptions/${s.id}`);
             }}
             href={`/subscriptions/${s.id}`}
-            style={{ fontWeight: 600, color: 'var(--accent-primary)', textDecoration: 'none' }}
+            style={{ fontWeight: 600, color: 'var(--text-link)', textDecoration: 'none' }}
           >
             {s.merchant_name}
           </a>
@@ -603,7 +603,7 @@ function SubscriptionCard({
             href={`/subscriptions/${s.id}`}
             style={{
               fontWeight: 700,
-              color: 'var(--accent-primary)',
+              color: 'var(--text-link)',
               textDecoration: 'none',
             }}
           >

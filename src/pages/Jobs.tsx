@@ -105,7 +105,7 @@ export function JobsPage() {
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Briefcase size={24} style={{ color: 'var(--accent-primary)' }} />
+          <Briefcase size={24} style={{ color: 'var(--text-link)' }} />
           Jobs
         </h1>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -355,7 +355,7 @@ function JobCard({ job, onOpen }: { job: JobListRow; onOpen: () => void }) {
               e.preventDefault();
               onOpen();
             }}
-            style={{ fontWeight: 700, color: 'var(--accent-primary)', textDecoration: 'none' }}
+            style={{ fontWeight: 700, color: 'var(--text-link)', textDecoration: 'none' }}
           >
             <code>{job.job_number}</code> · {job.name}
           </a>
@@ -464,7 +464,7 @@ function CreateJobForm({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.5rem' }}>
       <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <Plus size={18} style={{ color: 'var(--accent-primary)' }} />
+        <Plus size={18} style={{ color: 'var(--text-link)' }} />
         Create New Job
       </h3>
 

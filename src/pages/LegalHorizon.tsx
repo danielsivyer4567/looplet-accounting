@@ -63,8 +63,8 @@ function HorizonCard({ item }: { item: LegalHorizonRow }) {
               letterSpacing: '0.04em',
               padding: '2px 8px',
               borderRadius: 'var(--radius-sm, 6px)',
-              background: 'var(--bg-hover, #f1f5f9)',
-              color: 'var(--text-body, #334155)',
+              background: 'var(--bg-hover, var(--bg-hover))',
+              color: 'var(--text-body, var(--text-body))',
             }}
           >
             {STAGE_LABELS[item.stage]}
@@ -121,7 +121,7 @@ function HorizonCard({ item }: { item: LegalHorizonRow }) {
             rel="noopener noreferrer"
             style={{
               fontSize: '0.8rem',
-              color: 'var(--accent-primary, #2563eb)',
+              color: 'var(--accent-primary, var(--accent-primary))',
               fontWeight: 600,
               textDecoration: 'none',
             }}

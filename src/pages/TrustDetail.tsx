@@ -182,7 +182,7 @@ export function TrustDetailPage() {
           <h1
             style={{ margin: '0 0 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
           >
-            <Landmark size={24} style={{ color: 'var(--accent-primary)' }} />
+            <Landmark size={24} style={{ color: 'var(--text-link)' }} />
             {trust.name}
             <span
               className="badge badge-neutral"
@@ -195,7 +195,7 @@ export function TrustDetailPage() {
           {/* Trust summary */}
           <div style={cardStyle}>
             <div style={sectionTitleStyle}>
-              <Landmark size={14} style={{ color: 'var(--accent-primary)' }} /> Trust
+              <Landmark size={14} style={{ color: 'var(--text-link)' }} /> Trust
             </div>
             <dl
               style={{
@@ -226,7 +226,7 @@ export function TrustDetailPage() {
           {/* Deed */}
           <div style={cardStyle}>
             <div style={sectionTitleStyle}>
-              <FileText size={14} style={{ color: 'var(--accent-primary)' }} /> Deed
+              <FileText size={14} style={{ color: 'var(--text-link)' }} /> Deed
             </div>
             {deed ? (
               <dl
@@ -282,7 +282,7 @@ export function TrustDetailPage() {
           <div style={cardStyle}>
             <div style={{ ...sectionTitleStyle, justifyContent: 'space-between' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Landmark size={14} style={{ color: 'var(--accent-primary)' }} /> Beneficiaries
+                <Landmark size={14} style={{ color: 'var(--text-link)' }} /> Beneficiaries
                 <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
                   ({beneficiaries.length})
                 </span>
@@ -457,7 +457,7 @@ function Div7aPanel() {
     <div style={cardStyle}>
       <div style={{ ...sectionTitleStyle, justifyContent: 'space-between' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <Banknote size={14} style={{ color: 'var(--accent-primary)' }} /> Division 7A
+          <Banknote size={14} style={{ color: 'var(--text-link)' }} /> Division 7A
         </span>
         {scan && (
           <span
@@ -640,7 +640,7 @@ function DistributionWizard({ trustId }: { trustId: string }) {
     <div style={cardStyle}>
       <div style={{ ...sectionTitleStyle, justifyContent: 'space-between' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <Coins size={14} style={{ color: 'var(--accent-primary)' }} /> Distribution
+          <Coins size={14} style={{ color: 'var(--text-link)' }} /> Distribution
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 400 }}>
           <label style={{ color: 'var(--text-muted)' }}>
@@ -786,7 +786,7 @@ function DistributionWizard({ trustId }: { trustId: string }) {
             >
               Finalise (needs approval)
             </button>
-            <Link to="/approvals" style={{ fontSize: '0.85rem', color: 'var(--accent-primary)' }}>
+            <Link to="/approvals" style={{ fontSize: '0.85rem', color: 'var(--text-link)' }}>
               Go to Approvals →
             </Link>
           </div>

@@ -155,7 +155,7 @@ export function AutoSetupPage() {
         <h1
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}
         >
-          <Sparkles size={24} style={{ color: 'var(--accent-primary)' }} />
+          <Sparkles size={24} style={{ color: 'var(--text-link)' }} />
           Auto Setup
         </h1>
         <p
@@ -241,7 +241,7 @@ export function AutoSetupPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Mail size={18} style={{ color: 'var(--accent-primary)' }} />
+                <Mail size={18} style={{ color: 'var(--text-link)' }} />
                 <strong style={{ color: 'var(--text-title)' }}>{activeGmail.gmail_address}</strong>
               </div>
               <span className="badge badge-success">● Connected</span>
@@ -281,10 +281,10 @@ export function AutoSetupPage() {
                   style={{
                     padding: '0.625rem 1.25rem',
                     border: '1px solid rgba(54, 95, 228, 0.4)',
-                    color: 'var(--accent-primary)',
+                    color: 'var(--text-link)',
                   }}
                 >
-                  <Sparkles size={14} style={{ color: 'var(--accent-primary)' }} />
+                  <Sparkles size={14} style={{ color: 'var(--text-link)' }} />
                   <span>{aiRunning ? 'AI Classifying…' : '2. AI-Classify Unknown Senders'}</span>
                 </button>
               )}

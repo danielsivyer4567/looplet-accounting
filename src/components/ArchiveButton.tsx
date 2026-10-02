@@ -97,7 +97,7 @@ export function ArchiveButton({ table, rowId, isArchived, onChange }: ArchiveBut
             right: 0,
             marginTop: 4,
             fontSize: 11,
-            color: 'salmon',
+            color: 'var(--text-danger)',
             whiteSpace: 'nowrap',
           }}
         >

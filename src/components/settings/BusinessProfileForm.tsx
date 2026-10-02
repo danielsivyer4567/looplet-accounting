@@ -146,7 +146,7 @@ export function BusinessProfileForm() {
   return (
     <div style={{ marginTop: '2rem' }}>
       <h2 style={{ fontSize: 18, marginBottom: 4 }}>Business profile</h2>
-      <p style={{ color: '#888', fontSize: 13, marginBottom: 20, maxWidth: 720 }}>
+      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20, maxWidth: 720 }}>
         The /ask bot reads this on every question to tailor its tax/legal answers to your specific
         situation. E.g. instant-asset-write-off advice depends on whether you're a sole trader vs
         company and your turnover.
@@ -387,9 +387,9 @@ export function BusinessProfileForm() {
           disabled={saving}
           style={{
             padding: '0.5rem 1.25rem',
-            background: '#1c4868',
-            color: '#fff',
-            border: '1px solid #5096d8',
+            background: 'var(--bg-info-subtle)',
+            color: 'var(--text-title)',
+            border: '1px solid var(--accent-info)',
             borderRadius: 4,
             fontSize: 13,
             fontWeight: 600,
@@ -404,8 +404,8 @@ export function BusinessProfileForm() {
           style={{
             padding: '0.5rem 1rem',
             background: 'transparent',
-            color: '#7fb6e8',
-            border: '1px solid #1f3a52',
+            color: 'var(--text-info)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: 4,
             fontSize: 12,
             cursor: saving ? 'wait' : 'pointer',
@@ -414,8 +414,8 @@ export function BusinessProfileForm() {
         >
           ✦ Auto-detect from data
         </button>
-        {msg && <span style={{ color: '#86c7a3', fontSize: 12 }}>{msg}</span>}
-        {err && <span style={{ color: 'salmon', fontSize: 12 }}>{err}</span>}
+        {msg && <span style={{ color: 'var(--text-success)', fontSize: 12 }}>{msg}</span>}
+        {err && <span style={{ color: 'var(--text-danger)', fontSize: 12 }}>{err}</span>}
       </div>
     </div>
   );
@@ -435,15 +435,15 @@ function Section({
       style={{
         gridColumn: full ? '1 / -1' : undefined,
         padding: 12,
-        background: '#0e0e0e',
-        border: '1px solid #2a2a2a',
+        background: 'var(--bg-panel)',
+        border: '1px solid var(--border-subtle)',
         borderRadius: 6,
       }}
     >
       <div
         style={{
           fontSize: 11,
-          color: '#7fb6e8',
+          color: 'var(--text-info)',
           textTransform: 'uppercase',
           letterSpacing: 0.5,
           marginBottom: 10,
@@ -460,7 +460,7 @@ function Section({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <span style={{ fontSize: 11, color: '#888' }}>{label}</span>
+      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label}</span>
       {children}
     </label>
   );
@@ -483,7 +483,7 @@ function Toggle({
         gap: 8,
         cursor: 'pointer',
         fontSize: 12,
-        color: '#ccc',
+        color: 'var(--text-body)',
       }}
     >
       <input type="checkbox" checked={value} onChange={(e) => onChange(e.target.checked)} />
@@ -493,9 +493,9 @@ function Toggle({
 }
 
 const inputStyle: React.CSSProperties = {
-  background: '#1a1a1a',
-  color: '#fff',
-  border: '1px solid #2a2a2a',
+  background: 'var(--bg-card)',
+  color: 'var(--text-title)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: 3,
   padding: '0.4rem 0.5rem',
   fontSize: 13,

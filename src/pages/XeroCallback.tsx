@@ -91,8 +91,8 @@ export function XeroCallbackPage() {
         <div
           style={{
             padding: '1rem',
-            background: '#3d1818',
-            color: '#e9a3a3',
+            background: 'var(--bg-danger-subtle)',
+            color: 'var(--text-danger)',
             borderRadius: 4,
             fontSize: 13,
             maxWidth: 600,
@@ -101,13 +101,13 @@ export function XeroCallbackPage() {
           <strong>Connection failed</strong>
           <div style={{ marginTop: 8 }}>{error}</div>
           <div style={{ marginTop: 12 }}>
-            <a href="/settings" style={{ color: '#86c7a3', fontSize: 12 }}>
+            <a href="/settings" style={{ color: 'var(--text-success)', fontSize: 12 }}>
               &larr; Back to Settings
             </a>
           </div>
         </div>
       ) : (
-        <p style={{ color: '#888' }}>{status}</p>
+        <p style={{ color: 'var(--text-muted)' }}>{status}</p>
       )}
     </section>
   );

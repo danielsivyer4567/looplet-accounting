@@ -332,7 +332,7 @@ export function QualityPage() {
                             to={`/bills/${b.id}`}
                             style={{
                               fontWeight: 600,
-                              color: 'var(--accent-primary)',
+                              color: 'var(--text-link)',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '0.35rem',
@@ -419,7 +419,7 @@ export function QualityPage() {
                     <div className="quality-mobile-card__header">
                       <Link
                         to={`/bills/${b.id}`}
-                        style={{ fontWeight: 600, color: 'var(--accent-primary)' }}
+                        style={{ fontWeight: 600, color: 'var(--text-link)' }}
                       >
                         {b.supplier_name_raw ?? 'Unknown supplier'}
                       </Link>
@@ -486,7 +486,7 @@ export function QualityPage() {
       >
         <Info
           className="w-5 h-5 text-accent-primary"
-          style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--accent-primary)' }}
+          style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--text-link)' }}
         />
         <div>
           <strong style={{ color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>
@@ -643,7 +643,7 @@ const CLOSE_STATUS_STYLE: Record<
   { color: string; Icon: typeof CheckCircle2 }
 > = {
   closed: { color: 'var(--accent-success)', Icon: CheckCircle2 },
-  already_locked: { color: 'var(--accent-primary)', Icon: Info },
+  already_locked: { color: 'var(--text-link)', Icon: Info },
   refused: { color: 'var(--accent-warning)', Icon: AlertTriangle },
 };
 
@@ -709,7 +709,7 @@ function PeriodCloseSection() {
               borderRadius: 'var(--radius-sm)',
             }}
           >
-            <Lock className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
+            <Lock className="w-5 h-5" style={{ color: 'var(--text-link)' }} />
           </div>
           <div>
             <div

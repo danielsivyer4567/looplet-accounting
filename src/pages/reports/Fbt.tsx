@@ -113,7 +113,7 @@ export function FbtReportPage() {
       </Link>
 
       <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <Calculator size={24} style={{ color: 'var(--accent-primary)' }} />
+        <Calculator size={24} style={{ color: 'var(--text-link)' }} />
         FBT Return
       </h1>
       <p
@@ -351,7 +351,7 @@ function ApprovalCard({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <ShieldCheck size={18} style={{ color: 'var(--accent-primary)' }} />
+          <ShieldCheck size={18} style={{ color: 'var(--text-link)' }} />
           <h2 style={{ margin: 0, fontSize: '1.05rem' }}>Return approval</h2>
         </div>
         <span className={`badge ${badge}`}>{status}</span>
@@ -415,7 +415,7 @@ function Card({
   return (
     <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-        <Icon size={18} style={{ color: 'var(--accent-primary)' }} />
+        <Icon size={18} style={{ color: 'var(--text-link)' }} />
         <h2 style={{ margin: 0, fontSize: '1.1rem' }}>{title}</h2>
       </div>
       {children}

@@ -26,8 +26,8 @@ export function OrgSelector() {
 
   if (organizations.length === 0 && !creating) {
     return (
-      <div style={{ background: '#1a1a1a', padding: '0.75rem', borderRadius: 6 }}>
-        <div style={{ fontSize: 13, color: '#aaa', marginBottom: '0.5rem' }}>
+      <div style={{ background: 'var(--bg-card)', padding: '0.75rem', borderRadius: 6 }}>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
           No organisation yet
         </div>
         <button
@@ -35,8 +35,8 @@ export function OrgSelector() {
           style={{
             padding: '0.5rem',
             width: '100%',
-            background: '#3a3a3a',
-            color: '#fff',
+            background: 'var(--bg-hover)',
+            color: 'var(--text-title)',
             border: 'none',
             borderRadius: 4,
             cursor: 'pointer',
@@ -65,7 +65,7 @@ export function OrgSelector() {
     return (
       <form
         onSubmit={onSubmit}
-        style={{ background: '#1a1a1a', padding: '0.75rem', borderRadius: 6 }}
+        style={{ background: 'var(--bg-card)', padding: '0.75rem', borderRadius: 6 }}
       >
         <input
           type="text"
@@ -77,15 +77,15 @@ export function OrgSelector() {
           style={{
             width: '100%',
             padding: '0.4rem',
-            background: '#2a2a2a',
-            color: '#fff',
-            border: '1px solid #444',
+            background: 'var(--bg-hover)',
+            color: 'var(--text-title)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: 4,
             marginBottom: '0.5rem',
           }}
         />
         {error && (
-          <div style={{ color: 'salmon', fontSize: 12, marginBottom: '0.5rem' }}>{error}</div>
+          <div style={{ color: 'var(--text-danger)', fontSize: 12, marginBottom: '0.5rem' }}>{error}</div>
         )}
         <div style={{ display: 'flex', gap: '0.25rem' }}>
           <button type="submit" disabled={busy} style={{ flex: 1, padding: '0.4rem' }}>
@@ -116,9 +116,9 @@ export function OrgSelector() {
         style={{
           width: '100%',
           padding: '0.4rem',
-          background: '#2a2a2a',
-          color: '#fff',
-          border: '1px solid #444',
+          background: 'var(--bg-hover)',
+          color: 'var(--text-title)',
+          border: '1px solid var(--border-subtle)',
           borderRadius: 4,
         }}
       >
@@ -137,8 +137,8 @@ export function OrgSelector() {
             padding: '0.3rem',
             fontSize: 12,
             background: 'transparent',
-            color: '#888',
-            border: '1px dashed #444',
+            color: 'var(--text-muted)',
+            border: '1px dashed var(--border-subtle)',
             borderRadius: 4,
             cursor: 'pointer',
           }}

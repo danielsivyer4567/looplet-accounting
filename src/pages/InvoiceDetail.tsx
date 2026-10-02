@@ -452,7 +452,7 @@ export function InvoiceDetailPage() {
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileSpreadsheet size={24} style={{ color: 'var(--accent-primary)' }} />
+          <FileSpreadsheet size={24} style={{ color: 'var(--text-link)' }} />
           {isNew ? 'New invoice' : <code>{invoice?.invoice_number}</code>}
         </h1>
 

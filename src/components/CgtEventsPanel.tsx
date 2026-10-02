@@ -102,7 +102,7 @@ export function CgtEventsPanel() {
               margin: 0,
             }}
           >
-            <Coins size={18} style={{ color: 'var(--accent-primary)' }} />
+            <Coins size={18} style={{ color: 'var(--text-link)' }} />
             CGT events
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.25rem 0 0' }}>

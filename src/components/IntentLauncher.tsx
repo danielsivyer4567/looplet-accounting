@@ -114,7 +114,7 @@ export function IntentLauncher() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: 'var(--accent-primary)',
+                  color: 'var(--text-link)',
                 }}
               >
                 <Icon size={18} />

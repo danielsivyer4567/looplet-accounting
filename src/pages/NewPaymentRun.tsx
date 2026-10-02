@@ -122,7 +122,7 @@ export function NewPaymentRunPage() {
       </Link>
 
       <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <Layers size={24} style={{ color: 'var(--accent-primary)' }} />
+        <Layers size={24} style={{ color: 'var(--text-link)' }} />
         New Payment Run
       </h1>
       <p
@@ -167,7 +167,7 @@ export function NewPaymentRunPage() {
               }}
             >
               {selected.size} bill{selected.size !== 1 ? 's' : ''} selected —{' '}
-              <span style={{ color: 'var(--accent-primary)' }}>{formatMoney(totalCents)}</span>
+              <span style={{ color: 'var(--text-link)' }}>{formatMoney(totalCents)}</span>
               {missingBank.length > 0 && (
                 <span
                   className="badge badge-warning"

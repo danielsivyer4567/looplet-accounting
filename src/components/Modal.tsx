@@ -45,8 +45,8 @@ export function Modal({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: '#111',
-          border: '1px solid #2a2a2a',
+          background: 'var(--bg-panel)',
+          border: '1px solid var(--border-subtle)',
           borderRadius: 8,
           width: wide ? 'min(920px, 96vw)' : 'min(560px, 96vw)',
           maxHeight: '92vh',
@@ -61,14 +61,14 @@ export function Modal({
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: '12px 16px',
-            borderBottom: '1px solid #2a2a2a',
+            borderBottom: '1px solid var(--border-subtle)',
             gap: 12,
           }}
         >
           <strong
             style={{
               fontSize: 14,
-              color: '#fff',
+              color: 'var(--text-title)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -82,7 +82,7 @@ export function Modal({
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#888',
+              color: 'var(--text-muted)',
               fontSize: 22,
               cursor: 'pointer',
               lineHeight: 1,

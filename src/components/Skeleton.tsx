@@ -2,7 +2,7 @@
  * Skeleton loading primitives.
  *
  * All use a pure-CSS gradient pulse so there is zero JS animation overhead.
- * Colours match the dark palette: card bg #1a1a1a, border #2a2a2a.
+ * Colours come from the theme tokens (--bg-card, --bg-hover, --border-subtle), so they follow light and dark mode.
  */
 
 import React from 'react';
@@ -32,7 +32,7 @@ injectKeyframes();
 // ---------------------------------------------------------------------------
 
 const shimmer: React.CSSProperties = {
-  background: 'linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%)',
+  background: 'linear-gradient(90deg, var(--bg-card) 25%, var(--bg-hover) 50%, var(--bg-card) 75%)',
   backgroundSize: '400% 100%',
   animation: 'skeleton-pulse 1.6s ease-in-out infinite',
   borderRadius: 4,
@@ -69,9 +69,9 @@ export function SkeletonCard() {
     <div
       style={{
         padding: '1rem',
-        background: '#1a1a1a',
+        background: 'var(--bg-card)',
         borderRadius: 6,
-        border: '1px solid #2a2a2a',
+        border: '1px solid var(--border-subtle)',
         minHeight: 100,
         display: 'flex',
         flexDirection: 'column',
@@ -110,7 +110,7 @@ export function SkeletonTable({ rows = 5, cols = 5 }: SkeletonTableProps) {
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
           gap: '0.5rem',
           paddingBottom: '0.75rem',
-          borderBottom: '1px solid #2a2a2a',
+          borderBottom: '1px solid var(--border-subtle)',
           marginBottom: '0.5rem',
         }}
       >
@@ -127,7 +127,7 @@ export function SkeletonTable({ rows = 5, cols = 5 }: SkeletonTableProps) {
             gridTemplateColumns: `repeat(${cols}, 1fr)`,
             gap: '0.5rem',
             padding: '0.6rem 0',
-            borderBottom: '1px solid #1a1a1a',
+            borderBottom: '1px solid var(--border-subtle)',
           }}
         >
           {Array.from({ length: cols }).map((_, colIdx) => {

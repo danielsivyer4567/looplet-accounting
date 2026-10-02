@@ -333,7 +333,7 @@ export function ReconciliationPage() {
         <h1
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}
         >
-          <Scale size={24} style={{ color: 'var(--accent-primary)' }} />
+          <Scale size={24} style={{ color: 'var(--text-link)' }} />
           Reconciliation
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>

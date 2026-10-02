@@ -129,7 +129,7 @@ export function EmployeesPage() {
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Contact size={24} style={{ color: 'var(--accent-primary)' }} />
+          <Contact size={24} style={{ color: 'var(--text-link)' }} />
           Employees
         </h1>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -312,7 +312,7 @@ export function EmployeesPage() {
                         }}
                         style={{
                           fontWeight: 700,
-                          color: 'var(--accent-primary)',
+                          color: 'var(--text-link)',
                           textDecoration: 'none',
                         }}
                       >
@@ -413,7 +413,7 @@ export function EmployeesPage() {
                     style={{
                       textAlign: 'right',
                       fontWeight: 600,
-                      color: 'var(--accent-primary)',
+                      color: 'var(--text-link)',
                       fontFamily: 'ui-monospace, monospace',
                     }}
                   >
@@ -439,7 +439,7 @@ export function EmployeesPage() {
       >
         💡 <strong>Payroll lives in its own module:</strong> pay runs, gross-to-net with super, and
         STP export are under{' '}
-        <Link to="/payroll" style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
+        <Link to="/payroll" style={{ color: 'var(--text-link)', fontWeight: 600 }}>
           Payroll
         </Link>
         .

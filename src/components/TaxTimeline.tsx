@@ -191,7 +191,7 @@ export function TaxTimeline({
       `}</style>
 
       <div className="tt-head">
-        <CalendarClock size={16} style={{ color: 'var(--accent-primary)' }} />
+        <CalendarClock size={16} style={{ color: 'var(--text-link)' }} />
         <h2>Timeline</h2>
         {onHide && (
           <button

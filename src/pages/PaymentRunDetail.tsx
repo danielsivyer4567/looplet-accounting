@@ -170,7 +170,7 @@ export function PaymentRunDetailPage() {
       >
         <div>
           <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Layers size={24} style={{ color: 'var(--accent-primary)' }} />
+            <Layers size={24} style={{ color: 'var(--text-link)' }} />
             Payment Run — {run.pay_date}
           </h1>
           <div

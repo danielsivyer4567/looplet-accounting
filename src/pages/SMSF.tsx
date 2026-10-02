@@ -309,14 +309,14 @@ export function SmsfPage() {
     return (
       <section className="animated-fade-in">
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <PiggyBank size={24} style={{ color: 'var(--accent-primary)' }} />
+          <PiggyBank size={24} style={{ color: 'var(--text-link)' }} />
           SMSF
         </h1>
         <div style={{ ...noticeCardStyle, marginTop: '1.5rem' }}>
           The SMSF workspace applies to self-managed super funds. Set this organisation's entity
           type to <strong>SMSF</strong> in{' '}
           <span
-            style={{ color: 'var(--accent-primary)', cursor: 'pointer' }}
+            style={{ color: 'var(--text-link)', cursor: 'pointer' }}
             onClick={() => navigate('/settings')}
           >
             Business Profile
@@ -341,7 +341,7 @@ export function SmsfPage() {
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <PiggyBank size={24} style={{ color: 'var(--accent-primary)' }} />
+          <PiggyBank size={24} style={{ color: 'var(--text-link)' }} />
           SMSF
         </h1>
         {!loading && (

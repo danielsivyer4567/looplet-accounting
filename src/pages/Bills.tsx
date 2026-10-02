@@ -477,7 +477,7 @@ function BillCard({
               e.preventDefault();
               onOpen();
             }}
-            style={{ fontWeight: 700, color: 'var(--accent-primary)', textDecoration: 'none' }}
+            style={{ fontWeight: 700, color: 'var(--text-link)', textDecoration: 'none' }}
           >
             {bill.supplier_name_raw ?? 'Unknown supplier'}
           </a>

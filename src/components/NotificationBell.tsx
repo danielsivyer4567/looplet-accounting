@@ -21,9 +21,9 @@ interface NotificationRow {
 }
 
 const SEVERITY_COLOURS: Record<string, string> = {
-  info: '#86c7a3',
-  warning: '#e9c97a',
-  error: '#e9a3a3',
+  info: 'var(--accent-info)',
+  warning: 'var(--accent-warning)',
+  error: 'var(--accent-danger)',
 };
 
 const ICON_MAP: Record<string, string> = {
@@ -118,9 +118,9 @@ export function NotificationBell() {
         style={{
           position: 'relative',
           background: 'transparent',
-          border: '1px solid #444',
+          border: '1px solid var(--border-subtle)',
           borderRadius: 4,
-          color: '#aaa',
+          color: 'var(--text-muted)',
           fontSize: 14,
           padding: '0.3rem 0.55rem',
           cursor: 'pointer',
@@ -137,8 +137,8 @@ export function NotificationBell() {
               position: 'absolute',
               top: -6,
               right: -6,
-              background: '#e9a3a3',
-              color: '#1a1a1a',
+              background: 'var(--accent-danger)',
+              color: 'var(--text-on-accent)',
               fontSize: 10,
               fontWeight: 700,
               minWidth: 16,
@@ -149,7 +149,7 @@ export function NotificationBell() {
               alignItems: 'center',
               justifyContent: 'center',
               boxSizing: 'border-box',
-              border: '1px solid #1a1a1a',
+              border: '1px solid var(--border-subtle)',
             }}
           >
             {unread > 99 ? '99+' : unread}
@@ -167,8 +167,8 @@ export function NotificationBell() {
             right: 0,
             width: 360,
             maxHeight: 480,
-            background: '#0e0e0e',
-            border: '1px solid #2a2a2a',
+            background: 'var(--bg-panel)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: 6,
             boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
             zIndex: 200,
@@ -180,19 +180,19 @@ export function NotificationBell() {
           <div
             style={{
               padding: '0.6rem 0.85rem',
-              borderBottom: '1px solid #2a2a2a',
+              borderBottom: '1px solid var(--border-subtle)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
             }}
           >
-            <strong style={{ fontSize: 13, color: '#ddd' }}>Notifications</strong>
-            {unread > 0 && <span style={{ fontSize: 11, color: '#888' }}>{unread} unread</span>}
+            <strong style={{ fontSize: 13, color: 'var(--text-body)' }}>Notifications</strong>
+            {unread > 0 && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{unread} unread</span>}
           </div>
 
           <div style={{ overflowY: 'auto', flex: 1 }}>
             {recent.length === 0 ? (
-              <div style={{ padding: 24, color: '#888', fontSize: 12, textAlign: 'center' }}>
+              <div style={{ padding: 24, color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>
                 You're all caught up.
               </div>
             ) : (
@@ -209,10 +209,10 @@ export function NotificationBell() {
                       padding: '0.6rem 0.85rem',
                       background: isUnread ? '#161616' : 'transparent',
                       border: 'none',
-                      borderBottom: '1px solid #1a1a1a',
+                      borderBottom: '1px solid var(--border-subtle)',
                       borderLeft: `3px solid ${SEVERITY_COLOURS[n.severity] ?? '#444'}`,
                       cursor: 'pointer',
-                      color: '#ddd',
+                      color: 'var(--text-body)',
                       display: 'flex',
                       gap: 8,
                       alignItems: 'flex-start',
@@ -253,7 +253,7 @@ export function NotificationBell() {
                           style={{
                             display: 'block',
                             fontSize: 11,
-                            color: '#888',
+                            color: 'var(--text-muted)',
                             marginTop: 2,
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
@@ -268,7 +268,7 @@ export function NotificationBell() {
                           style={{
                             display: 'inline-block',
                             fontSize: 10,
-                            color: '#86c7a3',
+                            color: 'var(--text-success)',
                             marginTop: 3,
                             fontWeight: 600,
                           }}
@@ -283,7 +283,7 @@ export function NotificationBell() {
                             alignItems: 'center',
                             gap: 4,
                             fontSize: 10,
-                            color: '#86c7a3',
+                            color: 'var(--text-success)',
                             marginTop: 3,
                             fontWeight: 700,
                           }}
@@ -292,7 +292,7 @@ export function NotificationBell() {
                           View tag
                         </span>
                       )}
-                      <span style={{ display: 'block', fontSize: 10, color: '#555', marginTop: 3 }}>
+                      <span style={{ display: 'block', fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>
                         {new Date(n.created_at).toLocaleString()}
                       </span>
                     </span>
@@ -304,7 +304,7 @@ export function NotificationBell() {
 
           <div
             style={{
-              borderTop: '1px solid #2a2a2a',
+              borderTop: '1px solid var(--border-subtle)',
               padding: '0.5rem 0.85rem',
               textAlign: 'center',
             }}
@@ -312,7 +312,7 @@ export function NotificationBell() {
             <Link
               to="/notifications"
               onClick={() => setOpen(false)}
-              style={{ fontSize: 12, color: '#86c7a3', textDecoration: 'none' }}
+              style={{ fontSize: 12, color: 'var(--text-success)', textDecoration: 'none' }}
             >
               View all
             </Link>

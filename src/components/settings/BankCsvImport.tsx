@@ -95,8 +95,8 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
           marginLeft: 8,
           padding: '0.4rem 1rem',
           background: 'transparent',
-          color: '#bbb',
-          border: '1px solid #444',
+          color: 'var(--text-muted)',
+          border: '1px solid var(--border-subtle)',
           borderRadius: 3,
           fontSize: 12,
           cursor: 'pointer',
@@ -113,8 +113,8 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
       style={{
         marginTop: 16,
         padding: 16,
-        background: '#0e0e0e',
-        border: '1px solid #2a2a2a',
+        background: 'var(--bg-panel)',
+        border: '1px solid var(--border-subtle)',
         borderRadius: 4,
         maxWidth: 720,
       }}
@@ -125,7 +125,7 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
           ×
         </button>
       </div>
-      <p style={{ fontSize: 12, color: '#888', marginTop: 6 }}>
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
         Export a CSV from your internet banking and upload it here. Same dedupe + reconciliation
         rules apply.
       </p>
@@ -144,7 +144,7 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
           </select>
         </Field>
       </div>
-      <p style={{ fontSize: 11, color: '#666', margin: '4px 0 8px' }}>{FORMAT_HINTS[format]}</p>
+      <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 8px' }}>{FORMAT_HINTS[format]}</p>
 
       <div className="bank-import-grid" style={grid2}>
         <Field label="Account name">
@@ -218,8 +218,8 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
           marginTop: 12,
           padding: '0.5rem 1rem',
           background: busy ? '#333' : '#1c4868',
-          color: '#fff',
-          border: '1px solid #5096d8',
+          color: 'var(--text-title)',
+          border: '1px solid var(--accent-info)',
           borderRadius: 4,
           cursor: busy ? 'wait' : 'pointer',
           fontSize: 13,
@@ -243,8 +243,8 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
           style={{
             marginTop: 12,
             padding: 8,
-            background: '#0a1f12',
-            border: '1px solid #2da565',
+            background: 'var(--bg-success-subtle)',
+            border: '1px solid var(--accent-success)',
             borderRadius: 3,
             fontSize: 12,
           }}
@@ -254,11 +254,11 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
           {result.insert_errors > 0 && <> · {result.insert_errors} insert errors</>}
           {result.parse_errors.length > 0 && (
             <details style={{ marginTop: 6 }}>
-              <summary style={{ color: '#e9a3a3', cursor: 'pointer' }}>
+              <summary style={{ color: 'var(--text-danger)', cursor: 'pointer' }}>
                 {result.parse_errors.length} parse error
                 {result.parse_errors.length === 1 ? '' : 's'}
               </summary>
-              <ul style={{ marginTop: 4, color: '#e9a3a3', fontSize: 11 }}>
+              <ul style={{ marginTop: 4, color: 'var(--text-danger)', fontSize: 11 }}>
                 {result.parse_errors.map((e, i) => (
                   <li key={i}>{e}</li>
                 ))}
@@ -273,7 +273,7 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label style={{ display: 'block', fontSize: 11, color: '#888', marginTop: 8 }}>
+    <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
       <div style={{ marginBottom: 3 }}>{label}</div>
       {children}
     </label>
@@ -283,9 +283,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const inp: React.CSSProperties = {
   width: '100%',
   padding: '6px 8px',
-  background: '#000',
-  color: '#ddd',
-  border: '1px solid #333',
+  background: 'var(--bg-panel)',
+  color: 'var(--text-body)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: 3,
   fontSize: 12,
 };
@@ -294,7 +294,7 @@ const grid2: React.CSSProperties = {
 };
 const closeBtn: React.CSSProperties = {
   background: 'transparent',
-  color: '#888',
+  color: 'var(--text-muted)',
   border: 'none',
   fontSize: 18,
   cursor: 'pointer',

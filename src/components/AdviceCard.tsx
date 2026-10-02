@@ -51,7 +51,7 @@ export function AdviceCard({ note, onOpen, disabled = false }: AdviceCardProps) 
           </span>
           <span className="badge badge-info">{labelFromKind(note.kind)}</span>
         </span>
-        <FileText size={17} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+        <FileText size={17} style={{ color: 'var(--text-link)', flexShrink: 0 }} />
       </div>
 
       <div style={{ display: 'grid', gap: '0.35rem', minHeight: '5.25rem' }}>

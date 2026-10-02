@@ -70,7 +70,7 @@ function getDebtIcon(kind: string) {
       return (
         <Landmark
           className="w-4 h-4 text-accent-primary"
-          style={{ color: 'var(--accent-primary)' }}
+          style={{ color: 'var(--text-link)' }}
         />
       );
     case 'mortgage':
@@ -243,7 +243,7 @@ export function DebtsPage() {
           label="Min Monthly Payments"
           value={totalMinPayments}
           formatter={formatMoney}
-          icon={<Calendar className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />}
+          icon={<Calendar className="w-5 h-5" style={{ color: 'var(--text-link)' }} />}
           accentColor="var(--accent-primary)"
           sub="all debts combined"
         />
@@ -295,7 +295,7 @@ export function DebtsPage() {
             <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <TrendingDown
                 className="w-5 h-5 text-accent-primary"
-                style={{ color: 'var(--accent-primary)' }}
+                style={{ color: 'var(--text-link)' }}
               />
               Add New Debt Account
             </h3>
@@ -441,7 +441,7 @@ export function DebtsPage() {
                         }}
                         style={{
                           fontWeight: 700,
-                          color: 'var(--accent-primary)',
+                          color: 'var(--text-link)',
                           textDecoration: 'none',
                         }}
                       >
@@ -558,7 +558,7 @@ export function DebtsPage() {
       >
         <Info
           className="w-5 h-5 text-accent-primary"
-          style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--accent-primary)' }}
+          style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--text-link)' }}
         />
         <div>
           <strong style={{ color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>

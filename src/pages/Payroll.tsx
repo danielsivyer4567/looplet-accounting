@@ -162,7 +162,7 @@ export function PayrollPage() {
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Layers size={24} style={{ color: 'var(--accent-primary)' }} />
+          <Layers size={24} style={{ color: 'var(--text-link)' }} />
           Payroll
         </h1>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -622,7 +622,7 @@ function CreatePayRunForm({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.5rem' }}>
       <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <Plus size={18} style={{ color: 'var(--accent-primary)' }} />
+        <Plus size={18} style={{ color: 'var(--text-link)' }} />
         Create New Pay Run
       </h3>
 
@@ -756,7 +756,7 @@ function CreatePayRunForm({
       >
         <Info
           size={14}
-          style={{ flexShrink: 0, marginTop: '2px', color: 'var(--accent-primary)' }}
+          style={{ flexShrink: 0, marginTop: '2px', color: 'var(--text-link)' }}
         />
         <span>
           The run will pull <strong>approved</strong> timesheets in [{periodStart} → {periodEnd}],

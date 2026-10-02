@@ -43,7 +43,7 @@ export function CustomersPage() {
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Users size={24} style={{ color: 'var(--accent-primary)' }} />
+          <Users size={24} style={{ color: 'var(--text-link)' }} />
           Customers
         </h1>
         <button
@@ -132,7 +132,7 @@ export function CustomersPage() {
             gap: '0.75rem',
           }}
         >
-          <Users size={40} style={{ color: 'var(--accent-primary)', opacity: 0.7 }} />
+          <Users size={40} style={{ color: 'var(--text-link)', opacity: 0.7 }} />
           <h3 style={{ margin: 0, color: 'var(--text-title)', fontSize: '1.1rem' }}>
             No customers yet
           </h3>
@@ -225,7 +225,7 @@ function CustomerCard({ customer, onOpen }: { customer: CustomerRow; onOpen: () 
               e.preventDefault();
               onOpen();
             }}
-            style={{ fontWeight: 700, color: 'var(--accent-primary)', textDecoration: 'none' }}
+            style={{ fontWeight: 700, color: 'var(--text-link)', textDecoration: 'none' }}
           >
             {customer.name}
           </a>

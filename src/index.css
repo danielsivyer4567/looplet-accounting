@@ -50,8 +50,10 @@ html[data-theme='light'] {
   --bg-sidebar-active: #dfe4ea;
   --text-sidebar-active: #20252c;
 
-  --accent-primary: #365fe4;
-  --accent-primary-hover: #2b4fcf;
+  --accent-primary: #2f56d6;
+  --accent-primary-hover: #2546b8;
+  --text-link: #2f56d6;
+  --border-input: #8b95a1;
 
   --accent-success: #1f8a5b;
   --bg-success-subtle: #e0eee7;
@@ -86,7 +88,7 @@ html[data-theme='dark'] {
   /* Matches the dark sign-in theme: neutral charcoal, not navy. */
   --bg-app: #1c1c1c;
   --bg-panel: #222222;
-  --bg-card: #222222;
+  --bg-card: #262626;
   --bg-input: #1c1c1c;
   --bg-hover: #292929;
   --bg-sidebar: #161616;
@@ -102,8 +104,10 @@ html[data-theme='dark'] {
   --bg-sidebar-active: #292929;
   --text-sidebar-active: #eeeeee;
 
-  --accent-primary: #4a6ff0;
-  --accent-primary-hover: #6585f5;
+  --accent-primary: #3f63e6;
+  --accent-primary-hover: #5577ee;
+  --text-link: #8ea6f7;
+  --border-input: #5c5c5c;
 
   --accent-success: #6fc59a;
   --bg-success-subtle: rgba(111, 197, 154, 0.12);
@@ -142,6 +146,7 @@ body {
   font-family: var(--font-sans);
   background-color: var(--bg-app);
   color: var(--text-body);
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
@@ -163,22 +168,25 @@ h6 {
 }
 
 h1 {
-  font-size: 2rem;
-  letter-spacing: -0.025em;
-  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 600;
 }
 
 h2 {
-  font-size: 1.5rem;
-  letter-spacing: -0.02em;
+  font-size: 1.125rem;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
 }
 
 h3 {
-  font-size: 1.15rem;
+  font-size: 1rem;
+  line-height: 1.35;
 }
 
 a {
-  color: var(--accent-primary);
+  color: var(--text-link);
   text-decoration: none;
   transition: var(--transition-smooth);
 }
@@ -186,6 +194,22 @@ a {
 a:hover {
   color: var(--accent-primary-hover);
   text-decoration: underline;
+}
+
+a.btn,
+a.btn:hover {
+  text-decoration: none;
+}
+
+a.btn-primary,
+a.btn-primary:hover {
+  color: var(--text-on-accent);
+}
+
+/* One visible keyboard focus ring for every interactive element. */
+:where(a, button, [role='button'], summary, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 code {
@@ -226,10 +250,13 @@ code {
   transition: var(--transition-smooth);
 }
 
-.card:hover {
-  transform: translateY(-2px);
+.card-interactive {
+  cursor: pointer;
+}
+
+.card-interactive:hover {
   box-shadow: var(--shadow-md);
-  border-color: var(--accent-primary);
+  border-color: var(--border-input);
 }
 
 .card-gradient {
@@ -521,7 +548,7 @@ code {
 .auth-inline-button {
   background: none;
   border: none;
-  color: var(--accent-primary);
+  color: var(--text-link);
   cursor: pointer;
   font: inherit;
   font-size: 0.775rem;
@@ -613,12 +640,6 @@ code {
 
 .btn-primary:hover {
   background-color: var(--accent-primary-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.btn-primary:active {
-  transform: translateY(0);
 }
 
 .btn-secondary {
@@ -692,11 +713,9 @@ code {
 }
 
 .form-label {
-  font-size: 0.825rem;
-  font-weight: 600;
+  font-size: 0.8125rem;
+  font-weight: 500;
   color: var(--text-title);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .form-input,
@@ -706,7 +725,7 @@ code {
   padding: 0.625rem 0.875rem;
   background-color: var(--bg-input);
   color: var(--text-title);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-input);
   border-radius: var(--radius-sm);
   font-family: var(--font-sans);
   font-size: 0.875rem;
@@ -730,13 +749,20 @@ code {
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.15rem 0.5rem;
-  font-size: 0.725rem;
-  font-weight: 600;
-  border-radius: var(--radius-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 999px;
   border: 1px solid transparent;
+}
+
+p.badge,
+div.badge {
+  display: flex;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  border-radius: var(--radius-md);
 }
 
 .badge-success {
@@ -784,22 +810,25 @@ code {
   border-collapse: collapse;
   font-size: 0.875rem;
   text-align: left;
+  font-variant-numeric: tabular-nums;
 }
 
 .table-premium th {
-  padding: 0.875rem 1rem;
-  background-color: var(--bg-hover);
-  color: var(--text-title);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.625rem 0.875rem;
+  background-color: var(--bg-panel);
+  color: var(--text-muted);
   font-family: var(--font-title);
-  font-weight: 600;
-  text-transform: uppercase;
+  font-weight: 500;
   font-size: 0.75rem;
-  letter-spacing: 0.05em;
+  white-space: nowrap;
   border-bottom: 1px solid var(--border-subtle);
 }
 
 .table-premium td {
-  padding: 1rem;
+  padding: 0.625rem 0.875rem;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-body);
   transition: var(--transition-smooth);
@@ -1488,7 +1517,6 @@ code {
 .theme-toggle-btn:hover {
   background-color: var(--bg-hover);
   color: var(--text-title);
-  transform: rotate(15deg);
 }
 
 /* Revolut-style Custom Utilities */
@@ -1512,7 +1540,6 @@ code {
   background-color: var(--accent-primary);
   color: var(--text-on-accent);
   border-color: transparent;
-  transform: translateY(-1px);
 }
 
 .merchant-icon {
@@ -3201,7 +3228,7 @@ code {
 }
 
 .receipt-pipeline-node span {
-  color: var(--accent-primary);
+  color: var(--text-link);
   font-size: 0.65rem;
   font-weight: 900;
 }

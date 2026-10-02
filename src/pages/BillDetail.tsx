@@ -339,7 +339,7 @@ export function BillDetailPage() {
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileText size={24} style={{ color: 'var(--accent-primary)' }} />
+          <FileText size={24} style={{ color: 'var(--text-link)' }} />
           {bill.supplier_name_raw ?? (
             <span style={{ color: 'var(--text-muted)' }}>Bill {bill.id.slice(0, 8)}</span>
           )}
@@ -845,7 +845,7 @@ export function BillDetailPage() {
                           confidence):
                         </div>
                         <div style={{ marginBottom: '0.75rem', fontWeight: 600 }}>
-                          <code style={{ color: 'var(--accent-primary)', marginRight: '0.5rem' }}>
+                          <code style={{ color: 'var(--text-link)', marginRight: '0.5rem' }}>
                             {suggestedJob.job_number}
                           </code>
                           <span style={{ color: 'var(--text-title)' }}>{suggestedJob.name}</span>

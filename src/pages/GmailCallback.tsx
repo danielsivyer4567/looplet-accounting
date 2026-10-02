@@ -64,8 +64,8 @@ export function GmailCallbackPage() {
         <div
           style={{
             padding: '1rem',
-            background: '#3d1818',
-            color: '#e9a3a3',
+            background: 'var(--bg-danger-subtle)',
+            color: 'var(--text-danger)',
             borderRadius: 4,
             fontSize: 13,
           }}
@@ -73,7 +73,7 @@ export function GmailCallbackPage() {
           {error}
         </div>
       ) : (
-        <p style={{ color: '#888' }}>{status}</p>
+        <p style={{ color: 'var(--text-muted)' }}>{status}</p>
       )}
     </section>
   );

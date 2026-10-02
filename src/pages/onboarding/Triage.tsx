@@ -1031,7 +1031,7 @@ function TriageSenderDetails({ entity }: { entity: StagedEntity }) {
               rel="noopener noreferrer"
               style={{
                 marginLeft: 6,
-                color: 'var(--accent-primary)',
+                color: 'var(--text-link)',
                 fontSize: '0.7rem',
                 fontWeight: 600,
               }}

@@ -99,7 +99,7 @@ export function ReportsIndexPage() {
   return (
     <section className="animated-fade-in">
       <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-        <FileSpreadsheet size={24} style={{ color: 'var(--accent-primary)' }} />
+        <FileSpreadsheet size={24} style={{ color: 'var(--text-link)' }} />
         Reports
       </h1>
       <p

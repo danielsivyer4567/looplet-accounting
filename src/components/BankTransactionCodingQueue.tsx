@@ -150,7 +150,7 @@ function CodingRow({
             className="badge"
             style={{
               background: 'var(--bg-accent-subtle)',
-              color: 'var(--accent-primary)',
+              color: 'var(--text-link)',
               fontSize: '0.75rem',
             }}
           >
@@ -263,7 +263,7 @@ export function BankTransactionCodingQueue() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Zap size={18} style={{ color: 'var(--accent-primary)' }} />
+          <Zap size={18} style={{ color: 'var(--text-link)' }} />
           <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Coding Queue</h2>
           {rows.length > 0 && (
             <span

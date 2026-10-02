@@ -31,14 +31,14 @@ export function TrustsPage() {
     return (
       <section className="animated-fade-in">
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Landmark size={24} style={{ color: 'var(--accent-primary)' }} />
+          <Landmark size={24} style={{ color: 'var(--text-link)' }} />
           Trusts
         </h1>
         <div style={{ ...noticeCardStyle, marginTop: '1.5rem' }}>
           The Trusts workspace applies to trust entities. Set this organisation's entity type to{' '}
           <strong>Trust</strong> in{' '}
           <span
-            style={{ color: 'var(--accent-primary)', cursor: 'pointer' }}
+            style={{ color: 'var(--text-link)', cursor: 'pointer' }}
             onClick={() => navigate('/settings')}
           >
             Business Profile
@@ -63,7 +63,7 @@ export function TrustsPage() {
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Landmark size={24} style={{ color: 'var(--accent-primary)' }} />
+          <Landmark size={24} style={{ color: 'var(--text-link)' }} />
           Trusts
         </h1>
         {!loading && (

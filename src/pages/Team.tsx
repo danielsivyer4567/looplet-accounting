@@ -121,7 +121,7 @@ function InviteModal({
             gap: '0.5rem',
           }}
         >
-          <Users size={20} style={{ color: 'var(--accent-primary)' }} />
+          <Users size={20} style={{ color: 'var(--text-link)' }} />
           Invite Team Member
         </h2>
 
@@ -362,7 +362,7 @@ export function TeamPage() {
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Users size={24} style={{ color: 'var(--accent-primary)' }} />
+          <Users size={24} style={{ color: 'var(--text-link)' }} />
           Team Members
         </h1>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>

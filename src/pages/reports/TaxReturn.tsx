@@ -196,7 +196,7 @@ export function TaxReturnPage() {
       </Link>
 
       <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <Layers size={24} style={{ color: 'var(--accent-primary)' }} />
+        <Layers size={24} style={{ color: 'var(--text-link)' }} />
         Tax Return (Draft)
       </h1>
       <p
@@ -214,7 +214,7 @@ export function TaxReturnPage() {
         waterfall to net tax, and the capital-gains schedule. Built from the same year-end books the{' '}
         <Link
           to="/reports/eofy"
-          style={{ color: 'var(--accent-primary)', textDecoration: 'underline', fontWeight: 600 }}
+          style={{ color: 'var(--text-link)', textDecoration: 'underline', fontWeight: 600 }}
         >
           EOFY pack
         </Link>{' '}
@@ -399,7 +399,7 @@ export function TaxReturnPage() {
       >
         <Archive
           size={16}
-          style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }}
+          style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }}
         />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
           <span
@@ -832,7 +832,7 @@ function Card({
           marginBottom: subtitle ? '0.25rem' : '1rem',
         }}
       >
-        <Icon size={18} style={{ color: 'var(--accent-primary)' }} />
+        <Icon size={18} style={{ color: 'var(--text-link)' }} />
         <h2 style={{ margin: 0, fontSize: '1.1rem' }}>{title}</h2>
       </div>
       {subtitle && (
@@ -1080,7 +1080,7 @@ function FinalisationCard({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <ShieldCheck size={18} style={{ color: 'var(--accent-primary)' }} />
+          <ShieldCheck size={18} style={{ color: 'var(--text-link)' }} />
           <h2 style={{ margin: 0, fontSize: '1.1rem' }}>Finalisation</h2>
         </div>
         <span className={`badge ${badge}`} style={{ textTransform: 'none' }}>
@@ -1166,7 +1166,7 @@ function FinalisationCard({
           Awaiting sign-off — an admin can approve it in the{' '}
           <Link
             to="/approvals"
-            style={{ color: 'var(--accent-primary)', textDecoration: 'underline', fontWeight: 600 }}
+            style={{ color: 'var(--text-link)', textDecoration: 'underline', fontWeight: 600 }}
           >
             Approvals queue
           </Link>

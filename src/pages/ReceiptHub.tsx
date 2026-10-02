@@ -1632,9 +1632,9 @@ export function ReceiptHubPage() {
           {/* EFTPOS Terminal */}
           <div className={`sim-eftpos ${simStage !== 'idle' ? 'is-active' : ''}`}>
             <div className="eftpos-screen">
-              <div style={{ fontSize: '7px', color: '#64748b' }}>BUNNINGS</div>
+              <div style={{ fontSize: '7px', color: 'var(--text-muted)' }}>BUNNINGS</div>
               <div style={{ fontSize: '10px', margin: '1px 0' }}>$360.00</div>
-              <div style={{ fontSize: '5px', color: '#10b981' }}>TAP TO PAY</div>
+              <div style={{ fontSize: '5px', color: 'var(--text-success)' }}>TAP TO PAY</div>
             </div>
             <div className="eftpos-keypad">
               {Array.from({ length: 9 }).map((_, i) => (
@@ -1697,7 +1697,7 @@ export function ReceiptHubPage() {
                 {/* Header */}
                 <div className="phone-app-header">
                   <div className="header-brand">
-                    <BrandLogo size={8} glow={false} style={{ color: 'var(--accent-primary)' }} />
+                    <BrandLogo size={8} glow={false} style={{ color: 'var(--text-link)' }} />
                     <span>
                       Looplet{' '}
                       <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
@@ -1936,7 +1936,7 @@ export function ReceiptHubPage() {
                       <span
                         style={
                           coreStatus.syncFailed > 0
-                            ? { color: 'var(--accent-danger, #f87171)' }
+                            ? { color: 'var(--accent-danger, var(--text-danger))' }
                             : undefined
                         }
                       >

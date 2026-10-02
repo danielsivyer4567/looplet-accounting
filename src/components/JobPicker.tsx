@@ -39,9 +39,9 @@ export function JobPicker({
         style={{
           width: '100%',
           padding: '0.5rem 0.75rem',
-          background: '#1a1a1a',
-          color: '#fff',
-          border: '1px solid #444',
+          background: 'var(--bg-card)',
+          color: 'var(--text-title)',
+          border: '1px solid var(--border-subtle)',
           borderRadius: 4,
           fontSize: 14,
         }}
@@ -53,8 +53,8 @@ export function JobPicker({
             top: '100%',
             left: 0,
             right: 0,
-            background: '#1a1a1a',
-            border: '1px solid #444',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: 4,
             marginTop: 4,
             zIndex: 10,
@@ -64,7 +64,7 @@ export function JobPicker({
           }}
         >
           {loading && (
-            <div style={{ padding: '0.5rem 0.75rem', color: '#888', fontSize: 13 }}>Searching…</div>
+            <div style={{ padding: '0.5rem 0.75rem', color: 'var(--text-muted)', fontSize: 13 }}>Searching…</div>
           )}
           {results.map((job) => (
             <button
@@ -83,8 +83,8 @@ export function JobPicker({
                 padding: '0.5rem 0.75rem',
                 background: 'transparent',
                 border: 'none',
-                borderBottom: '1px solid #2a2a2a',
-                color: '#fff',
+                borderBottom: '1px solid var(--border-subtle)',
+                color: 'var(--text-title)',
                 cursor: busy ? 'wait' : 'pointer',
                 fontSize: 13,
               }}
@@ -96,14 +96,14 @@ export function JobPicker({
               }}
             >
               <div style={{ fontWeight: 600 }}>
-                <code style={{ color: '#86c7a3' }}>{job.job_number}</code>{' '}
-                <span style={{ color: '#aaa', fontWeight: 400 }}>{job.name}</span>
+                <code style={{ color: 'var(--text-success)' }}>{job.job_number}</code>{' '}
+                <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>{job.name}</span>
               </div>
-              <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>{job.status}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{job.status}</div>
             </button>
           ))}
           {!loading && results.length === 0 && query.length > 0 && (
-            <div style={{ padding: '0.5rem 0.75rem', color: '#888', fontSize: 13 }}>
+            <div style={{ padding: '0.5rem 0.75rem', color: 'var(--text-muted)', fontSize: 13 }}>
               No active jobs match "{query}"
             </div>
           )}

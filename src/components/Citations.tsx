@@ -274,7 +274,7 @@ function CitedLawPanel({
                 gap: '0.3rem',
                 marginTop: '0.5rem',
                 fontSize: '0.78rem',
-                color: 'var(--accent-primary)',
+                color: 'var(--text-link)',
                 textDecoration: 'none',
               }}
             >

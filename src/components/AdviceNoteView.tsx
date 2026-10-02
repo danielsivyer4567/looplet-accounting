@@ -433,7 +433,7 @@ function CitationList({ citations }: { citations: unknown[] }) {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.3rem',
-                  color: 'var(--accent-primary)',
+                  color: 'var(--text-link)',
                   textDecoration: 'none',
                   fontWeight: 700,
                 }}

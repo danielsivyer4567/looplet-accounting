@@ -93,7 +93,7 @@ export function TparReportPage() {
       </div>
 
       <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <ClipboardList size={24} style={{ color: 'var(--accent-primary)' }} />
+        <ClipboardList size={24} style={{ color: 'var(--text-link)' }} />
         TPAR
       </h1>
       <p
@@ -292,7 +292,7 @@ function Kpi({
       <Icon
         size={18}
         style={{
-          color: 'var(--accent-primary)',
+          color: 'var(--text-link)',
           opacity: 0.65,
           position: 'absolute',
           right: '1rem',
@@ -315,7 +315,7 @@ function Card({
   return (
     <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-        <Icon size={18} style={{ color: 'var(--accent-primary)' }} />
+        <Icon size={18} style={{ color: 'var(--text-link)' }} />
         <h2 style={{ margin: 0, fontSize: '1.1rem' }}>{title}</h2>
       </div>
       {children}

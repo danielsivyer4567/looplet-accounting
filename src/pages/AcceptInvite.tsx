@@ -224,7 +224,7 @@ export function AcceptInvitePage() {
             style={{
               background: 'none',
               border: 'none',
-              color: 'var(--accent-primary)',
+              color: 'var(--text-link)',
               cursor: 'pointer',
               fontWeight: 600,
               padding: 0,

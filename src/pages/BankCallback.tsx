@@ -138,8 +138,8 @@ export function BankCallbackPage() {
           <div
             style={{
               padding: '1rem',
-              background: '#3d1818',
-              color: '#e9a3a3',
+              background: 'var(--bg-danger-subtle)',
+              color: 'var(--text-danger)',
               borderRadius: 4,
               fontSize: 13,
               marginBottom: '1rem',
@@ -152,7 +152,7 @@ export function BankCallbackPage() {
             style={{
               padding: '0.5rem 1.25rem',
               background: '#1a4d8c',
-              color: '#fff',
+              color: 'var(--text-title)',
               border: 'none',
               borderRadius: 4,
               cursor: 'pointer',
@@ -163,7 +163,7 @@ export function BankCallbackPage() {
           </button>
         </>
       ) : (
-        <p style={{ color: '#888', fontSize: 14 }}>{status}</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{status}</p>
       )}
     </section>
   );

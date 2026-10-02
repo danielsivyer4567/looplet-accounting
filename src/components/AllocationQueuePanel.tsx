@@ -18,7 +18,7 @@ function ScoreBadge({ score }: { score: number | null }) {
       <span
         className="badge"
         style={{
-          background: 'var(--bg-subtle, #1a1a1a)',
+          background: 'var(--bg-subtle, var(--bg-card))',
           color: 'var(--text-muted)',
           border: '1px solid var(--border-subtle)',
           fontSize: '0.72rem',
@@ -37,7 +37,7 @@ function ScoreBadge({ score }: { score: number | null }) {
         className="badge"
         style={{
           background: 'rgba(34,197,94,0.12)',
-          color: '#22c55e',
+          color: 'var(--text-success)',
           border: '1px solid rgba(34,197,94,0.3)',
           fontSize: '0.72rem',
         }}
@@ -53,7 +53,7 @@ function ScoreBadge({ score }: { score: number | null }) {
         className="badge"
         style={{
           background: 'rgba(245,158,11,0.12)',
-          color: '#f59e0b',
+          color: 'var(--text-warning)',
           border: '1px solid rgba(245,158,11,0.3)',
           fontSize: '0.72rem',
         }}
@@ -67,7 +67,7 @@ function ScoreBadge({ score }: { score: number | null }) {
     <span
       className="badge"
       style={{
-        background: 'var(--bg-subtle, #1a1a1a)',
+        background: 'var(--bg-subtle, var(--bg-card))',
         color: 'var(--text-muted)',
         border: '1px solid var(--border-subtle)',
         fontSize: '0.72rem',
@@ -166,20 +166,20 @@ export function AllocationQueuePanel() {
               margin: 0,
             }}
           >
-            <Zap size={18} style={{ color: 'var(--accent-primary)' }} />
+            <Zap size={18} style={{ color: 'var(--text-link)' }} />
             Job Allocation Queue
           </h2>
           {!loading && (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.25rem 0 0' }}>
               {autoAcceptCount > 0 && (
                 <>
-                  <span style={{ color: '#22c55e' }}>{autoAcceptCount} ready to auto-accept</span>
+                  <span style={{ color: 'var(--text-success)' }}>{autoAcceptCount} ready to auto-accept</span>
                   {(needsReviewCount > 0 || unmatchedCount > 0) && ' · '}
                 </>
               )}
               {needsReviewCount > 0 && (
                 <>
-                  <span style={{ color: '#f59e0b' }}>{needsReviewCount} need review</span>
+                  <span style={{ color: 'var(--text-warning)' }}>{needsReviewCount} need review</span>
                   {unmatchedCount > 0 && ' · '}
                 </>
               )}
@@ -267,7 +267,7 @@ export function AllocationQueuePanel() {
             ...(toast.type === 'success'
               ? {
                   background: 'rgba(34,197,94,0.12)',
-                  color: '#22c55e',
+                  color: 'var(--text-success)',
                   border: '1px solid rgba(34,197,94,0.3)',
                 }
               : {}),
@@ -305,7 +305,7 @@ export function AllocationQueuePanel() {
             gap: '0.5rem',
           }}
         >
-          <CheckCircle size={32} style={{ color: '#22c55e', opacity: 0.7 }} />
+          <CheckCircle size={32} style={{ color: 'var(--text-success)', opacity: 0.7 }} />
           <span>All bills are allocated</span>
         </div>
       ) : (

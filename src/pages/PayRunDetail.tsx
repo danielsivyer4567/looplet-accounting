@@ -300,7 +300,7 @@ export function PayRunDetailPage() {
       >
         <div>
           <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Layers size={24} style={{ color: 'var(--accent-primary)' }} />
+            <Layers size={24} style={{ color: 'var(--text-link)' }} />
             Pay run · {run.period_start} → {run.period_end}
           </h1>
           <div
@@ -526,7 +526,7 @@ export function PayRunDetailPage() {
       >
         <Info
           size={16}
-          style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }}
+          style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }}
         />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
           <span
@@ -729,7 +729,7 @@ export function TerminationWizard({
           <X size={20} />
         </button>
         <h2 style={{ margin: '0 0 0.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <UserMinus size={18} style={{ color: 'var(--accent-primary)' }} />
+          <UserMinus size={18} style={{ color: 'var(--text-link)' }} />
           Record termination
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 1rem' }}>

@@ -193,7 +193,7 @@ export function CustomerDetailPage() {
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Users size={24} style={{ color: 'var(--accent-primary)' }} />
+          <Users size={24} style={{ color: 'var(--text-link)' }} />
           {customer.name}
         </h1>
 

@@ -669,7 +669,7 @@ export function Layout() {
               boxShadow: 'var(--shadow-md)',
             }}
           >
-            <CalendarClock size={16} style={{ color: 'var(--accent-primary)' }} />
+            <CalendarClock size={16} style={{ color: 'var(--text-link)' }} />
             <span
               style={{
                 writingMode: 'vertical-rl',

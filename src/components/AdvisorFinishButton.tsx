@@ -438,7 +438,7 @@ export function AdvisorFinishButton() {
                     gap: '0.45rem',
                   }}
                 >
-                  <FileCheck2 size={18} style={{ color: 'var(--accent-primary)' }} />
+                  <FileCheck2 size={18} style={{ color: 'var(--text-link)' }} />
                   Finish work proof
                 </h2>
                 <p

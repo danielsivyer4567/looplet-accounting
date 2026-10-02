@@ -338,7 +338,7 @@ function WorkingPapersPanel({
   return (
     <div className="card" style={{ padding: '1rem' }}>
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-        <Package size={20} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+        <Package size={20} style={{ color: 'var(--text-link)', flexShrink: 0 }} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <h2 style={{ margin: 0, fontSize: '1rem' }}>Working papers</h2>
           <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.825rem' }}>
@@ -452,7 +452,7 @@ function CorrespondencePanel({
   return (
     <div className="card" style={{ padding: '1rem' }}>
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-        <FileText size={20} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+        <FileText size={20} style={{ color: 'var(--text-link)', flexShrink: 0 }} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <h2 style={{ margin: 0, fontSize: '1rem' }}>ATO correspondence</h2>
           <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.825rem' }}>
@@ -584,7 +584,7 @@ function DraftsPanel({
   return (
     <div className="card" style={{ padding: '1rem' }}>
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-        <ShieldCheck size={20} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+        <ShieldCheck size={20} style={{ color: 'var(--text-link)', flexShrink: 0 }} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <h2 style={{ margin: 0, fontSize: '1rem' }}>Draft responses</h2>
           <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.825rem' }}>
@@ -868,7 +868,7 @@ export function AuditLogPage() {
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <ShieldCheck size={24} style={{ color: 'var(--accent-primary)' }} />
+          <ShieldCheck size={24} style={{ color: 'var(--text-link)' }} />
           Assurance
         </h1>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -954,7 +954,7 @@ export function AuditLogPage() {
         }}
       >
         <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Search size={20} style={{ color: 'var(--accent-primary)' }} />
+          <Search size={20} style={{ color: 'var(--text-link)' }} />
           Audit trail
         </h2>
         <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>

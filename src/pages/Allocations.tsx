@@ -108,7 +108,7 @@ function BillPreviewPane({ bill, onClose }: { bill: AllocationQueueRow; onClose:
               href={`/bills/${bill.bill_id}`}
               target="_blank"
               rel="noreferrer"
-              style={{ color: 'var(--accent-primary)', fontSize: '0.75rem', fontWeight: 600 }}
+              style={{ color: 'var(--text-link)', fontSize: '0.75rem', fontWeight: 600 }}
             >
               Open page &rarr;
             </a>
@@ -125,7 +125,7 @@ function BillPreviewPane({ bill, onClose }: { bill: AllocationQueueRow; onClose:
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', background: '#e2e8f0' }}>
+      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', background: 'var(--bg-hover)' }}>
         {urlError ? (
           <div
             style={{
@@ -141,7 +141,7 @@ function BillPreviewPane({ bill, onClose }: { bill: AllocationQueueRow; onClose:
             <p style={{ marginTop: 12 }}>
               <Link
                 to={`/bills/${bill.bill_id}`}
-                style={{ color: 'var(--accent-primary)', fontWeight: 600 }}
+                style={{ color: 'var(--text-link)', fontWeight: 600 }}
               >
                 Open bill detail page instead &rarr;
               </Link>
@@ -428,7 +428,7 @@ export function AllocationsPage() {
               marginBottom: '0.25rem',
             }}
           >
-            <GitPullRequest size={24} style={{ color: 'var(--accent-primary)' }} />
+            <GitPullRequest size={24} style={{ color: 'var(--text-link)' }} />
             Allocations
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
@@ -652,7 +652,7 @@ function BillCard({
                 marginBottom: '0.75rem',
               }}
             >
-              <code style={{ marginRight: '0.5rem', color: 'var(--accent-primary)' }}>
+              <code style={{ marginRight: '0.5rem', color: 'var(--text-link)' }}>
                 {bill.suggested_job_number}
               </code>
               <span>{bill.suggested_job_name}</span>

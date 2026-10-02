@@ -431,7 +431,7 @@ export function BasReportPage() {
       >
         <Info
           size={16}
-          style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }}
+          style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }}
         />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
           <span
@@ -642,7 +642,7 @@ export function BasPrepCard({
       <div
         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}
       >
-        <FileText size={18} style={{ color: 'var(--accent-primary)' }} />
+        <FileText size={18} style={{ color: 'var(--text-link)' }} />
         <h2 style={{ margin: 0, fontSize: '1.1rem' }}>
           Prepare {quarterName} FY{fy}-{(fy + 1).toString().slice(2)} BAS
         </h2>

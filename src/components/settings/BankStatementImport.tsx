@@ -213,7 +213,7 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
           ×
         </button>
       </div>
-      <p style={{ fontSize: 12, color: '#888', marginTop: 6 }}>
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
         Drop CommBank/NAB/Westpac/ANZ statement PDFs. Each page is rendered to an image and sent to
         vision-OCR; transactions are deduped against existing rows.
       </p>
@@ -288,7 +288,7 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
         )}
       </div>
 
-      {progress && <p style={{ marginTop: 8, fontSize: 12, color: '#aaa' }}>⏳ {progress}</p>}
+      {progress && <p style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>⏳ {progress}</p>}
       {error && (
         <div
           role="alert"
@@ -303,16 +303,16 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
           ✓ Imported <strong>{result.imported}</strong> transactions
           {result.duplicates > 0 && <> · {result.duplicates} duplicates skipped</>}
           {result.insert_errors > 0 && <> · {result.insert_errors} insert errors</>}
-          <div style={{ marginTop: 4, fontSize: 11, color: '#aaa' }}>
+          <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-muted)' }}>
             {result.pages_processed} pages processed · {result.rows_extracted} rows extracted
           </div>
           {result.parse_errors.length > 0 && (
             <details style={{ marginTop: 6 }}>
-              <summary style={{ color: '#e9a3a3', cursor: 'pointer', fontSize: 11 }}>
+              <summary style={{ color: 'var(--text-danger)', cursor: 'pointer', fontSize: 11 }}>
                 {result.parse_errors.length} extraction issue
                 {result.parse_errors.length === 1 ? '' : 's'}
               </summary>
-              <ul style={{ marginTop: 4, color: '#e9a3a3', fontSize: 11 }}>
+              <ul style={{ marginTop: 4, color: 'var(--text-danger)', fontSize: 11 }}>
                 {result.parse_errors.map((e, i) => (
                   <li key={i}>{e}</li>
                 ))}
@@ -351,7 +351,7 @@ async function blobToBase64(blob: Blob): Promise<string> {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label style={{ display: 'block', fontSize: 11, color: '#888', marginTop: 8 }}>
+    <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
       <div style={{ marginBottom: 3 }}>{label}</div>
       {children}
     </label>
@@ -361,9 +361,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const inp: React.CSSProperties = {
   width: '100%',
   padding: '6px 8px',
-  background: '#000',
-  color: '#ddd',
-  border: '1px solid #333',
+  background: 'var(--bg-panel)',
+  color: 'var(--text-body)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: 3,
   fontSize: 12,
 };
@@ -371,8 +371,8 @@ const grid2: React.CSSProperties = { gap: 12 };
 const card: React.CSSProperties = {
   marginTop: 16,
   padding: 16,
-  background: '#0e0e0e',
-  border: '1px solid #2a2a2a',
+  background: 'var(--bg-panel)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: 4,
   maxWidth: 720,
 };
@@ -381,15 +381,15 @@ const openBtn: React.CSSProperties = {
   marginLeft: 8,
   padding: '0.4rem 1rem',
   background: 'transparent',
-  color: '#bbb',
-  border: '1px solid #444',
+  color: 'var(--text-muted)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: 3,
   fontSize: 12,
   cursor: 'pointer',
 };
 const closeBtn: React.CSSProperties = {
   background: 'transparent',
-  color: '#888',
+  color: 'var(--text-muted)',
   border: 'none',
   fontSize: 18,
   cursor: 'pointer',
@@ -398,9 +398,9 @@ const closeBtn: React.CSSProperties = {
 const primaryBtn: React.CSSProperties = {
   marginTop: 12,
   padding: '0.5rem 1rem',
-  background: '#1c4868',
-  color: '#fff',
-  border: '1px solid #5096d8',
+  background: 'var(--bg-info-subtle)',
+  color: 'var(--text-title)',
+  border: '1px solid var(--accent-info)',
   borderRadius: 4,
   fontSize: 13,
   fontWeight: 600,
@@ -409,8 +409,8 @@ const primaryBtn: React.CSSProperties = {
 const ghostBtn: React.CSSProperties = {
   padding: '0.5rem 0.75rem',
   background: 'transparent',
-  color: '#aaa',
-  border: '1px solid #333',
+  color: 'var(--text-muted)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: 4,
   fontSize: 12,
   cursor: 'pointer',
@@ -418,8 +418,8 @@ const ghostBtn: React.CSSProperties = {
 const successBox: React.CSSProperties = {
   marginTop: 12,
   padding: 8,
-  background: '#0a1f12',
-  border: '1px solid #2da565',
+  background: 'var(--bg-success-subtle)',
+  border: '1px solid var(--accent-success)',
   borderRadius: 3,
   fontSize: 12,
 };

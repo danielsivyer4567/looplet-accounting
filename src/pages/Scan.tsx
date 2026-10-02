@@ -326,10 +326,10 @@ export function ScanPage() {
                 justifyContent: 'center',
               }}
             >
-              <Loader2 className="spin" size={48} style={{ color: 'var(--accent-primary)' }} />
+              <Loader2 className="spin" size={48} style={{ color: 'var(--text-link)' }} />
               <ShieldAlert
                 size={20}
-                style={{ position: 'absolute', color: 'var(--accent-primary)' }}
+                style={{ position: 'absolute', color: 'var(--text-link)' }}
               />
             </div>
 
@@ -360,7 +360,7 @@ export function ScanPage() {
                   fontWeight: 600,
                 }}
               >
-                <span style={{ color: 'var(--accent-primary)' }}>{scanStatus}</span>
+                <span style={{ color: 'var(--text-link)' }}>{scanStatus}</span>
                 <span style={{ color: 'var(--text-title)' }}>{scanProgress}%</span>
               </div>
               <div
@@ -487,7 +487,7 @@ export function ScanPage() {
             style={{
               padding: '0.75rem 1.6rem',
               background: 'linear-gradient(135deg, var(--accent-primary) 0%, #0056cc 100%)',
-              color: '#ffffff',
+              color: 'var(--text-title)',
               borderRadius: '9999px',
               fontWeight: 700,
               boxShadow: '0 4px 14px rgba(0, 117, 255, 0.35)',

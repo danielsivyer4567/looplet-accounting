@@ -106,11 +106,11 @@ export function PayerBankDetails() {
   return (
     <div>
       <h2 style={{ fontSize: 16, marginBottom: 4 }}>Payer bank details</h2>
-      <p style={{ color: '#888', fontSize: 12, marginBottom: 12 }}>
+      <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
         Your bank account used as the <em>from</em> side in ABA (Cemtex) payment run files. Required
         before you can export a payment run.
         {!isComplete && (
-          <span style={{ color: '#f4a261', marginLeft: 6 }}>
+          <span style={{ color: 'var(--text-warning)', marginLeft: 6 }}>
             Incomplete — fill in all fields before creating a payment run.
           </span>
         )}
@@ -162,8 +162,8 @@ export function PayerBankDetails() {
         <button onClick={() => void save()} disabled={busy} style={btnPrim}>
           {busy ? 'Saving…' : 'Save payer details'}
         </button>
-        {msg && <span style={{ color: '#86c7a3', fontSize: 12 }}>{msg}</span>}
-        {err && <span style={{ color: 'salmon', fontSize: 12 }}>{err}</span>}
+        {msg && <span style={{ color: 'var(--text-success)', fontSize: 12 }}>{msg}</span>}
+        {err && <span style={{ color: 'var(--text-danger)', fontSize: 12 }}>{err}</span>}
       </div>
     </div>
   );
@@ -171,7 +171,7 @@ export function PayerBankDetails() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label style={{ display: 'block', fontSize: 11, color: '#888' }}>
+    <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
       <div style={{ marginBottom: 3 }}>{label}</div>
       {children}
     </label>
@@ -181,17 +181,17 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const inp: React.CSSProperties = {
   width: '100%',
   padding: '6px 8px',
-  background: '#000',
-  color: '#ddd',
-  border: '1px solid #333',
+  background: 'var(--bg-panel)',
+  color: 'var(--text-body)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: 3,
   fontSize: 12,
 };
 const btnPrim: React.CSSProperties = {
   padding: '0.5rem 1rem',
-  background: '#1c4868',
-  color: '#fff',
-  border: '1px solid #5096d8',
+  background: 'var(--bg-info-subtle)',
+  color: 'var(--text-title)',
+  border: '1px solid var(--accent-info)',
   borderRadius: 4,
   fontSize: 13,
   fontWeight: 600,

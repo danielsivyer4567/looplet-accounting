@@ -100,7 +100,7 @@ export function ClientsPage() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: 'var(--accent-primary)',
+                      color: 'var(--text-link)',
                       flexShrink: 0,
                     }}
                   >
@@ -133,7 +133,7 @@ export function ClientsPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.35rem',
-                    color: 'var(--accent-primary)',
+                    color: 'var(--text-link)',
                     fontSize: '0.82rem',
                     fontWeight: 600,
                   }}

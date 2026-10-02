@@ -234,7 +234,7 @@ export function ApiKeys() {
       {issuedKey && (
         <div style={secretPanel}>
           <div>
-            <div style={{ fontSize: 12, color: '#f0c36a', fontWeight: 700 }}>One-time secret</div>
+            <div style={{ fontSize: 12, color: 'var(--text-warning)', fontWeight: 700 }}>One-time secret</div>
             <code style={secretCode}>{issuedKey.api_key}</code>
           </div>
           <button type="button" onClick={() => void copyIssuedKey()} style={smallButton}>
@@ -401,10 +401,10 @@ function SummaryStat({ label, value }: { label: string; value: number }) {
 function StatusBadge({ status }: { status: KeyStatus }) {
   const tone =
     status === 'active'
-      ? { color: '#86c7a3', bg: '#0d2f1f' }
+      ? { color: 'var(--text-success)', bg: '#0d2f1f' }
       : status === 'expired'
-        ? { color: '#f0c36a', bg: '#2d230d' }
-        : { color: '#e9a3a3', bg: '#3d1818' };
+        ? { color: 'var(--text-warning)', bg: '#2d230d' }
+        : { color: 'var(--text-danger)', bg: '#3d1818' };
   return (
     <span style={{ ...badgeStyle, color: tone.color, background: tone.bg }}>
       {status === 'active' && <CheckCircle2 size={12} />}
@@ -500,7 +500,7 @@ const labelStyle: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
   width: '100%',
   minHeight: 36,
-  background: '#0e0e0e',
+  background: 'var(--bg-panel)',
   border: '1px solid var(--border-subtle)',
   borderRadius: 6,
   color: 'var(--text-title)',
@@ -559,9 +559,9 @@ const primaryButton: React.CSSProperties = {
   gap: '0.4rem',
   justifyContent: 'center',
   padding: '0.55rem 0.85rem',
-  background: '#1c5135',
-  color: '#fff',
-  border: '1px solid #2da565',
+  background: 'var(--bg-success-subtle)',
+  color: 'var(--text-title)',
+  border: '1px solid var(--accent-success)',
   borderRadius: 6,
   cursor: 'pointer',
   fontSize: 13,
@@ -574,8 +574,8 @@ const smallButton: React.CSSProperties = {
   gap: '0.35rem',
   padding: '0.35rem 0.65rem',
   background: 'transparent',
-  color: '#f0c36a',
-  border: '1px solid #7a5a22',
+  color: 'var(--text-warning)',
+  border: '1px solid var(--accent-warning)',
   borderRadius: 5,
   cursor: 'pointer',
   fontSize: 12,
@@ -588,8 +588,8 @@ const dangerButton: React.CSSProperties = {
   gap: '0.3rem',
   padding: '0.3rem 0.55rem',
   background: 'transparent',
-  color: '#e9a3a3',
-  border: '1px solid #4a2828',
+  color: 'var(--text-danger)',
+  border: '1px solid var(--accent-danger)',
   borderRadius: 5,
   cursor: 'pointer',
   fontSize: 12,
@@ -602,15 +602,15 @@ const secretPanel: React.CSSProperties = {
   alignItems: 'center',
   marginTop: '1rem',
   padding: '0.85rem',
-  border: '1px solid #7a5a22',
+  border: '1px solid var(--accent-warning)',
   borderRadius: 8,
-  background: '#2a1f0c',
+  background: 'var(--bg-warning-subtle)',
 };
 
 const secretCode: React.CSSProperties = {
   display: 'block',
   marginTop: '0.35rem',
-  color: '#ffe0a3',
+  color: 'var(--text-warning)',
   wordBreak: 'break-all',
   fontSize: 12,
 };
@@ -618,9 +618,9 @@ const secretCode: React.CSSProperties = {
 const alertStyle: React.CSSProperties = {
   marginTop: '1rem',
   padding: '0.7rem 0.85rem',
-  border: '1px solid #4a2828',
-  background: '#3d1818',
-  color: '#e9a3a3',
+  border: '1px solid var(--accent-danger)',
+  background: 'var(--bg-danger-subtle)',
+  color: 'var(--text-danger)',
   borderRadius: 8,
   fontSize: 13,
 };
@@ -628,9 +628,9 @@ const alertStyle: React.CSSProperties = {
 const successStyle: React.CSSProperties = {
   marginTop: '1rem',
   padding: '0.7rem 0.85rem',
-  border: '1px solid #2da565',
-  background: '#0d2f1f',
-  color: '#86c7a3',
+  border: '1px solid var(--accent-success)',
+  background: 'var(--bg-success-subtle)',
+  color: 'var(--text-success)',
   borderRadius: 8,
   fontSize: 13,
 };

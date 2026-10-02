@@ -167,7 +167,7 @@ export function SupplierDetailPage() {
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Building2 size={24} style={{ color: 'var(--accent-primary)' }} />
+          <Building2 size={24} style={{ color: 'var(--text-link)' }} />
           {supplier.name}
         </h1>
 

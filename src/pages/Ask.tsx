@@ -374,7 +374,7 @@ export function AskPage() {
                 marginBottom: '0.25rem',
               }}
             >
-              <Sparkles size={24} style={{ color: 'var(--accent-primary)' }} />
+              <Sparkles size={24} style={{ color: 'var(--text-link)' }} />
               Ask AI
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
@@ -463,7 +463,7 @@ export function AskPage() {
                     maxWidth: '80%',
                     padding: '0.75rem 1.25rem',
                     background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-hover) 100%)',
-                    color: '#fff',
+                    color: 'var(--text-title)',
                     borderRadius: 'var(--radius-md) var(--radius-md) 0 var(--radius-md)',
                     fontSize: '0.9rem',
                     lineHeight: '1.45',
@@ -618,7 +618,7 @@ export function AskPage() {
                                 href={url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                style={{ color: 'var(--accent-primary)', wordBreak: 'break-all' }}
+                                style={{ color: 'var(--text-link)', wordBreak: 'break-all' }}
                               >
                                 {url}
                               </a>
@@ -1094,7 +1094,7 @@ export function AdvisorPanel({
                 letterSpacing: 0,
               }}
             >
-              <Sparkles size={18} style={{ color: 'var(--accent-primary)' }} />
+              <Sparkles size={18} style={{ color: 'var(--text-link)' }} />
               Advisor
             </h2>
             <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>

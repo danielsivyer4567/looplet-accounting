@@ -366,7 +366,7 @@ export function EmployeeDetailPage() {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <User size={24} style={{ color: 'var(--accent-primary)' }} />
+            <User size={24} style={{ color: 'var(--text-link)' }} />
             {employee.full_name}
           </h1>
           {employee.role && (
@@ -1421,7 +1421,7 @@ function LogTimeForm({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.5rem' }}>
       <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <Clock size={18} style={{ color: 'var(--accent-primary)' }} />
+        <Clock size={18} style={{ color: 'var(--text-link)' }} />
         Log time — {employee.full_name}
       </h3>
 

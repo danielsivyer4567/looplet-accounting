@@ -148,15 +148,15 @@ export function GmailConnect({
   return (
     <div style={{ marginTop: showContainerSpacing ? '2rem' : 0 }}>
       <h2 style={{ fontSize: 18, marginBottom: '0.5rem' }}>{title}</h2>
-      <p style={{ color: '#888', fontSize: 13, marginBottom: '1rem' }}>{description}</p>
+      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: '1rem' }}>{description}</p>
 
       {disconnected.length > 0 && (
         <div
           role="alert"
           style={{
-            border: '1px solid #7a5a22',
-            background: '#2a1f0c',
-            color: '#e3b873',
+            border: '1px solid var(--accent-warning)',
+            background: 'var(--bg-warning-subtle)',
+            color: 'var(--text-warning)',
             borderRadius: 4,
             padding: '0.6rem 0.75rem',
             fontSize: 13,
@@ -180,9 +180,9 @@ export function GmailConnect({
           disabled={connecting}
           style={{
             padding: '0.5rem 1rem',
-            background: '#1c5135',
-            color: '#fff',
-            border: '1px solid #2da565',
+            background: 'var(--bg-success-subtle)',
+            color: 'var(--text-title)',
+            border: '1px solid var(--accent-success)',
             borderRadius: 4,
             cursor: connecting ? 'wait' : 'pointer',
             fontSize: 13,
@@ -198,7 +198,7 @@ export function GmailConnect({
             style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}
           >
             <thead>
-              <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
+              <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                 <th style={th}>Mailbox</th>
                 <th style={th}>Last synced</th>
                 <th style={th}>Watch expires</th>
@@ -208,7 +208,7 @@ export function GmailConnect({
             </thead>
             <tbody>
               {integrations.map((g) => (
-                <tr key={g.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
+                <tr key={g.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                   <td style={td}>{g.gmail_address}</td>
                   <td style={td}>{formatDate(g.last_synced_at)}</td>
                   <td style={td}>{formatDate(g.watch_expires_at)}</td>
@@ -226,7 +226,7 @@ export function GmailConnect({
                       {g.is_active ? 'active' : 'disabled'}
                     </span>
                     {g.last_error && (
-                      <div style={{ color: '#e9a3a3', fontSize: 11, marginTop: 4 }}>
+                      <div style={{ color: 'var(--text-danger)', fontSize: 11, marginTop: 4 }}>
                         {g.last_error}
                       </div>
                     )}
@@ -238,9 +238,9 @@ export function GmailConnect({
                           onClick={() => handleBackfill(g.id, g.gmail_address)}
                           disabled={backfilling === g.id}
                           style={{
-                            background: '#1c5135',
-                            color: '#86c7a3',
-                            border: '1px solid #2da565',
+                            background: 'var(--bg-success-subtle)',
+                            color: 'var(--text-success)',
+                            border: '1px solid var(--accent-success)',
                             borderRadius: 3,
                             fontSize: 11,
                             padding: '0.2rem 0.5rem',
@@ -253,8 +253,8 @@ export function GmailConnect({
                           onClick={() => handleDisconnect(g.id, g.gmail_address)}
                           style={{
                             background: 'transparent',
-                            color: '#e9a3a3',
-                            border: '1px solid #2a2a2a',
+                            color: 'var(--text-danger)',
+                            border: '1px solid var(--border-subtle)',
                             borderRadius: 3,
                             fontSize: 11,
                             padding: '0.2rem 0.5rem',
@@ -272,9 +272,9 @@ export function GmailConnect({
                         disabled={connecting}
                         title={`Reconnect ${g.gmail_address} via Google`}
                         style={{
-                          background: '#3a2a12',
-                          color: '#e3b873',
-                          border: '1px solid #7a5a22',
+                          background: 'var(--bg-warning-subtle)',
+                          color: 'var(--text-warning)',
+                          border: '1px solid var(--accent-warning)',
                           borderRadius: 3,
                           fontSize: 11,
                           fontWeight: 600,
@@ -318,7 +318,7 @@ export function GmailConnect({
                   <strong>{formatDate(g.watch_expires_at)}</strong>
                 </div>
                 {g.last_error && (
-                  <div style={{ color: '#e9a3a3', fontSize: 11, marginTop: 4 }}>{g.last_error}</div>
+                  <div style={{ color: 'var(--text-danger)', fontSize: 11, marginTop: 4 }}>{g.last_error}</div>
                 )}
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
                   {g.is_active ? (
@@ -327,9 +327,9 @@ export function GmailConnect({
                         onClick={() => handleBackfill(g.id, g.gmail_address)}
                         disabled={backfilling === g.id}
                         style={{
-                          background: '#1c5135',
-                          color: '#86c7a3',
-                          border: '1px solid #2da565',
+                          background: 'var(--bg-success-subtle)',
+                          color: 'var(--text-success)',
+                          border: '1px solid var(--accent-success)',
                           borderRadius: 3,
                           fontSize: 11,
                           padding: '0.2rem 0.5rem',
@@ -342,8 +342,8 @@ export function GmailConnect({
                         onClick={() => handleDisconnect(g.id, g.gmail_address)}
                         style={{
                           background: 'transparent',
-                          color: '#e9a3a3',
-                          border: '1px solid #2a2a2a',
+                          color: 'var(--text-danger)',
+                          border: '1px solid var(--border-subtle)',
                           borderRadius: 3,
                           fontSize: 11,
                           padding: '0.2rem 0.5rem',
@@ -359,9 +359,9 @@ export function GmailConnect({
                       disabled={connecting}
                       title={`Reconnect ${g.gmail_address} via Google`}
                       style={{
-                        background: '#3a2a12',
-                        color: '#e3b873',
-                        border: '1px solid #7a5a22',
+                        background: 'var(--bg-warning-subtle)',
+                        color: 'var(--text-warning)',
+                        border: '1px solid var(--accent-warning)',
                         borderRadius: 3,
                         fontSize: 11,
                         fontWeight: 600,
@@ -379,9 +379,9 @@ export function GmailConnect({
         </>
       )}
 
-      {error && <p style={{ color: 'salmon', fontSize: 12, marginTop: '0.5rem' }}>{error}</p>}
+      {error && <p style={{ color: 'var(--text-danger)', fontSize: 12, marginTop: '0.5rem' }}>{error}</p>}
       {backfillStatus && (
-        <p style={{ color: '#86c7a3', fontSize: 12, marginTop: '0.5rem' }}>{backfillStatus}</p>
+        <p style={{ color: 'var(--text-success)', fontSize: 12, marginTop: '0.5rem' }}>{backfillStatus}</p>
       )}
     </div>
   );
@@ -391,7 +391,7 @@ const th: React.CSSProperties = {
   padding: '0.4rem 0.5rem',
   textAlign: 'left',
   fontSize: 11,
-  color: '#888',
+  color: 'var(--text-muted)',
   textTransform: 'uppercase',
   letterSpacing: 0.5,
   fontWeight: 500,

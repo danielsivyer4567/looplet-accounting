@@ -73,7 +73,7 @@ export function XeroStatusPill({
           style={{
             display: 'block',
             fontSize: 10,
-            color: '#e9a3a3',
+            color: 'var(--text-danger)',
             maxWidth: 240,
             whiteSpace: 'nowrap',
             overflow: 'hidden',

@@ -114,7 +114,7 @@ export function SuppliersPage() {
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Truck size={24} style={{ color: 'var(--accent-primary)' }} />
+          <Truck size={24} style={{ color: 'var(--text-link)' }} />
           Suppliers
         </h1>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -184,7 +184,7 @@ export function SuppliersPage() {
               gap: '0.25rem',
             }}
           >
-            <BarChart size={14} style={{ color: 'var(--accent-primary)' }} />
+            <BarChart size={14} style={{ color: 'var(--text-link)' }} />
             Top 5 Suppliers by Spend YTD
           </div>
           <HorizontalBarChart items={top5} max={chartMax} />
@@ -289,7 +289,7 @@ export function SuppliersPage() {
                     <td
                       style={{
                         textAlign: 'right',
-                        color: 'var(--accent-primary)',
+                        color: 'var(--text-link)',
                         fontWeight: 600,
                       }}
                     >
@@ -343,7 +343,7 @@ function SupplierCard({
               e.preventDefault();
               onOpen();
             }}
-            style={{ fontWeight: 700, color: 'var(--accent-primary)', textDecoration: 'none' }}
+            style={{ fontWeight: 700, color: 'var(--text-link)', textDecoration: 'none' }}
           >
             {supplier.name}
           </a>
@@ -376,7 +376,7 @@ function SupplierCard({
         </div>
         <div>
           <span>Total spend</span>
-          <strong style={{ color: 'var(--accent-primary)' }}>{formatMoney(spendCents)}</strong>
+          <strong style={{ color: 'var(--text-link)' }}>{formatMoney(spendCents)}</strong>
         </div>
       </div>
     </article>

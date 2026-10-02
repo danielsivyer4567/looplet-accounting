@@ -657,7 +657,7 @@ export function DashboardPage() {
             to="/reconciliation"
             style={{
               fontSize: '0.8rem',
-              color: 'var(--accent-primary)',
+              color: 'var(--text-link)',
               fontWeight: 600,
             }}
           >
@@ -842,7 +842,7 @@ export function DashboardPage() {
                     Add your organisation&apos;s bank details in{' '}
                     <Link
                       to="/settings"
-                      style={{ color: 'var(--accent-primary)', fontWeight: 600 }}
+                      style={{ color: 'var(--text-link)', fontWeight: 600 }}
                     >
                       Settings → Payments
                     </Link>{' '}
@@ -1189,7 +1189,7 @@ function TodayFeed({ tasks, loading }: { tasks: WorkstreamTask[]; loading: boole
                         padding: '0.1rem 0.4rem',
                         borderRadius: 'var(--radius-sm)',
                         background: CONFIDENCE_COLORS[task.confidence] ?? 'var(--text-muted)',
-                        color: '#fff',
+                        color: 'var(--text-title)',
                         fontWeight: 600,
                         textTransform: 'uppercase',
                         letterSpacing: '0.04em',
@@ -1213,8 +1213,8 @@ function TodayFeed({ tasks, loading }: { tasks: WorkstreamTask[]; loading: boole
                           fontSize: '0.65rem',
                           padding: '0.1rem 0.4rem',
                           borderRadius: 'var(--radius-sm)',
-                          background: '#fef2f2',
-                          color: '#dc2626',
+                          background: 'var(--bg-danger-subtle)',
+                          color: 'var(--text-danger)',
                           fontWeight: 600,
                         }}
                       >
@@ -1241,7 +1241,7 @@ function TodayFeed({ tasks, loading }: { tasks: WorkstreamTask[]; loading: boole
                       alignItems: 'center',
                     }}
                   >
-                    <span style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-link)', fontWeight: 600 }}>
                       {task.suggested_action}
                     </span>
                     {task.impact_cents != null && task.impact_cents !== 0 && (
@@ -1280,7 +1280,7 @@ function AdvisoryItem({ icon, text, link }: { icon: string; text: string; link?:
         {link ? (
           <>
             {text.replace(link, '')}
-            <span style={{ color: 'var(--accent-primary)', cursor: 'pointer', fontWeight: 600 }}>{link}</span>
+            <span style={{ color: 'var(--text-link)', cursor: 'pointer', fontWeight: 600 }}>{link}</span>
           </>
         ) : (
           text

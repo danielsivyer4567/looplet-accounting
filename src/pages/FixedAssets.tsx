@@ -130,7 +130,7 @@ export function FixedAssetsPage() {
         <h1
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}
         >
-          <Boxes size={24} style={{ color: 'var(--accent-primary)' }} />
+          <Boxes size={24} style={{ color: 'var(--text-link)' }} />
           Fixed Assets
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
@@ -245,7 +245,7 @@ export function FixedAssetsPage() {
                               <Link
                                 to={`/bills/${a.source_bill_id}`}
                                 onClick={(e) => e.stopPropagation()}
-                                style={{ color: 'var(--accent-primary)', fontWeight: 600 }}
+                                style={{ color: 'var(--text-link)', fontWeight: 600 }}
                               >
                                 Source bill &rarr;
                               </Link>
@@ -410,7 +410,7 @@ function ProposalCard({
           {asset.asset_account_code && (
             <>
               <span>·</span>
-              <code style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
+              <code style={{ color: 'var(--text-link)', fontWeight: 600 }}>
                 {asset.asset_account_code}
               </code>
             </>
@@ -426,7 +426,7 @@ function ProposalCard({
             style={{
               display: 'inline-block',
               marginTop: '0.5rem',
-              color: 'var(--accent-primary)',
+              color: 'var(--text-link)',
               fontSize: '0.75rem',
               fontWeight: 600,
             }}

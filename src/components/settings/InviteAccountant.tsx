@@ -72,7 +72,7 @@ export function InviteAccountant() {
           gap: '0.35rem',
         }}
       >
-        <UserPlus size={18} style={{ color: 'var(--accent-primary)' }} />
+        <UserPlus size={18} style={{ color: 'var(--text-link)' }} />
         Invite your accountant
       </h2>
       <p

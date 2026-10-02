@@ -33,7 +33,7 @@ export function PaymentRunsPage() {
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Layers size={24} style={{ color: 'var(--accent-primary)' }} />
+          <Layers size={24} style={{ color: 'var(--text-link)' }} />
           Payment Runs
         </h1>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>

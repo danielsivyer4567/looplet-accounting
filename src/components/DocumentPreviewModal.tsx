@@ -137,12 +137,12 @@ export function DocumentPreviewModal({
         </div>
       )}
       {s.noDoc && (
-        <p style={{ color: '#888', lineHeight: 1.5 }}>
+        <p style={{ color: 'var(--text-muted)', lineHeight: 1.5 }}>
           No source document for this transaction — it was imported from a CommBank statement, not
           an uploaded file.
         </p>
       )}
-      {s.error && <p style={{ color: 'salmon' }}>{s.error}</p>}
+      {s.error && <p style={{ color: 'var(--text-danger)' }}>{s.error}</p>}
       {s.imageUrl && (
         <img
           src={s.imageUrl}

@@ -144,7 +144,7 @@ export function CreditNotesPage() {
         }}
       >
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileMinus2 size={24} style={{ color: 'var(--accent-primary)' }} />
+          <FileMinus2 size={24} style={{ color: 'var(--text-link)' }} />
           Credit notes
         </h1>
       </div>

@@ -186,7 +186,7 @@ export function LodgementsPage() {
       >
         <div>
           <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <FileCheck2 size={24} style={{ color: 'var(--accent-primary)' }} />
+            <FileCheck2 size={24} style={{ color: 'var(--text-link)' }} />
             Lodgements
           </h1>
           <p style={{ color: MUTED, margin: '0.35rem 0 0', maxWidth: '48rem' }}>
