@@ -120,8 +120,15 @@ Deno.serve(async (req) => {
       try {
         const results = await classifyWithSonar(rows as CandidateRow[], catalogue, sonarKey);
 
-        // Persist results
+        // Persist results. Row ids come back in the model's reply, so only ids from this batch are accepted and every
+        // write is also scoped to the organisation: a crafted sender name must not steer a write to another row.
+        const batchIds = new Set(rows.map((row) => row.id));
         for (const r of results) {
+          if (!batchIds.has(r.id)) {
+            errors += 1;
+            console.error(`sonar returned an id outside this batch; ignored`);
+            continue;
+          }
           const validKind = ENTITY_KINDS.includes(r.kind as typeof ENTITY_KINDS[number]) ? r.kind : null;
           const validCategory = catalogue.find((c) => c.code === r.category)?.code ?? null;
 
@@ -137,7 +144,8 @@ Deno.serve(async (req) => {
           const { error: upErr } = await admin
             .from('staged_entities')
             .update(update)
-            .eq('id', r.id);
+            .eq('id', r.id)
+            .eq('organization_id', body.organization_id);
 
           if (upErr) {
             errors += 1;
@@ -155,7 +163,8 @@ Deno.serve(async (req) => {
             sonar_summary: `Enrichment error: ${err instanceof Error ? err.message : String(err)}`.slice(0, 280),
             sonar_enriched_at: new Date().toISOString(),
           })
-          .in('id', ids);
+          .in('id', ids)
+          .eq('organization_id', body.organization_id);
         errors += rows.length;
         unchanged += rows.length;
       }

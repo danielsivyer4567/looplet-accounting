@@ -23,6 +23,11 @@ describe('edge functions check the caller before reading data or spending credit
     expect(src).toContain('boundedInt(body.batch_size, 15, 1, 25)');
     expect(src).toContain('boundedInt(body.max_batches, 4, 1, 10)');
     expect(src).not.toMatch(/body\.(batch_size|max_batches) \?\?/);
+    // Model-returned row ids are limited to the batch, and every write is scoped to the organisation.
+    expect(src).toContain('if (!batchIds.has(r.id)) {');
+    const writes = [...src.matchAll(/\.from\('staged_entities'\)\s*\.update\([\s\S]*?;/g)].map((m) => m[0]);
+    expect(writes.length).toBe(2);
+    for (const write of writes) expect(write).toContain(".eq('organization_id', body.organization_id)");
   });
 
   it('bank-statement-extract needs a signed-in user, not just any Authorization header, and limits the image size', () => {
