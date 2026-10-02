@@ -57,6 +57,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { authorizeOrgMember, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -285,17 +286,9 @@ Deno.serve(async (req) => {
 
   const admin = createClient(supabaseUrl, serviceKey);
 
-  // Verify membership
-  const { data: membership } = await admin
-    .from('organization_memberships')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('organization_id', organization_id)
-    .maybeSingle();
-
-  if (!membership) {
-    return json({ ok: false, error: 'Forbidden' }, 403);
-  }
+  // An ABA file is a bank payment instruction with payee BSBs and account numbers: accepted admins and owners only.
+  const access = await authorizeOrgMember(user.id, organization_id, supabaseOrgAccessDeps(admin, serviceKey), 'admin');
+  if (!access.ok) return json({ ok: false, error: access.error }, access.status);
 
   // Load payment_run
   const { data: run, error: runErr } = await admin

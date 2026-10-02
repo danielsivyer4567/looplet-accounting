@@ -27,6 +27,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { authorizeOrgMember, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -101,18 +102,11 @@ Deno.serve(async (req) => {
   const admin = createClient(supabaseUrl, serviceKey);
 
   // --------------------------------------------------------------------------
-  // 4. Verify caller belongs to org
+  // 4. Verify the caller is an accepted admin or owner of the org
   // --------------------------------------------------------------------------
-  const { data: membership } = await admin
-    .from('organization_memberships')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('organization_id', organization_id)
-    .maybeSingle();
-
-  if (!membership) {
-    return json({ ok: false, error: 'Forbidden — not a member of this organisation' }, 403);
-  }
+  // A payment run decides which suppliers are paid from which account. Pending invites and viewers must not.
+  const access = await authorizeOrgMember(user.id, organization_id, supabaseOrgAccessDeps(admin, serviceKey), 'admin');
+  if (!access.ok) return json({ ok: false, error: access.error }, access.status);
 
   // --------------------------------------------------------------------------
   // 5. Load bills + supplier payee details

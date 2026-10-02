@@ -32,6 +32,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { authorizeOrgMember, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 import { decryptToken } from '../_shared/xero/crypto.ts';
 import { buildStpEvent, type StpOrg, type StpRun, type StpSlip } from './stp.ts';
 
@@ -109,15 +110,9 @@ Deno.serve(async (req) => {
     .single();
   if (runErr || !run) return json({ ok: false, error: 'pay_run not found' }, 404);
 
-  const { data: callerMembership } = await userClient
-    .from('organization_memberships')
-    .select('role_enum')
-    .eq('user_id', user.id)
-    .eq('organization_id', run.organization_id)
-    .maybeSingle();
-  if (!callerMembership || !['admin', 'owner'].includes(callerMembership.role_enum ?? '')) {
-    return json({ ok: false, error: 'Only admin or owner can export STP' }, 403);
-  }
+  // STP export decrypts employee TFNs: an ACCEPTED admin or owner of the run's org only.
+  const access = await authorizeOrgMember(user.id, run.organization_id, supabaseOrgAccessDeps(admin, serviceKey), 'admin');
+  if (!access.ok) return json({ ok: false, error: 'Only an admin or owner can export STP' }, access.status);
 
   // Org-level info (ABN etc.) lives in organizations.settings.
   const { data: org } = await admin

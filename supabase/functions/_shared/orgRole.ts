@@ -46,7 +46,16 @@ export async function authorizeOrgCaller(
   if (!jwt) return { ok: false, status: 401, error: 'Unauthorized' };
   const userId = await deps.userIdFromJwt(jwt);
   if (!userId) return { ok: false, status: 401, error: 'Unauthorized' };
+  return authorizeOrgMember(userId, organizationId, deps, minRole);
+}
 
+/** The role check alone, for a user the function has already authenticated (for example with auth.getUser()). */
+export async function authorizeOrgMember(
+  userId: string,
+  organizationId: string,
+  deps: Pick<OrgAccessDeps, 'membership'>,
+  minRole: OrgRole,
+): Promise<OrgAccess> {
   const membership = await deps.membership(userId, organizationId);
   if (!membership || !membership.accepted_at || !isOrgRole(membership.role_enum)) {
     return { ok: false, status: 403, error: 'Not a member of this organisation' };

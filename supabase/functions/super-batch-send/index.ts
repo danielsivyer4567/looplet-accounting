@@ -16,6 +16,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
+import { authorizeOrgMember, supabaseOrgAccessDeps } from "../_shared/orgRole.ts";
 
 interface RequestBody {
   organization_id?: string;
@@ -84,14 +85,9 @@ Deno.serve(async (req: Request) => {
 
   const admin = createClient(supabaseUrl, serviceKey);
 
-  // Caller must belong to the org (the gate is org-bound; never trust the body alone).
-  const { data: membership } = await admin
-    .from("organization_memberships")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("organization_id", organization_id)
-    .maybeSingle();
-  if (!membership) return json({ ok: false, error: "Forbidden" }, 403);
+  // Super contributions are employee money: an accepted admin or owner of this org (never trust the body alone).
+  const access = await authorizeOrgMember(user.id, organization_id, supabaseOrgAccessDeps(admin, serviceKey), "admin");
+  if (!access.ok) return json({ ok: false, error: access.error }, access.status);
 
   const { data: batch, error: batchErr } = await admin
     .from("super_batches")
@@ -163,7 +159,7 @@ Deno.serve(async (req: Request) => {
   // authz check inside build_superstream_payload would always fail). Same fix
   // shape as request_approval above — this was the one call in this function that
   // used admin by mistake; membership was already proven above via the
-  // organization_memberships check, so re-checking via userClient here is safe
+  // authorizeOrgMember check, so re-checking via userClient here is safe
   // and correct, not redundant paranoia.
   const { data: payload, error: payloadErr } = await userClient.rpc("build_superstream_payload", {
     p_batch_id: super_batch_id,

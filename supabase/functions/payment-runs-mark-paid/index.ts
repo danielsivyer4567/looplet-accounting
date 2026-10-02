@@ -21,6 +21,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { authorizeOrgMember, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -81,17 +82,9 @@ Deno.serve(async (req) => {
   const status   = runRow['status'] as string;
   const pay_date = runRow['pay_date'] as string;
 
-  // Verify caller belongs to org
-  const { data: membership } = await admin
-    .from('organization_memberships')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('organization_id', organization_id)
-    .maybeSingle();
-
-  if (!membership) {
-    return json({ ok: false, error: 'Forbidden' }, 403);
-  }
+  // Marking a run paid settles its bills in the books: accepted admins and owners only.
+  const access = await authorizeOrgMember(user.id, organization_id, supabaseOrgAccessDeps(admin, serviceKey), 'admin');
+  if (!access.ok) return json({ ok: false, error: access.error }, access.status);
 
   // Allow marking as paid from approved or exported state
   if (status !== 'exported' && status !== 'approved') {

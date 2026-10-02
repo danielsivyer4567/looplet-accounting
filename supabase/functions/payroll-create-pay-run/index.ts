@@ -27,6 +27,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { authorizeOrgMember, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 
 type EntryType = 'ordinary' | 'overtime' | 'annual_leave' | 'sick_leave' | 'public_holiday';
 
@@ -132,17 +133,9 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: 'frequency must be weekly|fortnightly|monthly' }, 400);
   }
 
-  // ---- Caller must be admin+ for this org -----------------------------------
-  const { data: callerMembership, error: memErr } = await userClient
-    .from('organization_memberships')
-    .select('role_enum')
-    .eq('user_id', user.id)
-    .eq('organization_id', organization_id)
-    .maybeSingle();
-  if (memErr) return json({ ok: false, error: 'Failed to verify membership' }, 500);
-  if (!callerMembership || !['admin', 'owner'].includes(callerMembership.role_enum ?? '')) {
-    return json({ ok: false, error: 'Only admin or owner can create pay runs' }, 403);
-  }
+  // ---- Caller must be an ACCEPTED admin or owner of this org -----------------
+  const access = await authorizeOrgMember(user.id, organization_id, supabaseOrgAccessDeps(admin, serviceKey), 'admin');
+  if (!access.ok) return json({ ok: false, error: 'Only an admin or owner can create pay runs' }, access.status);
 
   // ---- Fetch employees ------------------------------------------------------
   const { data: employees, error: empErr } = await admin
