@@ -227,6 +227,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-01-002.log",
           "log_sha256": "45ee8ead65d878a9a38f3752a7543a552f42ad667cff18253382722dd7540327"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/intake-routing-apply/auth.test.ts\"",
+          "exit": 0,
+          "head": "23b7b5387c1d76f44a34b269250f4c8d3bdb3f7e",
+          "dirty": [],
+          "at": "2026-10-02T23:12:58.068Z",
+          "ms": 700,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-01-003.log",
+          "log_sha256": "e56c2b4159ed7c7641274df140ccab39db089d4c2ac018e2c82114ba9302640a"
         }
       ],
       "notes": [],
@@ -264,14 +277,38 @@
           "event": "done",
           "head": "7b4a991766821eb59fa9ba1439514f4289e6ea3e",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T23:12:48.446Z",
+          "event": "stale",
+          "head": "23b7b5387c1d76f44a34b269250f4c8d3bdb3f7e",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/functions/_shared/authGuards.test.ts",
+            "supabase/functions/_shared/authGuards.ts"
+          ]
+        },
+        {
+          "at": "2026-10-02T23:12:58.069Z",
+          "event": "run",
+          "head": "23b7b5387c1d76f44a34b269250f4c8d3bdb3f7e",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-02T23:12:58.188Z",
+          "event": "done",
+          "head": "23b7b5387c1d76f44a34b269250f4c8d3bdb3f7e",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-02T23:09:04.499Z",
-        "head": "7b4a991766821eb59fa9ba1439514f4289e6ea3e",
+        "at": "2026-10-02T23:12:58.173Z",
+        "head": "23b7b5387c1d76f44a34b269250f4c8d3bdb3f7e",
         "by": "claude-worker",
         "runs": [
-          2
+          3
         ]
       }
     },
@@ -1511,5 +1548,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-02T23:12:48.135Z"
+  "updated_at": "2026-10-02T23:12:58.203Z"
 }
