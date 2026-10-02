@@ -8,6 +8,8 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { oauthStateSecret, verifyOAuthState } from '../_shared/oauthState.ts';
+import { authorizeOrgCaller, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 import { encryptToken } from '../_shared/xero/crypto.ts';
 import { registerGmailWatch } from '../_shared/gmail/auth.ts';
 
@@ -18,7 +20,7 @@ interface RequestBody {
   organization_id: string;
   code: string;
   redirect_uri: string;
-  state?: string;
+  state: string;
 }
 
 Deno.serve(async (req) => {
@@ -31,40 +33,32 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
     const clientId = Deno.env.get('GMAIL_CLIENT_ID');
     const clientSecret = Deno.env.get('GMAIL_CLIENT_SECRET');
     const topicName = Deno.env.get('GMAIL_PUBSUB_TOPIC');
 
-    if (!supabaseUrl || !serviceKey || !anonKey || !clientId || !clientSecret || !topicName) {
+    if (!supabaseUrl || !serviceKey || !clientId || !clientSecret || !topicName) {
       return json({ ok: false, error: 'Server config missing (check GMAIL_* secrets)' }, 500);
     }
 
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
 
     const body = (await req.json()) as RequestBody;
-    if (!body.organization_id || !body.code || !body.redirect_uri) {
-      return json({ ok: false, error: 'organization_id, code, redirect_uri required' }, 400);
+    if (!body.organization_id || !body.code || !body.redirect_uri || !body.state) {
+      return json({ ok: false, error: 'organization_id, code, redirect_uri, state required' }, 400);
     }
 
-    const { data: org, error: orgErr } = await userClient
-      .from('organizations')
-      .select('id')
-      .eq('id', body.organization_id)
-      .maybeSingle();
-    if (orgErr || !org) return json({ ok: false, error: 'Organisation not accessible' }, 403);
+    // Only an accepted admin or owner of the org, signed in as themselves, may finish connecting a mailbox.
+    const access = await authorizeOrgCaller(authHeader, body.organization_id, supabaseOrgAccessDeps(admin, serviceKey), 'admin');
+    if (!access.ok) return json({ ok: false, error: access.error }, access.status);
+    if (access.caller.kind !== 'member') return json({ ok: false, error: 'Unauthorized' }, 401);
 
-    if (body.state && !body.state.startsWith(`${body.organization_id}.`)) {
-      return json({ ok: false, error: 'state mismatch' }, 400);
-    }
-
-    // Get user id for created_by
-    const { data: { user } } = await userClient.auth.getUser();
+    // CSRF and account-injection guard: the signed state is mandatory and must have been issued to this user, for this
+    // org, recently. Before this, a missing state skipped the check and an org-id prefix was enough.
+    const stateCheck = await verifyOAuthState(body.state, { provider: 'gmail', organizationId: body.organization_id, userId: access.caller.userId }, oauthStateSecret('gmail'));
+    if (!stateCheck.ok) return json({ ok: false, error: `state mismatch: ${stateCheck.reason}` }, 400);
 
     // 1. Exchange code → tokens
     const tokenResp = await fetch(GMAIL_TOKEN_URL, {
@@ -135,7 +129,7 @@ Deno.serve(async (req) => {
           watch_expires_at: watch.expiration.toISOString(),
           is_active: true,
           last_error: null,
-          created_by: user?.id ?? null,
+          created_by: access.caller.userId,
         },
         { onConflict: 'organization_id,gmail_address' },
       );

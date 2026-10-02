@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { consumeOAuthState } from '@/lib/oauthState';
 import { useOrg } from '@/hooks/useOrg';
 
 export function GmailCallbackPage() {
@@ -9,6 +10,8 @@ export function GmailCallbackPage() {
   const { currentOrg } = useOrg();
   const [status, setStatus] = useState('Connecting…');
   const [error, setError] = useState<string | null>(null);
+  // The code and state are single-use: handle the redirect once, even when the effect re-runs (StrictMode, org reload).
+  const handled = useRef(false);
 
   useEffect(() => {
     const code = params.get('code');
@@ -19,8 +22,21 @@ export function GmailCallbackPage() {
       setError(`Google returned error: ${errParam}`);
       return;
     }
-    if (!code || !state || !currentOrg) {
-      setError('Missing code/state or organisation');
+    if (!code || !state) {
+      setError('Missing code or state parameter from Google redirect.');
+      return;
+    }
+    if (!currentOrg) {
+      // OrgContext may not have loaded yet; the effect will re-run when it does
+      return;
+    }
+    if (handled.current) return;
+    handled.current = true;
+
+    // CSRF guard: only finish a connection this tab started.
+    const stateCheck = consumeOAuthState('gmail_oauth_state', state);
+    if (!stateCheck.ok) {
+      setError(stateCheck.error);
       return;
     }
 

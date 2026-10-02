@@ -49,7 +49,7 @@ const xeroOAuthCallback = readFileSync(
   'utf8',
 );
 const xeroOAuthState = readFileSync(
-  join(root, 'supabase/functions/_shared/xero/oauthState.ts'),
+  join(root, 'supabase/functions/_shared/oauthState.ts'),
   'utf8',
 );
 const gmailPubsub = readFileSync(
@@ -212,14 +212,14 @@ describe('automation backbone source contracts', () => {
     expect(xeroIdempotency).toMatch(/fallbackParts\.join\(':'\)/);
   });
 
-  it('Xero OAuth state is HMAC-signed and callback verified', () => {
-    expect(xeroOAuthStart).toMatch(/createXeroOAuthState/);
+  it('Xero OAuth state is HMAC-signed, bound to the user and callback verified', () => {
+    expect(xeroOAuthStart).toMatch(/createOAuthState\(\{ provider: 'xero'/);
     expect(xeroOAuthState).toMatch(/XERO_OAUTH_STATE_SECRET/);
     expect(xeroOAuthState).toMatch(/XERO_CLIENT_SECRET/);
     expect(xeroOAuthState).toMatch(/crypto\.subtle\.sign\('HMAC'/);
     expect(xeroOAuthState).toMatch(/safeEqual/);
 
-    expect(xeroOAuthCallback).toMatch(/verifyXeroOAuthState/);
+    expect(xeroOAuthCallback).toMatch(/verifyOAuthState\(body\.state, \{ provider: 'xero'/);
     expect(xeroOAuthCallback).toMatch(/organization_id, code, redirect_uri, state required/);
     expect(xeroOAuthCallback).not.toContain('startsWith(`${body.organization_id}.`)');
     expect(xeroOAuthStart).not.toMatch(/TODO[\s\S]*sign state/i);

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { rememberOAuthState } from '@/lib/oauthState';
 import { useOrg } from '@/hooks/useOrg';
 import { useGmailIntegrations } from '@/hooks/useGmailIntegrations';
 import { SkeletonTable } from '@/components/Skeleton';
@@ -55,6 +56,8 @@ export function GmailConnect({
       const body = await res.json();
       if (!res.ok || !body.ok) throw new Error(body.error ?? `${res.status}`);
 
+      // The callback page only finishes a connection whose state this tab stored.
+      rememberOAuthState('gmail_oauth_state', body.state);
       window.location.href = body.url;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { rememberOAuthState } from '@/lib/oauthState';
 import { useOrg } from '@/hooks/useOrg';
 import { SkeletonCard } from '@/components/Skeleton';
 import { formatLoadError } from '@/lib/errorMessages';
@@ -93,8 +94,8 @@ export function XeroConnect() {
       const body = await res.json();
       if (!res.ok || !body.ok) throw new Error(body.error ?? `${res.status}`);
 
-      // Store state for CSRF validation in the callback
-      sessionStorage.setItem('xero_oauth_state', body.state);
+      // The callback page only finishes a connection whose state this tab stored.
+      rememberOAuthState('xero_oauth_state', body.state);
       window.location.href = body.auth_url;
     } catch (e) {
       setError(`Could not start Xero connection. ${e instanceof Error ? e.message : String(e)}`);

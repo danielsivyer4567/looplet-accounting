@@ -1,7 +1,9 @@
 /**
  * gmail-oauth-start — returns a Google OAuth consent URL the frontend can
- * redirect to. State carries the org_id so the callback knows where to
- * file the integration.
+ * redirect to. Only an accepted admin or owner may start a connection. The
+ * state is HMAC-signed and bound to this user, this organisation and a
+ * 15-minute window (_shared/oauthState.ts); the browser keeps a copy and the
+ * callback page refuses a state it did not store.
  *
  * Input:  { organization_id: UUID, redirect_uri: string }
  * Output: { ok: true, url: string }
@@ -9,6 +11,8 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { createOAuthState, oauthStateSecret } from '../_shared/oauthState.ts';
+import { authorizeOrgCaller, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 
 const GMAIL_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 
@@ -27,14 +31,14 @@ Deno.serve(async (req) => {
     if (!authHeader) return json({ ok: false, error: 'Unauthorized' }, 401);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const clientId = Deno.env.get('GMAIL_CLIENT_ID');
-    if (!supabaseUrl || !anonKey || !clientId) {
+    if (!supabaseUrl || !serviceKey || !clientId) {
       return json({ ok: false, error: 'Server config missing' }, 500);
     }
 
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
     });
 
     const body = (await req.json()) as { organization_id?: string; redirect_uri?: string };
@@ -42,16 +46,12 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'organization_id and redirect_uri required' }, 400);
     }
 
-    // Verify caller can access this org via RLS
-    const { data: org, error: orgErr } = await userClient
-      .from('organizations')
-      .select('id')
-      .eq('id', body.organization_id)
-      .maybeSingle();
-    if (orgErr || !org) return json({ ok: false, error: 'Organisation not accessible' }, 403);
+    // Connecting a mailbox lets the app read its email for bills: accepted admins and owners only.
+    const access = await authorizeOrgCaller(authHeader, body.organization_id, supabaseOrgAccessDeps(admin, serviceKey), 'admin');
+    if (!access.ok) return json({ ok: false, error: access.error }, access.status);
+    if (access.caller.kind !== 'member') return json({ ok: false, error: 'Connect Gmail from a signed-in session' }, 401);
 
-    // CSRF state: prefix with org id so callback can verify
-    const state = `${body.organization_id}.${crypto.randomUUID()}`;
+    const state = await createOAuthState({ provider: 'gmail', organizationId: body.organization_id, userId: access.caller.userId }, oauthStateSecret('gmail'));
 
     const params = new URLSearchParams({
       client_id: clientId,

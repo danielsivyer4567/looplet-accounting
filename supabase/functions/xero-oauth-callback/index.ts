@@ -11,8 +11,9 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { oauthStateSecret, verifyOAuthState } from '../_shared/oauthState.ts';
+import { authorizeOrgCaller, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 import { encryptToken } from '../_shared/xero/crypto.ts';
-import { verifyXeroOAuthState } from '../_shared/xero/oauthState.ts';
 
 const XERO_TOKEN_URL = 'https://identity.xero.com/connect/token';
 const XERO_CONNECTIONS_URL = 'https://api.xero.com/connections';
@@ -34,8 +35,7 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
-    if (!supabaseUrl || !serviceKey || !anonKey) {
+    if (!supabaseUrl || !serviceKey) {
       return json({ ok: false, error: 'Server config missing' }, 500);
     }
 
@@ -48,27 +48,20 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
 
     const body = (await req.json()) as RequestBody;
     if (!body.organization_id || !body.code || !body.redirect_uri || !body.state) {
       return json({ ok: false, error: 'organization_id, code, redirect_uri, state required' }, 400);
     }
 
-    // Verify caller has access to this org via RLS
-    const { data: org, error: orgErr } = await userClient
-      .from('organizations')
-      .select('id')
-      .eq('id', body.organization_id)
-      .maybeSingle();
-    if (orgErr || !org) return json({ ok: false, error: 'Organisation not accessible' }, 403);
+    // Only an accepted admin or owner of the org, signed in as themselves, may finish connecting Xero.
+    const access = await authorizeOrgCaller(authHeader, body.organization_id, supabaseOrgAccessDeps(admin, serviceKey), 'admin');
+    if (!access.ok) return json({ ok: false, error: access.error }, access.status);
+    if (access.caller.kind !== 'member') return json({ ok: false, error: 'Unauthorized' }, 401);
 
-    // CSRF + org binding: state is org.nonce.HMAC(org.nonce).
-    if (!(await verifyXeroOAuthState(body.state, body.organization_id))) {
-      return json({ ok: false, error: 'state mismatch' }, 400);
-    }
+    // CSRF and account-injection guard: the signed state must have been issued to this user, for this org, recently.
+    const stateCheck = await verifyOAuthState(body.state, { provider: 'xero', organizationId: body.organization_id, userId: access.caller.userId }, oauthStateSecret('xero'));
+    if (!stateCheck.ok) return json({ ok: false, error: `state mismatch: ${stateCheck.reason}` }, 400);
 
     // 1. Exchange code for tokens
     const tokenResp = await fetch(XERO_TOKEN_URL, {
