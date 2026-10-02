@@ -57,8 +57,3 @@ graphify-out/
 # Personal Claude Code overrides (not committed)
 .claude/settings.local.json
 
-# kleosrules runtime state (velocity log, intent snapshots)
-state/
-branch_structure.json
-temp_auto_push.bat
-temp_interactive_push.bat
