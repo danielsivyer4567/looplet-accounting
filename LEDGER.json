@@ -222,7 +222,7 @@
       "title": "intake-routing-apply accepts only the service role or an accepted member of the target organisation",
       "area": "security",
       "priority": 10,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/intake-routing-apply/auth.test.ts\""
       ],
@@ -308,6 +308,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-01-006.log",
           "log_sha256": "01ae6fc0e5fe5326082fb5606f06c008adaa89d015d200d80b2d393be9258d97"
+        },
+        {
+          "n": 7,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/intake-routing-apply/auth.test.ts\"",
+          "exit": 0,
+          "head": "60b94a38c7c5cfb0c2f1b5c4cb0a9cb37df8634d",
+          "dirty": [],
+          "at": "2026-10-02T23:34:48.204Z",
+          "ms": 798,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-01-007.log",
+          "log_sha256": "b729d06529a70d1b3cb9f966efad58f600648782921ef1efdee8416a16718524"
         }
       ],
       "notes": [],
@@ -425,6 +438,13 @@
           "event": "done",
           "head": "a456e08059551f05b6102c0b73e201c10d2eb3bf",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T23:34:48.239Z",
+          "event": "verified",
+          "head": "60b94a38c7c5cfb0c2f1b5c4cb0a9cb37df8634d",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -434,6 +454,15 @@
         "runs": [
           6
         ]
+      },
+      "verified": {
+        "at": "2026-10-02T23:34:48.224Z",
+        "head": "60b94a38c7c5cfb0c2f1b5c4cb0a9cb37df8634d",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Re-read 7b4a991 and the 5ba716b orgRole refactor (pure extraction of authorizeOrgMember; same accepted_at and require_role 0210 ranking, hasOwnProperty role lookup, empty service key never matches, lookup errors throw). Guard runs before any service-role read; all five backend callers (ingest, bills-extract, bank-sync, bank-csv-import, automation-worker) send SUPABASE_SERVICE_ROLE_KEY, no UI callers; target rows re-checked against the org; deno check clean. Residual: membership lookup errors surface DB text in the 500 body (SEC-07).",
+        "runs": [
+          7
+        ]
       }
     },
     {
@@ -441,7 +470,7 @@
       "title": "staged-entities-enrich-sonar, bank-statement-extract, crm-pnl-sync-push and ato-lodge refuse unauthenticated calls",
       "area": "security",
       "priority": 11,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/authGuards.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/edge-auth-guards.test.ts\""
@@ -557,6 +586,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-02-008.log",
           "log_sha256": "137040a089dfeebef1dca0ce40302a9262d55ec1480704e6c3b73eb794cdd709"
+        },
+        {
+          "n": 9,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/authGuards.test.ts\"",
+          "exit": 0,
+          "head": "60b94a38c7c5cfb0c2f1b5c4cb0a9cb37df8634d",
+          "dirty": [],
+          "at": "2026-10-02T23:34:54.979Z",
+          "ms": 1344,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-02-009.log",
+          "log_sha256": "5d7e1faf8ae53b1b9e38dff7f2f37f7bf3f2ee3952c9334dd98055ce5d5a20b0"
+        },
+        {
+          "n": 10,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/edge-auth-guards.test.ts\"",
+          "exit": 0,
+          "head": "60b94a38c7c5cfb0c2f1b5c4cb0a9cb37df8634d",
+          "dirty": [],
+          "at": "2026-10-02T23:34:56.825Z",
+          "ms": 1845,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-02-010.log",
+          "log_sha256": "72f768afd1e24f4292014708413ba3198c6bbfd297a9d05a3119853785f01018"
         }
       ],
       "notes": [],
@@ -624,6 +679,13 @@
           "event": "done",
           "head": "c67804c9c47d6aa5679dce7b8dd3b020b7e9d696",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T23:34:56.948Z",
+          "event": "verified",
+          "head": "60b94a38c7c5cfb0c2f1b5c4cb0a9cb37df8634d",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -633,6 +695,16 @@
         "runs": [
           7,
           8
+        ]
+      },
+      "verified": {
+        "at": "2026-10-02T23:34:56.932Z",
+        "head": "60b94a38c7c5cfb0c2f1b5c4cb0a9cb37df8634d",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read 61965c0 and c67804c in full: each guard precedes the first data read, body parse or paid call; Sonar now writes only ids from the current batch and both updates filter organization_id; batch sizes clamped; crm-pnl-sync-push is service-role only and automation-worker sends that key; Triage and BankStatementImport send the session token; deno check clean. Residual: bank-statement-extract and ato-lodge accept any signed-in user of any org, so with open sign-up the Groq proxy still needs a per-user rate limit or an org-membership check.",
+        "runs": [
+          9,
+          10
         ]
       }
     },
@@ -766,7 +838,7 @@
       "title": "Xero and Gmail OAuth state is signed, bound to the user and mandatory on callback",
       "area": "security",
       "priority": 13,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/oauthState.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/OAuthCallbackState.test.tsx\""
@@ -831,6 +903,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-04-004.log",
           "log_sha256": "20cd57e943b1783ff5724443b6c0414e95efebe35e52b9c1f24b900dc11d151d"
+        },
+        {
+          "n": 5,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/oauthState.test.ts\"",
+          "exit": 0,
+          "head": "60b94a38c7c5cfb0c2f1b5c4cb0a9cb37df8634d",
+          "dirty": [],
+          "at": "2026-10-02T23:35:02.441Z",
+          "ms": 738,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-04-005.log",
+          "log_sha256": "6f82e53fdde1dbcbf88facfe4dbae56ef481f2346b1538c1240c1697e427a5e3"
+        },
+        {
+          "n": 6,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/OAuthCallbackState.test.tsx\"",
+          "exit": 0,
+          "head": "60b94a38c7c5cfb0c2f1b5c4cb0a9cb37df8634d",
+          "dirty": [],
+          "at": "2026-10-02T23:35:04.610Z",
+          "ms": 2168,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-04-006.log",
+          "log_sha256": "81caa4f1da76069eb23658b44ad8a4bc111d14b0d884c19f43e1c5a4d1fc4723"
         }
       ],
       "notes": [],
@@ -868,6 +966,13 @@
           "event": "done",
           "head": "e2d26751a87e771ce8766d245a3773114e1df8ff",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-02T23:35:04.640Z",
+          "event": "verified",
+          "head": "60b94a38c7c5cfb0c2f1b5c4cb0a9cb37df8634d",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -877,6 +982,16 @@
         "runs": [
           3,
           4
+        ]
+      },
+      "verified": {
+        "at": "2026-10-02T23:35:04.624Z",
+        "head": "60b94a38c7c5cfb0c2f1b5c4cb0a9cb37df8634d",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read e2d2675 and all four functions plus both callback pages: start and callback need an accepted admin member (service key refused), state is HMAC-signed over the exact base64url string, bound to provider/org/user, 15-minute expiry, empty secrets fail closed, and the check runs before the code exchange; pages refuse a missing or unstored state and consume it once; XeroConnect and GmailConnect send the session token and store state; old xero/oauthState.ts has no remaining importers; typecheck and the XeroConnect, SettingsConnectorResponsive and automation-backbone vitest suites pass. Residual: no server-side nonce store, so the same user could replay a state within 15 minutes (low risk because it is user-bound).",
+        "runs": [
+          5,
+          6
         ]
       }
     },
@@ -2020,5 +2135,5 @@
       ]
     }
   ],
-  "updated_at": "2026-10-02T23:27:28.119Z"
+  "updated_at": "2026-10-02T23:35:04.655Z"
 }
