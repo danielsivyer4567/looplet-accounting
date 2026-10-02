@@ -57,3 +57,7 @@ graphify-out/
 # Personal Claude Code overrides (not committed)
 .claude/settings.local.json
 
+
+# Finish-line ledger receipts are evidence; LEDGER.json pins each log by hash.
+!.ledger/logs/
+!.ledger/logs/*.log

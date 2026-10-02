@@ -11,10 +11,13 @@ const tracked = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' }).sp
 const read = (path) => readFileSync(path, 'utf8');
 
 // 1. Known indicators of the September/August loaders, anywhere in tracked text.
-const indicators = ["global.i='A10-", 'ETH_RPC_URL', 'eth_getTransactionByHash', 'eth_getBlockByNumber'];
+const indicators = ["global.i='A10-", 'global.i="A10-', 'ETH_RPC_URL', 'eth_getTransactionByHash', 'eth_getBlockByNumber'];
 const textual = /\.(m?[jt]sx?|cjs|json|md|ya?ml|toml|html|css|sh|ps1|bat|cmd)$/i;
+// The finish-line ledger records describe this incident by name. They are data written by the ledger tool; nothing builds,
+// imports or runs them.
+const records = new Set([SELF, 'package-lock.json', 'LEDGER.json', 'LEDGER.md']);
 for (const path of tracked) {
-  if (path === SELF || !textual.test(path) || path === 'package-lock.json') continue;
+  if (records.has(path) || !textual.test(path)) continue;
   const text = read(path);
   for (const ioc of indicators) if (text.includes(ioc)) problems.push(`${path}: contains implant indicator ${JSON.stringify(ioc)}`);
 }

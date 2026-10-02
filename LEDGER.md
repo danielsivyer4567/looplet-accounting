@@ -2,11 +2,11 @@
 
 **Goal:** Old Looplet Accounting (accounting.looplet.com.au) made legitimate, secure, modern and connected to Redbark bank feeds. Local proof first; production deploys, migrations and credential use need Daniel's explicit yes.
 
-**Progress:** 0/46 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
+**Progress:** 1/46 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
 
 | ID | Item | Status | Proof |
 |---|---|---|---|
-| INC-01 | August implant leftovers are gone and build configs pass an integrity check (.cursor, HANDOFF.md, hidden push-script ignores, postcss/vite/tailwind, lifecycle scripts) | open | not run |
+| INC-01 | August implant leftovers are gone and build configs pass an integrity check (.cursor, HANDOFF.md, hidden push-script ignores, postcss/vite/tailwind, lifecycle scripts) | verified | verified by claude-verifier (independent subagent) @ 2e6b75fe |
 | INC-02 | Credentials exposed by the August implant are rotated and recorded (Supabase service-role/JWT secret/DB password/access tokens, Cloudflare token, integration keys, GitHub PATs) | blocked | BLOCKED: Rotation of credentials exposed between 2026-08-08 and 2026-08-29 has not been recorded. (needs: Daniel rotates the Supabase service-role key, JWT secret, DB password and access tokens, the Cloudflare API token (and GitHub repo secrets), Xero/Gmail/Groq/Perplexity/Resend keys, ENCRYPTION_KEY and GitHub PATs, then confirms the rotation record.) |
 | SEC-01 | intake-routing-apply accepts only the service role or an accepted member of the target organisation | open | not run |
 | SEC-02 | staged-entities-enrich-sonar, bank-statement-extract, crm-pnl-sync-push and ato-lodge refuse unauthenticated calls | open | not run |
