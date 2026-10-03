@@ -167,7 +167,19 @@ export function installCorsServeWrapper(): boolean {
         const options = args[0] as { handler: Handler };
         args[0] = { ...options, handler: wrapHandler(options.handler) };
       }
-      return Reflect.apply(original, this ?? Deno, args);
+      try {
+        return Reflect.apply(original, this ?? Deno, args);
+      } catch (err) {
+        // Only the test runner hits this: several function modules imported into one process each call
+        // Deno.serve at import and the second one finds the default port taken. The edge runtime assigns the
+        // port itself, so in production this branch never runs. Retry on an ephemeral port rather than fail.
+        if (!(err instanceof Deno.errors.AddrInUse)) throw err;
+        const retry = [...args];
+        if (typeof retry[0] === 'function') retry.unshift({ port: 0 });
+        else if (retry[0] && typeof retry[0] === 'object') retry[0] = { ...(retry[0] as object), port: 0 };
+        console.warn('[cors] default port in use; serving on an ephemeral port instead');
+        return Reflect.apply(original, this ?? Deno, retry);
+      }
     },
     { [WRAPPED]: true as const },
   );
