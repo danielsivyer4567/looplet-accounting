@@ -117,6 +117,11 @@ const NEW_LINE: Omit<LineItem, 'line_number'> = {
   line_total_inc_gst_cents: 0,
 };
 
+/** Registered only when at least one setting says so and none says it isn't; unknown counts as not registered. */
+function isGstRegistered(flags: (boolean | null | undefined)[]): boolean {
+  return flags.some((f) => f === true) && !flags.some((f) => f === false);
+}
+
 export function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const isNew = !id || id === 'new';
@@ -211,10 +216,10 @@ export function InvoiceDetailPage() {
       setSeller({
         name: org?.name ?? currentOrg.name,
         abn: org?.abn ?? null,
-        // Registered unless either setting says it isn't (the Organisation form shows "registered"
-        // until it is changed).
-        gstRegistered:
-          org?.settings?.gst_registered !== false && profile?.is_gst_registered !== false,
+        // A tax invoice needs an explicit "registered" setting, and no setting saying otherwise. Unknown is
+        // treated as not registered, so a business that never set its status gets a plain invoice with no GST,
+        // never a wrong tax invoice.
+        gstRegistered: isGstRegistered([org?.settings?.gst_registered, profile?.is_gst_registered]),
       });
       if (invRes.error) setError(invRes.error.message);
       const inv = (invRes.data as unknown as Invoice | null) ?? null;

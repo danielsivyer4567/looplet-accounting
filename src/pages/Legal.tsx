@@ -124,7 +124,7 @@ const SERVICE_PROVIDERS: { name: string; what: string }[] = [
     what: 'Only if you connect Xero. We send bills, invoices, contacts, payments and attachments to your Xero organisation and read its accounts, bank transactions, payments and reports.',
   },
   {
-    name: 'Bank-data provider',
+    name: 'Redbark (bank-data provider)',
     what: 'Only if you connect a bank feed: account details and transactions for the accounts you choose.',
   },
   {

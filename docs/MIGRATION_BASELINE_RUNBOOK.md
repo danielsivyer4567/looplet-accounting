@@ -17,7 +17,7 @@ the release after the baseline check below. Each is proven against a fresh local
 |---|---|---|
 | `20261003120000_money_table_write_roles.sql` | SEC-05: money-table writes need a role (`can_write_org`); payment-run items and pay slips stay in their organisation | `tests/db-sql/money-table-roles.sql` |
 | `20261003121000_definer_write_roles.sql` | SEC-10: definer functions that write money tables check the caller's role | `tests/db-sql/definer-write-roles.sql` |
-| `20261003170200_super_batch_file_prepared_lifecycle.sql` | SEC-11: bills only reference their own organisation's suppliers | `tests/db-sql/bill-supplier-same-org.sql` |
+| `20261003122000_bill_supplier_same_org.sql` | SEC-11: bills only reference their own organisation's suppliers | `tests/db-sql/bill-supplier-same-org.sql` |
 
 Before applying `20261003120000` and `20261003122000`, check production for existing cross-organisation
 links (they only guard new writes):

@@ -11,7 +11,7 @@ const lookups = (rows: Record<string, MembershipRow>) => ({
 const status = (r: { ok: boolean; status?: number }) => (r.ok ? 'allowed' : r.status);
 
 Deno.test('admin-or-owner checks follow the require_role ranking for accepted members', async () => {
-  const cases: Array<[string, 'allowed' | 403]> = [
+  const cases: [string, 'allowed' | 403][] = [
     ['viewer', 403], ['employee', 403], ['accountant', 403], ['admin', 'allowed'], ['owner', 'allowed'],
   ];
   for (const [role, expected] of cases) {
