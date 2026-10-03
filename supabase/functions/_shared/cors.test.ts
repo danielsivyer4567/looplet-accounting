@@ -16,11 +16,17 @@ const req = (method: string, origin?: string) =>
 
 async function withEnv<T>(vars: Record<string, string | undefined>, fn: () => Promise<T> | T): Promise<T> {
   const saved = Object.fromEntries(Object.keys(vars).map((k) => [k, Deno.env.get(k)]));
-  for (const [k, v] of Object.entries(vars)) v === undefined ? Deno.env.delete(k) : Deno.env.set(k, v);
+  const apply = (values: Record<string, string | undefined>) => {
+    for (const [k, v] of Object.entries(values)) {
+      if (v === undefined) Deno.env.delete(k);
+      else Deno.env.set(k, v);
+    }
+  };
+  apply(vars);
   try {
     return await fn();
   } finally {
-    for (const [k, v] of Object.entries(saved)) v === undefined ? Deno.env.delete(k) : Deno.env.set(k, v);
+    apply(saved);
   }
 }
 
@@ -131,7 +137,7 @@ Deno.test("an existing function served with Deno.serve answers each allowed orig
   await withEnv({ CORS_ALLOWED_ORIGINS: undefined, CORS_ALLOWED_ORIGIN: undefined }, async () => {
     // The shape of every existing function: preflight first, then responses built from corsHeaders.
     let port = 0;
-    const server: Deno.HttpServer<Deno.NetAddr> = Deno.serve({ hostname: "127.0.0.1", port: 0, onListen() {} }, async (r): Promise<Response> => {
+    const server: Deno.HttpServer<Deno.NetAddr> = Deno.serve({ hostname: "127.0.0.1", port: 0, onListen: () => undefined }, async (r): Promise<Response> => {
       const pre = preflight(r);
       if (pre) return pre;
       // A function that passes an upstream fetch response straight through (its headers are immutable).
@@ -168,7 +174,7 @@ Deno.test("the same wrapper keeps raw error text out of 5xx bodies, and errors s
     const originalError = console.error;
     console.error = (...args: unknown[]) => logged.push(args.map(String).join(" "));
     // The shapes existing functions use: a database error in a 500 body, an uncaught throw, and a 400.
-    const server: Deno.HttpServer<Deno.NetAddr> = Deno.serve({ hostname: "127.0.0.1", port: 0, onListen() {} }, (r): Response => {
+    const server: Deno.HttpServer<Deno.NetAddr> = Deno.serve({ hostname: "127.0.0.1", port: 0, onListen: () => undefined }, (r): Response => {
       const path = new URL(r.url).pathname;
       const headers = { ...corsHeaders, "Content-Type": "application/json" };
       if (path === "/db-error") {

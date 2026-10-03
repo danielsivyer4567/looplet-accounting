@@ -48,8 +48,8 @@ Deno.test("AI_RATE_LIMIT_<FEATURE> overrides a default; nonsense values are igno
 
 Deno.test("a database error fails closed with 503; a not-yet-installed limiter lets the call through", async () => {
   const quiet = { error: console.error, warn: console.warn };
-  console.error = () => {};
-  console.warn = () => {};
+  console.error = () => undefined;
+  console.warn = () => undefined;
   try {
     const down = await enforceAiQuota(rpcReturning({ data: null, error: { message: "connection refused", code: "08006" } }).admin, "u", "advisor", {}, env());
     assertEquals(down?.status, 503);
