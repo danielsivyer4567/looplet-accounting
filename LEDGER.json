@@ -3380,7 +3380,7 @@
       "title": "Employees TFNs can be captured securely so the STP export can complete",
       "area": "broken",
       "priority": 50,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeTfnCapture.test.tsx\""
       ],
@@ -3388,7 +3388,34 @@
         "src/pages/EmployeeDetail.tsx",
         "supabase/functions/employee-tfn-save"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeTfnCapture.test.tsx\"",
+          "exit": 1,
+          "head": "b635105769fc7af0b279d6e5079fe78a6e8f1507",
+          "dirty": [],
+          "at": "2026-10-03T01:00:04.992Z",
+          "ms": 1363,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/STP-01-001.log",
+          "log_sha256": "e8e1d77c9f9347fe979c466e1f6d4206789de395fd38d3be613dbc751feac197"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeTfnCapture.test.tsx\"",
+          "exit": 0,
+          "head": "13a8b93542c906dd37045b77e3a9cc7dad66073c",
+          "dirty": [],
+          "at": "2026-10-03T01:00:08.251Z",
+          "ms": 2803,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/STP-01-002.log",
+          "log_sha256": "460f312f426a17af328a147d8cd01eb4e20a6d66bab7701680e5a914c83c2d39"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -3396,8 +3423,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:00:03.497Z",
+          "event": "start",
+          "head": "b635105769fc7af0b279d6e5079fe78a6e8f1507",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:00:04.993Z",
+          "event": "run",
+          "head": "b635105769fc7af0b279d6e5079fe78a6e8f1507",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:00:08.252Z",
+          "event": "run",
+          "head": "13a8b93542c906dd37045b77e3a9cc7dad66073c",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:00:08.406Z",
+          "event": "done",
+          "head": "13a8b93542c906dd37045b77e3a9cc7dad66073c",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T01:00:08.390Z",
+        "head": "13a8b93542c906dd37045b77e3a9cc7dad66073c",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "CSP-01",
@@ -4629,5 +4692,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T01:00:02.211Z"
+  "updated_at": "2026-10-03T01:00:08.516Z"
 }

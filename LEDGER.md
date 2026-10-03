@@ -35,7 +35,7 @@
 | BANK-05 | Admins can list Redbark accounts and link each one to a bank account with an import-from date | done | done @ b66e21cf, awaiting independent verify |
 | BANK-06 | Redbark migrations apply cleanly and enforce one organisation per Redbark connection | done | done @ 60081782, awaiting independent verify |
 | BANK-07 | Redbark is live: migrations applied, functions deployed, secrets set and the destination delivering into the books | blocked | BLOCKED: Deploying needs a Supabase access token, function secrets and credential rotation first. (needs: Daniel: credential rotation (INC-02), a scoped Supabase access token for project looplet accounting (Database + Edge functions), the Redbark API key and webhook secret entered at a hidden prompt, and an explicit yes to deploy.) |
-| STP-01 | Employees TFNs can be captured securely so the STP export can complete | open | not run |
+| STP-01 | Employees TFNs can be captured securely so the STP export can complete | done | done @ 13a8b935, awaiting independent verify |
 | CSP-01 | PDF previews and the microphone feature work under the production security headers | open | not run |
 | BAS-01 | BAS includes credit notes, supports cash basis and computes W3/W4 instead of hard-coded zeros | open | not run |
 | GST-01 | No GST credit is invented when GST is missing or the supplier is not GST-registered | open | not run |
