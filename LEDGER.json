@@ -3191,7 +3191,7 @@
       "title": "Super defaults to the statutory rate (12%) and a pay run never applies less than the SG rate for the pay date",
       "area": "payroll",
       "priority": 21,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeSuperDefault.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/super.test.ts\""
@@ -3331,6 +3331,32 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/PAY-02-010.log",
           "log_sha256": "65aea711cc40ab044be73b10c20023119a46bbf76ebac24d0a756e3b61d5cb17"
+        },
+        {
+          "n": 11,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeSuperDefault.test.tsx\"",
+          "exit": 0,
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "dirty": [],
+          "at": "2026-10-03T04:14:06.136Z",
+          "ms": 2232,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-02-011.log",
+          "log_sha256": "adc1ef6c6c203817a117b55f7deac3b9b7373e775d5e6f52898df343ed1d2094"
+        },
+        {
+          "n": 12,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/super.test.ts\"",
+          "exit": 0,
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "dirty": [],
+          "at": "2026-10-03T04:14:06.747Z",
+          "ms": 611,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-02-012.log",
+          "log_sha256": "dae33551459d3b090dc59c2b685d4b32f1501b8ec80a67949ea90e54fdbf03af"
         }
       ],
       "notes": [],
@@ -3422,25 +3448,39 @@
           "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
           "actor": "claude-verifier",
           "by": "claude-verifier (independent subagent)"
+        },
+        {
+          "at": "2026-10-03T04:14:02.102Z",
+          "event": "stale",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/EmployeeDetail.tsx",
+            "src/pages/Employees.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:14:06.747Z",
+          "event": "run",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:14:06.890Z",
+          "event": "done",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T01:00:14.350Z",
-        "head": "c15d2808139aa25986976295c7f1cf6bc7002540",
+        "at": "2026-10-03T04:14:06.877Z",
+        "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
         "by": "claude-worker",
         "runs": [
-          7,
-          8
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T03:24:24.575Z",
-        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
-        "by": "claude-verifier (independent subagent)",
-        "note": "Read 23e8aa8 in full. SG_RATE_TABLE (9.25 from 2013-07-01 ... 11.5 from 2024-07-01, 12 from 2025-07-01) matches SGAA 1992 s 19(2) fetched from legislation.gov.au (C2004A04402, 2025-07-01 compilation); 2026-07-01 compilation s 17A(2) 'charge percentage means 12' confirms 12% continues under Payday Super. effectiveSuperRate floors employee/org rate at the statutory rate for the pay date, keeps higher rates, records statutory/configured/source/raised in metadata; malformed pay_date is rejected 400 before pay_runs insert. UI default and warning use the same table (test pins equality). DB au_sg_rate_pct (0226) agrees. Pre-fix tree (e7b8898): super.test.ts wiring test fails and 4/5 vitest cases fail; current tree passes both. Residual: calc_super(p_rate_pct) in SQL trusts the caller's rate, so only payroll-create-pay-run applies the floor.",
-        "runs": [
-          9,
-          10
+          11,
+          12
         ]
       }
     },
@@ -5199,6 +5239,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/PAY-05-034.log",
           "log_sha256": "358e76a3c04031f9541e9195e096f3a42cb82b50cffd12c9b565514674a808f3"
+        },
+        {
+          "n": 35,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payday-super.sql\"",
+          "exit": 0,
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "dirty": [],
+          "at": "2026-10-03T04:14:49.125Z",
+          "ms": 41992,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-05-035.log",
+          "log_sha256": "c8d31bb37d1ac3f767642bb53a55dc4d7e1a8ad48e508ca0387a6ba6e5c183b4"
+        },
+        {
+          "n": 36,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/PaydaySuper.test.tsx\"",
+          "exit": 0,
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "dirty": [],
+          "at": "2026-10-03T04:14:51.584Z",
+          "ms": 2458,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-05-036.log",
+          "log_sha256": "81e836e28eb0d2d2ec806943fe064d1d6cfd059e3c6e27f8f50d40263fb74f52"
         }
       ],
       "notes": [
@@ -5600,15 +5666,38 @@
           "event": "done",
           "head": "56e21d96096396399a94074d17be6fbc56f19b40",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:14:02.184Z",
+          "event": "stale",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/Payroll.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:14:51.584Z",
+          "event": "run",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:14:51.738Z",
+          "event": "done",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:05:52.676Z",
-        "head": "56e21d96096396399a94074d17be6fbc56f19b40",
+        "at": "2026-10-03T04:14:51.722Z",
+        "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
         "by": "claude-worker",
         "runs": [
-          33,
-          34
+          35,
+          36
         ]
       }
     },
@@ -5771,7 +5860,7 @@
       "title": "Receipt Hub has no POS simulator, fake receipts or hard-coded demo figures",
       "area": "legitimacy",
       "priority": 31,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ReceiptHubNoDemo.test.tsx\""
       ],
@@ -5857,6 +5946,19 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/FAKE-01-006.log",
           "log_sha256": "224ccf0a7bb32ba436876e7e28d635b2cf32c176aa3b27d5662ef3ef760268cd"
+        },
+        {
+          "n": 7,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ReceiptHubNoDemo.test.tsx\"",
+          "exit": 0,
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "dirty": [],
+          "at": "2026-10-03T04:14:54.219Z",
+          "ms": 2317,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/FAKE-01-007.log",
+          "log_sha256": "8fbf918a50edc15143d4a214d3d2b1e26e5ffd9c0c96b403f6d7eb6d6b3852d7"
         }
       ],
       "notes": [],
@@ -5970,23 +6072,37 @@
           "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
           "actor": "claude-verifier",
           "by": "claude-verifier (independent subagent)"
+        },
+        {
+          "at": "2026-10-03T04:14:02.246Z",
+          "event": "stale",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/ReceiptHub.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:14:54.220Z",
+          "event": "run",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:14:54.361Z",
+          "event": "done",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T02:42:50.340Z",
-        "head": "308028d5ba0bf896606fbbe9708c4b17224e8916",
+        "at": "2026-10-03T04:14:54.348Z",
+        "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
         "by": "claude-worker",
         "runs": [
-          5
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T03:32:18.037Z",
-        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
-        "by": "claude-verifier (independent subagent)",
-        "note": "Read fc3f61b. Test fails 3 of 4 on fc3f61b^ in a scratch worktree. No simulator, Bunnings, demo payload or hard-coded figure remains in src (Bills.tsx 'Outstanding AP' is a real KPI label). receipt-webhook change is wording only.",
-        "runs": [
-          6
+          7
         ]
       }
     },
@@ -6334,6 +6450,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/LEGAL-01-005.log",
           "log_sha256": "153c70fa5e5a0f22bb781ca73427f18c83f55a87d9d8bec1baa510a5b0a165bd"
+        },
+        {
+          "n": 6,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LegalPages.test.tsx\"",
+          "exit": 0,
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "dirty": [],
+          "at": "2026-10-03T04:14:57.253Z",
+          "ms": 2735,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/LEGAL-01-006.log",
+          "log_sha256": "8c7bdc1ec45ee21e14b78584b8f553ccc3358353d254f9026d888e49d7a7385a"
         }
       ],
       "notes": [
@@ -6436,14 +6565,46 @@
           "event": "done",
           "head": "56e21d96096396399a94074d17be6fbc56f19b40",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:14:02.324Z",
+          "event": "stale",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/AuditLog.tsx",
+            "src/pages/CreditNotes.tsx",
+            "src/pages/DebtDetail.tsx",
+            "src/pages/EmployeeDetail.tsx",
+            "src/pages/Employees.tsx",
+            "src/pages/InvoiceDetail.tsx",
+            "src/pages/Jobs.tsx",
+            "src/pages/NewPaymentRun.tsx",
+            "src/pages/Payroll.tsx",
+            "src/pages/Quality.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:14:57.254Z",
+          "event": "run",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:14:57.734Z",
+          "event": "done",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:05:56.046Z",
-        "head": "56e21d96096396399a94074d17be6fbc56f19b40",
+        "at": "2026-10-03T04:14:57.720Z",
+        "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
         "by": "claude-worker",
         "runs": [
-          5
+          6
         ]
       }
     },
@@ -7773,6 +7934,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/LODGE-01-012.log",
           "log_sha256": "c65f0c6b0c293c9eb4e3e180e4f3660182183c564a4d1cbe514f2471837104ef"
+        },
+        {
+          "n": 13,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LodgementWording.test.tsx\"",
+          "exit": 0,
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "dirty": [],
+          "at": "2026-10-03T04:15:00.299Z",
+          "ms": 2406,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/LODGE-01-013.log",
+          "log_sha256": "dbbeefb8735cdfd194de3181311118b3cff4efeccd491b743f1a4ba6325cb968"
+        },
+        {
+          "n": 14,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/super-batch-send/status.test.ts\"",
+          "exit": 0,
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "dirty": [],
+          "at": "2026-10-03T04:15:01.121Z",
+          "ms": 822,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/LODGE-01-014.log",
+          "log_sha256": "b5711e456ef9f41e72b1239baa36a0d8720790f0bbd14d2bede0726547af489d"
         }
       ],
       "notes": [],
@@ -7891,15 +8078,47 @@
           "event": "done",
           "head": "56e21d96096396399a94074d17be6fbc56f19b40",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:14:02.403Z",
+          "event": "stale",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/AuditLog.tsx",
+            "src/pages/CreditNotes.tsx",
+            "src/pages/DebtDetail.tsx",
+            "src/pages/EmployeeDetail.tsx",
+            "src/pages/Employees.tsx",
+            "src/pages/InvoiceDetail.tsx",
+            "src/pages/Jobs.tsx",
+            "src/pages/NewPaymentRun.tsx",
+            "src/pages/Payroll.tsx",
+            "src/pages/Quality.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:15:01.121Z",
+          "event": "run",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:15:01.271Z",
+          "event": "done",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:06:45.637Z",
-        "head": "56e21d96096396399a94074d17be6fbc56f19b40",
+        "at": "2026-10-03T04:15:01.256Z",
+        "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
         "by": "claude-worker",
         "runs": [
-          11,
-          12
+          13,
+          14
         ]
       }
     },
@@ -8349,6 +8568,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-01-033.log",
           "log_sha256": "a3f24b2493aa7922be057455f3e6fcfb5ca6db29f08475c02c4375b918957b69"
+        },
+        {
+          "n": 34,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 0,
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "dirty": [],
+          "at": "2026-10-03T04:15:02.035Z",
+          "ms": 511,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-01-034.log",
+          "log_sha256": "1a246eee8b10b1bb0a0db9d0d1b89663a6e16ef4ef7fd7055b0a234ebe01e656"
         }
       ],
       "notes": [],
@@ -9087,14 +9319,46 @@
           "event": "done",
           "head": "873d8e77c3aa503d7f0ad20256068ece2a976f5e",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:14:02.450Z",
+          "event": "stale",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker",
+          "files": [
+            "src/contexts/OrgContext.tsx",
+            "src/contexts/org-context.ts",
+            "src/hooks/useBillUpload.ts",
+            "src/hooks/useFbtReturn.ts",
+            "src/hooks/useFrankingRegister.ts",
+            "src/hooks/usePeriodClose.ts",
+            "src/hooks/useSgcStatement.ts",
+            "src/hooks/useTparReport.ts",
+            "src/hooks/useWorkstreamTasks.ts",
+            "src/lib/formatting.ts"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:15:02.036Z",
+          "event": "run",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:15:02.264Z",
+          "event": "done",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:13:55.672Z",
-        "head": "873d8e77c3aa503d7f0ad20256068ece2a976f5e",
+        "at": "2026-10-03T04:15:02.250Z",
+        "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
         "by": "claude-worker",
         "runs": [
-          33
+          34
         ]
       }
     },
@@ -10492,7 +10756,7 @@
       "title": "Employees TFNs can be captured securely so the STP export can complete",
       "area": "broken",
       "priority": 50,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeTfnCapture.test.tsx\""
       ],
@@ -10539,6 +10803,19 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/STP-01-003.log",
           "log_sha256": "99a54b4252aa907705c5961efec4ecfe921eca20fb3dd3adda5a55d1871ff8b5"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeTfnCapture.test.tsx\"",
+          "exit": 0,
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "dirty": [],
+          "at": "2026-10-03T04:15:05.393Z",
+          "ms": 2638,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/STP-01-004.log",
+          "log_sha256": "7a5da7a3e3190749b85b9cbcc5edcebd5870698cb9212b9c9d5decbd52562ee2"
         }
       ],
       "notes": [],
@@ -10583,23 +10860,37 @@
           "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
           "actor": "claude-verifier",
           "by": "claude-verifier (independent subagent)"
+        },
+        {
+          "at": "2026-10-03T04:14:02.582Z",
+          "event": "stale",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/EmployeeDetail.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:15:05.394Z",
+          "event": "run",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:15:05.536Z",
+          "event": "done",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T01:00:08.390Z",
-        "head": "13a8b93542c906dd37045b77e3a9cc7dad66073c",
+        "at": "2026-10-03T04:15:05.522Z",
+        "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
         "by": "claude-worker",
         "runs": [
-          2
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T03:44:35.766Z",
-        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
-        "by": "claude-verifier (independent subagent)",
-        "note": "Read 13a8b93 and 0a67d1d in full. TfnPanel loads employee_tfn_status (0227: SECURITY DEFINER, filtered by require_role(p_org,'admin') which 0210 restricts to accepted memberships, returns masked last-4 only, anon revoked); the TFN goes to employee-tfn-save in a password field, validated to 8-9 digits client-side and again in the function, which encrypts into employee_tfn_vault via the shared AES-GCM helper and strips any tfn keys from wage_components; the response carries tfn_masked only and the field is cleared. deno check clean. Pre-fix tree (b635105): all 5 vitest cases fail; current tree passes 5/5. Residual: the function's verify_jwt=false relies on its own getUser check (as the other payroll functions do); the STP file still needs each employee's stp_tax_treatment_code set elsewhere before it is 'ready'.",
-        "runs": [
-          3
+          4
         ]
       }
     },
@@ -11281,7 +11572,7 @@
       "title": "No GST credit is invented when GST is missing or the supplier is not GST-registered",
       "area": "broken",
       "priority": 53,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/gstNoInvention.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/receipt-webhook/gst.test.ts\""
@@ -11369,6 +11660,32 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/GST-01-006.log",
           "log_sha256": "f3a9ae897abc8bf263a108168d92f3e85d3315dbaa7b595d261b6415dd06294e"
+        },
+        {
+          "n": 7,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/gstNoInvention.test.ts\"",
+          "exit": 0,
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "dirty": [],
+          "at": "2026-10-03T04:15:08.112Z",
+          "ms": 2336,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/GST-01-007.log",
+          "log_sha256": "215f74c0e0d8f9683b04e122d7b90cf6285fb058c97889e1650726c9ad8c72d4"
+        },
+        {
+          "n": 8,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/receipt-webhook/gst.test.ts\"",
+          "exit": 0,
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "dirty": [],
+          "at": "2026-10-03T04:15:09.453Z",
+          "ms": 1340,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/GST-01-008.log",
+          "log_sha256": "c002ffd09312c4ce2d7ccf0b607c828d477aded1b76d933fd46cc0ac5259c881"
         }
       ],
       "notes": [],
@@ -11413,25 +11730,38 @@
           "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
           "actor": "claude-verifier",
           "by": "claude-verifier (independent subagent)"
+        },
+        {
+          "at": "2026-10-03T04:14:02.658Z",
+          "event": "stale",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/ReceiptHub.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:15:09.453Z",
+          "event": "run",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:15:09.837Z",
+          "event": "done",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T02:22:43.473Z",
-        "head": "3159f8e1b044ef8e2d9e5bdb4775a5e1e0196883",
+        "at": "2026-10-03T04:15:09.821Z",
+        "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
         "by": "claude-worker",
         "runs": [
-          3,
-          4
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T03:34:12.702Z",
-        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
-        "by": "claude-verifier (independent subagent)",
-        "note": "Read 02b424d and 3159f8e, gst.ts, bills-extract/gst.ts and the receipt-webhook and coding-classifier diffs. On 02b424d^ with gst.ts copied in, 4 Bill-detail cases fail; the old receipt-webhook fails 6 of 8. Remaining /11 uses are only the explicit 'total includes GST' paths and the Scan wording. bills.gst_cents is nullable; v_bas_gst_coverage counts a NULL-GST bill as incomplete and v_bill_effective_allocations coalesces it to 0, so no 1B credit; coding-classifier holds NULL-GST bills for a person; deno check receipt-webhook ok. ato.gov.au returned 403 to WebFetch, so the no-credit rule was checked against the ATO wording the code cites, not re-fetched. Residual: receipt_lines store GST 0 with metadata.gst_unknown because the column is NOT NULL; gst_ready still passes at 95% coverage (pre-existing).",
-        "runs": [
-          5,
-          6
+          7,
+          8
         ]
       }
     },
@@ -11979,6 +12309,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/INV-01-004.log",
           "log_sha256": "a0291bc1c534412a6a108fcf967291aaa54ffb0ee2dd887aa7fdf0b8808c3a90"
+        },
+        {
+          "n": 5,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/TaxInvoiceIssue.test.tsx\"",
+          "exit": 0,
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "dirty": [],
+          "at": "2026-10-03T04:15:12.284Z",
+          "ms": 2283,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/INV-01-005.log",
+          "log_sha256": "6781c9ab50a00d91fc6cfa941e4339a87bc56ec9d827f7f4ae550ba5a7ca3bce"
         }
       ],
       "notes": [
@@ -12052,14 +12395,37 @@
           "event": "done",
           "head": "56e21d96096396399a94074d17be6fbc56f19b40",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:14:02.802Z",
+          "event": "stale",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/InvoiceDetail.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:15:12.285Z",
+          "event": "run",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:15:12.512Z",
+          "event": "done",
+          "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:09:12.988Z",
-        "head": "56e21d96096396399a94074d17be6fbc56f19b40",
+        "at": "2026-10-03T04:15:12.497Z",
+        "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
         "by": "claude-worker",
         "runs": [
-          4
+          5
         ]
       }
     },
@@ -16291,5 +16657,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T04:14:01.604Z"
+  "updated_at": "2026-10-03T04:15:12.526Z"
 }
