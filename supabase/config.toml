@@ -111,3 +111,55 @@ verify_jwt = true
 # Supabase so lodgements RLS scopes the row.
 [functions.bas-lodgement-pack]
 verify_jwt = true
+
+[functions.gmail-watch-renew]
+# cron secret in the X-Cron-Secret header; no user JWT; the function checks the caller itself.
+verify_jwt = false
+
+[functions.xero-sync-accounts]
+# cron secret header or service role; the function checks the caller itself.
+verify_jwt = false
+
+[functions.xero-push-bill]
+# service role (automation-worker) or user JWT checked in code; the function checks the caller itself.
+verify_jwt = false
+
+[functions.xero-push-invoice]
+# service role (automation-worker) or user JWT checked in code; the function checks the caller itself.
+verify_jwt = false
+
+[functions.xero-sync-payments]
+# cron secret header or service role; the function checks the caller itself.
+verify_jwt = false
+
+[functions.xero-pull-bank-transactions]
+# cron secret header or user JWT checked in code; the function checks the caller itself.
+verify_jwt = false
+
+[functions.payment-runs-aba-export]
+# self-auths: getUser plus authorizeOrgMember(admin); the function checks the caller itself.
+verify_jwt = false
+
+[functions.payment-runs-mark-paid]
+# self-auths: getUser plus authorizeOrgMember(admin); the function checks the caller itself.
+verify_jwt = false
+
+[functions.employee-tfn-save]
+# self-auths: getUser plus authorizeOrgMember(admin); the function checks the caller itself.
+verify_jwt = false
+
+[functions.payroll-termination]
+# self-auths: getUser plus authorizeOrgMember(admin); the function checks the caller itself.
+verify_jwt = false
+
+[functions.super-batch-send]
+# self-auths: getUser plus authorizeOrgMember(admin); the function checks the caller itself.
+verify_jwt = false
+
+[functions.entity-tfn-save]
+# self-auths: getUser plus authorizeOrgMember(admin); backfill callers send the service key; the function checks the caller itself.
+verify_jwt = false
+
+[functions.entity-tfn-backfill]
+# service-role bearer only (the new secret keys are not JWTs); the function checks the caller itself.
+verify_jwt = false
