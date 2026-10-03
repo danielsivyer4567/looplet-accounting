@@ -538,9 +538,10 @@ async function mintOrgToken(orgId: string): Promise<string | null> {
 }
 
 // Posts the bill's expense journal. allowEstimatedGst is the human-review escape
-// hatch: the auto path refuses gst_estimated bills (the GST split is unreliable),
-// but a human reviewing the bill in the queue is the gate and may clear them — the
-// net+gst==total reconciliation guard in buildLines still protects journal balance.
+// hatch: the auto path refuses gst_estimated bills (the GST split is unreliable)
+// and bills whose GST is unknown, but a human reviewing the bill in the queue is
+// the gate and may clear them — the net+gst==total reconciliation guard in
+// buildLines still protects journal balance.
 async function postBillJournal(
   admin: SupabaseClient,
   supabaseUrl: string,
@@ -562,6 +563,11 @@ async function postBillJournal(
 
   if (bill.gst_estimated && !allowEstimatedGst) {
     return { posted: false, journalEntryId: null, reason: "gst_estimated; needs human review" };
+  }
+  // GST not shown on the document (GST-01): bills-extract and receipt-webhook leave gst_cents null
+  // instead of assuming 1/11. Don't auto-post it as a GST-free expense either; a person decides.
+  if (bill.gst_cents == null && !allowEstimatedGst) {
+    return { posted: false, journalEntryId: null, reason: "gst_unknown; needs human review" };
   }
 
   const accounts = await resolveAccounts(admin, bill.organization_id, [

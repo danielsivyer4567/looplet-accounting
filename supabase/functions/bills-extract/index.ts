@@ -28,6 +28,7 @@ import { parseBillHeaders } from '../_shared/ocr/headerParser.ts';
 import type { DocumentKind, ExtractedBill } from '../_shared/ocr/prompt.ts';
 import { NON_FINANCIAL_KINDS } from '../_shared/ocr/prompt.ts';
 import { routeBill, type RouterResult } from '../_shared/bills/router.ts';
+import { deriveGstCents } from './gst.ts';
 
 interface RequestBody {
   bill_id?: string;
@@ -380,46 +381,6 @@ Deno.serve(async (req) => {
 });
 
 /**
- * Capture GST even when the supplier didn't itemise it.
- *   - GST read off the document → use it verbatim (estimated=false).
- *   - total + subtotal both present → GST = total − subtotal (estimated=true).
- *   - total only → AU standard rate: GST = round(total / 11), subtotal = total − GST.
- *   - no total → leave null (nothing to derive from).
- * Estimated GST is flagged so the BAS gate / human review can correct the
- * GST-free exceptions (fresh food, some services, overseas) before lodgement.
- */
-export function deriveGstCents(
-  totalCents: number | null,
-  gstCents: number | null,
-  subtotalCents: number | null,
-): { gstCents: number | null; subtotalCents: number | null; estimated: boolean } {
-  if (gstCents != null) {
-    return {
-      gstCents,
-      subtotalCents: subtotalCents ?? (totalCents != null ? totalCents - gstCents : null),
-      estimated: false,
-    };
-  }
-  if (totalCents == null) {
-    return { gstCents: null, subtotalCents, estimated: false };
-  }
-  if (subtotalCents != null && totalCents > subtotalCents) {
-    return { gstCents: totalCents - subtotalCents, subtotalCents, estimated: true };
-  }
-  if (subtotalCents != null) {
-    // Document supplied a subtotal that equals (or exceeds) the total → the
-    // supply carries NO GST (GST-free: fresh food, bank fees, overseas, rent).
-    // Do NOT apply the 1/11 rule here — that would invent phantom GST and
-    // over-claim input tax credits.
-    return { gstCents: 0, subtotalCents, estimated: false };
-  }
-  // Total only, no subtotal to contradict it → assume a standard-rated taxable
-  // supply: GST = 1/11 of the GST-inclusive total.
-  const derivedGst = Math.round(totalCents / 11);
-  return { gstCents: derivedGst, subtotalCents: totalCents - derivedGst, estimated: true };
-}
-
-/**
  * Decide whether an extracted document is a probable bill (belongs on the
  * active bills/BAS surface) or noise to keep out of sight.
  *
@@ -480,8 +441,7 @@ async function persistExtraction(
     (docMetadata?.taken_at ? docMetadata.taken_at.slice(0, 10) : null) ||
     (docMetadata?.created_at ? docMetadata.created_at.slice(0, 10) : null);
 
-  // Derive GST so the books (and BAS) fill even when the document only shows a
-  // total. AU standard-rated supplies are 1/11 of the GST-inclusive total.
+  // GST only as the document shows it; a bare total leaves GST unknown (see ./gst.ts).
   const { gstCents, subtotalCents, estimated } = deriveGstCents(
     extracted.total_inc_gst != null ? Math.round(extracted.total_inc_gst * 100) : null,
     extracted.gst_amount != null ? Math.round(extracted.gst_amount * 100) : null,

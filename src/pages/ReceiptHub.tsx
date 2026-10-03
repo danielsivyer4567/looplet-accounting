@@ -14,6 +14,11 @@ import {
   loopletSecretPrefix,
   receiptWebhookUrlFromSupabaseUrl,
 } from '@/lib/receiptBridgeSetup';
+import {
+  buildManualReceiptPayload,
+  buildReceiptPayloadFromExtraction,
+  type ExtractedBillData,
+} from '@/lib/receiptCapture';
 import { useOrg } from '@/hooks/useOrg';
 import {
   CheckCircle,
@@ -89,24 +94,6 @@ interface ReceiptIdentityRow {
   created_at: string;
 }
 
-interface ExtractedBillData {
-  supplier_name: string | null;
-  supplier_abn: string | null;
-  invoice_number: string | null;
-  invoice_date: string | null;
-  subtotal_ex_gst: number | null;
-  gst_amount: number | null;
-  total_inc_gst: number | null;
-  currency: string;
-  job_reference: string | null;
-  line_items: {
-    description: string;
-    quantity: number;
-    unit_price: number;
-    total: number;
-  }[];
-}
-
 interface ReceiptLineItemRow {
   id: string;
   line_number: number;
@@ -142,7 +129,7 @@ interface ReceiptWebhookResult {
   classification?: {
     business_use?: string;
     deductibility_status?: string;
-    gst_estimated?: boolean;
+    gst_status?: 'supplied' | 'none' | 'review';
     job_id?: string | null;
     reason?: string;
   };
@@ -765,40 +752,21 @@ export function ReceiptHubPage() {
         if (!token) throw new Error('Receipt identity could not be issued.');
       }
       const totalCents = Math.round(totalDollars * 100);
+      // Only the GST printed on the receipt. A blank field means GST unknown: the receipt is
+      // recorded for review and no GST credit is assumed.
       const gstDollars = Number.parseFloat(manualGst);
-      const gstCents = Number.isFinite(gstDollars)
-        ? Math.round(gstDollars * 100)
-        : Math.round(totalCents / 11); // default AU GST = 1/11 of GST-inclusive total
+      const gstCents = Number.isFinite(gstDollars) ? Math.round(gstDollars * 100) : null;
       const purchaseAt = manualDate ? new Date(manualDate).toISOString() : new Date().toISOString();
       const receiptNumber = `MAN-${Date.now().toString().slice(-8)}`;
-      const payload = {
-        merchant: { name: manualMerchant.trim() },
-        receipt: {
-          number: receiptNumber,
-          event_type: 'sale',
-          purchase_at: purchaseAt,
-          currency: 'AUD',
-          subtotal_ex_gst_cents: totalCents - gstCents,
-          gst_cents: gstCents,
-          total_inc_gst_cents: totalCents,
-          tender_status: 'completed',
-        },
-        classification: {
-          business_use: 'business',
-          job_reference: manualJobRef.trim(),
-          sync_targets: ['xero', 'myob', 'quickbooks', 'generic_api'],
-          source_org_id: currentOrg.id,
-        },
-        line_items: [
-          {
-            description: manualMerchant.trim(),
-            quantity: 1,
-            unit_price_cents: totalCents,
-            total_inc_gst_cents: totalCents,
-            gst_cents: gstCents,
-          },
-        ],
-      };
+      const payload = buildManualReceiptPayload({
+        merchant: manualMerchant.trim(),
+        totalCents,
+        gstCents,
+        purchaseAt,
+        receiptNumber,
+        jobReference: manualJobRef.trim(),
+        organizationId: currentOrg.id,
+      });
       const result = await postReceiptWebhook({
         organizationId: currentOrg.id,
         identityToken: token,
@@ -1288,18 +1256,27 @@ export function ReceiptHubPage() {
                 />
               </label>
               <label>
-                <span>GST (optional)</span>
+                <span>GST shown on receipt</span>
                 <input
                   type="number"
                   step="0.01"
                   min="0"
                   value={manualGst}
                   onChange={(e) => setManualGst(e.target.value)}
-                  placeholder="auto 1/11"
+                  placeholder="as shown"
+                  aria-describedby="receipt-manual-gst-help"
                   disabled={manualSubmitting}
                 />
               </label>
             </div>
+            <small
+              id="receipt-manual-gst-help"
+              style={{ color: 'var(--text-muted)', fontSize: '0.76rem', lineHeight: 1.45 }}
+            >
+              Enter 0 if there is no GST (GST-free, or the supplier isn't registered for GST). Leave
+              it blank if the receipt doesn't show GST: it is saved for review and no GST credit is
+              claimed.
+            </small>
             <div className="receipt-manual-row">
               <label>
                 <span>Date</span>
@@ -1411,7 +1388,7 @@ export function ReceiptHubPage() {
                     </div>
                     <div>
                       <strong>{formatMoney(event.total_inc_gst_cents)}</strong>
-                      <span>GST {formatMoney(event.gst_cents)}</span>
+                      <span>GST {formatReceiptGst(event.gst_cents)}</span>
                       {paymentLabel ? <span>{paymentLabel}</span> : null}
                     </div>
                     <div>
@@ -1579,12 +1556,12 @@ function ReceiptEventDrawer({
                 <dt>Total / GST</dt>
                 <dd>
                   {event ? formatMoney(event.total_inc_gst_cents) : '—'}
-                  <small> · GST {event ? formatMoney(event.gst_cents) : '—'}</small>
+                  <small> · GST {event ? formatReceiptGst(event.gst_cents) : '—'}</small>
                 </dd>
               </div>
               <div className="receipt-core-metric">
                 <dt>GST status</dt>
-                <dd>{(audit?.gst_status ?? 'unknown').replaceAll('_', ' ')}</dd>
+                <dd>{gstStatusLabel(audit?.gst_status)}</dd>
               </div>
               <div className="receipt-core-metric">
                 <dt>Deductibility</dt>
@@ -1712,6 +1689,19 @@ function formatReceiptTime(iso: string): string {
   });
 }
 
+// A receipt with no GST figure is "not shown", never $0.00: zero would claim the sale had no GST.
+function formatReceiptGst(cents: number | null): string {
+  return cents == null ? 'not shown' : formatMoney(cents);
+}
+
+function gstStatusLabel(status: string | null | undefined): string {
+  if (status === 'supplied') return 'From the receipt';
+  if (status === 'none') return 'No GST (no credit)';
+  if (status === 'review') return 'Not shown: needs review, no credit claimed';
+  if (status === 'estimated') return 'Estimated (older receipt): check before relying on it';
+  return 'unknown';
+}
+
 function paymentDescriptor(event: ReceiptEventRow) {
   const method = event.payment_method?.trim();
   const last4 = event.payment_last4?.trim();
@@ -1758,60 +1748,4 @@ async function postReceiptWebhook(args: ReceiptWebhookArgs): Promise<ReceiptWebh
   const body = (await response.json()) as { ok?: boolean; error?: string } & ReceiptWebhookResult;
   if (!response.ok || !body.ok) throw new Error(body.error ?? 'Receipt webhook failed');
   return body;
-}
-
-function dollarsToCents(value: number | null | undefined): number | null {
-  return value == null || !Number.isFinite(value) ? null : Math.round(value * 100);
-}
-
-function buildReceiptPayloadFromExtraction(
-  extracted: ExtractedBillData,
-  orgId: string,
-  originalStorageKey: string,
-) {
-  const totalCents = dollarsToCents(extracted.total_inc_gst);
-  const gstFromDoc = dollarsToCents(extracted.gst_amount);
-  const subtotalFromDoc = dollarsToCents(extracted.subtotal_ex_gst);
-  // Mirror the manual form's AU GST default: 1/11 of the inclusive total when
-  // the document didn't itemise GST and we have a total to derive from.
-  const gstCents = gstFromDoc ?? (totalCents != null ? Math.round(totalCents / 11) : 0);
-  const subtotalCents = subtotalFromDoc ?? (totalCents != null ? totalCents - gstCents : null);
-  const receiptNumber = extracted.invoice_number || `PHOTO-${Date.now().toString().slice(-8)}`;
-  return {
-    merchant: {
-      name: extracted.supplier_name || 'Unknown merchant',
-      abn: extracted.supplier_abn || undefined,
-    },
-    receipt: {
-      number: receiptNumber,
-      event_type: 'sale',
-      purchase_at: extracted.invoice_date
-        ? new Date(extracted.invoice_date).toISOString()
-        : new Date().toISOString(),
-      currency: extracted.currency || 'AUD',
-      subtotal_ex_gst_cents: subtotalCents ?? undefined,
-      gst_cents: gstCents,
-      total_inc_gst_cents: totalCents ?? 0,
-      tender_status: 'completed',
-      // Preserve the original uploaded file for provenance — receipt-webhook
-      // keeps the full payload in raw_extracted, so the link survives.
-      original_storage_key: originalStorageKey,
-    },
-    classification: {
-      business_use: 'business',
-      job_reference: extracted.job_reference || '',
-      sync_targets: ['xero', 'myob', 'quickbooks', 'generic_api'],
-      source_org_id: orgId,
-    },
-    line_items: (extracted.line_items ?? []).map((line) => {
-      const lineTotalCents = dollarsToCents(line.total) ?? 0;
-      return {
-        description: line.description,
-        quantity: line.quantity,
-        unit_price_cents: dollarsToCents(line.unit_price) ?? 0,
-        total_inc_gst_cents: lineTotalCents,
-        gst_cents: Math.round(lineTotalCents / 11),
-      };
-    }),
-  };
 }

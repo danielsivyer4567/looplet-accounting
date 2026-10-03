@@ -7,6 +7,7 @@ import { AllocationSplitButton } from '@/components/AllocationSplitButton';
 import { ArchiveButton } from '@/components/ArchiveButton';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
+import { gstIncludedInTotal, resolveDocumentGst, type GstSource } from '@/lib/gst';
 import { useOrg } from '@/hooks/useOrg';
 import { ConfidenceBadge } from '@/components/ConfidenceBadge';
 import { DetailPageSkeleton, SkeletonLine } from '@/components/Skeleton';
@@ -70,31 +71,29 @@ function parseDollarsToCents(s: string): number | null {
   return Math.round(n * 100);
 }
 
+// Fills in only what the bill's own figures imply. A total with GST and subtotal left blank keeps
+// GST unknown (null): no GST credit is assumed, and the BAS coverage check flags the bill.
 function autoComputeGst(draft: BillDraft): {
   total: number | null;
   gst: number | null;
   subtotal: number | null;
+  source: GstSource;
 } {
-  const total = parseDollarsToCents(draft.total_inc_gst_dollars);
-  const gst = parseDollarsToCents(draft.gst_dollars);
-  const subtotal = parseDollarsToCents(draft.subtotal_ex_gst_dollars);
+  const resolved = resolveDocumentGst({
+    totalCents: parseDollarsToCents(draft.total_inc_gst_dollars),
+    gstCents: parseDollarsToCents(draft.gst_dollars),
+    subtotalCents: parseDollarsToCents(draft.subtotal_ex_gst_dollars),
+  });
+  return {
+    total: resolved.totalCents,
+    gst: resolved.gstCents,
+    subtotal: resolved.subtotalCents,
+    source: resolved.source,
+  };
+}
 
-  let resolvedTotal = total;
-  let resolvedGst = gst;
-  let resolvedSubtotal = subtotal;
-
-  if (total != null && gst == null) {
-    resolvedGst = Math.round(total / 11);
-    if (subtotal == null) {
-      resolvedSubtotal = total - resolvedGst;
-    }
-  }
-
-  if (subtotal != null && gst != null && total == null) {
-    resolvedTotal = subtotal + gst;
-  }
-
-  return { total: resolvedTotal, gst: resolvedGst, subtotal: resolvedSubtotal };
+function centsToDraft(cents: number): string {
+  return (cents / 100).toFixed(2);
 }
 
 export function BillDetailPage() {
@@ -208,6 +207,10 @@ export function BillDetailPage() {
     }
     try {
       const computed = autoComputeGst(draft);
+      const amountsChanged =
+        computed.total !== bill.total_inc_gst_cents ||
+        computed.gst !== bill.gst_cents ||
+        computed.subtotal !== bill.subtotal_ex_gst_cents;
       const payload: Record<string, unknown> = {
         supplier_name_raw: draft.supplier_name_raw.trim() || null,
         supplier_abn: draft.supplier_abn.trim() || null,
@@ -220,6 +223,9 @@ export function BillDetailPage() {
         job_reference_raw: draft.job_reference_raw.trim() || null,
         notes: draft.notes.trim() || null,
       };
+      // Once someone has typed the amounts, GST is no longer an OCR estimate, except where it
+      // is still worked out as total minus subtotal.
+      if (amountsChanged) payload.gst_estimated = computed.source === 'subtotal_difference';
 
       const { error: saveErr } = await supabase.from('bills').update(payload).eq('id', bill.id);
 
@@ -637,7 +643,7 @@ export function BillDetailPage() {
                   </EditField>
                   <EditField
                     label="Total inc GST"
-                    hint="Auto-computes GST = total ÷ 11 if GST left blank"
+                    hint="Leave GST and subtotal blank if the bill doesn't show them: GST stays unknown and no GST credit is claimed"
                   >
                     <input
                       value={draft.total_inc_gst_dollars}
@@ -652,9 +658,48 @@ export function BillDetailPage() {
                       value={draft.gst_dollars}
                       onChange={(e) => setField('gst_dollars', e.target.value)}
                       className="form-input"
-                      placeholder="0.00"
+                      placeholder="As shown on the bill"
                     />
                   </EditField>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '0.4rem',
+                      padding: '0.35rem 0 0.35rem 142px',
+                      borderBottom: '1px solid var(--border-subtle)',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ fontSize: '0.72rem', padding: '0.25rem 0.55rem' }}
+                      disabled={parseDollarsToCents(draft.total_inc_gst_dollars) == null}
+                      title="Use only when the bill says the total includes GST"
+                      onClick={() => {
+                        const total = parseDollarsToCents(draft.total_inc_gst_dollars);
+                        if (total == null) return;
+                        const gst = gstIncludedInTotal(total);
+                        setField('gst_dollars', centsToDraft(gst));
+                        setField('subtotal_ex_gst_dollars', centsToDraft(total - gst));
+                      }}
+                    >
+                      Bill says total includes GST
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ fontSize: '0.72rem', padding: '0.25rem 0.55rem' }}
+                      title="GST-free purchase, or a supplier not registered for GST: no GST credit"
+                      onClick={() => {
+                        const total = parseDollarsToCents(draft.total_inc_gst_dollars);
+                        setField('gst_dollars', '0.00');
+                        if (total != null) setField('subtotal_ex_gst_dollars', centsToDraft(total));
+                      }}
+                    >
+                      No GST (supplier not registered or GST-free)
+                    </button>
+                  </div>
                   <EditField label="Subtotal ex GST">
                     <input
                       value={draft.subtotal_ex_gst_dollars}
@@ -700,7 +745,13 @@ export function BillDetailPage() {
                   />
                   <Field
                     label="GST"
-                    value={bill.gst_cents != null ? formatMoney(bill.gst_cents) : null}
+                    value={
+                      bill.gst_cents != null
+                        ? formatMoney(bill.gst_cents)
+                        : bill.total_inc_gst_cents != null
+                          ? 'Not shown: no GST credit claimed'
+                          : null
+                    }
                   />
                   <Field
                     label="Subtotal ex GST"
@@ -1250,7 +1301,7 @@ const REASON_CODE_LABELS: Record<string, string> = {
   ocr_text_extraction: 'Extracted from digital PDF text',
   ocr_vision_extraction: 'Extracted via vision OCR',
   cache_hit: 'Matched an identical document seen before',
-  gst_derived: 'GST estimated at 1/11 (not shown on document)',
+  gst_derived: 'GST was worked out, not read off the document: check it before BAS',
   job_matched_exact: 'Exact job reference match found',
   job_matched_fuzzy: 'Fuzzy job match suggested',
   probable_non_invoice: 'Document may not be an invoice',
