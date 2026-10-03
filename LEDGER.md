@@ -26,7 +26,7 @@
 | CONSENT-01 | Settings has no pre-ticked, unsaved or unrelated template consent switches | open | not run |
 | LEGAL-01 | A privacy policy, terms of service and collection notice are published, linked, and accepted at sign-up | open | not run |
 | AI-01 | AI answers and advice are labelled general information, and the model is allowed to recommend an accountant | open | not run |
-| TFN-01 | TFNs are never returned to the browser or stored in plain text | open | not run |
+| TFN-01 | TFNs are never returned to the browser or stored in plain text | done | done @ f82c8f03, awaiting independent verify |
 | LODGE-01 | Nothing claims to lodge with the ATO or send to a super fund when it only prepares a file | open | not run |
 | BANK-01 | Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs | done | done @ 12c30b4b, awaiting independent verify |
 | BANK-02 | Redbark client pages accounts and transactions, splits truncated date windows, converts dollars to exact cents and skips pending rows | done | done @ 62a46f2a, awaiting independent verify |

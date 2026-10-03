@@ -2188,7 +2188,7 @@
       "title": "TFNs are never returned to the browser or stored in plain text",
       "area": "legitimacy",
       "priority": 36,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/tfn-handling.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/trust-tfn-encryption.sql\""
@@ -2198,7 +2198,60 @@
         "src/pages/PayRunDetail.tsx",
         "supabase/migrations"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/tfn-handling.test.ts\"",
+          "exit": 1,
+          "head": "994e95afa1661ed77ea3a8f60fe6ac3fc6956818",
+          "dirty": [],
+          "at": "2026-10-03T00:53:31.925Z",
+          "ms": 1254,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/TFN-01-001.log",
+          "log_sha256": "c93b640b150e03afe72f32d2adc6ef2d1452f3163f707cb1254aeda015710ded"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/trust-tfn-encryption.sql\"",
+          "exit": 1,
+          "head": "994e95afa1661ed77ea3a8f60fe6ac3fc6956818",
+          "dirty": [],
+          "at": "2026-10-03T00:53:32.256Z",
+          "ms": 331,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/TFN-01-002.log",
+          "log_sha256": "bce23a5ef55b359dd4f7ce8a98a1177b99a835b166956cd2853a996f60f4d082"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/tfn-handling.test.ts\"",
+          "exit": 0,
+          "head": "f82c8f032c54d0d585723f5ca52ac94ba2ecedbf",
+          "dirty": [],
+          "at": "2026-10-03T00:54:27.769Z",
+          "ms": 2062,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/TFN-01-003.log",
+          "log_sha256": "fd8587e9cdc8be9de03d80f54737d5aafda8070f79da7a2e0f4e2d9311db185f"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/trust-tfn-encryption.sql\"",
+          "exit": 0,
+          "head": "f82c8f032c54d0d585723f5ca52ac94ba2ecedbf",
+          "dirty": [],
+          "at": "2026-10-03T00:55:13.807Z",
+          "ms": 46036,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/TFN-01-004.log",
+          "log_sha256": "989cd1123cd18f682860cc5bc8bb7770f98f778dc79668dad4ebf68982f69f77"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -2206,8 +2259,45 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:53:30.450Z",
+          "event": "start",
+          "head": "994e95afa1661ed77ea3a8f60fe6ac3fc6956818",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:53:32.257Z",
+          "event": "run",
+          "head": "994e95afa1661ed77ea3a8f60fe6ac3fc6956818",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:55:13.808Z",
+          "event": "run",
+          "head": "f82c8f032c54d0d585723f5ca52ac94ba2ecedbf",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:55:14.065Z",
+          "event": "done",
+          "head": "f82c8f032c54d0d585723f5ca52ac94ba2ecedbf",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T00:55:14.049Z",
+        "head": "f82c8f032c54d0d585723f5ca52ac94ba2ecedbf",
+        "by": "claude-worker",
+        "runs": [
+          3,
+          4
+        ]
+      }
     },
     {
       "id": "LODGE-01",
@@ -4265,5 +4355,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T00:53:29.250Z"
+  "updated_at": "2026-10-03T00:55:14.082Z"
 }
