@@ -44,7 +44,7 @@ INSERT INTO public.organizations (id, name) VALUES (pg_temp.id('org'), 'Balance 
 INSERT INTO public.organization_memberships (user_id, organization_id, role, role_enum, accepted_at)
 VALUES (pg_temp.id('owner'), pg_temp.id('org'), 'owner', 'owner', now());
 INSERT INTO public.bank_connections (id, organization_id, provider, encrypted_access_token, status)
-VALUES (pg_temp.id('conn'), pg_temp.id('org'), 'manual', 'test-only', 'active');
+VALUES (pg_temp.id('conn'), pg_temp.id('org'), 'redbark', 'test-only', 'active');
 
 -- Everyday account $10,000. Credit card owes $3,000, loan owes $20,000 (feeds report owed balances as negative).
 -- card_no_debt owes $400 and its debt row gets deleted; card_personal owes $100 and its debt is marked personal;
