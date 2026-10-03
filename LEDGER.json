@@ -2200,7 +2200,7 @@
       "title": "Hardening: CORS allow-list, constant-time secret checks, bundled pdf.js worker, cron secrets in headers, generic error responses",
       "area": "security",
       "priority": 16,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/cors.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/hardening-contract.test.ts\""
@@ -2212,7 +2212,86 @@
         "public/_headers",
         "supabase/migrations"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/cors.test.ts\"",
+          "exit": 1,
+          "head": "becce772102172cb6ec9f52115b046a372095874",
+          "dirty": [],
+          "at": "2026-10-03T02:44:39.255Z",
+          "ms": 312,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-07-001.log",
+          "log_sha256": "07726130f25f1fa1de6568d39976f7e0e352a3b9d91460aae115c52245715aa3"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/hardening-contract.test.ts\"",
+          "exit": 1,
+          "head": "becce772102172cb6ec9f52115b046a372095874",
+          "dirty": [],
+          "at": "2026-10-03T02:44:40.678Z",
+          "ms": 1423,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-07-002.log",
+          "log_sha256": "e27b04ff07bf037f5cdbf2be9c86f42b1aa0e00e3ad1299c26036bd92c4ebd97"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/cors.test.ts\"",
+          "exit": 0,
+          "head": "4bfefda1437f95d36e09682c48dbf51b0a137c0a",
+          "dirty": [],
+          "at": "2026-10-03T02:45:47.273Z",
+          "ms": 764,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-07-003.log",
+          "log_sha256": "2dc93901d19c94e858af534fcb5c1e62c3959c32edf9f95e1273c7992b0f21f8"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/hardening-contract.test.ts\"",
+          "exit": 1,
+          "head": "4bfefda1437f95d36e09682c48dbf51b0a137c0a",
+          "dirty": [],
+          "at": "2026-10-03T02:45:48.850Z",
+          "ms": 1576,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-07-004.log",
+          "log_sha256": "f2ae547837841ce4f3aef3de183dc897cc6446ca3079e39a1444947bbd499a1e"
+        },
+        {
+          "n": 5,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/cors.test.ts\"",
+          "exit": 0,
+          "head": "acd8828bc393b4aec441e426b784fe43e1e335fb",
+          "dirty": [],
+          "at": "2026-10-03T02:46:27.757Z",
+          "ms": 771,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-07-005.log",
+          "log_sha256": "619c64788f6abe10f4ac20c10359d05e6d4d8a7de323215b659e3d7b3e219b98"
+        },
+        {
+          "n": 6,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/hardening-contract.test.ts\"",
+          "exit": 0,
+          "head": "acd8828bc393b4aec441e426b784fe43e1e335fb",
+          "dirty": [],
+          "at": "2026-10-03T02:46:29.850Z",
+          "ms": 2092,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-07-006.log",
+          "log_sha256": "6b06788c08d495a810a06d589886f5c1cfd52f7564714d72c4443e1a32f9be70"
+        }
+      ],
       "notes": [
         {
           "at": "2026-10-02T23:21:03.905Z",
@@ -2226,8 +2305,53 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:44:38.810Z",
+          "event": "start",
+          "head": "becce772102172cb6ec9f52115b046a372095874",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:44:40.678Z",
+          "event": "run",
+          "head": "becce772102172cb6ec9f52115b046a372095874",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:45:48.850Z",
+          "event": "run",
+          "head": "4bfefda1437f95d36e09682c48dbf51b0a137c0a",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:46:29.850Z",
+          "event": "run",
+          "head": "acd8828bc393b4aec441e426b784fe43e1e335fb",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:46:30.023Z",
+          "event": "done",
+          "head": "acd8828bc393b4aec441e426b784fe43e1e335fb",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T02:46:30.005Z",
+        "head": "acd8828bc393b4aec441e426b784fe43e1e335fb",
+        "by": "claude-worker",
+        "runs": [
+          5,
+          6
+        ]
+      }
     },
     {
       "id": "PAY-01",
@@ -12074,5 +12198,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T02:44:36.599Z"
+  "updated_at": "2026-10-03T02:46:30.040Z"
 }

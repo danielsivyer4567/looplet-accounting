@@ -1,0 +1,14 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "deno test --allow-env --allow-read --allow-net supabase/functions/_shared/cors.test.ts"
+[0m[38;5;245mrunning 8 tests from ./supabase/functions/_shared/cors.test.ts[0m
+the default allow-list is the app, its Pages project and local Vite ports, never * ... [0m[32mok[0m [0m[38;5;245m(507µs)[0m
+CORS_ALLOWED_ORIGINS adds exact origins; wildcards and malformed entries are ignored ... [0m[32mok[0m [0m[38;5;245m(706µs)[0m
+the static corsHeaders no longer allow every origin ... [0m[32mok[0m [0m[38;5;245m(216µs)[0m
+preflight answers allowed origins with their own origin and refuses others ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+corsHeadersFor reflects an allowed origin and leaves Allow-Origin out otherwise ... [0m[32mok[0m [0m[38;5;245m(214µs)[0m
+withCors fixes responses built from the static headers, and only those ... [0m[32mok[0m [0m[38;5;245m(672µs)[0m
+an existing function served with Deno.serve answers each allowed origin with its own origin ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+the same wrapper keeps raw error text out of 5xx bodies, and errors still carry CORS headers ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+
+[0m[32mok[0m | 8 passed | 0 failed [0m[38;5;245m(18ms)[0m
+
+[0m[32mCheck[0m supabase/functions/_shared/cors.test.ts
