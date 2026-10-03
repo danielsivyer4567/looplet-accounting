@@ -1965,6 +1965,45 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-01-002.log",
           "log_sha256": "8153a59751afa561ff37c5447a7349fd598d36fe57f9fb5cd3618a20ee6dcd42"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 1,
+          "head": "c3176a2f32ca83dd094462ffb6e9eee9c2e4ba0a",
+          "dirty": [],
+          "at": "2026-10-03T00:48:46.665Z",
+          "ms": 597,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-01-003.log",
+          "log_sha256": "ac46608188dcf1efdea04ef9247d1ac127f0e325cf40f113cbe9cedaf24f8e23"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 1,
+          "head": "c3176a2f32ca83dd094462ffb6e9eee9c2e4ba0a",
+          "dirty": [],
+          "at": "2026-10-03T00:48:47.522Z",
+          "ms": 635,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-01-004.log",
+          "log_sha256": "b0958e6a0069ec93736e69adab08f67869134ad02ae98c7d296d6f0bd5ffaace"
+        },
+        {
+          "n": 5,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 0,
+          "head": "069309509dc834770ff18ec780b0a5cde14acfae",
+          "dirty": [],
+          "at": "2026-10-03T00:49:22.740Z",
+          "ms": 589,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-01-005.log",
+          "log_sha256": "74afbf2c82f8785c0994c43fed865c456fef05094dd2a2a3e924ea80d0de8439"
         }
       ],
       "notes": [],
@@ -2002,14 +2041,56 @@
           "event": "done",
           "head": "a1e9a3b99fa0d738a8d1ea72e9eb060331444fdc",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:48:45.383Z",
+          "event": "stale",
+          "head": "c3176a2f32ca83dd094462ffb6e9eee9c2e4ba0a",
+          "actor": "claude-worker",
+          "files": [
+            "src/test/db/sgcStatement.test.ts",
+            "supabase/functions/payroll-create-pay-run/calc.test.ts",
+            "supabase/functions/payroll-create-pay-run/calc.ts",
+            "supabase/functions/payroll-create-pay-run/index.ts"
+          ]
+        },
+        {
+          "at": "2026-10-03T00:48:46.665Z",
+          "event": "run",
+          "head": "c3176a2f32ca83dd094462ffb6e9eee9c2e4ba0a",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:48:47.523Z",
+          "event": "run",
+          "head": "c3176a2f32ca83dd094462ffb6e9eee9c2e4ba0a",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:49:22.741Z",
+          "event": "run",
+          "head": "069309509dc834770ff18ec780b0a5cde14acfae",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:49:22.888Z",
+          "event": "done",
+          "head": "069309509dc834770ff18ec780b0a5cde14acfae",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T00:44:54.317Z",
-        "head": "a1e9a3b99fa0d738a8d1ea72e9eb060331444fdc",
+        "at": "2026-10-03T00:49:22.871Z",
+        "head": "069309509dc834770ff18ec780b0a5cde14acfae",
         "by": "claude-worker",
         "runs": [
-          2
+          5
         ]
       }
     },
@@ -3669,5 +3750,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T00:48:44.943Z"
+  "updated_at": "2026-10-03T00:49:22.904Z"
 }
