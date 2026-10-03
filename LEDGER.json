@@ -1815,14 +1815,41 @@
       "title": "Redbark client pages accounts and transactions, splits truncated date windows, converts dollars to exact cents and skips pending rows",
       "area": "bank",
       "priority": 41,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/redbark/client.test.ts\""
       ],
       "paths": [
         "supabase/functions/_shared/redbark"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/redbark/client.test.ts\"",
+          "exit": 1,
+          "head": "8767c26d57f6e680bfce7408386d94b71544b23b",
+          "dirty": [],
+          "at": "2026-10-03T00:43:48.224Z",
+          "ms": 224,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-02-001.log",
+          "log_sha256": "a79b72be5180018366472bbf204f46cfd02f88c01a9475f2e06e661fab22b00f"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/redbark/client.test.ts\"",
+          "exit": 0,
+          "head": "7c9ecc422776fe8be9164b3ebecb3351e9523510",
+          "dirty": [],
+          "at": "2026-10-03T00:43:49.392Z",
+          "ms": 779,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-02-002.log",
+          "log_sha256": "4f25f313f0ee26192b12c629be3e46ff9b994a31b3a34bd28b77f9d9d597e778"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -1830,8 +1857,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:43:47.882Z",
+          "event": "start",
+          "head": "8767c26d57f6e680bfce7408386d94b71544b23b",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:43:48.225Z",
+          "event": "run",
+          "head": "8767c26d57f6e680bfce7408386d94b71544b23b",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:43:49.393Z",
+          "event": "run",
+          "head": "7c9ecc422776fe8be9164b3ebecb3351e9523510",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:43:49.505Z",
+          "event": "done",
+          "head": "7c9ecc422776fe8be9164b3ebecb3351e9523510",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T00:43:49.491Z",
+        "head": "7c9ecc422776fe8be9164b3ebecb3351e9523510",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "BANK-03",
@@ -2984,5 +3047,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T00:41:40.168Z"
+  "updated_at": "2026-10-03T00:43:49.520Z"
 }
