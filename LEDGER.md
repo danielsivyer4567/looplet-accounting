@@ -49,7 +49,7 @@
 | UI-01 | Light theme polish: themed colours everywhere, no hard-coded dark-only colours, auth screens in the new style | done | done @ 23bd4ec5, awaiting independent verify |
 | UI-02 | Shared PageHeader, Stat, StatusBadge, EmptyState, Alert and Field replace page-local copies | done | done @ 6198a3e3, awaiting independent verify |
 | UI-03 | Modern app shell: labelled sectioned sidebar, top bar with breadcrumbs, org switcher, user menu, command palette | open | not run |
-| UI-04 | Accessibility: contrast-safe colour tokens, keyboard focus everywhere, labelled icon buttons, no text under 11px | open | not run |
+| UI-04 | Accessibility: contrast-safe colour tokens, keyboard focus everywhere, labelled icon buttons, no text under 11px | done | done @ 4152cd83, awaiting independent verify |
 | SHIP | Ship gate: typecheck, lint, the full test suite (Vitest and Deno) and the production build all pass | open | not run |
 | DEPLOY | Production (accounting.looplet.com.au and the edge functions) serves the verified build after Daniel says go | blocked | BLOCKED: Production changes need the owner's explicit approval. (needs: Daniel reviews screenshots and the verified ledger, then says go for the production deploy.) |
 | SEC-08 | bills-allocate-batch checks the caller's own accepted membership and needs accountant or higher to change allocations | verified | verified by claude-verifier (independent subagent) @ bbdacc04 |

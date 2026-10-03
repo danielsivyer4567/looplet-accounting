@@ -15113,7 +15113,7 @@
       "title": "Accessibility: contrast-safe colour tokens, keyboard focus everywhere, labelled icon buttons, no text under 11px",
       "area": "ui",
       "priority": 73,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-a11y-tokens.mjs\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/a11y/IconButtons.test.tsx\""
@@ -15124,7 +15124,60 @@
         "src/pages",
         "scripts/check-a11y-tokens.mjs"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-a11y-tokens.mjs\"",
+          "exit": 1,
+          "head": "ec22d0714438ddb88cb53ab574c4069747ae577b",
+          "dirty": [],
+          "at": "2026-10-03T04:19:02.862Z",
+          "ms": 314,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-04-001.log",
+          "log_sha256": "52f7244895e692a709d75472920cb519990f5a325a191ad5817a4cc38cba71ed"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/a11y/IconButtons.test.tsx\"",
+          "exit": 1,
+          "head": "ec22d0714438ddb88cb53ab574c4069747ae577b",
+          "dirty": [],
+          "at": "2026-10-03T04:19:04.390Z",
+          "ms": 1527,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-04-002.log",
+          "log_sha256": "8e37dd7735885716271aad7055e01cbe02605c360af844e33160cf12a11dac98"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-a11y-tokens.mjs\"",
+          "exit": 0,
+          "head": "4152cd83fd0f9a7cbe7b155b4ff5f659bf15eccd",
+          "dirty": [],
+          "at": "2026-10-03T04:19:05.027Z",
+          "ms": 266,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-04-003.log",
+          "log_sha256": "e740303d1dc26a32e63120bd5636c6cb8821ec69875d13a6d2d507e68152aa45"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/a11y/IconButtons.test.tsx\"",
+          "exit": 0,
+          "head": "4152cd83fd0f9a7cbe7b155b4ff5f659bf15eccd",
+          "dirty": [],
+          "at": "2026-10-03T04:19:09.567Z",
+          "ms": 4539,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-04-004.log",
+          "log_sha256": "8c2f1fab0c80f29d1447887e79a048adbf5137d04ed582eaec527e6b12a94172"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -15132,8 +15185,45 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:19:02.302Z",
+          "event": "start",
+          "head": "ec22d0714438ddb88cb53ab574c4069747ae577b",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:19:04.390Z",
+          "event": "run",
+          "head": "ec22d0714438ddb88cb53ab574c4069747ae577b",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:19:09.567Z",
+          "event": "run",
+          "head": "4152cd83fd0f9a7cbe7b155b4ff5f659bf15eccd",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:19:09.802Z",
+          "event": "done",
+          "head": "4152cd83fd0f9a7cbe7b155b4ff5f659bf15eccd",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T04:19:09.786Z",
+        "head": "4152cd83fd0f9a7cbe7b155b4ff5f659bf15eccd",
+        "by": "claude-worker",
+        "runs": [
+          3,
+          4
+        ]
+      }
     },
     {
       "id": "SHIP",
@@ -17997,5 +18087,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T04:18:59.795Z"
+  "updated_at": "2026-10-03T04:19:09.817Z"
 }
