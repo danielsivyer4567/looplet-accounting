@@ -21695,14 +21695,41 @@
       "title": "One production deploy path: Cloudflare Pages Git integration deploys main; the CI wrangler deploy step is removed and the Cloudflare token leaves GitHub",
       "area": "ci",
       "priority": 36,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\""
       ],
       "paths": [
         ".github/workflows"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\"",
+          "exit": 0,
+          "head": "d25522a69fde65bb352349cff8f6182d27a2ac62",
+          "dirty": [],
+          "at": "2026-10-03T05:08:38.706Z",
+          "ms": 1379,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/CI-02-001.log",
+          "log_sha256": "320c87f61367b2daa2813e4f7418c3fb40e922fa9887c4ab0d2551ac5ed2c77c"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\"",
+          "exit": 0,
+          "head": "40e40cc3ada417b5092d93ca1ce11569b005a4e1",
+          "dirty": [],
+          "at": "2026-10-03T05:08:40.479Z",
+          "ms": 1419,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/CI-02-002.log",
+          "log_sha256": "23d4ddfb8abbc2eed8e6eb598264b80568c0199f42460e0bab5ae383542d593e"
+        }
+      ],
       "notes": [
         {
           "at": "2026-10-03T03:05:41.140Z",
@@ -21716,8 +21743,44 @@
           "event": "added",
           "head": "8e82fd1aa6198f7a512c66bbafbcd1edb40d982c",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:08:37.080Z",
+          "event": "start",
+          "head": "d25522a69fde65bb352349cff8f6182d27a2ac62",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:08:38.707Z",
+          "event": "run",
+          "head": "d25522a69fde65bb352349cff8f6182d27a2ac62",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:08:40.480Z",
+          "event": "run",
+          "head": "40e40cc3ada417b5092d93ca1ce11569b005a4e1",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:08:40.637Z",
+          "event": "done",
+          "head": "40e40cc3ada417b5092d93ca1ce11569b005a4e1",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T05:08:40.621Z",
+        "head": "40e40cc3ada417b5092d93ca1ce11569b005a4e1",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "FIX-01",
@@ -21839,5 +21902,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T05:07:29.975Z"
+  "updated_at": "2026-10-03T05:08:40.653Z"
 }

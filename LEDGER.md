@@ -61,7 +61,7 @@
 | PAY-06 | FY2025-26 PAYG withholding rows match the official 2025 schedule (F2025L00647) worked examples | open | not run |
 | UX-01 | Lower roles see a clear 'read-only' state instead of silent no-op saves on bills, jobs, allocations, payment runs, employees, customers and suppliers | open | not run |
 | INV-02 | Looplet can email a tax invoice PDF to the customer from a verified sender, and marks it sent only after the email is accepted | open | not run |
-| CI-02 | One production deploy path: Cloudflare Pages Git integration deploys main; the CI wrangler deploy step is removed and the Cloudflare token leaves GitHub | open | not run |
+| CI-02 | One production deploy path: Cloudflare Pages Git integration deploys main; the CI wrangler deploy step is removed and the Cloudflare token leaves GitHub | done | done @ 40e40cc3, awaiting independent verify |
 | FIX-01 | Ask AI's BAS answer reads columns that v_bas_quarterly actually has | done | done @ 4b757ce2, awaiting independent verify |
 
 Acceptance commands, every run, exit codes and log hashes are in LEDGER.json; logs are in .ledger/logs/.
