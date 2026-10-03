@@ -1,0 +1,4 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/db/run-pg-sql-tests.mjs tests/db-sql/balance-sheet-debts.sql"
+migrations: 285 applied, 9 known failures, 0 problems (294 files)
+PASS tests/db-sql/balance-sheet-debts.sql
+  NOTICE:  Balance sheet debts: 9 checks passed (cards and loans counted once, deleted debts excluded)
