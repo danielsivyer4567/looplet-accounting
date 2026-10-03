@@ -1,4 +1,6 @@
 import { useState, useRef } from 'react';
+// Same-origin worker asset emitted by Vite from the installed pdfjs-dist (see loadPdfjs below).
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 
@@ -19,8 +21,6 @@ interface ImportResult {
   pages_processed: number;
   rows_extracted: number;
 }
-
-const PDFJS_VERSION = '4.7.76';
 
 // Minimal structural types for the bits of pdfjs-dist we use (the package's
 // own types are not bundled and we load it dynamically via import()).
@@ -288,7 +288,9 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
         )}
       </div>
 
-      {progress && <p style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>⏳ {progress}</p>}
+      {progress && (
+        <p style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>⏳ {progress}</p>
+      )}
       {error && (
         <div
           role="alert"
@@ -325,13 +327,13 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
   );
 }
 
-// Lazy-load pdfjs once and configure worker via CDN to avoid bundling it
+// Lazy-load pdfjs once. The worker comes from this site, built from the same pdfjs-dist version as the
+// library (a CDN worker pinned to another version is rejected by pdf.js, and the CSP blocks CDN scripts).
 let pdfjsCache: PdfjsModule | null = null;
 async function loadPdfjs(): Promise<PdfjsModule> {
   if (pdfjsCache) return pdfjsCache;
   const mod = (await import('pdfjs-dist')) as unknown as PdfjsModule;
-  // Vite-friendly worker URL via unpkg CDN to avoid bundler config
-  mod.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.mjs`;
+  mod.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
   pdfjsCache = mod;
   return mod;
 }
