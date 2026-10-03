@@ -31,6 +31,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { authorizeOrgMember, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 import { baseHourlyRateCents, grossPay, sumHours } from './calc.ts';
+import { effectiveSuperRate, statutorySuperRatePct } from './super.ts';
 
 interface Body {
   organization_id?: string;
@@ -56,15 +57,6 @@ function fyStartFor(date: string): string {
   const year = d.getUTCFullYear();
   const fyYear = month >= 7 ? year : year - 1;
   return `${fyYear}-07-01`;
-}
-
-function statutorySuperRatePct(payDate: string): number {
-  if (payDate >= '2025-07-01') return 12;
-  if (payDate >= '2024-07-01') return 11.5;
-  if (payDate >= '2023-07-01') return 11;
-  if (payDate >= '2022-07-01') return 10.5;
-  if (payDate >= '2021-07-01') return 10;
-  return 9.5;
 }
 
 Deno.serve(async (req) => {
@@ -134,6 +126,13 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: 'frequency must be weekly|fortnightly|monthly' }, 400);
   }
 
+  // The pay date sets the super guarantee rate; reject a malformed or unsupported one before anything is written.
+  try {
+    statutorySuperRatePct(pay_date);
+  } catch (e) {
+    return json({ ok: false, error: e instanceof Error ? e.message : String(e) }, 400);
+  }
+
   // ---- Caller must be an ACCEPTED admin or owner of this org -----------------
   const access = await authorizeOrgMember(user.id, organization_id, supabaseOrgAccessDeps(admin, serviceKey), 'admin');
   if (!access.ok) return json({ ok: false, error: 'Only an admin or owner can create pay runs' }, access.status);
@@ -174,13 +173,6 @@ Deno.serve(async (req) => {
     .eq('id', organization_id)
     .maybeSingle();
   const orgSettings = (orgRow?.settings ?? {}) as { super_rate_pct?: number | string };
-  const orgSuperPct =
-    orgSettings.super_rate_pct == null || orgSettings.super_rate_pct === ''
-      ? null
-      : Number(orgSettings.super_rate_pct);
-  const defaultSuperPct = Number.isFinite(orgSuperPct)
-    ? Number(orgSuperPct)
-    : statutorySuperRatePct(pay_date);
 
   // ---- For each employee, build a payslip -----------------------------------
   let totalGross = 0,
@@ -194,7 +186,7 @@ Deno.serve(async (req) => {
       const wage = (emp.wage_components ?? {}) as {
         loaded_hourly_rate_cents?: number;
         base_hourly_rate?: number | string | null;
-        super_pct?: number;
+        super_pct?: number | string | null;
       };
       // Wages come from the base rate. Throws (a per-employee error below) when it is missing,
       // so a payslip is never priced at the loaded cost rate or at $0.
@@ -234,12 +226,16 @@ Deno.serve(async (req) => {
       if (taxErr) throw new Error(`calc_payg_tax: ${taxErr.message}`);
       const paygTax = Number(taxRes ?? 0);
 
-      // Super guarantee. Use OTE (ordinary + leave), excluding overtime.
-      const empSuperPct = wage.super_pct ?? null;
-      const effectiveSuperPct = empSuperPct ?? defaultSuperPct;
+      // Super guarantee. Use OTE (ordinary + leave), excluding overtime. The employee's rate, else the
+      // organisation default, but never below the statutory SG rate for the pay date.
+      const superRate = effectiveSuperRate({
+        payDate: pay_date,
+        employeePct: wage.super_pct,
+        organisationPct: orgSettings.super_rate_pct,
+      });
       const { data: supRes, error: supErr } = await admin.rpc('calc_super_ote', {
         p_ote_cents: ordinaryTimeEarnings,
-        p_rate_pct: effectiveSuperPct,
+        p_rate_pct: superRate.pct,
         p_org_id: organization_id,
       });
       if (supErr) throw new Error(`calc_super_ote: ${supErr.message}`);
@@ -281,7 +277,7 @@ Deno.serve(async (req) => {
           gross_total_cents: grossTotal,
           payg_tax_cents: paygTax,
           super_guarantee_cents: superGuarantee,
-          super_rate_pct: effectiveSuperPct,
+          super_rate_pct: superRate.pct,
           net_pay_cents: netPay,
           ytd_gross_cents: ytdGross,
           ytd_tax_cents: ytdTax,
@@ -293,6 +289,10 @@ Deno.serve(async (req) => {
             wage_rate_basis: 'base_hourly_rate',
             ordinary_time_earnings_cents: ordinaryTimeEarnings,
             super_basis: 'ordinary_time_earnings',
+            statutory_super_rate_pct: superRate.statutoryPct,
+            configured_super_rate_pct: superRate.configuredPct,
+            super_rate_source: superRate.source,
+            super_rate_raised_to_statutory: superRate.raisedToStatutory,
             overtime_excluded_from_super_cents: grossOt,
           },
         })

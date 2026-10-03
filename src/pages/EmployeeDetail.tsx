@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
+import { currentStatutorySuperRatePct } from '@/lib/superGuarantee';
 import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { DetailPageSkeleton } from '@/components/Skeleton';
 import { ArchiveButton } from '@/components/ArchiveButton';
@@ -103,7 +104,7 @@ interface PaySlipLite {
 
 function computeLoadedRate(w: WageComponents): number {
   const base = (w.base_hourly_rate ?? 0) * 100;
-  const sup = (w.super_pct ?? 11.5) / 100;
+  const sup = (w.super_pct ?? currentStatutorySuperRatePct()) / 100;
   const wc = (w.workcover_pct ?? 1.5) / 100;
   const leave = (w.leave_loading_pct ?? 8) / 100;
   return Math.round(base * (1 + sup + wc + leave));
@@ -126,6 +127,8 @@ export function EmployeeDetailPage() {
   const [draft, setDraft] = useState<Partial<Employee> & { wage_components?: WageComponents }>({});
   const [saving, setSaving] = useState(false);
   const [showLogTime, setShowLogTime] = useState(false);
+  // The statutory super guarantee rate for today: the default when an employee has no super rate set.
+  const sgPct = currentStatutorySuperRatePct();
 
   const refresh = useCallback(async () => {
     if (!currentOrg || !id) return;
@@ -604,7 +607,7 @@ export function EmployeeDetailPage() {
                 <input
                   type="number"
                   step="0.1"
-                  value={draft.wage_components?.super_pct ?? 11.5}
+                  value={draft.wage_components?.super_pct ?? sgPct}
                   onChange={(e) =>
                     setDraft({
                       ...draft,
@@ -615,7 +618,13 @@ export function EmployeeDetailPage() {
                     })
                   }
                   className="form-input"
+                  aria-label="Super %"
                 />
+                {(draft.wage_components?.super_pct ?? sgPct) < sgPct && (
+                  <div style={{ marginTop: '0.25rem', fontSize: '0.7rem', color: 'var(--text-warning)' }}>
+                    Below the {sgPct}% super guarantee. Pay runs use at least {sgPct}%.
+                  </div>
+                )}
               </Field>
               <Field label="Workcover %">
                 <input

@@ -8,6 +8,10 @@ const payrollCreatePayRun = readFileSync(
   join(root, 'supabase/functions/payroll-create-pay-run/index.ts'),
   'utf8',
 );
+const payrollSuperRate = readFileSync(
+  join(root, 'supabase/functions/payroll-create-pay-run/super.ts'),
+  'utf8',
+);
 
 describe('0226 SGC statement migration', () => {
   it('moves payroll super defaults to 12% and keeps the OTE helper explicit', () => {
@@ -42,8 +46,9 @@ describe('0226 SGC statement migration', () => {
   });
 
   it('updates payroll creation to calculate SG from OTE at the statutory/default 12% rate', () => {
-    expect(payrollCreatePayRun).toMatch(/function statutorySuperRatePct/);
-    expect(payrollCreatePayRun).toMatch(/return 12/);
+    // The statutory table lives in super.ts (tested in super.test.ts) and is applied as a floor.
+    expect(payrollCreatePayRun).toMatch(/import \{ effectiveSuperRate, statutorySuperRatePct \} from '\.\/super\.ts'/);
+    expect(payrollSuperRate).toMatch(/\{ from: '2025-07-01', pct: 12 \}/);
     // OTE = ordinary + leave, excluding overtime; computed by grossPay() in calc.ts (tested in calc.test.ts).
     expect(payrollCreatePayRun).toMatch(/const ordinaryTimeEarnings = gross\.ordinaryTimeEarningsCents/);
     expect(payrollCreatePayRun).toMatch(/admin\.rpc\('calc_super_ote'/);

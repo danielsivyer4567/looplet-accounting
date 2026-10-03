@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
+import { currentStatutorySuperRatePct } from '@/lib/superGuarantee';
 import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { SkeletonTable } from '@/components/Skeleton';
 import { Contact, Plus, Wallet, Clock, X, Users, Calculator, type LucideIcon } from 'lucide-react';
@@ -106,7 +107,7 @@ export function EmployeesPage() {
 
   const computeLoadedRate = (w: WageComponents): number => {
     const base = (w.base_hourly_rate ?? 0) * 100;
-    const sup = (w.super_pct ?? 11.5) / 100;
+    const sup = (w.super_pct ?? currentStatutorySuperRatePct()) / 100;
     const wc = (w.workcover_pct ?? 1.5) / 100;
     const leave = (w.leave_loading_pct ?? 8) / 100;
     return Math.round(base * (1 + sup + wc + leave));
@@ -462,7 +463,9 @@ function AddEmployeeForm({
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('Tradie');
   const [baseRate, setBaseRate] = useState(45);
-  const [superPct, setSuperPct] = useState(11.5);
+  // New employees default to the statutory super guarantee rate for today.
+  const sgPct = currentStatutorySuperRatePct();
+  const [superPct, setSuperPct] = useState(sgPct);
   const [workcoverPct, setWorkcoverPct] = useState(1.5);
   const [leavePct, setLeavePct] = useState(8);
   const [busy, setBusy] = useState(false);
@@ -599,7 +602,13 @@ function AddEmployeeForm({
                 onChange={(e) => setSuperPct(parseFloat(e.target.value) || 0)}
                 className="form-input"
                 style={{ textAlign: 'right' }}
+                aria-label="Super (%)"
               />
+              {superPct < sgPct && (
+                <div style={{ marginTop: '0.25rem', fontSize: '0.7rem', color: 'var(--text-warning)' }}>
+                  Below the {sgPct}% super guarantee. Pay runs use at least {sgPct}%.
+                </div>
+              )}
             </Field>
             <Field label="Workcover (%)">
               <input
