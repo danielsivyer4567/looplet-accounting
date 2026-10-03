@@ -13,6 +13,7 @@ SELECT fn, r, has_function_privilege(r, fn, 'EXECUTE')
 
 -- Behaviour, not just grants: a signed-in owner calling the sweep gets a permission error.
 CREATE TEMP TABLE calls (fn text, outcome text);
+GRANT INSERT ON calls TO authenticated;  -- the probe below runs as authenticated
 DO $$
 DECLARE fn text;
 BEGIN
