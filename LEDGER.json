@@ -1145,6 +1145,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-05-003.log",
           "log_sha256": "acf6c6be9b4bc7ab7b68d3e91ed99ba1e728ed73e38758e47553589ff6602683"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/money-table-roles.sql\"",
+          "exit": 0,
+          "head": "8abdf24e2b53c0fd02ed8cdf81b1e138900c73e3",
+          "dirty": [],
+          "at": "2026-10-03T00:20:58.842Z",
+          "ms": 42798,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-05-004.log",
+          "log_sha256": "40be233e3f02f1b6d37e742438145f83467160a38f03be62a1e3ec7f00f539b4"
         }
       ],
       "notes": [],
@@ -1206,14 +1219,37 @@
           "event": "done",
           "head": "295d83e4120c94cbc57023ab872b4214de6ecf57",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:20:09.073Z",
+          "event": "stale",
+          "head": "8abdf24e2b53c0fd02ed8cdf81b1e138900c73e3",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003121000_definer_write_roles.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T00:20:58.843Z",
+          "event": "run",
+          "head": "8abdf24e2b53c0fd02ed8cdf81b1e138900c73e3",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:20:59.049Z",
+          "event": "done",
+          "head": "8abdf24e2b53c0fd02ed8cdf81b1e138900c73e3",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T00:14:54.767Z",
-        "head": "295d83e4120c94cbc57023ab872b4214de6ecf57",
+        "at": "2026-10-03T00:20:59.032Z",
+        "head": "8abdf24e2b53c0fd02ed8cdf81b1e138900c73e3",
         "by": "claude-worker",
         "runs": [
-          3
+          4
         ]
       }
     },
@@ -2574,5 +2610,5 @@
       ]
     }
   ],
-  "updated_at": "2026-10-03T00:20:08.528Z"
+  "updated_at": "2026-10-03T00:20:59.064Z"
 }
