@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/db/run-pg-sql-tests.mjs tests/db-sql/money-table-roles.sql"
+migrations: 301 applied, 0 known failures, 0 problems (301 files)
+FAIL tests/db-sql/money-table-roles.sql
+  ERROR:  money-table role checks failed:
+    bill_line_items update as accountant: expected ok, got error: 42703 record "new" has no field "updated_at"
+    bill_line_items update as admin: expected ok, got error: 42703 record "new" has no field "updated_at"
+    bill_line_items update as agency_admin: expected ok, got error: 42703 record "new" has no field "updated_at"
+    bill_line_items update as machine_a: expected ok, got error: 42703 record "new" has no field "updated_at"
+    bill_line_items update as owner: expected ok, got error: 42703 record "new" has no field "updated_at"
+  CONTEXT:  PL/pgSQL function inline_code_block line 26 at RAISE

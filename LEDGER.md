@@ -12,7 +12,7 @@
 | SEC-02 | staged-entities-enrich-sonar, bank-statement-extract, crm-pnl-sync-push and ato-lodge refuse unauthenticated calls | done | done @ 32686c65, awaiting independent verify |
 | SEC-03 | Payment-run, ABA export, mark-paid, super-batch and termination functions require an accepted admin or owner | done | done @ ff315841, awaiting independent verify |
 | SEC-04 | Xero and Gmail OAuth state is signed, bound to the user and mandatory on callback | verified | verified by claude-verifier (independent subagent) @ 60b94a38 |
-| SEC-05 | Writes to money tables (payees, bills, invoices, journals, period locks, employees, payment runs) need an accountant or admin role; viewers are read-only | done | done @ 32686c65, awaiting independent verify |
+| SEC-05 | Writes to money tables (payees, bills, invoices, journals, period locks, employees, payment runs) need an accountant or admin role; viewers are read-only | done | done @ b51b8f72, awaiting independent verify |
 | SEC-06 | CI uses least-privilege permissions, SHA-pinned actions and a deploy job separate from build | done | done @ 96678a87, awaiting independent verify |
 | SEC-07 | Hardening: CORS allow-list, constant-time secret checks, bundled pdf.js worker, cron secrets in headers, generic error responses | done | done @ acd8828b, awaiting independent verify |
 | PAY-01 | Pay runs calculate wages from the base hourly rate, not the loaded cost rate | done | done @ 12c30b4b, awaiting independent verify |
