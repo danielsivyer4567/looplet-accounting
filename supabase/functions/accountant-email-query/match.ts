@@ -20,16 +20,26 @@ export type ListUsersPage = (page: number, perPage: number) => Promise<UserPage>
 export const USERS_PER_PAGE = 1000;
 const MAX_PAGES = 100;
 
-export async function findUserIdByEmail(listPage: ListUsersPage, email: string): Promise<string | null> {
+export interface MatchedUser {
+  id: string;
+  /** The address registered on the account, which is where replies go (never the raw From header). */
+  email: string;
+}
+
+export async function findUserByEmail(listPage: ListUsersPage, email: string): Promise<MatchedUser | null> {
   const wanted = email.trim().toLowerCase();
   if (!wanted) return null;
   for (let page = 1; page <= MAX_PAGES; page++) {
     const { users } = await listPage(page, USERS_PER_PAGE);
     const match = users.find((u) => (u.email ?? '').trim().toLowerCase() === wanted);
-    if (match) return match.id;
+    if (match) return { id: match.id, email: (match.email ?? '').trim() };
     if (users.length < USERS_PER_PAGE) return null;
   }
   throw new Error(`more than ${MAX_PAGES * USERS_PER_PAGE} users; sender lookup needs an indexed query`);
+}
+
+export async function findUserIdByEmail(listPage: ListUsersPage, email: string): Promise<string | null> {
+  return (await findUserByEmail(listPage, email))?.id ?? null;
 }
 
 export interface MembershipWithOrg {

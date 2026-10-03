@@ -32,7 +32,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import {
   acceptedAccountantMemberships,
-  findUserIdByEmail,
+  findUserByEmail,
   type MembershipWithOrg,
   pickTargetMembership,
 } from './match.ts';
@@ -109,16 +109,19 @@ async function handleEmailQuery(req: Request): Promise<Response> {
 
     // Look up the sender by email (case-insensitive) across every page of users.
     const senderEmail = extractEmailAddress(email.from).toLowerCase();
-    const matchedId = await findUserIdByEmail(async (page, perPage) => {
+    const matched = await findUserByEmail(async (page, perPage) => {
       const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
       if (error) throw new Error(`listUsers: ${error.message}`);
       return { users: data?.users ?? [] };
     }, senderEmail);
-    if (!matchedId) {
-      await sendReply(resendKey, email.from, 'Looplet Accounting — sender not recognised',
-        `<p>Hi,</p><p>The email address <code>${esc(senderEmail)}</code> isn't registered as an accountant on any Looplet Accounting org. Please ask your client to invite you via Settings → Team.</p>`);
+    // An unknown sender gets no reply: an inbound webhook that answers any From address can be used to reflect mail.
+    if (!matched) {
+      console.warn('accountant-email-query: sender not registered; no reply sent');
       return json({ ok: true, status: 'unknown_sender' });
     }
+    const matchedId = matched.id;
+    // Replies go to the address registered on the account, never to the raw From header.
+    const replyTo = matched.email || senderEmail;
 
     // Find which orgs they're an accountant for
     // Only this sender's ACCEPTED memberships with role_enum 'accountant' (the legacy `role` column has no such value).
@@ -131,7 +134,7 @@ async function handleEmailQuery(req: Request): Promise<Response> {
     if (membershipErr) throw new Error(`memberships: ${membershipErr.message}`);
     const memberships = acceptedAccountantMemberships(membershipRows as MembershipWithOrg[] | null);
     if (memberships.length === 0) {
-      await sendReply(resendKey, email.from, 'Looplet Accounting — no accountant access',
+      await sendReply(resendKey, replyTo, 'Looplet Accounting — no accountant access',
         `<p>Hi,</p><p>You're registered but don't have <strong>accountant</strong> role on any organisation. Please ask the org owner to upgrade your role.</p>`);
       return json({ ok: true, status: 'no_accountant_role' });
     }
@@ -166,7 +169,7 @@ async function handleEmailQuery(req: Request): Promise<Response> {
     });
     const subject = `Re: ${email.subject}`;
 
-    await sendReply(resendKey, email.from, subject, html);
+    await sendReply(resendKey, replyTo, subject, html);
 
     return json({
       ok: true,

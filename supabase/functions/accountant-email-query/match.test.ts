@@ -1,6 +1,7 @@
 import { assertEquals, assertRejects } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import {
   acceptedAccountantMemberships,
+  findUserByEmail,
   findUserIdByEmail,
   type ListUsersPage,
   pickTargetMembership,
@@ -33,6 +34,11 @@ Deno.test('returns null for an unknown sender after the last (short) page, and f
   assertEquals(await findUserIdByEmail(dir.listPage, 'nobody@example.test'), null);
   assertEquals(dir.pagesRead, [1]);
   assertEquals(await findUserIdByEmail(dir.listPage, '   '), null);
+});
+
+Deno.test('the registered address is returned for replies, trimmed, even when the sender wrote it differently', async () => {
+  const dir = directory(5, { 3: '  Accountant@Firm.example ' });
+  assertEquals(await findUserByEmail(dir.listPage, 'accountant@firm.example'), { id: 'user-3', email: 'Accountant@Firm.example' });
 });
 
 Deno.test('a failing user listing is an error, not "unknown sender"', async () => {
@@ -71,6 +77,10 @@ Deno.test('the handler queries the sender\'s own accepted accountant memberships
   for (const part of [".eq('user_id', matchedId)", ".eq('role_enum', 'accountant')", ".not('accepted_at', 'is', null)"]) {
     assertEquals(query.includes(part), true, part);
   }
-  assertEquals(src.includes('findUserIdByEmail('), true);
+  assertEquals(src.includes('findUserByEmail('), true);
+  // Replies never go to the raw From header, and an unknown sender gets no reply at all.
+  assertEquals(/sendReply\(resendKey, email\.from/.test(src), false, 'a reply still goes to the raw From header');
+  assertEquals(src.includes("status: 'unknown_sender'"), true);
+  assertEquals(src.slice(0, src.indexOf("status: 'unknown_sender'")).includes('sender not recognised'), false, 'unknown senders still get a reply');
   assertEquals(src.includes('pickTargetMembership(memberships, intent.organization_hint)'), true);
 });
