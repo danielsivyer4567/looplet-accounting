@@ -222,7 +222,7 @@
       "title": "intake-routing-apply accepts only the service role or an accepted member of the target organisation",
       "area": "security",
       "priority": 10,
-      "status": "in_progress",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/intake-routing-apply/auth.test.ts\""
       ],
@@ -321,6 +321,19 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/SEC-01-007.log",
           "log_sha256": "b729d06529a70d1b3cb9f966efad58f600648782921ef1efdee8416a16718524"
+        },
+        {
+          "n": 8,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/intake-routing-apply/auth.test.ts\"",
+          "exit": 0,
+          "head": "14127b1e3f7f0a5d01a485516fb8eb2cecf7f836",
+          "dirty": [],
+          "at": "2026-10-03T00:48:10.027Z",
+          "ms": 876,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-01-008.log",
+          "log_sha256": "f5f73b43c19a9e591efbe3ee88389178270f29547e7d94b5762370492e09b400"
         }
       ],
       "notes": [],
@@ -463,8 +476,30 @@
             "supabase/functions/_shared/redbark/history.ts",
             "supabase/functions/intake-routing-apply/index.ts"
           ]
+        },
+        {
+          "at": "2026-10-03T00:48:10.030Z",
+          "event": "run",
+          "head": "14127b1e3f7f0a5d01a485516fb8eb2cecf7f836",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:48:10.242Z",
+          "event": "done",
+          "head": "14127b1e3f7f0a5d01a485516fb8eb2cecf7f836",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T00:48:10.227Z",
+        "head": "14127b1e3f7f0a5d01a485516fb8eb2cecf7f836",
+        "by": "claude-worker",
+        "runs": [
+          8
+        ]
+      }
     },
     {
       "id": "SEC-02",
@@ -3501,5 +3536,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T00:47:46.020Z"
+  "updated_at": "2026-10-03T00:48:10.258Z"
 }
