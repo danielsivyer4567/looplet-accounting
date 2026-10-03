@@ -6452,7 +6452,7 @@
       "title": "AI answers and advice are labelled general information, and the model is allowed to recommend an accountant",
       "area": "legitimacy",
       "priority": 35,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AiDisclaimer.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/ask-bot/prompt.test.ts\""
@@ -6567,6 +6567,32 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/AI-01-008.log",
           "log_sha256": "75afdbc734f2dc349675e8f820c702e2ed3392bde4dc73055236fb992bc00772"
+        },
+        {
+          "n": 9,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AiDisclaimer.test.tsx\"",
+          "exit": 0,
+          "head": "873d8e77c3aa503d7f0ad20256068ece2a976f5e",
+          "dirty": [],
+          "at": "2026-10-03T04:13:54.025Z",
+          "ms": 2262,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/AI-01-009.log",
+          "log_sha256": "121ffb1f1d038135a0f5e78bd0e9328cc30b5bf94f13a098a6912c1f5cb82ddf"
+        },
+        {
+          "n": 10,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/ask-bot/prompt.test.ts\"",
+          "exit": 0,
+          "head": "873d8e77c3aa503d7f0ad20256068ece2a976f5e",
+          "dirty": [],
+          "at": "2026-10-03T04:13:54.732Z",
+          "ms": 706,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/AI-01-010.log",
+          "log_sha256": "790c9c24e8286abb7c1456bfec5192eb94cc3d118bd5d7fd926b65658c4af8f6"
         }
       ],
       "notes": [],
@@ -6635,25 +6661,40 @@
           "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
           "actor": "claude-verifier",
           "by": "claude-verifier (independent subagent)"
+        },
+        {
+          "at": "2026-10-03T04:13:50.289Z",
+          "event": "stale",
+          "head": "873d8e77c3aa503d7f0ad20256068ece2a976f5e",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/functions/ask-bot/bas-query.test.ts",
+            "supabase/functions/ask-bot/basQuery.ts",
+            "supabase/functions/ask-bot/index.ts"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:13:54.733Z",
+          "event": "run",
+          "head": "873d8e77c3aa503d7f0ad20256068ece2a976f5e",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:13:54.887Z",
+          "event": "done",
+          "head": "873d8e77c3aa503d7f0ad20256068ece2a976f5e",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T02:50:16.286Z",
-        "head": "32686c6501e212eae43e6a46fdfda3910fcce843",
+        "at": "2026-10-03T04:13:54.872Z",
+        "head": "873d8e77c3aa503d7f0ad20256068ece2a976f5e",
         "by": "claude-worker",
         "runs": [
-          5,
-          6
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T03:34:19.081Z",
-        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
-        "by": "claude-verifier (independent subagent)",
-        "note": "Read b2d43c0, prompts.ts, Ask.tsx and AdviceCard changes. UI test fails 3 of 3 on b2d43c0^; with prompts.ts copied into the old tree the wiring case fails on the old index.ts. No anti-accountant instruction remains anywhere under supabase/functions; the notice names a registered tax agent or BAS agent; deno check ask-bot and advisor ok. Residual: other AI surfaces (coding-classifier explanations, accountant-email-query replies) are outside this item and carry no notice.",
-        "runs": [
-          7,
-          8
+          9,
+          10
         ]
       }
     },
@@ -8295,6 +8336,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-01-032.log",
           "log_sha256": "102943c8ecc9c045d1979dd97f62b502559713957fde3492d91a6d859c77658a"
+        },
+        {
+          "n": 33,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 0,
+          "head": "873d8e77c3aa503d7f0ad20256068ece2a976f5e",
+          "dirty": [],
+          "at": "2026-10-03T04:13:55.538Z",
+          "ms": 492,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-01-033.log",
+          "log_sha256": "a3f24b2493aa7922be057455f3e6fcfb5ca6db29f08475c02c4375b918957b69"
         }
       ],
       "notes": [],
@@ -9008,14 +9062,39 @@
           "event": "done",
           "head": "56e21d96096396399a94074d17be6fbc56f19b40",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:13:50.375Z",
+          "event": "stale",
+          "head": "873d8e77c3aa503d7f0ad20256068ece2a976f5e",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/functions/ask-bot/bas-query.test.ts",
+            "supabase/functions/ask-bot/basQuery.ts",
+            "supabase/functions/ask-bot/index.ts"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:13:55.539Z",
+          "event": "run",
+          "head": "873d8e77c3aa503d7f0ad20256068ece2a976f5e",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:13:55.687Z",
+          "event": "done",
+          "head": "873d8e77c3aa503d7f0ad20256068ece2a976f5e",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:06:46.501Z",
-        "head": "56e21d96096396399a94074d17be6fbc56f19b40",
+        "at": "2026-10-03T04:13:55.672Z",
+        "head": "873d8e77c3aa503d7f0ad20256068ece2a976f5e",
         "by": "claude-worker",
         "runs": [
-          32
+          33
         ]
       }
     },
@@ -16149,5 +16228,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T04:13:49.627Z"
+  "updated_at": "2026-10-03T04:13:55.702Z"
 }

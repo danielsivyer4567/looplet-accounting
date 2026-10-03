@@ -2,7 +2,7 @@
 
 **Goal:** Old Looplet Accounting (accounting.looplet.com.au) made legitimate, secure, modern and connected to Redbark bank feeds. Local proof first; production deploys, migrations and credential use need Daniel's explicit yes.
 
-**Progress:** 23/57 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
+**Progress:** 22/57 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
 
 | ID | Item | Status | Proof |
 |---|---|---|---|
@@ -25,10 +25,10 @@
 | FAKE-02 | The Scan page describes only the checks it really runs (no simulated AI audit) | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
 | CONSENT-01 | Settings has no pre-ticked, unsaved or unrelated template consent switches | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
 | LEGAL-01 | A privacy policy, terms of service and collection notice are published, linked, and accepted at sign-up | done | done @ 56e21d96, awaiting independent verify |
-| AI-01 | AI answers and advice are labelled general information, and the model is allowed to recommend an accountant | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
+| AI-01 | AI answers and advice are labelled general information, and the model is allowed to recommend an accountant | done | done @ 873d8e77, awaiting independent verify |
 | TFN-01 | TFNs are never returned to the browser or stored in plain text | done | done @ 56e21d96, awaiting independent verify |
 | LODGE-01 | Nothing claims to lodge with the ATO or send to a super fund when it only prepares a file | done | done @ 56e21d96, awaiting independent verify |
-| BANK-01 | Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs | done | done @ 56e21d96, awaiting independent verify |
+| BANK-01 | Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs | done | done @ 873d8e77, awaiting independent verify |
 | BANK-02 | Redbark client pages accounts and transactions, splits truncated date windows, converts dollars to exact cents and skips pending rows | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
 | BANK-03 | bank-webhook verifies Redbark signatures and timestamps, stores the event before acting and dispatches one sync per linked connection | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
 | BANK-04 | bank-sync imports Redbark transactions idempotently on (bank account, provider id) and keeps the post-sync chain | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
