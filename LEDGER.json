@@ -4324,14 +4324,41 @@
       "title": "Settings has no pre-ticked, unsaved or unrelated template consent switches",
       "area": "legitimacy",
       "priority": 33,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/SettingsConsent.test.tsx\""
       ],
       "paths": [
         "src/pages/Settings.tsx"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/SettingsConsent.test.tsx\"",
+          "exit": 1,
+          "head": "5e2255ddd1e8ca7d6f9aa7d42212b0044ff7a1fd",
+          "dirty": [],
+          "at": "2026-10-03T02:32:36.366Z",
+          "ms": 1222,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/CONSENT-01-001.log",
+          "log_sha256": "81de726e5061e41861c349b6881541a9851f8a0e6ce4f839b6e16de9b62a28e4"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/SettingsConsent.test.tsx\"",
+          "exit": 0,
+          "head": "e163833614992bb2f87cbb6a451753825b52f756",
+          "dirty": [],
+          "at": "2026-10-03T02:32:39.617Z",
+          "ms": 2831,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/CONSENT-01-002.log",
+          "log_sha256": "6cec3430dfd784fe5185ee5755a91e96927536a3d309f3b7202ef3fc55fb2081"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -4339,8 +4366,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:32:35.021Z",
+          "event": "start",
+          "head": "5e2255ddd1e8ca7d6f9aa7d42212b0044ff7a1fd",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:32:36.367Z",
+          "event": "run",
+          "head": "5e2255ddd1e8ca7d6f9aa7d42212b0044ff7a1fd",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:32:39.618Z",
+          "event": "run",
+          "head": "e163833614992bb2f87cbb6a451753825b52f756",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:32:39.754Z",
+          "event": "done",
+          "head": "e163833614992bb2f87cbb6a451753825b52f756",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T02:32:39.739Z",
+        "head": "e163833614992bb2f87cbb6a451753825b52f756",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "LEGAL-01",
@@ -10430,5 +10493,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T02:32:33.210Z"
+  "updated_at": "2026-10-03T02:32:39.769Z"
 }

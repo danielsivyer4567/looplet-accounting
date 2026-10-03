@@ -23,7 +23,7 @@
 | XERO-01 | Bills and invoices are never marked synced to Xero unless Xero accepted them (no STUB ids in production) | done | done @ 34eae826, awaiting independent verify |
 | FAKE-01 | Receipt Hub has no POS simulator, fake receipts or hard-coded demo figures | done | done @ bd6577e1, awaiting independent verify |
 | FAKE-02 | The Scan page describes only the checks it really runs (no simulated AI audit) | done | done @ 45829b8b, awaiting independent verify |
-| CONSENT-01 | Settings has no pre-ticked, unsaved or unrelated template consent switches | open | not run |
+| CONSENT-01 | Settings has no pre-ticked, unsaved or unrelated template consent switches | done | done @ e1638336, awaiting independent verify |
 | LEGAL-01 | A privacy policy, terms of service and collection notice are published, linked, and accepted at sign-up | open | not run |
 | AI-01 | AI answers and advice are labelled general information, and the model is allowed to recommend an accountant | open | not run |
 | TFN-01 | TFNs are never returned to the browser or stored in plain text | done | done @ 2d399e9e, awaiting independent verify |
