@@ -12068,7 +12068,7 @@
       "title": "Default dates use Australian local time, not UTC",
       "area": "broken",
       "priority": 56,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/localDates.test.ts\""
       ],
@@ -12077,7 +12077,34 @@
         "src/pages",
         "src/hooks"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/localDates.test.ts\"",
+          "exit": 1,
+          "head": "547453043ef2687a14730f2f11a879dd7d11ec93",
+          "dirty": [],
+          "at": "2026-10-03T04:13:59.218Z",
+          "ms": 1214,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/DATE-01-001.log",
+          "log_sha256": "13b5d42c38fae284d0c052c3259241b34a9c43e1e4a54ef1a3da247f3230c5e1"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/localDates.test.ts\"",
+          "exit": 0,
+          "head": "0b2d76258056a044723082a57a2e229c1db50a37",
+          "dirty": [],
+          "at": "2026-10-03T04:14:01.439Z",
+          "ms": 1856,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/DATE-01-002.log",
+          "log_sha256": "a927e9bb10b1a72b856460f99040ccdec88d8047df854ba3ed2d4233cd92e484"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -12085,8 +12112,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:13:57.844Z",
+          "event": "start",
+          "head": "547453043ef2687a14730f2f11a879dd7d11ec93",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:13:59.219Z",
+          "event": "run",
+          "head": "547453043ef2687a14730f2f11a879dd7d11ec93",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:14:01.440Z",
+          "event": "run",
+          "head": "0b2d76258056a044723082a57a2e229c1db50a37",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:14:01.589Z",
+          "event": "done",
+          "head": "0b2d76258056a044723082a57a2e229c1db50a37",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T04:14:01.575Z",
+        "head": "0b2d76258056a044723082a57a2e229c1db50a37",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "SEED-01",
@@ -16228,5 +16291,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T04:13:55.702Z"
+  "updated_at": "2026-10-03T04:14:01.604Z"
 }

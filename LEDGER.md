@@ -41,7 +41,7 @@
 | GST-01 | No GST credit is invented when GST is missing or the supplier is not GST-registered | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
 | TAX-01 | The tax set-aside uses GST-exclusive figures for one financial year | done | done @ 56e21d96, awaiting independent verify |
 | INV-01 | Invoices can be issued as a tax invoice (PDF with "Tax invoice", ABN and GST) and sent | done | done @ 56e21d96, awaiting independent verify |
-| DATE-01 | Default dates use Australian local time, not UTC | open | not run |
+| DATE-01 | Default dates use Australian local time, not UTC | done | done @ 0b2d7625, awaiting independent verify |
 | SEED-01 | New organisations do not inherit the pilot business known-sender list | done | done @ 56e21d96, awaiting independent verify |
 | XERO-02 | The Xero bank pull writes schema-valid rows (real connection, valid account type) | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
 | BS-01 | The balance sheet does not count credit-card and loan balances as both cash and debts | done | done @ 56e21d96, awaiting independent verify |
