@@ -2,18 +2,27 @@
 
 **Status:** active finish-line runbook.
 **Project:** `dxoikltymmknxqpkpyhi`.
-**Current local ceiling:** `20261003120000_money_table_write_roles.sql`.
+**Current local ceiling:** `20261003122000_bill_supplier_same_org.sql`.
 
 This runbook supersedes older warnings that named `0080`, `0207`, or `0236` as
 the local ceiling. The source tree now carries numbered migrations through
 `0236` plus timestamped hardening repairs through
-`20261003120000_money_table_write_roles.sql`.
+`20261003122000_bill_supplier_same_org.sql`.
 
-`20261003120000_money_table_write_roles.sql` (SEC-05: money-table writes need a role; payment-run items
-and pay slips must reference their own organisation) exists in source only. It has **not** been
-applied to the project; apply it with the rest of the release after the baseline check below.
-`node scripts/db/run-pg-sql-tests.mjs tests/db-sql/money-table-roles.sql` proves it against a fresh
-local database. Nine older migrations do not apply to a fresh database; they are listed with reasons in
+These exist in source only and have **not** been applied to the project; apply them with the rest of
+the release after the baseline check below. Each is proven against a fresh local database by
+`node scripts/db/run-pg-sql-tests.mjs <test>`:
+
+| Migration | What it does | Test |
+|---|---|---|
+| `20261003120000_money_table_write_roles.sql` | SEC-05: money-table writes need a role (`can_write_org`); payment-run items and pay slips stay in their organisation | `tests/db-sql/money-table-roles.sql` |
+| `20261003121000_definer_write_roles.sql` | SEC-10: definer functions that write money tables check the caller's role | `tests/db-sql/definer-write-roles.sql` |
+| `20261003122000_bill_supplier_same_org.sql` | SEC-11: bills only reference their own organisation's suppliers | `tests/db-sql/bill-supplier-same-org.sql` |
+
+Before applying `20261003120000` and `20261003122000`, check production for existing cross-organisation
+links (they only guard new writes):
+`payment_run_items` whose bill or run is in another organisation, `pay_slips` whose employee or pay run is in
+another organisation, and `bills` whose supplier is in another organisation. Nine older migrations do not apply to a fresh database; they are listed with reasons in
 `scripts/db/known-migration-failures.json`.
 
 ## Baseline Status
