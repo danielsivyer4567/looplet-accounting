@@ -1,0 +1,12 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "deno test --allow-env --allow-read --allow-net supabase/functions/bank-feed-link/link.test.ts"
+[0m[38;5;245mrunning 7 tests from ./supabase/functions/bank-feed-link/link.test.ts[0m
+linking an AUD account creates the organisation's Redbark connection and the bank account with its import-from date ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+a Redbark connection linked by another organisation cannot be linked, even when two requests race ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+an unlinked (revoked) connection in the same organisation is reactivated when an account is linked again ... [0m[32mok[0m [0m[38;5;245m(149µs)[0m
+bad dates, unknown or moved accounts and non-AUD accounts are refused and nothing is written ... [0m[32mok[0m [0m[38;5;245m(234µs)[0m
+the account list marks linked, available, elsewhere-linked and non-AUD accounts without revealing other organisations ... [0m[32mok[0m [0m[38;5;245m(306µs)[0m
+account types map conservatively; unknown types are "other" ... [0m[32mok[0m [0m[38;5;245m(95µs)[0m
+listing and linking need an accepted admin or owner, and the functions are wired to that check ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+
+[0m[32mok[0m | 7 passed | 0 failed [0m[38;5;245m(14ms)[0m
+
