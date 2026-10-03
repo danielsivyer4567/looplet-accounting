@@ -222,7 +222,7 @@
       "title": "intake-routing-apply accepts only the service role or an accepted member of the target organisation",
       "area": "security",
       "priority": 10,
-      "status": "verified",
+      "status": "in_progress",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/intake-routing-apply/auth.test.ts\""
       ],
@@ -445,25 +445,26 @@
           "head": "60b94a38c7c5cfb0c2f1b5c4cb0a9cb37df8634d",
           "actor": "claude-verifier",
           "by": "claude-verifier (independent subagent)"
+        },
+        {
+          "at": "2026-10-03T00:45:14.141Z",
+          "event": "stale",
+          "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/functions/_shared/bankfeed/access.ts",
+            "supabase/functions/_shared/bankfeed/webhook.test.ts",
+            "supabase/functions/_shared/bankfeed/webhook.ts",
+            "supabase/functions/_shared/basiq/client.ts",
+            "supabase/functions/_shared/basiq/durability.test.ts",
+            "supabase/functions/_shared/basiq/durability.ts",
+            "supabase/functions/_shared/redbark/client.test.ts",
+            "supabase/functions/_shared/redbark/client.ts",
+            "supabase/functions/_shared/redbark/history.ts",
+            "supabase/functions/intake-routing-apply/index.ts"
+          ]
         }
-      ],
-      "done": {
-        "at": "2026-10-02T23:27:27.580Z",
-        "head": "a456e08059551f05b6102c0b73e201c10d2eb3bf",
-        "by": "claude-worker",
-        "runs": [
-          6
-        ]
-      },
-      "verified": {
-        "at": "2026-10-02T23:34:48.224Z",
-        "head": "60b94a38c7c5cfb0c2f1b5c4cb0a9cb37df8634d",
-        "by": "claude-verifier (independent subagent)",
-        "note": "Re-read 7b4a991 and the 5ba716b orgRole refactor (pure extraction of authorizeOrgMember; same accepted_at and require_role 0210 ranking, hasOwnProperty role lookup, empty service key never matches, lookup errors throw). Guard runs before any service-role read; all five backend callers (ingest, bills-extract, bank-sync, bank-csv-import, automation-worker) send SUPABASE_SERVICE_ROLE_KEY, no UI callers; target rows re-checked against the org; deno check clean. Residual: membership lookup errors surface DB text in the 500 body (SEC-07).",
-        "runs": [
-          7
-        ]
-      }
+      ]
     },
     {
       "id": "SEC-02",
@@ -1253,6 +1254,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-05-005.log",
           "log_sha256": "acf88746a53029c53804688f0b30ae98a02c5b08a4974cd3f0d506c5d8668d82"
+        },
+        {
+          "n": 6,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/money-table-roles.sql\"",
+          "exit": 0,
+          "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
+          "dirty": [],
+          "at": "2026-10-03T00:45:57.616Z",
+          "ms": 42381,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-05-006.log",
+          "log_sha256": "17362bad683fc73173da109c7729631a1140841cad7d529263b0cda5129cca71"
         }
       ],
       "notes": [],
@@ -1360,14 +1374,38 @@
           "event": "done",
           "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:45:14.355Z",
+          "event": "stale",
+          "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003140000_bank_provider_redbark.sql",
+            "supabase/migrations/20261003140100_redbark_bank_feed.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T00:45:57.617Z",
+          "event": "run",
+          "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:45:57.801Z",
+          "event": "done",
+          "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T00:27:08.249Z",
-        "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
+        "at": "2026-10-03T00:45:57.786Z",
+        "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
         "by": "claude-worker",
         "runs": [
-          5
+          6
         ]
       }
     },
@@ -1878,7 +1916,7 @@
       "title": "Redbark client pages accounts and transactions, splits truncated date windows, converts dollars to exact cents and skips pending rows",
       "area": "bank",
       "priority": 41,
-      "status": "done",
+      "status": "in_progress",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/redbark/client.test.ts\""
       ],
@@ -1948,16 +1986,17 @@
           "event": "done",
           "head": "7c9ecc422776fe8be9164b3ebecb3351e9523510",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:45:14.431Z",
+          "event": "stale",
+          "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/functions/_shared/redbark/client.ts"
+          ]
         }
-      ],
-      "done": {
-        "at": "2026-10-03T00:43:49.491Z",
-        "head": "7c9ecc422776fe8be9164b3ebecb3351e9523510",
-        "by": "claude-worker",
-        "runs": [
-          2
-        ]
-      }
+      ]
     },
     {
       "id": "BANK-03",
@@ -2051,7 +2090,7 @@
       "title": "bank-sync imports Redbark transactions idempotently on (bank account, provider id) and keeps the post-sync chain",
       "area": "bank",
       "priority": 43,
-      "status": "done",
+      "status": "in_progress",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bank-sync/sync.test.ts\""
       ],
@@ -2123,16 +2162,17 @@
           "event": "done",
           "head": "418a2b2f22e9d2defdadfe0200fd50da20f834c4",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:45:14.605Z",
+          "event": "stale",
+          "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/functions/_shared/redbark/client.ts"
+          ]
         }
-      ],
-      "done": {
-        "at": "2026-10-03T00:44:39.174Z",
-        "head": "418a2b2f22e9d2defdadfe0200fd50da20f834c4",
-        "by": "claude-worker",
-        "runs": [
-          2
-        ]
-      }
+      ]
     },
     {
       "id": "BANK-05",
@@ -3082,7 +3122,7 @@
       "title": "SECURITY DEFINER functions that users call and that write money tables check the caller's role",
       "area": "security",
       "priority": 13,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/definer-write-roles.sql\""
       ],
@@ -3142,6 +3182,19 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/SEC-10-004.log",
           "log_sha256": "8cee7ff3a1e26fbf0767dd4b65edc84ce8eff2390b650468620e3f511da5fc81"
+        },
+        {
+          "n": 5,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/definer-write-roles.sql\"",
+          "exit": 0,
+          "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
+          "dirty": [],
+          "at": "2026-10-03T00:46:39.524Z",
+          "ms": 41455,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-10-005.log",
+          "log_sha256": "ba51cb479096a56d79427b85d93522d9ed209b69a5118b0836ba5006cbee42df"
         }
       ],
       "notes": [],
@@ -3209,23 +3262,38 @@
           "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
           "actor": "claude-verifier",
           "by": "claude-verifier (independent subagent)"
+        },
+        {
+          "at": "2026-10-03T00:45:14.737Z",
+          "event": "stale",
+          "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003140000_bank_provider_redbark.sql",
+            "supabase/migrations/20261003140100_redbark_bank_feed.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T00:46:39.525Z",
+          "event": "run",
+          "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:46:39.650Z",
+          "event": "done",
+          "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T00:27:52.045Z",
-        "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
+        "at": "2026-10-03T00:46:39.636Z",
+        "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
         "by": "claude-worker",
         "runs": [
-          3
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T00:40:43.531Z",
-        "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
-        "by": "claude-verifier (independent subagent)",
-        "note": "Extracted each of the 7 bodies and diffed against the latest earlier CREATE (0073 post_journal_entry, 0216_ap_reconciliation_parity reconcile_match_bill/undo, 0196 reconcile_match_invoice, 0210_allocation_batch bulk_accept/rematch, 20260702135000 move_employee_to_org): only the gate lines differ; none of the 9 known-failing migrations defines them; owner, ACL (no anon) and search_path kept. Scratch copy without 20261003121000: the test fails with 7 audit hits and 15 probe mismatches. Own probes on a migrated DB: org machine token runs accrue_recurring_bill end to end (4 legs posted), agency admin and accountant too, viewer refused, other-org token refused; reconcile with no role claim returns forbidden, service_role path still passes. Broader audit (32 tables, writes via helper calls): the _with_evidence wrappers delegate to the gated functions; create_*_credit_note and payroll_finalise_pay_run use require_role. Residual: viewers can still reach reconcile outcomes by writing bank_transactions.matched_* and invoice_payments directly (SEC-05 table gap, not these functions); bodies come from a fresh DB, so compare production pg_get_functiondef for the 7 functions before applying.",
-        "runs": [
-          4
+          5
         ]
       }
     },
@@ -3234,7 +3302,7 @@
       "title": "Bills only reference suppliers of their own organisation, so payment runs never copy another organisation's payee bank details",
       "area": "security",
       "priority": 14,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bill-supplier-same-org.sql\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\""
@@ -3322,6 +3390,32 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/SEC-11-006.log",
           "log_sha256": "4da0f7cf85adc854fade864aba717742b516fb5eedea7f0538f2b865c46af43b"
+        },
+        {
+          "n": 7,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bill-supplier-same-org.sql\"",
+          "exit": 0,
+          "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
+          "dirty": [],
+          "at": "2026-10-03T00:47:20.435Z",
+          "ms": 40607,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-11-007.log",
+          "log_sha256": "f1d950c37030207528de0db1db4dda81f9363397f9f878f256b82c7fc33b5d8c"
+        },
+        {
+          "n": 8,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\"",
+          "exit": 0,
+          "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
+          "dirty": [],
+          "at": "2026-10-03T00:47:22.278Z",
+          "ms": 1841,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-11-008.log",
+          "log_sha256": "8104970634ed67129bc4543d5fc1bea398542cb1f70ab984f1dc59f8b1f5e466"
         }
       ],
       "notes": [],
@@ -3366,28 +3460,42 @@
           "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
           "actor": "claude-verifier",
           "by": "claude-verifier (independent subagent)"
+        },
+        {
+          "at": "2026-10-03T00:45:14.788Z",
+          "event": "stale",
+          "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003140000_bank_provider_redbark.sql",
+            "supabase/migrations/20261003140100_redbark_bank_feed.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T00:47:22.279Z",
+          "event": "run",
+          "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:47:22.481Z",
+          "event": "done",
+          "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T00:26:23.674Z",
-        "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
+        "at": "2026-10-03T00:47:22.467Z",
+        "head": "6f46b943d3ca55f2415fcbdc4f2e9aec69c5f1dc",
         "by": "claude-worker",
         "runs": [
-          3,
-          4
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T00:41:40.137Z",
-        "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
-        "by": "claude-verifier (independent subagent)",
-        "note": "Trigger trg_bills_supplier_same_org (BEFORE INSERT OR UPDATE OF supplier_id, organization_id, SECURITY DEFINER, refuses for every role) sorts after trg_bills_autolink_supplier, whose source only selects/inserts suppliers WHERE organization_id = NEW.organization_id, so auto-link stays within the org. Scratch copy without 20261003122000: the test fails on all 4 cross-org cases (owner and RLS user, insert and repoint). payment-runs-create rejects a bill whose embedded supplier is in another org and a payer_bank_account_id outside the org before creating the run; ABA export reads only that run's items (same-org trigger from SEC-05). deno check and vitest wiring block pass. Residual: suppliers.organization_id is still updatable (no supplier-side trigger), so a user with accountant+ in two orgs can move a supplier and leave cross-org bill links; existing rows need the documented pre-apply query; similar FK same-org gaps (invoices.customer_id, bills.job_id, bank_transactions.matched_*_id) are not covered.",
-        "runs": [
-          5,
-          6
+          7,
+          8
         ]
       }
     }
   ],
-  "updated_at": "2026-10-03T00:44:54.459Z"
+  "updated_at": "2026-10-03T00:47:22.495Z"
 }
