@@ -1746,7 +1746,7 @@
       "title": "PAYG withholding uses the financial year of the pay date and fails loudly instead of returning $0 when no table applies",
       "area": "payroll",
       "priority": 22,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-year-selection.sql\""
       ],
@@ -1754,7 +1754,34 @@
         "supabase/migrations",
         "tests/db-sql/payg-year-selection.sql"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-year-selection.sql\"",
+          "exit": 1,
+          "head": "cd6c6d2dee6b13170659357ff159e8475228f87c",
+          "dirty": [],
+          "at": "2026-10-03T00:49:37.690Z",
+          "ms": 274,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-03-001.log",
+          "log_sha256": "88aa4c5fab3d8b2f8621ca1b4b42c81f072df4bd707f69df34c9ac4727f7031a"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-year-selection.sql\"",
+          "exit": 0,
+          "head": "068147ddd627b72205ffc843679ea593b941fd4c",
+          "dirty": [],
+          "at": "2026-10-03T00:50:19.655Z",
+          "ms": 41456,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-03-002.log",
+          "log_sha256": "b4a104e1df193e95bd89cb818424cc0373473e38c5f974d5587a84606ea2ad49"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -1762,8 +1789,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:49:37.270Z",
+          "event": "start",
+          "head": "cd6c6d2dee6b13170659357ff159e8475228f87c",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:49:37.691Z",
+          "event": "run",
+          "head": "cd6c6d2dee6b13170659357ff159e8475228f87c",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:50:19.656Z",
+          "event": "run",
+          "head": "068147ddd627b72205ffc843679ea593b941fd4c",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:50:19.872Z",
+          "event": "done",
+          "head": "068147ddd627b72205ffc843679ea593b941fd4c",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T00:50:19.855Z",
+        "head": "068147ddd627b72205ffc843679ea593b941fd4c",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "PAY-04",
@@ -3921,5 +3984,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T00:49:35.066Z"
+  "updated_at": "2026-10-03T00:50:19.887Z"
 }
