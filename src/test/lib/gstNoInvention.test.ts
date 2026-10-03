@@ -48,18 +48,27 @@ vi.mock('@/lib/automationDecision', () => ({
 
 describe('resolveDocumentGst', () => {
   it('leaves GST unknown when only a total is known (no 1/11 credit)', () => {
-    expect(resolveDocumentGst({ totalCents: 11000, gstCents: null, subtotalCents: null })).toEqual(
-      { totalCents: 11000, gstCents: null, subtotalCents: null, source: 'unknown' },
-    );
+    expect(resolveDocumentGst({ totalCents: 11000, gstCents: null, subtotalCents: null })).toEqual({
+      totalCents: 11000,
+      gstCents: null,
+      subtotalCents: null,
+      source: 'unknown',
+    });
   });
 
   it('uses GST the document shows, and fills the subtotal from it', () => {
-    expect(resolveDocumentGst({ totalCents: 11000, gstCents: 1000, subtotalCents: null })).toEqual(
-      { totalCents: 11000, gstCents: 1000, subtotalCents: 10000, source: 'document' },
-    );
-    expect(resolveDocumentGst({ totalCents: null, gstCents: 1000, subtotalCents: 10000 })).toEqual(
-      { totalCents: 11000, gstCents: 1000, subtotalCents: 10000, source: 'document' },
-    );
+    expect(resolveDocumentGst({ totalCents: 11000, gstCents: 1000, subtotalCents: null })).toEqual({
+      totalCents: 11000,
+      gstCents: 1000,
+      subtotalCents: 10000,
+      source: 'document',
+    });
+    expect(resolveDocumentGst({ totalCents: null, gstCents: 1000, subtotalCents: 10000 })).toEqual({
+      totalCents: 11000,
+      gstCents: 1000,
+      subtotalCents: 10000,
+      source: 'document',
+    });
   });
 
   it('works GST out from a printed subtotal and total, and says so', () => {
