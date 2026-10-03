@@ -1364,6 +1364,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-05-008.log",
           "log_sha256": "005d57b0a6742ba9f4b5a7001ab0cfdd256f68f8545a31b08330db2b6b6e1b65"
+        },
+        {
+          "n": 9,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/money-table-roles.sql\"",
+          "exit": 0,
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "dirty": [],
+          "at": "2026-10-03T01:01:51.934Z",
+          "ms": 44303,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-05-009.log",
+          "log_sha256": "61835aa37524815ecff14d4a59ae3b36c49fea917e4f28424601061e0490b1bb"
         }
       ],
       "notes": [],
@@ -1541,14 +1554,37 @@
           "event": "done",
           "head": "60081782b16eab88a28f824e6ed2f1cb3bf8001d",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:01:06.562Z",
+          "event": "stale",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003130200_payday_super_due_dates.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T01:01:51.935Z",
+          "event": "run",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:01:52.189Z",
+          "event": "done",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T00:56:26.136Z",
-        "head": "60081782b16eab88a28f824e6ed2f1cb3bf8001d",
+        "at": "2026-10-03T01:01:52.081Z",
+        "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
         "by": "claude-worker",
         "runs": [
-          8
+          9
         ]
       }
     },
@@ -2037,6 +2073,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/PAY-03-003.log",
           "log_sha256": "7672e2e645176280dd4a369f4d3c2227a655c5ce5afddc84c6287e18b42487f8"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-year-selection.sql\"",
+          "exit": 0,
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "dirty": [],
+          "at": "2026-10-03T01:02:34.919Z",
+          "ms": 42382,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-03-004.log",
+          "log_sha256": "be85cae93cf058a84b5ef5b78c716c6de682a752a9dfff9e5398d13bb6f85e80"
         }
       ],
       "notes": [],
@@ -2097,14 +2146,37 @@
           "event": "done",
           "head": "60081782b16eab88a28f824e6ed2f1cb3bf8001d",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:01:06.653Z",
+          "event": "stale",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003130200_payday_super_due_dates.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T01:02:34.920Z",
+          "event": "run",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:02:35.048Z",
+          "event": "done",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T00:57:12.913Z",
-        "head": "60081782b16eab88a28f824e6ed2f1cb3bf8001d",
+        "at": "2026-10-03T01:02:35.032Z",
+        "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
         "by": "claude-worker",
         "runs": [
-          3
+          4
         ]
       }
     },
@@ -2497,6 +2569,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/TFN-01-004.log",
           "log_sha256": "989cd1123cd18f682860cc5bc8bb7770f98f778dc79668dad4ebf68982f69f77"
+        },
+        {
+          "n": 5,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/tfn-handling.test.ts\"",
+          "exit": 0,
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "dirty": [],
+          "at": "2026-10-03T01:02:37.101Z",
+          "ms": 1833,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/TFN-01-005.log",
+          "log_sha256": "d3faa0caf9903f718bd9ae3afc56f4aa71e64356d2f168f8f1734bab8a71c344"
+        },
+        {
+          "n": 6,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/trust-tfn-encryption.sql\"",
+          "exit": 0,
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "dirty": [],
+          "at": "2026-10-03T01:03:19.196Z",
+          "ms": 42094,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/TFN-01-006.log",
+          "log_sha256": "df9324cb7f2764424c3bcacb32003e08575f39b6124212acd30fa3c298585766"
         }
       ],
       "notes": [],
@@ -2534,15 +2632,38 @@
           "event": "done",
           "head": "f82c8f032c54d0d585723f5ca52ac94ba2ecedbf",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:01:06.726Z",
+          "event": "stale",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003130200_payday_super_due_dates.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T01:03:19.196Z",
+          "event": "run",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:03:19.406Z",
+          "event": "done",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T00:55:14.049Z",
-        "head": "f82c8f032c54d0d585723f5ca52ac94ba2ecedbf",
+        "at": "2026-10-03T01:03:19.390Z",
+        "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
         "by": "claude-worker",
         "runs": [
-          3,
-          4
+          5,
+          6
         ]
       }
     },
@@ -2707,6 +2828,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-01-009.log",
           "log_sha256": "6ab43fccabbfeeed092a8938b9f57c4c75f1a7e4a039f467250e61e6ea3484b5"
+        },
+        {
+          "n": 10,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 0,
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "dirty": [],
+          "at": "2026-10-03T01:03:19.974Z",
+          "ms": 429,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-01-010.log",
+          "log_sha256": "e3ce8d85af0843c139073509df500648007347c2a8e465a73ba32a1f0430453e"
         }
       ],
       "notes": [],
@@ -2896,14 +3030,38 @@
           "event": "done",
           "head": "c15d2808139aa25986976295c7f1cf6bc7002540",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:01:06.778Z",
+          "event": "stale",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/Payroll.tsx",
+            "src/test/pages/PaydaySuper.test.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T01:03:19.974Z",
+          "event": "run",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:03:20.184Z",
+          "event": "done",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T01:00:15.147Z",
-        "head": "c15d2808139aa25986976295c7f1cf6bc7002540",
+        "at": "2026-10-03T01:03:20.168Z",
+        "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
         "by": "claude-worker",
         "runs": [
-          9
+          10
         ]
       }
     },
@@ -3421,6 +3579,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-06-004.log",
           "log_sha256": "37a735d045225570ee7cc75afc9ba7328deae1d7bacf184e3a5f7ab13ee018c9"
+        },
+        {
+          "n": 5,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/redbark-migrations.sql\"",
+          "exit": 0,
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "dirty": [],
+          "at": "2026-10-03T01:04:01.782Z",
+          "ms": 41476,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-06-005.log",
+          "log_sha256": "02550b54e6ea4dd4127edb40c5c5220b10526681dca259e1bf0b86769b4493d6"
         }
       ],
       "notes": [],
@@ -3504,14 +3675,37 @@
           "event": "done",
           "head": "60081782b16eab88a28f824e6ed2f1cb3bf8001d",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:01:06.913Z",
+          "event": "stale",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003130200_payday_super_due_dates.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T01:04:01.783Z",
+          "event": "run",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:04:01.932Z",
+          "event": "done",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T00:57:59.038Z",
-        "head": "60081782b16eab88a28f824e6ed2f1cb3bf8001d",
+        "at": "2026-10-03T01:04:01.916Z",
+        "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
         "by": "claude-worker",
         "runs": [
-          4
+          5
         ]
       }
     },
@@ -4422,6 +4616,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-10-007.log",
           "log_sha256": "022095be2f8d7bce738c493d6d163920ecb2555687a1d8843b97a92d67ae5105"
+        },
+        {
+          "n": 8,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/definer-write-roles.sql\"",
+          "exit": 0,
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "dirty": [],
+          "at": "2026-10-03T01:04:46.570Z",
+          "ms": 44509,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-10-008.log",
+          "log_sha256": "d14f4c972bd14078ae4fc820d1337320e93e644f1b60855254bbedbf2a32d6ca"
         }
       ],
       "notes": [],
@@ -4559,14 +4766,37 @@
           "event": "done",
           "head": "60081782b16eab88a28f824e6ed2f1cb3bf8001d",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:01:07.028Z",
+          "event": "stale",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003130200_payday_super_due_dates.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T01:04:46.571Z",
+          "event": "run",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:04:46.703Z",
+          "event": "done",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T00:58:44.466Z",
-        "head": "60081782b16eab88a28f824e6ed2f1cb3bf8001d",
+        "at": "2026-10-03T01:04:46.687Z",
+        "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
         "by": "claude-worker",
         "runs": [
-          7
+          8
         ]
       }
     },
@@ -4741,6 +4971,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-11-012.log",
           "log_sha256": "d0af1c5f1a5876aa641a0571bdfab1db49d14a7bec818778d82f0ccdee4e08a2"
+        },
+        {
+          "n": 13,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bill-supplier-same-org.sql\"",
+          "exit": 0,
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "dirty": [],
+          "at": "2026-10-03T01:05:29.117Z",
+          "ms": 42283,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-11-013.log",
+          "log_sha256": "ced2c06baf64c57d66f8e6cf378047bc1c4d376c8640fa8462264ddb75cee7b8"
+        },
+        {
+          "n": 14,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\"",
+          "exit": 0,
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "dirty": [],
+          "at": "2026-10-03T01:05:31.016Z",
+          "ms": 1898,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-11-014.log",
+          "log_sha256": "cd8a1ae98c84dc2cfa562f4342e709db5fa75d269151e23a6e7b6b61d53d5887"
         }
       ],
       "notes": [],
@@ -4855,18 +5111,41 @@
           "event": "done",
           "head": "60081782b16eab88a28f824e6ed2f1cb3bf8001d",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:01:07.079Z",
+          "event": "stale",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003130200_payday_super_due_dates.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T01:05:31.017Z",
+          "event": "run",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:05:31.135Z",
+          "event": "done",
+          "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T01:00:02.177Z",
-        "head": "60081782b16eab88a28f824e6ed2f1cb3bf8001d",
+        "at": "2026-10-03T01:05:31.120Z",
+        "head": "d897921d275f03e6127d8fb0bdfe3a0a9287d07d",
         "by": "claude-worker",
         "runs": [
-          11,
-          12
+          13,
+          14
         ]
       }
     }
   ],
-  "updated_at": "2026-10-03T01:01:06.126Z"
+  "updated_at": "2026-10-03T01:05:31.150Z"
 }
