@@ -31,6 +31,7 @@ import {
   deleteConfidencePolicy,
 } from '@/lib/automationDecision';
 import { useOrg } from '@/hooks/useOrg';
+import { supabase } from '@/lib/supabase';
 
 type SettingsCategory = 'account' | 'privacy' | 'notification' | 'appearance' | 'automation';
 
@@ -57,22 +58,116 @@ const CONFIDENCE_OPTIONS: AutomationConfidence[] = [
   'blocked_external',
 ];
 
+// The one marketing consent Looplet asks for. Off until the user turns it on, and saved to their
+// account (auth user metadata) with the time it changed, so the choice is a real, dated record.
+const PRODUCT_EMAIL_CONSENT_KEY = 'product_email_consent';
+
+interface ProductEmailConsentRecord {
+  granted: boolean;
+  updated_at: string;
+}
+
+function readProductEmailConsent(metadata: Record<string, unknown> | undefined): boolean {
+  const record = metadata?.[PRODUCT_EMAIL_CONSENT_KEY] as ProductEmailConsentRecord | undefined;
+  return record?.granted === true;
+}
+
+function ProductEmailConsent() {
+  const [granted, setGranted] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (cancelled) return;
+      setGranted(readProductEmailConsent(data.user?.user_metadata));
+      setLoaded(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const toggle = async () => {
+    const next = !granted;
+    setSaving(true);
+    setMessage(null);
+    setError(null);
+    const record: ProductEmailConsentRecord = {
+      granted: next,
+      updated_at: new Date().toISOString(),
+    };
+    const { error: saveError } = await supabase.auth.updateUser({
+      data: { [PRODUCT_EMAIL_CONSENT_KEY]: record },
+    });
+    setSaving(false);
+    if (saveError) {
+      setError(`Not saved: ${saveError.message}`);
+      return;
+    }
+    setGranted(next);
+    setMessage(
+      next ? 'Saved: you will get product news emails.' : 'Saved: no product news emails.',
+    );
+  };
+
+  return (
+    <div>
+      <div className="card" style={{ padding: '0.5rem 0' }}>
+        <div className="settings-row">
+          <div>
+            <div
+              id="product-email-consent-label"
+              style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
+            >
+              Product news from Looplet
+            </div>
+            <div
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--text-muted)',
+                marginTop: '0.15rem',
+                lineHeight: 1.4,
+              }}
+            >
+              Occasional emails about new Looplet features and offers. Off unless you turn it on,
+              and you can turn it off at any time. Account emails, such as sign-in links and team
+              invitations, are sent either way.
+            </div>
+          </div>
+          <label className="switch">
+            <input
+              type="checkbox"
+              role="switch"
+              aria-labelledby="product-email-consent-label"
+              checked={granted}
+              disabled={!loaded || saving}
+              onChange={() => void toggle()}
+            />
+            <span className="slider" />
+          </label>
+        </div>
+      </div>
+      {message && (
+        <p role="status" style={{ color: 'var(--text-success)', fontSize: '0.8rem' }}>
+          {message}
+        </p>
+      )}
+      {error && (
+        <p role="alert" style={{ color: 'var(--text-danger)', fontSize: '0.8rem' }}>
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function SettingsPage() {
   const { currentOrg } = useOrg();
   const [activeCategory, setActiveCategory] = useState<SettingsCategory>('notification');
-  const [notifications, setNotifications] = useState({
-    emails: true,
-    pushes: true,
-    inApp: true,
-    social: true,
-    thirdParty: false,
-    commodities: true,
-    crypto: true,
-  });
-
-  const toggleNotification = (key: keyof typeof notifications) => {
-    setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
 
   // Automation / confidence policy state
   const [policies, setPolicies] = useState<ConfidencePolicy[]>([]);
@@ -367,57 +462,13 @@ export function SettingsPage() {
 
           {activeCategory === 'privacy' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Privacy settings</h3>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Privacy</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>
-                Your data is strictly isolated within tenant containers and encrypted at rest.
-                Select options below to configure audit levels.
+                Each organisation's records are kept separate by database access rules, so only
+                people who have been given access to an organisation can see its books. Looplet has
+                no advertising or social-media tracking, and there are no data-sharing switches to
+                set here.
               </p>
-              <div className="card" style={{ padding: '0.5rem 0' }}>
-                <div className="settings-row">
-                  <div>
-                    <div
-                      style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
-                    >
-                      Strict Tenant Isolation
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '0.75rem',
-                        color: 'var(--text-muted)',
-                        marginTop: '0.15rem',
-                      }}
-                    >
-                      Verify row-level security policies on every API call.
-                    </div>
-                  </div>
-                  <label className="switch">
-                    <input type="checkbox" defaultChecked disabled />
-                    <span className="slider" />
-                  </label>
-                </div>
-                <div className="settings-row">
-                  <div>
-                    <div
-                      style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
-                    >
-                      Anonymized Audits
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '0.75rem',
-                        color: 'var(--text-muted)',
-                        marginTop: '0.15rem',
-                      }}
-                    >
-                      Anonymize financial metrics in aggregate performance logs.
-                    </div>
-                  </div>
-                  <label className="switch">
-                    <input type="checkbox" />
-                    <span className="slider" />
-                  </label>
-                </div>
-              </div>
             </div>
           )}
 
@@ -426,281 +477,7 @@ export function SettingsPage() {
               <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>
                 Notification settings
               </h3>
-
-              {/* Marketing Group */}
-              <div>
-                <span
-                  style={{
-                    display: 'block',
-                    fontSize: '0.75rem',
-                    color: 'var(--text-muted)',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    marginBottom: '0.5rem',
-                  }}
-                >
-                  Marketing
-                </span>
-                <div className="card" style={{ padding: '0.5rem 0' }}>
-                  <div className="settings-row">
-                    <div>
-                      <div
-                        style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
-                      >
-                        Personalized emails
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--text-muted)',
-                          marginTop: '0.15rem',
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        I am happy to receive emails about Looplet products, services and offers
-                        that may interest me
-                      </div>
-                    </div>
-                    <label className="switch">
-                      <input
-                        type="checkbox"
-                        checked={notifications.emails}
-                        onChange={() => toggleNotification('emails')}
-                      />
-                      <span className="slider" />
-                    </label>
-                  </div>
-
-                  <div className="settings-row">
-                    <div>
-                      <div
-                        style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
-                      >
-                        Personalized pushes
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--text-muted)',
-                          marginTop: '0.15rem',
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        I am happy to receive push notifications about Looplet products, services
-                        and offers that may interest me
-                      </div>
-                    </div>
-                    <label className="switch">
-                      <input
-                        type="checkbox"
-                        checked={notifications.pushes}
-                        onChange={() => toggleNotification('pushes')}
-                      />
-                      <span className="slider" />
-                    </label>
-                  </div>
-
-                  <div className="settings-row">
-                    <div>
-                      <div
-                        style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
-                      >
-                        Personalized in-app recommendations
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--text-muted)',
-                          marginTop: '0.15rem',
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        I'm happy to see recommendations about Looplet products, services and offers
-                        that may interest me
-                      </div>
-                    </div>
-                    <label className="switch">
-                      <input
-                        type="checkbox"
-                        checked={notifications.inApp}
-                        onChange={() => toggleNotification('inApp')}
-                      />
-                      <span className="slider" />
-                    </label>
-                  </div>
-
-                  <div className="settings-row">
-                    <div>
-                      <div
-                        style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
-                      >
-                        Social media and advertising platforms
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--text-muted)',
-                          marginTop: '0.15rem',
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        I'm happy for Looplet to share my name, email address, and app events with
-                        social media platforms to allow Looplet to advertise to me and others like
-                        me
-                      </div>
-                    </div>
-                    <label className="switch">
-                      <input
-                        type="checkbox"
-                        checked={notifications.social}
-                        onChange={() => toggleNotification('social')}
-                      />
-                      <span className="slider" />
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Promotions Group */}
-              <div>
-                <span
-                  style={{
-                    display: 'block',
-                    fontSize: '0.75rem',
-                    color: 'var(--text-muted)',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    marginBottom: '0.5rem',
-                  }}
-                >
-                  Promotions
-                </span>
-                <div className="card" style={{ padding: '0.5rem 0' }}>
-                  <div className="settings-row">
-                    <div>
-                      <div
-                        style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
-                      >
-                        Third party promotions
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--text-muted)',
-                          marginTop: '0.15rem',
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        I want to receive notifications about promotions from Looplet partners
-                      </div>
-                    </div>
-                    <label className="switch">
-                      <input
-                        type="checkbox"
-                        checked={notifications.thirdParty}
-                        onChange={() => toggleNotification('thirdParty')}
-                      />
-                      <span className="slider" />
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Commodities Group */}
-              <div>
-                <span
-                  style={{
-                    display: 'block',
-                    fontSize: '0.75rem',
-                    color: 'var(--text-muted)',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    marginBottom: '0.5rem',
-                  }}
-                >
-                  Commodities
-                </span>
-                <div className="card" style={{ padding: '0.5rem 0' }}>
-                  <div className="settings-row">
-                    <div>
-                      <div
-                        style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
-                      >
-                        Commodities volatility alerts
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--text-muted)',
-                          marginTop: '0.15rem',
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        Notify me automatically whenever the price of precious metals makes a
-                        significant move
-                      </div>
-                    </div>
-                    <label className="switch">
-                      <input
-                        type="checkbox"
-                        checked={notifications.commodities}
-                        onChange={() => toggleNotification('commodities')}
-                      />
-                      <span className="slider" />
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Cryptocurrencies Group */}
-              <div>
-                <span
-                  style={{
-                    display: 'block',
-                    fontSize: '0.75rem',
-                    color: 'var(--text-muted)',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    marginBottom: '0.5rem',
-                  }}
-                >
-                  Cryptocurrencies
-                </span>
-                <div className="card" style={{ padding: '0.5rem 0' }}>
-                  <div className="settings-row">
-                    <div>
-                      <div
-                        style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-title)' }}
-                      >
-                        Crypto volatility alerts
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--text-muted)',
-                          marginTop: '0.15rem',
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        Notify me automatically whenever the price of cryptocurrency makes a
-                        significant move
-                      </div>
-                    </div>
-                    <label className="switch">
-                      <input
-                        type="checkbox"
-                        checked={notifications.crypto}
-                        onChange={() => toggleNotification('crypto')}
-                      />
-                      <span className="slider" />
-                    </label>
-                  </div>
-                </div>
-              </div>
+              <ProductEmailConsent />
             </div>
           )}
 
@@ -1018,8 +795,8 @@ export function SettingsPage() {
           >
             Accounting Preferences
           </span>
-          Looplet syncs organizations dynamically. BAS submission alerts, tax deadlines, and OCR
-          scanning cues are loaded contextually based on active company setups.
+          Looplet loads each organisation's settings when you switch to it. Tax due-date reminders
+          and bill-reading prompts follow the organisation you are working in.
         </div>
       </div>
     </section>
