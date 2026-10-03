@@ -1,8 +1,9 @@
 /**
  * bank-sync-all — fan-out cron entry point.
  *
- * Selects every distinct organization_id with an active basiq connection and
- * invokes bank-sync once per org via HTTP (so each org's sync is its own
+ * Selects every distinct organization_id with an active Redbark connection,
+ * limited to the organisations allowed to use the feed (REDBARK_ORGANIZATION_IDS),
+ * and invokes bank-sync once per org via HTTP (so each org's sync is its own
  * isolated execution / log line / failure boundary).
  *
  * Trigger via pg_cron every 6 hours (cron expression: 0 every-6-hours * * *):
@@ -22,6 +23,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
+import { feedOrganizationIds } from '../_shared/bankfeed/access.ts';
 import { isExactSecret, isExactServiceRoleBearer } from '../_shared/serviceRole.ts';
 
 Deno.serve(async (req) => {
@@ -58,11 +60,15 @@ Deno.serve(async (req) => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
+    const allowed = feedOrganizationIds(Deno.env.get('REDBARK_ORGANIZATION_IDS'));
+    if (allowed.size === 0) return json({ ok: true, orgs: 0, results: [] });
+
     const { data: rows, error } = await admin
       .from('bank_connections')
       .select('organization_id')
-      .eq('provider', 'basiq')
-      .eq('status', 'active');
+      .eq('provider', 'redbark')
+      .eq('status', 'active')
+      .in('organization_id', [...allowed]);
     if (error) return json({ ok: false, error: error.message }, 500);
 
     const orgIds = Array.from(
