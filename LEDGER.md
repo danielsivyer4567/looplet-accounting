@@ -27,7 +27,7 @@
 | LEGAL-01 | A privacy policy, terms of service and collection notice are published, linked, and accepted at sign-up | open | not run |
 | AI-01 | AI answers and advice are labelled general information, and the model is allowed to recommend an accountant | done | done @ b2d43c0b, awaiting independent verify |
 | TFN-01 | TFNs are never returned to the browser or stored in plain text | done | done @ 2d399e9e, awaiting independent verify |
-| LODGE-01 | Nothing claims to lodge with the ATO or send to a super fund when it only prepares a file | open | not run |
+| LODGE-01 | Nothing claims to lodge with the ATO or send to a super fund when it only prepares a file | done | done @ 1c3f0b4d, awaiting independent verify |
 | BANK-01 | Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs | done | done @ 1d58e03d, awaiting independent verify |
 | BANK-02 | Redbark client pages accounts and transactions, splits truncated date windows, converts dollars to exact cents and skips pending rows | done | done @ 62a46f2a, awaiting independent verify |
 | BANK-03 | bank-webhook verifies Redbark signatures and timestamps, stores the event before acting and dispatches one sync per linked connection | done | done @ 6468e475, awaiting independent verify |

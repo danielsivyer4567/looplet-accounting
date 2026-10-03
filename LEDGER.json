@@ -5221,7 +5221,7 @@
       "title": "Nothing claims to lodge with the ATO or send to a super fund when it only prepares a file",
       "area": "legitimacy",
       "priority": 37,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LodgementWording.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/super-batch-send/status.test.ts\""
@@ -5232,7 +5232,60 @@
         "src/components/Layout.tsx",
         "supabase/functions/super-batch-send"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LodgementWording.test.tsx\"",
+          "exit": 1,
+          "head": "c06df2ccc53fe66ed107a7416c2fb259f1e1c5c0",
+          "dirty": [],
+          "at": "2026-10-03T02:32:56.024Z",
+          "ms": 1254,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/LODGE-01-001.log",
+          "log_sha256": "4c1fca9ab790bdaa4e2176c98affa74c802e95509cb18703083cac4203817af1"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/super-batch-send/status.test.ts\"",
+          "exit": 1,
+          "head": "c06df2ccc53fe66ed107a7416c2fb259f1e1c5c0",
+          "dirty": [],
+          "at": "2026-10-03T02:32:56.325Z",
+          "ms": 300,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/LODGE-01-002.log",
+          "log_sha256": "a8a49f68aa8f50604659e4e23ad93679de021608fb95cc3b4f71d44112d46bb2"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LodgementWording.test.tsx\"",
+          "exit": 0,
+          "head": "1c3f0b4d8f3f17c7f5d7b299b2b342747f37cf9d",
+          "dirty": [],
+          "at": "2026-10-03T02:32:59.591Z",
+          "ms": 2508,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/LODGE-01-003.log",
+          "log_sha256": "6058ab4d3179620fbda1abdf4d020b2bf0076128203eb0a4721e7e2b235e559e"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/super-batch-send/status.test.ts\"",
+          "exit": 0,
+          "head": "1c3f0b4d8f3f17c7f5d7b299b2b342747f37cf9d",
+          "dirty": [],
+          "at": "2026-10-03T02:33:00.581Z",
+          "ms": 990,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/LODGE-01-004.log",
+          "log_sha256": "14268fc18e1515119ce27f7409e51024e0092db2c8a6227ac055d2b29796b000"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -5240,8 +5293,45 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:32:54.649Z",
+          "event": "start",
+          "head": "c06df2ccc53fe66ed107a7416c2fb259f1e1c5c0",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:32:56.325Z",
+          "event": "run",
+          "head": "c06df2ccc53fe66ed107a7416c2fb259f1e1c5c0",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:33:00.581Z",
+          "event": "run",
+          "head": "1c3f0b4d8f3f17c7f5d7b299b2b342747f37cf9d",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:33:00.727Z",
+          "event": "done",
+          "head": "1c3f0b4d8f3f17c7f5d7b299b2b342747f37cf9d",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T02:33:00.712Z",
+        "head": "1c3f0b4d8f3f17c7f5d7b299b2b342747f37cf9d",
+        "by": "claude-worker",
+        "runs": [
+          3,
+          4
+        ]
+      }
     },
     {
       "id": "BANK-01",
@@ -10662,5 +10752,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T02:32:52.835Z"
+  "updated_at": "2026-10-03T02:33:00.741Z"
 }
