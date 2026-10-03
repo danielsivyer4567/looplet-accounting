@@ -1,0 +1,11 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/pages/TaxInvoiceIssue.test.tsx"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  14:18:52
+   Duration  1.20s (transform 111ms, setup 63ms, import 225ms, tests 336ms, environment 470ms)
+
+Not implemented: navigation to another Document
