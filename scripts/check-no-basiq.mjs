@@ -73,6 +73,8 @@ const files = [
 let scanned = 0;
 for (const file of files) {
   if (allowed.has(file)) continue;
+  // Ledger run logs are receipts written by the ledger tool; they quote this check's own output.
+  if (file.startsWith('.ledger/')) continue;
   const full = join(ROOT, file);
   // A tracked file deleted in the working tree is gone; a directory entry (submodule) is not text.
   if (!existsSync(full) || !statSync(full).isFile()) continue;
