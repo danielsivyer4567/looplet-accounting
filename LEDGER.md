@@ -39,7 +39,7 @@
 | CSP-01 | PDF previews and the microphone feature work under the production security headers | open | not run |
 | BAS-01 | BAS includes credit notes, supports cash basis and computes W3/W4 instead of hard-coded zeros | done | done @ 09f8b4f0, awaiting independent verify |
 | GST-01 | No GST credit is invented when GST is missing or the supplier is not GST-registered | open | not run |
-| TAX-01 | The tax set-aside uses GST-exclusive figures for one financial year | open | not run |
+| TAX-01 | The tax set-aside uses GST-exclusive figures for one financial year | done | done @ a9f5ade0, awaiting independent verify |
 | INV-01 | Invoices can be issued as a tax invoice (PDF with "Tax invoice", ABN and GST) and sent | open | not run |
 | DATE-01 | Default dates use Australian local time, not UTC | open | not run |
 | SEED-01 | New organisations do not inherit the pilot business known-sender list | open | not run |

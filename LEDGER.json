@@ -4526,7 +4526,7 @@
       "title": "The tax set-aside uses GST-exclusive figures for one financial year",
       "area": "broken",
       "priority": 54,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/tax-set-aside.sql\""
       ],
@@ -4534,7 +4534,34 @@
         "supabase/migrations",
         "tests/db-sql/tax-set-aside.sql"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/tax-set-aside.sql\"",
+          "exit": 1,
+          "head": "22da42bfb9bd39bda6a54c75588a8e56cb70c917",
+          "dirty": [],
+          "at": "2026-10-03T01:18:46.414Z",
+          "ms": 263,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/TAX-01-001.log",
+          "log_sha256": "6cd9132cfd3bfa7d987cb98a7f6552fd94d262c427903bc2de7abea171788b61"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/tax-set-aside.sql\"",
+          "exit": 0,
+          "head": "a9f5ade0a1f6ccd4b201a61d675a6f73db94eacd",
+          "dirty": [],
+          "at": "2026-10-03T01:19:32.422Z",
+          "ms": 45574,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/TAX-01-002.log",
+          "log_sha256": "b7dca011d781e15a2a8457991e81f7d0cc8ee707abdfc2a3dbbd2847db295654"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -4542,8 +4569,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:18:46.021Z",
+          "event": "start",
+          "head": "22da42bfb9bd39bda6a54c75588a8e56cb70c917",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:18:46.415Z",
+          "event": "run",
+          "head": "22da42bfb9bd39bda6a54c75588a8e56cb70c917",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:19:32.423Z",
+          "event": "run",
+          "head": "a9f5ade0a1f6ccd4b201a61d675a6f73db94eacd",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:19:32.551Z",
+          "event": "done",
+          "head": "a9f5ade0a1f6ccd4b201a61d675a6f73db94eacd",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T01:19:32.535Z",
+        "head": "a9f5ade0a1f6ccd4b201a61d675a6f73db94eacd",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "INV-01",
@@ -5933,5 +5996,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T01:18:44.537Z"
+  "updated_at": "2026-10-03T01:19:32.568Z"
 }
