@@ -3958,7 +3958,7 @@
       "title": "Receipt Hub has no POS simulator, fake receipts or hard-coded demo figures",
       "area": "legitimacy",
       "priority": 31,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ReceiptHubNoDemo.test.tsx\""
       ],
@@ -3966,7 +3966,34 @@
         "src/pages/ReceiptHub.tsx",
         "src/components/Layout.tsx"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ReceiptHubNoDemo.test.tsx\"",
+          "exit": 1,
+          "head": "484c5403fa1f19af4b337b1505ba33b383075170",
+          "dirty": [],
+          "at": "2026-10-03T02:22:31.003Z",
+          "ms": 1155,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/FAKE-01-001.log",
+          "log_sha256": "5ec78f030221982049a3ef922b75257a74e0659fefcf22c59094533449843fd3"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ReceiptHubNoDemo.test.tsx\"",
+          "exit": 0,
+          "head": "fc3f61ba4713f85a3de58e0e51dffa62ddb2902f",
+          "dirty": [],
+          "at": "2026-10-03T02:22:33.509Z",
+          "ms": 2170,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/FAKE-01-002.log",
+          "log_sha256": "d137dc9ed6cecef2305e9f9931a4c4c4d56b770f9d5ae29d643fe9cbc4c619a6"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -3974,8 +4001,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:22:29.720Z",
+          "event": "start",
+          "head": "484c5403fa1f19af4b337b1505ba33b383075170",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:22:31.004Z",
+          "event": "run",
+          "head": "484c5403fa1f19af4b337b1505ba33b383075170",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:22:33.510Z",
+          "event": "run",
+          "head": "fc3f61ba4713f85a3de58e0e51dffa62ddb2902f",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:22:33.628Z",
+          "event": "done",
+          "head": "fc3f61ba4713f85a3de58e0e51dffa62ddb2902f",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T02:22:33.613Z",
+        "head": "fc3f61ba4713f85a3de58e0e51dffa62ddb2902f",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "FAKE-02",
@@ -9551,5 +9614,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T02:22:04.743Z"
+  "updated_at": "2026-10-03T02:22:33.642Z"
 }

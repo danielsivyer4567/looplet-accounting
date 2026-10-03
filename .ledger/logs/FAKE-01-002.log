@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/pages/ReceiptHubNoDemo.test.tsx"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  12:22:32
+   Duration  1.09s (transform 108ms, setup 56ms, import 203ms, tests 262ms, environment 464ms)
+
