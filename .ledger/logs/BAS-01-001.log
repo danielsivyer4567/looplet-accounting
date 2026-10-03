@@ -1,0 +1,2 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bas-correctness.sql"
+missing test file: tests/db-sql/bas-correctness.sql

@@ -4129,7 +4129,7 @@
       "title": "BAS includes credit notes, supports cash basis and computes W3/W4 instead of hard-coded zeros",
       "area": "broken",
       "priority": 52,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bas-correctness.sql\""
       ],
@@ -4137,7 +4137,34 @@
         "supabase/migrations",
         "tests/db-sql/bas-correctness.sql"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bas-correctness.sql\"",
+          "exit": 1,
+          "head": "2475e1a92f218741673fbdde6bab9b8c5ad1910e",
+          "dirty": [],
+          "at": "2026-10-03T01:11:51.739Z",
+          "ms": 262,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BAS-01-001.log",
+          "log_sha256": "ae7e6eecd1009e09fdf64155c1fef678dff703933768a20dbc2bf81aa65c54aa"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bas-correctness.sql\"",
+          "exit": 0,
+          "head": "09f8b4f0b8a27f3d334b85169c41c0d108a8b642",
+          "dirty": [],
+          "at": "2026-10-03T01:12:37.410Z",
+          "ms": 45277,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BAS-01-002.log",
+          "log_sha256": "e1fc18fdfc20e31635d7bf7c735cc1effa828152e1f3066c1cdef534c2849e26"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -4145,8 +4172,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:11:51.255Z",
+          "event": "start",
+          "head": "2475e1a92f218741673fbdde6bab9b8c5ad1910e",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:11:51.740Z",
+          "event": "run",
+          "head": "2475e1a92f218741673fbdde6bab9b8c5ad1910e",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:12:37.411Z",
+          "event": "run",
+          "head": "09f8b4f0b8a27f3d334b85169c41c0d108a8b642",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:12:37.558Z",
+          "event": "done",
+          "head": "09f8b4f0b8a27f3d334b85169c41c0d108a8b642",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T01:12:37.542Z",
+        "head": "09f8b4f0b8a27f3d334b85169c41c0d108a8b642",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "GST-01",
@@ -5501,5 +5564,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T01:11:30.011Z"
+  "updated_at": "2026-10-03T01:12:37.575Z"
 }
