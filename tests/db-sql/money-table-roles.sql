@@ -2,20 +2,24 @@
 -- Run with: node scripts/db/run-pg-sql-tests.mjs tests/db-sql/money-table-roles.sql
 --
 -- Setup runs as postgres (table owner, so RLS does not apply). Each probe switches to the `authenticated` role with
--- the user's JWT claims, runs one statement, records ok (rows changed), none (no rows visible to change) or denied
+-- the caller's JWT claims, runs one statement, records ok (rows changed), none (no rows visible to change) or denied
 -- (RLS or same-org check), and always rolls the statement back so probes do not affect each other.
+--
+-- Callers: one user per role in org A; a pending admin; an outsider (owner of org B); an accepted admin of the agency
+-- that org A is a sub-account of; and organisation-pinned machine tokens (no user, organization_id claim) for org A
+-- and org B, like the one accruals-run mints to post journals.
 
 BEGIN;
 
-CREATE FUNCTION pg_temp.probe(p_user uuid, p_sql text) RETURNS text
+CREATE FUNCTION pg_temp.probe(p_claims jsonb, p_sql text) RETURNS text
 LANGUAGE plpgsql AS $$
 DECLARE
   n bigint := 0;
   result text;
 BEGIN
   -- Both forms: older auth.uid() reads request.jwt.claim.sub, newer reads request.jwt.claims.
-  PERFORM set_config('request.jwt.claims', json_build_object('sub', p_user, 'role', 'authenticated')::text, true);
-  PERFORM set_config('request.jwt.claim.sub', p_user::text, true);
+  PERFORM set_config('request.jwt.claims', p_claims::text, true);
+  PERFORM set_config('request.jwt.claim.sub', coalesce(p_claims->>'sub', ''), true);
   EXECUTE 'SET LOCAL ROLE authenticated';
   BEGIN
     EXECUTE p_sql;
@@ -25,6 +29,9 @@ BEGIN
     WHEN insufficient_privilege THEN result := 'denied';
     WHEN raise_exception THEN
       result := CASE WHEN SQLERRM = 'probe-rollback' THEN CASE WHEN n > 0 THEN 'ok' ELSE 'none' END
+                     -- journal_lines' same-org trigger (0075) runs before RLS and refuses a line whose entry the
+                     -- caller cannot see; that is a refusal too.
+                     WHEN SQLERRM LIKE 'journal line references unknown entry%' THEN 'denied'
                      ELSE 'error: ' || SQLERRM END;
     WHEN others THEN result := 'error: ' || SQLSTATE || ' ' || SQLERRM;
   END;
@@ -41,7 +48,11 @@ INSERT INTO ids VALUES
   ('owner', '10000000-0000-4000-8000-000000000001'), ('admin', '10000000-0000-4000-8000-000000000002'),
   ('accountant', '10000000-0000-4000-8000-000000000003'), ('employee', '10000000-0000-4000-8000-000000000004'),
   ('viewer', '10000000-0000-4000-8000-000000000005'), ('pending_admin', '10000000-0000-4000-8000-000000000006'),
-  ('outsider', '10000000-0000-4000-8000-000000000007'),
+  ('outsider', '10000000-0000-4000-8000-000000000007'), ('agency_admin', '10000000-0000-4000-8000-000000000008'),
+  ('agency', '0c000000-0000-4000-8000-000000000001'),
+  ('conn', 'a0000000-0000-4000-8000-000000000001'), ('bank_account', 'a1000000-0000-4000-8000-000000000001'),
+  ('coa', 'a2000000-0000-4000-8000-000000000001'), ('journal_l', 'a3000000-0000-4000-8000-000000000001'),
+  ('line', 'a4000000-0000-4000-8000-000000000001'),
   ('supplier', '20000000-0000-4000-8000-000000000001'), ('supplier_del', '20000000-0000-4000-8000-000000000002'),
   ('bill', '30000000-0000-4000-8000-000000000001'), ('bill_del', '30000000-0000-4000-8000-000000000002'),
   ('bill_b', '30000000-0000-4000-8000-0000000000b1'),
@@ -55,12 +66,21 @@ INSERT INTO ids VALUES
   ('super', '92000000-0000-4000-8000-000000000001'),
   ('pay_run_b', '93000000-0000-4000-8000-0000000000b1');
 CREATE FUNCTION pg_temp.id(p text) RETURNS uuid LANGUAGE sql AS $$ SELECT v FROM ids WHERE k = p $$;
+CREATE FUNCTION pg_temp.claims(who text) RETURNS jsonb LANGUAGE sql AS $$
+  SELECT CASE who
+    WHEN 'machine_a' THEN jsonb_build_object('role', 'authenticated', 'aud', 'authenticated', 'organization_id', pg_temp.id('org_a'))
+    WHEN 'machine_b' THEN jsonb_build_object('role', 'authenticated', 'aud', 'authenticated', 'organization_id', pg_temp.id('org_b'))
+    ELSE jsonb_build_object('sub', pg_temp.id(who), 'role', 'authenticated')
+  END $$;
 
 INSERT INTO auth.users (id, email, aud, role)
 SELECT v, k || '@example.test', 'authenticated', 'authenticated' FROM ids
- WHERE k IN ('owner', 'admin', 'accountant', 'employee', 'viewer', 'pending_admin', 'outsider');
+ WHERE k IN ('owner', 'admin', 'accountant', 'employee', 'viewer', 'pending_admin', 'outsider', 'agency_admin');
 
-INSERT INTO public.organizations (id, name) VALUES (pg_temp.id('org_a'), 'Org A'), (pg_temp.id('org_b'), 'Org B');
+INSERT INTO public.organizations (id, name, organization_type) VALUES (pg_temp.id('agency'), 'Agency', 'agency');
+INSERT INTO public.organizations (id, name, organization_type, parent_organization_id)
+  VALUES (pg_temp.id('org_a'), 'Org A', 'sub_account', pg_temp.id('agency'));
+INSERT INTO public.organizations (id, name) VALUES (pg_temp.id('org_b'), 'Org B');
 
 INSERT INTO public.organization_memberships (user_id, organization_id, role, role_enum, accepted_at) VALUES
   (pg_temp.id('owner'),         pg_temp.id('org_a'), 'owner',  'owner',      now()),
@@ -69,7 +89,8 @@ INSERT INTO public.organization_memberships (user_id, organization_id, role, rol
   (pg_temp.id('employee'),      pg_temp.id('org_a'), 'member', 'employee',   now()),
   (pg_temp.id('viewer'),        pg_temp.id('org_a'), 'member', 'viewer',     now()),
   (pg_temp.id('pending_admin'), pg_temp.id('org_a'), 'admin',  'admin',      NULL),
-  (pg_temp.id('outsider'),      pg_temp.id('org_b'), 'owner',  'owner',      now());
+  (pg_temp.id('outsider'),      pg_temp.id('org_b'), 'owner',  'owner',      now()),
+  (pg_temp.id('agency_admin'),  pg_temp.id('agency'), 'admin', 'admin',      now());
 
 -- One enum label for bills.source, whatever the enum is called.
 CREATE TEMP TABLE bill_source AS
@@ -95,6 +116,14 @@ INSERT INTO public.customers (id, organization_id, name) VALUES
 INSERT INTO public.invoices (id, organization_id, invoice_number, customer_id, due_date)
   VALUES (pg_temp.id('invoice'), pg_temp.id('org_a'), 'INV-T-1', pg_temp.id('customer'), DATE '2030-01-31');
 INSERT INTO public.journal_entries (id, organization_id) VALUES (pg_temp.id('journal'), pg_temp.id('org_a'));
+INSERT INTO public.journal_entries (id, organization_id) VALUES (pg_temp.id('journal_l'), pg_temp.id('org_a'));
+INSERT INTO public.chart_of_accounts (id, organization_id, code, name, account_type)
+  VALUES (pg_temp.id('coa'), pg_temp.id('org_a'), '6100', 'Materials', 'expense');
+INSERT INTO public.journal_lines (id, journal_entry_id, account_id, debit_cents) VALUES (pg_temp.id('line'), pg_temp.id('journal_l'), pg_temp.id('coa'), 1000);
+INSERT INTO public.bank_connections (id, organization_id, provider, encrypted_access_token)
+  VALUES (pg_temp.id('conn'), pg_temp.id('org_a'), 'manual', 'x');
+INSERT INTO public.bank_accounts (id, organization_id, bank_connection_id, external_id, name)
+  VALUES (pg_temp.id('bank_account'), pg_temp.id('org_a'), pg_temp.id('conn'), 'acct-1', 'Everyday');
 INSERT INTO public.period_locks (id, organization_id, period_start, period_end, reason)
   VALUES (pg_temp.id('lock'), pg_temp.id('org_a'), DATE '2001-01-01', DATE '2001-01-31', 'test lock');
 INSERT INTO public.employees (id, organization_id, full_name) VALUES
@@ -127,6 +156,13 @@ INSERT INTO cases VALUES
   ('journal_entries', 'insert', 'accountant', format('INSERT INTO public.journal_entries (organization_id) VALUES (%L)', pg_temp.id('org_a'))),
   ('journal_entries', 'update', 'accountant', format('UPDATE public.journal_entries SET organization_id = organization_id WHERE id = %L', pg_temp.id('journal'))),
   ('journal_entries', 'delete', 'accountant', format('DELETE FROM public.journal_entries WHERE id = %L', pg_temp.id('journal'))),
+  ('journal_lines', 'insert', 'accountant', format('INSERT INTO public.journal_lines (journal_entry_id, account_id, credit_cents) VALUES (%L, %L, 1000)', pg_temp.id('journal_l'), pg_temp.id('coa'))),
+  ('journal_lines', 'update', 'accountant', format('UPDATE public.journal_lines SET account_id = account_id WHERE id = %L', pg_temp.id('line'))),
+  ('journal_lines', 'delete', 'accountant', format('DELETE FROM public.journal_lines WHERE id = %L', pg_temp.id('line'))),
+  ('bank_accounts', 'insert', 'accountant', format('INSERT INTO public.bank_accounts (organization_id, bank_connection_id, external_id, name) VALUES (%L, %L, %L, %L)',
+     pg_temp.id('org_a'), pg_temp.id('conn'), 'acct-2', 'Savings')),
+  ('bank_accounts', 'update', 'accountant', format('UPDATE public.bank_accounts SET name = %L WHERE id = %L', 'Renamed', pg_temp.id('bank_account'))),
+  ('bank_accounts', 'delete', NULL, format('DELETE FROM public.bank_accounts WHERE id = %L', pg_temp.id('bank_account'))),
   ('period_locks', 'insert', 'accountant', format('INSERT INTO public.period_locks (organization_id, period_start, period_end, reason) VALUES (%L, %L, %L, %L)',
      pg_temp.id('org_a'), DATE '2001-02-01', DATE '2001-02-28', 'another lock')),
   ('period_locks', 'update', 'accountant', format('UPDATE public.period_locks SET reason = %L WHERE id = %L', 'changed', pg_temp.id('lock'))),
@@ -148,24 +184,28 @@ INSERT INTO cases VALUES
 CREATE TEMP TABLE ranks (role text PRIMARY KEY, rank int);
 INSERT INTO ranks VALUES ('viewer', 0), ('employee', 1), ('accountant', 2), ('admin', 3), ('owner', 4);
 
--- Expected: an accepted member at or above the minimum role succeeds; everyone else is refused. A refused insert
+-- Expected: an accepted member at or above the minimum role succeeds, as does an agency admin (admin-level) and the
+-- organisation's own machine token (any write the permissive policies allow); everyone else is refused. A refused insert
 -- raises an RLS error ('denied'); a refused update or delete sees no rows ('none'). A NULL minimum role means no one
 -- may do it: bills, suppliers, customers, period locks and employees have no DELETE policy (they are soft-deleted).
 CREATE TEMP TABLE results AS
 SELECT c.tbl, c.op, u.who,
        CASE WHEN c.min_role IS NOT NULL AND u.rank IS NOT NULL AND u.rank >= (SELECT rank FROM ranks WHERE role = c.min_role) THEN 'ok'
             WHEN c.op = 'insert' THEN 'denied' ELSE 'none' END AS expected,
-       pg_temp.probe(pg_temp.id(u.who), c.sql) AS actual
+       pg_temp.probe(pg_temp.claims(u.who), c.sql) AS actual
   FROM cases c
  CROSS JOIN (VALUES ('owner', 4), ('admin', 3), ('accountant', 2), ('employee', 1), ('viewer', 0),
-                    ('pending_admin', NULL), ('outsider', NULL)) AS u(who, rank);
+                    ('pending_admin', NULL), ('outsider', NULL), ('agency_admin', 3), ('machine_a', 99),
+                    ('machine_b', NULL)) AS u(who, rank);
 
--- Reads are unchanged: every accepted member, including viewers, still sees the books; outsiders see nothing.
+-- Reads are unchanged: every accepted member (viewers included), the agency admin and org A's machine token still see
+-- the books; pending invitees, outsiders and another organisation's machine token see nothing.
 CREATE TEMP TABLE reads AS
 SELECT u.who,
-       (SELECT pg_temp.probe(pg_temp.id(u.who), format('SELECT 1 FROM public.suppliers WHERE id = %L', pg_temp.id('supplier')))) AS supplier,
-       (SELECT pg_temp.probe(pg_temp.id(u.who), format('SELECT 1 FROM public.bills WHERE id = %L', pg_temp.id('bill')))) AS bill
-  FROM (VALUES ('viewer'), ('employee'), ('owner'), ('pending_admin'), ('outsider')) AS u(who);
+       (SELECT pg_temp.probe(pg_temp.claims(u.who), format('SELECT 1 FROM public.suppliers WHERE id = %L', pg_temp.id('supplier')))) AS supplier,
+       (SELECT pg_temp.probe(pg_temp.claims(u.who), format('SELECT 1 FROM public.bills WHERE id = %L', pg_temp.id('bill')))) AS bill
+  FROM (VALUES ('viewer'), ('employee'), ('owner'), ('agency_admin'), ('machine_a'), ('pending_admin'), ('outsider'),
+               ('machine_b')) AS u(who);
 
 -- Same-organisation links hold even for the table owner and the service role (triggers run for every role).
 CREATE TEMP TABLE links (name text, actual text);
@@ -202,8 +242,8 @@ BEGIN
     bad := bad || format(E'\n  %s %s as %s: expected %s, got %s', r.tbl, r.op, r.who, r.expected, r.actual);
   END LOOP;
   FOR r IN SELECT * FROM reads LOOP
-    IF (r.who IN ('pending_admin', 'outsider')) <> (r.supplier = 'none' AND r.bill = 'none')
-       OR (r.who NOT IN ('pending_admin', 'outsider') AND (r.supplier <> 'ok' OR r.bill <> 'ok')) THEN
+    IF (r.who IN ('pending_admin', 'outsider', 'machine_b')) <> (r.supplier = 'none' AND r.bill = 'none')
+       OR (r.who NOT IN ('pending_admin', 'outsider', 'machine_b') AND (r.supplier <> 'ok' OR r.bill <> 'ok')) THEN
       bad := bad || format(E'\n  read as %s: supplier %s, bill %s', r.who, r.supplier, r.bill);
     END IF;
   END LOOP;
