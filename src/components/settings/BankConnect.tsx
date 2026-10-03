@@ -7,11 +7,12 @@ import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import { BankCsvImport } from './BankCsvImport';
+import { BankFeedLink } from './BankFeedLink';
 import { BankStatementImport } from './BankStatementImport';
 
 interface BankConnectionRow {
   id: string;
-  provider: 'plaid' | 'basiq' | 'manual';
+  provider: 'manual' | 'redbark' | 'plaid';
   institution_name: string | null;
   status: 'pending' | 'active' | 'error' | 'expired' | 'revoked';
   last_synced_at: string | null;
@@ -41,7 +42,6 @@ export function BankConnect() {
     Record<string, BankAccountRow[]>
   >({});
   const [loading, setLoading] = useState(false);
-  const [connecting, setConnecting] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [disablingId, setDisablingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -95,41 +95,6 @@ export function BankConnect() {
 
   if (!currentOrg) return null;
 
-  const handleConnect = async () => {
-    setError(null);
-    const mobile = window.prompt(
-      'Australian mobile number (Basiq requires this to start the Connect flow):',
-      '04',
-    );
-    if (!mobile) return;
-    setConnecting(true);
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not signed in');
-      const redirect_uri = `${window.location.origin}/settings/bank-callback`;
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bank-link-token`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ organization_id: currentOrg.id, redirect_uri, mobile }),
-      });
-      const body = await res.json();
-      if (!res.ok || !body.ok) throw new Error(body.error ?? `${res.status}`);
-      // Open Basiq's hosted Connect UI
-      window.location.href = body.url;
-    } catch (e) {
-      setError(
-        formatActionError('start the bank connection', e instanceof Error ? e.message : String(e)),
-      );
-      setConnecting(false);
-    }
-  };
-
   const handleSync = async (id: string) => {
     setError(null);
     setSyncingId(id);
@@ -140,7 +105,7 @@ export function BankConnect() {
         sourceKind: 'bank_connection',
         sourceId: id,
         priority: 3,
-        payload: { bank_connection_id: id, days: 180, source: 'manual_bank_sync' },
+        payload: { bank_connection_id: id, source: 'manual_bank_sync' },
       });
       await refresh();
     } catch (e) {
@@ -154,7 +119,7 @@ export function BankConnect() {
 
   const handleDisable = async (connection: BankConnectionRow) => {
     const ok = window.confirm(
-      `Disable syncing for ${connection.institution_name ?? 'this bank connection'}? Existing transactions stay in Looplet. For a Basiq-connected bank, this also revokes the upstream consent so Basiq stops holding your data — this cannot be undone from here; you'll need to reconnect from scratch.`,
+      `Stop the bank feed for ${connection.institution_name ?? 'this bank connection'}? Looplet stops importing from it and keeps the transactions already imported. Your bank connection in Redbark is not changed; manage or remove it in your Redbark account. To start the feed again, link its accounts again.`,
     );
     if (!ok) return;
 
@@ -195,9 +160,9 @@ export function BankConnect() {
     <div style={{ marginTop: '2rem' }}>
       <h2 style={{ fontSize: 18, marginBottom: '0.5rem' }}>Bank accounts</h2>
       <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: '1rem', maxWidth: 720 }}>
-        Connect your business bank accounts via Basiq (CommBank, NAB, Westpac, ANZ + 100s of
-        others). Transactions are imported and matched against your bills + invoices, ready for you
-        to review and reconcile on the Reconciliation page.{' '}
+        Link your business bank accounts through a Redbark bank feed, or import CSV and PDF
+        statements. Transactions are matched against your bills and invoices, ready for you to
+        review and reconcile on the Reconciliation page.{' '}
         <Link to="/data-sharing">How your data is shared and managed</Link>.
       </p>
 
@@ -220,22 +185,7 @@ export function BankConnect() {
         </div>
       ) : connections.length === 0 ? (
         <div>
-          <button
-            onClick={handleConnect}
-            disabled={connecting}
-            style={{
-              padding: '0.5rem 1rem',
-              background: 'var(--bg-info-subtle)',
-              color: 'var(--text-title)',
-              border: '1px solid var(--accent-info)',
-              borderRadius: 4,
-              cursor: connecting ? 'wait' : 'pointer',
-              fontSize: 13,
-              fontWeight: 600,
-            }}
-          >
-            {connecting ? 'Opening Basiq…' : '+ Connect bank account (Basiq)'}
-          </button>
+          <BankFeedLink organizationId={currentOrg.id} onLinked={refresh} />
           <BankCsvImport onImported={refresh} />
           <BankStatementImport onImported={refresh} />
         </div>
@@ -315,37 +265,14 @@ export function BankConnect() {
             ))}
           </div>
 
-          <button
-            onClick={handleConnect}
-            disabled={connecting}
-            style={{
-              marginTop: 12,
-              padding: '0.4rem 1rem',
-              background: 'transparent',
-              color: 'var(--text-success)',
-              border: '1px solid var(--accent-success)',
-              borderRadius: 3,
-              cursor: connecting ? 'wait' : 'pointer',
-              fontSize: 12,
-            }}
-          >
-            {connecting ? 'Opening…' : '+ Connect another account (Basiq)'}
-          </button>
+          <BankFeedLink organizationId={currentOrg.id} onLinked={refresh} />
           <BankCsvImport onImported={refresh} />
           <BankStatementImport onImported={refresh} />
         </>
       )}
 
       {error && (
-        <p style={{ color: 'var(--text-danger)', fontSize: 12, marginTop: '0.5rem' }}>
-          {error}
-          {error.includes('BASIQ_API_KEY') && (
-            <>
-              {' '}
-              — set up Basiq via <code>SETUP_BANK_FEEDS.md</code> first.
-            </>
-          )}
-        </p>
+        <p style={{ color: 'var(--text-danger)', fontSize: 12, marginTop: '0.5rem' }}>{error}</p>
       )}
     </div>
   );
@@ -400,7 +327,7 @@ function BankConnectionAction({
   onSync: (id: string) => Promise<void>;
   onDisable?: (connection: BankConnectionRow) => Promise<void>;
 }) {
-  if (connection.provider === 'basiq') {
+  if (connection.provider === 'redbark') {
     return (
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
         <button
@@ -416,7 +343,7 @@ function BankConnectionAction({
             disabled={disablingId === connection.id}
             style={dangerBtn}
           >
-            {disablingId === connection.id ? 'Disabling…' : 'Disable feed'}
+            {disablingId === connection.id ? 'Stopping…' : 'Disable feed'}
           </button>
         )}
       </div>
@@ -426,7 +353,7 @@ function BankConnectionAction({
   return (
     <span
       style={{ color: 'var(--text-muted)', fontSize: 11, fontStyle: 'italic' }}
-      title="Imported from a CSV/PDF statement — not a live bank feed. Use 'Connect bank account (Basiq)' for automatic syncing."
+      title="Imported from a CSV or PDF statement, not a live bank feed. Link a Redbark account above for automatic imports."
     >
       imported (no live feed)
     </span>

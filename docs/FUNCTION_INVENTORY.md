@@ -29,6 +29,8 @@ live function. Do not deploy these by default; use a staging ticket and proof.
 | `bank-disconnect`              | local-only  | n/a             | n/a          | Pending deploy: bank connection teardown.                              |
 | `bank-discover`                | live-active | true            | 28           |                                                                        |
 | `bank-exchange`                | live-active | true            | 40           |                                                                        |
+| `bank-feed-accounts`           | local-only  | n/a             | n/a          | Pending deploy: lists Redbark accounts for an admin (BANK-05).         |
+| `bank-feed-link`               | local-only  | n/a             | n/a          | Pending deploy: links a Redbark account with an import-from date.      |
 | `bank-job-poll`                | live-active | true            | 37           |                                                                        |
 | `bank-link-token`              | live-active | true            | 41           |                                                                        |
 | `bank-statement-extract`       | live-active | true            | 37           |                                                                        |

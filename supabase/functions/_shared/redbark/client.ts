@@ -213,6 +213,25 @@ export function normaliseAccounts(accounts: unknown, connections: unknown): Feed
   );
 }
 
+export type BankAccountType = 'checking' | 'savings' | 'credit_card' | 'loan' | 'investment' | 'other';
+
+/** The app's bank account types from Redbark's free-text account type. Unknown types are 'other', never guessed. */
+export function mapAccountType(type: string | null): BankAccountType {
+  const value = (type ?? '').toLowerCase();
+  if (/credit/.test(value)) return 'credit_card';
+  if (/loan|mortgage/.test(value)) return 'loan';
+  if (/saving/.test(value)) return 'savings';
+  if (/transaction|everyday|cheque|checking|current/.test(value)) return 'checking';
+  if (/invest|term|deposit/.test(value)) return 'investment';
+  return 'other';
+}
+
+/** The last four digits of the provider's (already masked) account number. */
+export function lastFour(accountNumber: string | null): string | null {
+  const digits = (accountNumber ?? '').replace(/\D/g, '');
+  return digits ? digits.slice(-4) : null;
+}
+
 // HTTP Retry-After: whole seconds or the IMF-fixdate form. Anything else leaves ordinary backoff in force.
 function retryDeadline(header: string | null, now: number): number | null {
   if (!header) return null;

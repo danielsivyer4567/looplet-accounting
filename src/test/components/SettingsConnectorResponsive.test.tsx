@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
   bankConnections: [
     {
       id: 'bank-1',
-      provider: 'basiq',
+      provider: 'redbark',
       institution_name: 'NAB Business',
       status: 'active',
       last_synced_at: '2026-07-01T02:30:00Z',
@@ -154,10 +154,8 @@ describe('Settings connector responsive layouts', () => {
     const loading = screen.getByLabelText('Loading bank connections');
     expect(loading).toBeInTheDocument();
     expect(loading).toHaveAttribute('aria-busy', 'true');
-    // While loading, neither the connect CTA nor a load error should show.
-    expect(
-      screen.queryByRole('button', { name: /connect bank account \(basiq\)/i }),
-    ).not.toBeInTheDocument();
+    // While loading, neither the bank-feed panel nor a load error should show.
+    expect(screen.queryByRole('button', { name: /show redbark accounts/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
@@ -173,10 +171,8 @@ describe('Settings connector responsive layouts', () => {
     expect(alert).toHaveTextContent(
       /could not load bank connections\. access policy blocked this request/i,
     );
-    // A failed load must NOT fall through to the "no bank connected yet" connect CTA.
-    expect(
-      screen.queryByRole('button', { name: /connect bank account \(basiq\)/i }),
-    ).not.toBeInTheDocument();
+    // A failed load must NOT fall through to the "no bank connected yet" bank-feed panel.
+    expect(screen.queryByRole('button', { name: /show redbark accounts/i })).not.toBeInTheDocument();
   });
 
   it('renders Gmail integrations as mobile cards as well as the desktop table', () => {
@@ -208,10 +204,10 @@ describe('Settings connector responsive layouts', () => {
     await waitFor(() => expect(screen.queryByLabelText(/loading bank connections/i)).toBeNull());
   });
 
-  it('disables a Basiq feed via bank-disconnect, which purges the upstream connection', async () => {
+  it('disables a Redbark feed via bank-disconnect, which unlinks it in Looplet only', async () => {
     const fetchMock = vi
       .spyOn(global, 'fetch')
-      .mockResolvedValue(new Response(JSON.stringify({ ok: true, purged: true }), { status: 200 }));
+      .mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
 
     render(
       <MemoryRouter>
@@ -232,9 +228,10 @@ describe('Settings connector responsive layouts', () => {
       organization_id: 'org-1',
       bank_connection_id: 'bank-1',
     });
-    // The old direct-table-write path must be gone — disabling is server-mediated
-    // now so the upstream Basiq purge always happens alongside the local revoke.
+    // Disabling is server-mediated (signed-in users cannot write Redbark links directly), and the
+    // confirmation says plainly that the bank connection in Redbark itself is not changed.
     expect(mocks.operations).toEqual([]);
+    expect(vi.mocked(window.confirm).mock.calls[0]?.[0]).toMatch(/connection in Redbark is not changed/);
 
     fetchMock.mockRestore();
   });
