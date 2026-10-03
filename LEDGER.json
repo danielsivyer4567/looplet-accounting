@@ -15210,7 +15210,7 @@
       "title": "Invoices can be issued as a tax invoice (PDF with \"Tax invoice\", ABN and GST) and sent",
       "area": "broken",
       "priority": 55,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/TaxInvoiceIssue.test.tsx\""
       ],
@@ -15321,6 +15321,19 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/INV-01-008.log",
           "log_sha256": "105a315a5ab24986e77f6ff065ba5e94ea2bdf9e03f88af1d4bcc9b31ac6d761"
+        },
+        {
+          "n": 9,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/TaxInvoiceIssue.test.tsx\"",
+          "exit": 0,
+          "head": "4b757ce2ddfd77925212483e1af97f328509d255",
+          "dirty": [],
+          "at": "2026-10-03T05:04:45.635Z",
+          "ms": 2406,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/INV-01-009.log",
+          "log_sha256": "eb56930a66125c8a0d1c41d93e7b3f8e948e9ae2576424512b5f651679cd5f2c"
         }
       ],
       "notes": [
@@ -15470,14 +15483,28 @@
           "head": "77778a05acece90f1e286e52c9e30b1a79adb04a",
           "actor": "claude-verifier",
           "by": "claude-verifier E (independent subagent, round 2)"
+        },
+        {
+          "at": "2026-10-03T05:04:45.636Z",
+          "event": "run",
+          "head": "4b757ce2ddfd77925212483e1af97f328509d255",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:04:45.786Z",
+          "event": "done",
+          "head": "4b757ce2ddfd77925212483e1af97f328509d255",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:23:05.814Z",
-        "head": "10b7b1d6d00dbced51dbf028109943724f669397",
+        "at": "2026-10-03T05:04:45.771Z",
+        "head": "4b757ce2ddfd77925212483e1af97f328509d255",
         "by": "claude-worker",
         "runs": [
-          7
+          9
         ]
       },
       "verified": {
@@ -17631,7 +17658,7 @@
       "title": "Modern app shell: labelled sectioned sidebar, top bar with breadcrumbs, org switcher, user menu, command palette",
       "area": "ui",
       "priority": 72,
-      "status": "in_progress",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/AppShell.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/LayoutResponsive.test.tsx\""
@@ -17797,6 +17824,32 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/UI-03-012.log",
           "log_sha256": "9d500fd86a652c25ea87ff6eb5b4b7105d3362c16fea7fbff9f9602c0b9072d4"
+        },
+        {
+          "n": 13,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/AppShell.test.tsx\"",
+          "exit": 0,
+          "head": "4b757ce2ddfd77925212483e1af97f328509d255",
+          "dirty": [],
+          "at": "2026-10-03T05:04:48.632Z",
+          "ms": 2602,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-03-013.log",
+          "log_sha256": "48a50a0efedb8a56843fb87a7d192726123c551166ebddd6d2d3b2b9138af794"
+        },
+        {
+          "n": 14,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/LayoutResponsive.test.tsx\"",
+          "exit": 0,
+          "head": "4b757ce2ddfd77925212483e1af97f328509d255",
+          "dirty": [],
+          "at": "2026-10-03T05:04:51.104Z",
+          "ms": 2471,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-03-014.log",
+          "log_sha256": "56e3d8d96b8af89645116a90483a713a086d588f1ff63d78827f8edc95ab84a3"
         }
       ],
       "notes": [],
@@ -17865,8 +17918,31 @@
           "head": "77778a05acece90f1e286e52c9e30b1a79adb04a",
           "actor": "claude-verifier",
           "by": "claude-verifier E (independent subagent, round 2)"
+        },
+        {
+          "at": "2026-10-03T05:04:51.104Z",
+          "event": "run",
+          "head": "4b757ce2ddfd77925212483e1af97f328509d255",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:04:51.265Z",
+          "event": "done",
+          "head": "4b757ce2ddfd77925212483e1af97f328509d255",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T05:04:51.250Z",
+        "head": "4b757ce2ddfd77925212483e1af97f328509d255",
+        "by": "claude-worker",
+        "runs": [
+          13,
+          14
+        ]
+      }
     },
     {
       "id": "UI-04",
@@ -17962,6 +18038,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/UI-04-006.log",
           "log_sha256": "ae71c2b0a39eb1912cbe29492128862f20ea6c676ce0ea26caa7d34e181d03b4"
+        },
+        {
+          "n": 7,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-a11y-tokens.mjs\"",
+          "exit": 0,
+          "head": "4b757ce2ddfd77925212483e1af97f328509d255",
+          "dirty": [],
+          "at": "2026-10-03T05:04:38.497Z",
+          "ms": 363,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-04-007.log",
+          "log_sha256": "5d9f37c754ac1dd335dce417eb4cd2bf0eea0dae8fcbbcb6a5c804f530efbf75"
+        },
+        {
+          "n": 8,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/a11y/IconButtons.test.tsx\"",
+          "exit": 0,
+          "head": "4b757ce2ddfd77925212483e1af97f328509d255",
+          "dirty": [],
+          "at": "2026-10-03T05:04:42.906Z",
+          "ms": 4408,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-04-008.log",
+          "log_sha256": "eabe47227f551588bd40920a49b5153e9473ab919ae973d9af63b26a733a829b"
         }
       ],
       "notes": [],
@@ -18031,15 +18133,29 @@
           "event": "done",
           "head": "ddf1de2a7bd5ca705b69643b834e44a39127b8cd",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:04:42.906Z",
+          "event": "run",
+          "head": "4b757ce2ddfd77925212483e1af97f328509d255",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:04:43.057Z",
+          "event": "done",
+          "head": "4b757ce2ddfd77925212483e1af97f328509d255",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:26:57.087Z",
-        "head": "ddf1de2a7bd5ca705b69643b834e44a39127b8cd",
+        "at": "2026-10-03T05:04:43.042Z",
+        "head": "4b757ce2ddfd77925212483e1af97f328509d255",
         "by": "claude-worker",
         "runs": [
-          5,
-          6
+          7,
+          8
         ]
       }
     },
@@ -21315,6 +21431,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/FIX-01-002.log",
           "log_sha256": "b0406255f809376caf4e16cec52d20b7e4f29a7fbc4daa0bfbcbd342056a55f7"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/ask-bot/bas-query.test.ts\"",
+          "exit": 0,
+          "head": "4b757ce2ddfd77925212483e1af97f328509d255",
+          "dirty": [],
+          "at": "2026-10-03T05:04:52.224Z",
+          "ms": 786,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/FIX-01-003.log",
+          "log_sha256": "4da9aa8412443d07e868e43a4a385af7b2ea4232eb1bc5881b7d4a56d5e7c442"
         }
       ],
       "notes": [
@@ -21358,17 +21487,31 @@
           "event": "done",
           "head": "716df180dead37d0ebfecce3bbd5120bf64f69ec",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:04:52.225Z",
+          "event": "run",
+          "head": "4b757ce2ddfd77925212483e1af97f328509d255",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:04:52.379Z",
+          "event": "done",
+          "head": "4b757ce2ddfd77925212483e1af97f328509d255",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:13:49.597Z",
-        "head": "716df180dead37d0ebfecce3bbd5120bf64f69ec",
+        "at": "2026-10-03T05:04:52.362Z",
+        "head": "4b757ce2ddfd77925212483e1af97f328509d255",
         "by": "claude-worker",
         "runs": [
-          2
+          3
         ]
       }
     }
   ],
-  "updated_at": "2026-10-03T04:59:03.438Z"
+  "updated_at": "2026-10-03T05:04:52.393Z"
 }

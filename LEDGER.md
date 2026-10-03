@@ -2,7 +2,7 @@
 
 **Goal:** Old Looplet Accounting (accounting.looplet.com.au) made legitimate, secure, modern and connected to Redbark bank feeds. Local proof first; production deploys, migrations and credential use need Daniel's explicit yes.
 
-**Progress:** 47/57 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
+**Progress:** 46/57 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
 
 | ID | Item | Status | Proof |
 |---|---|---|---|
@@ -40,7 +40,7 @@
 | BAS-01 | BAS includes credit notes, supports cash basis and computes W3/W4 instead of hard-coded zeros | verified | verified by claude-verifier (independent subagent) @ 77778a05 |
 | GST-01 | No GST credit is invented when GST is missing or the supplier is not GST-registered | verified | verified by claude-verifier E (independent subagent, round 2) @ 77778a05 |
 | TAX-01 | The tax set-aside uses GST-exclusive figures for one financial year | verified | verified by claude-verifier (independent subagent) @ 77778a05 |
-| INV-01 | Invoices can be issued as a tax invoice (PDF with "Tax invoice", ABN and GST) and sent | verified | verified by claude-verifier E (independent subagent, round 2) @ 77778a05 |
+| INV-01 | Invoices can be issued as a tax invoice (PDF with "Tax invoice", ABN and GST) and sent | done | done @ 4b757ce2, awaiting independent verify |
 | DATE-01 | Default dates use Australian local time, not UTC | verified | verified by claude-verifier E (independent subagent, round 2) @ 77778a05 |
 | SEED-01 | New organisations do not inherit the pilot business known-sender list | verified | verified by claude-verifier (independent subagent) @ 77778a05 |
 | XERO-02 | The Xero bank pull writes schema-valid rows (real connection, valid account type) | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
@@ -48,8 +48,8 @@
 | CI-01 | CI runs the Deno edge-function tests and reports environment-gated test files instead of skipping them silently | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
 | UI-01 | Light theme polish: themed colours everywhere, no hard-coded dark-only colours, auth screens in the new style | verified | verified by claude-verifier E (independent subagent, round 2) @ 77778a05 |
 | UI-02 | Shared PageHeader, Stat, StatusBadge, EmptyState, Alert and Field replace page-local copies | verified | verified by claude-verifier E (independent subagent, round 2) @ 77778a05 |
-| UI-03 | Modern app shell: labelled sectioned sidebar, top bar with breadcrumbs, org switcher, user menu, command palette | in_progress | last run FAIL @ 77778a05 |
-| UI-04 | Accessibility: contrast-safe colour tokens, keyboard focus everywhere, labelled icon buttons, no text under 11px | done | done @ ddf1de2a, awaiting independent verify |
+| UI-03 | Modern app shell: labelled sectioned sidebar, top bar with breadcrumbs, org switcher, user menu, command palette | done | done @ 4b757ce2, awaiting independent verify |
+| UI-04 | Accessibility: contrast-safe colour tokens, keyboard focus everywhere, labelled icon buttons, no text under 11px | done | done @ 4b757ce2, awaiting independent verify |
 | SHIP | Ship gate: typecheck, lint, the full test suite (Vitest and Deno) and the production build all pass | verified | verified by claude-verifier (independent subagent) @ 77778a05 |
 | DEPLOY | Production (accounting.looplet.com.au and the edge functions) serves the verified build after Daniel says go | blocked | BLOCKED: Production changes need the owner's explicit approval. (needs: Daniel reviews screenshots and the verified ledger, then says go for the production deploy.) |
 | SEC-08 | bills-allocate-batch checks the caller's own accepted membership and needs accountant or higher to change allocations | verified | verified by claude-verifier (independent subagent) @ bbdacc04 |
@@ -62,6 +62,6 @@
 | UX-01 | Lower roles see a clear 'read-only' state instead of silent no-op saves on bills, jobs, allocations, payment runs, employees, customers and suppliers | open | not run |
 | INV-02 | Looplet can email a tax invoice PDF to the customer from a verified sender, and marks it sent only after the email is accepted | open | not run |
 | CI-02 | One production deploy path: Cloudflare Pages Git integration deploys main; the CI wrangler deploy step is removed and the Cloudflare token leaves GitHub | open | not run |
-| FIX-01 | Ask AI's BAS answer reads columns that v_bas_quarterly actually has | done | done @ 716df180, awaiting independent verify |
+| FIX-01 | Ask AI's BAS answer reads columns that v_bas_quarterly actually has | done | done @ 4b757ce2, awaiting independent verify |
 
 Acceptance commands, every run, exit codes and log hashes are in LEDGER.json; logs are in .ledger/logs/.
