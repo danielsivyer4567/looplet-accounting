@@ -2459,7 +2459,120 @@
           "actor": "claude-worker"
         }
       ]
+    },
+    {
+      "id": "SEC-10",
+      "title": "SECURITY DEFINER functions that users call and that write money tables check the caller's role",
+      "area": "security",
+      "priority": 13,
+      "status": "done",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/definer-write-roles.sql\""
+      ],
+      "paths": [
+        "supabase/migrations",
+        "tests/db-sql/definer-write-roles.sql"
+      ],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/definer-write-roles.sql\"",
+          "exit": 1,
+          "head": "3d5a319a48c4a9aef84a4d44a01b569fec1523c0",
+          "dirty": [],
+          "at": "2026-10-03T00:15:35.201Z",
+          "ms": 262,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-10-001.log",
+          "log_sha256": "addd0f127b58388646ebe8a0f0d82bfa4ee0b0066824a755b960df4b7bb582b9"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/definer-write-roles.sql\"",
+          "exit": 0,
+          "head": "7e16c71b0e8302dd6faf17ad0e96a6e819a30d35",
+          "dirty": [],
+          "at": "2026-10-03T00:20:08.382Z",
+          "ms": 44644,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-10-002.log",
+          "log_sha256": "5bd00b35f0ac3cb2259ceb2daf700a3527912ca859caf25ca4ade25876fb7878"
+        }
+      ],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-03T00:15:34.635Z",
+          "event": "added",
+          "head": "3d5a319a48c4a9aef84a4d44a01b569fec1523c0",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:15:34.811Z",
+          "event": "start",
+          "head": "3d5a319a48c4a9aef84a4d44a01b569fec1523c0",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:15:35.202Z",
+          "event": "run",
+          "head": "3d5a319a48c4a9aef84a4d44a01b569fec1523c0",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:20:08.384Z",
+          "event": "run",
+          "head": "7e16c71b0e8302dd6faf17ad0e96a6e819a30d35",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:20:08.514Z",
+          "event": "done",
+          "head": "7e16c71b0e8302dd6faf17ad0e96a6e819a30d35",
+          "actor": "claude-worker"
+        }
+      ],
+      "done": {
+        "at": "2026-10-03T00:20:08.498Z",
+        "head": "7e16c71b0e8302dd6faf17ad0e96a6e819a30d35",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
+    },
+    {
+      "id": "SEC-11",
+      "title": "Bills only reference suppliers of their own organisation, so payment runs never copy another organisation's payee bank details",
+      "area": "security",
+      "priority": 14,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bill-supplier-same-org.sql\"",
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\""
+      ],
+      "paths": [
+        "supabase/migrations",
+        "tests/db-sql/bill-supplier-same-org.sql",
+        "supabase/functions/payment-runs-create"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-03T00:15:34.725Z",
+          "event": "added",
+          "head": "3d5a319a48c4a9aef84a4d44a01b569fec1523c0",
+          "actor": "claude-worker"
+        }
+      ]
     }
   ],
-  "updated_at": "2026-10-03T00:14:54.888Z"
+  "updated_at": "2026-10-03T00:20:08.528Z"
 }

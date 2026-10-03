@@ -2,7 +2,7 @@
 
 **Goal:** Old Looplet Accounting (accounting.looplet.com.au) made legitimate, secure, modern and connected to Redbark bank feeds. Local proof first; production deploys, migrations and credential use need Daniel's explicit yes.
 
-**Progress:** 5/49 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
+**Progress:** 5/51 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
 
 | ID | Item | Status | Proof |
 |---|---|---|---|
@@ -55,5 +55,7 @@
 | SEC-08 | bills-allocate-batch checks the caller's own accepted membership and needs accountant or higher to change allocations | done | done @ 89cb803a, awaiting independent verify |
 | SEC-09 | accountant-email-query matches the sender's accepted accountant memberships by role_enum, so the emailed activity digest works | done | done @ 0e7befa3, awaiting independent verify |
 | MIG-01 | Every migration applies in order to a fresh database, so the history can rebuild the schema (no known failures left) | open | not run |
+| SEC-10 | SECURITY DEFINER functions that users call and that write money tables check the caller's role | done | done @ 7e16c71b, awaiting independent verify |
+| SEC-11 | Bills only reference suppliers of their own organisation, so payment runs never copy another organisation's payee bank details | open | not run |
 
 Acceptance commands, every run, exit codes and log hashes are in LEDGER.json; logs are in .ledger/logs/.
