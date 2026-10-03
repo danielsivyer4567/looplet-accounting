@@ -20,7 +20,7 @@
 | PAY-03 | PAYG withholding uses the financial year of the pay date and fails loudly instead of returning $0 when no table applies | done | done @ 70d59cc6, awaiting independent verify |
 | PAY-04 | FY2026-27 PAYG withholding tables match the ATO schedule (NAT 1004) worked examples | done | done @ 70d59cc6, awaiting independent verify |
 | PAY-05 | Payday Super (from 1 July 2026) drives super due dates instead of quarterly batching | done | done @ 70d59cc6, awaiting independent verify |
-| XERO-01 | Bills and invoices are never marked synced to Xero unless Xero accepted them (no STUB ids in production) | open | not run |
+| XERO-01 | Bills and invoices are never marked synced to Xero unless Xero accepted them (no STUB ids in production) | done | done @ 34eae826, awaiting independent verify |
 | FAKE-01 | Receipt Hub has no POS simulator, fake receipts or hard-coded demo figures | open | not run |
 | FAKE-02 | The Scan page describes only the checks it really runs (no simulated AI audit) | open | not run |
 | CONSENT-01 | Settings has no pre-ticked, unsaved or unrelated template consent switches | open | not run |

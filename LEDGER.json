@@ -3166,7 +3166,7 @@
       "title": "Bills and invoices are never marked synced to Xero unless Xero accepted them (no STUB ids in production)",
       "area": "legitimacy",
       "priority": 30,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/xero/adapter.test.ts\""
       ],
@@ -3176,7 +3176,34 @@
         "supabase/functions/_shared/bills",
         "supabase/functions/receipt-sync-dispatch"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/xero/adapter.test.ts\"",
+          "exit": 1,
+          "head": "23a16917032523af32c8c3becd4e24180264b07f",
+          "dirty": [],
+          "at": "2026-10-03T01:49:11.999Z",
+          "ms": 327,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/XERO-01-001.log",
+          "log_sha256": "98bf5263a28e09a34febfbb14a69921ba9de78c418b1ea8d5876605f0e8663cd"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/xero/adapter.test.ts\"",
+          "exit": 0,
+          "head": "34eae82619af7d571020da2239a9007d200abc1d",
+          "dirty": [],
+          "at": "2026-10-03T01:49:13.327Z",
+          "ms": 898,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/XERO-01-002.log",
+          "log_sha256": "6fbe10d001e485b4fb4b9d8bad7fc295ddcb30c60288ed69f86d3ade49f21d1c"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -3184,8 +3211,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:49:11.540Z",
+          "event": "start",
+          "head": "23a16917032523af32c8c3becd4e24180264b07f",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:49:12.000Z",
+          "event": "run",
+          "head": "23a16917032523af32c8c3becd4e24180264b07f",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:49:13.327Z",
+          "event": "run",
+          "head": "34eae82619af7d571020da2239a9007d200abc1d",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:49:13.453Z",
+          "event": "done",
+          "head": "34eae82619af7d571020da2239a9007d200abc1d",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T01:49:13.437Z",
+        "head": "34eae82619af7d571020da2239a9007d200abc1d",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "FAKE-01",
@@ -7439,5 +7502,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T01:49:07.942Z"
+  "updated_at": "2026-10-03T01:49:13.468Z"
 }
