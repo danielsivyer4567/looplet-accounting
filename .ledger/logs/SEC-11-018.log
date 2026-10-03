@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run tests/security/payment-role-guards.test.ts"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  11:18:43
+   Duration  719ms (transform 24ms, setup 67ms, import 11ms, tests 7ms, environment 517ms)
+
