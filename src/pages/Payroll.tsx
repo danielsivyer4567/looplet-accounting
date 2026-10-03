@@ -407,6 +407,8 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
 
   const fyLabel = `Q${quarter} FY${fy}-${String((fy + 1) % 100).padStart(2, '0')}`;
   const isSent = batch !== null && (batch.status === 'sent' || batch.status === 'confirmed');
+  // file_prepared: the clearing-house file exists, but nothing has been sent to a fund or paid.
+  const isPrepared = batch?.status === 'file_prepared';
 
   const downloadPayload = (payload: Record<string, unknown>, filename: string) => {
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -440,14 +442,16 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
     setActionError(null);
     try {
       const r = await send();
-      if (r.sent || r.already_sent) {
+      if (r.file_prepared || r.already_prepared || r.already_sent) {
         if (r.payload) {
           downloadPayload(r.payload, `superstream-${fyLabel.replace(/\s+/g, '-')}.json`);
         }
         setMsg(
-          r.sent
-            ? 'SuperStream clearing-house file exported for manual upload. Mark the obligation paid only after clearing-house/payment confirmation.'
-            : 'Super batch already exported.',
+          r.already_sent
+            ? 'This batch is already recorded as sent.'
+            : r.already_prepared
+              ? 'Clearing-house file downloaded again. Looplet has not sent or paid anything.'
+              : 'Clearing-house file prepared and downloaded for manual upload. Looplet has not sent it or paid anything: upload it to your clearing house and pay the contributions there.',
         );
       } else if (r.approval_id) {
         setMsg('Approval requested - pending Tier-2 approval before this batch can export.');
@@ -492,8 +496,8 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
       </div>
       <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 1rem' }}>
         Quarterly super guarantee per employee from finalised pay runs. Export is Tier-2 gated and
-        produces a clearing-house upload file; live SuperStream API dispatch remains disabled until
-        a provider transport is configured.
+        prepares a clearing-house upload file. Looplet does not send contributions to funds or pay
+        them: you upload the file to your clearing house and pay there.
       </p>
 
       {loading ? (
@@ -564,7 +568,7 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
             }}
           >
             <span
-              className={`badge ${isSent ? 'badge-success' : 'badge-warning'}`}
+              className={`badge ${isSent ? 'badge-success' : isPrepared ? 'badge-info' : 'badge-warning'}`}
               style={{
                 textTransform: 'none',
                 display: 'inline-flex',
@@ -573,16 +577,22 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
               }}
             >
               {isSent ? <CheckCircle2 size={13} /> : null}
-              {batch.status}
+              {superBatchStatusLabel(batch.status)}
             </span>
             <button
               className="btn btn-primary"
               onClick={handleSend}
               disabled={busy !== null || isSent || batch.line_count === 0}
-              title={isSent ? 'Already exported' : 'Open a Tier-2 approval and export'}
+              title={
+                isSent
+                  ? 'Already recorded as sent'
+                  : isPrepared
+                    ? 'Download the prepared clearing-house file again'
+                    : 'Open a Tier-2 approval and prepare the clearing-house file'
+              }
             >
               {busy === 'send' ? <Loader2 size={14} /> : <Send size={14} />}
-              <span>Approve &amp; export</span>
+              <span>{isPrepared ? 'Download file again' : 'Approve & export'}</span>
             </button>
           </div>
           {msg && (
@@ -599,6 +609,12 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
       )}
     </div>
   );
+}
+
+function superBatchStatusLabel(status: string): string {
+  if (status === 'file_prepared') return 'File prepared, not paid';
+  if (status === 'sent') return 'Recorded as sent';
+  return status.replace(/_/g, ' ');
 }
 
 function CreatePayRunForm({

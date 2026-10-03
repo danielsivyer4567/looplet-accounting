@@ -132,7 +132,7 @@ function DetailPanel({
       >
         <dt style={{ color: MUTED }}>Receipt</dt>
         <dd style={{ margin: 0 }}>{lodgement.ato_receipt_id ?? '-'}</dd>
-        <dt style={{ color: MUTED }}>Submitted</dt>
+        <dt style={{ color: MUTED }}>Recorded as submitted</dt>
         <dd style={{ margin: 0 }}>{formatDateTime(lodgement.submitted_at)}</dd>
         <dt style={{ color: MUTED }}>Payload hash</dt>
         <dd style={{ margin: 0, fontFamily: 'monospace', wordBreak: 'break-all' }}>
@@ -149,10 +149,10 @@ function DetailPanel({
         </div>
       )}
 
-      <h3 style={{ fontSize: '0.9rem', margin: '1rem 0 0.4rem' }}>Submitted payload</h3>
+      <h3 style={{ fontSize: '0.9rem', margin: '1rem 0 0.4rem' }}>Prepared payload</h3>
       <JsonBlock value={lodgement.payload} maxHeight="18rem" />
 
-      <h3 style={{ fontSize: '0.9rem', margin: '1rem 0 0.4rem' }}>ATO response</h3>
+      <h3 style={{ fontSize: '0.9rem', margin: '1rem 0 0.4rem' }}>ATO response (if recorded)</h3>
       <JsonBlock value={lodgement.response} maxHeight="14rem" />
     </aside>
   );
@@ -187,11 +187,12 @@ export function LodgementsPage() {
         <div>
           <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileCheck2 size={24} style={{ color: 'var(--text-link)' }} />
-            Lodgements
+            Prepared returns
           </h1>
           <p style={{ color: MUTED, margin: '0.35rem 0 0', maxWidth: '48rem' }}>
-            Read-only history of ATO/SBR lodgement ledger rows, including receipts, status and the
-            submitted payload used for audit review.
+            Returns and statements Looplet has prepared for you, with their status and the payload
+            kept for review. Looplet does not lodge with the ATO: lodge them yourself or through
+            your registered tax or BAS agent. An ATO receipt shows only if one has been recorded.
           </p>
         </div>
         <button className="btn btn-secondary" type="button" onClick={() => void refresh()}>
@@ -239,7 +240,7 @@ export function LodgementsPage() {
             color: MUTED,
           }}
         >
-          No lodgement records yet. Rows will appear here after the lodgement ledger is populated.
+          Nothing prepared yet. Prepared BAS, STP and other returns will be listed here.
         </div>
       ) : (
         <div style={{ display: 'grid', gap: '1rem' }}>

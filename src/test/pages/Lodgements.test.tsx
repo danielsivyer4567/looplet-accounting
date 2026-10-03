@@ -59,17 +59,17 @@ describe('LodgementsPage', () => {
     h.packError = null;
   });
 
-  it('lists lodgements and opens submitted payload details', () => {
+  it('lists prepared returns and opens the prepared payload details', () => {
     render(<LodgementsPage />);
 
-    expect(screen.getByRole('heading', { name: 'Lodgements' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Prepared returns' })).toBeInTheDocument();
     expect(screen.getByText('Q4 FY2025-26')).toBeInTheDocument();
     expect(screen.getAllByText('Accepted').length).toBeGreaterThan(0);
     expect(screen.getByText('ATO-123')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /View payload/i }));
 
-    expect(screen.getByRole('heading', { name: 'Submitted payload' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Prepared payload' })).toBeInTheDocument();
     expect(screen.getByText(/net_gst_cents/)).toBeInTheDocument();
     expect(screen.getByText(/accepted/)).toBeInTheDocument();
   });

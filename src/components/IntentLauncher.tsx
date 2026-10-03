@@ -48,8 +48,8 @@ const intents: Intent[] = [
   },
   {
     id: 'file-tax',
-    label: 'File tax',
-    description: 'Lodge BAS, tax returns',
+    label: 'Prepare tax',
+    description: 'Prepare BAS and returns to lodge',
     icon: FileWarning,
     to: '/lodgements',
   },

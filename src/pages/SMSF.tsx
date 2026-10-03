@@ -1,5 +1,4 @@
 import type { CSSProperties } from 'react';
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
 import { useSmsf, useSmsfFund, type SmsfFundRow, type SmsfMemberRow } from '@/hooks/useSmsf';
@@ -69,15 +68,14 @@ function FlagChip({ label, count }: { label: string; count: number }) {
 
 /**
  * The per-fund panels (SC-5.N.02): financials (5.J), cap/Div293/drawdown flags (5.L), TBC
- * tracker (5.I.02), and the audit-pack (5.M) + return-draft (5.K) download actions + a
- * mark-lodged stub. The SMSF RPCs + edge fn deploy as a batch; until then the panel surfaces
+ * tracker (5.I.02), and the audit-pack (5.M) + return-draft (5.K) download actions. Looplet
+ * does not lodge the return, so there is no lodge button. The SMSF RPCs + edge fn deploy as a batch; until then the panel surfaces
  * the error (the data won't load against undeployed functions — by design, not a UI fault).
  */
 function FundPanels({ fundId }: { fundId: string }) {
   const fy = currentFyStartYear();
-  const { panels, loading, error, actionBusy, downloadAuditPack, downloadReturnDraft, markLodged } =
+  const { panels, loading, error, actionBusy, downloadAuditPack, downloadReturnDraft } =
     useSmsfFund(fundId, fy);
-  const [lodgeNote, setLodgeNote] = useState<string | null>(null);
 
   const { operating, financial, caps, drawdown, tbc } = panels;
 
@@ -173,7 +171,7 @@ function FundPanels({ fundId }: { fundId: string }) {
             </div>
           )}
 
-          {/* Actions (SC-5.M / 5.K + the lodge stub) */}
+          {/* Actions (SC-5.M / 5.K). There is no lodge action: Looplet does not lodge. */}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <button
               className="btn btn-secondary"
@@ -190,17 +188,10 @@ function FundPanels({ fundId }: { fundId: string }) {
             >
               <Download size={14} /> {actionBusy === 'audit' ? 'Preparing…' : 'Audit pack'}
             </button>
-            <button
-              className="btn btn-secondary"
-              disabled={actionBusy !== null}
-              onClick={() => setLodgeNote(markLodged())}
-              title="Lodgement is gated by the ATO gateway (Phase 7)"
-            >
-              Lodge return
-            </button>
-            {lodgeNote && (
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{lodgeNote}</span>
-            )}
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Looplet prepares the annual return draft; it does not lodge it. Lodge it with the ATO
+              through your SMSF's tax agent or ATO online services.
+            </span>
           </div>
         </>
       )}

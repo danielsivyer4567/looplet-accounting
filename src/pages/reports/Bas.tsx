@@ -670,7 +670,7 @@ export function BasPrepCard({
     try {
       await requestLodgeApproval();
       setLodgeMsg(
-        'Draft lodgement created and approval requested. The BAS will only be submitted or marked lodged after the approved lodge flow completes.',
+        'BAS prepared and approval requested. Looplet does not lodge with the ATO: once it is approved, lodge it yourself or through your registered BAS or tax agent.',
       );
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e));
@@ -690,7 +690,8 @@ export function BasPrepCard({
         </h2>
       </div>
       <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 1rem' }}>
-        Due {dueDate}. Review the worksheet, clear any blockers, then approve and lodge.
+        Due {dueDate}. Review the worksheet, clear any blockers and approve it, then lodge it with
+        the ATO yourself or through your agent. Looplet prepares the BAS; it does not lodge it.
       </p>
 
       {loading ? (
@@ -777,12 +778,12 @@ export function BasPrepCard({
                 blocked
                   ? hasUnavailableCheck
                     ? 'Required BAS checks are unavailable'
-                    : 'Clear blockers before lodging'
-                  : 'Open a Tier-2 approval request'
+                    : 'Clear blockers before approving'
+                  : 'Open a Tier-2 approval request for the prepared BAS'
               }
             >
               {busy === 'lodge' ? <Loader2 size={14} /> : <ShieldAlert size={14} />}
-              <span>Request lodge approval</span>
+              <span>Request approval of prepared BAS</span>
             </button>
           </div>
           {lodgeMsg && (

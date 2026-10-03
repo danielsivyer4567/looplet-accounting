@@ -8,8 +8,9 @@ import { useOrg } from '@/hooks/useOrg';
  *   - loads the latest super_batch + its per-employee lines (SC-3.F.01),
  *   - generate() builds/refreshes the draft batch (generate_super_batch RPC),
  *   - send() invokes the Tier-2-gated super-batch-send edge fn (SC-3.G.01) and
- *     returns its verdict (sent / already_sent / approval-required) so the UI can
- *     show the same approve-gate UX as the BAS prep flow.
+ *     returns its verdict (file_prepared / already_prepared / approval-required) so
+ *     the UI can show the same approve-gate UX as the BAS prep flow. The function
+ *     only prepares a clearing-house file: nothing is sent to a fund or paid.
  *
  * Best-effort: super_batches/super_batch_lines (0124) + the send fn are repo-only
  * until the epic's deploy step, so reads degrade to null + an error string rather
@@ -39,8 +40,13 @@ export interface SuperBatch {
 
 export interface SuperSendResult {
   ok: boolean;
-  sent?: boolean;
+  /** The clearing-house file was prepared now (status file_prepared). */
+  file_prepared?: boolean;
+  /** The file had been prepared before; the same file is returned again. */
+  already_prepared?: boolean;
+  /** The batch is recorded as sent or confirmed (a real transport); nothing was prepared. */
   already_sent?: boolean;
+  status?: string;
   manual_upload_required?: boolean;
   transport_mode?: 'clearing_house_file' | 'api';
   payload_hash?: string;

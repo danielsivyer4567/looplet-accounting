@@ -218,7 +218,8 @@ export function TaxReturnPage() {
         >
           EOFY pack
         </Link>{' '}
-        bundles. Draft only — lodgement and approval are separate steps.
+        bundles. Draft only — approval is a separate step, and Looplet does not lodge returns with
+        the ATO.
       </p>
 
       {/* FY selector */}
@@ -419,7 +420,8 @@ export function TaxReturnPage() {
           >
             EOFY pack
           </Link>{' '}
-          to true-up and lock the periods first, then approve and lodge the return (Phase 7).
+          to true-up and lock the periods first, then approve the return and lodge it with the ATO
+          yourself or through your registered tax agent.
         </div>
       </div>
     </section>
@@ -1096,8 +1098,8 @@ function FinalisationCard({
         }}
       >
         A tax return is a Tier-2 approve-first artifact. Approve it to open a Tier-2 sign-off, then
-        finalise once an admin approves — finalising locks the draft. Lodgement to the ATO is a
-        separate, later step.
+        finalise once an admin approves — finalising locks the draft. Looplet does not lodge the
+        return: lodge it with the ATO yourself or through your registered tax agent.
       </p>
 
       {finalised ? (

@@ -81,7 +81,7 @@ const navItems: NavItem[] = [
   { to: '/employees', label: 'People', icon: Contact, area: 'People' },
   { to: '/payroll', label: 'Payday', icon: CreditCard, area: 'People' },
   { to: '/reports', label: 'Tax', icon: BarChart3, area: 'Tax' },
-  { to: '/lodgements', label: 'Lodge', icon: Send, area: 'Tax' },
+  { to: '/lodgements', label: 'Prepare', icon: Send, area: 'Tax' },
   { to: '/legal-horizon', label: 'Upcoming', icon: CalendarClock, area: 'Tax', badge: 'NEW' },
   { to: '/receipt-hub', label: 'Receipts', icon: ReceiptText, area: 'Advisor', badge: 'MVP' },
   { to: '/scan', label: 'Scan Doc', icon: Scan, area: 'Advisor' },

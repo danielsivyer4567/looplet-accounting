@@ -129,14 +129,12 @@ describe('BasPrepCard (SC-3.E.01)', () => {
     expect(screen.getByText(/GL reconciles to the BAS/)).toBeInTheDocument();
     expect(screen.getByText(/GST coverage verified \(100.0% \(4\/4 bills\)\)/)).toBeInTheDocument();
 
-    const lodge = screen.getByRole('button', { name: /Request lodge approval/i });
+    const lodge = screen.getByRole('button', { name: /Request approval of prepared BAS/i });
     expect(lodge).not.toBeDisabled();
     fireEvent.click(lodge);
     await waitFor(() => expect(h.requestLodgeApproval).toHaveBeenCalledTimes(1));
     expect(supabase.from).not.toHaveBeenCalledWith('obligation_status');
-    expect(
-      await screen.findByText(/Draft lodgement created and approval requested/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/BAS prepared and approval requested/i)).toBeInTheDocument();
   });
 
   it('shows the GST accounting method, W3/W4 as not recorded, and items to check (BAS-01)', () => {
@@ -196,7 +194,9 @@ describe('BasPrepCard (SC-3.E.01)', () => {
 
     expect(screen.getByText(/3 GST-treatment exceptions - resolve/)).toBeInTheDocument();
     expect(screen.getByText(/GL vs BAS variance .* reconcile/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Request lodge approval/i })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /Request approval of prepared BAS/i }),
+    ).toBeDisabled();
     expect(h.requestLodgeApproval).not.toHaveBeenCalled();
   });
 
@@ -212,7 +212,9 @@ describe('BasPrepCard (SC-3.E.01)', () => {
     renderCard();
 
     expect(screen.getByText(/GST coverage is 72.5% \(29\/40 bills\)/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Request lodge approval/i })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /Request approval of prepared BAS/i }),
+    ).toBeDisabled();
     expect(h.requestLodgeApproval).not.toHaveBeenCalled();
   });
 
@@ -226,7 +228,9 @@ describe('BasPrepCard (SC-3.E.01)', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/Reconciliation not available - cannot approve/)).toBeInTheDocument();
     expect(screen.getByText(/GST coverage check unavailable - cannot approve/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Request lodge approval/i })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /Request approval of prepared BAS/i }),
+    ).toBeDisabled();
   });
 
   it('exports BAS quarter data as CSV with worksheet coverage fields present', async () => {

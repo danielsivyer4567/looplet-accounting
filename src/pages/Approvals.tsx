@@ -149,8 +149,9 @@ export function ApprovalsPage() {
         <h1 style={{ margin: 0 }}>Approvals</h1>
       </div>
       <p style={{ color: MUTED, marginTop: 0 }}>
-        Money-movers and lodgements that need sign-off before they run. An approval binds to the
-        exact content requested — editing it afterwards re-requires approval.
+        Payments, payroll and super files, and prepared returns that need sign-off before they run.
+        An approval binds to the exact content requested — editing it afterwards re-requires
+        approval. Approving a return does not lodge it with the ATO.
       </p>
 
       {error && <ErrorBadge message={error} />}
