@@ -205,7 +205,7 @@ If supplied, `supplier_id` and `job_id` must also belong to your organization.
 ```
 
 `bank_account_id` must belong to your org. Idempotent on
-`(bank_account_id, external_id)` — same as the Basiq sync. New transactions are
+`(bank_account_id, external_id)` — same as the bank feed sync. New transactions are
 fed to the intake-rules engine automatically before success is returned. If
 ingest returns `500` with `ingest_failed` after validation, retry the same
 payload/idempotency key; the endpoint is designed to re-run the routing handoff

@@ -10,7 +10,8 @@ const watchdog = readFileSync(
   join(root, 'supabase/functions/automation-watchdog/index.ts'),
   'utf8',
 );
-const bankExchange = readFileSync(join(root, 'supabase/functions/bank-exchange/index.ts'), 'utf8');
+// Linking a Redbark account queues its first import from the settings panel (it replaced bank-exchange).
+const bankFeedLink = readFileSync(join(root, 'src/components/settings/BankFeedLink.tsx'), 'utf8');
 // The webhook's order of work lives in handler.ts; index.ts wires it to Supabase and bank-sync.
 const bankWebhook = ['index.ts', 'handler.ts']
   .map((file) => readFileSync(join(root, 'supabase/functions/bank-webhook', file), 'utf8'))
@@ -252,14 +253,13 @@ describe('automation backbone source contracts', () => {
     expect(worker).toMatch(/case 'browser_collect'/);
   });
 
-  it('bank exchange queues initial sync jobs instead of fire-and-forget HTTP', () => {
+  it('bank feed linking queues the initial sync job instead of fire-and-forget HTTP', () => {
     expect(worker).toMatch(/case 'bank_sync'/);
     expect(worker).toMatch(/`\$\{base\}\/bank-sync`/);
-    expect(bankExchange).toMatch(/enqueue_automation_job/);
-    expect(bankExchange).toMatch(/p_job_kind:\s*'bank_sync'/);
-    expect(bankExchange).toMatch(/sync_job_id:\s*syncJobId/);
-    expect(bankExchange).not.toMatch(/functions\/v1\/bank-sync/);
-    expect(bankExchange).not.toMatch(/bank-sync dispatch failed/);
+    expect(bankFeedLink).toMatch(/enqueueJob/);
+    expect(bankFeedLink).toMatch(/jobKind:\s*'bank_sync'/);
+    expect(bankFeedLink).toMatch(/sourceKind:\s*'bank_connection'/);
+    expect(bankFeedLink).not.toMatch(/functions\/v1\/bank-sync/);
   });
 
   it('bank settings queues manual sync jobs instead of direct edge fetches', () => {

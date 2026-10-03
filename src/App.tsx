@@ -124,9 +124,6 @@ const AuditLogPage = lazy(() =>
 const GmailCallbackPage = lazy(() =>
   import('@/pages/GmailCallback').then((m) => ({ default: m.GmailCallbackPage })),
 );
-const BankCallbackPage = lazy(() =>
-  import('@/pages/BankCallback').then((m) => ({ default: m.BankCallbackPage })),
-);
 const XeroCallbackPage = lazy(() =>
   import('@/pages/XeroCallback').then((m) => ({ default: m.XeroCallbackPage })),
 );
@@ -257,7 +254,6 @@ export function App() {
               <Route path="settings/team" element={<TeamPage />} />
               <Route path="settings/audit-log" element={<AuditLogPage />} />
               <Route path="settings/gmail-callback" element={<GmailCallbackPage />} />
-              <Route path="settings/bank-callback" element={<BankCallbackPage />} />
               <Route path="settings/xero-callback" element={<XeroCallbackPage />} />
               <Route path="auth/callback/xero" element={<XeroCallbackPage />} />
               <Route path="payment-runs" element={<PaymentRunsPage />} />

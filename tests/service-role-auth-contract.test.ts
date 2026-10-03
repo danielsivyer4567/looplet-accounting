@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 const root = process.cwd();
 
 const serviceRoleBypassFunctions = [
-  'bank-discover',
   'bills-extract',
   'subscriptions-detect',
   'subscriptions-autoconfirm',

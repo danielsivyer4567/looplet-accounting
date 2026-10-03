@@ -1,8 +1,8 @@
 /**
  * xero-pull-bank-transactions — pulls Xero bank accounts + reconciled bank
  * transactions into the app's bank_accounts / bank_transactions tables. Xero
- * (where the real bank feed lives) is the source of truth; this replaces the
- * removed Basiq feed. The existing classifier / reconcile / job-attribution
+ * (where the real bank feed lives) is the source of truth for organisations
+ * without a Redbark feed. The existing classifier / reconcile / job-attribution
  * pipeline runs on the resulting bank_transactions unchanged.
  *
  * Bank accounts: Xero Accounts where Type=="BANK" → bank_accounts with

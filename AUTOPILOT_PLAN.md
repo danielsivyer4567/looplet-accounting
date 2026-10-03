@@ -62,7 +62,7 @@ Cross-tenant view leak closed, `system_defaults` locked, anon definer-fn execute
 
 ### EPIC C — Connect the money in _(parallel with B)_
 
-- [ ] **C1** Real Basiq (AU CDR) feed end-to-end (`bank-link → exchange → sync → webhook`).
+- [ ] **C1** Real Redbark bank feed end-to-end (`bank-feed-link → bank-sync → bank-webhook`); code in repo, not deployed (see `SETUP_BANK_FEEDS.md`).
 - [x] **C2a** Auto-reconcile proof safety code-complete: auto-applied bank
       matches use transactional RPC wrappers so the reconciliation evidence row
       is committed with the match or the match rolls back once deployed.

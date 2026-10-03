@@ -61,13 +61,14 @@ supabase secrets set --project-ref dxoikltymmknxqpkpyhi --env-file secrets.env
 | `XERO_STUB_MODE` | `false` in prod |
 | `XERO_DEFAULT_ACCOUNT_CODE` / `XERO_DEFAULT_INCOME_ACCOUNT_CODE` / `XERO_DEFAULT_TAX_TYPE` | optional defaults |
 
-### Bank feeds / Basiq
+### Bank feeds / Redbark
+See `SETUP_BANK_FEEDS.md` for the go-live steps.
+
 | Secret | Notes |
 |---|---|
-| `BASIQ_API_KEY` | Basiq API key |
-| `BASIQ_BASE_URL` | `https://au-api.basiq.io` |
-| `BASIQ_WEBHOOK_VERIFY_TOKEN` | random; `?token=` gate on bank-webhook |
-| `BASIQ_WEBHOOK_HMAC_SECRET` | optional; only if Basiq HMAC enabled |
+| `REDBARK_API_KEY` | read-only Redbark API key; edge functions only |
+| `REDBARK_WEBHOOK_SECRET` | the webhook destination's signing secret; bank-webhook refuses every delivery without it |
+| `REDBARK_ORGANIZATION_IDS` | comma-separated organisation UUIDs allowed to use the feed; unset means none |
 
 ### Gmail ingest
 | Secret | Notes |
@@ -123,8 +124,11 @@ Client ID/Secret → XERO_CLIENT_ID/_SECRET (+ VITE_XERO_CLIENT_ID)
 **Google Cloud** (Gmail): OAuth client → `GMAIL_CLIENT_ID/_SECRET`; Pub/Sub
 topic → `GMAIL_PUBSUB_TOPIC`; push subscription verify token → `GMAIL_PUSH_VERIFY_TOKEN`.
 
-**Basiq / Resend / AI providers / Perplexity:** issue an API key in each
+**Resend / AI providers / Perplexity:** issue an API key in each
 console → the matching secret above.
+
+**Redbark** (bank feed): a read-only API key → `REDBARK_API_KEY`; the webhook
+destination's signing secret → `REDBARK_WEBHOOK_SECRET`. See `SETUP_BANK_FEEDS.md`.
 
 ---
 
@@ -146,7 +150,7 @@ Diff of code-referenced vs actually-set secrets (`supabase secrets list`).
 - `CRM_SYNC_ENDPOINT_URL`, `CRM_SYNC_SECRET` — only when CRM P&L push goes live.
 - `XERO_DEFAULT_INCOME_ACCOUNT_CODE`, `XERO_SCOPES` — optional defaults.
 - `ANTHROPIC_API_KEY` (+ base/model) — only if `OCR_PROVIDER=anthropic`.
-- `BASIQ_WEBHOOK_HMAC_SECRET`, `*_BASE_URL`, `*_VISION_MODEL` — optional.
+- `*_BASE_URL`, `*_VISION_MODEL` — optional.
 
 **⚪ Set but unused by current code (safe to ignore / delete):**
 - `XERO_REDIRECT_URI` — redirect is frontend-driven (`VITE_XERO_REDIRECT_URI`).

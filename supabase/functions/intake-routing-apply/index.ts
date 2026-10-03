@@ -10,7 +10,7 @@
  * end of every intake pipeline:
  *   - bills-extract        (after OCR completes)
  *   - bank-csv-import      (after txns inserted)
- *   - bank-sync            (after Basiq pull, batch entry point)
+ *   - bank-sync            (after the Redbark pull, batch entry point)
  *
  * Triage UI seeds the rules; this function applies them. See migration 0036
  * for the active-rules-by-priority index that backs the lookup.

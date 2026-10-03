@@ -2,8 +2,8 @@
   "generated_at": "2026-07-02",
   "project_ref": "dxoikltymmknxqpkpyhi",
   "evidence": "supabase functions list --project-ref dxoikltymmknxqpkpyhi --output json",
-  "local_function_count": 78,
-  "live_observed_count": 69,
+  "local_function_count": 74,
+  "live_observed_count": 65,
   "local_only": [
     "ato-correspondence",
     "bank-disconnect",
@@ -73,28 +73,12 @@
       "deploy_by_default": false
     },
     {
-      "name": "bank-discover",
-      "deploy_by_default": true
-    },
-    {
-      "name": "bank-exchange",
-      "deploy_by_default": true
-    },
-    {
       "name": "bank-feed-accounts",
       "deploy_by_default": false
     },
     {
       "name": "bank-feed-link",
       "deploy_by_default": false
-    },
-    {
-      "name": "bank-job-poll",
-      "deploy_by_default": true
-    },
-    {
-      "name": "bank-link-token",
-      "deploy_by_default": true
     },
     {
       "name": "bank-statement-extract",

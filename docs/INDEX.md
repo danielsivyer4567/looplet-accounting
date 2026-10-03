@@ -66,11 +66,10 @@ Labels:
 | `docs/XERO_WHOLE_APP_COMPETITIVE_BENCHMARK.md` | active         | Whole-app Xero comparison and must-prove competitive list.           |
 | `docs/CREDENTIALS.md`                          | runbook        | Credentials setup checklist and live secret audit.                   |
 | `docs/CRM_PNL_SYNC_CONTRACT.md`                | active         | Accounting→CRM P&L push contract and schema_version.                 |
-| `docs/HANDOVER-claude-chrome-basiq-key-2026-07-02.md` | handover | Basiq key browser-agent handover (July 2).                           |
+| `docs/HANDOVER-claude-chrome-basiq-key-2026-07-02.md` | handover | Retired bank-feed provider key handover (July 2).                    |
 | `docs/HANDOVER-claude-chrome-oauth-2026-07-02.md` | handover    | OAuth browser-agent handover (July 2).                               |
 | `docs/HANDOVER-claude-chrome-xero-2026-07-03.md` | handover     | Xero connect browser-agent handover (July 3).                        |
 | `docs/HANDOVER-claude-chrome-xero-2026-07-03-v2.md` | handover  | Xero connect browser-agent handover v2 (July 3).                     |
 | `docs/HANDOVER-crm-sync-2026-07-02.md`         | handover       | CRM sync handover (July 2).                                          |
 | `docs/HANDOVER-xero-connect-2026-07-03.md`     | handover       | Xero connect handover (July 3).                                      |
-| `docs/REFERENCE-basiq-api.md`                  | active         | Basiq API reference notes.                                           |
 | `docs/WIRING_ACTIVATION_PLAN.md`               | tracker        | Live-wiring activation status and plan.                              |

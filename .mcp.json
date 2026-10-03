@@ -1,7 +1,3 @@
 {
-  "mcpServers": {
-    "basiq": {
-      "url": "https://api.basiq.io/mcp"
-    }
-  }
+  "mcpServers": {}
 }

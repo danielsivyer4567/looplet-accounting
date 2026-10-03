@@ -637,7 +637,7 @@ The brutal-honesty list. Each is a real feature someone will ask for. Each
 is a v2+ problem.
 
 - ❌ ~~Multi-org / agency multi-tenancy~~ — **REVERSED:** multi-tenant from day 1, see Foundational Disciplines. What's deferred is *agency* hierarchies (one bookkeeper firm managing 50 client entities with cross-entity dashboards) — that's v1.5+.
-- ❌ Bank reconciliation (Xero handles bank rec for v1; v2 = Basiq feed)
+- ❌ Bank reconciliation (Xero handles bank rec for v1; v2 = Redbark bank feed)
 - ❌ Direct ATO BAS lodgement (regulated, partner play)
 - ❌ Multi-currency (AUD-only)
 - ❌ MYOB / QuickBooks adapters (Xero only)

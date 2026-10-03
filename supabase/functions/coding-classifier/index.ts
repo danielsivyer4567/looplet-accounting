@@ -743,7 +743,7 @@ Deno.serve(async (req: Request) => {
     //
     // A trusted backend caller (intake-routing-apply / automation-worker) is detected
     // by EXACT comparison of the bearer against SUPABASE_SERVICE_ROLE_KEY — the same
-    // hardened pattern as bank-discover/bills-extract/subscriptions-detect. Do NOT
+    // hardened pattern as bank-sync/bills-extract/subscriptions-detect. Do NOT
     // rely on "the role travels in the JWT": with new-format API keys the injected
     // service key is `sb_secret_…` (not a JWT), so a caller-scoped PostgREST load
     // with it fails with "Expected 3 parts in JWT". The org is still derived from
