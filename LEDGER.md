@@ -40,7 +40,7 @@
 | BAS-01 | BAS includes credit notes, supports cash basis and computes W3/W4 instead of hard-coded zeros | done | done @ ff315841, awaiting independent verify |
 | GST-01 | No GST credit is invented when GST is missing or the supplier is not GST-registered | done | done @ 3159f8e1, awaiting independent verify |
 | TAX-01 | The tax set-aside uses GST-exclusive figures for one financial year | done | done @ ff315841, awaiting independent verify |
-| INV-01 | Invoices can be issued as a tax invoice (PDF with "Tax invoice", ABN and GST) and sent | open | not run |
+| INV-01 | Invoices can be issued as a tax invoice (PDF with "Tax invoice", ABN and GST) and sent | done | done @ 527121f4, awaiting independent verify |
 | DATE-01 | Default dates use Australian local time, not UTC | open | not run |
 | SEED-01 | New organisations do not inherit the pilot business known-sender list | done | done @ ff315841, awaiting independent verify |
 | XERO-02 | The Xero bank pull writes schema-valid rows (real connection, valid account type) | done | done @ a222e68f, awaiting independent verify |

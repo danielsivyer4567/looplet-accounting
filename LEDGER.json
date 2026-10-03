@@ -8761,14 +8761,41 @@
       "title": "Invoices can be issued as a tax invoice (PDF with \"Tax invoice\", ABN and GST) and sent",
       "area": "broken",
       "priority": 55,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/TaxInvoiceIssue.test.tsx\""
       ],
       "paths": [
         "src/pages/InvoiceDetail.tsx"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/TaxInvoiceIssue.test.tsx\"",
+          "exit": 1,
+          "head": "fb3f7ece6cc5a069ad3c657184516d0567666a97",
+          "dirty": [],
+          "at": "2026-10-03T02:43:01.260Z",
+          "ms": 1222,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/INV-01-001.log",
+          "log_sha256": "66965762cd25063d9187b25841a235e2eb8dc92ebb0dadcedb02a8ab6595343a"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/TaxInvoiceIssue.test.tsx\"",
+          "exit": 0,
+          "head": "527121f47963c1c400451917608a601ecc1a2072",
+          "dirty": [],
+          "at": "2026-10-03T02:43:04.112Z",
+          "ms": 2215,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/INV-01-002.log",
+          "log_sha256": "5b12a32466c8cde510f25efc9d99728ecb62cc9a5c3abbed49752c53399f29d6"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -8776,8 +8803,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:42:59.912Z",
+          "event": "start",
+          "head": "fb3f7ece6cc5a069ad3c657184516d0567666a97",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:43:01.261Z",
+          "event": "run",
+          "head": "fb3f7ece6cc5a069ad3c657184516d0567666a97",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:43:04.112Z",
+          "event": "run",
+          "head": "527121f47963c1c400451917608a601ecc1a2072",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:43:04.251Z",
+          "event": "done",
+          "head": "527121f47963c1c400451917608a601ecc1a2072",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T02:43:04.235Z",
+        "head": "527121f47963c1c400451917608a601ecc1a2072",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "DATE-01",
@@ -11627,5 +11690,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T02:42:57.916Z"
+  "updated_at": "2026-10-03T02:43:04.266Z"
 }
