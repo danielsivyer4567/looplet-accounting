@@ -7,9 +7,9 @@
 //      the same request (so a stable Idempotency-Key is sent twice, not churned).
 //   2. callXeroWithRetry — 429 surfaces a XeroApiError(status=429) with the
 //      Retry-After value, so the caller can back off (no duplicate POST).
-//   3. STUB-mode: pushBillToXero short-circuits to a deterministic STUB id with
-//      no network, keeping CI green without Xero creds (XERO_STUB_MODE / no
-//      XERO_CLIENT_ID), and the durable key derivation never hits the wire.
+//   3. XERO_STUB_MODE: pushBillToXero sends nothing and reports not_connected
+//      (no placeholder id, no "success" sync-log row), keeping CI offline
+//      without Xero creds. More cases live in adapter.test.ts (XERO-01).
 //
 // We hand-roll a minimal SupabaseClient stub (only the surface these paths use)
 // so the test runs offline. Tokens are set un-expired so no refresh fetch fires.
@@ -186,8 +186,8 @@ Deno.test('xeroFetch: threads bearer + tenant headers and the Idempotency-Key', 
   assertEquals(captured.headers.get('Idempotency-Key'), 'stable-key-123');
 });
 
-Deno.test('STUB-mode: pushBillToXero short-circuits without network', async () => {
-  // No XERO_CLIENT_ID + explicit stub flag → deterministic STUB id, no fetch.
+Deno.test('XERO_STUB_MODE: pushBillToXero sends nothing and reports not_connected', async () => {
+  // No XERO_CLIENT_ID + explicit stub flag → not connected, no fetch, no fake id.
   Deno.env.set('XERO_STUB_MODE', 'true');
   Deno.env.delete('XERO_CLIENT_ID');
 
@@ -219,13 +219,11 @@ Deno.test('STUB-mode: pushBillToXero short-circuits without network', async () =
       },
       job: { id: 'job-1', job_number: 'JOB-9', name: 'Fence' },
     });
-    assertEquals(res.isStub, true);
-    assert(res.xeroInvoiceId.startsWith('STUB-'));
-    // Deterministic from the bill id prefix.
-    assertEquals(res.xeroInvoiceId, 'STUB-AAAAAAAA');
+    assertEquals(res.status, 'not_connected');
+    assertEquals('xeroInvoiceId' in res, false, 'no placeholder Xero id');
     assertEquals(networkHit, false, 'stub mode must not touch the network');
-    // Audit row appended.
-    assertEquals(state.syncLogInserts.length, 1);
+    // Nothing reached Xero, so nothing is logged as a successful push.
+    assertEquals(state.syncLogInserts.length, 0);
   } finally {
     globalThis.fetch = realFetch;
     Deno.env.delete('XERO_STUB_MODE');

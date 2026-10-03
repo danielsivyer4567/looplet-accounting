@@ -18,7 +18,7 @@
  */
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { pushBillToXero } from '../xero/adapter.ts';
+import { billXeroSyncUpdate, pushBillToXero } from '../xero/adapter.ts';
 import type { ExtractedBill } from '../ocr/prompt.ts';
 
 const AUTO_ATTACH_SCORE_THRESHOLD = 1.0;
@@ -37,8 +37,9 @@ export interface RouterResult {
   matched_job_id?: string;
   matched_job_number?: string;
   match_score?: number;
+  /** `synced` only with an id Xero returned; `not_connected` sent nothing. */
+  xero_status?: 'synced' | 'not_connected';
   xero_invoice_id?: string;
-  xero_is_stub?: boolean;
 }
 
 export async function routeBill(args: RouterArgs): Promise<RouterResult> {
@@ -126,7 +127,8 @@ async function autoAttach(
     })
     .eq('id', args.billId);
 
-  // Push to Xero (real or stub)
+  // Push to Xero. Only an id Xero returned marks the bill synced; not connected
+  // leaves it pending.
   try {
     const result = await pushBillToXero({
       admin: args.admin,
@@ -135,22 +137,15 @@ async function autoAttach(
       job: { id: match.matched_job_id, job_number: match.job_number, name: '' },
     });
 
-    await args.admin
-      .from('bills')
-      .update({
-        xero_status: 'synced',
-        xero_invoice_id: result.xeroInvoiceId,
-        xero_synced_at: now,
-      })
-      .eq('id', args.billId);
+    await args.admin.from('bills').update(billXeroSyncUpdate(result, now)).eq('id', args.billId);
 
     return {
       outcome: 'auto_attached',
       matched_job_id: match.matched_job_id,
       matched_job_number: match.job_number,
       match_score: match.score,
-      xero_invoice_id: result.xeroInvoiceId,
-      xero_is_stub: result.isStub,
+      xero_status: result.status,
+      xero_invoice_id: result.status === 'synced' ? result.xeroInvoiceId : undefined,
     };
   } catch (err) {
     // Xero push failed — bill is still attached locally, mark Xero as failed

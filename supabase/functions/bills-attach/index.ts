@@ -7,12 +7,15 @@
  *   - No reconciliation drift, no per-bill chatter during the job
  *
  * Input:  { bill_id: UUID, job_id: UUID }
- * Output: { ok: true, xero_invoice_id?: string, is_stub: boolean }
+ * Output: { ok: true, xero_status: 'synced' | 'not_connected', xero_invoice_id: string | null,
+ *           xero_message?: string }
+ * The bill is only marked synced with the id Xero returned. Not connected leaves it
+ * pending; a failed push marks it failed and returns 502 (the bill stays attached).
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
-import { pushBillToXero } from '../_shared/xero/adapter.ts';
+import { billXeroSyncUpdate, pushBillToXero } from '../_shared/xero/adapter.ts';
 
 interface RequestBody {
   bill_id: string;
@@ -86,27 +89,36 @@ Deno.serve(async (req) => {
       .eq('id', bill.id);
     if (updateErr) return json({ ok: false, error: `Attach failed: ${updateErr.message}` }, 500);
 
-    // Push to Xero (real or stub)
-    const result = await pushBillToXero({
-      admin,
-      organizationId: bill.organization_id,
-      bill,
-      job,
-    });
+    // Push to Xero. Only an id Xero returned marks the bill synced.
+    let result;
+    try {
+      result = await pushBillToXero({
+        admin,
+        organizationId: bill.organization_id,
+        bill,
+        job,
+      });
+    } catch (pushErr) {
+      const pushMsg = pushErr instanceof Error ? pushErr.message : String(pushErr);
+      await admin.from('bills').update({ xero_status: 'failed' }).eq('id', bill.id);
+      return json(
+        {
+          ok: false,
+          attached: true,
+          xero_status: 'failed',
+          error: `Bill attached to the job, but sending it to Xero failed: ${pushMsg}`,
+        },
+        502,
+      );
+    }
 
-    await admin
-      .from('bills')
-      .update({
-        xero_status: 'synced',
-        xero_invoice_id: result.xeroInvoiceId,
-        xero_synced_at: now,
-      })
-      .eq('id', bill.id);
+    await admin.from('bills').update(billXeroSyncUpdate(result, now)).eq('id', bill.id);
 
     return json({
       ok: true,
-      xero_invoice_id: result.xeroInvoiceId,
-      is_stub: result.isStub,
+      xero_status: result.status,
+      xero_invoice_id: result.status === 'synced' ? result.xeroInvoiceId : null,
+      ...(result.status === 'not_connected' ? { xero_message: result.reason } : {}),
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

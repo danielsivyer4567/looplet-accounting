@@ -8,7 +8,7 @@
  */
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
-import { pushBillToXero } from '../_shared/xero/adapter.ts';
+import { billXeroSyncUpdate, pushBillToXero } from '../_shared/xero/adapter.ts';
 import {
   pushBillToGenericApi,
   GenericApiNotConfigured,
@@ -224,21 +224,21 @@ async function processSyncJob(admin: SupabaseClient, job: ReceiptSyncJob) {
       return { id: job.id, provider: job.provider, status: 'synced', http_status: result.status };
     }
 
-    // Xero
+    // Xero. Not connected sends nothing: the job is skipped and the bill stays
+    // pending, never "synced" without an id Xero returned.
     const result = await pushBillToXero({
       admin,
       organizationId: job.organization_id,
       bill: b,
       job: jobForPush,
     });
+    if (result.status === 'not_connected') {
+      throw new PermanentSyncSkip(`${result.reason} Connect Xero, then sync this receipt again.`);
+    }
 
     await admin
       .from('bills')
-      .update({
-        xero_status: 'synced',
-        xero_invoice_id: result.xeroInvoiceId,
-        xero_synced_at: new Date().toISOString(),
-      })
+      .update(billXeroSyncUpdate(result, new Date().toISOString()))
       .eq('id', b.id);
 
     await admin
@@ -251,7 +251,6 @@ async function processSyncJob(admin: SupabaseClient, job: ReceiptSyncJob) {
           dispatch_result: {
             provider: job.provider,
             xero_invoice_id: result.xeroInvoiceId,
-            is_stub: result.isStub,
             synced_at: new Date().toISOString(),
           },
         },
@@ -263,7 +262,6 @@ async function processSyncJob(admin: SupabaseClient, job: ReceiptSyncJob) {
       provider: job.provider,
       status: 'synced',
       xero_invoice_id: result.xeroInvoiceId,
-      is_stub: result.isStub,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
