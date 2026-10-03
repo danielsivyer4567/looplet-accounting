@@ -43,7 +43,7 @@
 | INV-01 | Invoices can be issued as a tax invoice (PDF with "Tax invoice", ABN and GST) and sent | open | not run |
 | DATE-01 | Default dates use Australian local time, not UTC | open | not run |
 | SEED-01 | New organisations do not inherit the pilot business known-sender list | done | done @ 39ae153e, awaiting independent verify |
-| XERO-02 | The Xero bank pull writes schema-valid rows (real connection, valid account type) | open | not run |
+| XERO-02 | The Xero bank pull writes schema-valid rows (real connection, valid account type) | done | done @ a222e68f, awaiting independent verify |
 | BS-01 | The balance sheet does not count credit-card and loan balances as both cash and debts | done | done @ 39ae153e, awaiting independent verify |
 | CI-01 | CI runs the Deno edge-function tests and reports environment-gated test files instead of skipping them silently | open | not run |
 | UI-01 | Light theme polish: themed colours everywhere, no hard-coded dark-only colours, auth screens in the new style | open | not run |

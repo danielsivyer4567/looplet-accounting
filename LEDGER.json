@@ -6225,14 +6225,41 @@
       "title": "The Xero bank pull writes schema-valid rows (real connection, valid account type)",
       "area": "broken",
       "priority": 58,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/xero-pull-bank-transactions/rows.test.ts\""
       ],
       "paths": [
         "supabase/functions/xero-pull-bank-transactions"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/xero-pull-bank-transactions/rows.test.ts\"",
+          "exit": 1,
+          "head": "ef73a5544e75a72706bbffb6310a92d47f9499a8",
+          "dirty": [],
+          "at": "2026-10-03T01:58:32.014Z",
+          "ms": 916,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/XERO-02-001.log",
+          "log_sha256": "cec99fd729f9e4ef87e4ef324cfc7a4f59b4ed9a3f47c55033f53f6802e75b30"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/xero-pull-bank-transactions/rows.test.ts\"",
+          "exit": 0,
+          "head": "a222e68f0aa398a3216e462105bc8733bd166d3d",
+          "dirty": [],
+          "at": "2026-10-03T01:58:33.427Z",
+          "ms": 800,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/XERO-02-002.log",
+          "log_sha256": "65141c8bc030d9a832319ed1a613460e2b64b4858a420509ed27d370d722d015"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -6240,8 +6267,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:58:30.881Z",
+          "event": "start",
+          "head": "ef73a5544e75a72706bbffb6310a92d47f9499a8",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:58:32.015Z",
+          "event": "run",
+          "head": "ef73a5544e75a72706bbffb6310a92d47f9499a8",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:58:33.428Z",
+          "event": "run",
+          "head": "a222e68f0aa398a3216e462105bc8733bd166d3d",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:58:33.543Z",
+          "event": "done",
+          "head": "a222e68f0aa398a3216e462105bc8733bd166d3d",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T01:58:33.529Z",
+        "head": "a222e68f0aa398a3216e462105bc8733bd166d3d",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "BS-01",
@@ -8053,5 +8116,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T01:58:29.078Z"
+  "updated_at": "2026-10-03T01:58:33.558Z"
 }
