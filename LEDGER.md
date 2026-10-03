@@ -12,34 +12,34 @@
 | SEC-02 | staged-entities-enrich-sonar, bank-statement-extract, crm-pnl-sync-push and ato-lodge refuse unauthenticated calls | verified | verified by claude-verifier (independent subagent) @ 60b94a38 |
 | SEC-03 | Payment-run, ABA export, mark-paid, super-batch and termination functions require an accepted admin or owner | verified | verified by claude-verifier (independent subagent) @ bbdacc04 |
 | SEC-04 | Xero and Gmail OAuth state is signed, bound to the user and mandatory on callback | verified | verified by claude-verifier (independent subagent) @ 60b94a38 |
-| SEC-05 | Writes to money tables (payees, bills, invoices, journals, period locks, employees, payment runs) need an accountant or admin role; viewers are read-only | done | done @ 3c0322f0, awaiting independent verify |
+| SEC-05 | Writes to money tables (payees, bills, invoices, journals, period locks, employees, payment runs) need an accountant or admin role; viewers are read-only | done | done @ 8e38edda, awaiting independent verify |
 | SEC-06 | CI uses least-privilege permissions, SHA-pinned actions and a deploy job separate from build | open | not run |
 | SEC-07 | Hardening: CORS allow-list, constant-time secret checks, bundled pdf.js worker, cron secrets in headers, generic error responses | open | not run |
 | PAY-01 | Pay runs calculate wages from the base hourly rate, not the loaded cost rate | done | done @ 12c30b4b, awaiting independent verify |
 | PAY-02 | Super defaults to the statutory rate (12%) and a pay run never applies less than the SG rate for the pay date | done | done @ c15d2808, awaiting independent verify |
-| PAY-03 | PAYG withholding uses the financial year of the pay date and fails loudly instead of returning $0 when no table applies | done | done @ 3c0322f0, awaiting independent verify |
-| PAY-04 | FY2026-27 PAYG withholding tables match the ATO schedule (NAT 1004) worked examples | done | done @ 3c0322f0, awaiting independent verify |
-| PAY-05 | Payday Super (from 1 July 2026) drives super due dates instead of quarterly batching | done | done @ 3c0322f0, awaiting independent verify |
+| PAY-03 | PAYG withholding uses the financial year of the pay date and fails loudly instead of returning $0 when no table applies | done | done @ 8e38edda, awaiting independent verify |
+| PAY-04 | FY2026-27 PAYG withholding tables match the ATO schedule (NAT 1004) worked examples | done | done @ 8e38edda, awaiting independent verify |
+| PAY-05 | Payday Super (from 1 July 2026) drives super due dates instead of quarterly batching | done | done @ 8e38edda, awaiting independent verify |
 | XERO-01 | Bills and invoices are never marked synced to Xero unless Xero accepted them (no STUB ids in production) | open | not run |
 | FAKE-01 | Receipt Hub has no POS simulator, fake receipts or hard-coded demo figures | open | not run |
 | FAKE-02 | The Scan page describes only the checks it really runs (no simulated AI audit) | open | not run |
 | CONSENT-01 | Settings has no pre-ticked, unsaved or unrelated template consent switches | open | not run |
 | LEGAL-01 | A privacy policy, terms of service and collection notice are published, linked, and accepted at sign-up | open | not run |
 | AI-01 | AI answers and advice are labelled general information, and the model is allowed to recommend an accountant | open | not run |
-| TFN-01 | TFNs are never returned to the browser or stored in plain text | done | done @ 3c0322f0, awaiting independent verify |
+| TFN-01 | TFNs are never returned to the browser or stored in plain text | done | done @ 8e38edda, awaiting independent verify |
 | LODGE-01 | Nothing claims to lodge with the ATO or send to a super fund when it only prepares a file | open | not run |
 | BANK-01 | Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs | done | done @ a1207fd2, awaiting independent verify |
 | BANK-02 | Redbark client pages accounts and transactions, splits truncated date windows, converts dollars to exact cents and skips pending rows | done | done @ 62a46f2a, awaiting independent verify |
 | BANK-03 | bank-webhook verifies Redbark signatures and timestamps, stores the event before acting and dispatches one sync per linked connection | done | done @ 6468e475, awaiting independent verify |
 | BANK-04 | bank-sync imports Redbark transactions idempotently on (bank account, provider id) and keeps the post-sync chain | done | done @ 62a46f2a, awaiting independent verify |
 | BANK-05 | Admins can list Redbark accounts and link each one to a bank account with an import-from date | done | done @ b66e21cf, awaiting independent verify |
-| BANK-06 | Redbark migrations apply cleanly and enforce one organisation per Redbark connection | done | done @ 3c0322f0, awaiting independent verify |
+| BANK-06 | Redbark migrations apply cleanly and enforce one organisation per Redbark connection | done | done @ 8e38edda, awaiting independent verify |
 | BANK-07 | Redbark is live: migrations applied, functions deployed, secrets set and the destination delivering into the books | blocked | BLOCKED: Deploying needs a Supabase access token, function secrets and credential rotation first. (needs: Daniel: credential rotation (INC-02), a scoped Supabase access token for project looplet accounting (Database + Edge functions), the Redbark API key and webhook secret entered at a hidden prompt, and an explicit yes to deploy.) |
 | STP-01 | Employees TFNs can be captured securely so the STP export can complete | done | done @ 13a8b935, awaiting independent verify |
 | CSP-01 | PDF previews and the microphone feature work under the production security headers | open | not run |
-| BAS-01 | BAS includes credit notes, supports cash basis and computes W3/W4 instead of hard-coded zeros | done | done @ 3c0322f0, awaiting independent verify |
+| BAS-01 | BAS includes credit notes, supports cash basis and computes W3/W4 instead of hard-coded zeros | done | done @ 8e38edda, awaiting independent verify |
 | GST-01 | No GST credit is invented when GST is missing or the supplier is not GST-registered | open | not run |
-| TAX-01 | The tax set-aside uses GST-exclusive figures for one financial year | done | done @ a9f5ade0, awaiting independent verify |
+| TAX-01 | The tax set-aside uses GST-exclusive figures for one financial year | done | done @ 8e38edda, awaiting independent verify |
 | INV-01 | Invoices can be issued as a tax invoice (PDF with "Tax invoice", ABN and GST) and sent | open | not run |
 | DATE-01 | Default dates use Australian local time, not UTC | open | not run |
 | SEED-01 | New organisations do not inherit the pilot business known-sender list | open | not run |
@@ -55,7 +55,7 @@
 | SEC-08 | bills-allocate-batch checks the caller's own accepted membership and needs accountant or higher to change allocations | verified | verified by claude-verifier (independent subagent) @ bbdacc04 |
 | SEC-09 | accountant-email-query matches the sender's accepted accountant memberships by role_enum, so the emailed activity digest works | verified | verified by claude-verifier (independent subagent) @ bbdacc04 |
 | MIG-01 | Every migration applies in order to a fresh database, so the history can rebuild the schema (no known failures left) | open | not run |
-| SEC-10 | SECURITY DEFINER functions that users call and that write money tables check the caller's role | done | done @ 3c0322f0, awaiting independent verify |
-| SEC-11 | Bills only reference suppliers of their own organisation, so payment runs never copy another organisation's payee bank details | done | done @ 3c0322f0, awaiting independent verify |
+| SEC-10 | SECURITY DEFINER functions that users call and that write money tables check the caller's role | done | done @ 8e38edda, awaiting independent verify |
+| SEC-11 | Bills only reference suppliers of their own organisation, so payment runs never copy another organisation's payee bank details | done | done @ 8e38edda, awaiting independent verify |
 
 Acceptance commands, every run, exit codes and log hashes are in LEDGER.json; logs are in .ledger/logs/.

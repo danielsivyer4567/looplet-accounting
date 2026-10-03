@@ -1,0 +1,4 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/db/run-pg-sql-tests.mjs tests/db-sql/definer-write-roles.sql"
+migrations: 283 applied, 9 known failures, 0 problems (292 files)
+PASS tests/db-sql/definer-write-roles.sql
+  NOTICE:  definer write roles: 8 audited functions gated, 56 call probes as expected
