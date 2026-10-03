@@ -13272,7 +13272,7 @@
       "title": "Data-completeness sweep functions can only be run by the service role, not by signed-in users",
       "area": "security",
       "priority": 15,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/sweep-functions-service-only.sql\""
       ],
@@ -13280,7 +13280,62 @@
         "supabase/migrations",
         "tests/db-sql/sweep-functions-service-only.sql"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/sweep-functions-service-only.sql\"",
+          "exit": 1,
+          "head": "0468459d4057bf7ebd91cb66df4e411018832204",
+          "dirty": [
+            "tests/db-sql/sweep-functions-service-only.sql"
+          ],
+          "at": "2026-10-03T03:06:26.279Z",
+          "ms": 44064,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-12-001.log",
+          "log_sha256": "a00ef5786a022742df0c6435eba9a46940089ced4a2697941a373bfa7758817d"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/sweep-functions-service-only.sql\"",
+          "exit": 1,
+          "head": "148c635cd49837a55856fa0138078d4bda9555c3",
+          "dirty": [],
+          "at": "2026-10-03T03:07:09.062Z",
+          "ms": 42422,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-12-002.log",
+          "log_sha256": "78268127c71f2d76b7fa752495f5ab96a496ec8bd4beaa6d1adb98dfef0a7993"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/sweep-functions-service-only.sql\"",
+          "exit": 1,
+          "head": "148c635cd49837a55856fa0138078d4bda9555c3",
+          "dirty": [],
+          "at": "2026-10-03T03:07:51.108Z",
+          "ms": 41735,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-12-003.log",
+          "log_sha256": "78268127c71f2d76b7fa752495f5ab96a496ec8bd4beaa6d1adb98dfef0a7993"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/sweep-functions-service-only.sql\"",
+          "exit": 0,
+          "head": "5f56fbcf234608e7795fe73a193881670ec98c62",
+          "dirty": [],
+          "at": "2026-10-03T03:09:26.552Z",
+          "ms": 49472,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-12-004.log",
+          "log_sha256": "74bdf79eb57e2f35470ddbe5e8fa38e28fdf44e9364b0005298b26275172ada2"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -13288,8 +13343,60 @@
           "event": "added",
           "head": "8e82fd1aa6198f7a512c66bbafbcd1edb40d982c",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:05:42.064Z",
+          "event": "start",
+          "head": "0468459d4057bf7ebd91cb66df4e411018832204",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:06:26.280Z",
+          "event": "run",
+          "head": "0468459d4057bf7ebd91cb66df4e411018832204",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T03:07:09.063Z",
+          "event": "run",
+          "head": "148c635cd49837a55856fa0138078d4bda9555c3",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T03:07:51.109Z",
+          "event": "run",
+          "head": "148c635cd49837a55856fa0138078d4bda9555c3",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T03:09:26.553Z",
+          "event": "run",
+          "head": "5f56fbcf234608e7795fe73a193881670ec98c62",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T03:09:26.672Z",
+          "event": "done",
+          "head": "5f56fbcf234608e7795fe73a193881670ec98c62",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T03:09:26.657Z",
+        "head": "5f56fbcf234608e7795fe73a193881670ec98c62",
+        "by": "claude-worker",
+        "runs": [
+          4
+        ]
+      }
     },
     {
       "id": "PAY-06",
@@ -13412,5 +13519,5 @@
       ]
     }
   ],
-  "updated_at": "2026-10-03T03:05:41.793Z"
+  "updated_at": "2026-10-03T03:09:26.686Z"
 }
