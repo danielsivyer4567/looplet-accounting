@@ -8,6 +8,14 @@ import { SkeletonTable } from '@/components/Skeleton';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import {
+  addDays,
+  financialYearQuarter,
+  orgTimeZone,
+  startOfFinancialYear,
+  todayLocal,
+  weekdayOf,
+} from '@/lib/localDates';
+import {
   Plus,
   DollarSign,
   Wallet,
@@ -88,7 +96,7 @@ export function PayrollPage() {
   if (!currentOrg) return null;
 
   const ytdTotals = runs
-    .filter((r) => r.status === 'paid' && r.pay_date >= fyStart())
+    .filter((r) => r.status === 'paid' && r.pay_date >= fyStart(orgTimeZone(currentOrg)))
     .reduce(
       (acc, r) => ({
         gross: acc.gross + Number(r.total_gross_cents),
@@ -162,7 +170,9 @@ export function PayrollPage() {
   });
 
   // Current AU FY quarter for the super-batch section.
-  const { fyStart: superFyStart, quarter: superQuarter } = currentAuFyQuarter();
+  const { fyStart: superFyStart, quarter: superQuarter } = currentAuFyQuarter(
+    orgTimeZone(currentOrg),
+  );
 
   return (
     <section className="animated-fade-in">
@@ -628,19 +638,18 @@ function CreatePayRunForm({
 }) {
   const { currentOrg } = useOrg();
   const [frequency, setFrequency] = useState<'weekly' | 'fortnightly' | 'monthly'>('weekly');
-  const today = new Date();
-  const monday = new Date(today);
-  const day = monday.getDay();
+  // Default to last week (Monday to Sunday), paid the Wednesday after, as dates in the
+  // organisation's time zone.
+  const today = todayLocal(orgTimeZone(currentOrg));
+  const day = weekdayOf(today);
   const diffToMon = day === 0 ? -6 : 1 - day;
-  monday.setDate(today.getDate() + diffToMon - 7);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  const payDate = new Date(sunday);
-  payDate.setDate(sunday.getDate() + 3);
+  const monday = addDays(today, diffToMon - 7);
+  const sunday = addDays(monday, 6);
+  const payDate = addDays(sunday, 3);
 
-  const [periodStart, setPeriodStart] = useState(monday.toISOString().slice(0, 10));
-  const [periodEnd, setPeriodEnd] = useState(sunday.toISOString().slice(0, 10));
-  const [payDateStr, setPayDateStr] = useState(payDate.toISOString().slice(0, 10));
+  const [periodStart, setPeriodStart] = useState(monday);
+  const [periodEnd, setPeriodEnd] = useState(sunday);
+  const [payDateStr, setPayDateStr] = useState(payDate);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(employees.map((e) => e.id)));
   const [claimsThreshold, setClaimsThreshold] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -856,21 +865,15 @@ function CreatePayRunForm({
   );
 }
 
-function fyStart(): string {
-  const now = new Date();
-  const y = now.getMonth() + 1 >= 7 ? now.getFullYear() : now.getFullYear() - 1;
-  return `${y}-07-01`;
+/** 1 July of the current AU financial year, judged on today's date in the org's time zone. */
+function fyStart(timeZone: string): string {
+  return startOfFinancialYear(todayLocal(timeZone));
 }
 
-/** Current AU FY quarter (FY starts 1 Jul). getMonth() is 0-based, so Jul = 6. */
-function currentAuFyQuarter(): { fyStart: number; quarter: number } {
-  const now = new Date();
-  const m = now.getMonth(); // 0 = Jan … 11 = Dec
-  const fyMonth = (m + 6) % 12; // 0 = Jul … 11 = Jun
-  return {
-    fyStart: m >= 6 ? now.getFullYear() : now.getFullYear() - 1,
-    quarter: Math.floor(fyMonth / 3) + 1,
-  };
+/** Current AU FY quarter (FY starts 1 Jul) in the org's time zone. */
+function currentAuFyQuarter(timeZone: string): { fyStart: number; quarter: number } {
+  const { fyStartYear, quarter } = financialYearQuarter(todayLocal(timeZone));
+  return { fyStart: fyStartYear, quarter };
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

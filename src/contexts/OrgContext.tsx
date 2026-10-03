@@ -12,7 +12,12 @@ interface EmbeddedOrg {
   name: string;
   abn: string | null;
   organization_type: Organization['organization_type'];
-  business_profile: { entity_type: string | null } | { entity_type: string | null }[] | null;
+  business_profile: EmbeddedProfile | EmbeddedProfile[] | null;
+}
+
+interface EmbeddedProfile {
+  entity_type: string | null;
+  state_code?: string | null;
 }
 
 interface MembershipRow {
@@ -39,7 +44,8 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     // Memberships → orgs (RLS does the org-id filtering automatically). We carry
     // the caller's role_enum/accepted_at and the org's entity_type so the client
-    // picker and role-aware landing can reason about accountant access.
+    // picker and role-aware landing can reason about accountant access, and its
+    // state_code so default dates use the org's time zone (lib/localDates.ts).
     //
     // PENDING-INVITE GATE (P0-01): a pending membership (accepted_at IS NULL) is
     // created the moment a user is invited; it must NOT surface the org until the
@@ -50,7 +56,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
     const { data, error } = await supabase
       .from('organization_memberships')
       .select(
-        'role_enum, accepted_at, organizations(id, name, abn, organization_type, business_profile(entity_type))',
+        'role_enum, accepted_at, organizations(id, name, abn, organization_type, business_profile(entity_type, state_code))',
       )
       .eq('user_id', user.id)
       .not('accepted_at', 'is', null);
@@ -79,6 +85,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
           role_enum: row.role_enum,
           accepted_at: row.accepted_at,
           entity_type: profile?.entity_type ?? null,
+          state_code: profile?.state_code ?? null,
         };
       })
       .filter((o): o is Organization => o !== null);

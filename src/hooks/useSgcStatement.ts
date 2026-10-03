@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { DEFAULT_TIME_ZONE, localDateParts } from '@/lib/localDates';
 
 export interface SgcPaySlipRow {
   pay_slip_id: string;
@@ -84,9 +85,9 @@ export interface SgcPeriod {
   quarter: number;
 }
 
-export function latestCompletedSgcPeriod(today = new Date()): SgcPeriod {
-  const month = today.getMonth() + 1;
-  const year = today.getFullYear();
+/** The latest completed SG quarter, judged on the date in Australian time. */
+export function latestCompletedSgcPeriod(today = new Date(), timeZone = DEFAULT_TIME_ZONE): SgcPeriod {
+  const { year, month } = localDateParts(today, timeZone);
 
   if (month >= 10) return { fyStartYear: year, quarter: 1 };
   if (month >= 7) return { fyStartYear: year - 1, quarter: 4 };

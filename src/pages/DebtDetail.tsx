@@ -7,6 +7,7 @@ import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { DetailPageSkeleton } from '@/components/Skeleton';
 import { ArchiveButton } from '@/components/ArchiveButton';
+import { orgTimeZone, todayLocal } from '@/lib/localDates';
 import {
   ArrowLeft,
   Plus,
@@ -672,7 +673,7 @@ function RecordPaymentModal({
   onRecorded: () => void;
 }) {
   const { currentOrg } = useOrg();
-  const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));
+  const [paidAt, setPaidAt] = useState(() => todayLocal(orgTimeZone(currentOrg)));
   const [total, setTotal] = useState((debt.minimum_payment_cents ?? 0) / 100);
   const [principal, setPrincipal] = useState(0);
   const [interest, setInterest] = useState(0);

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { enqueueJob } from '@/lib/automationJobs';
 import { useOrg } from '@/hooks/useOrg';
+import { addMonths, orgTimeZone, startOfMonth, todayLocal } from '@/lib/localDates';
 import { useBooksHealth } from '@/hooks/useBooksHealth';
 import { usePeriodClose, type CloseResult } from '@/hooks/usePeriodClose';
 import { formatLoadError } from '@/lib/errorMessages';
@@ -619,11 +620,10 @@ function BooksHealthHeader() {
   );
 }
 
-// YYYY-MM for the month `monthsBack` before the current one (0 = this month).
-function monthValue(monthsBack: number): string {
-  const now = new Date();
-  const d = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+// YYYY-MM for the month `monthsBack` before the current one (0 = this month), in the
+// organisation's time zone.
+function monthValue(monthsBack: number, timeZone: string): string {
+  return addMonths(startOfMonth(todayLocal(timeZone)), -monthsBack).slice(0, 7);
 }
 
 const humanizeCheck = (name: string) =>
@@ -653,9 +653,11 @@ const CLOSE_STATUS_STYLE: Record<
 // once every check passes. Books-health blocking is a separate close-time gate
 // surfaced via the result — the score itself lives in the header above.
 function PeriodCloseSection() {
+  const { currentOrg } = useOrg();
+  const timeZone = orgTimeZone(currentOrg);
   // Default to the previous (completed) month — the typical close target. The
   // hook treats the period as any day in the month, so we append -01.
-  const [month, setMonth] = useState(() => monthValue(1));
+  const [month, setMonth] = useState(() => monthValue(1, timeZone));
   const { period, checks, blockers, canClose, close, closing, loading, error } = usePeriodClose(
     `${month}-01`,
   );
@@ -740,7 +742,7 @@ function PeriodCloseSection() {
             type="month"
             className="form-input"
             value={month}
-            max={monthValue(0)}
+            max={monthValue(0, timeZone)}
             onChange={(e) => handleMonthChange(e.target.value)}
             style={{ padding: '0.4rem 0.6rem' }}
           />

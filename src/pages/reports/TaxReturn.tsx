@@ -13,6 +13,8 @@ import { useApprovals } from '@/hooks/useApprovals';
 import { CgtEventsPanel } from '@/components/CgtEventsPanel';
 import { SkeletonTable } from '@/components/Skeleton';
 import { formatMoney } from '@/lib/money';
+import { currentFyStartYear } from '@/lib/formatting';
+import { orgTimeZone } from '@/lib/localDates';
 import {
   ChevronLeft,
   Layers,
@@ -46,12 +48,6 @@ import {
 
 const fyLabel = (fy: number) => `FY${fy}-${(fy + 1).toString().slice(2)}`;
 
-/** Most recent AU FY start year (FY starts 1 July). */
-function currentFyStartYear(): number {
-  const now = new Date();
-  return now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
-}
-
 const ENTITY_LABELS: Record<string, string> = {
   company: 'Company',
   sole_trader: 'Sole trader',
@@ -70,7 +66,7 @@ const RESOURCE_TYPE = 'tax_return';
 
 export function TaxReturnPage() {
   const { currentOrg } = useOrg();
-  const fyStart = currentFyStartYear();
+  const fyStart = currentFyStartYear(orgTimeZone(currentOrg));
   const [fyStartYear, setFyStartYear] = useState<number>(fyStart);
 
   // The data hooks guard on currentOrg internally; call them unconditionally (rules of

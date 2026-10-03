@@ -4,6 +4,8 @@
 // (sources are cited there: SGAA 1992 s 19(2) and, from 1 July 2026, s 17A(2)). The EmployeeSuperDefault test
 // keeps the two tables identical.
 
+import { DEFAULT_TIME_ZONE, todayLocal } from '@/lib/localDates';
+
 /** Charge percentage by the first pay date it applies to, newest first. */
 export const SG_RATE_TABLE: readonly { from: string; pct: number }[] = [
   { from: '2025-07-01', pct: 12 },
@@ -15,10 +17,9 @@ export const SG_RATE_TABLE: readonly { from: string; pct: number }[] = [
   { from: '2013-07-01', pct: 9.25 },
 ];
 
-/** A date as YYYY-MM-DD in the browser's local time zone. */
+/** A date as YYYY-MM-DD in Australian (Brisbane) time, so the rate flips on 1 July AEST. */
 export function localIsoDate(d: Date = new Date()): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return todayLocal(DEFAULT_TIME_ZONE, d);
 }
 
 /** The statutory SG percentage for wages paid on payDate (YYYY-MM-DD). */

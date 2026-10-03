@@ -7,6 +7,7 @@ import {
 } from '@/hooks/useCreditNotes';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
+import { orgTimeZone, todayLocal } from '@/lib/localDates';
 import { SkeletonTable } from '@/components/Skeleton';
 
 function centsToInput(cents: number): string {
@@ -33,7 +34,7 @@ export function CreditNotesPage() {
   const [kind, setKind] = useState<CreditNoteKind>('customer');
   const [sourceId, setSourceId] = useState('');
   const [creditNoteNumber, setCreditNoteNumber] = useState('');
-  const [creditNoteDate, setCreditNoteDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [creditNoteDate, setCreditNoteDate] = useState(() => todayLocal(orgTimeZone(currentOrg)));
   const [subtotal, setSubtotal] = useState('0.00');
   const [gst, setGst] = useState('0.00');
   const [accountCode, setAccountCode] = useState('4000');

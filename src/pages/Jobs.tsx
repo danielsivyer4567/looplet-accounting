@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { SkeletonTable } from '@/components/Skeleton';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
+import { orgTimeZone, todayLocal } from '@/lib/localDates';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { Briefcase, Plus, FileSpreadsheet, X, Activity, type LucideIcon } from 'lucide-react';
@@ -401,7 +402,7 @@ function CreateJobForm({
   const [jobNumber, setJobNumber] = useState('');
   const [customerId, setCustomerId] = useState('');
   const [budget, setBudget] = useState(0);
-  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
+  const [startDate, setStartDate] = useState(() => todayLocal(orgTimeZone(currentOrg)));
   const [endDate, setEndDate] = useState('');
   const [description, setDescription] = useState('');
   const [busy, setBusy] = useState(false);

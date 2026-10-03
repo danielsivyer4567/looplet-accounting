@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { orgTimeZone, startOfMonth, todayLocal } from '@/lib/localDates';
 
 // One pre-flight check row from period_close_checks (0100, SC-1.J.01): the
 // reconciliation/trial-balance/no-draft probes for the closing month. `detail`
@@ -28,13 +29,11 @@ export interface CloseResult {
   depreciation?: Record<string, unknown>;
 }
 
-// First day of the current calendar month as YYYY-MM-DD. close_period /
-// period_close_checks treat p_period as ANY day in the target month, so the
-// 1st is a canonical handle for "this month".
-function currentMonthStart(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  return `${now.getFullYear()}-${month}-01`;
+// First day of the current calendar month (in the org's time zone) as YYYY-MM-DD.
+// close_period / period_close_checks treat p_period as ANY day in the target
+// month, so the 1st is a canonical handle for "this month".
+function currentMonthStart(timeZone: string): string {
+  return startOfMonth(todayLocal(timeZone));
 }
 
 // Drives the month-end period-close checklist for the active org: reads the
@@ -51,7 +50,7 @@ function currentMonthStart(): string {
 // same workspace already renders, so we don't re-read it here.
 export function usePeriodClose(period?: string) {
   const { currentOrg } = useOrg();
-  const targetPeriod = period ?? currentMonthStart();
+  const targetPeriod = period ?? currentMonthStart(orgTimeZone(currentOrg));
   const [checks, setChecks] = useState<PeriodCheck[]>([]);
   const [loading, setLoading] = useState(true);
   const [closing, setClosing] = useState(false);

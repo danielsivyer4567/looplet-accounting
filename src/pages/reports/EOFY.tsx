@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
 import { useEofyPack } from '@/hooks/useEofyPack';
 import { formatMoney } from '@/lib/money';
+import { currentFyStartYear } from '@/lib/formatting';
+import { orgTimeZone } from '@/lib/localDates';
 import {
   ChevronLeft,
   ClipboardCheck,
@@ -30,12 +32,6 @@ import {
 
 const fyLabel = (fy: number) => `FY${fy}-${(fy + 1).toString().slice(2)}`;
 
-/** Most recent AU FY start year (FY starts 1 July). */
-function currentFyStartYear(): number {
-  const now = new Date();
-  return now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
-}
-
 function base64ToBlob(b64: string, type: string): Blob {
   const bin = atob(b64);
   const bytes = new Uint8Array(bin.length);
@@ -54,7 +50,7 @@ function triggerDownload(blob: Blob, filename: string): void {
 
 export function EofyReportPage() {
   const { currentOrg } = useOrg();
-  const fyStart = currentFyStartYear();
+  const fyStart = currentFyStartYear(orgTimeZone(currentOrg));
   const [fyStartYear, setFyStartYear] = useState<number>(fyStart);
   const { bundle, pdfBase64, loading, error, blocked, generate, preview, reset } =
     useEofyPack(fyStartYear);

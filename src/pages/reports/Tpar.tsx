@@ -17,6 +17,7 @@ import {
   useTparReport,
 } from '@/hooks/useTparReport';
 import { downloadCsv } from '@/lib/csv';
+import { todayLocal } from '@/lib/localDates';
 import { formatMoney } from '@/lib/money';
 
 function formatDate(value: string | null): string {
@@ -38,7 +39,8 @@ export function TparReportPage() {
 
   const handleExport = () => {
     if (!tparReport || tparReport.suppliers.length === 0) return;
-    const today = new Date().toISOString().slice(0, 10);
+    // Australian date stamp for the file name (this page does not read the org context).
+    const today = todayLocal();
     const filename = `${tparReport.export.filename.replace(/\.csv$/i, '')}-export-${today}.csv`;
     downloadCsv(
       filename,

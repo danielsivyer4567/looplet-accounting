@@ -9,6 +9,7 @@ import {
   type WorkingPapersResult,
 } from '@/hooks/useAssurance';
 import { downloadCsv } from '@/lib/csv';
+import { orgTimeZone, startOfFinancialYear, todayLocal } from '@/lib/localDates';
 import { SkeletonTable } from '@/components/Skeleton';
 import {
   CheckCircle,
@@ -259,14 +260,9 @@ function AuditRowItem({ row }: { row: AuditRow }) {
   );
 }
 
-function dateInputValue(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
-function defaultPeriodStart(): string {
-  const today = new Date();
-  const fyStartYear = today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1;
-  return `${fyStartYear}-07-01`;
+/** 1 July of the current financial year, judged on today's date in the org's time zone. */
+function defaultPeriodStart(timeZone: string): string {
+  return startOfFinancialYear(todayLocal(timeZone));
 }
 
 function formatDate(value: string | null): string {
@@ -726,8 +722,8 @@ export function AuditLogPage() {
 
   const [actorOptions, setActorOptions] = useState<string[]>([]);
   const [resourceOptions, setResourceOptions] = useState<string[]>([]);
-  const [periodStart, setPeriodStart] = useState(defaultPeriodStart);
-  const [periodEnd, setPeriodEnd] = useState(() => dateInputValue(new Date()));
+  const [periodStart, setPeriodStart] = useState(() => defaultPeriodStart(orgTimeZone(currentOrg)));
+  const [periodEnd, setPeriodEnd] = useState(() => todayLocal(orgTimeZone(currentOrg)));
   const [requestedOutcome, setRequestedOutcome] = useState(
     'Prepare a concise draft response for registered-agent review, grounded in the notice, source documents, working papers, and current ATO guidance.',
   );

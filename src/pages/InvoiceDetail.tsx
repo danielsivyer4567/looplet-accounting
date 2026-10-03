@@ -16,6 +16,7 @@ import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { XeroStatusPill } from '@/components/XeroStatusPill';
 import { DetailPageSkeleton } from '@/components/Skeleton';
 import { ArchiveButton } from '@/components/ArchiveButton';
+import { addDays, isIsoDate, orgTimeZone, todayLocal } from '@/lib/localDates';
 import {
   invoiceDocumentTitle,
   invoiceIssueProblems,
@@ -143,15 +144,13 @@ export function InvoiceDetailPage() {
 
   const [customerId, setCustomerId] = useState<string>(searchParams.get('customer_id') ?? '');
   const [jobId, setJobId] = useState<string>(searchParams.get('job_id') ?? '');
-  const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10));
+  const [issueDate, setIssueDate] = useState(() => todayLocal(orgTimeZone(currentOrg)));
   const [termsDays, setTermsDays] = useState(14);
   const [notes, setNotes] = useState('');
 
-  const dueDate = (() => {
-    const d = new Date(issueDate);
-    d.setDate(d.getDate() + termsDays);
-    return d.toISOString().slice(0, 10);
-  })();
+  // Calendar arithmetic on the date string: no UTC round trip, and no crash when the
+  // issue-date input has been cleared.
+  const dueDate = isIsoDate(issueDate) ? addDays(issueDate, termsDays) : '';
 
   const refresh = useCallback(async () => {
     if (!currentOrg) return;

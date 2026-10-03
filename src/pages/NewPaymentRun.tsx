@@ -5,6 +5,7 @@ import { useOrg } from '@/hooks/useOrg';
 import { useUnpaidBillsForRun, type UnpaidBillForRun } from '@/hooks/usePaymentRuns';
 import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoney } from '@/lib/money';
+import { addDays, orgTimeZone, todayLocal, weekdayOf } from '@/lib/localDates';
 import { SkeletonTable } from '@/components/Skeleton';
 import { ChevronLeft, Layers, CheckCircle, AlertTriangle } from 'lucide-react';
 
@@ -15,11 +16,10 @@ export function NewPaymentRunPage() {
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [payDate, setPayDate] = useState<string>(() => {
-    const d = new Date();
-    const day = d.getDay();
-    const daysUntilFriday = (5 - day + 7) % 7 || 7;
-    d.setDate(d.getDate() + daysUntilFriday);
-    return d.toISOString().split('T')[0] ?? '';
+    // Next Friday (a week out when today is Friday), in the organisation's time zone.
+    const today = todayLocal(orgTimeZone(currentOrg));
+    const daysUntilFriday = (5 - weekdayOf(today) + 7) % 7 || 7;
+    return addDays(today, daysUntilFriday);
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitErr, setSubmitErr] = useState<string | null>(null);

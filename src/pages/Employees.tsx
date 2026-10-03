@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { currentStatutorySuperRatePct } from '@/lib/superGuarantee';
+import { addDays, orgTimeZone, todayLocal } from '@/lib/localDates';
 import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { SkeletonTable } from '@/components/Skeleton';
 import { Contact, Plus, Wallet, Clock, X, Users, Calculator, type LucideIcon } from 'lucide-react';
@@ -59,9 +60,7 @@ export function EmployeesPage() {
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
     setLoading(true);
-    const since = new Date();
-    since.setDate(since.getDate() - 30);
-    const sinceStr = since.toISOString().slice(0, 10);
+    const sinceStr = addDays(todayLocal(orgTimeZone(currentOrg)), -30);
 
     const [empRes, jobsRes, tsRes] = await Promise.all([
       supabase
@@ -697,7 +696,7 @@ function LogTimeForm({
   const { currentOrg } = useOrg();
   const [employeeId, setEmployeeId] = useState(employees[0]?.id ?? '');
   const [jobId, setJobId] = useState('');
-  const [workDate, setWorkDate] = useState(new Date().toISOString().slice(0, 10));
+  const [workDate, setWorkDate] = useState(() => todayLocal(orgTimeZone(currentOrg)));
   const [hours, setHours] = useState(8);
   const [notes, setNotes] = useState('');
   const [entryType, setEntryType] = useState<

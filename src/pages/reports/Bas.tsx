@@ -6,6 +6,7 @@ import { useBasWorksheet, type BasWorksheetPayload } from '@/hooks/useBasWorkshe
 import { formatMoney } from '@/lib/money';
 import { formatLoadError } from '@/lib/errorMessages';
 import { downloadCsv } from '@/lib/csv';
+import { orgTimeZone, todayLocal } from '@/lib/localDates';
 import { SkeletonTable } from '@/components/Skeleton';
 import {
   ChevronLeft,
@@ -113,8 +114,8 @@ export function BasReportPage() {
     }
     const last = rows[0];
     if (!last) return;
-    const today = new Date();
-    const filename = `bas-${last.fy_start_year}-Q${last.quarter_num}-export-${today.toISOString().slice(0, 10)}.csv`;
+    const today = todayLocal(orgTimeZone(currentOrg));
+    const filename = `bas-${last.fy_start_year}-Q${last.quarter_num}-export-${today}.csv`;
     const exportRows = rows.map((r) => ({
       FY: `${r.fy_start_year}-${(r.fy_start_year + 1).toString().slice(2)}`,
       Quarter: QUARTER_NAMES[r.quarter_num],

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { downloadCsv } from '@/lib/csv';
+import { formatDateAu, orgTimeZone, todayLocal } from '@/lib/localDates';
 import { SkeletonTable } from '@/components/Skeleton';
 import {
   ChevronLeft,
@@ -29,7 +30,7 @@ export function BalanceSheetPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // v_balance_sheet reflects the live ledger, so the report is always "as at today".
-  const asOfDate = new Date().toISOString().slice(0, 10);
+  const asOfDate = todayLocal(orgTimeZone(currentOrg));
 
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
@@ -155,11 +156,7 @@ export function BalanceSheetPage() {
       >
         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
           As at{' '}
-          {new Date(asOfDate).toLocaleDateString('en-AU', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-          })}{' '}
+          {formatDateAu(asOfDate)}{' '}
           — live position from your current ledger
         </span>
       </div>

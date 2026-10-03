@@ -20,6 +20,7 @@ import {
   type ExtractedBillData,
 } from '@/lib/receiptCapture';
 import { useOrg } from '@/hooks/useOrg';
+import { orgTimeZone, todayLocal } from '@/lib/localDates';
 import {
   CheckCircle,
   CreditCard,
@@ -816,7 +817,7 @@ export function ReceiptHubPage() {
     setError(null);
     try {
       // 1. Store the original file (provenance) in the bills bucket.
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayLocal(orgTimeZone(currentOrg));
       const rand = crypto.randomUUID().slice(0, 8);
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-80);
       const storageKey = `org-${currentOrg.id}/${today}/${rand}-${safeName}`;

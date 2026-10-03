@@ -9,6 +9,15 @@ import { DetailPageSkeleton } from '@/components/Skeleton';
 import { ArchiveButton } from '@/components/ArchiveButton';
 import { EmployeeMoveToOrgButton } from '@/components/EmployeeMoveToOrgButton';
 import {
+  addDays,
+  addMonths,
+  orgTimeZone,
+  startOfCalendarQuarter,
+  startOfCalendarYear,
+  startOfMonth,
+  todayLocal,
+} from '@/lib/localDates';
+import {
   ChevronLeft,
   User,
   Clock,
@@ -135,12 +144,9 @@ export function EmployeeDetailPage() {
     if (!currentOrg || !id) return;
     setLoading(true);
     setError(null);
-    const sixtyAgo = new Date();
-    sixtyAgo.setDate(sixtyAgo.getDate() - 60);
-    const sixtyStr = sixtyAgo.toISOString().slice(0, 10);
-    const yearAgo = new Date();
-    yearAgo.setFullYear(yearAgo.getFullYear() - 1);
-    const yearStr = yearAgo.toISOString().slice(0, 10);
+    const today = todayLocal(orgTimeZone(currentOrg));
+    const sixtyStr = addDays(today, -60);
+    const yearStr = addMonths(today, -12);
 
     const [empRes, recentRes, yearRes, jobsRes, leaveRes, slipsRes, excRes] = await Promise.all([
       supabase
@@ -283,11 +289,12 @@ export function EmployeeDetailPage() {
   };
 
   const kpis = useMemo(() => {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-    const quarterMonth = Math.floor(now.getMonth() / 3) * 3;
-    const quarterStart = new Date(now.getFullYear(), quarterMonth, 1).toISOString().slice(0, 10);
-    const yearStart = new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
+    // Period starts as org-local dates. (Local midnight through toISOString() gave
+    // the previous day's date in Australia, so the 1st was always excluded.)
+    const today = todayLocal(orgTimeZone(currentOrg));
+    const monthStart = startOfMonth(today);
+    const quarterStart = startOfCalendarQuarter(today);
+    const yearStart = startOfCalendarYear(today);
     const sum = (since: string) =>
       allYearTs.filter((t) => t.work_date >= since).reduce((a, t) => a + Number(t.hours), 0);
     return {
@@ -295,12 +302,10 @@ export function EmployeeDetailPage() {
       quarter: sum(quarterStart),
       year: sum(yearStart),
     };
-  }, [allYearTs]);
+  }, [allYearTs, currentOrg]);
 
   const jobCostBreakdown = useMemo(() => {
-    const ninetyAgo = new Date();
-    ninetyAgo.setDate(ninetyAgo.getDate() - 90);
-    const cutoff = ninetyAgo.toISOString().slice(0, 10);
+    const cutoff = addDays(todayLocal(orgTimeZone(currentOrg)), -90);
     const map = new Map<string, { total_cost_cents: number; hours: number }>();
     for (const t of allYearTs) {
       if (t.work_date < cutoff) continue;
@@ -321,7 +326,7 @@ export function EmployeeDetailPage() {
         };
       })
       .sort((a, b) => b.total_cost_cents - a.total_cost_cents);
-  }, [allYearTs, jobs]);
+  }, [allYearTs, jobs, currentOrg]);
 
   if (!currentOrg) return null;
   if (loading) return <DetailPageSkeleton tableCols={6} />;
@@ -1540,7 +1545,7 @@ function LogTimeForm({
 }) {
   const { currentOrg } = useOrg();
   const [jobId, setJobId] = useState('');
-  const [workDate, setWorkDate] = useState(new Date().toISOString().slice(0, 10));
+  const [workDate, setWorkDate] = useState(() => todayLocal(orgTimeZone(currentOrg)));
   const [hours, setHours] = useState(8);
   const [notes, setNotes] = useState('');
   const [entryType, setEntryType] = useState<
