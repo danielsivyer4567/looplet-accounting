@@ -5253,7 +5253,7 @@
       "title": "New organisations do not inherit the pilot business known-sender list",
       "area": "broken",
       "priority": 57,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/known-senders-seed.sql\""
       ],
@@ -5261,7 +5261,34 @@
         "supabase/migrations",
         "tests/db-sql/known-senders-seed.sql"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/known-senders-seed.sql\"",
+          "exit": 1,
+          "head": "32bd8a162ab3caf5bfcf8b97f66417cf01214349",
+          "dirty": [],
+          "at": "2026-10-03T01:34:42.415Z",
+          "ms": 266,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEED-01-001.log",
+          "log_sha256": "ef7f3aa1c65dd74622240cb6453cc45533fb37c636c438554440d0dfb404a963"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/known-senders-seed.sql\"",
+          "exit": 0,
+          "head": "30916337e41f6b08bd130977dff8f5096d78f8ae",
+          "dirty": [],
+          "at": "2026-10-03T01:35:28.054Z",
+          "ms": 45281,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEED-01-002.log",
+          "log_sha256": "83ef40a3f52a6c96dac0bcb51bc2d233cb93d8fccaee0ceec210143440b6932a"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -5269,8 +5296,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:34:41.835Z",
+          "event": "start",
+          "head": "32bd8a162ab3caf5bfcf8b97f66417cf01214349",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:34:42.416Z",
+          "event": "run",
+          "head": "32bd8a162ab3caf5bfcf8b97f66417cf01214349",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:35:28.056Z",
+          "event": "run",
+          "head": "30916337e41f6b08bd130977dff8f5096d78f8ae",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:35:28.217Z",
+          "event": "done",
+          "head": "30916337e41f6b08bd130977dff8f5096d78f8ae",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T01:35:28.198Z",
+        "head": "30916337e41f6b08bd130977dff8f5096d78f8ae",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "XERO-02",
@@ -6821,5 +6884,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T01:34:39.610Z"
+  "updated_at": "2026-10-03T01:35:28.232Z"
 }
