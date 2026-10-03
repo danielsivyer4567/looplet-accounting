@@ -21,7 +21,7 @@ export function LegalLinks({
         justifyContent: 'center',
         alignItems: 'center',
         gap: compact ? '0.2rem' : '0.75rem',
-        fontSize: compact ? '8px' : '0.75rem',
+        fontSize: compact ? '11px' : '0.75rem',
         color: 'var(--text-muted)',
       }}
     >

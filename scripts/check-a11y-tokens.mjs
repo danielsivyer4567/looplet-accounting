@@ -184,7 +184,8 @@ function toPx(num, unit) {
   return null; // %, vw: not judged
 }
 
-const FONT_SIZE_RE = /(?:font-size\s*:\s*|fontSize\s*:\s*['"]?)(\d*\.?\d+)\s*(px|rem|em|)(?=[;'",}\s)])|text-\[(\d*\.?\d+)px\]/g;
+// Literal sizes, plus any quoted px/rem/em value inside a fontSize expression (ternaries like `compact ? '8px' : '0.75rem'`).
+const FONT_SIZE_RE = /(?:font-size\s*:\s*|fontSize\s*:\s*['"]?)(\d*\.?\d+)\s*(px|rem|em|)(?=[;'",}\s)])|text-\[(\d*\.?\d+)px\]|fontSize\s*:[^,}\n]*?['"](\d*\.?\d+)\s*(px|rem|em)['"]/g;
 let fontSitesChecked = 0;
 let iconButtonsChecked = 0;
 
@@ -194,7 +195,7 @@ for (const file of files) {
   lines.forEach((line, i) => {
     for (const m of line.matchAll(FONT_SIZE_RE)) {
       fontSitesChecked += 1;
-      const px = m[3] !== undefined ? Number(m[3]) : toPx(Number(m[1]), m[2]);
+      const px = m[3] !== undefined ? Number(m[3]) : m[4] !== undefined ? toPx(Number(m[4]), m[5]) : toPx(Number(m[1]), m[2]);
       if (px !== null && px < MIN_FONT_PX) {
         problems.push(`${file}:${i + 1}: font-size ${m[0].trim()} is ${px.toFixed(1)}px (< ${MIN_FONT_PX}px)  | ${line.trim().slice(0, 90)}`);
       }
