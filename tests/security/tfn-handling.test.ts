@@ -97,8 +97,8 @@ describe('the STP file carries masked TFNs only', () => {
 
   it('the pay run page says TFNs are masked and does not claim anything was lodged', () => {
     const page = source('src/pages/PayRunDetail.tsx');
-    expect(page).toMatch(/Employee TFNs appear masked to the last\s+four digits/);
-    expect(page).toMatch(/Nothing is lodged with the ATO from\s+here\./);
+    expect(page).toMatch(/Employee\s+TFNs\s+appear\s+masked\s+to\s+the\s+last\s+four\s+digits/);
+    expect(page).toMatch(/Nothing\s+is\s+lodged\s+with\s+the\s+ATO\s+from\s+here\./);
     expect(page).not.toMatch(/from encrypted TFN vault records/);
   });
 });

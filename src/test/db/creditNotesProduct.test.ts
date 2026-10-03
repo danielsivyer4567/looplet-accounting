@@ -45,6 +45,6 @@ describe('0229 credit notes product workflow', () => {
     expect(hook).toMatch(/rpc\('create_supplier_credit_note'/);
     expect(page).toMatch(/Post credit note/);
     expect(app).toMatch(/path="credit-notes"/);
-    expect(layout).toMatch(/to: '\/credit-notes', label: 'Credits'/);
+    expect(layout).toMatch(/to: '\/credit-notes',\s*label: 'Credit notes'/);
   });
 });
