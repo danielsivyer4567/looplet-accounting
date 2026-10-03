@@ -31,7 +31,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   SUPABASE_PROJECT_REF: ${{ inputs.project_ref }}
 
 jobs:
