@@ -2,12 +2,12 @@
 
 **Status:** active finish-line runbook.
 **Project:** `dxoikltymmknxqpkpyhi`.
-**Current local ceiling:** `20261003170200_super_batch_file_prepared_lifecycle.sql`.
+**Current local ceiling:** `20261003190000_payg_tables_2025_26.sql`.
 
 This runbook supersedes older warnings that named `0080`, `0207`, or `0236` as
 the local ceiling. The source tree now carries numbered migrations through
 `0236` plus timestamped hardening repairs through
-`20261003170200_super_batch_file_prepared_lifecycle.sql`.
+`20261003190000_payg_tables_2025_26.sql`.
 
 These exist in source only and have **not** been applied to the project; apply them with the rest of
 the release after the baseline check below. Each is proven against a fresh local database by
