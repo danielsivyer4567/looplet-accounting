@@ -5456,6 +5456,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-01-022.log",
           "log_sha256": "87c68f4b5bf6d02e58f8b6f55e81430cc8ab2a59ea66640811eece160259cc9e"
+        },
+        {
+          "n": 23,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 0,
+          "head": "d56b8370bef260f51120414f479ee5eefb9443c6",
+          "dirty": [],
+          "at": "2026-10-03T02:32:42.009Z",
+          "ms": 523,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-01-023.log",
+          "log_sha256": "0ff384c85955fcb9963d491176aa45b60c77c99ea3fb1baec110ac5d2b7688cb"
         }
       ],
       "notes": [],
@@ -5910,14 +5923,38 @@
           "event": "done",
           "head": "2d399e9ed261fac879f10b88060983a736077016",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:32:40.358Z",
+          "event": "stale",
+          "head": "d56b8370bef260f51120414f479ee5eefb9443c6",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/Settings.tsx",
+            "src/test/pages/SettingsConsent.test.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T02:32:42.010Z",
+          "event": "run",
+          "head": "d56b8370bef260f51120414f479ee5eefb9443c6",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:32:42.129Z",
+          "event": "done",
+          "head": "d56b8370bef260f51120414f479ee5eefb9443c6",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T02:26:37.345Z",
-        "head": "2d399e9ed261fac879f10b88060983a736077016",
+        "at": "2026-10-03T02:32:42.114Z",
+        "head": "d56b8370bef260f51120414f479ee5eefb9443c6",
         "by": "claude-worker",
         "runs": [
-          22
+          23
         ]
       }
     },
@@ -10493,5 +10530,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T02:32:39.769Z"
+  "updated_at": "2026-10-03T02:32:42.143Z"
 }
