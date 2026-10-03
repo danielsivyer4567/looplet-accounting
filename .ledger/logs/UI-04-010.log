@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/a11y/IconButtons.test.tsx"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  15 passed (15)
+   Start at  15:30:15
+   Duration  3.21s (transform 472ms, setup 56ms, import 679ms, tests 1.91s, environment 463ms)
+

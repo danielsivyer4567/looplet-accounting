@@ -1,0 +1,2 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/check-ui-duplication.mjs"
+UI duplication check passed: 118 files scanned against 6 signatures, 0 allow-listed site(s), no page re-implements a shared primitive.

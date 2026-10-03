@@ -2647,7 +2647,7 @@
       "title": "CI uses least-privilege permissions, SHA-pinned actions and a deploy job separate from build",
       "area": "security",
       "priority": 15,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\""
       ],
@@ -2745,6 +2745,19 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/SEC-06-007.log",
           "log_sha256": "3b50a7a614872bca2df9f9e7174a0ac473bdc0d6353373624972664756e915ee"
+        },
+        {
+          "n": 8,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:29:56.326Z",
+          "ms": 1498,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/SEC-06-008.log",
+          "log_sha256": "3246fddd00bec01e5b14a04e4245c1e67b5d34c2119293851e6ea60b36e4b697"
         }
       ],
       "notes": [],
@@ -2866,23 +2879,37 @@
           "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
           "actor": "claude-verifier",
           "by": "claude-verifier F (independent subagent, round 3)"
+        },
+        {
+          "at": "2026-10-03T05:29:22.908Z",
+          "event": "stale",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "files": [
+            ".github/workflows/ci.yml"
+          ]
+        },
+        {
+          "at": "2026-10-03T05:29:56.327Z",
+          "event": "run",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:29:56.512Z",
+          "event": "done",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable"
         }
       ],
       "done": {
-        "at": "2026-10-03T05:08:44.690Z",
-        "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
-        "by": "claude-worker",
+        "at": "2026-10-03T05:29:56.498Z",
+        "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+        "by": "claude-fable",
         "runs": [
-          6
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T05:22:12.140Z",
-        "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
-        "by": "claude-verifier F (independent subagent, round 3)",
-        "note": "Round 3 at 07abc2a. Read ci.yml and staging-deploy.yml in full: workflow and every job permissions are contents:read only; all five action refs SHA-pinned with tag comments; checkout persist-credentials false; npm ci --ignore-scripts after the integrity check; no Cloudflare secret, wrangler-action or 'pages deploy' anywhere in .github, and gh secret list shows only SUPABASE_SERVICE_ROLE_KEY, VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_URL. Non-vacuity in a scratch copy: a stub deploy job, a wrangler job holding the Cloudflare secrets, contents:write and a floating checkout tag each fail ci-hardening. Residual: ci.yml comments at lines 14-15, 80 and 95 still describe a deploy job and the dist artifact now has no consumer; tenant-isolation has no if: guard and runs vitest with the production service-role key on every same-repo PR (fails hard without it) and SUPABASE_SERVICE_ROLE_KEY is not in DEPLOY_SECRETS, so the test does not see it (known, CI-02 note).",
-        "runs": [
-          7
+          8
         ]
       }
     },
@@ -7676,7 +7703,7 @@
       "title": "A privacy policy, terms of service and collection notice are published, linked, and accepted at sign-up",
       "area": "legitimacy",
       "priority": 34,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LegalPages.test.tsx\""
       ],
@@ -7827,6 +7854,19 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/LEGAL-01-011.log",
           "log_sha256": "b0d3d0360d5b7a0974328c1cd43d53dda0780f5dacc64bc597eca397ecaf714e"
+        },
+        {
+          "n": 12,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LegalPages.test.tsx\"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:29:59.503Z",
+          "ms": 2827,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/LEGAL-01-012.log",
+          "log_sha256": "7d04f7418ef9774fadabc82bba70d119fd8ee8b5dcd2247567f20c8e9b536aa7"
         }
       ],
       "notes": [
@@ -8096,23 +8136,38 @@
           "head": "77778a05acece90f1e286e52c9e30b1a79adb04a",
           "actor": "claude-verifier",
           "by": "claude-verifier E (independent subagent, round 2)"
+        },
+        {
+          "at": "2026-10-03T05:29:23.207Z",
+          "event": "stale",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "files": [
+            "src/pages/JobDetail.tsx",
+            "src/pages/SubscriptionDetail.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T05:29:59.504Z",
+          "event": "run",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:29:59.691Z",
+          "event": "done",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:22:00.148Z",
-        "head": "10b7b1d6d00dbced51dbf028109943724f669397",
-        "by": "claude-worker",
+        "at": "2026-10-03T05:29:59.676Z",
+        "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+        "by": "claude-fable",
         "runs": [
-          10
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T04:56:35.644Z",
-        "head": "77778a05acece90f1e286e52c9e30b1a79adb04a",
-        "by": "claude-verifier E (independent subagent, round 2)",
-        "note": "Round 2 at 77778a0. Legal.tsx names 'Redbark (bank-data provider)' (line 128); Login/Signup/LegalLinks/legal.ts unchanged since 6da4d8b except formatting; sidebar footer and auth pages link all three documents (confirmed in my 360/1440 screenshots). LegalPages vitest pass. Residual: the test's providersCalledByCode() does not pin Redbark; drafts still await legal review.",
-        "runs": [
-          11
+          12
         ]
       }
     },
@@ -9691,7 +9746,7 @@
       "title": "Nothing claims to lodge with the ATO or send to a super fund when it only prepares a file",
       "area": "legitimacy",
       "priority": 37,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LodgementWording.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/super-batch-send/status.test.ts\""
@@ -10014,6 +10069,32 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/LODGE-01-024.log",
           "log_sha256": "45c99db100d4340ec17b0655459efb04705c83a9da598540d4efa238af05c067"
+        },
+        {
+          "n": 25,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LodgementWording.test.tsx\"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:30:02.419Z",
+          "ms": 2565,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/LODGE-01-025.log",
+          "log_sha256": "ad0b0c9c9549efc71db3398ed47e8b63d5d10432855052c9aca7f51a83f5c9d7"
+        },
+        {
+          "n": 26,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/super-batch-send/status.test.ts\"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:30:02.767Z",
+          "ms": 347,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/LODGE-01-026.log",
+          "log_sha256": "7c80ccc8fa3a487b3b6f855fc9ccbec4f346d22511561b4b54dcd1e7c7ce14e0"
         }
       ],
       "notes": [],
@@ -10299,25 +10380,39 @@
           "head": "77778a05acece90f1e286e52c9e30b1a79adb04a",
           "actor": "claude-verifier",
           "by": "claude-verifier E (independent subagent, round 2)"
+        },
+        {
+          "at": "2026-10-03T05:29:23.288Z",
+          "event": "stale",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "files": [
+            "src/pages/JobDetail.tsx",
+            "src/pages/SubscriptionDetail.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T05:30:02.767Z",
+          "event": "run",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:30:03.028Z",
+          "event": "done",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:22:51.595Z",
-        "head": "10b7b1d6d00dbced51dbf028109943724f669397",
-        "by": "claude-worker",
+        "at": "2026-10-03T05:30:03.014Z",
+        "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+        "by": "claude-fable",
         "runs": [
-          21,
-          22
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T04:56:42.540Z",
-        "head": "77778a05acece90f1e286e52c9e30b1a79adb04a",
-        "by": "claude-verifier E (independent subagent, round 2)",
-        "note": "Round 2 at 77778a0. New shell keeps label 'Prepare' for /lodgements (Layout.tsx, palette keywords only mention lodgement); confirmed in a live render at 1440 (no 'Lodge' link). IntentLauncher and super-batch-send unchanged. LodgementWording vitest and status.test.ts pass.",
-        "runs": [
-          23,
-          24
+          25,
+          26
         ]
       }
     },
@@ -10326,7 +10421,7 @@
       "title": "Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs",
       "area": "bank",
       "priority": 40,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\""
       ],
@@ -10883,6 +10978,19 @@
           "ms": 424,
           "actor": "claude-verifier",
           "log": ".ledger/logs/BANK-01-042.log",
+          "log_sha256": "edc1bd7c8759844a84242bb9335ed94322807eb215736a9943114a974db9c069"
+        },
+        {
+          "n": 43,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:30:03.768Z",
+          "ms": 574,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/BANK-01-043.log",
           "log_sha256": "edc1bd7c8759844a84242bb9335ed94322807eb215736a9943114a974db9c069"
         }
       ],
@@ -11846,23 +11954,39 @@
           "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
           "actor": "claude-verifier",
           "by": "claude-verifier F (independent subagent, round 3)"
+        },
+        {
+          "at": "2026-10-03T05:29:23.422Z",
+          "event": "stale",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "files": [
+            "src/pages/JobDetail.tsx",
+            "src/pages/SubscriptionDetail.tsx",
+            "src/test/pages/TaxInvoiceIssue.test.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T05:30:03.769Z",
+          "event": "run",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:30:03.961Z",
+          "event": "done",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable"
         }
       ],
       "done": {
-        "at": "2026-10-03T05:05:00.475Z",
-        "head": "ce5b68b701f72789a1ccaab57376b250f9029b72",
-        "by": "claude-worker",
+        "at": "2026-10-03T05:30:03.947Z",
+        "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+        "by": "claude-fable",
         "runs": [
-          41
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T05:22:19.041Z",
-        "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
-        "by": "claude-verifier F (independent subagent, round 3)",
-        "note": "Round 3 at 07abc2a. Diff since 77778a0 over its paths (-w): the FIX-01 ask-bot files, LegalLinks 8px to 11px and the INV-01 test only. check-no-basiq passes (1149 files, 31 allow-listed historical records).",
-        "runs": [
-          42
+          43
         ]
       }
     },
@@ -15779,7 +15903,7 @@
       "title": "Default dates use Australian local time, not UTC",
       "area": "broken",
       "priority": 56,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/localDates.test.ts\""
       ],
@@ -15879,6 +16003,19 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/DATE-01-007.log",
           "log_sha256": "add6bdfb57329d17a9dd9da85f9470c4823353acfbb9f63a3cd3a8fb96450d06"
+        },
+        {
+          "n": 8,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/localDates.test.ts\"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:30:06.034Z",
+          "ms": 1899,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/DATE-01-008.log",
+          "log_sha256": "7a23173e214cab084a3b038a3a761423debd252cc1bad992430f07e329b58569"
         }
       ],
       "notes": [],
@@ -16051,23 +16188,38 @@
           "head": "77778a05acece90f1e286e52c9e30b1a79adb04a",
           "actor": "claude-verifier",
           "by": "claude-verifier E (independent subagent, round 2)"
+        },
+        {
+          "at": "2026-10-03T05:29:23.741Z",
+          "event": "stale",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "files": [
+            "src/pages/JobDetail.tsx",
+            "src/pages/SubscriptionDetail.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T05:30:06.036Z",
+          "event": "run",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:30:06.319Z",
+          "event": "done",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:23:08.228Z",
-        "head": "10b7b1d6d00dbced51dbf028109943724f669397",
-        "by": "claude-worker",
+        "at": "2026-10-03T05:30:06.303Z",
+        "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+        "by": "claude-fable",
         "runs": [
-          6
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T04:58:53.040Z",
-        "head": "77778a05acece90f1e286e52c9e30b1a79adb04a",
-        "by": "claude-verifier E (independent subagent, round 2)",
-        "note": "Round 2 at 77778a0. localDates.ts reviewed; test fixes instants (30 Jun 15:30Z -> 1 Jul Brisbane, 30 Jun Perth; AEDT). OrgContext loads business_profile.state_code. No toISOString().slice(0,10) default remains in src/pages|hooks|lib except bankFeedDates.todayAest (deliberate UTC+10 mirror of the server). Residual: AuditLog.tsx:736-741 converts the from/to filter dates with new Date(d).toISOString() (UTC midnight), so the first 10h AEST of the 'from' day are excluded; default to Brisbane when state_code missing.",
-        "runs": [
-          7
+          8
         ]
       }
     },
@@ -17185,7 +17337,7 @@
       "title": "CI runs the Deno edge-function tests and reports environment-gated test files instead of skipping them silently",
       "area": "broken",
       "priority": 60,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-test-coverage.test.ts\""
       ],
@@ -17271,6 +17423,19 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/CI-01-006.log",
           "log_sha256": "61bc623cb5d9d2a92a2ecb49759208bb6b19597fe224a2ecee4e4900149a0e0b"
+        },
+        {
+          "n": 7,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-test-coverage.test.ts\"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:30:07.993Z",
+          "ms": 1508,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/CI-01-007.log",
+          "log_sha256": "7732a84f7b320b87c401488af40619773ded1792536e9a4d9100ac5468ccdacf"
         }
       ],
       "notes": [],
@@ -17369,23 +17534,37 @@
           "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
           "actor": "claude-verifier",
           "by": "claude-verifier F (independent subagent, round 3)"
+        },
+        {
+          "at": "2026-10-03T05:29:23.836Z",
+          "event": "stale",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "files": [
+            ".github/workflows/ci.yml"
+          ]
+        },
+        {
+          "at": "2026-10-03T05:30:07.994Z",
+          "event": "run",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:30:08.173Z",
+          "event": "done",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable"
         }
       ],
       "done": {
-        "at": "2026-10-03T05:08:46.511Z",
-        "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
-        "by": "claude-worker",
+        "at": "2026-10-03T05:30:08.158Z",
+        "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+        "by": "claude-fable",
         "runs": [
-          5
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T05:22:13.885Z",
-        "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
-        "by": "claude-verifier F (independent subagent, round 3)",
-        "note": "Round 3 at 07abc2a. Only change since 6da4d8b besides CI-02 is NODE_VERSION 20 to 22 in both workflows (Node 22 ships the global WebSocket supabase-js needs). ci-test-coverage passes, and fails in a scratch copy when a deploy job is added; the Deno job is unchanged, holds no secrets, read-only. Residual: .nvmrc still pins 20.20.2 and engines says >=20, so an nvm user runs the suite on the Node where commit 4b757ce says the CSP header test fails.",
-        "runs": [
-          6
+          7
         ]
       }
     },
@@ -17394,7 +17573,7 @@
       "title": "Light theme polish: themed colours everywhere, no hard-coded dark-only colours, auth screens in the new style",
       "area": "ui",
       "priority": 70,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-hardcoded-colours.mjs\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AuthMobile.test.tsx\""
@@ -17612,6 +17791,32 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/UI-01-016.log",
           "log_sha256": "03fa75d35d16c4738a9b571e77db4b3937b099d4a5259f98a98347e6d334607e"
+        },
+        {
+          "n": 17,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-hardcoded-colours.mjs\"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:30:08.760Z",
+          "ms": 429,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/UI-01-017.log",
+          "log_sha256": "73325d2d7d8202f3cb7a7239aba4205ddc4431e15e6ee99fdd5879a2352c188b"
+        },
+        {
+          "n": 18,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AuthMobile.test.tsx\"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:30:10.926Z",
+          "ms": 2165,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/UI-01-018.log",
+          "log_sha256": "b17677c3c94b30d8769f1dad39691a30b40294134cef7aaf213dfd191ecd9f26"
         }
       ],
       "notes": [
@@ -17789,25 +17994,40 @@
           "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
           "actor": "claude-verifier",
           "by": "claude-verifier F (independent subagent, round 3)"
+        },
+        {
+          "at": "2026-10-03T05:29:23.881Z",
+          "event": "stale",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "files": [
+            "src/pages/JobDetail.tsx",
+            "src/pages/SubscriptionDetail.tsx",
+            "src/test/pages/TaxInvoiceIssue.test.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T05:30:10.926Z",
+          "event": "run",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:30:11.107Z",
+          "event": "done",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable"
         }
       ],
       "done": {
-        "at": "2026-10-03T05:05:05.279Z",
-        "head": "ce5b68b701f72789a1ccaab57376b250f9029b72",
-        "by": "claude-worker",
+        "at": "2026-10-03T05:30:11.093Z",
+        "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+        "by": "claude-fable",
         "runs": [
-          13,
-          14
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T05:22:24.553Z",
-        "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
-        "by": "claude-verifier F (independent subagent, round 3)",
-        "note": "Round 3 at 07abc2a. Diff since 77778a0 under its paths (-w): LegalLinks.tsx 8px to 11px and the INV-01 test only. check-hardcoded-colours (232 files, 13 allow-listed literals) and AuthMobile pass.",
-        "runs": [
-          15,
-          16
+          17,
+          18
         ]
       }
     },
@@ -17816,7 +18036,7 @@
       "title": "Shared PageHeader, Stat, StatusBadge, EmptyState, Alert and Field replace page-local copies",
       "area": "ui",
       "priority": 71,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/SharedPrimitives.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-ui-duplication.mjs\""
@@ -17956,6 +18176,32 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/UI-02-010.log",
           "log_sha256": "4b95bcee0909937d331b1b2f4bf188529c4ad3fb56914ec0f0b5e6ce192611b9"
+        },
+        {
+          "n": 11,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/SharedPrimitives.test.tsx\"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:30:13.402Z",
+          "ms": 2135,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/UI-02-011.log",
+          "log_sha256": "12cae0ea764e34bce0283801b0ab39f3748c3af4c733a5c4adbe07c1e01dfd4c"
+        },
+        {
+          "n": 12,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-ui-duplication.mjs\"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:30:13.802Z",
+          "ms": 399,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/UI-02-012.log",
+          "log_sha256": "4b95bcee0909937d331b1b2f4bf188529c4ad3fb56914ec0f0b5e6ce192611b9"
         }
       ],
       "notes": [],
@@ -18064,25 +18310,39 @@
           "head": "77778a05acece90f1e286e52c9e30b1a79adb04a",
           "actor": "claude-verifier",
           "by": "claude-verifier E (independent subagent, round 2)"
+        },
+        {
+          "at": "2026-10-03T05:29:24.013Z",
+          "event": "stale",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "files": [
+            "src/pages/JobDetail.tsx",
+            "src/pages/SubscriptionDetail.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T05:30:13.802Z",
+          "event": "run",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:30:13.979Z",
+          "event": "done",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:23:13.996Z",
-        "head": "10b7b1d6d00dbced51dbf028109943724f669397",
-        "by": "claude-worker",
+        "at": "2026-10-03T05:30:13.964Z",
+        "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+        "by": "claude-fable",
         "runs": [
-          7,
-          8
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T04:58:58.375Z",
-        "head": "77778a05acece90f1e286e52c9e30b1a79adb04a",
-        "by": "claude-verifier E (independent subagent, round 2)",
-        "note": "Round 2 at 77778a0. Primitives (PageHeader, Stat, StatusBadge, EmptyState, Alert, Field) read; StatusBadge defaults reproduce the old per-page tone maps where pages did not pass tones. check-ui-duplication passes with an empty allow-list; fails with 223 hits on 6198a3e^. SharedPrimitives pass.",
-        "runs": [
-          9,
-          10
+          11,
+          12
         ]
       }
     },
@@ -18540,6 +18800,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/UI-04-008.log",
           "log_sha256": "eabe47227f551588bd40920a49b5153e9473ab919ae973d9af63b26a733a829b"
+        },
+        {
+          "n": 9,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-a11y-tokens.mjs\"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:30:14.516Z",
+          "ms": 373,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/UI-04-009.log",
+          "log_sha256": "69d7f9e473c9074637c14e659b913c76e0fd4050853b404c681d97303af61b15"
+        },
+        {
+          "n": 10,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/a11y/IconButtons.test.tsx\"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:30:18.982Z",
+          "ms": 4465,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/UI-04-010.log",
+          "log_sha256": "d0626a328204ed2ec8ac5feb8c2435c9160d408d5c11c7007b0d5e5cd8f5cbcc"
         }
       ],
       "notes": [],
@@ -18623,15 +18909,40 @@
           "event": "done",
           "head": "4b757ce2ddfd77925212483e1af97f328509d255",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:29:24.078Z",
+          "event": "stale",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "files": [
+            "scripts/check-a11y-tokens.mjs",
+            "src/pages/JobDetail.tsx",
+            "src/pages/SubscriptionDetail.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T05:30:18.983Z",
+          "event": "run",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:30:19.270Z",
+          "event": "done",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable"
         }
       ],
       "done": {
-        "at": "2026-10-03T05:04:43.042Z",
-        "head": "4b757ce2ddfd77925212483e1af97f328509d255",
-        "by": "claude-worker",
+        "at": "2026-10-03T05:30:19.171Z",
+        "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+        "by": "claude-fable",
         "runs": [
-          7,
-          8
+          9,
+          10
         ]
       }
     },
@@ -19177,6 +19488,71 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SHIP-040.log",
           "log_sha256": "210bbca387a9207639017acce3da07df2cae7462cc75e8f72051190ce6621ac6"
+        },
+        {
+          "n": 41,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run typecheck\"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:30:23.662Z",
+          "ms": 2397,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/SHIP-041.log",
+          "log_sha256": "9f5cc03fa5f6d70ef3898d510b782ffb4ffec080f039ffbb1aaa9375c4bb371d"
+        },
+        {
+          "n": 42,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run lint\"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:30:29.716Z",
+          "ms": 6053,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/SHIP-042.log",
+          "log_sha256": "fb1147ae1e108c498719100358b5d776e11e7168031d1934c3037b1b4b98ff76"
+        },
+        {
+          "n": 43,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"set -a && . ./.env.production && set +a && npx vitest run \"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:30:44.443Z",
+          "ms": 14727,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/SHIP-043.log",
+          "log_sha256": "6cad425059fe0659678adecd4625083981f2ffa96d4df8f62f885d36b5345600"
+        },
+        {
+          "n": 44,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions\"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:31:30.436Z",
+          "ms": 45993,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/SHIP-044.log",
+          "log_sha256": "12143990896283a46ad8b551161385b0b68c3aca3b1a3a47a6e4db4442f0411c"
+        },
+        {
+          "n": 45,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run build\"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:31:32.367Z",
+          "ms": 1931,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/SHIP-045.log",
+          "log_sha256": "fcc7c2ef2c752bdff3b706c71f75d154c19a2e45f0106c091895a773acb69144"
         }
       ],
       "notes": [],
@@ -19314,18 +19690,43 @@
           "event": "done",
           "head": "35cc0eb533499b5cbf3a9de2dcecfe52262d79d9",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:29:24.125Z",
+          "event": "stale",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "files": [
+            "src/pages/JobDetail.tsx",
+            "src/pages/SubscriptionDetail.tsx",
+            "src/test/pages/TaxInvoiceIssue.test.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T05:31:32.367Z",
+          "event": "run",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:31:32.541Z",
+          "event": "done",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable"
         }
       ],
       "done": {
-        "at": "2026-10-03T05:11:13.765Z",
-        "head": "35cc0eb533499b5cbf3a9de2dcecfe52262d79d9",
-        "by": "claude-worker",
+        "at": "2026-10-03T05:31:32.527Z",
+        "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+        "by": "claude-fable",
         "runs": [
-          36,
-          37,
-          38,
-          39,
-          40
+          41,
+          42,
+          43,
+          44,
+          45
         ]
       }
     },
@@ -22171,7 +22572,7 @@
       "title": "One production deploy path: Cloudflare Pages Git integration deploys main; the CI wrangler deploy step is removed and the Cloudflare token leaves GitHub",
       "area": "ci",
       "priority": 36,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\""
       ],
@@ -22217,6 +22618,19 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/CI-02-003.log",
           "log_sha256": "19f1579656fc8cc2eee0e7bb54f214ffd294e9919b29686fe3c9079e583d2d6d"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\"",
+          "exit": 0,
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "dirty": [],
+          "at": "2026-10-03T05:30:20.905Z",
+          "ms": 1476,
+          "actor": "claude-fable",
+          "log": ".ledger/logs/CI-02-004.log",
+          "log_sha256": "09a79d74c89c6f778c50c7fcfdcb14ffbd5e2f69366d64b795ae0f21dae8ed2a"
         }
       ],
       "notes": [
@@ -22272,23 +22686,37 @@
           "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
           "actor": "claude-verifier",
           "by": "claude-verifier F (independent subagent, round 3)"
+        },
+        {
+          "at": "2026-10-03T05:29:24.349Z",
+          "event": "stale",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "files": [
+            ".github/workflows/ci.yml"
+          ]
+        },
+        {
+          "at": "2026-10-03T05:30:20.906Z",
+          "event": "run",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:30:21.091Z",
+          "event": "done",
+          "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+          "actor": "claude-fable"
         }
       ],
       "done": {
-        "at": "2026-10-03T05:08:40.621Z",
-        "head": "40e40cc3ada417b5092d93ca1ce11569b005a4e1",
-        "by": "claude-worker",
+        "at": "2026-10-03T05:30:21.076Z",
+        "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
+        "by": "claude-fable",
         "runs": [
-          2
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T05:22:15.560Z",
-        "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
-        "by": "claude-verifier F (independent subagent, round 3)",
-        "note": "Round 3 at 07abc2a. Deploy job gone; no job in .github references CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID, cloudflare/wrangler-action or 'pages deploy'; gh secret list on the repo shows no CLOUDFLARE_* secret (SUPABASE_SERVICE_ROLE_KEY remains, as the note says); wrangler.toml kept for the Pages Git build (pages_build_output_dir). A scratch copy with a deploy job or a wrangler publish job fails ci-hardening and ci-test-coverage. Not checked from here: that the Pages project is Git-connected to main (worker's note). Residual: CI run 37099018439 on 07abc2a is red at Format check (TaxInvoiceIssue.test.tsx unformatted), so no green run of the new workflow shape exists yet; its Deno job passed.",
-        "runs": [
-          3
+          4
         ]
       }
     },
@@ -22441,5 +22869,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T05:22:30.611Z"
+  "updated_at": "2026-10-03T05:31:32.555Z"
 }
