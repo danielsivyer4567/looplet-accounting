@@ -28,7 +28,7 @@
 | AI-01 | AI answers and advice are labelled general information, and the model is allowed to recommend an accountant | done | done @ b2d43c0b, awaiting independent verify |
 | TFN-01 | TFNs are never returned to the browser or stored in plain text | done | done @ ff315841, awaiting independent verify |
 | LODGE-01 | Nothing claims to lodge with the ATO or send to a super fund when it only prepares a file | done | done @ 1ff7b593, awaiting independent verify |
-| BANK-01 | Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs | done | done @ 1ff7b593, awaiting independent verify |
+| BANK-01 | Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs | done | done @ c6d340b8, awaiting independent verify |
 | BANK-02 | Redbark client pages accounts and transactions, splits truncated date windows, converts dollars to exact cents and skips pending rows | done | done @ 62a46f2a, awaiting independent verify |
 | BANK-03 | bank-webhook verifies Redbark signatures and timestamps, stores the event before acting and dispatches one sync per linked connection | done | done @ 6468e475, awaiting independent verify |
 | BANK-04 | bank-sync imports Redbark transactions idempotently on (bank account, provider id) and keeps the post-sync chain | done | done @ 62a46f2a, awaiting independent verify |

@@ -6361,6 +6361,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-01-027.log",
           "log_sha256": "95235ac4788ff9c133380fb944001cd374e3c30496bb2c4e807f4224bdc0dd48"
+        },
+        {
+          "n": 28,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 0,
+          "head": "c6d340b8878a384a15346416fdd0a32b4c90cae4",
+          "dirty": [],
+          "at": "2026-10-03T02:44:36.374Z",
+          "ms": 506,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-01-028.log",
+          "log_sha256": "fc6aeb46fa6707f5f792d9aae78cd9e5504a72e1dc945c47a2609c3c00803d45"
         }
       ],
       "notes": [],
@@ -6957,14 +6970,37 @@
           "event": "done",
           "head": "1ff7b5939f569b432c3e641c3bc4e5131d8e01f9",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:44:34.397Z",
+          "event": "stale",
+          "head": "c6d340b8878a384a15346416fdd0a32b4c90cae4",
+          "actor": "claude-worker",
+          "files": [
+            "public/_headers"
+          ]
+        },
+        {
+          "at": "2026-10-03T02:44:36.375Z",
+          "event": "run",
+          "head": "c6d340b8878a384a15346416fdd0a32b4c90cae4",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:44:36.500Z",
+          "event": "done",
+          "head": "c6d340b8878a384a15346416fdd0a32b4c90cae4",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T02:43:13.314Z",
-        "head": "1ff7b5939f569b432c3e641c3bc4e5131d8e01f9",
+        "at": "2026-10-03T02:44:36.485Z",
+        "head": "c6d340b8878a384a15346416fdd0a32b4c90cae4",
         "by": "claude-worker",
         "runs": [
-          27
+          28
         ]
       }
     },
@@ -12038,5 +12074,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T02:44:33.716Z"
+  "updated_at": "2026-10-03T02:44:36.599Z"
 }
