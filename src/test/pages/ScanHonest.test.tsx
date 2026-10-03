@@ -49,10 +49,14 @@ function sqlCheckCodes(): { file: string; body: string; codes: string[] } {
     .sort();
   const definitions = files
     .map((file) => ({ file, sql: readFileSync(join(dir, file), 'utf8') }))
-    .filter(({ sql }) => /CREATE OR REPLACE FUNCTION public\.run_data_completeness_scan\(/.test(sql));
+    .filter(({ sql }) =>
+      /CREATE OR REPLACE FUNCTION public\.run_data_completeness_scan\(/.test(sql),
+    );
   const latest = definitions[definitions.length - 1];
   if (!latest) throw new Error('no migration defines run_data_completeness_scan');
-  const start = latest.sql.search(/CREATE OR REPLACE FUNCTION public\.run_data_completeness_scan\(/);
+  const start = latest.sql.search(
+    /CREATE OR REPLACE FUNCTION public\.run_data_completeness_scan\(/,
+  );
   const end = latest.sql.indexOf('$function$;', start);
   const body = latest.sql.slice(start, end);
   const codes = [...body.matchAll(/SELECT p_org_id, '([a-z0-9_]+)'/g)].map((m) => m[1] as string);
@@ -83,7 +87,9 @@ describe('Scan page describes only the checks it runs (FAKE-02)', () => {
     const { codes } = sqlCheckCodes();
     expect(codes.length).toBeGreaterThan(0);
     expect([...listed].sort()).toEqual([...codes].sort());
-    expect(screen.getByText(new RegExp(`runs ${codes.length} fixed checks`, 'i'))).toBeInTheDocument();
+    expect(
+      screen.getByText(new RegExp(`runs ${codes.length} fixed checks`, 'i')),
+    ).toBeInTheDocument();
     expect(screen.getByText(/not an audit and does not check every tax rule/i)).toBeInTheDocument();
   });
 
