@@ -79,3 +79,17 @@ describe('team-invite', () => {
     expect(src).not.toMatch(/userClient\s*\.from\('organization_memberships'\)/);
   });
 });
+
+describe('payment runs copy payee bank details only from this organisation', () => {
+  it('payment-runs-create refuses bills whose supplier belongs to another organisation and checks the payer account', () => {
+    const src = source('payment-runs-create');
+    const embed = src.slice(src.indexOf('supplier:suppliers!supplier_id ('), src.indexOf(')', src.indexOf('supplier:suppliers!supplier_id (')));
+    expect(embed).toContain('organization_id');
+    expect(src).toContain("if (supplier && supplier['organization_id'] !== organization_id) {");
+    const payer = src.slice(src.indexOf('if (payer_bank_account_id) {'));
+    expect(payer).toMatch(/\.from\('bank_accounts'\)[\s\S]*?\.eq\('organization_id', organization_id\)/);
+    // Both checks run before the payment run is created.
+    expect(src.indexOf("if (supplier && supplier['organization_id'] !== organization_id) {")).toBeLessThan(src.indexOf(".from('payment_runs')"));
+    expect(src.indexOf('if (payer_bank_account_id) {')).toBeLessThan(src.indexOf(".from('payment_runs')"));
+  });
+});
