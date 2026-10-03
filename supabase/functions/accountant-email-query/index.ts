@@ -30,6 +30,12 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import {
+  acceptedAccountantMemberships,
+  findUserIdByEmail,
+  type MembershipWithOrg,
+  pickTargetMembership,
+} from './match.ts';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const RESEND_URL = 'https://api.resend.com/emails';
@@ -101,25 +107,29 @@ async function handleEmailQuery(req: Request): Promise<Response> {
       return json({ ok: false, error: 'Missing from/subject' }, 400);
     }
 
-    // Look up sender by email (case-insensitive)
+    // Look up the sender by email (case-insensitive) across every page of users.
     const senderEmail = extractEmailAddress(email.from).toLowerCase();
-    const { data: userRow } = await admin
-      .from('organization_memberships')
-      .select('user_id, organization_id, role, organizations(name)')
-      .eq('role', 'accountant')
-      .limit(50);
-
-    // Get auth.users info to match by email
-    const { data: authUsers } = await admin.auth.admin.listUsers();
-    const matched = authUsers?.users?.find((u) => (u.email ?? '').toLowerCase() === senderEmail);
-    if (!matched) {
+    const matchedId = await findUserIdByEmail(async (page, perPage) => {
+      const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
+      if (error) throw new Error(`listUsers: ${error.message}`);
+      return { users: data?.users ?? [] };
+    }, senderEmail);
+    if (!matchedId) {
       await sendReply(resendKey, email.from, 'Looplet Accounting — sender not recognised',
         `<p>Hi,</p><p>The email address <code>${esc(senderEmail)}</code> isn't registered as an accountant on any Looplet Accounting org. Please ask your client to invite you via Settings → Team.</p>`);
       return json({ ok: true, status: 'unknown_sender' });
     }
 
     // Find which orgs they're an accountant for
-    const memberships = (userRow ?? []).filter((m) => m.user_id === matched.id);
+    // Only this sender's ACCEPTED memberships with role_enum 'accountant' (the legacy `role` column has no such value).
+    const { data: membershipRows, error: membershipErr } = await admin
+      .from('organization_memberships')
+      .select('organization_id, role_enum, accepted_at, organizations(name)')
+      .eq('user_id', matchedId)
+      .eq('role_enum', 'accountant')
+      .not('accepted_at', 'is', null);
+    if (membershipErr) throw new Error(`memberships: ${membershipErr.message}`);
+    const memberships = acceptedAccountantMemberships(membershipRows as MembershipWithOrg[] | null);
     if (memberships.length === 0) {
       await sendReply(resendKey, email.from, 'Looplet Accounting — no accountant access',
         `<p>Hi,</p><p>You're registered but don't have <strong>accountant</strong> role on any organisation. Please ask the org owner to upgrade your role.</p>`);
@@ -130,21 +140,17 @@ async function handleEmailQuery(req: Request): Promise<Response> {
     const intent = await parseIntent(email.subject, email.text, groqKey);
 
     // Pick org: explicit hint match, else first
-    const firstMembership = memberships[0];
-    if (!firstMembership) {
+    const targetOrg = pickTargetMembership(memberships, intent.organization_hint);
+    if (!targetOrg) {
       return json({ ok: true, status: 'no_accountant_role' });
     }
-    const targetOrg = memberships.find((m) =>
-      intent.organization_hint &&
-      String((m.organizations as { name?: string } | null)?.name ?? '').toLowerCase().includes(intent.organization_hint.toLowerCase())
-    ) ?? firstMembership;
 
     // Fetch activity for that range
     const { data: activity } = await admin
       .from('accountant_activity_log')
       .select('*')
       .eq('organization_id', targetOrg.organization_id)
-      .eq('user_id', matched.id)
+      .eq('user_id', matchedId)
       .gte('occurred_at', intent.since_iso)
       .lte('occurred_at', intent.until_iso)
       .order('occurred_at', { ascending: true })
