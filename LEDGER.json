@@ -222,7 +222,7 @@
       "title": "intake-routing-apply accepts only the service role or an accepted member of the target organisation",
       "area": "security",
       "priority": 10,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/intake-routing-apply/auth.test.ts\""
       ],
@@ -373,6 +373,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-01-011.log",
           "log_sha256": "feabb739a505cdf13ad31b0db506410de590ae8f4d5c830aee8617ab97565c4e"
+        },
+        {
+          "n": 12,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/intake-routing-apply/auth.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:40:25.119Z",
+          "ms": 714,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-01-012.log",
+          "log_sha256": "60d9e9d0f2b02e1c8da8e8031df3d6b7a2aa4064b22f7386ce0d290ac6ccff43"
         }
       ],
       "notes": [],
@@ -608,6 +621,13 @@
           "event": "done",
           "head": "32686c6501e212eae43e6a46fdfda3910fcce843",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:40:25.149Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -617,6 +637,15 @@
         "runs": [
           11
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:40:25.134Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Re-ran auth.test.ts (8 pass); deno check intake-routing-apply/index.ts clean. Read 7b4a991, f04fb63 and the current handler: authorizeIntakeRouting runs before any read or write; exact service-role bearer (constant time) or a signed-in user with an ACCEPTED accountant-or-higher membership in body.organization_id; the six backend callers (bills-extract, bank-csv-import, bank-sync, automation-worker, coding-classifier, ingest) all send Bearer <service key>; no UI caller. Residual: the acceptance test exercises auth.ts/orgRole.ts only - on a scratch worktree with index.ts reverted to its pre-fix form (no auth call) it still passes 8/8, so unlike SEC-02/03 the wiring has no regression test. Agency owners/admins are not direct members and are refused (as before).",
+        "runs": [
+          12
+        ]
       }
     },
     {
@@ -624,7 +653,7 @@
       "title": "staged-entities-enrich-sonar, bank-statement-extract, crm-pnl-sync-push and ato-lodge refuse unauthenticated calls",
       "area": "security",
       "priority": 11,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/authGuards.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/edge-auth-guards.test.ts\""
@@ -792,6 +821,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-02-012.log",
           "log_sha256": "42e28b90f40deabf39e340e92da336444a47eed9b7cd33da29935d42e830cf74"
+        },
+        {
+          "n": 13,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/authGuards.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:40:26.134Z",
+          "ms": 706,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-02-013.log",
+          "log_sha256": "53c018ac684146637e66c6ed71c4d136175879fbc1691c6ddfcb25af860f7ae1"
+        },
+        {
+          "n": 14,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/edge-auth-guards.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:40:27.637Z",
+          "ms": 1502,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-02-014.log",
+          "log_sha256": "e006e8affc6ae8e35f9f6d973307634d78343c4b14864bb2ea9f24397829b132"
         }
       ],
       "notes": [],
@@ -890,6 +945,13 @@
           "event": "done",
           "head": "32686c6501e212eae43e6a46fdfda3910fcce843",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:40:27.746Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -900,6 +962,16 @@
           11,
           12
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:40:27.733Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Re-ran both accept commands (5 Deno + 4 vitest pass). On a scratch worktree with the four index.ts reverted to 61965c0^ the wiring test fails 4/4. Read 61965c0 and c67804c: sonar - authorizeOrgCaller accountant+ before categories/staged_entities/classifyWithSonar, then the AI quota, batch sizes capped, writes scoped to the organisation and the current batch; bank-statement-extract - requireSignedInCaller before env/JSON, 8 MB cap, quota; crm-pnl-sync-push - requireServiceRole first and its only caller (automation-worker) sends the service key; ato-lodge - authorise before parse and before config health. Residual: Triage.tsx calls sonar with a raw fetch and the user JWT (accountant+ needed; onboarding owners pass).",
+        "runs": [
+          13,
+          14
+        ]
       }
     },
     {
@@ -907,7 +979,7 @@
       "title": "Payment-run, ABA export, mark-paid, super-batch and termination functions require an accepted admin or owner",
       "area": "security",
       "priority": 12,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/orgRole.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\""
@@ -1102,6 +1174,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-03-014.log",
           "log_sha256": "f84fb4b30ee4251efac211e3a3be0ada9de0370ef2e1e24557033ff1466f6e3c"
+        },
+        {
+          "n": 15,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/orgRole.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:40:28.672Z",
+          "ms": 740,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-03-015.log",
+          "log_sha256": "0ae01bffd5192263dcb6d308a8800b9e258eb5c199a6b418752016ca6dc137a1"
+        },
+        {
+          "n": 16,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:40:30.232Z",
+          "ms": 1560,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-03-016.log",
+          "log_sha256": "f92137386c82bcb4e117eebb8e0030f9a848ddf73844ff5073b6af530e86aad1"
         }
       ],
       "notes": [
@@ -1235,6 +1333,13 @@
           "event": "done",
           "head": "ff3158410bd98cdb88521d16046dbbda335422f2",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:40:30.260Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -1244,6 +1349,16 @@
         "runs": [
           13,
           14
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:40:30.246Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Re-ran accept (5 Deno + 13 vitest pass); the wiring test fails 12/13 with the nine functions reverted to 5ba716b^. Read 5ba716b, 73ce785 and fbb853f: each function does getUser() then authorizeOrgMember(user.id, org, deps, 'admin') (accepted_at and role_enum rank) before any payment, pay or TFN read; payment-runs-create/mark-paid bill writes are scoped to organization_id and to the loaded items; team-invite needs an accepted admin. Residual: agency owners/admins, whom SEC-05 can_write_org allows in sub-accounts, are refused by these functions because they are not direct members (unchanged from before); payroll-export-stp authorises on run.organization_id read from the run id, so a foreign run id reveals only that it exists.",
+        "runs": [
+          15,
+          16
         ]
       }
     },
@@ -1414,7 +1529,7 @@
       "title": "Writes to money tables (payees, bills, invoices, journals, period locks, employees, payment runs) need an accountant or admin role; viewers are read-only",
       "area": "security",
       "priority": 14,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/money-table-roles.sql\""
       ],
@@ -1774,6 +1889,19 @@
           "ms": 42808,
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-05-027.log",
+          "log_sha256": "5b2e55ce1433772fe6d47ebedc4af5e282eda2fd478874eee96118433a89f459"
+        },
+        {
+          "n": 28,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/money-table-roles.sql\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:43:39.541Z",
+          "ms": 41979,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-05-028.log",
           "log_sha256": "5b2e55ce1433772fe6d47ebedc4af5e282eda2fd478874eee96118433a89f459"
         }
       ],
@@ -2337,6 +2465,13 @@
           "event": "done",
           "head": "30de075727852e5963159d79cd970b3dd2feef5a",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:43:39.574Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -2346,6 +2481,15 @@
         "runs": [
           27
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:43:39.557Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Re-ran accept (583 write probes, 8 read probes, 3 link checks, 59 audited tables); with the five SEC migrations removed on a scratch tree the test fails and lists 57 unguarded tables. Read d845516, 295d83e, d73adcd, 547291e, b51b8f7 and both migrations: RESTRICTIVE policies TO public ANDed with the existing permissive ones; can_write_org = require_role (accepted, role_enum) OR accepted agency owner/admin by role_enum for roles up to admin OR the organisation's own machine token (organization_id claim via integration_org_id, exactly what _shared/gl/orgToken.ts and accruals-run mint); org_role is declared viewer<employee<accountant<admin<owner so p_min_role <= 'admin' is right; same-org triggers for payment_run_items and pay_slips run for every role and the runbook carries the pre-apply queries. Own catalog audit on the migrated database: no RLS-disabled table writable by authenticated, no view without security_invoker, no write policy using the single-argument require_role. Residuals: (1) seed_default_chart_of_accounts lets a viewer insert the default accounts (see SEC-10 note); (2) the tables the test lists as deliberately open stay writable by any accepted member including viewers - obligation_status (insert/update/delete), xero_account_codes (insert/update) and bas_worksheet_snapshots (insert) - which touch compliance records and the Xero code mapping; (3) get_accessible_org_ids' agency branch still reads the legacy role column while can_write_org reads role_enum, so an agency member with role_enum admin but legacy role member sees nothing in sub-accounts (pre-existing); (4) b51b8f7 adds updated_at NOT NULL DEFAULT now() to every table with a set_updated_at trigger lacking the column (bill_line_items, overhead_allocations) - an idempotent production schema change worth a dry run.",
+        "runs": [
+          28
+        ]
       }
     },
     {
@@ -2353,7 +2497,7 @@
       "title": "CI uses least-privilege permissions, SHA-pinned actions and a deploy job separate from build",
       "area": "security",
       "priority": 15,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\""
       ],
@@ -2399,6 +2543,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-06-003.log",
           "log_sha256": "6c4b3f55a22585876da656a91cc9e528765d04db89ba8f91b63133ce7b15c252"
+        },
+        {
+          "n": 4,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:40:32.023Z",
+          "ms": 1470,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-06-004.log",
+          "log_sha256": "6db5ba7bc9ac00ed1ed0ac78e33d97b7724cc431e1543075458bc88360f19fd8"
         }
       ],
       "notes": [],
@@ -2459,6 +2616,13 @@
           "event": "done",
           "head": "96678a87f428e2e61aefeeb0a77114da1e531215",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:40:32.137Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -2468,6 +2632,15 @@
         "runs": [
           3
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:40:32.123Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Re-ran accept (22 pass); 16/22 fail with .github/workflows reverted to 8677192^. Resolved all six pinned SHAs against their GitHub tags today: all match (checkout v4.4.0, setup-node v4.4.0, upload-artifact v4.6.2, download-artifact v4.3.0, setup-deno v2.0.5, wrangler-action v3.15.0). Deploy job: sparse checkout of wrangler.toml (3 lines, no build command), download dist, wrangler pages deploy; no run steps; needs build, tenant-isolation and edge-functions; Cloudflare secrets only there; permissions contents:read everywhere; npm ci --ignore-scripts after the integrity check. Residual: the tenant-isolation job still runs repository code (vitest and vitest.config.ts) with SUPABASE_SERVICE_ROLE_KEY in its env; that key is not in the test's DEPLOY_SECRETS list so this is allowed, but a compromised test or config on main would see the production service key - the same class as the August incident. Recommend a test-project key or a secrets-free job.",
+        "runs": [
+          4
+        ]
       }
     },
     {
@@ -2475,7 +2648,7 @@
       "title": "Hardening: CORS allow-list, constant-time secret checks, bundled pdf.js worker, cron secrets in headers, generic error responses",
       "area": "security",
       "priority": 16,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/cors.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/hardening-contract.test.ts\""
@@ -2591,6 +2764,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-07-008.log",
           "log_sha256": "97e10e94208ebeaa91c769b447ed21bb0fadfd419a0a9da4dcfa218993f6d56e"
+        },
+        {
+          "n": 9,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/cors.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:43:40.533Z",
+          "ms": 740,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-07-009.log",
+          "log_sha256": "686e60f75a8925ad21eef6eb11cd030d20a28bf7d176e33d254813048548db43"
+        },
+        {
+          "n": 10,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/hardening-contract.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:43:42.058Z",
+          "ms": 1524,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-07-010.log",
+          "log_sha256": "c96827a24c03463a774a4e1a6cd96d7cfa3b48efbd5b4712329faeb2efcc290e"
         }
       ],
       "notes": [
@@ -2672,6 +2871,13 @@
           "event": "done",
           "head": "30de075727852e5963159d79cd970b3dd2feef5a",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:43:42.086Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -2682,6 +2888,16 @@
           7,
           8
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:43:42.073Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Re-ran accept (8 Deno + 24 vitest pass) plus the cronSecret, aiRateLimit and errors Deno tests (12 pass) and the two DB tests the contract cites (cron-secrets-in-headers, ai-rate-limit: pass). Non-vacuity on a scratch worktree: 5 contract tests fail with cors.ts, _headers and the two PDF components reverted; 2 fail with two cron receivers reverted; 4 fail with ask-bot and bank-statement-extract reverted. All 77 function entrypoints import _shared/cors.ts and none uses std serve, so the Deno.serve wrapper (per-request origin, 5xx redaction) covers them; cors.test.ts proves it over HTTP. Origins: accounting.looplet.com.au, looplet-accounting.pages.dev and *.looplet-accounting.pages.dev, local Vite ports, CORS_ALLOWED_ORIGINS; Allow-Headers unchanged and the UI sends no x-* headers. Cron: 19 receivers read X-Cron-Secret with ?secret= fallback for one release, compared with isExactSecret/safeEqual; the migration rewrites the 11 production jobs plus bank-sync-all in place via cron.alter_job and reports odd shapes. AI quota: consume_ai_quota is service_role only with an advisory lock; 7 functions take a unit after caller verification and before the paid call. deno check of all 75 entrypoints clean; a scratch vite build emits assets/pdf.worker.min-*.mjs. Residuals: (1) the wrapper depends on Object.defineProperty(Deno,'serve') being allowed in Supabase's edge runtime - if not it only warns and the static header names the primary origin, so Pages previews would be blocked by browsers; not verifiable without a deploy; (2) enforceAiQuota lets calls through while consume_ai_quota is missing (PGRST202/42883) until 20261003160100 is applied; (3) quotas are per user and apply only to signed-in callers; (4) the cron migration's effect on real production job shapes was not inspected here.",
+        "runs": [
+          9,
+          10
+        ]
       }
     },
     {
@@ -2689,7 +2905,7 @@
       "title": "Pay runs calculate wages from the base hourly rate, not the loaded cost rate",
       "area": "payroll",
       "priority": 20,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/calc.test.ts\""
       ],
@@ -2748,6 +2964,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/PAY-01-004.log",
           "log_sha256": "f88af394a86efd29bf5477e93c284d6e896518431246364ec592efdba1f4906a"
+        },
+        {
+          "n": 5,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/calc.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:24:20.982Z",
+          "ms": 780,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/PAY-01-005.log",
+          "log_sha256": "8ccd64fed3869ae0551ce994881f448bb7f84bb5dc8431f89f698349b8694257"
         }
       ],
       "notes": [],
@@ -2834,6 +3063,13 @@
           "event": "done",
           "head": "12c30b4b676c912b7176fef703ba6c32ecaf51a9",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:24:21.012Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -2843,6 +3079,15 @@
         "runs": [
           4
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:24:20.998Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read 43f7603 in full. calc.ts prices ordinary/overtime(1.5x)/leave on wage_components.base_hourly_rate (dollars, as written by Employees.tsx/EmployeeDetail.tsx) and throws on a missing/zero rate; index.ts records base_hourly_rate_cents + wage_rate_basis in payslip metadata. Grepped: no remaining loaded_hourly_rate use in wage pricing (loaded rate remains only for timesheet job costing and the termination wizard's user-typed figures). Pre-fix index.ts (50f41dc) with the new test fails the wiring assertion; current tree passes 8/8; deno check clean. Residual: the wiring check is a source-regex; the one production pay slip was priced at the loaded rate and is not corrected by this change.",
+        "runs": [
+          5
+        ]
       }
     },
     {
@@ -2850,7 +3095,7 @@
       "title": "Super defaults to the statutory rate (12%) and a pay run never applies less than the SG rate for the pay date",
       "area": "payroll",
       "priority": 21,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeSuperDefault.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/super.test.ts\""
@@ -2964,6 +3209,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/PAY-02-008.log",
           "log_sha256": "1cd7f25838aa55d470e9c3f47c1b54ece03b6b8a636065bd2dcc9793b1180eee"
+        },
+        {
+          "n": 9,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeSuperDefault.test.tsx\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:24:23.794Z",
+          "ms": 2528,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/PAY-02-009.log",
+          "log_sha256": "2b0998a374fbcd76e4f527f55b554e94772787ee80d5135c480dcb3875673f63"
+        },
+        {
+          "n": 10,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/super.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:24:24.559Z",
+          "ms": 763,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/PAY-02-010.log",
+          "log_sha256": "65aea711cc40ab044be73b10c20023119a46bbf76ebac24d0a756e3b61d5cb17"
         }
       ],
       "notes": [],
@@ -3048,6 +3319,13 @@
           "event": "done",
           "head": "c15d2808139aa25986976295c7f1cf6bc7002540",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:24:24.590Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -3058,6 +3336,16 @@
           7,
           8
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:24:24.575Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read 23e8aa8 in full. SG_RATE_TABLE (9.25 from 2013-07-01 ... 11.5 from 2024-07-01, 12 from 2025-07-01) matches SGAA 1992 s 19(2) fetched from legislation.gov.au (C2004A04402, 2025-07-01 compilation); 2026-07-01 compilation s 17A(2) 'charge percentage means 12' confirms 12% continues under Payday Super. effectiveSuperRate floors employee/org rate at the statutory rate for the pay date, keeps higher rates, records statutory/configured/source/raised in metadata; malformed pay_date is rejected 400 before pay_runs insert. UI default and warning use the same table (test pins equality). DB au_sg_rate_pct (0226) agrees. Pre-fix tree (e7b8898): super.test.ts wiring test fails and 4/5 vitest cases fail; current tree passes both. Residual: calc_super(p_rate_pct) in SQL trusts the caller's rate, so only payroll-create-pay-run applies the floor.",
+        "runs": [
+          9,
+          10
+        ]
       }
     },
     {
@@ -3065,7 +3353,7 @@
       "title": "PAYG withholding uses the financial year of the pay date and fails loudly instead of returning $0 when no table applies",
       "area": "payroll",
       "priority": 22,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-year-selection.sql\""
       ],
@@ -3293,6 +3581,19 @@
           "ms": 43147,
           "actor": "claude-worker",
           "log": ".ledger/logs/PAY-03-017.log",
+          "log_sha256": "e9854108479555eb71d547b573ad49433d8e0131acdbd7883849564c30d4a72e"
+        },
+        {
+          "n": 18,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-year-selection.sql\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:30:15.089Z",
+          "ms": 44853,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/PAY-03-018.log",
           "log_sha256": "e9854108479555eb71d547b573ad49433d8e0131acdbd7883849564c30d4a72e"
         }
       ],
@@ -3689,6 +3990,13 @@
           "event": "done",
           "head": "30de075727852e5963159d79cd970b3dd2feef5a",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:30:15.125Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -3698,6 +4006,15 @@
         "runs": [
           17
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:30:15.107Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read 068147d in full. Migration 20261003130000 drops calc_payg_tax(bigint,text,boolean) (0046: year from CURRENT_DATE, clamped to 2025, RETURN 0 when no tier) and creates the 4-arg form keyed on the pay date's 1 July-30 June year, raising for null date, unknown frequency, or no table for that year/scale; REVOKE from anon. Compared with 0046: formula and tier picking unchanged, the sub-threshold tier (a=0,b=0) still yields 0 via GREATEST. Grepped the repo: payroll-create-pay-run is the only caller and now passes p_pay_date and treats null as an error; the only other reference to the 3-arg signature is the earlier search_path hardening migration, which runs before the drop (fresh build: 303 applied, 0 failures). Pre-fix tree (cd6c6d2) with the new test fails ('the old calc_payg_tax(bigint,text,boolean) still exists'); current tree passes. The definition is superseded by 20261003130300 (PAY-04) with the same signature/errors. Residual: production must receive the migration and the redeployed function together, as the commit says.",
+        "runs": [
+          18
+        ]
       }
     },
     {
@@ -3705,7 +4022,7 @@
       "title": "FY2026-27 PAYG withholding tables match the ATO schedule (NAT 1004) worked examples",
       "area": "payroll",
       "priority": 23,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-2026-27-ato-examples.sql\""
       ],
@@ -3894,6 +4211,19 @@
           "ms": 41961,
           "actor": "claude-worker",
           "log": ".ledger/logs/PAY-04-014.log",
+          "log_sha256": "2bdb0cc99a622453e1b16d4508a237d9bfab142a0c99f261dd7aedc35e7017b6"
+        },
+        {
+          "n": 15,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-2026-27-ato-examples.sql\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:33:25.312Z",
+          "ms": 57777,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/PAY-04-015.log",
           "log_sha256": "2bdb0cc99a622453e1b16d4508a237d9bfab142a0c99f261dd7aedc35e7017b6"
         }
       ],
@@ -4236,6 +4566,13 @@
           "event": "done",
           "head": "30de075727852e5963159d79cd970b3dd2feef5a",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:33:25.349Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -4245,6 +4582,15 @@
         "runs": [
           14
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:33:25.332Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read 470da4c in full. Fetched Schedule 1 of F2026L00716 (Taxation Administration (Withholding Schedules) Instrument 2026, commencing 1 July 2026) from legislation.gov.au and compared all 16 rows: Scale 1 (188/0.15/0.15, 371/0.2084/11.0185, 515/0.1790/0.1066, 932/0.3227/74.1674, 2246/0.3200/71.6508, 3303/0.3900/228.8816, >=3303/0.4700/493.1893) and Scale 2 (362 nil, 538/0.15/54.3462, 673/0.25/108.2135, 721/0.17/54.3473, 865/0.179/60.8377, 1282/0.3227/185.1935, 2596/0.32/181.7319, 3653/0.39/363.4627, >=3653/0.47/655.7704) match migration 20261003130300 exactly. Procedure matches the instrument: x = whole dollars + 99c; fortnightly /2; monthly (+1c if ending .33) x3/13, weekly y x13/3 rounded to the dollar. Worked examples in the instrument: ex 1 x=1,333.99, 245.1449 -> 45; ex 3 x=1,246.99, 217.2102 -> 17 (monthly 40 before the 13 offset); the test reproduces both. Pre-fix tree (d100777) fails with 'no PAYG withholding table for FY2026-27'; current tree passes; fresh build 303/303. Not modelled (stated in the migration): Medicare levy adjustment, offsets, scales 3-6. PAY-06 (FY2025-26 rows vs F2025L00647) remains open and is not covered here.",
+        "runs": [
+          15
+        ]
       }
     },
     {
@@ -4252,7 +4598,7 @@
       "title": "Payday Super (from 1 July 2026) drives super due dates instead of quarterly batching",
       "area": "payroll",
       "priority": 24,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payday-super.sql\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/PaydaySuper.test.tsx\""
@@ -4651,6 +4997,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/PAY-05-030.log",
           "log_sha256": "4acd6f8e9a50d7e906c959908eb164a8f892ffd8980ecd2b8cf753c6c5f63002"
+        },
+        {
+          "n": 31,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payday-super.sql\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:36:00.959Z",
+          "ms": 47342,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/PAY-05-031.log",
+          "log_sha256": "baf7e3932127bc5d863572a2b5d020d7f82ebe92d76e430f211299f347de7c31"
+        },
+        {
+          "n": 32,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/PaydaySuper.test.tsx\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:36:04.336Z",
+          "ms": 3376,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/PAY-05-032.log",
+          "log_sha256": "f0d1e645c27dafdba1580a550eac9770145609889accf2047311c5c9a78a72bb"
         }
       ],
       "notes": [
@@ -5022,6 +5394,13 @@
           "event": "done",
           "head": "30de075727852e5963159d79cd970b3dd2feef5a",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:36:04.369Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -5032,6 +5411,16 @@
           29,
           30
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:36:04.353Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read a732ca7 in full. Law checked on legislation.gov.au: Treasury Laws Amendment (Payday Superannuation) Act 2025 No. 57 assented 6 Nov 2025, Sch 1 commences 1 July 2026, item 182 applies the new rules to QE days on/after 1 July 2026 and keeps the old Act for quarters ending before; SGAA (2026-07-01 compilation) s 6 'usual period' ends the 7th business day after the QE day, 'extended usual period' the 20th, business day excludes Sat/Sun and whole-of-State/ACT/NT public holidays, s 18C(2) item 1 gives the extended period to a first contribution to a fund; SGAA (2025-07-01 compilation) s 23(6) 28 days after the quarter. super_guarantee_due implements exactly these, super_non_business_days is empty (dates can only be early, as the UI says), v_pay_run_super_due is security_invoker and the test shows an outsider sees nothing and anon has no SELECT. Pre-fix tree (8792b7f): SQL test fails (function missing) and all 3 vitest cases fail; current tree passes both; fresh build 303/303. Residual (worker's note stands): the quarterly SuperBatchSection still drives the actual clearing-house file for pay dates from 1 July 2026, so due dates are informational; holidays must be loaded before any date is relied on.",
+        "runs": [
+          31,
+          32
+        ]
       }
     },
     {
@@ -5039,7 +5428,7 @@
       "title": "Bills and invoices are never marked synced to Xero unless Xero accepted them (no STUB ids in production)",
       "area": "legitimacy",
       "priority": 30,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/xero/adapter.test.ts\""
       ],
@@ -5088,6 +5477,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/XERO-01-003.log",
           "log_sha256": "320af04d8ec06b1296279e0594a233715db64e719e34a58e52187155139221e6"
+        },
+        {
+          "n": 4,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/xero/adapter.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T04:00:36.154Z",
+          "ms": 712,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/XERO-01-004.log",
+          "log_sha256": "7ba4995d135da624813d9e36739a109432291e2c4ce282657c1e9216df7a3741"
         }
       ],
       "notes": [],
@@ -5148,6 +5550,13 @@
           "event": "done",
           "head": "32686c6501e212eae43e6a46fdfda3910fcce843",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:00:36.193Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -5157,6 +5566,15 @@
         "runs": [
           3
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T04:00:36.172Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read a063ae5 and 34eae82 in full. pushBillToXero returns {synced, xeroInvoiceId} only with Xero's InvoiceID (throws when Xero returns none) or {not_connected, reason} having sent and logged nothing; billXeroSyncUpdate maps not_connected to pending. Checked all three callers in the current tree: bills-attach and the bill router write billXeroSyncUpdate(result) and report xero_status; receipt-sync-dispatch throws PermanentSyncSkip on not_connected before any bills/receipt_sync_jobs write, so a job is only 'synced' with a Xero id. No STUB- construction remains (only the XERO_STUB_MODE env name); UI reads xero_status, never xero_is_stub. Migration 20261003154000 resets STUB bills to pending (leaving locked-period bills and reporting the count) and marks is_stub receipt jobs skipped with a plain reason; xero_sync_log history kept. Whole _shared/xero Deno suite 15/15; adapter.test.ts 8/8; deno check clean on bills-attach and receipt-sync-dispatch. Pre-fix tree (23a1691) fails at type-check because the test imports the new result API (the return shape changed, so no older-API red run is possible). Residual: production counts of STUB bills/jobs are only known when the migration's NOTICE runs.",
+        "runs": [
+          4
+        ]
       }
     },
     {
@@ -5164,7 +5582,7 @@
       "title": "Receipt Hub has no POS simulator, fake receipts or hard-coded demo figures",
       "area": "legitimacy",
       "priority": 31,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ReceiptHubNoDemo.test.tsx\""
       ],
@@ -5237,6 +5655,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/FAKE-01-005.log",
           "log_sha256": "d4c4a4a80957e25f691ec7b6a412ec6432f990febea9b4ea2ace0594cda32b94"
+        },
+        {
+          "n": 6,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ReceiptHubNoDemo.test.tsx\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:32:18.021Z",
+          "ms": 2366,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/FAKE-01-006.log",
+          "log_sha256": "224ccf0a7bb32ba436876e7e28d635b2cf32c176aa3b27d5662ef3ef760268cd"
         }
       ],
       "notes": [],
@@ -5343,6 +5774,13 @@
           "event": "done",
           "head": "308028d5ba0bf896606fbbe9708c4b17224e8916",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:32:18.051Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -5352,6 +5790,15 @@
         "runs": [
           5
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:32:18.037Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read fc3f61b. Test fails 3 of 4 on fc3f61b^ in a scratch worktree. No simulator, Bunnings, demo payload or hard-coded figure remains in src (Bills.tsx 'Outstanding AP' is a real KPI label). receipt-webhook change is wording only.",
+        "runs": [
+          6
+        ]
       }
     },
     {
@@ -5359,7 +5806,7 @@
       "title": "The Scan page describes only the checks it really runs (no simulated AI audit)",
       "area": "legitimacy",
       "priority": 32,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ScanHonest.test.tsx\""
       ],
@@ -5392,6 +5839,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/FAKE-02-002.log",
           "log_sha256": "f65ecf0faa19b7fc002441463635e017628d33598b6165ac00ad0481ac395bd7"
+        },
+        {
+          "n": 3,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ScanHonest.test.tsx\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:32:20.939Z",
+          "ms": 2616,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/FAKE-02-003.log",
+          "log_sha256": "08bc8efd3a94f051b7a963965e4594b3f7cc8b0030cc7f62fa481eb220d9d3c3"
         }
       ],
       "notes": [],
@@ -5429,6 +5889,13 @@
           "event": "done",
           "head": "45829b8b7b1c2488f837e7dcc9b162a4cafb4031",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:32:20.971Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -5438,6 +5905,15 @@
         "runs": [
           2
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:32:20.956Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read df55728. Test fails 4 of 4 on df55728^. Scan.tsx carries none of the fake audit copy; the finding-wording migration applied in the 303-migration chain run for BANK-06. Residual: the page lists the nine SQL checks by name, so a future change to run_data_completeness_scan must update both (the test compares them).",
+        "runs": [
+          3
+        ]
       }
     },
     {
@@ -5445,7 +5921,7 @@
       "title": "Settings has no pre-ticked, unsaved or unrelated template consent switches",
       "area": "legitimacy",
       "priority": 33,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/SettingsConsent.test.tsx\""
       ],
@@ -5491,6 +5967,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/CONSENT-01-003.log",
           "log_sha256": "1a566cf69b96c669adf462a1f4b7678ba2bb7389989a67290dc7f15ffc387adc"
+        },
+        {
+          "n": 4,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/SettingsConsent.test.tsx\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:34:15.664Z",
+          "ms": 2774,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/CONSENT-01-004.log",
+          "log_sha256": "d7a8a82e6635c15db678ae1935ea331663a466dd98df0b4deb998d13a962e6e5"
         }
       ],
       "notes": [],
@@ -5551,6 +6040,13 @@
           "event": "done",
           "head": "308028d5ba0bf896606fbbe9708c4b17224e8916",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:34:15.695Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -5560,6 +6056,15 @@
         "runs": [
           3
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:34:15.680Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read e163833. Test fails 5 of 5 on e163833^. Only switch left is product news email: off by default, saved to auth user metadata with granted and updated_at, reloaded on return; no social-media, advertising, crypto or commodities copy remains. Residual: Settings.test.tsx fails to load on the base branch too (unrelated, pre-existing).",
+        "runs": [
+          4
+        ]
       }
     },
     {
@@ -5567,7 +6072,7 @@
       "title": "A privacy policy, terms of service and collection notice are published, linked, and accepted at sign-up",
       "area": "legitimacy",
       "priority": 34,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LegalPages.test.tsx\""
       ],
@@ -5614,6 +6119,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/LEGAL-01-003.log",
           "log_sha256": "01a7fb74a6a3e7275a1db6c24e998a125d1ae58e1ad9e9e6b0fbbcd7d83d5239"
+        },
+        {
+          "n": 4,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LegalPages.test.tsx\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:34:26.224Z",
+          "ms": 3016,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/LEGAL-01-004.log",
+          "log_sha256": "9a6646d1933795565e0b22f00461b4cefad79b8fdc79e9def803803ef58d1081"
         }
       ],
       "notes": [
@@ -5685,6 +6203,13 @@
           "event": "done",
           "head": "1ff7b5939f569b432c3e641c3bc4e5131d8e01f9",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:34:26.254Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -5694,6 +6219,15 @@
         "runs": [
           3
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:34:26.239Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read b54a213, Legal.tsx, legal.ts, Signup/Login/AuthContext. With LegalLinks and legal.ts copied into b54a213^, all 10 cases fail. Acceptance is recorded for both paths: email sign-up passes legal_acceptance in signUp options.data; Continue with Google sets a sessionStorage key in Login/Signup and AuthProvider writes legal_acceptance (google_continue) when the user returns. The policy names the Gmail scope the code requests (gmail.readonly) and the AI, email, Google and Xero hosts the functions call (the test checks the hosts). Verified only that the documents describe the code; they are drafts awaiting legal review. Residual: the policy says 'bank-data provider' and never names Redbark or its Australian data source, so it must be updated before the feed goes live; Google acceptance is implied by clicking under a notice, not a tick box; TBC markers remain for entity, ABN, retention and overseas disclosure.",
+        "runs": [
+          4
+        ]
       }
     },
     {
@@ -5701,7 +6235,7 @@
       "title": "AI answers and advice are labelled general information, and the model is allowed to recommend an accountant",
       "area": "legitimacy",
       "priority": 35,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AiDisclaimer.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/ask-bot/prompt.test.ts\""
@@ -5790,6 +6324,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/AI-01-006.log",
           "log_sha256": "0afca63d16f1861f2654d32f7ad9c10981313a1e566c78a368324fb9154d6627"
+        },
+        {
+          "n": 7,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AiDisclaimer.test.tsx\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:34:18.249Z",
+          "ms": 2286,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/AI-01-007.log",
+          "log_sha256": "279b5c8abb57822c7c22a4c5dc5faa7efb0573e2b6d141b379ca6d613d5aef7a"
+        },
+        {
+          "n": 8,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/ask-bot/prompt.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:34:19.067Z",
+          "ms": 817,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/AI-01-008.log",
+          "log_sha256": "75afdbc734f2dc349675e8f820c702e2ed3392bde4dc73055236fb992bc00772"
         }
       ],
       "notes": [],
@@ -5851,6 +6411,13 @@
           "event": "done",
           "head": "32686c6501e212eae43e6a46fdfda3910fcce843",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:34:19.096Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -5861,6 +6428,16 @@
           5,
           6
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:34:19.081Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read b2d43c0, prompts.ts, Ask.tsx and AdviceCard changes. UI test fails 3 of 3 on b2d43c0^; with prompts.ts copied into the old tree the wiring case fails on the old index.ts. No anti-accountant instruction remains anywhere under supabase/functions; the notice names a registered tax agent or BAS agent; deno check ask-bot and advisor ok. Residual: other AI surfaces (coding-classifier explanations, accountant-email-query replies) are outside this item and carry no notice.",
+        "runs": [
+          7,
+          8
+        ]
       }
     },
     {
@@ -5868,7 +6445,7 @@
       "title": "TFNs are never returned to the browser or stored in plain text",
       "area": "legitimacy",
       "priority": 36,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/tfn-handling.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/trust-tfn-encryption.sql\""
@@ -6294,6 +6871,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/TFN-01-032.log",
           "log_sha256": "c126baf26cfd26b496870713675d0ece9beee84d6c0fb76f30187be04281c8cf"
+        },
+        {
+          "n": 33,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/tfn-handling.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:43:47.552Z",
+          "ms": 1441,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/TFN-01-033.log",
+          "log_sha256": "1ca59ffe6d0755c7387982fed6a432fd3c53e4afc68684f5faa7651a57cc6af1"
+        },
+        {
+          "n": 34,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/trust-tfn-encryption.sql\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:44:32.977Z",
+          "ms": 45424,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/TFN-01-034.log",
+          "log_sha256": "c126baf26cfd26b496870713675d0ece9beee84d6c0fb76f30187be04281c8cf"
         }
       ],
       "notes": [
@@ -6672,6 +7275,13 @@
           "event": "done",
           "head": "30de075727852e5963159d79cd970b3dd2feef5a",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:44:33.011Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -6682,6 +7292,16 @@
           31,
           32
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:44:32.995Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read f82c8f0 in full (migration 20261003130100, _shared/tfn.ts, entity-tfn-save, entity-tfn-backfill, payroll-export-stp, stp.ts, useTrusts, PayRunDetail, both tests). payroll-export-stp selects tfn_last4 only, no decryptToken import; stp.ts emits tfn_masked and no tfn key, masks a passed full TFN and rejects a full TFN posed as the mask; the lodgement ledger stores the same masked event. Vault: service-role only, ciphertext-shape CHECK, same-org guard; five plain columns held NULL by CHECK for every role incl. postgres; quarantine moves values to a service-read/delete-only holding table and redacts audit_log copies (rows kept, append-only trigger re-enabled), second run moves nothing; backfill deletes a legacy row only after the vault holds it, newer vault value wins, bad values reported by id. Swept: no function/RPC/UI writes those columns (pre-fix UI only read trusts.tfn); no console logging of TFNs; employee_tfn_status/require_role are accepted-admin only. deno check clean on the four functions; stpSecureTfnLifecycle, payment-role-guards and stp.test.ts still pass; typecheck passes. Pre-fix tree (994e95a) with the new modules copied in: 5 substantive vitest failures (full TFN in the event, decryptToken present, useTrusts selects tfn) and the SQL test fails on the missing CHECK; current tree passes 14/14 and the SQL test. Residual: docs/MIGRATION_BASELINE_RUNBOOK.md has no pre-apply row for 20261003130100 although it DISABLEs audit_log_append_only (0001) and updates 0039's before/after/changes columns; entity-tfn-backfill must be run once; no UI yet calls entity-tfn-save, so trust/SMSF TFNs cannot be entered from the browser; advisor_work_proofs snapshots are not redacted (worker's note).",
+        "runs": [
+          33,
+          34
+        ]
       }
     },
     {
@@ -6689,7 +7309,7 @@
       "title": "Nothing claims to lodge with the ATO or send to a super fund when it only prepares a file",
       "area": "legitimacy",
       "priority": 37,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LodgementWording.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/super-batch-send/status.test.ts\""
@@ -6804,6 +7424,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/LODGE-01-008.log",
           "log_sha256": "f40fe484fd01c17f977ee1b6b75d7bab5810fa1919d461d4c48aedae0ab66220"
+        },
+        {
+          "n": 9,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LodgementWording.test.tsx\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:34:22.095Z",
+          "ms": 2739,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/LODGE-01-009.log",
+          "log_sha256": "20a9eb8418b449b22e7c347b9e265271a5de741e0f6a27fc5c2c858038105128"
+        },
+        {
+          "n": 10,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/super-batch-send/status.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:34:22.945Z",
+          "ms": 849,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/LODGE-01-010.log",
+          "log_sha256": "43e05bd4fd44eb571aafd12fe7057360e8e3cd7cb9fac74d47fb4ff5438fc394"
         }
       ],
       "notes": [],
@@ -6891,6 +7537,13 @@
           "event": "done",
           "head": "1ff7b5939f569b432c3e641c3bc4e5131d8e01f9",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:34:22.977Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -6901,6 +7554,16 @@
           7,
           8
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:34:22.962Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read 3f3fb29 and 1c3f0b4. UI test fails 7 of 7 and the Deno test 6 of 6 on 3f3fb29^. No user-facing Lodge string remains (only comments, a state value and the readiness checklist that says lodgement is blocked). super-batch-send writes only file_prepared and never sent; migration 20261003170200 relabels sent to file_prepared only for clearing_house_file batches with live dispatch off, and generate_super_batch refuses to rebuild a prepared quarter; deno check ok. Residual: Payroll shows 'File prepared, not paid' and the batch cannot be re-generated after a file is prepared, which is intended.",
+        "runs": [
+          9,
+          10
+        ]
       }
     },
     {
@@ -6908,7 +7571,7 @@
       "title": "Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs",
       "area": "bank",
       "priority": 40,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\""
       ],
@@ -7309,6 +7972,19 @@
           "ms": 497,
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-01-030.log",
+          "log_sha256": "f1d70e4b811380762e934d00d8adbbee09ed3a2159b320d650136fd2577201c3"
+        },
+        {
+          "n": 31,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:32:09.046Z",
+          "ms": 554,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/BANK-01-031.log",
           "log_sha256": "f1d70e4b811380762e934d00d8adbbee09ed3a2159b320d650136fd2577201c3"
         }
       ],
@@ -7989,6 +8665,13 @@
           "event": "done",
           "head": "30de075727852e5963159d79cd970b3dd2feef5a",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:32:09.077Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -7998,6 +8681,15 @@
         "runs": [
           30
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:32:09.062Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read a1e9a3b and 0693095 in full. check-no-basiq passes here (1128 files) and reports 24 offending files on a1e9a3b^ in a scratch worktree. Every allow-list entry is a dated record, an applied migration or ledger output; no Basiq in ignored env/config files or config.toml; the four retired functions and _shared/basiq are gone. bank-disconnect rewrite reviewed: admin-or-owner via authorizeOrgCaller, local revoke only, deno check ok. Residual: the bank_provider enum keeps the old label; the retired functions still need deleting from the live project; disconnect now needs the admin role where any member could before.",
+        "runs": [
+          31
+        ]
       }
     },
     {
@@ -8005,7 +8697,7 @@
       "title": "Redbark client pages accounts and transactions, splits truncated date windows, converts dollars to exact cents and skips pending rows",
       "area": "bank",
       "priority": 41,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/redbark/client.test.ts\""
       ],
@@ -8051,6 +8743,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-02-003.log",
           "log_sha256": "51dd5b1801521dc021f9da1377bab0c8d448cc30fe350a0b829b6047dcce5330"
+        },
+        {
+          "n": 4,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/redbark/client.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:32:10.045Z",
+          "ms": 802,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/BANK-02-004.log",
+          "log_sha256": "11ecb1f549f1e3f7239a5e49ee9d41fa9af7ebcff30ff35233ae155a934075ce"
         }
       ],
       "notes": [],
@@ -8111,6 +8816,13 @@
           "event": "done",
           "head": "62a46f2a959dfddd82b3de70cca558933c1d122d",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:32:10.080Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -8120,6 +8832,15 @@
         "runs": [
           3
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:32:10.063Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read 7c9ecc4, client.ts and history.ts in full. Checked Redbark's transactions and accounts docs: limit 1-500 (100 used), pagination fields, X-Redbark-Truncated, status posted|pending, account type values all map (term-deposit -> investment). Mutation: rounding dollars instead of refusing fails 2 tests. Residual: includePending is not sent (default false), so pending rows never arrive and pending counts stay 0 (harmless); accounts and balance paths are covered by fakes only.",
+        "runs": [
+          4
+        ]
       }
     },
     {
@@ -8127,7 +8848,7 @@
       "title": "bank-webhook verifies Redbark signatures and timestamps, stores the event before acting and dispatches one sync per linked connection",
       "area": "bank",
       "priority": 42,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/bankfeed/webhook.test.ts supabase/functions/bank-webhook/handler.test.ts\""
       ],
@@ -8174,6 +8895,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-03-003.log",
           "log_sha256": "afc69bfafb2efdb52a6c3086b8851ee6cad8764fb48fbd1eba30d9c45583fd80"
+        },
+        {
+          "n": 4,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/bankfeed/webhook.test.ts supabase/functions/bank-webhook/handler.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:32:11.122Z",
+          "ms": 784,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/BANK-03-004.log",
+          "log_sha256": "87ad3a05b81d5db26c27f82bb5f903044e778363da7b08aed752918e6acfe45c"
         }
       ],
       "notes": [],
@@ -8234,6 +8968,13 @@
           "event": "done",
           "head": "32686c6501e212eae43e6a46fdfda3910fcce843",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:32:11.161Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -8243,6 +8984,15 @@
         "runs": [
           3
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:32:11.146Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read 6468e47 and acd8828, webhook.ts, handler.ts and index.ts. Redbark docs confirm sha256=hex over timestamp.body, Unix seconds, 5-minute replay window. Mutations each fail the suite: skip the timestamp bound, accept an unset secret, swallow a store failure. Probe: last-byte-wrong signature, 301s-old timestamp and tampered body are refused; compare covers all 32 bytes (a first-byte-only compare would NOT be caught by the tests: test gap, code correct). Event stored before dispatch; only REDBARK_ORGANIZATION_IDS connections woken; deno check ok. Residual: a 4xx/500 from this handler on a genuine delivery disables the Redbark destination (their policy), so persistence failures need monitoring; webhook rows are matched on accountId/account_id/account_public_id and v1 id equality with the webhook's legacy account_id is not verifiable offline; events stored with organization_id NULL are never deduplicated (NULLs distinct in the unique key).",
+        "runs": [
+          4
+        ]
       }
     },
     {
@@ -8250,7 +9000,7 @@
       "title": "bank-sync imports Redbark transactions idempotently on (bank account, provider id) and keeps the post-sync chain",
       "area": "bank",
       "priority": 43,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bank-sync/sync.test.ts\""
       ],
@@ -8311,6 +9061,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-04-004.log",
           "log_sha256": "341b41bb883cee3225cc4bf671c3caa59bb56e1c9f73c5d510fe385a36e5697d"
+        },
+        {
+          "n": 5,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bank-sync/sync.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:32:12.116Z",
+          "ms": 680,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/BANK-04-005.log",
+          "log_sha256": "e512e1489083af3e863982f43a0d72511b54f95b453a6ac7443b5ed0c3a6132b"
         }
       ],
       "notes": [],
@@ -8394,6 +9157,13 @@
           "event": "done",
           "head": "32686c6501e212eae43e6a46fdfda3910fcce843",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:32:12.147Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -8403,6 +9173,15 @@
         "runs": [
           4
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:32:12.132Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read 418a2b2, sync.ts and bank-sync/index.ts. Idempotency rests on UNIQUE(bank_account_id, external_id) from 0008 plus upsert ignoreDuplicates returning only inserted rows; checkpoint only moves forward; post-sync chain (subscriptions, intake routing, classifier, auto-reconcile) intact; bank-sync-all filters provider=redbark and automation-worker's bank_sync payload still fits. Mutation importing pending rows fails 2 tests. Residual: the Deno test uses a fake store, so the real Supabase upsert path is untested; removing the t.date >= syncFrom filter keeps the suite green (belt-and-braces guard only); each webhook runs the whole post-sync chain for the organisation.",
+        "runs": [
+          5
+        ]
       }
     },
     {
@@ -8410,7 +9189,7 @@
       "title": "Admins can list Redbark accounts and link each one to a bank account with an import-from date",
       "area": "bank",
       "priority": 44,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bank-feed-link/link.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/BankFeedLink.test.tsx\""
@@ -8472,6 +9251,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-05-004.log",
           "log_sha256": "871127e75fd1e1f938633cbcdea3a856738d564d717ebf56b3595cc2ce81f6c4"
+        },
+        {
+          "n": 5,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bank-feed-link/link.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:32:13.062Z",
+          "ms": 684,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/BANK-05-005.log",
+          "log_sha256": "b68381fd120a5231e664d5e226793593a31dc5742bbab7c70225129040ff3c97"
+        },
+        {
+          "n": 6,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/BankFeedLink.test.tsx\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:32:15.349Z",
+          "ms": 2287,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/BANK-05-006.log",
+          "log_sha256": "1025086a4c6956c2d6bc5647c2cd6526a04a1c5f5d4c721dcb358732f505d0cd"
         }
       ],
       "notes": [
@@ -8515,6 +9320,13 @@
           "event": "done",
           "head": "b66e21cf0d577477b182781ab4d064a7ba0da05d",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:32:15.379Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -8525,6 +9337,16 @@
           3,
           4
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:32:15.364Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read b66e21c, link.ts, accounts.ts, both index.ts files, orgRole.ts and BankFeedLink/BankConnect. Listing and linking need an accepted admin or owner (viewer/accountant/pending refused) or the exact service key, then REDBARK_ORGANIZATION_IDS, which fails closed when unset. Mutations fail the suite: letting accountants link, letting another organisation claim a linked connection. BankFeedLink vitest passes; deno check ok. Residual: Redbark terms limit the feed to the account holder's own organisations (ledger note); a Redbark account whose currency is missing cannot be linked.",
+        "runs": [
+          5,
+          6
+        ]
       }
     },
     {
@@ -8532,7 +9354,7 @@
       "title": "Redbark migrations apply cleanly and enforce one organisation per Redbark connection",
       "area": "bank",
       "priority": 45,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/redbark-migrations.sql\""
       ],
@@ -8760,6 +9582,19 @@
           "ms": 41976,
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-06-017.log",
+          "log_sha256": "20c23301d66647b7a8bcea566324b4e511f0c24c6c0c2f9ce413a95d3370d028"
+        },
+        {
+          "n": 18,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/redbark-migrations.sql\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:34:08.763Z",
+          "ms": 42919,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/BANK-06-018.log",
           "log_sha256": "20c23301d66647b7a8bcea566324b4e511f0c24c6c0c2f9ce413a95d3370d028"
         }
       ],
@@ -9156,6 +9991,13 @@
           "event": "done",
           "head": "30de075727852e5963159d79cd970b3dd2feef5a",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:34:08.798Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -9164,6 +10006,15 @@
         "by": "claude-worker",
         "runs": [
           17
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:34:08.781Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read 61c9312 and 61a3686 and all three 20261003 bank migrations. The SQL test passes on the full 303-migration chain and fails on 61c9312^ (enum label missing). ADD VALUE IF NOT EXISTS tolerates production's existing redbark label; UNIQUE(provider, external_item_id) leaves NULL manual rows distinct; RESTRICTIVE policies keep manual writes and reads unchanged and even the service role cannot move accounts across organisations. No code or SQL references redbark_account_map, redbark_shadow_transactions or redbark-webhook. Residual: before applying, confirm production has no duplicate non-NULL (provider, external_item_id) pairs; the enum label is permanent.",
+        "runs": [
+          18
         ]
       }
     },
@@ -9208,7 +10059,7 @@
       "title": "Employees TFNs can be captured securely so the STP export can complete",
       "area": "broken",
       "priority": 50,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeTfnCapture.test.tsx\""
       ],
@@ -9242,6 +10093,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/STP-01-002.log",
           "log_sha256": "460f312f426a17af328a147d8cd01eb4e20a6d66bab7701680e5a914c83c2d39"
+        },
+        {
+          "n": 3,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeTfnCapture.test.tsx\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:44:35.751Z",
+          "ms": 2581,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/STP-01-003.log",
+          "log_sha256": "99a54b4252aa907705c5961efec4ecfe921eca20fb3dd3adda5a55d1871ff8b5"
         }
       ],
       "notes": [],
@@ -9279,6 +10143,13 @@
           "event": "done",
           "head": "13a8b93542c906dd37045b77e3a9cc7dad66073c",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:44:35.780Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -9288,6 +10159,15 @@
         "runs": [
           2
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:44:35.766Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read 13a8b93 and 0a67d1d in full. TfnPanel loads employee_tfn_status (0227: SECURITY DEFINER, filtered by require_role(p_org,'admin') which 0210 restricts to accepted memberships, returns masked last-4 only, anon revoked); the TFN goes to employee-tfn-save in a password field, validated to 8-9 digits client-side and again in the function, which encrypts into employee_tfn_vault via the shared AES-GCM helper and strips any tfn keys from wage_components; the response carries tfn_masked only and the field is cleared. deno check clean. Pre-fix tree (b635105): all 5 vitest cases fail; current tree passes 5/5. Residual: the function's verify_jwt=false relies on its own getUser check (as the other payroll functions do); the STP file still needs each employee's stp_tax_treatment_code set elsewhere before it is 'ready'.",
+        "runs": [
+          3
+        ]
       }
     },
     {
@@ -9295,7 +10175,7 @@
       "title": "PDF previews and the microphone feature work under the production security headers",
       "area": "broken",
       "priority": 51,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/csp-headers.test.ts\""
       ],
@@ -9341,6 +10221,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/CSP-01-003.log",
           "log_sha256": "52f54060d5167a672361c994c57774e9b353e495ef8d6190fe8139fe51d8ac04"
+        },
+        {
+          "n": 4,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/csp-headers.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:40:35.939Z",
+          "ms": 1659,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/CSP-01-004.log",
+          "log_sha256": "321d297ffec760dac939dc15bd00f94d7c79a1b8c95c64ac697466fbf510f586"
         }
       ],
       "notes": [],
@@ -9401,6 +10294,13 @@
           "event": "done",
           "head": "32686c6501e212eae43e6a46fdfda3910fcce843",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:40:35.968Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -9410,6 +10310,15 @@
         "runs": [
           3
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:40:35.954Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Re-ran accept (9 pass); 4/9 fail with public/_headers reverted to efc4faf^. Read the policy: frame-src is exactly https://*.supabase.co/storage/v1/object/ (path-limited; the test's matcher applies CSP prefix matching, and /rest/v1, /functions/v1, /auth/v1, other hosts, http:, data: and blob: are refused), Permissions-Policy microphone=(self) with camera and geolocation off, everything else unchanged (default/script/worker-src 'self', object-src 'none', frame-ancestors 'none', X-Frame-Options DENY). A scratch vite build copies _headers into dist unchanged. Residual: static check only - not exercised in a browser (Chrome's PDF viewer inside an iframe with object-src 'none'; a signed-URL redirect) nor on a Pages preview.",
+        "runs": [
+          4
+        ]
       }
     },
     {
@@ -9417,7 +10326,7 @@
       "title": "BAS includes credit notes, supports cash basis and computes W3/W4 instead of hard-coded zeros",
       "area": "broken",
       "priority": 52,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bas-correctness.sql\""
       ],
@@ -9580,6 +10489,19 @@
           "ms": 43594,
           "actor": "claude-worker",
           "log": ".ledger/logs/BAS-01-012.log",
+          "log_sha256": "706cee432665e667db2d648108d52dc0459f5a03f1c61dae620c10152d653d9f"
+        },
+        {
+          "n": 13,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bas-correctness.sql\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:51:46.882Z",
+          "ms": 42441,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/BAS-01-013.log",
           "log_sha256": "706cee432665e667db2d648108d52dc0459f5a03f1c61dae620c10152d653d9f"
         }
       ],
@@ -9867,6 +10789,13 @@
           "event": "done",
           "head": "30de075727852e5963159d79cd970b3dd2feef5a",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:51:46.917Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -9876,6 +10805,15 @@
         "runs": [
           12
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:51:46.900Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read 09f8b4f (1,790-line migration 20261003150000, 322-line test, UI, pdf and pack changes). Checked the ATO/GST Act rules: GST Act s 29-5(2)/29-10(2) (legislation.gov.au) attribute cash-basis GST/credits to the period consideration is received/provided 'to the extent' received, which the per-payment pro-rata rows implement; s 29-20 puts cash-basis adjustments in the period the refund consideration moves, which is why post-payment credit notes go to needs_review rather than a period; same-period credit notes net the original figures and later ones are adjustments (supplier -> 1A increasing, customer -> 1B decreasing); W3/W4 are JSON null with not_recorded, never 0, in the worksheet, drilldown, PDF and pack. Recomputed all 56 expected figures by hand from the fixtures (e.g. A Q1 G1 160000-22000, 1A 8000, 1B 26000, label 9 -18000; C Q1 G1 44000+110000 after the GST-free credit, 1A 14000; the 30 Sep 15:30 UTC payment lands in Q2 Brisbane). Consumers keep their columns (v_bas_quarterly columns kept, new ones appended; RPC signatures unchanged; grants unchanged, CREATE OR REPLACE keeps service_role's existing access). Pre-fix tree (2475e1a) fails (no gst_accounting_basis column); current tree passes 56/56; Bas.test.tsx 11/11; pack.test.ts 6/6; deno check clean on bas-worksheet-pdf and bas-lodgement-pack. Residual: bills count on the cash basis only when fully paid (single paid_at); draft invoices still count (pre-existing, 0080 did the same); ask-bot's hard-coded v_bas_quarterly query names columns (sales_inc_gst_cents, net_gst_owed_cents) that neither the old nor new view has (pre-existing).",
+        "runs": [
+          13
+        ]
       }
     },
     {
@@ -9883,7 +10821,7 @@
       "title": "No GST credit is invented when GST is missing or the supplier is not GST-registered",
       "area": "broken",
       "priority": 53,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/gstNoInvention.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/receipt-webhook/gst.test.ts\""
@@ -9945,6 +10883,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/GST-01-004.log",
           "log_sha256": "22e30406ad842516cd7af3a3f0e9adec8628c830afeafe32b62a176a6ace5f86"
+        },
+        {
+          "n": 5,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/gstNoInvention.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:34:11.529Z",
+          "ms": 2465,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/GST-01-005.log",
+          "log_sha256": "16d0e0a6eaa27dc5b3470152c2f137f39e395303ca2fa09b3ac5d416208806ca"
+        },
+        {
+          "n": 6,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/receipt-webhook/gst.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:34:12.611Z",
+          "ms": 1082,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/GST-01-006.log",
+          "log_sha256": "f3a9ae897abc8bf263a108168d92f3e85d3315dbaa7b595d261b6415dd06294e"
         }
       ],
       "notes": [],
@@ -9982,6 +10946,13 @@
           "event": "done",
           "head": "3159f8e1b044ef8e2d9e5bdb4775a5e1e0196883",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:34:12.716Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -9992,6 +10963,16 @@
           3,
           4
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:34:12.702Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read 02b424d and 3159f8e, gst.ts, bills-extract/gst.ts and the receipt-webhook and coding-classifier diffs. On 02b424d^ with gst.ts copied in, 4 Bill-detail cases fail; the old receipt-webhook fails 6 of 8. Remaining /11 uses are only the explicit 'total includes GST' paths and the Scan wording. bills.gst_cents is nullable; v_bas_gst_coverage counts a NULL-GST bill as incomplete and v_bill_effective_allocations coalesces it to 0, so no 1B credit; coding-classifier holds NULL-GST bills for a person; deno check receipt-webhook ok. ato.gov.au returned 403 to WebFetch, so the no-credit rule was checked against the ATO wording the code cites, not re-fetched. Residual: receipt_lines store GST 0 with metadata.gst_unknown because the column is NOT NULL; gst_ready still passes at 95% coverage (pre-existing).",
+        "runs": [
+          5,
+          6
+        ]
       }
     },
     {
@@ -9999,7 +10980,7 @@
       "title": "The tax set-aside uses GST-exclusive figures for one financial year",
       "area": "broken",
       "priority": 54,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/tax-set-aside.sql\""
       ],
@@ -10149,6 +11130,19 @@
           "ms": 41846,
           "actor": "claude-worker",
           "log": ".ledger/logs/TAX-01-011.log",
+          "log_sha256": "df94524a20c99449b4ebc9797532b3371707f21eccfea4061b0f282723c04e1c"
+        },
+        {
+          "n": 12,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/tax-set-aside.sql\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:52:29.338Z",
+          "ms": 42255,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/TAX-01-012.log",
           "log_sha256": "df94524a20c99449b4ebc9797532b3371707f21eccfea4061b0f282723c04e1c"
         }
       ],
@@ -10407,6 +11401,13 @@
           "event": "done",
           "head": "30de075727852e5963159d79cd970b3dd2feef5a",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:52:29.370Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -10416,6 +11417,15 @@
         "runs": [
           11
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:52:29.355Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read a9f5ade in full. v_organization_realtime_pnl now scopes revenue, bills (allocation-aware, total less GST, is_probable_bill), job wages (work_date) and job overhead (allocation_date) to the org's current 1 July-30 June year in its state time zone, nets posted credit notes, and sets aside pct x net_profit_ex_gst floored at 0; existing columns and really_yours formula kept, new columns appended; depends on bas_local_date from 20261003150000 which precedes it. Recomputed the fixture: 9,000 - 2,700 - 2,000 - 500 = 3,800 x 25% = 950. Pre-fix tree (22da42b) fails substantively (wages 7000 all years, overhead 800, set-aside 0, gross profit -1,090); current tree passes 12/12. Residual: the rate source is unchanged (org setting else 25% default), and the view is read-side only, so nothing else moves; the overhead_allocations updated_at defect the worker found is addressed separately by 20261003125000.",
+        "runs": [
+          12
+        ]
       }
     },
     {
@@ -10423,7 +11433,7 @@
       "title": "Invoices can be issued as a tax invoice (PDF with \"Tax invoice\", ABN and GST) and sent",
       "area": "broken",
       "priority": 55,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/TaxInvoiceIssue.test.tsx\""
       ],
@@ -10456,6 +11466,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/INV-01-002.log",
           "log_sha256": "5b12a32466c8cde510f25efc9d99728ecb62cc9a5c3abbed49752c53399f29d6"
+        },
+        {
+          "n": 3,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/TaxInvoiceIssue.test.tsx\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:34:29.068Z",
+          "ms": 2559,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/INV-01-003.log",
+          "log_sha256": "d2da13d74009c159d1fd2f50b96a8f2abd175819678b9fb4dc96e7226a6d09a3"
         }
       ],
       "notes": [
@@ -10499,6 +11522,13 @@
           "event": "done",
           "head": "527121f47963c1c400451917608a601ecc1a2072",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:34:29.097Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -10507,6 +11537,15 @@
         "by": "claude-worker",
         "runs": [
           2
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:34:29.083Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read 527121f, taxInvoice.ts and the InvoiceDetail changes. With taxInvoice.ts copied into 527121f^, the 4 page cases fail. The PDF shows every element the ATO lists for a tax invoice (intended as a tax invoice, seller identity and ABN, date, description with quantity and price, GST amount, extent taxable per line) and always the buyer, so the $1,000 rule is met; issue is refused without an 11-digit ABN. A business set as not registered gets 'Invoice', 'No GST has been charged.' and is blocked from GST lines. ato.gov.au returned 403 to WebFetch and legislation.gov.au did not return s 29-70 text, so the requirements were checked against the ATO list as cited in the code, not re-fetched. Residual: gstRegistered is derived as 'registered unless organisations.settings.gst_registered or business_profile.is_gst_registered is false', so an organisation that never set its GST status and has no business_profile row gets a Tax invoice heading (fail-open; consistent with the Organisation form's default); the inc-GST ex-amount fix applies only to invoices edited after it; emailing from Looplet is INV-02.",
+        "runs": [
+          3
         ]
       }
     },
@@ -10540,7 +11579,7 @@
       "title": "New organisations do not inherit the pilot business known-sender list",
       "area": "broken",
       "priority": 57,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/known-senders-seed.sql\""
       ],
@@ -10664,6 +11703,19 @@
           "ms": 42921,
           "actor": "claude-worker",
           "log": ".ledger/logs/SEED-01-009.log",
+          "log_sha256": "5dc08359bffeb6a7ccac7c5bb1ca0ab9b05b0434d9cece8c68578f63ac6de384"
+        },
+        {
+          "n": 10,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/known-senders-seed.sql\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:59:45.798Z",
+          "ms": 49688,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEED-01-010.log",
           "log_sha256": "5dc08359bffeb6a7ccac7c5bb1ca0ab9b05b0434d9cece8c68578f63ac6de384"
         }
       ],
@@ -10882,6 +11934,13 @@
           "event": "done",
           "head": "30de075727852e5963159d79cd970b3dd2feef5a",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:59:45.830Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -10891,6 +11950,15 @@
         "runs": [
           9
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:59:45.815Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read 3091633 in full. intake_known_senders gains organization_id; lookup_known_sender(p_email, p_org) (old 1-arg form dropped) matches only that org's rows and returns nothing for NULL/absent org; SELECT policy restricted to the caller's accessible orgs; uniqueness per org; nothing deleted. The DO block assigns unowned rows to the pilot only when 9d5c9b9a-a576-458d-913a-fa822d33320d exists (production, per the integrator) and claim_unowned_known_senders is service_role-only. Swept callers: gmail-mine is the only caller and now passes the integration's organization_id; nothing in functions/src writes the table (only the 0015 seed), so the claim cannot sweep another tenant's rows. Pre-fix tree (32bd8a1) fails (no organization_id column); current tree passes 13/13 incl. RLS and the authenticated-cannot-claim check. Residual: 0015 cannot be re-run after this migration (its ON CONFLICT target index is dropped), as the file notes.",
+        "runs": [
+          10
+        ]
       }
     },
     {
@@ -10898,7 +11966,7 @@
       "title": "The Xero bank pull writes schema-valid rows (real connection, valid account type)",
       "area": "broken",
       "priority": 58,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/xero-pull-bank-transactions/rows.test.ts\""
       ],
@@ -10944,6 +12012,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/XERO-02-003.log",
           "log_sha256": "a060aacbb24b3b1374b1b4b6330c24e39984e8645c198e1acf92567931e45e24"
+        },
+        {
+          "n": 4,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/xero-pull-bank-transactions/rows.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T04:00:37.130Z",
+          "ms": 703,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/XERO-02-004.log",
+          "log_sha256": "0048d7f780d60a39a2d2ef905119053bc03cac92f2caf124164d2cbf9fee257f"
         }
       ],
       "notes": [],
@@ -11004,6 +12085,13 @@
           "event": "done",
           "head": "32686c6501e212eae43e6a46fdfda3910fcce843",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:00:37.243Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -11013,6 +12101,15 @@
         "runs": [
           3
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T04:00:37.229Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read a222e68 in full. rows.ts builds a provider='xero' bank_connections row per org and tenant (empty token; secrets stay in xero_integrations), bank_accounts under that connection with account_type mapped from Xero BankAccountType (BANK->checking, CREDITCARD->credit_card, else other), currency defaulting to AUD, ARCHIVED/DELETED inactive, and signed-cent transactions skipping DELETED; index.ts upserts through these builders. Beyond the acceptance test I ran a scratch SQL file on a fresh 303-migration database: both ON CONFLICT targets (organization_id,provider,external_item_id from 0007; organization_id,bank_connection_id,external_id) resolve and are idempotent, the pipeline creates a debt row for a Xero credit card (so BS-01 shows it once as a liability), and the old row shape is rejected ('invalid input value for enum bank_account_type: bank'). bank-sync and bank-sync-all filter provider='redbark', so a 'xero' connection is never swept by the Redbark client. Pre-fix tree (ef73a55) with rows.ts present fails substantively (no 'xero' enum value; index.ts not wired); current tree 6/6; deno check clean; enum ADD VALUE is in its own migration. Residual: the 0007 unique constraint on bank_connections is a backfill of a live object and is assumed to exist in production with those columns; the pull is still a user-JWT/cron function whose org access check I did not re-audit (SEC items).",
+        "runs": [
+          4
+        ]
       }
     },
     {
@@ -11020,7 +12117,7 @@
       "title": "The balance sheet does not count credit-card and loan balances as both cash and debts",
       "area": "broken",
       "priority": 59,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/balance-sheet-debts.sql\""
       ],
@@ -11183,6 +12280,19 @@
           "ms": 42841,
           "actor": "claude-worker",
           "log": ".ledger/logs/BS-01-012.log",
+          "log_sha256": "98d7f13d6cc689a465f71f552bb0fb34cd65fc2314e88b8b73e5156cb63e0223"
+        },
+        {
+          "n": 13,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/balance-sheet-debts.sql\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:53:12.066Z",
+          "ms": 42451,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/BS-01-013.log",
           "log_sha256": "98d7f13d6cc689a465f71f552bb0fb34cd65fc2314e88b8b73e5156cb63e0223"
         }
       ],
@@ -11434,6 +12544,13 @@
           "event": "done",
           "head": "30de075727852e5963159d79cd970b3dd2feef5a",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:53:12.099Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -11443,6 +12560,15 @@
         "runs": [
           12
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:53:12.083Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read fc93a9d in full. v_balance_sheet excludes credit_card/loan accounts from Cash at bank (same provider/90-day rule), excludes deleted debts, and shows a live card/loan with no debt row once at abs(balance) on its own liability line; personal debt rows keep their account off the sheet; columns and security_invoker unchanged (test checks both and v_balance_sheet_summary agrees). Recomputed the fixture: cash 10,000; debts 3,000+20,000+700; 400 on the no-record line; equity -14,100. Pre-fix tree (8549b2d) fails substantively (cash -13,500, debts 24,600, equity -38,100); current tree passes 9/9. Residual: the sheet is still the documented approximation (no GL), and relies on the 20260702134500 pipeline having created debt rows for existing production card/loan accounts.",
+        "runs": [
+          13
+        ]
       }
     },
     {
@@ -11450,7 +12576,7 @@
       "title": "CI runs the Deno edge-function tests and reports environment-gated test files instead of skipping them silently",
       "area": "broken",
       "priority": 60,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-test-coverage.test.ts\""
       ],
@@ -11484,6 +12610,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/CI-01-002.log",
           "log_sha256": "147e965718c9da4b39937d602466a978f8f1ebdc8c3b0c5f0951f01134f4aa23"
+        },
+        {
+          "n": 3,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-test-coverage.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:40:33.894Z",
+          "ms": 1563,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/CI-01-003.log",
+          "log_sha256": "6cb602270beb00d5679d5920b076cd4c7091b60f7a40bb2c0c74bfe7fd15f497"
         }
       ],
       "notes": [],
@@ -11521,6 +12660,13 @@
           "event": "done",
           "head": "589d0315ac767f86c8c6750b911db9a9e11005d4",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:40:34.006Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -11529,6 +12675,15 @@
         "by": "claude-worker",
         "runs": [
           2
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:40:33.992Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Re-ran accept (8 pass); 5/8 fail with ci.yml and vitest.config.ts reverted to 589d031^. Ran the whole Deno suite exactly as CI does (deno test --allow-env --allow-read --allow-net --node-modules-dir=none supabase/functions with DENO_SERVE_ADDRESS): 387 passed, 0 failed, 45 s; deploy needs edge-functions. vitest projects: src in jsdom, tests in node (no environmentMatchGlobs); the skipped-files reporter is added in GitHub Actions only and the Node test proves it has no jsdom globals. Residual: CI pins Deno 2.9.7 while I ran the installed local Deno; the skipped-files report is a warning and job-summary table, not a failure, so a gated suite still cannot block a deploy by itself.",
+        "runs": [
+          3
         ]
       }
     },
@@ -11832,7 +12987,7 @@
       "title": "accountant-email-query matches the sender's accepted accountant memberships by role_enum, so the emailed activity digest works",
       "area": "security",
       "priority": 14,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/accountant-email-query/match.test.ts\""
       ],
@@ -11891,6 +13046,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-09-004.log",
           "log_sha256": "6513526067f165d5de05e856288295f8143efee0f9030fe14098ab0f4ada2a08"
+        },
+        {
+          "n": 5,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/accountant-email-query/match.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:40:37.043Z",
+          "ms": 715,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-09-005.log",
+          "log_sha256": "aa94453e208dacf375fc55fe91f984441b40ef75f48320d1b64541e1bba9238a"
         }
       ],
       "notes": [],
@@ -11949,6 +13117,13 @@
           "event": "done",
           "head": "91b934af2c0ccc26f35933ba350c433ada625b0e",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:40:37.073Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -11960,12 +13135,12 @@
         ]
       },
       "verified": {
-        "at": "2026-10-03T00:39:45.067Z",
-        "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
+        "at": "2026-10-03T03:40:37.059Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
         "by": "claude-verifier (independent subagent)",
-        "note": "Confirmed the legacy role column is enum membership_role (owner/admin/manager/member), so the old .eq('role','accountant') could never match. New path: x-inbound-secret checked first (fail closed), sender found across listUsers pages (stops on a short page, throws above 100k users), then only that user's rows with role_enum='accountant' and accepted_at not null (filtered in the query and again in acceptedAccountantMemberships); the activity query is scoped to the chosen org and that user. deno check clean. Residual (pre-existing, now live because matching works): the sender is identified only by the unauthenticated From header (no SPF/DKIM check in code) and the reply goes to the raw From string, not the matched user's registered address; a spoofed From gets the real accountant's digest mailed to whatever Resend makes of that string. Replying to the registered email of the matched user would close it.",
+        "note": "Re-ran match.test.ts (7 pass); its handler test fails with index.ts reverted to 91b934a^ and to 0e7befa^. Read 0e7befa and 91b934a: x-inbound-secret checked first and fails closed when unset; the sender is found across listUsers pages; memberships are filtered to that user, role_enum='accountant', accepted_at not null (in the query and again in acceptedAccountantMemberships); the reply goes to the account's registered email, never the raw From; unknown senders get no reply (no mail reflection). deno check clean. Residual: the sender is still identified by the From header alone (no SPF/DKIM result from the inbound provider is checked), so a spoofed From for a real accountant still sends that accountant's digest to their own registered address.",
         "runs": [
-          3
+          5
         ]
       }
     },
@@ -11974,7 +13149,7 @@
       "title": "Every migration applies in order to a fresh database, so the history can rebuild the schema (no known failures left)",
       "area": "database",
       "priority": 30,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs --strict\""
       ],
@@ -12059,6 +13234,19 @@
           "ms": 42430,
           "actor": "claude-worker",
           "log": ".ledger/logs/MIG-01-006.log",
+          "log_sha256": "ddd90ba2fb25fc1010f1d4b025f541268310672b47fe58d9324bfeb7215f0fdb"
+        },
+        {
+          "n": 7,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs --strict\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T04:01:20.588Z",
+          "ms": 43188,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/MIG-01-007.log",
           "log_sha256": "ddd90ba2fb25fc1010f1d4b025f541268310672b47fe58d9324bfeb7215f0fdb"
         }
       ],
@@ -12199,6 +13387,13 @@
           "event": "done",
           "head": "30de075727852e5963159d79cd970b3dd2feef5a",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:01:20.621Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -12208,6 +13403,15 @@
         "runs": [
           6
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T04:01:20.605Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read eaea3fe and docs/MIGRATION_GAP_AUDIT.md. Strict rebuild: 'migrations: 303 applied, 0 known failures, 0 problems (303 files)', known-migration-failures.json empty. Compared the repaired get_workstream_tasks bodies with the live renumbered copies by extracting each function body: 0200 vs 0231 (254 lines), 0202 vs 0233 (336), 0204 vs 0235 (365) have 0 differing lines; 20260701160000 differs from 0235 only in arm 12 (the pre-flight close detail it intentionally adds). The repair itself replaces se/b/ci/bt.organization_id with p_org_id in arms already filtered to p_org_id, customer_invoices with invoices, drops a non-existent deleted_at filter and orders by position, i.e. the same corrections live already runs. 0203 (stray $$;), 0206 (column before its partial index) are order/syntax only; 0208 is a documented no-op whose original referenced tables that never existed; 0231/0232/0236 are made idempotent only (guarded type, IF NOT EXISTS, DROP POLICY IF EXISTS, CREATE OR REPLACE VIEW), which changes nothing where the objects exist. Residual: scratchpad/prod-definer-defs.json holds only the seven SEC-10 definer functions, so the comparison for these repairs is against the in-tree live copies, not a production dump; the production history remains unreconciled with local filenames (runbook), so none of the repaired files should be pushed to live as new migrations.",
+        "runs": [
+          7
+        ]
       }
     },
     {
@@ -12215,7 +13419,7 @@
       "title": "SECURITY DEFINER functions that users call and that write money tables check the caller's role",
       "area": "security",
       "priority": 13,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/definer-write-roles.sql\""
       ],
@@ -12482,6 +13686,19 @@
           "ms": 43762,
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-10-020.log",
+          "log_sha256": "cc8baa8a98a4bca031c5c83092fc914316de3b12c5c21069171df9b8db7712ed"
+        },
+        {
+          "n": 21,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/definer-write-roles.sql\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:42:57.318Z",
+          "ms": 44846,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-10-021.log",
           "log_sha256": "cc8baa8a98a4bca031c5c83092fc914316de3b12c5c21069171df9b8db7712ed"
         }
       ],
@@ -12932,6 +14149,13 @@
           "event": "done",
           "head": "30de075727852e5963159d79cd970b3dd2feef5a",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:42:57.351Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -12941,6 +14165,15 @@
         "runs": [
           20
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:42:57.334Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Re-ran accept (8 audited functions gated, 56 call probes); with 20261003121000 removed on a scratch tree the audit and 14 probes fail. Read all seven redefined bodies: gate is membership AND can_write_org accountant+ (admin in both organisations for move_employee_to_org); the reconcile functions' service path is now NOT coalesce(v_is_service,false). Own catalog audit of every SECURITY DEFINER function executable by authenticated against every table that now carries a can_write_org or require_role policy: the only one that writes a guarded table without a role check is seed_default_chart_of_accounts(uuid) (0098) - membership check only, so a viewer can still insert the fixed default accounts into their own organisation (chart_of_accounts is accountant+ since 20261003123000; ON CONFLICT DO NOTHING, same org only). The test's audit list has 16 tables and misses it. Low impact; suggest adding can_write_org(p_org_id,'accountant') there. All 36 writable views are security_invoker and none has an INSTEAD OF trigger.",
+        "runs": [
+          21
+        ]
       }
     },
     {
@@ -12948,7 +14181,7 @@
       "title": "Bills only reference suppliers of their own organisation, so payment runs never copy another organisation's payee bank details",
       "area": "security",
       "priority": 14,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bill-supplier-same-org.sql\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\""
@@ -13452,6 +14685,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-11-038.log",
           "log_sha256": "ca55740a10ee101716f9448af4eb1fc87d61cd70986a89fc186432a4096b6479"
+        },
+        {
+          "n": 39,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bill-supplier-same-org.sql\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:42:10.829Z",
+          "ms": 42561,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-11-039.log",
+          "log_sha256": "ad7ea45ebd935f97a298eade3a6404f1e3af878221ef382cc9371a025d31f034"
+        },
+        {
+          "n": 40,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:42:12.221Z",
+          "ms": 1391,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-11-040.log",
+          "log_sha256": "7edb5079238051b602c0e96324083efa901987242a1921f2ae650b04b81e1371"
         }
       ],
       "notes": [],
@@ -13878,6 +15137,13 @@
           "event": "done",
           "head": "30de075727852e5963159d79cd970b3dd2feef5a",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:42:12.251Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -13888,6 +15154,16 @@
           37,
           38
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:42:12.236Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Re-ran accept (6 SQL checks and 13 vitest pass); with 20261003122000 removed on a scratch tree the four cross-organisation inserts/repoints are allowed and the test fails. Trigger enforce_bill_supplier_same_org runs for every role including the service role, BEFORE INSERT OR UPDATE OF supplier_id, organization_id, after the 0081 auto-link trigger; payment-runs-create (fbb853f) also refuses bills whose embedded supplier.organization_id differs and verifies payer_bank_account_id is this organisation's account, both before the run is created. The runbook has the pre-apply query for existing cross-org bills. Residual: docs/MIGRATION_BASELINE_RUNBOOK.md's table row for SEC-11 names 20261003170200_super_batch_file_prepared_lifecycle.sql instead of 20261003122000_bill_supplier_same_org.sql (documentation slip).",
+        "runs": [
+          39,
+          40
+        ]
       }
     },
     {
@@ -13895,7 +15171,7 @@
       "title": "Data-completeness sweep functions can only be run by the service role, not by signed-in users",
       "area": "security",
       "priority": 15,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/sweep-functions-service-only.sql\""
       ],
@@ -13957,6 +15233,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-12-004.log",
           "log_sha256": "74bdf79eb57e2f35470ddbe5e8fa38e28fdf44e9364b0005298b26275172ada2"
+        },
+        {
+          "n": 5,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/sweep-functions-service-only.sql\"",
+          "exit": 0,
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "dirty": [],
+          "at": "2026-10-03T03:41:28.030Z",
+          "ms": 50679,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-12-005.log",
+          "log_sha256": "74bdf79eb57e2f35470ddbe5e8fa38e28fdf44e9364b0005298b26275172ada2"
         }
       ],
       "notes": [],
@@ -14010,6 +15299,13 @@
           "event": "done",
           "head": "5f56fbcf234608e7795fe73a193881670ec98c62",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T03:41:28.063Z",
+          "event": "verified",
+          "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -14018,6 +15314,15 @@
         "by": "claude-worker",
         "runs": [
           4
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T03:41:28.047Z",
+        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Re-ran accept (6 grant checks, 2 call checks pass); with 20261003124000 removed on a scratch tree the test fails. Own catalog audit on a fresh migrated database: run_data_completeness_scan_all() and emit_critical_finding_notifications() are executable by service_role only (not anon or authenticated); run_data_completeness_scan(uuid), which Scan.tsx calls, stays callable by authenticated and checks membership of p_org_id. No UI code or edge function calls the two sweep functions, and pg_cron runs them as the table owner. Residual: none found; the two functions were already body-guarded by 20260702153000, so this closes the EXECUTE grant only.",
+        "runs": [
+          5
         ]
       }
     },
@@ -14142,5 +15447,5 @@
       ]
     }
   ],
-  "updated_at": "2026-10-03T03:19:01.311Z"
+  "updated_at": "2026-10-03T04:01:20.636Z"
 }

@@ -1,0 +1,4 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/db/run-pg-sql-tests.mjs tests/db-sql/tax-set-aside.sql"
+migrations: 303 applied, 0 known failures, 0 problems (303 files)
+PASS tests/db-sql/tax-set-aside.sql
+  NOTICE:  Tax set-aside: 12 checks passed (GST-exclusive base, one financial year, credit notes, loss year)

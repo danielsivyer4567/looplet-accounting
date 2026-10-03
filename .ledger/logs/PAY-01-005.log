@@ -1,0 +1,14 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/calc.test.ts"
+[0m[38;5;245mrunning 8 tests from ./supabase/functions/payroll-create-pay-run/calc.test.ts[0m
+wages use the base hourly rate, not the loaded cost rate ... [0m[32mok[0m [0m[38;5;245m(416µs)[0m
+overtime is loaded on the base rate and excluded from ordinary time earnings ... [0m[32mok[0m [0m[38;5;245m(42µs)[0m
+paid leave is paid at the base rate and counts as ordinary time earnings ... [0m[32mok[0m [0m[38;5;245m(80µs)[0m
+hours are summed by entry type; public holidays are ordinary time ... [0m[32mok[0m [0m[38;5;245m(140µs)[0m
+cents are rounded once per component ... [0m[32mok[0m [0m[38;5;245m(64µs)[0m
+a missing or invalid base rate stops the payslip instead of paying the loaded rate or zero ... [0m[32mok[0m [0m[38;5;245m(435µs)[0m
+the pay run prices every payslip with these helpers on the base rate ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+PAYG is withheld from the table of the pay date, not today ... [0m[32mok[0m [0m[38;5;245m(409µs)[0m
+
+[0m[32mok[0m | 8 passed | 0 failed [0m[38;5;245m(13ms)[0m
+
+[0m[32mCheck[0m supabase/functions/payroll-create-pay-run/calc.test.ts

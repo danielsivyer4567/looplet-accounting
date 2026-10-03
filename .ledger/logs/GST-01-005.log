@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/lib/gstNoInvention.test.ts"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  13:34:10
+   Duration  1.20s (transform 108ms, setup 58ms, import 228ms, tests 309ms, environment 497ms)
+
