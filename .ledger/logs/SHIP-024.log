@@ -1,0 +1,538 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "deno test --allow-env --allow-read --allow-net supabase/functions"
+[0m[38;5;245mrunning 3 tests from ./supabase/functions/_shared/advisoryCite.test.ts[0m
+citeForAdvice fails open when the Sonar key is absent ... [0m[32mok[0m [0m[38;5;245m(460µs)[0m
+citeForAdvice extracts Sonar text and top-level citations without network ... [0m[32mok[0m [0m[38;5;245m(18ms)[0m
+citeForAdvice also accepts message-level citations and fails open on HTTP errors ... [0m[32mok[0m [0m[38;5;245m(554µs)[0m
+[0m[38;5;245mrunning 2 tests from ./supabase/functions/_shared/advisoryFacts.test.ts[0m
+loadAdvisoryFacts maps profile, P&L, BAS, and advisory signals ... [0m[32mok[0m [0m[38;5;245m(700µs)[0m
+loadAdvisoryFacts keeps missing/error sources explicit instead of fabricating zeros ... [0m[32mok[0m [0m[38;5;245m(124µs)[0m
+[0m[38;5;245mrunning 4 tests from ./supabase/functions/_shared/aiRateLimit.test.ts[0m
+an allowed call takes one unit of the user's hourly quota for that feature ... [0m[32mok[0m [0m[38;5;245m(529µs)[0m
+a used-up quota answers 429 with Retry-After and a plain message, keeping the CORS headers ... [0m[32mok[0m [0m[38;5;245m(3ms)[0m
+AI_RATE_LIMIT_<FEATURE> overrides a default; nonsense values are ignored ... [0m[32mok[0m [0m[38;5;245m(6ms)[0m
+a database error fails closed with 503; a not-yet-installed limiter lets the call through ... [0m[32mok[0m [0m[38;5;245m(669µs)[0m
+[0m[38;5;245mrunning 11 tests from ./supabase/functions/_shared/apiKeys.hardening.test.ts[0m
+hashed_key column SELECT is revoked from authenticated, anon and connector ... [0m[32mok[0m [0m[38;5;245m(427µs)[0m
+hashed_key is never returned to clients (no GRANT exposing it) ... [0m[32mok[0m [0m[38;5;245m(300µs)[0m
+direct INSERT/UPDATE/DELETE on api_keys is revoked from client roles ... [0m[32mok[0m [0m[38;5;245m(57µs)[0m
+the now-unreachable 0056 insert/update RLS policies are dropped ... [0m[32mok[0m [0m[38;5;245m(76µs)[0m
+api_key_rate_limit is SECURITY DEFINER with a pinned search_path ... [0m[32mok[0m [0m[38;5;245m(164µs)[0m
+api_key_rate_limit EXECUTE is granted to service_role and revoked from every client role ... [0m[32mok[0m [0m[38;5;245m(110µs)[0m
+issue_api_key requires admin/owner on the target org ... [0m[32mok[0m [0m[38;5;245m(49µs)[0m
+issue_api_key pins pgcrypto's search_path and fully schema-qualifies it ... [0m[32mok[0m [0m[38;5;245m(219µs)[0m
+issue_api_key still hashes the secret (only the hash is persisted) ... [0m[32mok[0m [0m[38;5;245m(166µs)[0m
+apiKeys.ts reads hashed_key and rate-limits under the service-role client ... [0m[32mok[0m [0m[38;5;245m(50µs)[0m
+the migration documents that hashed_key is never exposed to clients ... [0m[32mok[0m [0m[38;5;245m(29µs)[0m
+[0m[38;5;245mrunning 3 tests from ./supabase/functions/_shared/ato/config.test.ts[0m
+readAtoEvteConfig reports every missing EVTE/DSP setting ... [0m[32mok[0m [0m[38;5;245m(440µs)[0m
+readAtoEvteConfig trims blanks and returns config only when complete ... [0m[32mok[0m [0m[38;5;245m(82µs)[0m
+atoConfigHealth redacts configured values ... [0m[32mok[0m [0m[38;5;245m(71µs)[0m
+[0m[38;5;245mrunning 5 tests from ./supabase/functions/_shared/authGuards.test.ts[0m
+requireServiceRole accepts only the exact service-role key ... [0m[32mok[0m [0m[38;5;245m(501µs)[0m
+requireServiceRole never matches when the service key is not configured ... [0m[32mok[0m [0m[38;5;245m(59µs)[0m
+requireSignedInCaller accepts a signed-in user or the service role ... [0m[32mok[0m [0m[38;5;245m(100µs)[0m
+requireSignedInCaller refuses no header, the anon key and forged tokens with 401 ... [0m[32mok[0m [0m[38;5;245m(58µs)[0m
+boundedInt clamps caller-supplied counts and ignores junk ... [0m[32mok[0m [0m[38;5;245m(87µs)[0m
+[0m[38;5;245mrunning 6 tests from ./supabase/functions/_shared/bankfeed/webhook.test.ts[0m
+a signature over "<timestamp>.<body>" inside the five-minute window verifies, with or without the prefix ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+verification fails closed: unset secret, wrong secret, tampered body, skew either way, missing or malformed parts ... [0m[32mok[0m [0m[38;5;245m(465µs)[0m
+account ids come from new and updated rows and an accountIds list, once each, ignoring junk ... [0m[32mok[0m [0m[38;5;245m(161µs)[0m
+events are parsed from the signed body; only transactions.synced names accounts to wake ... [0m[32mok[0m [0m[38;5;245m(303µs)[0m
+the body is bounded before it is verified ... [0m[32mok[0m [0m[38;5;245m(8ms)[0m
+the feed is limited to the organisations configured for it; unset means none ... [0m[32mok[0m [0m[38;5;245m(182µs)[0m
+[0m[38;5;245mrunning 8 tests from ./supabase/functions/_shared/cors.test.ts[0m
+the default allow-list is the app, its Pages project and local Vite ports, never * ... [0m[32mok[0m [0m[38;5;245m(373µs)[0m
+CORS_ALLOWED_ORIGINS adds exact origins; wildcards and malformed entries are ignored ... [0m[32mok[0m [0m[38;5;245m(840µs)[0m
+the static corsHeaders no longer allow every origin ... [0m[32mok[0m [0m[38;5;245m(211µs)[0m
+preflight answers allowed origins with their own origin and refuses others ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+corsHeadersFor reflects an allowed origin and leaves Allow-Origin out otherwise ... [0m[32mok[0m [0m[38;5;245m(219µs)[0m
+withCors fixes responses built from the static headers, and only those ... [0m[32mok[0m [0m[38;5;245m(659µs)[0m
+an existing function served with Deno.serve answers each allowed origin with its own origin ... [0m[32mok[0m [0m[38;5;245m(6ms)[0m
+the same wrapper keeps raw error text out of 5xx bodies, and errors still carry CORS headers ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+[0m[38;5;245mrunning 4 tests from ./supabase/functions/_shared/cronSecret.test.ts[0m
+cron jobs authenticate with the X-Cron-Secret header ... [0m[32mok[0m [0m[38;5;245m(11ms)[0m
+an unset expected secret never matches, even an empty presented one ... [0m[32mok[0m [0m[38;5;245m(358µs)[0m
+the header wins over the URL; a wrong header is not rescued by a right URL secret ... [0m[32mok[0m [0m[38;5;245m(190µs)[0m
+for one release the legacy ?secret= still works, with a warning ... [0m[32mok[0m [0m[38;5;245m(214µs)[0m
+[0m[38;5;245mrunning 4 tests from ./supabase/functions/_shared/errors.test.ts[0m
+a 5xx body is replaced with a generic message and a reference; the original is logged ... [0m[32mok[0m [0m[38;5;245m(12ms)[0m
+every 5xx is redacted (502 upstream errors too); 4xx and 2xx pass through untouched ... [0m[32mok[0m [0m[38;5;245m(374µs)[0m
+serverError logs the exception and returns a generic 500 with the given headers ... [0m[32mok[0m [0m[38;5;245m(391µs)[0m
+the reference is the caller's x-request-id only when it is a plain token ... [0m[32mok[0m [0m[38;5;245m(325µs)[0m
+[0m[38;5;245mrunning 6 tests from ./supabase/functions/_shared/gl/gstControlAccounts.test.ts[0m
+resolveGstControlAccount returns the designated account id ... [0m[32mok[0m [0m[38;5;245m(781µs)[0m
+resolveGstControlAccount throws GstControlAccountNotConfiguredError when unset ... [0m[32mok[0m [0m[38;5;245m(257µs)[0m
+postGstControlEntry builds sale lines (Dr counter / Cr net / Cr GST) and posts ... [0m[32mok[0m [0m[38;5;245m(401µs)[0m
+postGstControlEntry builds purchase lines (Dr net / Dr GST / Cr counter) ... [0m[32mok[0m [0m[38;5;245m(121µs)[0m
+postGstControlEntry fails closed (no draft written) when no control account is configured ... [0m[32mok[0m [0m[38;5;245m(116µs)[0m
+postGstControlEntry omits the GST line entirely when gstCents is 0 (GST-free transaction) ... [0m[32mok[0m [0m[38;5;245m(148µs)[0m
+[0m[38;5;245mrunning 5 tests from ./supabase/functions/_shared/gl/postJournalEntry.test.ts[0m
+postJournalEntry posts via the injected postRpc seam and returns the entry id ... [0m[32mok[0m [0m[38;5;245m(968µs)[0m
+postJournalEntry rejects an empty line set without touching the DB ... [0m[32mok[0m [0m[38;5;245m(84µs)[0m
+postJournalEntry deletes the draft entry and fails when post_journal_entry rejects ... [0m[32mok[0m [0m[38;5;245m(132µs)[0m
+postJournalEntry fails closed (no post attempt) when CONNECTOR_JWT_SECRET is unset and no postRpc override is given ... [0m[32mok[0m [0m[38;5;245m(80µs)[0m
+postJournalEntry cleans up the draft when the lines insert fails ... [0m[32mok[0m [0m[38;5;245m(77µs)[0m
+[0m[38;5;245mrunning 7 tests from ./supabase/functions/_shared/gmail/dedupe.test.ts[0m
+hasExistingGmailBill queries the per-org gmail message id ... [0m[32mok[0m [0m[38;5;245m(500µs)[0m
+hasExistingGmailBill returns false when no row exists ... [0m[32mok[0m [0m[38;5;245m(76µs)[0m
+hasExistingGmailBill fails closed when the lookup errors ... [0m[32mok[0m [0m[38;5;245m(265µs)[0m
+existingGmailAttachmentIds collects recorded attachment ids ... [0m[32mok[0m [0m[38;5;245m(108µs)[0m
+existingGmailAttachmentIds flags legacy bills (no attachment id) as hasAnyBill with empty set ... [0m[32mok[0m [0m[38;5;245m(6ms)[0m
+existingGmailAttachmentIds returns empty for a fresh message ... [0m[32mok[0m [0m[38;5;245m(90µs)[0m
+existingGmailAttachmentIds fails closed on a lookup error ... [0m[32mok[0m [0m[38;5;245m(128µs)[0m
+[0m[38;5;245mrunning 3 tests from ./supabase/functions/_shared/gmail/pubsub.test.ts[0m
+hasRetryableGmailIngestFailure retries external fetch/storage/write failures ... [0m[32mok[0m [0m[38;5;245m(462µs)[0m
+hasRetryableGmailIngestFailure treats filtered mail as durably processed ... [0m[32mok[0m [0m[38;5;245m(74µs)[0m
+hasRetryableGmailIngestFailure retries a rolled-back enqueue and a failed rule lookup ... [0m[32mok[0m [0m[38;5;245m(29µs)[0m
+[0m[38;5;245mrunning 7 tests from ./supabase/functions/_shared/gmail/reconnect.test.ts[0m
+isFatalGmailAuthError flags revoked grants + 400/401 as fatal ... [0m[32mok[0m [0m[38;5;245m(441µs)[0m
+isFatalGmailAuthError treats 5xx / network blips as transient ... [0m[32mok[0m [0m[38;5;245m(72µs)[0m
+flagGmailConnectionError disables + notifies on a fatal disconnect ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+flagGmailConnectionError records last_error but does NOT disable/notify on a transient error ... [0m[32mok[0m [0m[38;5;245m(115µs)[0m
+flagGmailConnectionError swallows notify() failures so the auth error still surfaces ...
+[0m[38;5;245m------- post-test output -------[0m
+flagGmailConnectionError: notify() failed { message: "pgrst boom" }
+[0m[38;5;245m----- post-test output end -----[0m
+flagGmailConnectionError swallows notify() failures so the auth error still surfaces ... [0m[32mok[0m [0m[38;5;245m(333µs)[0m
+loadAndRefreshGmail disables + notifies + throws on invalid_grant (400) ... [0m[32mok[0m [0m[38;5;245m(4ms)[0m
+loadAndRefreshGmail leaves integration active + does not notify on a 503 blip ... [0m[32mok[0m [0m[38;5;245m(284µs)[0m
+[0m[38;5;245mrunning 6 tests from ./supabase/functions/_shared/lodge/gate.test.ts[0m
+requireLodgeReady blocks when all credentials absent ... [0m[32mok[0m [0m[38;5;245m(576µs)[0m
+requireLodgeReady blocks when only SBR is missing ... [0m[32mok[0m [0m[38;5;245m(82µs)[0m
+requireLodgeReady passes when all gates green ... [0m[32mok[0m [0m[38;5;245m(45µs)[0m
+requireSbrReady blocks when taxonomy unset and no fallback ... [0m[32mok[0m [0m[38;5;245m(99µs)[0m
+requireSbrReady passes with the bundled-subset fallback ... [0m[32mok[0m [0m[38;5;245m(6ms)[0m
+requireSbrReady passes with full taxonomy config ... [0m[32mok[0m [0m[38;5;245m(93µs)[0m
+[0m[38;5;245mrunning 9 tests from ./supabase/functions/_shared/models/cgt.test.ts[0m
+modelCgt computes gain, 12-month discount, and all concession flags on an eligible fixture ... [0m[32mok[0m [0m[38;5;245m(754µs)[0m
+modelCgt uses net-asset value as the size-test fallback when turnover is above SBE threshold ... [0m[32mok[0m [0m[38;5;245m(125µs)[0m
+modelCgt suppresses concessions when discount, size, or active-asset tests fail ... [0m[32mok[0m [0m[38;5;245m(6ms)[0m
+modelCgt reports missing size-test evidence instead of treating it as eligible ... [0m[32mok[0m [0m[38;5;245m(242µs)[0m
+12-month hold: exactly one year (on the anniversary) does NOT qualify for the discount ... [0m[32mok[0m [0m[38;5;245m(85µs)[0m
+12-month hold: strictly more than a year qualifies ... [0m[32mok[0m [0m[38;5;245m(93µs)[0m
+12-month hold: leap-year acquisition uses the anniversary, not a 365-day count ... [0m[32mok[0m [0m[38;5;245m(52µs)[0m
+unparseable dates drop the discount but WARN instead of silently overstating the gain ... [0m[32mok[0m [0m[38;5;245m(94µs)[0m
+a disposal in a different financial year warns that the stamped rates may not apply ... [0m[32mok[0m [0m[38;5;245m(74µs)[0m
+[0m[38;5;245mrunning 3 tests from ./supabase/functions/_shared/models/fbt.test.ts[0m
+modelFbt compares statutory formula and operating cost methods on a hand-checked fixture ... [0m[32mok[0m [0m[38;5;245m(541µs)[0m
+modelFbt flags EV and limited-private-use exemption candidates without suppressing the method estimates ... [0m[32mok[0m [0m[38;5;245m(100µs)[0m
+modelFbt carries source errors and warns when vehicle scenario inputs are missing ... [0m[32mok[0m [0m[38;5;245m(88µs)[0m
+[0m[38;5;245mrunning 3 tests from ./supabase/functions/_shared/models/profitExtraction.test.ts[0m
+modelProfitExtraction computes company wage vs fully franked dividend extraction ... [0m[32mok[0m [0m[38;5;245m(594µs)[0m
+modelProfitExtraction recommends the lower-tax trust split on a hand-computed fixture ... [0m[32mok[0m [0m[38;5;245m(204µs)[0m
+modelProfitExtraction reports missing profit and carries source errors ... [0m[32mok[0m [0m[38;5;245m(112µs)[0m
+[0m[38;5;245mrunning 4 tests from ./supabase/functions/_shared/models/structuring.test.ts[0m
+individualResidentTaxCents applies the stamped marginal brackets ... [0m[32mok[0m [0m[38;5;245m(418µs)[0m
+modelStructuring computes hand-checked trust savings on an 80k profit fixture ... [0m[32mok[0m [0m[38;5;245m(209µs)[0m
+modelStructuring computes hand-checked trust savings on a 200k profit fixture ... [0m[32mok[0m [0m[38;5;245m(49µs)[0m
+modelStructuring can prefer company tax at higher profit and carries warnings ... [0m[32mok[0m [0m[38;5;245m(111µs)[0m
+[0m[38;5;245mrunning 4 tests from ./supabase/functions/_shared/models/yearEnd.test.ts[0m
+modelYearEnd computes all four company year-end levers from explicit inputs ... [0m[32mok[0m [0m[38;5;245m(558µs)[0m
+modelYearEnd caps asset write-off and uses marginal sole-trader rate ... [0m[32mok[0m [0m[38;5;245m(136µs)[0m
+modelYearEnd suppresses levers outside the pre-30-June window ... [0m[32mok[0m [0m[38;5;245m(130µs)[0m
+modelYearEnd suppresses non-applicable levers when amounts or headroom are zero ... [0m[32mok[0m [0m[38;5;245m(64µs)[0m
+[0m[38;5;245mrunning 8 tests from ./supabase/functions/_shared/oauthState.test.ts[0m
+a state verifies for the same provider, organisation and user within the time limit ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+a state issued to another user, organisation or provider is refused ... [0m[32mok[0m [0m[38;5;245m(424µs)[0m
+an expired state is refused ... [0m[32mok[0m [0m[38;5;245m(156µs)[0m
+a missing, malformed, re-signed or tampered state is refused ... [0m[32mok[0m [0m[38;5;245m(334µs)[0m
+every state is unique ... [0m[32mok[0m [0m[38;5;245m(164µs)[0m
+states need a user and organisation, and signing fails closed without a secret ... [0m[32mok[0m [0m[38;5;245m(571µs)[0m
+the start functions require an accepted admin and issue a state bound to that user ... [0m[32mok[0m [0m[38;5;245m(830µs)[0m
+the callbacks require a signed-in admin and a mandatory state bound to them ... [0m[32mok[0m [0m[38;5;245m(438µs)[0m
+[0m[38;5;245mrunning 5 tests from ./supabase/functions/_shared/ocr/index.test.ts[0m
+extractBillData falls through to the next provider when the first fails ... [0m[32mok[0m [0m[38;5;245m(4ms)[0m
+getActiveProvider prefers MiniMax over legacy Groq when both are configured ... [0m[32mok[0m [0m[38;5;245m(218µs)[0m
+extractBillData sends PDFs to Anthropic as native document blocks when selected ... [0m[32mok[0m [0m[38;5;245m(360µs)[0m
+extractBillData aggregates errors when every provider fails ... [0m[32mok[0m [0m[38;5;245m(637µs)[0m
+extractBillData returns a manual-entry stub when no provider is configured ... [0m[32mok[0m [0m[38;5;245m(263µs)[0m
+[0m[38;5;245mrunning 5 tests from ./supabase/functions/_shared/onboarding/stagedEntityApproval.test.ts[0m
+matcherForStagedEntity builds sender-domain matchers from domain canonical keys ... [0m[32mok[0m [0m[38;5;245m(404µs)[0m
+matcherForStagedEntity falls back to sender address for free-mail canonical keys ... [0m[32mok[0m [0m[38;5;245m(48µs)[0m
+toEntityKind accepts only supported staged entity kinds ... [0m[32mok[0m [0m[38;5;245m(35µs)[0m
+isSafeStagedAutoApproval permits only high-confidence business classifications ... [0m[32mok[0m [0m[38;5;245m(85µs)[0m
+approveStagedEntity creates supplier, intake rule, and staged-entity resolution links ... [0m[32mok[0m [0m[38;5;245m(475µs)[0m
+[0m[38;5;245mrunning 7 tests from ./supabase/functions/_shared/orchestrator/decide.test.ts[0m
+mid-June schedules year-end planning, structure review, forecast, and EOFY pack ... [0m[32mok[0m [0m[38;5;245m(8ms)[0m
+late July prioritizes overdue STP finalisation ahead of upcoming super ... [0m[32mok[0m [0m[38;5;245m(192µs)[0m
+scheduled advisor notes feed the orchestrator as review tasks ... [0m[32mok[0m [0m[38;5;245m(156µs)[0m
+quarter-end BAS due soon selects the BAS preparation engine ... [0m[32mok[0m [0m[38;5;245m(98µs)[0m
+specialist obligation rows reach the mapped compliance draft engines ... [0m[32mok[0m [0m[38;5;245m(262µs)[0m
+books-health blocking creates a remediation task and skips books-dependent engines ... [0m[32mok[0m [0m[38;5;245m(149µs)[0m
+completed calendar rows are ignored and idempotency keys are deterministic ... [0m[32mok[0m [0m[38;5;245m(96µs)[0m
+[0m[38;5;245mrunning 1 test from ./supabase/functions/_shared/orchestrator/dispatch.test.ts[0m
+dispatchOrchestratorTasks invokes draft engines and records durable draft rows ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+[0m[38;5;245mrunning 5 tests from ./supabase/functions/_shared/orgRole.test.ts[0m
+admin-or-owner checks follow the require_role ranking for accepted members ... [0m[32mok[0m [0m[38;5;245m(506µs)[0m
+pending invites, other organisations, missing or unknown roles are refused with 403 ... [0m[32mok[0m [0m[38;5;245m(113µs)[0m
+every minimum role admits exactly the roles at or above it ... [0m[32mok[0m [0m[38;5;245m(130µs)[0m
+a membership lookup failure is an error, never an allow ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+authorizeOrgCaller applies the same member check after resolving the user from the token ... [0m[32mok[0m [0m[38;5;245m(248µs)[0m
+[0m[38;5;245mrunning 2 tests from ./supabase/functions/_shared/pdf/worksheet.test.ts[0m
+renderWorksheetPdf returns a non-empty, valid PDF ... [0m[32mok[0m [0m[38;5;245m(13ms)[0m
+renderWorksheetPdf paginates a long doc without throwing ... [0m[32mok[0m [0m[38;5;245m(6ms)[0m
+[0m[38;5;245mrunning 7 tests from ./supabase/functions/_shared/receipt-sync/genericApi.test.ts[0m
+buildGenericApiBody emits the bill + job envelope ... [0m[32mok[0m [0m[38;5;245m(427µs)[0m
+hmacSha256Hex is deterministic and keyed ... [0m[32mok[0m [0m[38;5;245m(6ms)[0m
+signature covers timestamp + body ... [0m[32mok[0m [0m[38;5;245m(207µs)[0m
+assertDeliverableEndpoint accepts a public https URL ... [0m[32mok[0m [0m[38;5;245m(374µs)[0m
+assertDeliverableEndpoint rejects plaintext http ... [0m[32mok[0m [0m[38;5;245m(411µs)[0m
+assertDeliverableEndpoint blocks loopback, link-local/metadata, and RFC1918 hosts ... [0m[32mok[0m [0m[38;5;245m(261µs)[0m
+assertDeliverableEndpoint rejects a malformed URL ... [0m[32mok[0m [0m[38;5;245m(115µs)[0m
+[0m[38;5;245mrunning 10 tests from ./supabase/functions/_shared/redbark/client.test.ts[0m
+dollars become exact integer cents; anything that would need rounding or guessing is refused ... [0m[32mok[0m [0m[38;5;245m(8ms)[0m
+accounts are paged with the version header and limited to active banking connections ... [0m[32mok[0m [0m[38;5;245m(8ms)[0m
+transactions are paged for one account and window; pending rows are counted and never imported ... [0m[32mok[0m [0m[38;5;245m(768µs)[0m
+one bad money row refuses the whole page instead of being dropped or rounded ... [0m[32mok[0m [0m[38;5;245m(541µs)[0m
+inconsistent or stalled pagination is refused ... [0m[32mok[0m [0m[38;5;245m(733µs)[0m
+provider failures are plain messages that never repeat the key; Retry-After and size limits are honoured ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+a fresh balance converts to cents; a stale or old observation is not used ... [0m[32mok[0m [0m[38;5;245m(832µs)[0m
+a truncated first window is halved until it fits, and the checkpoint advances only through what was read ... [0m[32mok[0m [0m[38;5;245m(555µs)[0m
+a single day too large to import is refused with its date; an import-from date never reads earlier ... [0m[32mok[0m [0m[38;5;245m(204µs)[0m
+a window past the row or page limits is too large and is split the same way ... [0m[32mok[0m [0m[38;5;245m(656µs)[0m
+[0m[38;5;245mrunning 5 tests from ./supabase/functions/_shared/sbr/as4-envelope.test.ts[0m
+buildBasLodgementDraft binds BAS labels to the immutable snapshot ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+draft envelope is fail-closed when lodge credentials and SBR taxonomy are absent ... [0m[32mok[0m [0m[38;5;245m(445µs)[0m
+complete deploy config clears the transport gate but still does not enable send ... [0m[32mok[0m [0m[38;5;245m(393µs)[0m
+payload hash is stable for the same snapshot, env and timestamp ... [0m[32mok[0m [0m[38;5;245m(498µs)[0m
+missing mandatory BAS labels are rejected before a draft can be queued ... [0m[32mok[0m [0m[38;5;245m(449µs)[0m
+[0m[38;5;245mrunning 3 tests from ./supabase/functions/_shared/serviceRole.test.ts[0m
+isExactServiceRoleBearer only accepts the exact configured service key ... [0m[32mok[0m [0m[38;5;245m(446µs)[0m
+isExactServiceRoleBearer does not trust self-asserted JWT role payloads ... [0m[32mok[0m [0m[38;5;245m(173µs)[0m
+isExactSecret only accepts exact query secrets ... [0m[32mok[0m [0m[38;5;245m(45µs)[0m
+[0m[38;5;245mrunning 8 tests from ./supabase/functions/_shared/xero/adapter.test.ts[0m
+not set up on this server: nothing sent, nothing logged, no placeholder id ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+organisation has no active Xero connection: not_connected ... [0m[32mok[0m [0m[38;5;245m(208µs)[0m
+XERO_STUB_MODE turns sync off even when connected: not_connected ... [0m[32mok[0m [0m[38;5;245m(457µs)[0m
+not connected does not fail the caller on Xero-only validation ... [0m[32mok[0m [0m[38;5;245m(207µs)[0m
+connected: synced only with the InvoiceID Xero returned ... [0m[32mok[0m [0m[38;5;245m(4ms)[0m
+connected but Xero returns no InvoiceID: throws, never synced ... [0m[32mok[0m [0m[38;5;245m(822µs)[0m
+billXeroSyncUpdate: synced writes the Xero id; not connected stays pending ... [0m[32mok[0m [0m[38;5;245m(86µs)[0m
+callers mark bills from the push result, never a hard-coded synced ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+[0m[38;5;245mrunning 3 tests from ./supabase/functions/_shared/xero/idempotency.test.ts[0m
+resolveXeroIdempotencyKey accepts a valid supplied UUID after trimming ... [0m[32mok[0m [0m[38;5;245m(463µs)[0m
+resolveXeroIdempotencyKey derives a deterministic UUID-shaped fallback ... [0m[32mok[0m [0m[38;5;245m(690µs)[0m
+resolveXeroIdempotencyKey ignores malformed supplied keys and falls back stably ... [0m[32mok[0m [0m[38;5;245m(133µs)[0m
+[0m[38;5;245mrunning 4 tests from ./supabase/functions/_shared/xero/retry.test.ts[0m
+callXeroWithRetry: 429 surfaces XeroApiError(429) with Retry-After ... [0m[32mok[0m [0m[38;5;245m(42s)[0m
+callXeroWithRetry: 401 forces re-auth then retries the SAME call once ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+xeroFetch: threads bearer + tenant headers and the Idempotency-Key ... [0m[32mok[0m [0m[38;5;245m(391µs)[0m
+XERO_STUB_MODE: pushBillToXero sends nothing and reports not_connected ... [0m[32mok[0m [0m[38;5;245m(195µs)[0m
+[0m[38;5;245mrunning 3 tests from ./supabase/functions/accountant-email-query/index.test.ts[0m
+absent secret -> 403 (fail CLOSED, even with a header present) ... [0m[32mok[0m [0m[38;5;245m(353µs)[0m
+wrong / missing header -> 403 when a secret is configured ... [0m[32mok[0m [0m[38;5;245m(141µs)[0m
+correct header -> authorized (handler proceeds to 200) ... [0m[32mok[0m [0m[38;5;245m(61µs)[0m
+[0m[38;5;245mrunning 7 tests from ./supabase/functions/accountant-email-query/match.test.ts[0m
+finds the sender on a later page, ignoring case and surrounding spaces ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+returns null for an unknown sender after the last (short) page, and for an empty address ... [0m[32mok[0m [0m[38;5;245m(132µs)[0m
+the registered address is returned for replies, trimmed, even when the sender wrote it differently ... [0m[32mok[0m [0m[38;5;245m(133µs)[0m
+a failing user listing is an error, not "unknown sender" ... [0m[32mok[0m [0m[38;5;245m(448µs)[0m
+only accepted accountant memberships count ... [0m[32mok[0m [0m[38;5;245m(112µs)[0m
+the organisation hint picks by name, else the first membership ... [0m[32mok[0m [0m[38;5;245m(70µs)[0m
+the handler queries the sender's own accepted accountant memberships by role_enum ... [0m[32mok[0m [0m[38;5;245m(937µs)[0m
+[0m[38;5;245mrunning 3 tests from ./supabase/functions/accountant-orchestrator/index.test.ts[0m
+stableUuidFromString returns deterministic UUID-shaped values ... [0m[32mok[0m [0m[38;5;245m(470µs)[0m
+taskToNotification maps urgency, route, metadata, and deterministic resource id ... [0m[32mok[0m [0m[38;5;245m(432µs)[0m
+emitDecisionNotifications dedupes repeated simulated cron sweeps by resource id ... [0m[32mok[0m [0m[38;5;245m(268µs)[0m
+[0m[38;5;245mrunning 8 tests from ./supabase/functions/accruals-run/logic.test.ts[0m
+planAccrualJobs: quarterly series produces a job for its most-recent bill ... [0m[32mok[0m [0m[38;5;245m(397µs)[0m
+planAccrualJobs: semi_annual and yearly both qualify with their own period counts ... [0m[32mok[0m [0m[38;5;245m(76µs)[0m
+planAccrualJobs: monthly/fortnightly/weekly cadences are all skipped (no real spread) ... [0m[32mok[0m [0m[38;5;245m(87µs)[0m
+planAccrualJobs: unknown cadence is skipped like a short cadence ... [0m[32mok[0m [0m[38;5;245m(71µs)[0m
+planAccrualJobs: a qualifying series with no bills produces no job and is not counted as skipped ... [0m[32mok[0m [0m[38;5;245m(62µs)[0m
+planAccrualJobs: mixed series only accrue the qualifying ones ... [0m[32mok[0m [0m[38;5;245m(62µs)[0m
+planAccrualJobs: empty input yields an empty plan ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+CADENCE_PERIODS: mapping matches the documented cadence -> period-count contract ... [0m[32mok[0m [0m[38;5;245m(139µs)[0m
+[0m[38;5;245mrunning 12 tests from ./supabase/functions/advisor/index.test.ts[0m
+buildNoopEchoAdviceNote creates a non-advisory draft payload over grounded facts ... [0m[32mok[0m [0m[38;5;245m(416µs)[0m
+summarizeForecast computes runway and largest budget variances ... [0m[32mok[0m [0m[38;5;245m(188µs)[0m
+selectSeasonalModes includes year-end and structuring before 30 June only ... [0m[32mok[0m [0m[38;5;245m(116µs)[0m
+scheduledPeriodForMode dedupes forecast weekly and seasonal notes by FY ... [0m[32mok[0m [0m[38;5;245m(101µs)[0m
+loadLegalHorizonSignals reads open proposal context without treating it as settled law ... [0m[32mok[0m [0m[38;5;245m(196µs)[0m
+attachLegalHorizonContext marks horizon rows as proposal-only advisor context ... [0m[32mok[0m [0m[38;5;245m(93µs)[0m
+buildForecastAdviceNote echoes runway and largest budget variances into numbers ... [0m[32mok[0m [0m[38;5;245m(243µs)[0m
+buildStructuringAdviceNote echoes the calculator tax_diff_cents into numbers ... [0m[32mok[0m [0m[38;5;245m(269µs)[0m
+buildYearEndAdviceNote carries every year-end lever into numbers ... [0m[32mok[0m [0m[38;5;245m(356µs)[0m
+buildCgtAdviceNote echoes the CGT model headline numbers ... [0m[32mok[0m [0m[38;5;245m(251µs)[0m
+buildFbtAdviceNote echoes the FBT lower-cost method and delta ... [0m[32mok[0m [0m[38;5;245m(259µs)[0m
+buildProfitExtractionAdviceNote echoes the recommended strategy and tax result ... [0m[32mok[0m [0m[38;5;245m(294µs)[0m
+[0m[38;5;245m------- post-test output -------[0m
+[cors] default port in use; serving on an ephemeral port instead
+[0m[38;5;245m----- post-test output end -----[0m
+[0m[38;5;245mrunning 5 tests from ./supabase/functions/api-gateway/index.test.ts[0m
+connector token role is the read-only `connector` role, never `authenticated` ... [0m[32mok[0m [0m[38;5;245m(384µs)[0m
+a write-only key cannot be exchanged for a broader/write JWT ... [0m[32mok[0m [0m[38;5;245m(143µs)[0m
+a read-scoped key is pinned to exactly its own org for RLS ... [0m[32mok[0m [0m[38;5;245m(72µs)[0m
+claims carry an expiry and default to a short TTL ... [0m[32mok[0m [0m[38;5;245m(87µs)[0m
+an empty scope list still mints a valid connector token ... [0m[32mok[0m [0m[38;5;245m(82µs)[0m
+[0m[38;5;245mrunning 2 tests from ./supabase/functions/ask-bot/bas-query.test.ts[0m
+every column Ask AI reads from v_bas_quarterly exists in the view ... [0m[32mok[0m [0m[38;5;245m(59ms)[0m
+the query is built from that list and only for a UUID ... [0m[32mok[0m [0m[38;5;245m(562µs)[0m
+[0m[38;5;245mrunning 6 tests from ./supabase/functions/ask-bot/prompt.test.ts[0m
+no prompt tells the model not to recommend an accountant or tax agent ... [0m[32mok[0m [0m[38;5;245m(807µs)[0m
+both answer-writing prompts tell the model to recommend a registered tax agent ... [0m[32mok[0m [0m[38;5;245m(232µs)[0m
+the answer is framed as the general rule, not personal advice ... [0m[32mok[0m [0m[38;5;245m(85µs)[0m
+the general-information notice says what it is and who to ask ... [0m[32mok[0m [0m[38;5;245m(48µs)[0m
+ask-bot uses these prompts and returns the notice with every answer ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+the advisor function has no instruction against recommending an accountant ... [0m[32mok[0m [0m[38;5;245m(571µs)[0m
+[0m[38;5;245mrunning 5 tests from ./supabase/functions/ato-correspondence/draft.test.ts[0m
+buildAskBotQuestion includes notice facts and requested outcome ... [0m[32mok[0m [0m[38;5;245m(252µs)[0m
+collectEvidenceLinks gathers notice, working-papers, and legal links ... [0m[32mok[0m [0m[38;5;245m(321µs)[0m
+buildDraftPayload creates an objection draft with resolved evidence and signoff warning ... [0m[32mok[0m [0m[38;5;245m(133µs)[0m
+sendApprovalPayload binds to exact draft content ... [0m[32mok[0m [0m[38;5;245m(92µs)[0m
+send refuses without Tier-2 approval ... [0m[32mok[0m [0m[38;5;245m(478µs)[0m
+[0m[38;5;245mrunning 4 tests from ./supabase/functions/ato-lodge/index.test.ts[0m
+approved lodgement drafts still require a true-and-correct declaration ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+declared lodgement attempts stop at the ATO/SBR operations wall when gateway config is absent ... [0m[32mok[0m [0m[38;5;245m(444µs)[0m
+callers who are not signed in are refused before any configuration detail is returned ... [0m[32mok[0m [0m[38;5;245m(565µs)[0m
+signed-in callers still get the fail-closed configuration health ... [0m[32mok[0m [0m[38;5;245m(181µs)[0m
+[0m[38;5;245mrunning 7 tests from ./supabase/functions/bank-feed-link/link.test.ts[0m
+linking an AUD account creates the organisation's Redbark connection and the bank account with its import-from date ... [0m[32mok[0m [0m[38;5;245m(843µs)[0m
+a Redbark connection linked by another organisation cannot be linked, even when two requests race ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+an unlinked (revoked) connection in the same organisation is reactivated when an account is linked again ... [0m[32mok[0m [0m[38;5;245m(137µs)[0m
+bad dates, unknown or moved accounts and non-AUD accounts are refused and nothing is written ... [0m[32mok[0m [0m[38;5;245m(263µs)[0m
+the account list marks linked, available, elsewhere-linked and non-AUD accounts without revealing other organisations ... [0m[32mok[0m [0m[38;5;245m(629µs)[0m
+account types map conservatively; unknown types are "other" ... [0m[32mok[0m [0m[38;5;245m(201µs)[0m
+listing and linking need an accepted admin or owner, and the functions are wired to that check ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+[0m[38;5;245mrunning 6 tests from ./supabase/functions/bank-sync/sync.test.ts[0m
+the first sync imports posted rows from the import-from date in exact cents, skips pending rows and stores the checkpoint ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+syncing again is idempotent on (bank account, Redbark id): only new rows are inserted and existing rows are not rewritten ... [0m[32mok[0m [0m[38;5;245m(712µs)[0m
+the same Redbark transaction id on two linked accounts is two transactions ... [0m[32mok[0m [0m[38;5;245m(136µs)[0m
+a long history is read in split windows over several runs, resuming from the checkpoint ... [0m[32mok[0m [0m[38;5;245m(856µs)[0m
+a failed insert leaves the checkpoint where it was, so the next run imports the same window ... [0m[32mok[0m [0m[38;5;245m(206µs)[0m
+an account Redbark no longer lists on this connection, or one never given an import-from date, is reported while the others sync ... [0m[32mok[0m [0m[38;5;245m(177µs)[0m
+[0m[38;5;245mrunning 8 tests from ./supabase/functions/bank-webhook/handler.test.ts[0m
+an unset secret refuses every delivery before reading it ... [0m[32mok[0m [0m[38;5;245m(13ms)[0m
+unsigned, wrongly signed, replayed or oversized deliveries are refused and nothing is stored ... [0m[32mok[0m [0m[38;5;245m(12ms)[0m
+a verified event is stored first, then one sync is dispatched per linked connection ... [0m[32mok[0m [0m[38;5;245m(722µs)[0m
+connections of organisations not allowed to use the feed are never woken ... [0m[32mok[0m [0m[38;5;245m(672µs)[0m
+a repeated delivery is recognised but still dispatches, because an earlier attempt may not have synced ... [0m[32mok[0m [0m[38;5;245m(623µs)[0m
+if the event cannot be stored the delivery is not acknowledged and nothing is dispatched ...
+[0m[38;5;245m------- post-test output -------[0m
+{"event":"bankfeed.webhook_persist_failed","message":"database unavailable"}
+[0m[38;5;245m----- post-test output end -----[0m
+if the event cannot be stored the delivery is not acknowledged and nothing is dispatched ... [0m[32mok[0m [0m[38;5;245m(619µs)[0m
+other event types and unreadable bodies are stored and acknowledged without a sync ... [0m[32mok[0m [0m[38;5;245m(543µs)[0m
+a failed sync is recorded on its connection and does not fail the delivery or the other syncs ... [0m[32mok[0m [0m[38;5;245m(323µs)[0m
+[0m[38;5;245mrunning 6 tests from ./supabase/functions/bas-lodgement-pack/pack.test.ts[0m
+requiredBasTotalsPresent requires the BAS GST and net labels ... [0m[32mok[0m [0m[38;5;245m(442µs)[0m
+buildBasLodgementBundle marks BAS draft pack complete without transmission ... [0m[32mok[0m [0m[38;5;245m(110µs)[0m
+toBasLodgementWorksheetDoc renders identity, BAS totals, and guardrails ... [0m[32mok[0m [0m[38;5;245m(855µs)[0m
+BAS lodgement pack PDF renders to non-empty valid PDF bytes ... [0m[32mok[0m [0m[38;5;245m(17ms)[0m
+basLodgementFilename is stable and filesystem-safe ... [0m[32mok[0m [0m[38;5;245m(169µs)[0m
+W3/W4 Looplet does not record are shown as blank, not $0.00 ... [0m[32mok[0m [0m[38;5;245m(345µs)[0m
+[0m[38;5;245mrunning 5 tests from ./supabase/functions/bills-allocate-batch/auth.test.ts[0m
+stats is read-only and open to any accepted member; the write modes need accountant or higher ... [0m[32mok[0m [0m[38;5;245m(637µs)[0m
+pending invites, other organisations and non-members are refused even for stats ... [0m[32mok[0m [0m[38;5;245m(6ms)[0m
+no token, the anon key or an empty bearer is refused with 401, and an empty service key never matches ... [0m[32mok[0m [0m[38;5;245m(81µs)[0m
+the membership lookup reads the caller's own row, not any member of the organisation ... [0m[32mok[0m [0m[38;5;245m(221µs)[0m
+the edge function checks the caller for the requested mode before any query or RPC ... [0m[32mok[0m [0m[38;5;245m(718µs)[0m
+[0m[38;5;245mrunning 14 tests from ./supabase/functions/depreciation-run/logic.test.ts[0m
+monthEndISO: mid-year month ... [0m[32mok[0m [0m[38;5;245m(356µs)[0m
+monthEndISO: December rolls into next January cleanly ... [0m[32mok[0m [0m[38;5;245m(33µs)[0m
+monthEndISO: leap-year February ... [0m[32mok[0m [0m[38;5;245m(20µs)[0m
+monthEndISO: non-leap-year February ... [0m[32mok[0m [0m[38;5;245m(19µs)[0m
+resolveTargetDate: no period defaults to the previous calendar month ... [0m[32mok[0m [0m[38;5;245m(58µs)[0m
+resolveTargetDate: no period at a January clock rolls back into December of the prior year ... [0m[32mok[0m [0m[38;5;245m(28µs)[0m
+resolveTargetDate: explicit period resolves that period's month-end regardless of `now` ... [0m[32mok[0m [0m[38;5;245m(53µs)[0m
+resolveTargetDate: blank/whitespace period falls back to the default (previous month) ... [0m[32mok[0m [0m[38;5;245m(6ms)[0m
+resolveTargetDate: malformed period throws ... [0m[32mok[0m [0m[38;5;245m(399µs)[0m
+resolveTargetDate: out-of-range month throws ... [0m[32mok[0m [0m[38;5;245m(72µs)[0m
+assetName: single fixed_assets object ... [0m[32mok[0m [0m[38;5;245m(47µs)[0m
+assetName: array embed uses the first row ... [0m[32mok[0m [0m[38;5;245m(25µs)[0m
+assetName: null embed yields null ... [0m[32mok[0m [0m[38;5;245m(18µs)[0m
+assetName: empty array embed yields null ... [0m[32mok[0m [0m[38;5;245m(51µs)[0m
+[0m[38;5;245mrunning 6 tests from ./supabase/functions/div7a-agreement/agreement.test.ts[0m
+money and ratePct format AU cents / basis points ... [0m[32mok[0m [0m[38;5;245m(626µs)[0m
+agreement states the parties + complying terms ... [0m[32mok[0m [0m[38;5;245m(629µs)[0m
+subtitle reflects has_complying_agreement (on record vs draft) ... [0m[32mok[0m [0m[38;5;245m(834µs)[0m
+a 25-year loan is stated as secured by a registered mortgage ... [0m[32mok[0m [0m[38;5;245m(248µs)[0m
+the schedule section reflects the div7a_min_repayment rows ... [0m[32mok[0m [0m[38;5;245m(565µs)[0m
+the agreement renders to non-empty, valid PDF bytes ... [0m[32mok[0m [0m[38;5;245m(19ms)[0m
+[0m[38;5;245mrunning 6 tests from ./supabase/functions/gmail-watch-renew/index.test.ts[0m
+watch-renew: renews an expiring integration and persists new watch state ... [0m[32mok[0m [0m[38;5;245m(13ms)[0m
+watch-renew: GmailInvalidGrantError is NOT double-flagged ... [0m[32mok[0m [0m[38;5;245m(565µs)[0m
+watch-renew: fatal registerGmailWatch() failure → integration disabled ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+watch-renew: transient registerGmailWatch() failure → last_error only, NOT disabled ... [0m[32mok[0m [0m[38;5;245m(707µs)[0m
+watch-renew: renews multiple integrations independently (one fatal, one ok) ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+watch-renew: isFatalGmailAuthError gates disable on watch() errors ... [0m[32mok[0m [0m[38;5;245m(67µs)[0m
+[0m[38;5;245mrunning 9 tests from ./supabase/functions/ingest/handlers.test.ts[0m
+document push creates a bill and enqueues bill_extract (feeds B1) ... [0m[32mok[0m [0m[38;5;245m(860µs)[0m
+document push is idempotent: replay returns the existing job, no re-enqueue ... [0m[32mok[0m [0m[38;5;245m(117µs)[0m
+document push rejects a storage_key outside the caller org (tenant pin) ... [0m[32mok[0m [0m[38;5;245m(339µs)[0m
+document push requires an idempotency key ... [0m[32mok[0m [0m[38;5;245m(203µs)[0m
+bill push rejects supplier_id outside the caller org before writing ... [0m[32mok[0m [0m[38;5;245m(212µs)[0m
+bill push rejects job_id outside the caller org before writing ... [0m[32mok[0m [0m[38;5;245m(95µs)[0m
+invoice push rejects customer_id outside the caller org before writing ... [0m[32mok[0m [0m[38;5;245m(125µs)[0m
+invoice push rejects job_id outside the caller org before writing ... [0m[32mok[0m [0m[38;5;245m(97µs)[0m
+payment push rejects invoice_id outside the caller org before enqueueing ... [0m[32mok[0m [0m[38;5;245m(277µs)[0m
+[0m[38;5;245mrunning 9 tests from ./supabase/functions/intake-routing-apply/auth.test.ts[0m
+the exact service-role key is a trusted backend caller ... [0m[32mok[0m [0m[38;5;245m(479µs)[0m
+a missing header, the anon key or a forged service-role JWT is refused with 401 ... [0m[32mok[0m [0m[38;5;245m(224µs)[0m
+a signed-in user with no membership in the target organisation is refused with 403 ... [0m[32mok[0m [0m[38;5;245m(115µs)[0m
+a pending invite is refused even for the owner role ... [0m[32mok[0m [0m[38;5;245m(75µs)[0m
+viewers and employees are refused; accountants, admins and owners are allowed ... [0m[32mok[0m [0m[38;5;245m(6ms)[0m
+a lookup failure propagates instead of allowing the call ... [0m[32mok[0m [0m[38;5;245m(146µs)[0m
+an empty configured service key never matches an empty bearer ... [0m[32mok[0m [0m[38;5;245m(36µs)[0m
+the edge function authorises the caller before its first database read or write ... [0m[32mok[0m [0m[38;5;245m(770µs)[0m
+the supabase-js adapter reads the caller membership row and treats a rejected token as signed out ... [0m[32mok[0m [0m[38;5;245m(154µs)[0m
+[0m[38;5;245mrunning 8 tests from ./supabase/functions/payroll-create-pay-run/calc.test.ts[0m
+wages use the base hourly rate, not the loaded cost rate ... [0m[32mok[0m [0m[38;5;245m(637µs)[0m
+overtime is loaded on the base rate and excluded from ordinary time earnings ... [0m[32mok[0m [0m[38;5;245m(78µs)[0m
+paid leave is paid at the base rate and counts as ordinary time earnings ... [0m[32mok[0m [0m[38;5;245m(76µs)[0m
+hours are summed by entry type; public holidays are ordinary time ... [0m[32mok[0m [0m[38;5;245m(134µs)[0m
+cents are rounded once per component ... [0m[32mok[0m [0m[38;5;245m(43µs)[0m
+a missing or invalid base rate stops the payslip instead of paying the loaded rate or zero ... [0m[32mok[0m [0m[38;5;245m(418µs)[0m
+the pay run prices every payslip with these helpers on the base rate ... [0m[32mok[0m [0m[38;5;245m(8ms)[0m
+PAYG is withheld from the table of the pay date, not today ... [0m[32mok[0m [0m[38;5;245m(400µs)[0m
+[0m[38;5;245mrunning 6 tests from ./supabase/functions/payroll-create-pay-run/super.test.ts[0m
+the statutory rate follows the pay date, changing on 1 July ... [0m[32mok[0m [0m[38;5;245m(505µs)[0m
+a malformed or unsupported pay date fails loudly instead of guessing a rate ... [0m[32mok[0m [0m[38;5;245m(388µs)[0m
+an employee rate below the SG rate is raised to it ... [0m[32mok[0m [0m[38;5;245m(155µs)[0m
+a rate above the SG rate is honoured, employee before organisation ... [0m[32mok[0m [0m[38;5;245m(85µs)[0m
+with no rate set, the pay date statutory rate applies ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+the pay run uses the floored rate for every payslip and validates the pay date up front ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+[0m[38;5;245mrunning 7 tests from ./supabase/functions/payroll-export-stp/stp.test.ts[0m
+ordinary run: no termination block, no ETP on any employee ... [0m[32mok[0m [0m[38;5;245m(975µs)[0m
+STP export is explicitly transmit-gated, not an SBR submission ... [0m[32mok[0m [0m[38;5;245m(6ms)[0m
+genuine redundancy: cessation code R + excluded ETP code R on the terminated employee only ... [0m[32mok[0m [0m[38;5;245m(249µs)[0m
+resignation: cessation code V + non-excluded ETP code O ... [0m[32mok[0m [0m[38;5;245m(70µs)[0m
+termination without a pay slip in the run is flagged (ETP not silently dropped) ... [0m[32mok[0m [0m[38;5;245m(136µs)[0m
+termination WITH a matching slip emits no orphan-ETP note ... [0m[32mok[0m [0m[38;5;245m(72µs)[0m
+code mappers ... [0m[32mok[0m [0m[38;5;245m(39µs)[0m
+[0m[38;5;245mrunning 4 tests from ./supabase/functions/payroll-termination/calc.test.ts[0m
+genuine redundancy: tax-free cap + excluded ETP + concessional leave ... [0m[32mok[0m [0m[38;5;245m(947µs)[0m
+resignation: no tax-free, marginal leave, non-excluded ETP within WOI cap ... [0m[32mok[0m [0m[38;5;245m(96µs)[0m
+resignation: ETP above the whole-of-income cap taxed at the top rate ... [0m[32mok[0m [0m[38;5;245m(83µs)[0m
+at/above preservation age: within-cap ETP taxed at the lower rate ... [0m[32mok[0m [0m[38;5;245m(95µs)[0m
+[0m[38;5;245mrunning 8 tests from ./supabase/functions/receipt-webhook/gst.test.ts[0m
+a receipt total with no GST or subtotal leaves GST unknown for review, never 1/11 ... [0m[32mok[0m [0m[38;5;245m(969µs)[0m
+GST printed on the receipt is used as is ... [0m[32mok[0m [0m[38;5;245m(157µs)[0m
+a merchant that is not registered for GST gives no GST credit ... [0m[32mok[0m [0m[38;5;245m(8ms)[0m
+POS receipts still have to carry both GST and subtotal ... [0m[32mok[0m [0m[38;5;245m(189µs)[0m
+bills-extract keeps GST unknown when the document only shows a total ... [0m[32mok[0m [0m[38;5;245m(146µs)[0m
+receipt-webhook books a total-only receipt with no GST credit, flagged for review ... [0m[32mok[0m [0m[38;5;245m(62ms)[0m
+receipt-webhook books no GST credit for a merchant not registered for GST ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+receipt-webhook still records GST that the receipt shows ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+[0m[38;5;245mrunning 14 tests from ./supabase/functions/receipt-webhook/posReliability.test.ts[0m
+POS idempotency prefers explicit keys and canonicalises receipt fallback ... [0m[32mok[0m [0m[38;5;245m(6ms)[0m
+POS idempotency rejects receipts without any retry key ... [0m[32mok[0m [0m[38;5;245m(290µs)[0m
+POS idempotency rejects conflicting explicit retry sources ... [0m[32mok[0m [0m[38;5;245m(133µs)[0m
+POS source channel is validated before reaching database constraints ... [0m[32mok[0m [0m[38;5;245m(89µs)[0m
+POS event type and tender status must be final ... [0m[32mok[0m [0m[38;5;245m(193µs)[0m
+POS payment reference is required when POS ingestion demands payment traceability ... [0m[32mok[0m [0m[38;5;245m(96µs)[0m
+POS payment last4 rejects full card numbers and normalizes masked values ... [0m[32mok[0m [0m[38;5;245m(208µs)[0m
+POS purchase_at is required and normalized when POS ingestion demands sale timing ... [0m[32mok[0m [0m[38;5;245m(263µs)[0m
+POS refund and void receipts must carry an original sale reference when required ... [0m[32mok[0m [0m[38;5;245m(173µs)[0m
+POS refund and void receipts must resolve the original sale reference when required ... [0m[32mok[0m [0m[38;5;245m(170µs)[0m
+POS payload size and line totals are bounded ... [0m[32mok[0m [0m[38;5;245m(615µs)[0m
+POS GST/subtotal breakdown requires both fields and must reconcile ... [0m[32mok[0m [0m[38;5;245m(625µs)[0m
+POS duplicate races can be detected from Postgres unique errors ... [0m[32mok[0m [0m[38;5;245m(69µs)[0m
+POS API-key-shaped authorization is distinguished from app JWTs ... [0m[32mok[0m [0m[38;5;245m(59µs)[0m
+[0m[38;5;245mrunning 8 tests from ./supabase/functions/smsf-audit-pack/pack.test.ts[0m
+money formats cents as AUD with two decimals ... [0m[32mok[0m [0m[38;5;245m(471µs)[0m
+isComplete + sectionsPresent: full bundle is complete ... [0m[32mok[0m [0m[38;5;245m(121µs)[0m
+isComplete: a missing section makes the pack incomplete and is flagged ... [0m[32mok[0m [0m[38;5;245m(40µs)[0m
+buildReconciliations: a consistent bundle ties on all three checks ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+buildReconciliations: an out-of-balance figure is flagged with the difference ... [0m[32mok[0m [0m[38;5;245m(173µs)[0m
+toAuditPackDoc: every section renders with the bundle's totals ... [0m[32mok[0m [0m[38;5;245m(481µs)[0m
+toAuditPackDoc: tolerates null sections (renders zeros, no member/evidence lines) ... [0m[32mok[0m [0m[38;5;245m(177µs)[0m
+toBase64 round-trips bytes ... [0m[32mok[0m [0m[38;5;245m(201µs)[0m
+[0m[38;5;245mrunning 6 tests from ./supabase/functions/super-batch-send/status.test.ts[0m
+an approved batch is recorded as file_prepared, never sent ... [0m[32mok[0m [0m[38;5;245m(60ms)[0m
+a prepared batch hands the same file back without changing its status ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+a batch already recorded as sent is left alone ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+without approval nothing is prepared and an approval is requested ... [0m[32mok[0m [0m[38;5;245m(944µs)[0m
+the admin-or-owner check still holds: viewers, accountants and pending invites are refused ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+the source keeps the 5ba716b role check and never writes status "sent" ... [0m[32mok[0m [0m[38;5;245m(900µs)[0m
+[0m[38;5;245mrunning 5 tests from ./supabase/functions/trust-minute/minute.test.ts[0m
+toMinuteDoc renders each beneficiary's components verbatim from the DB rows ... [0m[32mok[0m [0m[38;5;245m(774µs)[0m
+toMinuteDoc totals are the exact column sums of the DB rows ... [0m[32mok[0m [0m[38;5;245m(379µs)[0m
+toMinuteDoc stamps DRAFT vs Resolved in the subtitle ... [0m[32mok[0m [0m[38;5;245m(462µs)[0m
+toMinuteDoc falls back to beneficiary_id when the join is missing a name ... [0m[32mok[0m [0m[38;5;245m(272µs)[0m
+the minute renders to non-empty, valid PDF bytes ... [0m[32mok[0m [0m[38;5;245m(16ms)[0m
+[0m[38;5;245mrunning 7 tests from ./supabase/functions/working-papers/bundle.test.ts[0m
+money formats cents as AUD ... [0m[32mok[0m [0m[38;5;245m(445µs)[0m
+collectSourceFileRefs finds every manifest storage link once ... [0m[32mok[0m [0m[38;5;245m(255µs)[0m
+buildWorkingPapersBundle is complete when manifest is ok and every link resolves ... [0m[32mok[0m [0m[38;5;245m(146µs)[0m
+buildWorkingPapersBundle flags a missing linked source file ... [0m[32mok[0m [0m[38;5;245m(88µs)[0m
+buildWorkingPapersBundle flags an incomplete manifest even when links resolve ... [0m[32mok[0m [0m[38;5;245m(53µs)[0m
+toWorkingPapersIndexDoc renders the bundle contents ... [0m[32mok[0m [0m[38;5;245m(445µs)[0m
+working-papers PDF smoke: non-empty PDF over resolved source-file links ... [0m[32mok[0m [0m[38;5;245m(16ms)[0m
+[0m[38;5;245mrunning 6 tests from ./supabase/functions/xero-pull-bank-transactions/rows.test.ts[0m
+bank account rows always carry the real connection and a bank_account_type value ... [0m[32mok[0m [0m[38;5;245m(61ms)[0m
+Xero BankAccountType maps to the closest bank_account_type ... [0m[32mok[0m [0m[38;5;245m(53µs)[0m
+bank account row fields: last 4 digits, currency never null, archived/deleted inactive ... [0m[32mok[0m [0m[38;5;245m(858µs)[0m
+the Xero bank connection row is a valid bank_connections row ... [0m[32mok[0m [0m[38;5;245m(51ms)[0m
+transactions: signed integer cents, unknown accounts and voided transactions skipped ... [0m[32mok[0m [0m[38;5;245m(254µs)[0m
+index.ts writes through the row builders, never a NULL connection or account_type bank ... [0m[32mok[0m [0m[38;5;245m(286µs)[0m
+
+[0m[32mok[0m | 390 passed | 0 failed [0m[38;5;245m(45s)[0m
+
+[0m[32mCheck[0m supabase/functions/_shared/advisoryCite.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/advisoryFacts.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/aiRateLimit.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/apiKeys.hardening.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/ato/config.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/authGuards.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/bankfeed/webhook.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/cors.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/cronSecret.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/errors.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/gl/gstControlAccounts.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/gl/postJournalEntry.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/gmail/dedupe.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/gmail/pubsub.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/gmail/reconnect.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/lodge/gate.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/models/cgt.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/models/fbt.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/models/profitExtraction.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/models/structuring.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/models/yearEnd.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/oauthState.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/ocr/index.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/onboarding/stagedEntityApproval.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/orchestrator/decide.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/orchestrator/dispatch.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/orgRole.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/pdf/worksheet.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/receipt-sync/genericApi.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/redbark/client.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/sbr/as4-envelope.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/serviceRole.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/xero/adapter.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/xero/idempotency.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/xero/retry.test.ts
+[0m[32mCheck[0m supabase/functions/accountant-email-query/index.test.ts
+[0m[32mCheck[0m supabase/functions/accountant-email-query/match.test.ts
+[0m[32mCheck[0m supabase/functions/accountant-orchestrator/index.test.ts
+[0m[32mCheck[0m supabase/functions/accruals-run/logic.test.ts
+[0m[32mCheck[0m supabase/functions/advisor/index.test.ts
+[0m[32mCheck[0m supabase/functions/api-gateway/index.test.ts
+[0m[32mCheck[0m supabase/functions/ask-bot/bas-query.test.ts
+[0m[32mCheck[0m supabase/functions/ask-bot/prompt.test.ts
+[0m[32mCheck[0m supabase/functions/ato-correspondence/draft.test.ts
+[0m[32mCheck[0m supabase/functions/ato-lodge/index.test.ts
+[0m[32mCheck[0m supabase/functions/bank-feed-link/link.test.ts
+[0m[32mCheck[0m supabase/functions/bank-sync/sync.test.ts
+[0m[32mCheck[0m supabase/functions/bank-webhook/handler.test.ts
+[0m[32mCheck[0m supabase/functions/bas-lodgement-pack/pack.test.ts
+[0m[32mCheck[0m supabase/functions/bills-allocate-batch/auth.test.ts
+[0m[32mCheck[0m supabase/functions/depreciation-run/logic.test.ts
+[0m[32mCheck[0m supabase/functions/div7a-agreement/agreement.test.ts
+[0m[32mCheck[0m supabase/functions/gmail-watch-renew/index.test.ts
+[0m[32mCheck[0m supabase/functions/ingest/handlers.test.ts
+[0m[32mCheck[0m supabase/functions/intake-routing-apply/auth.test.ts
+[0m[32mCheck[0m supabase/functions/payroll-create-pay-run/calc.test.ts
+[0m[32mCheck[0m supabase/functions/payroll-create-pay-run/super.test.ts
+[0m[32mCheck[0m supabase/functions/payroll-export-stp/stp.test.ts
+[0m[32mCheck[0m supabase/functions/payroll-termination/calc.test.ts
+[0m[32mCheck[0m supabase/functions/receipt-webhook/gst.test.ts
+[0m[32mCheck[0m supabase/functions/receipt-webhook/posReliability.test.ts
+[0m[32mCheck[0m supabase/functions/smsf-audit-pack/pack.test.ts
+[0m[32mCheck[0m supabase/functions/super-batch-send/status.test.ts
+[0m[32mCheck[0m supabase/functions/trust-minute/minute.test.ts
+[0m[32mCheck[0m supabase/functions/working-papers/bundle.test.ts
+[0m[32mCheck[0m supabase/functions/xero-pull-bank-transactions/rows.test.ts
+Listening on http://localhost:60058/

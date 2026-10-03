@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/pages/AiDisclaimer.test.tsx"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  15:04:58
+   Duration  1.02s (transform 109ms, setup 60ms, import 214ms, tests 177ms, environment 465ms)
+
