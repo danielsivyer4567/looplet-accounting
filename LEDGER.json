@@ -16061,14 +16061,41 @@
       "title": "Ask AI's BAS answer reads columns that v_bas_quarterly actually has",
       "area": "broken",
       "priority": 44,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/ask-bot/bas-query.test.ts\""
       ],
       "paths": [
         "supabase/functions/ask-bot"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/ask-bot/bas-query.test.ts\"",
+          "exit": 1,
+          "head": "e57c0d0b7c31b09107c92fa006250af4f25c2ceb",
+          "dirty": [],
+          "at": "2026-10-03T04:13:48.399Z",
+          "ms": 389,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/FIX-01-001.log",
+          "log_sha256": "e8aa2f60daa2434fddc192ec62ecad7f8bd9ce5c323f62d640486e8c592b6ad8"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/ask-bot/bas-query.test.ts\"",
+          "exit": 0,
+          "head": "716df180dead37d0ebfecce3bbd5120bf64f69ec",
+          "dirty": [],
+          "at": "2026-10-03T04:13:49.461Z",
+          "ms": 701,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/FIX-01-002.log",
+          "log_sha256": "b0406255f809376caf4e16cec52d20b7e4f29a7fbc4daa0bfbcbd342056a55f7"
+        }
+      ],
       "notes": [
         {
           "at": "2026-10-03T04:02:37.222Z",
@@ -16082,9 +16109,45 @@
           "event": "added",
           "head": "321b5fa7fe8cecbc5fac3a2070e64f52b6a46f43",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:13:47.519Z",
+          "event": "start",
+          "head": "e57c0d0b7c31b09107c92fa006250af4f25c2ceb",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:13:48.400Z",
+          "event": "run",
+          "head": "e57c0d0b7c31b09107c92fa006250af4f25c2ceb",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:13:49.461Z",
+          "event": "run",
+          "head": "716df180dead37d0ebfecce3bbd5120bf64f69ec",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:13:49.611Z",
+          "event": "done",
+          "head": "716df180dead37d0ebfecce3bbd5120bf64f69ec",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T04:13:49.597Z",
+        "head": "716df180dead37d0ebfecce3bbd5120bf64f69ec",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     }
   ],
-  "updated_at": "2026-10-03T04:13:36.179Z"
+  "updated_at": "2026-10-03T04:13:49.627Z"
 }
