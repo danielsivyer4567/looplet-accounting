@@ -1506,14 +1506,41 @@
       "title": "Pay runs calculate wages from the base hourly rate, not the loaded cost rate",
       "area": "payroll",
       "priority": 20,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/calc.test.ts\""
       ],
       "paths": [
         "supabase/functions/payroll-create-pay-run"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/calc.test.ts\"",
+          "exit": 1,
+          "head": "50f41dcd487f21f40879b44310e4eaa1f6be6ab4",
+          "dirty": [],
+          "at": "2026-10-03T00:48:43.696Z",
+          "ms": 251,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-01-001.log",
+          "log_sha256": "4f129b6a4ef2c27ad5d92dfff767b6b29788affb4b0ea13a68f04ea24da92644"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/calc.test.ts\"",
+          "exit": 0,
+          "head": "43f7603e28cfa042b947c92a53fc52632a03330d",
+          "dirty": [],
+          "at": "2026-10-03T00:48:44.813Z",
+          "ms": 764,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-01-002.log",
+          "log_sha256": "d7fd456f9fa98c9958fd92c9ad53d63cd0a2f0c3ce37449a141dbe00c890eac9"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -1521,8 +1548,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:48:43.319Z",
+          "event": "start",
+          "head": "50f41dcd487f21f40879b44310e4eaa1f6be6ab4",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:48:43.697Z",
+          "event": "run",
+          "head": "50f41dcd487f21f40879b44310e4eaa1f6be6ab4",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:48:44.814Z",
+          "event": "run",
+          "head": "43f7603e28cfa042b947c92a53fc52632a03330d",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:48:44.929Z",
+          "event": "done",
+          "head": "43f7603e28cfa042b947c92a53fc52632a03330d",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T00:48:44.911Z",
+        "head": "43f7603e28cfa042b947c92a53fc52632a03330d",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "PAY-02",
@@ -3606,5 +3669,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T00:48:41.289Z"
+  "updated_at": "2026-10-03T00:48:44.943Z"
 }
