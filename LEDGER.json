@@ -18876,6 +18876,71 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SHIP-035.log",
           "log_sha256": "4760beb8b0f11dd2c41b1a3811c997473bfb80c24c890943df8be91c4511ea6d"
+        },
+        {
+          "n": 36,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run typecheck\"",
+          "exit": 0,
+          "head": "35cc0eb533499b5cbf3a9de2dcecfe52262d79d9",
+          "dirty": [],
+          "at": "2026-10-03T05:10:05.424Z",
+          "ms": 1088,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SHIP-036.log",
+          "log_sha256": "9f5cc03fa5f6d70ef3898d510b782ffb4ffec080f039ffbb1aaa9375c4bb371d"
+        },
+        {
+          "n": 37,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run lint\"",
+          "exit": 0,
+          "head": "35cc0eb533499b5cbf3a9de2dcecfe52262d79d9",
+          "dirty": [],
+          "at": "2026-10-03T05:10:11.358Z",
+          "ms": 5933,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SHIP-037.log",
+          "log_sha256": "fb1147ae1e108c498719100358b5d776e11e7168031d1934c3037b1b4b98ff76"
+        },
+        {
+          "n": 38,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"set -a && . ./.env.production && set +a && npx vitest run \"",
+          "exit": 0,
+          "head": "35cc0eb533499b5cbf3a9de2dcecfe52262d79d9",
+          "dirty": [],
+          "at": "2026-10-03T05:10:25.399Z",
+          "ms": 14041,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SHIP-038.log",
+          "log_sha256": "358b433ea697969fe8386f25073cb283844e2aed3458b9b6c4344648c285544f"
+        },
+        {
+          "n": 39,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions\"",
+          "exit": 0,
+          "head": "35cc0eb533499b5cbf3a9de2dcecfe52262d79d9",
+          "dirty": [],
+          "at": "2026-10-03T05:11:11.320Z",
+          "ms": 45921,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SHIP-039.log",
+          "log_sha256": "9f7147e2be36c546da305cb248d4a650c89d512aee8ca1f08836a4b30b4aeff1"
+        },
+        {
+          "n": 40,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run build\"",
+          "exit": 0,
+          "head": "35cc0eb533499b5cbf3a9de2dcecfe52262d79d9",
+          "dirty": [],
+          "at": "2026-10-03T05:11:13.377Z",
+          "ms": 2057,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SHIP-040.log",
+          "log_sha256": "210bbca387a9207639017acce3da07df2cae7462cc75e8f72051190ce6621ac6"
         }
       ],
       "notes": [],
@@ -18999,18 +19064,32 @@
           "event": "done",
           "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:11:13.378Z",
+          "event": "run",
+          "head": "35cc0eb533499b5cbf3a9de2dcecfe52262d79d9",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:11:13.864Z",
+          "event": "done",
+          "head": "35cc0eb533499b5cbf3a9de2dcecfe52262d79d9",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T05:09:56.922Z",
-        "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
+        "at": "2026-10-03T05:11:13.765Z",
+        "head": "35cc0eb533499b5cbf3a9de2dcecfe52262d79d9",
         "by": "claude-worker",
         "runs": [
-          31,
-          32,
-          33,
-          34,
-          35
+          36,
+          37,
+          38,
+          39,
+          40
         ]
       }
     },
@@ -22068,5 +22147,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T05:10:01.138Z"
+  "updated_at": "2026-10-03T05:11:13.961Z"
 }

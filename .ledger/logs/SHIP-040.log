@@ -1,0 +1,117 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npm run build"
+
+> looplet-accounting@0.1.0 build
+> tsc -b && vite build
+
+[36mvite v8.1.0 [32mbuilding client environment for production...[36m[39m
+[2Ktransforming...✓ 478 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                       0.89 kB │ gzip:  0.40 kB
+dist/assets/pdf.worker.min-yatZIOMy.mjs           1,375.83 kB
+dist/assets/index-DcLyCu8A.css                      112.48 kB │ gzip: 20.20 kB
+dist/assets/money-mjzauzD1.js                         0.34 kB │ gzip:  0.24 kB
+dist/assets/LoadMoreButton-Bhyqf2CX.js                0.37 kB │ gzip:  0.27 kB
+dist/assets/formatting-Py3tuOKW.js                    0.47 kB │ gzip:  0.33 kB
+dist/assets/superGuarantee-D6X_htsQ.js                0.49 kB │ gzip:  0.28 kB
+dist/assets/automationJobs-ByCp8mgl.js                0.50 kB │ gzip:  0.34 kB
+dist/assets/useGmailIntegrations-E1kKMBRj.js          0.52 kB │ gzip:  0.37 kB
+dist/assets/oauthState-BIY4K5yX.js                    0.53 kB │ gzip:  0.27 kB
+dist/assets/csv-CNLNUDPy.js                           0.55 kB │ gzip:  0.37 kB
+dist/assets/rolldown-runtime-QTnfLwEv.js              0.69 kB │ gzip:  0.42 kB
+dist/assets/EmptyState-DmqfWtxq.js                    0.75 kB │ gzip:  0.39 kB
+dist/assets/ConfidenceBadge-gjuFNzWz.js               0.76 kB │ gzip:  0.45 kB
+dist/assets/PageHeader-GL4hKBAV.js                    0.77 kB │ gzip:  0.34 kB
+dist/assets/errorMessages-fYT9gnnr.js                 0.84 kB │ gzip:  0.45 kB
+dist/assets/useBill-Dlfbd-wd.js                       0.86 kB │ gzip:  0.49 kB
+dist/assets/useJobs-D3LXU_Uw.js                       0.97 kB │ gzip:  0.58 kB
+dist/assets/Alert-CJ0Idl88.js                         0.99 kB │ gzip:  0.51 kB
+dist/assets/useStagedEntities-DvgHIh7o.js             1.06 kB │ gzip:  0.54 kB
+dist/assets/StatusBadge-C3hvmMh4.js                   1.36 kB │ gzip:  0.64 kB
+dist/assets/ArchiveButton-C2j6KDD1.js                 1.39 kB │ gzip:  0.80 kB
+dist/assets/useApprovals-CYIk1W-W.js                  1.56 kB │ gzip:  0.71 kB
+dist/assets/XeroStatusPill-gxvX87EW.js                1.61 kB │ gzip:  0.76 kB
+dist/assets/automationDecision--tVD5HVi.js            1.62 kB │ gzip:  0.61 kB
+dist/assets/GmailCallback-Beqh1nIF.js                 1.62 kB │ gzip:  0.96 kB
+dist/assets/useAllocationQueue-CqEww3m6.js            1.94 kB │ gzip:  0.89 kB
+dist/assets/usePaymentRuns-Cjd_mzST.js                1.95 kB │ gzip:  0.74 kB
+dist/assets/XeroCallback-CdK1qQAS.js                  1.97 kB │ gzip:  1.10 kB
+dist/assets/useTrusts-CpzaBMRi.js                     2.01 kB │ gzip:  0.82 kB
+dist/assets/BrandHeader-56z-dto2.js                   2.08 kB │ gzip:  0.85 kB
+dist/assets/MoveToOrgButton-uBHSDrJ3.js               2.49 kB │ gzip:  1.14 kB
+dist/assets/Clients-RIneRHna.js                       2.54 kB │ gzip:  1.17 kB
+dist/assets/localDates-hSwCUrhT.js                    2.57 kB │ gzip:  1.11 kB
+dist/assets/DataSharing-ClvIUW00.js                   2.91 kB │ gzip:  1.16 kB
+dist/assets/PaymentRuns-C4v-Xqnf.js                   3.05 kB │ gzip:  1.18 kB
+dist/assets/Trusts-CSYfq5iq.js                        3.21 kB │ gzip:  1.22 kB
+dist/assets/Signup-DQcmLOWL.js                        3.39 kB │ gzip:  1.38 kB
+dist/assets/gst-DkGz5mGs.js                           3.40 kB │ gzip:  1.49 kB
+dist/assets/AcceptInvite-CYi28KMq.js                  3.74 kB │ gzip:  1.60 kB
+dist/assets/Approvals-BFalTY3o.js                     3.75 kB │ gzip:  1.55 kB
+dist/assets/Login-BM18HTe9.js                         3.80 kB │ gzip:  1.48 kB
+dist/assets/Index-93Ghjyxu.js                         3.95 kB │ gzip:  1.80 kB
+dist/assets/InsightCharts-DZgVaBPB.js                 5.85 kB │ gzip:  2.04 kB
+dist/assets/LegalHorizon-DhBk64SH.js                  6.15 kB │ gzip:  2.42 kB
+dist/assets/MyActivity-Cw_6xuUt.js                    6.79 kB │ gzip:  2.38 kB
+dist/assets/AllocationSplitButton-CKSrBZQI.js         6.89 kB │ gzip:  2.40 kB
+dist/assets/NewPaymentRun-DC97stnd.js                 7.07 kB │ gzip:  2.73 kB
+dist/assets/BillUpload-Dg6iGWLw.js                    7.33 kB │ gzip:  2.83 kB
+dist/assets/CashFlow-CYRwqsa4.js                      7.54 kB │ gzip:  2.65 kB
+dist/assets/Tpar-aYe4SgAp.js                          7.54 kB │ gzip:  2.68 kB
+dist/assets/BalanceSheet-Dj2iwB8K.js                  7.56 kB │ gzip:  2.60 kB
+dist/assets/Franking-C8x_iDDR.js                      8.14 kB │ gzip:  2.62 kB
+dist/assets/Team-C0gqpESf.js                          8.21 kB │ gzip:  2.94 kB
+dist/assets/Sgc-_Ctdpfk4.js                           8.24 kB │ gzip:  2.81 kB
+dist/assets/SupplierDetail-2jKQzk14.js                8.62 kB │ gzip:  2.70 kB
+dist/assets/GmailConnect-B0eLnkSJ.js                  8.67 kB │ gzip:  2.60 kB
+dist/assets/Notifications-Bl65Rrn6.js                 8.69 kB │ gzip:  3.08 kB
+dist/assets/Customers-BjiumjQZ.js                     8.83 kB │ gzip:  2.68 kB
+dist/assets/Fbt-CW_dDn2h.js                           9.52 kB │ gzip:  3.22 kB
+dist/assets/CustomerDetail-Bcbm8Cws.js                9.55 kB │ gzip:  2.79 kB
+dist/assets/Invoices-BEeat3Zc.js                      9.73 kB │ gzip:  3.17 kB
+dist/assets/EOFY-BdjSH3LV.js                         10.13 kB │ gzip:  3.44 kB
+dist/assets/FixedAssets-D3wvxdLF.js                  10.44 kB │ gzip:  3.19 kB
+dist/assets/SMSF-56vv4VHY.js                         10.66 kB │ gzip:  3.36 kB
+dist/assets/PaymentRunDetail-YwAZXB-0.js             11.02 kB │ gzip:  3.32 kB
+dist/assets/Jobs-BqPmmejm.js                         11.14 kB │ gzip:  3.51 kB
+dist/assets/Lodgements-B8eaJJ5f.js                   11.26 kB │ gzip:  4.12 kB
+dist/assets/CreditNotes-TX9Nsi3-.js                  11.43 kB │ gzip:  3.35 kB
+dist/assets/Scan-CkfXHiNy.js                         11.45 kB │ gzip:  3.90 kB
+dist/assets/Suppliers-CbZuVv1J.js                    11.54 kB │ gzip:  3.48 kB
+dist/assets/AutoSetup-DTqtoRix.js                    12.77 kB │ gzip:  4.30 kB
+dist/assets/Allocations-COCG23hT.js                  13.15 kB │ gzip:  4.07 kB
+dist/assets/GeneralInformationNotice-BEE1bPtG.js     13.48 kB │ gzip:  4.37 kB
+dist/assets/CodingReview-BHSxDN0X.js                 13.73 kB │ gzip:  4.23 kB
+dist/assets/Registrations-DHrYdU95.js                14.21 kB │ gzip:  4.04 kB
+dist/assets/SubscriptionDetail-DLe_5ww7.js           14.56 kB │ gzip:  4.70 kB
+dist/assets/Debts-BDEzH_eg.js                        14.85 kB │ gzip:  4.00 kB
+dist/assets/Subscriptions-DtriFnAP.js                15.30 kB │ gzip:  4.53 kB
+dist/assets/Employees-C0buo8S7.js                    16.61 kB │ gzip:  4.35 kB
+dist/assets/PayRunDetail-D60pRb_5.js                 17.07 kB │ gzip:  5.14 kB
+dist/assets/JobDetail-Njmlp28N.js                    17.29 kB │ gzip:  5.09 kB
+dist/assets/Bas-BMn8q7tp.js                          18.74 kB │ gzip:  5.93 kB
+dist/assets/Quality-Rk4yNWfH.js                      18.74 kB │ gzip:  5.13 kB
+dist/assets/Payroll-CDgdN7p4.js                      18.82 kB │ gzip:  6.10 kB
+dist/assets/TrustDetail-DQ5TETFG.js                  19.94 kB │ gzip:  5.20 kB
+dist/assets/DebtDetail-BGwTW1Up.js                   20.11 kB │ gzip:  5.02 kB
+dist/assets/Legal-BuuQJAPz.js                        20.65 kB │ gzip:  6.65 kB
+dist/assets/vendor-C0EP6OoJ.js                       20.65 kB │ gzip:  7.08 kB
+dist/assets/Bills-B9xjjFfZ.js                        22.44 kB │ gzip:  6.54 kB
+dist/assets/Triage-YPRVTZn-.js                       22.76 kB │ gzip:  6.20 kB
+dist/assets/AuditLog-f3B2c37K.js                     23.02 kB │ gzip:  6.00 kB
+dist/assets/BillDetail-DTmZ-msx.js                   24.55 kB │ gzip:  6.78 kB
+dist/assets/Reconciliation-BJSUs18r.js               26.80 kB │ gzip:  6.93 kB
+dist/assets/InvoiceDetail-BZ862Da-.js                27.06 kB │ gzip:  8.82 kB
+dist/assets/EmployeeDetail-gyci1ls8.js               31.73 kB │ gzip:  7.84 kB
+dist/assets/Dashboard-DnDDgyQR.js                    31.95 kB │ gzip:  8.99 kB
+dist/assets/TaxReturn-XVFwBpso.js                    32.39 kB │ gzip:  8.42 kB
+dist/assets/Ask-DcGUhZ4r.js                          33.83 kB │ gzip: 10.36 kB
+dist/assets/ReceiptHub-CYRMETz7.js                   40.46 kB │ gzip: 11.96 kB
+dist/assets/ui-vendor-BPpm2zLK.js                    68.91 kB │ gzip: 22.85 kB
+dist/assets/Settings-BKKxW7EK.js                     81.07 kB │ gzip: 18.93 kB
+dist/assets/index-ByjHDjFX.js                       151.01 kB │ gzip: 42.24 kB
+dist/assets/react-vendor-ocWwUl6J.js                164.01 kB │ gzip: 53.95 kB
+dist/assets/supabase-vendor-fwsw5PHL.js             202.91 kB │ gzip: 52.12 kB
+dist/assets/pdf-vendor-BGsmfi1R.js                  330.19 kB │ gzip: 97.08 kB
+
+[32m✓ built in 959ms[39m
