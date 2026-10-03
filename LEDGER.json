@@ -2536,6 +2536,11 @@
           "at": "2026-10-02T23:21:03.905Z",
           "by": "claude-worker",
           "text": "Add a per-user rate limit for paid AI endpoints (bank-statement-extract, staged-entities-enrich-sonar, ask-bot and similar): public sign-up lets anyone become an org owner, so membership alone does not stop credit abuse (raised by the SEC-02 verifier)."
+        },
+        {
+          "at": "2026-10-03T03:05:41.793Z",
+          "by": "claude-worker",
+          "text": "AI quota defaults per user per hour are product decisions (ask-bot 60, statement pages 200, sonar runs 20, gmail-classify 20, bills-extract 200, advisor 60, bank classifier 30; AI_RATE_LIMIT_<FEATURE> overrides). Limits are per user; many sign-ups could still spend credit."
         }
       ],
       "history": [
@@ -4459,7 +4464,13 @@
           "log_sha256": "4f940548218673b646755eede10c0e5456f81671ea48ad1a949ae495def86ba3"
         }
       ],
-      "notes": [],
+      "notes": [
+        {
+          "at": "2026-10-03T03:05:41.437Z",
+          "by": "claude-worker",
+          "text": "Public holidays: super_non_business_days is empty, so due dates skip weekends only (early, never late) until the table is filled from official sources. The quarterly super-batch screen is unchanged and is out of date for pay dates from 1 July 2026."
+        }
+      ],
       "history": [
         {
           "at": "2026-10-02T22:50:10.732Z",
@@ -5396,6 +5407,11 @@
           "at": "2026-10-02T22:50:14.544Z",
           "by": "claude-worker",
           "text": "Drafts can be written here, but a qualified reviewer must approve the privacy policy and terms before they are published or this item is verified."
+        },
+        {
+          "at": "2026-10-03T03:05:41.291Z",
+          "by": "claude-worker",
+          "text": "Drafts only: a qualified lawyer must review the privacy policy, terms and collection notice before publication and before Google's restricted-scope review. Visible 'to be confirmed by Looplet' markers remain for the legal entity name, ABN, address, privacy contact, provider processing countries, hosting region, retention periods, Gmail token deletion on disconnect, fees, liability wording and governing law."
         }
       ],
       "history": [
@@ -6040,7 +6056,13 @@
           "log_sha256": "c2a290a3d3702c807a2538a21de9c4231467466095797cec23dbf2771e4222d9"
         }
       ],
-      "notes": [],
+      "notes": [
+        {
+          "at": "2026-10-03T03:05:41.512Z",
+          "by": "claude-worker",
+          "text": "After the migration, run entity-tfn-backfill once with the service-role bearer to encrypt the plain-text values moved aside; both new functions are marked not-deployed-by-default. Snapshots in advisor_work_proofs may still hold TFNs copied from audit records."
+        }
+      ],
       "history": [
         {
           "at": "2026-10-02T22:50:11.425Z",
@@ -8146,7 +8168,13 @@
           "log_sha256": "871127e75fd1e1f938633cbcdea3a856738d564d717ebf56b3595cc2ce81f6c4"
         }
       ],
-      "notes": [],
+      "notes": [
+        {
+          "at": "2026-10-03T03:05:41.723Z",
+          "by": "claude-worker",
+          "text": "Redbark's terms allow feeds only for the account holder's own accounts (REDBARK_ORGANIZATION_IDS allow-list). Customer organisations need a different provider arrangement and legal review. Redbark v1 is deprecated in favour of v2 with no shutdown date announced."
+        }
+      ],
       "history": [
         {
           "at": "2026-10-02T22:50:11.993Z",
@@ -9198,7 +9226,13 @@
           "log_sha256": "a9c546ec8415b3cddf913c1777e2e0c41eed40e5eea9554c726ec74571925d60"
         }
       ],
-      "notes": [],
+      "notes": [
+        {
+          "at": "2026-10-03T03:05:41.583Z",
+          "by": "claude-worker",
+          "text": "Owner decisions: refunds on the cash basis are listed for review rather than placed in a period; bills count once fully paid (one paid date); draft invoices still count in the BAS; overhead_allocations UPDATE fails because its trigger expects an updated_at column (separate defect)."
+        }
+      ],
       "history": [
         {
           "at": "2026-10-02T22:50:12.558Z",
@@ -10004,7 +10038,13 @@
           "log_sha256": "5b12a32466c8cde510f25efc9d99728ecb62cc9a5c3abbed49752c53399f29d6"
         }
       ],
-      "notes": [],
+      "notes": [
+        {
+          "at": "2026-10-03T03:05:41.364Z",
+          "by": "claude-worker",
+          "text": "Partly complete: PDF, download, share and an email draft work; sending from Looplet itself is INV-02."
+        }
+      ],
       "history": [
         {
           "at": "2026-10-02T22:50:12.880Z",
@@ -10194,7 +10234,13 @@
           "log_sha256": "1d09e0fecc8f70c44edc5b3caffc8e08718755986a36ba2a9fd5866603faf4a5"
         }
       ],
-      "notes": [],
+      "notes": [
+        {
+          "at": "2026-10-03T03:05:41.653Z",
+          "by": "claude-worker",
+          "text": "The migration hard-codes the pilot organisation id 9d5c9b9a-a576-458d-913a-fa822d33320d (confirmed to exist in production). If it is wrong, nothing is deleted; run claim_unowned_known_senders(<id>)."
+        }
+      ],
       "history": [
         {
           "at": "2026-10-02T22:50:13.045Z",
@@ -13220,7 +13266,151 @@
           36
         ]
       }
+    },
+    {
+      "id": "SEC-12",
+      "title": "Data-completeness sweep functions can only be run by the service role, not by signed-in users",
+      "area": "security",
+      "priority": 15,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/sweep-functions-service-only.sql\""
+      ],
+      "paths": [
+        "supabase/migrations",
+        "tests/db-sql/sweep-functions-service-only.sql"
+      ],
+      "runs": [],
+      "notes": [],
+      "history": [
+        {
+          "at": "2026-10-03T03:05:40.384Z",
+          "event": "added",
+          "head": "8e82fd1aa6198f7a512c66bbafbcd1edb40d982c",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "PAY-06",
+      "title": "FY2025-26 PAYG withholding rows match the official 2025 schedule (F2025L00647) worked examples",
+      "area": "payroll",
+      "priority": 22,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-2025-26-ato-examples.sql\""
+      ],
+      "paths": [
+        "supabase/migrations",
+        "tests/db-sql/payg-2025-26-ato-examples.sql"
+      ],
+      "runs": [],
+      "notes": [
+        {
+          "at": "2026-10-03T03:05:40.653Z",
+          "by": "claude-worker",
+          "text": "Raised by the PAY-04 work: the Scale 1 rows loaded by migration 0046 do not match the 2025 legislative instrument (first rows should be <150: 0.16/0.16 and <371: 0.2117/7.7550). Load the official coefficients and reproduce the ATO worked examples, as PAY-04 did for 2026-27."
+        }
+      ],
+      "history": [
+        {
+          "at": "2026-10-03T03:05:40.474Z",
+          "event": "added",
+          "head": "8e82fd1aa6198f7a512c66bbafbcd1edb40d982c",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "UX-01",
+      "title": "Lower roles see a clear 'read-only' state instead of silent no-op saves on bills, jobs, allocations, payment runs, employees, customers and suppliers",
+      "area": "ui",
+      "priority": 41,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ReadOnlyRoles.test.tsx\""
+      ],
+      "paths": [
+        "src/pages",
+        "src/hooks",
+        "src/lib/roles.ts"
+      ],
+      "runs": [],
+      "notes": [
+        {
+          "at": "2026-10-03T03:05:40.815Z",
+          "by": "claude-worker",
+          "text": "Raised by the SEC-05 verifier: a refused UPDATE changes 0 rows and supabase-js returns no error, so BillDetail (line ~1015), JobDetail, Allocations, PaymentRunDetail, EmployeeDetail, Customers and Suppliers report success to employees and viewers. Read the caller's role_enum from OrgContext, disable the controls, and treat 0 updated rows as an error."
+        }
+      ],
+      "history": [
+        {
+          "at": "2026-10-03T03:05:40.725Z",
+          "event": "added",
+          "head": "8e82fd1aa6198f7a512c66bbafbcd1edb40d982c",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "INV-02",
+      "title": "Looplet can email a tax invoice PDF to the customer from a verified sender, and marks it sent only after the email is accepted",
+      "area": "invoices",
+      "priority": 43,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/invoice-send/send.test.ts\""
+      ],
+      "paths": [
+        "supabase/functions/invoice-send",
+        "src/pages/InvoiceDetail.tsx"
+      ],
+      "runs": [],
+      "notes": [
+        {
+          "at": "2026-10-03T03:05:40.983Z",
+          "by": "claude-worker",
+          "text": "INV-01 built the PDF with download, share and an email draft. Sending from Looplet needs a verified sender domain and reply-to for business invoices (Resend is only set up for noreply@loopletai.com.au), a server-side render-and-attach function, and organisation address/email fields."
+        }
+      ],
+      "history": [
+        {
+          "at": "2026-10-03T03:05:40.890Z",
+          "event": "added",
+          "head": "8e82fd1aa6198f7a512c66bbafbcd1edb40d982c",
+          "actor": "claude-worker"
+        }
+      ]
+    },
+    {
+      "id": "CI-02",
+      "title": "One production deploy path: Cloudflare Pages Git integration deploys main; the CI wrangler deploy step is removed and the Cloudflare token leaves GitHub",
+      "area": "ci",
+      "priority": 36,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\""
+      ],
+      "paths": [
+        ".github/workflows"
+      ],
+      "runs": [],
+      "notes": [
+        {
+          "at": "2026-10-03T03:05:41.140Z",
+          "by": "claude-worker",
+          "text": "The Pages project is Git-connected (production branch main, previews for every branch, builds with npm run build). CI's wrangler-action also deploys ./dist to production, a second path that needs a long-lived Cloudflare API token in GitHub. The tenant-isolation job also holds the production service-role key; point it at a test project or skip it without secrets."
+        }
+      ],
+      "history": [
+        {
+          "at": "2026-10-03T03:05:41.053Z",
+          "event": "added",
+          "head": "8e82fd1aa6198f7a512c66bbafbcd1edb40d982c",
+          "actor": "claude-worker"
+        }
+      ]
     }
   ],
-  "updated_at": "2026-10-03T03:05:40.177Z"
+  "updated_at": "2026-10-03T03:05:41.793Z"
 }

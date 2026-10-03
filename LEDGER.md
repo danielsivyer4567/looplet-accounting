@@ -2,7 +2,7 @@
 
 **Goal:** Old Looplet Accounting (accounting.looplet.com.au) made legitimate, secure, modern and connected to Redbark bank feeds. Local proof first; production deploys, migrations and credential use need Daniel's explicit yes.
 
-**Progress:** 3/51 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
+**Progress:** 3/56 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
 
 | ID | Item | Status | Proof |
 |---|---|---|---|
@@ -57,5 +57,10 @@
 | MIG-01 | Every migration applies in order to a fresh database, so the history can rebuild the schema (no known failures left) | done | done @ 32686c65, awaiting independent verify |
 | SEC-10 | SECURITY DEFINER functions that users call and that write money tables check the caller's role | done | done @ 32686c65, awaiting independent verify |
 | SEC-11 | Bills only reference suppliers of their own organisation, so payment runs never copy another organisation's payee bank details | done | done @ 32686c65, awaiting independent verify |
+| SEC-12 | Data-completeness sweep functions can only be run by the service role, not by signed-in users | open | not run |
+| PAY-06 | FY2025-26 PAYG withholding rows match the official 2025 schedule (F2025L00647) worked examples | open | not run |
+| UX-01 | Lower roles see a clear 'read-only' state instead of silent no-op saves on bills, jobs, allocations, payment runs, employees, customers and suppliers | open | not run |
+| INV-02 | Looplet can email a tax invoice PDF to the customer from a verified sender, and marks it sent only after the email is accepted | open | not run |
+| CI-02 | One production deploy path: Cloudflare Pages Git integration deploys main; the CI wrangler deploy step is removed and the Cloudflare token leaves GitHub | open | not run |
 
 Acceptance commands, every run, exit codes and log hashes are in LEDGER.json; logs are in .ledger/logs/.
