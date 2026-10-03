@@ -18,7 +18,9 @@ export interface StpEmployee {
   full_name: string;
   email: string | null;
   wage_components: Record<string, unknown> | null;
+  /** Accepted for validation only; the full TFN is never written to the event. */
   tfn?: string | null;
+  /** '*****' plus the last four digits, from employee_tfn_vault.tfn_last4. */
   tfn_masked?: string | null;
 }
 
@@ -74,7 +76,7 @@ export interface TerminationContext {
     taxable_cents?: number;
     tax_free_cents?: number;
     tax_withheld_cents?: number;
-  };
+  } | undefined;
 }
 
 const CESSATION_TYPE_CODES: Record<string, string> = {
@@ -102,12 +104,23 @@ export function maskTfn(value: string | null | undefined): string | null {
   return `*****${tfn.slice(-4)}`;
 }
 
-function requireTfn(emp: StpEmployee): string {
-  const tfn = normaliseTfn(emp.tfn);
-  if (!tfn || !/^\d{8,9}$/.test(tfn)) {
-    throw new Error(`missing or invalid TFN for employee ${emp.full_name}`);
+/**
+ * The masked TFN for the event. Every employee must have a TFN on file, but the file only ever carries the last
+ * four digits: Looplet prepares this file for a person to review and does not lodge it, so the full TFN stays in
+ * the encrypted vault.
+ */
+function maskedTfnOnFile(emp: StpEmployee): string {
+  if (emp.tfn != null) {
+    const tfn = normaliseTfn(emp.tfn);
+    if (!tfn || !/^\d{8,9}$/.test(tfn)) {
+      throw new Error(`missing or invalid TFN for employee ${emp.full_name}`);
+    }
+    return `*****${tfn.slice(-4)}`;
   }
-  return tfn;
+  if (typeof emp.tfn_masked === 'string' && /^\*{5}\d{4}$/.test(emp.tfn_masked)) return emp.tfn_masked;
+  throw new Error(
+    `missing or invalid TFN for employee ${emp.full_name}: record it on the employee's page before preparing STP`,
+  );
 }
 
 function stringSetting(wage: Record<string, unknown>, key: string): string | null {
@@ -173,7 +186,7 @@ export function buildStpEvent(args: {
   const employees = slips.map((s) => {
     const emp = s.employee;
     const wage = (emp.wage_components ?? {}) as Record<string, unknown>;
-    const tfn = requireTfn(emp);
+    const tfnMasked = maskedTfnOnFile(emp);
     const taxTreatmentCode = stringSetting(wage, 'stp_tax_treatment_code');
     if (!taxTreatmentCode) {
       blockers.push(`${emp.full_name}: missing STP tax treatment code`);
@@ -184,8 +197,7 @@ export function buildStpEvent(args: {
     const isTerminated = termination?.employee_id === emp.id;
 
     return {
-      tfn,
-      tfn_masked: emp.tfn_masked ?? maskTfn(tfn),
+      tfn_masked: tfnMasked,
       employee_id: emp.id,
       payroll_id: emp.id,
       name: emp.full_name,
@@ -303,7 +315,8 @@ export function buildStpEvent(args: {
     notes: [
       'STP Phase 2 file. Lodgement to ATO requires SBR-gateway integration ' +
         '(out of scope) — hand to your registered tax/BAS agent.',
-      'TFNs are sourced from encrypted employee_tfn_vault rows; redacted copies are stored in the lodgement ledger.',
+      'TFNs are masked to the last four digits in this file; full TFNs stay encrypted in Looplet. Your registered ' +
+        "tax or BAS agent needs each employee's full TFN from their TFN declaration.",
       'Address and BMS_ID fields default from employee/org profile settings where available.',
       ...(termination
         ? [

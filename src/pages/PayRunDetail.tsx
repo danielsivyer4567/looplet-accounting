@@ -539,9 +539,10 @@ export function PayRunDetailPage() {
           >
             ATO Single Touch Payroll (STP) Phase 2
           </span>
-          STP file is generated in Phase 2 JSON format from encrypted TFN vault records and a
-          redacted draft lifecycle row is stored in the lodgement ledger. Direct ATO lodgement
-          remains disabled until SBR-gateway infrastructure is provisioned.
+          The STP file is prepared in Phase 2 JSON format for your registered tax or BAS agent, and a
+          draft record of it is kept in the lodgement ledger. Employee TFNs appear masked to the last
+          four digits; the full numbers stay encrypted in Looplet. Nothing is lodged with the ATO from
+          here.
         </div>
       </div>
     </section>

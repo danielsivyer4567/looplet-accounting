@@ -2,7 +2,7 @@
   "generated_at": "2026-07-02",
   "project_ref": "dxoikltymmknxqpkpyhi",
   "evidence": "supabase functions list --project-ref dxoikltymmknxqpkpyhi --output json",
-  "local_function_count": 74,
+  "local_function_count": 76,
   "live_observed_count": 65,
   "local_only": [
     "ato-correspondence",
@@ -11,6 +11,8 @@
     "bank-feed-link",
     "bank-transaction-attach-job",
     "crm-pnl-sync-push",
+    "entity-tfn-backfill",
+    "entity-tfn-save",
     "lodgements",
     "xero-pull-bank-transactions",
     "xero-webhook"
@@ -147,6 +149,14 @@
     {
       "name": "employee-tfn-save",
       "deploy_by_default": true
+    },
+    {
+      "name": "entity-tfn-backfill",
+      "deploy_by_default": false
+    },
+    {
+      "name": "entity-tfn-save",
+      "deploy_by_default": false
     },
     {
       "name": "eofy-pack",

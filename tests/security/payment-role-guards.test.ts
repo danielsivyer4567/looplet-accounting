@@ -21,8 +21,9 @@ const FUNCTIONS: Record<string, string[]> = {
   'payroll-termination': ['calculateTermination(input)'],
   // Same class: these already meant admin or owner, but a pending invite passed because accepted_at was not checked.
   'payroll-create-pay-run': [".from('employees')", ".from('pay_runs')", ".rpc('calc_payg_tax'"],
-  'payroll-export-stp': [".from('organizations')", 'decryptToken('],
+  'payroll-export-stp': [".from('organizations')", ".from('employee_tfn_vault')"],
   'employee-tfn-save': [".from('employees')", 'encryptToken('],
+  'entity-tfn-save': ['.from(table)', ".from('entity_tfn_vault')", 'encryptToken('],
 };
 
 describe('payment, payroll, super, termination and TFN functions require an accepted admin or owner', () => {

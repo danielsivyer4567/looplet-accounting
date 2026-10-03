@@ -50,6 +50,8 @@ live function. Do not deploy these by default; use a staging ticket and proof.
 | `depreciation-run`             | live-active | false           | 1            | Deployed 2026-06-30; cron secret/service-role auth gate.               |
 | `div7a-agreement`              | live-active | true            | 1            | Deployed 2026-06-30; document generation only.                         |
 | `employee-tfn-save`            | live-active | false           | 1            | Deployed 2026-06-30; self-auth + TFN vault path.                       |
+| `entity-tfn-backfill`          | local-only  | n/a             | n/a          | Pending deploy: one-off, service-role-only encryption of legacy trust/SMSF TFNs (TFN-01). |
+| `entity-tfn-save`              | local-only  | n/a             | n/a          | Pending deploy: admin-only encrypted TFN save for trusts/SMSFs (TFN-01). |
 | `eofy-pack`                    | live-active | true            | 19           |                                                                        |
 | `gmail-backfill`               | live-active | true            | 40           |                                                                        |
 | `gmail-classify-ai`            | live-active | true            | 39           |                                                                        |

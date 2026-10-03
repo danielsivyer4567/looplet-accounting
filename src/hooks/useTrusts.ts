@@ -72,10 +72,10 @@ export function useTrusts() {
   return { trusts, isTrustEntity, loading, error, refresh: fetch };
 }
 
-// The full trust record for the detail view.
+// The full trust record for the detail view. The TFN is not here: it is stored encrypted in entity_tfn_vault
+// (entity-tfn-save) and never read back to the browser.
 export interface TrustDetailRow extends TrustRow {
   trustee_abn: string | null;
-  tfn: string | null;
 }
 
 // The governing deed (SC-5.A.02, table `trust_deed`). One active row per trust.
@@ -135,7 +135,7 @@ export function useTrust(id: string | undefined) {
       supabase
         .from('trusts')
         .select(
-          'id, name, trust_type, abn, tfn, trustee_name, trustee_abn, is_corporate_trustee, settled_date, created_at',
+          'id, name, trust_type, abn, trustee_name, trustee_abn, is_corporate_trustee, settled_date, created_at',
         )
         .eq('id', id)
         .eq('organization_id', currentOrg.id)
