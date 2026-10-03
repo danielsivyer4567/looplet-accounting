@@ -3357,6 +3357,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/PAY-02-012.log",
           "log_sha256": "dae33551459d3b090dc59c2b685d4b32f1501b8ec80a67949ea90e54fdbf03af"
+        },
+        {
+          "n": 13,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeSuperDefault.test.tsx\"",
+          "exit": 0,
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "dirty": [],
+          "at": "2026-10-03T04:15:25.674Z",
+          "ms": 2392,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-02-013.log",
+          "log_sha256": "e071e0365142c999e438d1c8b87fca1e1debf6707820bd0488ed2927476c458a"
+        },
+        {
+          "n": 14,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/super.test.ts\"",
+          "exit": 0,
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "dirty": [],
+          "at": "2026-10-03T04:15:26.288Z",
+          "ms": 614,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-02-014.log",
+          "log_sha256": "c3d380fc4f75641452bbb37a4fc71f1ce78d3a08f2848bb5933667628ea18326"
         }
       ],
       "notes": [],
@@ -3472,15 +3498,38 @@
           "event": "done",
           "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:15:21.445Z",
+          "event": "stale",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/Employees.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:15:26.288Z",
+          "event": "run",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:15:26.432Z",
+          "event": "done",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:14:06.877Z",
-        "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+        "at": "2026-10-03T04:15:26.417Z",
+        "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
         "by": "claude-worker",
         "runs": [
-          11,
-          12
+          13,
+          14
         ]
       }
     },
@@ -5959,6 +6008,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/FAKE-01-007.log",
           "log_sha256": "8fbf918a50edc15143d4a214d3d2b1e26e5ffd9c0c96b403f6d7eb6d6b3852d7"
+        },
+        {
+          "n": 8,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ReceiptHubNoDemo.test.tsx\"",
+          "exit": 0,
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "dirty": [],
+          "at": "2026-10-03T04:15:29.504Z",
+          "ms": 2831,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/FAKE-01-008.log",
+          "log_sha256": "77ad790bd77e35e379dfcd643676a713096e202dedd9287d6f532f983eb11aec"
         }
       ],
       "notes": [],
@@ -6095,14 +6157,38 @@
           "event": "done",
           "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:15:21.556Z",
+          "event": "stale",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "files": [
+            "src/components/Layout.tsx",
+            "src/pages/ReceiptHub.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:15:29.505Z",
+          "event": "run",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:15:29.662Z",
+          "event": "done",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:14:54.348Z",
-        "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+        "at": "2026-10-03T04:15:29.647Z",
+        "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
         "by": "claude-worker",
         "runs": [
-          7
+          8
         ]
       }
     },
@@ -6111,7 +6197,7 @@
       "title": "The Scan page describes only the checks it really runs (no simulated AI audit)",
       "area": "legitimacy",
       "priority": 32,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ScanHonest.test.tsx\""
       ],
@@ -6157,6 +6243,19 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/FAKE-02-003.log",
           "log_sha256": "08bc8efd3a94f051b7a963965e4594b3f7cc8b0030cc7f62fa481eb220d9d3c3"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ScanHonest.test.tsx\"",
+          "exit": 0,
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "dirty": [],
+          "at": "2026-10-03T04:15:32.444Z",
+          "ms": 2627,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/FAKE-02-004.log",
+          "log_sha256": "f800d85ba96791a91d82488e66369c089fe8092fd79a6c00c27c4493d05f0af0"
         }
       ],
       "notes": [],
@@ -6201,23 +6300,37 @@
           "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
           "actor": "claude-verifier",
           "by": "claude-verifier (independent subagent)"
+        },
+        {
+          "at": "2026-10-03T04:15:21.601Z",
+          "event": "stale",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/Scan.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:15:32.445Z",
+          "event": "run",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:15:32.670Z",
+          "event": "done",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T02:22:54.884Z",
-        "head": "45829b8b7b1c2488f837e7dcc9b162a4cafb4031",
+        "at": "2026-10-03T04:15:32.656Z",
+        "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
         "by": "claude-worker",
         "runs": [
-          2
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T03:32:20.956Z",
-        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
-        "by": "claude-verifier (independent subagent)",
-        "note": "Read df55728. Test fails 4 of 4 on df55728^. Scan.tsx carries none of the fake audit copy; the finding-wording migration applied in the 303-migration chain run for BANK-06. Residual: the page lists the nine SQL checks by name, so a future change to run_data_completeness_scan must update both (the test compares them).",
-        "runs": [
-          3
+          4
         ]
       }
     },
@@ -6226,7 +6339,7 @@
       "title": "Settings has no pre-ticked, unsaved or unrelated template consent switches",
       "area": "legitimacy",
       "priority": 33,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/SettingsConsent.test.tsx\""
       ],
@@ -6285,6 +6398,19 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/CONSENT-01-004.log",
           "log_sha256": "d7a8a82e6635c15db678ae1935ea331663a466dd98df0b4deb998d13a962e6e5"
+        },
+        {
+          "n": 5,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/SettingsConsent.test.tsx\"",
+          "exit": 0,
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "dirty": [],
+          "at": "2026-10-03T04:15:35.717Z",
+          "ms": 2893,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/CONSENT-01-005.log",
+          "log_sha256": "c33c60e81326d3325dff1d2569c088ae5e82085b701eca4aaafbed820dab2c66"
         }
       ],
       "notes": [],
@@ -6352,23 +6478,37 @@
           "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
           "actor": "claude-verifier",
           "by": "claude-verifier (independent subagent)"
+        },
+        {
+          "at": "2026-10-03T04:15:21.645Z",
+          "event": "stale",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/Settings.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:15:35.718Z",
+          "event": "run",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:15:35.871Z",
+          "event": "done",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T02:42:53.113Z",
-        "head": "308028d5ba0bf896606fbbe9708c4b17224e8916",
+        "at": "2026-10-03T04:15:35.857Z",
+        "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
         "by": "claude-worker",
         "runs": [
-          3
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T03:34:15.680Z",
-        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
-        "by": "claude-verifier (independent subagent)",
-        "note": "Read e163833. Test fails 5 of 5 on e163833^. Only switch left is product news email: off by default, saved to auth user metadata with granted and updated_at, reloaded on return; no social-media, advertising, crypto or commodities copy remains. Residual: Settings.test.tsx fails to load on the base branch too (unrelated, pre-existing).",
-        "runs": [
-          4
+          5
         ]
       }
     },
@@ -6463,6 +6603,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/LEGAL-01-006.log",
           "log_sha256": "8c7bdc1ec45ee21e14b78584b8f553ccc3358353d254f9026d888e49d7a7385a"
+        },
+        {
+          "n": 7,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LegalPages.test.tsx\"",
+          "exit": 0,
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "dirty": [],
+          "at": "2026-10-03T04:15:38.574Z",
+          "ms": 2547,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/LEGAL-01-007.log",
+          "log_sha256": "fbb835d69bd0b8bb1ef5ce9e57499795ccaff4fae4842d7ab9fa5f7c1fb95b46"
         }
       ],
       "notes": [
@@ -6597,14 +6750,46 @@
           "event": "done",
           "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:15:21.693Z",
+          "event": "stale",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/Allocations.tsx",
+            "src/pages/Approvals.tsx",
+            "src/pages/BillUpload.tsx",
+            "src/pages/CodingReview.tsx",
+            "src/pages/Dashboard.tsx",
+            "src/pages/DebtDetail.tsx",
+            "src/pages/Employees.tsx",
+            "src/pages/Legal.tsx",
+            "src/pages/LegalHorizon.tsx",
+            "src/pages/PayRunDetail.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:15:38.575Z",
+          "event": "run",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:15:38.801Z",
+          "event": "done",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:14:57.720Z",
-        "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+        "at": "2026-10-03T04:15:38.787Z",
+        "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
         "by": "claude-worker",
         "runs": [
-          6
+          7
         ]
       }
     },
@@ -7342,6 +7527,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/TFN-01-036.log",
           "log_sha256": "18ead08318285a3f358c551e206685bbd12c46a57b80d5ec52ffcf3fe868b84f"
+        },
+        {
+          "n": 37,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/tfn-handling.test.ts\"",
+          "exit": 0,
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "dirty": [],
+          "at": "2026-10-03T04:15:40.829Z",
+          "ms": 1785,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/TFN-01-037.log",
+          "log_sha256": "3425bb28481a32dd927c3db3e42af31f9c38475fa1ab986305a69a4925c924d7"
+        },
+        {
+          "n": 38,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/trust-tfn-encryption.sql\"",
+          "exit": 0,
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "dirty": [],
+          "at": "2026-10-03T04:16:23.089Z",
+          "ms": 42259,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/TFN-01-038.log",
+          "log_sha256": "18ead08318285a3f358c551e206685bbd12c46a57b80d5ec52ffcf3fe868b84f"
         }
       ],
       "notes": [
@@ -7750,15 +7961,38 @@
           "event": "done",
           "head": "56e21d96096396399a94074d17be6fbc56f19b40",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:15:21.756Z",
+          "event": "stale",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/PayRunDetail.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:16:23.089Z",
+          "event": "run",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:16:23.326Z",
+          "event": "done",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:06:41.245Z",
-        "head": "56e21d96096396399a94074d17be6fbc56f19b40",
+        "at": "2026-10-03T04:16:23.312Z",
+        "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
         "by": "claude-worker",
         "runs": [
-          35,
-          36
+          37,
+          38
         ]
       }
     },
@@ -7960,6 +8194,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/LODGE-01-014.log",
           "log_sha256": "b5711e456ef9f41e72b1239baa36a0d8720790f0bbd14d2bede0726547af489d"
+        },
+        {
+          "n": 15,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LodgementWording.test.tsx\"",
+          "exit": 0,
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "dirty": [],
+          "at": "2026-10-03T04:16:26.511Z",
+          "ms": 2946,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/LODGE-01-015.log",
+          "log_sha256": "ae0b20aa2ba69d828a109e7c6464e948346ef88db39b2d7a880223275987222f"
+        },
+        {
+          "n": 16,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/super-batch-send/status.test.ts\"",
+          "exit": 0,
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "dirty": [],
+          "at": "2026-10-03T04:16:27.238Z",
+          "ms": 726,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/LODGE-01-016.log",
+          "log_sha256": "cf831c2c5048f93c7a2476fdf91b0f40d6d078ab2f277d7b52b210b1cb674e06"
         }
       ],
       "notes": [],
@@ -8110,15 +8370,47 @@
           "event": "done",
           "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:15:21.804Z",
+          "event": "stale",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "files": [
+            "src/components/Layout.tsx",
+            "src/pages/Allocations.tsx",
+            "src/pages/Approvals.tsx",
+            "src/pages/BillUpload.tsx",
+            "src/pages/CodingReview.tsx",
+            "src/pages/Dashboard.tsx",
+            "src/pages/DebtDetail.tsx",
+            "src/pages/Employees.tsx",
+            "src/pages/Legal.tsx",
+            "src/pages/LegalHorizon.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:16:27.238Z",
+          "event": "run",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:16:27.467Z",
+          "event": "done",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:15:01.256Z",
-        "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+        "at": "2026-10-03T04:16:27.454Z",
+        "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
         "by": "claude-worker",
         "runs": [
-          13,
-          14
+          15,
+          16
         ]
       }
     },
@@ -8581,6 +8873,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-01-034.log",
           "log_sha256": "1a246eee8b10b1bb0a0db9d0d1b89663a6e16ef4ef7fd7055b0a234ebe01e656"
+        },
+        {
+          "n": 35,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 0,
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "dirty": [],
+          "at": "2026-10-03T04:16:28.139Z",
+          "ms": 510,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-01-035.log",
+          "log_sha256": "442489da1d126e6d7ece68bcd883aeee8281ce35a2b0ea8b39c09811d175e1ed"
         }
       ],
       "notes": [],
@@ -9351,14 +9656,46 @@
           "event": "done",
           "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:15:21.853Z",
+          "event": "stale",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "files": [
+            "src/components/AdviceNoteView.tsx",
+            "src/components/AdvisorFinishButton.tsx",
+            "src/components/AllocationQueuePanel.tsx",
+            "src/components/AllocationSplitButton.tsx",
+            "src/components/ArchiveButton.tsx",
+            "src/components/BankTransactionCodingQueue.tsx",
+            "src/components/BrandLogo.tsx",
+            "src/components/Citations.tsx",
+            "src/components/ConfidenceBadge.tsx",
+            "src/components/DiagramView.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:16:28.140Z",
+          "event": "run",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:16:28.296Z",
+          "event": "done",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:15:02.250Z",
-        "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+        "at": "2026-10-03T04:16:28.282Z",
+        "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
         "by": "claude-worker",
         "runs": [
-          34
+          35
         ]
       }
     },
@@ -9859,7 +10196,7 @@
       "title": "Admins can list Redbark accounts and link each one to a bank account with an import-from date",
       "area": "bank",
       "priority": 44,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bank-feed-link/link.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/BankFeedLink.test.tsx\""
@@ -9947,6 +10284,32 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/BANK-05-006.log",
           "log_sha256": "1025086a4c6956c2d6bc5647c2cd6526a04a1c5f5d4c721dcb358732f505d0cd"
+        },
+        {
+          "n": 7,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bank-feed-link/link.test.ts\"",
+          "exit": 0,
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "dirty": [],
+          "at": "2026-10-03T04:16:29.501Z",
+          "ms": 960,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-05-007.log",
+          "log_sha256": "a0d8fbe395358b8e809814be2fdb6f2f075dad94d71a46a1a4340b932513a950"
+        },
+        {
+          "n": 8,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/BankFeedLink.test.tsx\"",
+          "exit": 0,
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "dirty": [],
+          "at": "2026-10-03T04:16:31.823Z",
+          "ms": 2322,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-05-008.log",
+          "log_sha256": "87f762fba1e7b578ae483115c15c37e98ec564af7378a6880776d448b5939d3f"
         }
       ],
       "notes": [
@@ -9997,25 +10360,38 @@
           "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
           "actor": "claude-verifier",
           "by": "claude-verifier (independent subagent)"
+        },
+        {
+          "at": "2026-10-03T04:15:22.025Z",
+          "event": "stale",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "files": [
+            "src/components/settings/BankConnect.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:16:31.823Z",
+          "event": "run",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:16:31.976Z",
+          "event": "done",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T00:44:46.404Z",
-        "head": "b66e21cf0d577477b182781ab4d064a7ba0da05d",
+        "at": "2026-10-03T04:16:31.962Z",
+        "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
         "by": "claude-worker",
         "runs": [
-          3,
-          4
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T03:32:15.364Z",
-        "head": "6da4d8b87fe12e6da44e94bd878ceb8f1c294a22",
-        "by": "claude-verifier (independent subagent)",
-        "note": "Read b66e21c, link.ts, accounts.ts, both index.ts files, orgRole.ts and BankFeedLink/BankConnect. Listing and linking need an accepted admin or owner (viewer/accountant/pending refused) or the exact service key, then REDBARK_ORGANIZATION_IDS, which fails closed when unset. Mutations fail the suite: letting accountants link, letting another organisation claim a linked connection. BankFeedLink vitest passes; deno check ok. Residual: Redbark terms limit the feed to the account holder's own organisations (ledger note); a Redbark account whose currency is missing cannot be linked.",
-        "runs": [
-          5,
-          6
+          7,
+          8
         ]
       }
     },
@@ -11686,6 +12062,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/GST-01-008.log",
           "log_sha256": "c002ffd09312c4ce2d7ccf0b607c828d477aded1b76d933fd46cc0ac5259c881"
+        },
+        {
+          "n": 9,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/gstNoInvention.test.ts\"",
+          "exit": 0,
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "dirty": [],
+          "at": "2026-10-03T04:16:34.529Z",
+          "ms": 2390,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/GST-01-009.log",
+          "log_sha256": "21f27bb5719e60c0a381dfbfc1df1ae1e137196e7605ef1d3d8d0e1d41254e0a"
+        },
+        {
+          "n": 10,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/receipt-webhook/gst.test.ts\"",
+          "exit": 0,
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "dirty": [],
+          "at": "2026-10-03T04:16:35.437Z",
+          "ms": 907,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/GST-01-010.log",
+          "log_sha256": "87af8c8b4d8c676f3ad5b336b42282f2c9b005648ecbf4e3a15a8591cc366d32"
         }
       ],
       "notes": [],
@@ -11753,15 +12155,38 @@
           "event": "done",
           "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:15:22.141Z",
+          "event": "stale",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/ReceiptHub.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:16:35.438Z",
+          "event": "run",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:16:35.666Z",
+          "event": "done",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:15:09.821Z",
-        "head": "1327337492ae9eb209c4d96d4316b1dc33fbadd0",
+        "at": "2026-10-03T04:16:35.652Z",
+        "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
         "by": "claude-worker",
         "runs": [
-          7,
-          8
+          9,
+          10
         ]
       }
     },
@@ -12469,6 +12894,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/DATE-01-002.log",
           "log_sha256": "a927e9bb10b1a72b856460f99040ccdec88d8047df854ba3ed2d4233cd92e484"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/localDates.test.ts\"",
+          "exit": 0,
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "dirty": [],
+          "at": "2026-10-03T04:16:37.862Z",
+          "ms": 1788,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/DATE-01-003.log",
+          "log_sha256": "854b2a70bcea16e4214df338fad242a0d5cb1e23069903d4165ce4bc9ab12e4a"
         }
       ],
       "notes": [],
@@ -12506,14 +12944,46 @@
           "event": "done",
           "head": "0b2d76258056a044723082a57a2e229c1db50a37",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:15:22.220Z",
+          "event": "stale",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/Allocations.tsx",
+            "src/pages/Approvals.tsx",
+            "src/pages/BillUpload.tsx",
+            "src/pages/CodingReview.tsx",
+            "src/pages/Dashboard.tsx",
+            "src/pages/DebtDetail.tsx",
+            "src/pages/Employees.tsx",
+            "src/pages/Legal.tsx",
+            "src/pages/LegalHorizon.tsx",
+            "src/pages/PayRunDetail.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T04:16:37.863Z",
+          "event": "run",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:16:38.100Z",
+          "event": "done",
+          "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:14:01.575Z",
-        "head": "0b2d76258056a044723082a57a2e229c1db50a37",
+        "at": "2026-10-03T04:16:38.085Z",
+        "head": "1f7fcc9379d9cb99eca5fb409eb9dd671316b25b",
         "by": "claude-worker",
         "runs": [
-          2
+          3
         ]
       }
     },
@@ -16747,5 +17217,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T04:15:21.038Z"
+  "updated_at": "2026-10-03T04:16:38.115Z"
 }
