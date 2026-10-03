@@ -178,13 +178,15 @@ describe('App shell', () => {
     expect(within(dialog).getByRole('option', { name: /sign out/i })).toBeInTheDocument();
 
     fireEvent.change(input, { target: { value: 'invoi' } });
-    // The Invoices page and the "New invoice" action both match; Bills does not.
+    // Label matches rank first (Invoices, then the "New invoice" action); Bills still appears,
+    // further down, through its "supplier invoices" keyword; Payroll does not match at all.
     const names = within(dialog)
       .getAllByRole('option')
       .map((o) => o.textContent ?? '');
-    expect(names.some((n) => n.startsWith('Invoices'))).toBe(true);
+    expect(names[0]).toMatch(/^Invoices/);
     expect(names.some((n) => n.startsWith('New invoice'))).toBe(true);
-    expect(names.some((n) => n.startsWith('Bills'))).toBe(false);
+    expect(names.indexOf(names.find((n) => n.startsWith('Bills')) ?? '')).toBeGreaterThan(0);
+    expect(names.some((n) => n.startsWith('Payroll'))).toBe(false);
 
     fireEvent.keyDown(input, { key: 'Enter' });
     expect(screen.queryByRole('dialog', { name: /command palette/i })).not.toBeInTheDocument();

@@ -19,14 +19,23 @@ interface CommandPaletteProps {
   items: CommandItem[];
 }
 
-function matches(item: CommandItem, query: string): boolean {
-  if (!query) return true;
-  const hay = `${item.label} ${item.hint ?? ''} ${item.keywords ?? ''}`.toLowerCase();
-  return query
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean)
-    .every((word) => hay.includes(word));
+/**
+ * How well an item matches: 0 label starts with the query, 1 label contains it, 2 the route
+ * or hint contains it, 3 only the keywords contain it; -1 no match. Every word must match.
+ */
+function score(item: CommandItem, query: string): number {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return 0;
+  const label = item.label.toLowerCase();
+  const hint = (item.hint ?? '').toLowerCase();
+  const keywords = (item.keywords ?? '').toLowerCase();
+  let worst = 0;
+  for (const word of words) {
+    const s = label.startsWith(word) ? 0 : label.includes(word) ? 1 : hint.includes(word) ? 2 : keywords.includes(word) ? 3 : -1;
+    if (s < 0) return -1;
+    worst = Math.max(worst, s);
+  }
+  return worst;
 }
 
 /**
@@ -41,11 +50,23 @@ export function CommandPalette({ open, onClose, items }: CommandPaletteProps) {
   const listId = useId();
   const titleId = useId();
 
-  const visible = useMemo(() => items.filter((item) => matches(item, query)), [items, query]);
+  // Pages first, then actions; within a group the best matches first (a stable sort keeps the
+  // nav order among equals). `visible` is this same flattened order, so arrow keys follow the list.
   const groups = useMemo(() => {
     const order: CommandItem['group'][] = ['Pages', 'Actions'];
-    return order.map((group) => ({ group, items: visible.filter((i) => i.group === group) })).filter((g) => g.items.length > 0);
-  }, [visible]);
+    return order
+      .map((group) => ({
+        group,
+        items: items
+          .filter((i) => i.group === group)
+          .map((item, index) => ({ item, index, s: score(item, query) }))
+          .filter((x) => x.s >= 0)
+          .sort((a, b) => a.s - b.s || a.index - b.index)
+          .map((x) => x.item),
+      }))
+      .filter((g) => g.items.length > 0);
+  }, [items, query]);
+  const visible = useMemo(() => groups.flatMap((g) => g.items), [groups]);
 
   useEffect(() => {
     if (!open) return;
