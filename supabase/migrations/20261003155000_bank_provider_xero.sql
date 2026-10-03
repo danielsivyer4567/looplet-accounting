@@ -6,7 +6,7 @@
 -- 'bank' is not a bank_account_type value, so every insert failed and no Xero
 -- bank data was stored. The function now files Xero accounts under a real
 -- bank_connections row per organisation and Xero tenant. bank_provider had no
--- value for that (plaid, basiq, manual), so this adds 'xero'.
+-- value for that (plaid, manual, redbark), so this adds 'xero'.
 --
 -- ADD VALUE is not used in this transaction, so it is safe inside the
 -- migration's transaction.
