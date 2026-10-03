@@ -1,5 +1,8 @@
 -- AP automation → exception review
 --
+-- MIG-01 repair (2026-10-03): removed a stray duplicate "$$;" after the function
+-- body, which left an unterminated dollar-quoted string. No other change.
+--
 -- Adds bill-level confidence lookups so the Bills page can show automation
 -- confidence badges and quick-confirm buttons alongside each bill.
 
@@ -33,5 +36,4 @@ as $$
     and ad.source_id = any (p_bill_ids)
     and ad.overridden_by is null
   order by ad.source_id, ad.created_at desc
-$$;
 $$;

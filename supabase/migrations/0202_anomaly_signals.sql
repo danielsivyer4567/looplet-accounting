@@ -1,6 +1,16 @@
 -- ============================================================================
 -- 0202_anomaly_signals.sql
 --
+-- MIG-01 repair (2026-10-03): this file could not apply to any database. Its
+-- get_workstream_tasks body selected se/b/ci/bt.organization_id in aggregate arms
+-- without GROUP BY, read public.customer_invoices (dropped in 0042) and
+-- data_completeness_findings.deleted_at (no such column), and ordered a UNION by
+-- column names the UNION does not expose. The fixes below are the ones its live,
+-- renumbered copy (0233_anomaly_signals.sql) carries: p_org_id in those arms (the WHERE already
+-- restricts them to p_org_id, so the output is the same), public.invoices, no
+-- deleted_at filter, ORDER BY 13, 14 (urgency, created_at). See
+-- docs/MIGRATION_GAP_AUDIT.md (MIG-01).
+--
 -- Adds anomaly-detection UNION arms to get_workstream_tasks. Each arm maps
 -- a quality/data-hygiene signal to an owner-language Today task.
 --
@@ -27,7 +37,7 @@ AS $$
   -- 1. Onboarding triage — staged senders needing approval
   SELECT
     gen_random_uuid(),
-    se.organization_id,
+    p_org_id,
     'onboarding_triage',
     CASE count(*)::int
       WHEN 1 THEN 'Review 1 staged sender'
@@ -128,7 +138,7 @@ AS $$
   -- 4. Unapproved bills — received and waiting
   SELECT
     gen_random_uuid(),
-    b.organization_id,
+    p_org_id,
     'unapproved_bill',
     count(*)::text || ' bills need approval',
     count(*)::text || ' received bills have not been approved yet',
@@ -157,12 +167,12 @@ AS $$
   -- 5. Overdue invoices
   SELECT
     gen_random_uuid(),
-    ci.organization_id,
+    p_org_id,
     'overdue_invoice',
     count(*)::text || ' overdue invoices',
     'Invoices totalling $' || (coalesce(sum(ci.total_inc_gst_cents - ci.amount_paid_cents), 0) / 100)::text || ' are past due',
     jsonb_build_array(jsonb_build_object(
-      'table', 'customer_invoices',
+      'table', 'invoices',
       'count', count(*),
       'outstanding_cents', coalesce(sum(ci.total_inc_gst_cents - ci.amount_paid_cents), 0),
       'url', '/invoices'
@@ -172,10 +182,10 @@ AS $$
     coalesce(sum(ci.total_inc_gst_cents - ci.amount_paid_cents), 0),
     NULL::timestamptz,
     NULL,
-    jsonb_build_object('table', 'customer_invoices', 'status', 'paid'),
+    jsonb_build_object('table', 'invoices', 'status', 'paid'),
     5,
     now()
-  FROM public.customer_invoices ci
+  FROM public.invoices ci
   WHERE ci.organization_id = p_org_id
     AND ci.status IN ('sent', 'overdue')
     AND ci.due_date < CURRENT_DATE
@@ -187,7 +197,7 @@ AS $$
   -- 6. Unmatched bank items
   SELECT
     gen_random_uuid(),
-    bt.organization_id,
+    p_org_id,
     'unmatched_bank_item',
     count(*)::text || ' unmatched bank transactions',
     count(*)::text || ' bank items have no matching bill or invoice',
@@ -239,7 +249,6 @@ AS $$
   WHERE dcf.organization_id = p_org_id
     AND dcf.resolved_at IS NULL
     AND dcf.is_muted = false
-    AND dcf.deleted_at IS NULL
 
   UNION ALL
 
@@ -352,7 +361,7 @@ AS $$
   WHERE bg.organization_id = p_org_id
     AND bg.gst_ready = false
 
-  ORDER BY urgency, created_at;
+  ORDER BY 13, 14;
 $$;
 
 COMMENT ON FUNCTION public.get_workstream_tasks IS

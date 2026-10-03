@@ -1,14 +1,4 @@
 {
   "about": "Migrations that do not apply to a fresh database, each in its own transaction (as the Supabase CLI runs them). run-pg-sql-tests.mjs fails if any OTHER migration fails, or if one of these starts applying (remove it from this list then). Ledger item MIG-01 repairs the history so this list is empty; run with --strict to require that.",
-  "failures": {
-    "0200_workstream_tasks.sql": "get_workstream_tasks: column \"se.organization_id\" must appear in the GROUP BY clause",
-    "0202_anomaly_signals.sql": "needs type public.workstream_task from 0200",
-    "0203_ap_exception_review.sql": "stray duplicate \"$$;\" after the function body (unterminated dollar-quoted string)",
-    "0204_close_tasks.sql": "needs type public.workstream_task from 0200",
-    "0206_bank_classifier_schema.sql": "index on deleted_at is created before the column is added",
-    "0208_advisor_work_proofs.sql": "references public.organisations (the table is public.organizations)",
-    "0232_automation_decisions.sql": "renumbered copy of 0201_automation_decisions.sql: type automation_confidence already exists",
-    "0236_automation_feedback.sql": "renumbered copy of 0205_automation_feedback.sql: relation automation_feedback already exists",
-    "20260701160000_close_task_preflight_detail.sql": "get_workstream_tasks: column \"se.organization_id\" must appear in the GROUP BY clause"
-  }
+  "failures": {}
 }

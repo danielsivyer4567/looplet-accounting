@@ -1,6 +1,13 @@
 -- ============================================================================
 -- 0236_automation_feedback.sql
 --
+-- MIG-01 repair (2026-10-03): this file is a renumbered copy of 0205_automation_feedback.sql,
+-- which creates the same objects earlier in a fresh database. Live ran this copy
+-- (0236, recorded 2026-06-30) with non-idempotent CREATEs, so 0205_automation_feedback.sql cannot
+-- have run there first. This file is kept and made idempotent instead of deleted:
+-- the table and indexes use IF NOT EXISTS, the view is CREATE OR REPLACE,
+-- and each policy is dropped before it is created. On live the result is unchanged.
+--
 -- Records owner/advisor corrections to automation decisions. Each row tracks
 -- what was changed, by whom, and why. Repeated accepted decisions can be
 -- promoted into deterministic org-level rules.
@@ -11,7 +18,7 @@
 
 -- -- Table -------------------------------------------------------------------
 
-CREATE TABLE public.automation_feedback (
+CREATE TABLE IF NOT EXISTS public.automation_feedback (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id   UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
   source_kind       TEXT NOT NULL,  -- 'bill_coding', 'bank_match', 'gst_treatment', 'supplier', 'job_tag', 'asset_class', 'confidence_outcome'
@@ -24,10 +31,10 @@ CREATE TABLE public.automation_feedback (
   promoted_to_rule  BOOLEAN NOT NULL DEFAULT false
 );
 
-CREATE INDEX idx_automation_feedback_org
+CREATE INDEX IF NOT EXISTS idx_automation_feedback_org
   ON public.automation_feedback (organization_id, source_kind);
 
-CREATE INDEX idx_automation_feedback_source
+CREATE INDEX IF NOT EXISTS idx_automation_feedback_source
   ON public.automation_feedback (source_kind, source_id);
 
 COMMENT ON TABLE public.automation_feedback IS
@@ -38,21 +45,25 @@ COMMENT ON TABLE public.automation_feedback IS
 
 ALTER TABLE public.automation_feedback ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "automation_feedback_select_org" ON public.automation_feedback;
 CREATE POLICY "automation_feedback_select_org"
   ON public.automation_feedback
   FOR SELECT
   USING (organization_id IN (SELECT public.get_accessible_org_ids()));
 
+DROP POLICY IF EXISTS automation_feedback_no_client_insert ON public.automation_feedback;
 CREATE POLICY automation_feedback_no_client_insert
   ON public.automation_feedback
   FOR INSERT TO authenticated
   WITH CHECK (false);
 
+DROP POLICY IF EXISTS automation_feedback_no_client_update ON public.automation_feedback;
 CREATE POLICY automation_feedback_no_client_update
   ON public.automation_feedback
   FOR UPDATE TO authenticated
   USING (false);
 
+DROP POLICY IF EXISTS automation_feedback_no_client_delete ON public.automation_feedback;
 CREATE POLICY automation_feedback_no_client_delete
   ON public.automation_feedback
   FOR DELETE TO authenticated
@@ -105,7 +116,7 @@ REVOKE ALL ON FUNCTION public.record_feedback FROM anon;
 
 -- -- View: aggregated feedback for rule promotion ---------------------------
 
-CREATE VIEW public.v_feedback_patterns
+CREATE OR REPLACE VIEW public.v_feedback_patterns
 WITH (security_invoker = on) AS
 SELECT
   organization_id,

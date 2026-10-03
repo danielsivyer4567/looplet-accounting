@@ -7,17 +7,26 @@
 --
 -- SECURITY: SELECT-only for authenticated clients (RLS). Writes go through
 -- SECURITY DEFINER RPCs or backend functions.
+--
+-- MIG-01 repair (2026-10-03): this file is a renumbered copy of 0201_automation_decisions.sql,
+-- which creates the same objects earlier in a fresh database. Live ran this copy
+-- (0232, recorded 2026-06-30) with non-idempotent CREATEs, so 0201_automation_decisions.sql cannot
+-- have run there first. This file is kept and made idempotent instead of deleted:
+-- the enum is guarded, the table and indexes use IF NOT EXISTS, and each
+-- policy is dropped before it is created. On live the result is unchanged.
 -- ============================================================================
 
 -- -- Enum: automation_confidence ------------------------------------------------
 
-CREATE TYPE public.automation_confidence AS ENUM (
-  'auto_post',
-  'quick_confirm',
-  'review_needed',
-  'advisor_required',
-  'blocked_external'
-);
+DO $$ BEGIN
+  CREATE TYPE public.automation_confidence AS ENUM (
+    'auto_post',
+    'quick_confirm',
+    'review_needed',
+    'advisor_required',
+    'blocked_external'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 COMMENT ON TYPE public.automation_confidence IS
   'Confidence bands for AI/automation decisions. Maps to owner-facing task '
@@ -25,7 +34,7 @@ COMMENT ON TYPE public.automation_confidence IS
 
 -- -- Table: automation_decisions ------------------------------------------------
 
-CREATE TABLE public.automation_decisions (
+CREATE TABLE IF NOT EXISTS public.automation_decisions (
   id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id    uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
 
@@ -65,9 +74,9 @@ COMMENT ON TABLE public.automation_decisions IS
 
 -- -- Indexes --------------------------------------------------------------------
 
-CREATE INDEX idx_auto_decisions_org_source
+CREATE INDEX IF NOT EXISTS idx_auto_decisions_org_source
   ON public.automation_decisions (organization_id, source_kind, source_id);
-CREATE INDEX idx_auto_decisions_unresolved
+CREATE INDEX IF NOT EXISTS idx_auto_decisions_unresolved
   ON public.automation_decisions (organization_id)
   WHERE accepted_at IS NULL AND overridden_by IS NULL;
 
@@ -96,19 +105,23 @@ ALTER TABLE public.automation_decisions ENABLE ROW LEVEL SECURITY;
 
 -- Clients can SELECT resolved decisions (for UI display) and unresolved ones
 -- (for review queues). Writes flow through DEFINER RPCs or backend functions.
+DROP POLICY IF EXISTS auto_decisions_select ON public.automation_decisions;
 CREATE POLICY auto_decisions_select ON public.automation_decisions
   FOR SELECT TO authenticated
   USING (organization_id IN (SELECT public.get_accessible_org_ids()));
 
 -- Block client INSERT/UPDATE/DELETE — all writes go through backend
+DROP POLICY IF EXISTS auto_decisions_no_client_insert ON public.automation_decisions;
 CREATE POLICY auto_decisions_no_client_insert ON public.automation_decisions
   FOR INSERT TO authenticated
   WITH CHECK (false);
 
+DROP POLICY IF EXISTS auto_decisions_no_client_update ON public.automation_decisions;
 CREATE POLICY auto_decisions_no_client_update ON public.automation_decisions
   FOR UPDATE TO authenticated
   USING (false);
 
+DROP POLICY IF EXISTS auto_decisions_no_client_delete ON public.automation_decisions;
 CREATE POLICY auto_decisions_no_client_delete ON public.automation_decisions
   FOR DELETE TO authenticated
   USING (false);

@@ -38,13 +38,15 @@ CREATE TABLE IF NOT EXISTS public.bank_coding_rules (
     FOREIGN KEY (organization_id) REFERENCES public.organizations(id) ON DELETE CASCADE
 );
 
+-- Soft-delete column (consistent with other tables). MIG-01 repair (2026-10-03):
+-- added before the partial index below, which filters on it; the two statements
+-- were in the opposite order, so the index failed on a fresh database.
+ALTER TABLE public.bank_coding_rules
+  ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+
 CREATE INDEX IF NOT EXISTS bank_coding_rules_org_active_priority_idx
   ON public.bank_coding_rules (organization_id, priority DESC)
   WHERE is_active = true AND deleted_at IS NULL;
-
--- Soft-delete column (consistent with other tables)
-ALTER TABLE public.bank_coding_rules
-  ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
 
 DROP TRIGGER IF EXISTS trg_bank_coding_rules_updated_at ON public.bank_coding_rules;
 CREATE TRIGGER trg_bank_coding_rules_updated_at
