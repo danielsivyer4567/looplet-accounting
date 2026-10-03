@@ -1,13 +1,13 @@
 // The BAS quarter block Ask AI reads for context. The column list is checked against v_bas_quarterly's definition
-// by bas-query.test.ts, because this query once named columns the view never had (sales_inc_gst_cents existed only
-// in a later view; net_gst_owed_cents never did) and silently returned nothing.
+// by bas-query.test.ts, because this query twice named columns the view does not expose (net_gst_owed_cents, then
+// sales_inc_gst_cents, which exists only inside the view's subquery) and silently returned nothing.
 export const BAS_QUARTER_COLUMNS = [
   'fy_start_year',
   'quarter_num',
   'quarter_start',
   'quarter_end',
   'due_date',
-  'sales_inc_gst_cents',
+  'sales_ex_gst_cents',
   'gst_collected_cents',
   'gst_paid_cents',
   'net_gst_cents',

@@ -14,12 +14,22 @@ async function viewColumns(): Promise<Set<string>> {
     if (m) definition = m[0];
   }
   if (!definition) throw new Error('v_bas_quarterly definition not found');
+  // Only the OUTERMOST select list counts: strip everything inside parentheses (CTE bodies and subqueries) first,
+  // then read the last depth-0 SELECT … FROM. An alias inside a subquery is not a column of the view.
+  let depth = 0; let outerText = '';
+  for (const ch of definition) {
+    if (ch === '(') depth++;
+    else if (ch === ')') depth = Math.max(0, depth - 1);
+    else if (depth === 0) outerText += ch;
+  }
+  const sel = outerText.lastIndexOf('SELECT'); const frm = outerText.indexOf('FROM', sel);
+  const list = outerText.slice(sel + 6, frm);
   const cols = new Set<string>();
-  // Output names anywhere in the definition: "AS alias", "table.column" and bare identifiers at the end of a select
-  // line (the view starts with a CTE, so the final select is not the first SELECT in the text).
-  for (const m of definition.matchAll(/\bAS\s+([a-z_][a-z0-9_]*)/gi)) cols.add(m[1].toLowerCase());
-  for (const m of definition.matchAll(/\.([a-z_][a-z0-9_]*)\s*(?=,|\n|$)/gim)) cols.add(m[1].toLowerCase());
-  for (const m of definition.matchAll(/^\s*([a-z_][a-z0-9_]*)\s*(?=,|\n|$)/gim)) cols.add(m[1].toLowerCase());
+  for (const raw of list.split(',')) {
+    const part = raw.trim(); if (!part) continue;
+    const m = /\bAS\s+([a-z_][a-z0-9_]*)\s*$/i.exec(part) ?? /(?:^|\.)([a-z_][a-z0-9_]*)\s*$/i.exec(part);
+    if (m) cols.add(m[1].toLowerCase());
+  }
   return cols;
 }
 
@@ -27,6 +37,9 @@ Deno.test('every column Ask AI reads from v_bas_quarterly exists in the view', a
   const cols = await viewColumns();
   for (const c of BAS_QUARTER_COLUMNS) assertEquals(cols.has(c), true, `v_bas_quarterly has no column ${c}`);
   assertEquals(BAS_QUARTER_COLUMNS.includes('net_gst_owed_cents' as never), false);
+  // The inner subquery exposes sales_inc_gst_cents but the view does not; the parser must not be fooled by it.
+  assertEquals(cols.has('sales_inc_gst_cents'), false, 'parser picked up a subquery alias');
+  assertEquals(cols.has('net_gst_cents') && cols.has('sales_ex_gst_cents') && cols.has('due_date'), true);
 });
 
 Deno.test('the query is built from that list and only for a UUID', async () => {

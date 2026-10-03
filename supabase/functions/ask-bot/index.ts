@@ -62,7 +62,7 @@ bank_transactions (id, organization_id, posted_at, description, amount_cents big
 subscriptions (id, organization_id, merchant_name, supplier_id, cadence, amount_cents bigint, status, is_personal bool, is_business bool)
 
 -- Aggregated views (PREFER THESE for summaries)
-v_bas_quarterly (organization_id, fy_start_year, quarter_num, quarter_start, quarter_end, due_date, sales_inc_gst_cents bigint, sales_ex_gst_cents bigint, gst_collected_cents bigint, purchases_inc_gst_cents bigint, purchases_ex_gst_cents bigint, gst_paid_cents bigint, net_gst_cents bigint)
+v_bas_quarterly (organization_id, fy_start_year, quarter_num, quarter_start, quarter_end, due_date, gst_collected_cents bigint, gst_paid_cents bigint, net_gst_cents bigint, sales_ex_gst_cents bigint, purchases_ex_gst_cents bigint, increasing_adjustments_gst_cents bigint, decreasing_adjustments_gst_cents bigint, gst_accounting_basis, invoice_count, bill_count)
 v_organization_realtime_pnl (organization_id, organization_name, revenue_inc_gst_cents bigint, revenue_ex_gst_cents bigint, total_cost_cents bigint, gross_profit_cents bigint, gst_set_aside_cents bigint, tax_set_aside_cents bigint, really_yours_cents bigint)
 v_job_pnl (job_id, organization_id, job_number, job_name, revenue_inc_gst_cents bigint, total_cost_cents bigint, gross_profit_cents bigint, budget_cents bigint, currency_code)
 v_unpaid_bills_for_payment_run (id, organization_id, supplier_name, supplier_id, invoice_date, due_date, total_inc_gst_cents bigint, days_overdue int)
@@ -355,7 +355,7 @@ async function loadBusinessContext(
     parts.push('');
     parts.push('=== MOST RECENT BAS QUARTER ===');
     parts.push(`FY${bas.fy_start_year}-Q${bas.quarter_num} (${bas.quarter_start} to ${bas.quarter_end}, due ${bas.due_date})`);
-    parts.push(`  Sales inc GST: ${fmt(bas.sales_inc_gst_cents)}, GST collected: ${fmt(bas.gst_collected_cents)}, GST paid: ${fmt(bas.gst_paid_cents)}, Net GST: ${fmt(bas.net_gst_cents)}`);
+    parts.push(`  Sales ex GST: ${fmt(bas.sales_ex_gst_cents)}, GST collected: ${fmt(bas.gst_collected_cents)}, GST paid: ${fmt(bas.gst_paid_cents)}, Net GST: ${fmt(bas.net_gst_cents)}`);
   }
 
   // TAX CALENDAR — time-aware obligations so the bot can be proactive about deadlines.
