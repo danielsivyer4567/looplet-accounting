@@ -713,7 +713,7 @@
       "title": "Payment-run, ABA export, mark-paid, super-batch and termination functions require an accepted admin or owner",
       "area": "security",
       "priority": 12,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/orgRole.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\""
@@ -856,6 +856,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-03-010.log",
           "log_sha256": "7dddc5a0fe3af0c7e2ab012c12bad8d17bda62739f9c8a0c1c283559aab64c8b"
+        },
+        {
+          "n": 11,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/orgRole.test.ts\"",
+          "exit": 0,
+          "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
+          "dirty": [],
+          "at": "2026-10-03T00:39:31.092Z",
+          "ms": 1055,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-03-011.log",
+          "log_sha256": "5454f7d6ec23593beeec839fd19f58c797109770610f1891e872228b3b1e0251"
+        },
+        {
+          "n": 12,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\"",
+          "exit": 0,
+          "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
+          "dirty": [],
+          "at": "2026-10-03T00:39:32.907Z",
+          "ms": 1815,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-03-012.log",
+          "log_sha256": "b2b7cde45bbb15c124958e4dd1c57f34acdd3ea0365449214534e8ba1ae23704"
         }
       ],
       "notes": [
@@ -958,6 +984,13 @@
           "event": "done",
           "head": "0e3d0128bd7d3d3576a3acfb7b279a8bff49d17c",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:39:32.938Z",
+          "event": "verified",
+          "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -967,6 +1000,16 @@
         "runs": [
           9,
           10
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T00:39:32.922Z",
+        "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Re-reviewed after SEC-11 touched payment-runs-create: bills are loaded with .eq(organization_id), each bill's embedded supplier.organization_id must equal the org (else 422 before any write), payer_bank_account_id must be a bank_accounts row of the org, and only the loaded bill ids are linked. All eight functions plus team-invite call authorizeOrgMember(...,'admin') (accepted_at + role_enum ranking; lookup error throws, fail closed); team-invite caps the invited role at the caller's rank. deno check of all nine functions and _shared/orgRole.ts clean; vitest tests/security plus deploymentDocsReconciliation 22/22. ABA export takes payer details from organizations.settings, not payer_bank_account_id. Residual: agency owners/admins with no direct membership are refused by these functions although can_write_org admits them in SQL; payment_runs.payer_bank_account_id has no DB same-org guard (only the edge check); check-then-insert in payment-runs-create is not one transaction.",
+        "runs": [
+          11,
+          12
         ]
       }
     },
@@ -2374,7 +2417,7 @@
       "title": "bills-allocate-batch checks the caller's own accepted membership and needs accountant or higher to change allocations",
       "area": "security",
       "priority": 14,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bills-allocate-batch/auth.test.ts\""
       ],
@@ -2407,6 +2450,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-08-002.log",
           "log_sha256": "b0a2a58f3ae9f14823fd2b1aae49982b246c8558d5cec770c6777e281cabf036"
+        },
+        {
+          "n": 3,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bills-allocate-batch/auth.test.ts\"",
+          "exit": 0,
+          "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
+          "dirty": [],
+          "at": "2026-10-03T00:39:38.945Z",
+          "ms": 800,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-08-003.log",
+          "log_sha256": "fe584d722e0b339be1703c895f29f2f28139cae58a77d46aed46d0a4c6ca43bb"
         }
       ],
       "notes": [],
@@ -2444,6 +2500,13 @@
           "event": "done",
           "head": "89cb803aff9db40d30bab791e097f025c74d760f",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:39:38.977Z",
+          "event": "verified",
+          "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -2453,6 +2516,15 @@
         "runs": [
           2
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T00:39:38.961Z",
+        "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
+        "by": "claude-verifier (independent subagent)",
+        "note": "auth.ts runs before any query or RPC: authorizeOrgCaller with an empty service key (the service path can never match), the user is resolved by auth.getUser(jwt), and the caller's OWN row is read (.eq user_id + organization_id; unique index on the pair) with accepted_at and role_enum ranking: stats viewer+, rematch/auto_accept/full accountant+. A machine token or the anon key gets 401. The RPCs it calls (rematch_unallocated_bills, bulk_accept_job_suggestions) run with the caller's JWT and now need accountant via can_write_org (SEC-10), so the edge and SQL gates agree for direct members. deno check clean. Residual: agency owners/admins without a direct membership in the sub-account now get 403 even though the SQL RPCs admit them; the 500 path still returns detail: String(err).",
+        "runs": [
+          3
+        ]
       }
     },
     {
@@ -2460,7 +2532,7 @@
       "title": "accountant-email-query matches the sender's accepted accountant memberships by role_enum, so the emailed activity digest works",
       "area": "security",
       "priority": 14,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/accountant-email-query/match.test.ts\""
       ],
@@ -2493,6 +2565,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-09-002.log",
           "log_sha256": "7647aae78e52caba58994d38adc719e0c845bb6102d394145436277e65e8725c"
+        },
+        {
+          "n": 3,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/accountant-email-query/match.test.ts\"",
+          "exit": 0,
+          "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
+          "dirty": [],
+          "at": "2026-10-03T00:39:45.050Z",
+          "ms": 811,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-09-003.log",
+          "log_sha256": "181dd0872472c15eb53bada199fa2d8e0ed66e492a70d44c3e5a1eda4507bf76"
         }
       ],
       "notes": [],
@@ -2530,6 +2615,13 @@
           "event": "done",
           "head": "0e7befa3e3ebe7857f2caaa4fb8579ac34964baf",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:39:45.083Z",
+          "event": "verified",
+          "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -2538,6 +2630,15 @@
         "by": "claude-worker",
         "runs": [
           2
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T00:39:45.067Z",
+        "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Confirmed the legacy role column is enum membership_role (owner/admin/manager/member), so the old .eq('role','accountant') could never match. New path: x-inbound-secret checked first (fail closed), sender found across listUsers pages (stops on a short page, throws above 100k users), then only that user's rows with role_enum='accountant' and accepted_at not null (filtered in the query and again in acceptedAccountantMemberships); the activity query is scoped to the chosen org and that user. deno check clean. Residual (pre-existing, now live because matching works): the sender is identified only by the unauthenticated From header (no SPF/DKIM check in code) and the reply goes to the raw From string, not the matched user's registered address; a spoofed From gets the real accountant's digest mailed to whatever Resend makes of that string. Replying to the registered email of the matched user would close it.",
+        "runs": [
+          3
         ]
       }
     },
@@ -2576,7 +2677,7 @@
       "title": "SECURITY DEFINER functions that users call and that write money tables check the caller's role",
       "area": "security",
       "priority": 13,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/definer-write-roles.sql\""
       ],
@@ -2622,6 +2723,19 @@
           "ms": 43497,
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-10-003.log",
+          "log_sha256": "8cee7ff3a1e26fbf0767dd4b65edc84ce8eff2390b650468620e3f511da5fc81"
+        },
+        {
+          "n": 4,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/definer-write-roles.sql\"",
+          "exit": 0,
+          "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
+          "dirty": [],
+          "at": "2026-10-03T00:40:43.513Z",
+          "ms": 49535,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-10-004.log",
           "log_sha256": "8cee7ff3a1e26fbf0767dd4b65edc84ce8eff2390b650468620e3f511da5fc81"
         }
       ],
@@ -2683,6 +2797,13 @@
           "event": "done",
           "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:40:43.549Z",
+          "event": "verified",
+          "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -2692,6 +2813,15 @@
         "runs": [
           3
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T00:40:43.531Z",
+        "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Extracted each of the 7 bodies and diffed against the latest earlier CREATE (0073 post_journal_entry, 0216_ap_reconciliation_parity reconcile_match_bill/undo, 0196 reconcile_match_invoice, 0210_allocation_batch bulk_accept/rematch, 20260702135000 move_employee_to_org): only the gate lines differ; none of the 9 known-failing migrations defines them; owner, ACL (no anon) and search_path kept. Scratch copy without 20261003121000: the test fails with 7 audit hits and 15 probe mismatches. Own probes on a migrated DB: org machine token runs accrue_recurring_bill end to end (4 legs posted), agency admin and accountant too, viewer refused, other-org token refused; reconcile with no role claim returns forbidden, service_role path still passes. Broader audit (32 tables, writes via helper calls): the _with_evidence wrappers delegate to the gated functions; create_*_credit_note and payroll_finalise_pay_run use require_role. Residual: viewers can still reach reconcile outcomes by writing bank_transactions.matched_* and invoice_payments directly (SEC-05 table gap, not these functions); bodies come from a fresh DB, so compare production pg_get_functiondef for the 7 functions before applying.",
+        "runs": [
+          4
+        ]
       }
     },
     {
@@ -2699,7 +2829,7 @@
       "title": "Bills only reference suppliers of their own organisation, so payment runs never copy another organisation's payee bank details",
       "area": "security",
       "priority": 14,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bill-supplier-same-org.sql\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\""
@@ -2761,6 +2891,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-11-004.log",
           "log_sha256": "9f587da3f68953b6b0feea0745fe989d7e643e03fb0f066a52d97821db9031fd"
+        },
+        {
+          "n": 5,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bill-supplier-same-org.sql\"",
+          "exit": 0,
+          "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
+          "dirty": [],
+          "at": "2026-10-03T00:41:37.869Z",
+          "ms": 48313,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-11-005.log",
+          "log_sha256": "9ed606c390755d80f21d5011c7556d1fcae895823ada73b256321708b903aa15"
+        },
+        {
+          "n": 6,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\"",
+          "exit": 0,
+          "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
+          "dirty": [],
+          "at": "2026-10-03T00:41:40.039Z",
+          "ms": 2169,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-11-006.log",
+          "log_sha256": "4da0f7cf85adc854fade864aba717742b516fb5eedea7f0538f2b865c46af43b"
         }
       ],
       "notes": [],
@@ -2798,6 +2954,13 @@
           "event": "done",
           "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:41:40.152Z",
+          "event": "verified",
+          "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -2808,8 +2971,18 @@
           3,
           4
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T00:41:40.137Z",
+        "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Trigger trg_bills_supplier_same_org (BEFORE INSERT OR UPDATE OF supplier_id, organization_id, SECURITY DEFINER, refuses for every role) sorts after trg_bills_autolink_supplier, whose source only selects/inserts suppliers WHERE organization_id = NEW.organization_id, so auto-link stays within the org. Scratch copy without 20261003122000: the test fails on all 4 cross-org cases (owner and RLS user, insert and repoint). payment-runs-create rejects a bill whose embedded supplier is in another org and a payer_bank_account_id outside the org before creating the run; ABA export reads only that run's items (same-org trigger from SEC-05). deno check and vitest wiring block pass. Residual: suppliers.organization_id is still updatable (no supplier-side trigger), so a user with accountant+ in two orgs can move a supplier and leave cross-org bill links; existing rows need the documented pre-apply query; similar FK same-org gaps (invoices.customer_id, bills.job_id, bank_transactions.matched_*_id) are not covered.",
+        "runs": [
+          5,
+          6
+        ]
       }
     }
   ],
-  "updated_at": "2026-10-03T00:28:03.335Z"
+  "updated_at": "2026-10-03T00:41:40.168Z"
 }
