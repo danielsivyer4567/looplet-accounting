@@ -16,13 +16,14 @@
  *   upserted on (bank_account_id, external_id). RECEIVE* = +, SPEND* = −; voided
  *   (DELETED) transactions are skipped.
  *
- * Auth: cron secret (?secret=XERO_CRON_SECRET) OR a user JWT with org access.
+ * Auth: cron secret (X-Cron-Secret header = XERO_CRON_SECRET) OR a user JWT with org access.
  * Input:  { organization_id?: string }  (omitted on cron = all enabled orgs)
  * Output: { ok, orgs_synced, accounts_upserted, transactions_upserted }
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { hasCronSecret } from '../_shared/cronSecret.ts';
 import { callXeroWithRetry, xeroFetch } from '../_shared/xero/auth.ts';
 import { requireEnv } from '../_shared/env.ts';
 import {
@@ -37,7 +38,7 @@ const MAX_PAGES = 100; // 100 txns/page → up to 10k per run; log if capped.
 const CRON_SECRET = Deno.env.get('XERO_CRON_SECRET');
 
 function isCronRequest(req: Request): boolean {
-  return Boolean(CRON_SECRET) && new URL(req.url).searchParams.get('secret') === CRON_SECRET;
+  return hasCronSecret(req, CRON_SECRET);
 }
 
 Deno.serve(async (req) => {

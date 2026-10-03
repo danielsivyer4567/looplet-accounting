@@ -26,20 +26,21 @@
  *     'notifications-cron',
  *     '30 2 * * *',
  *     $$ SELECT net.http_post(
- *          url := 'https://<project>.supabase.co/functions/v1/notifications-cron?secret='
- *            || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'notifications_cron_secret' LIMIT 1),
- *          headers := jsonb_build_object('Content-Type','application/json'),
+ *          url := 'https://<project>.supabase.co/functions/v1/notifications-cron',
+ *          headers := jsonb_build_object('Content-Type','application/json',
+ *            'X-Cron-Secret', (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'notifications_cron_secret' LIMIT 1)),
  *          body := '{}'::jsonb
  *        ); $$
  *   );
  *
  * Deployed with --no-verify-jwt because pg_cron drives it directly. Auth gate
- * is the same pattern as bank-sync-all: service-role bearer OR ?secret= URL
- * param matching NOTIFICATIONS_CRON_SECRET env.
+ * is the same pattern as bank-sync-all: service-role bearer OR X-Cron-Secret header
+ * matching NOTIFICATIONS_CRON_SECRET env (the ?secret= URL form is accepted for one release).
  */
 
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
+import { CRON_SECRET_HEADER, presentedCronSecret } from '../_shared/cronSecret.ts';
 import { isExactSecret, isExactServiceRoleBearer } from '../_shared/serviceRole.ts';
 
 type SupabaseAdmin = SupabaseClient;
@@ -59,15 +60,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Auth gate: ?secret=... OR service-role bearer.
-    const url = new URL(req.url);
-    const urlSecret = url.searchParams.get('secret');
+    // Auth gate: the X-Cron-Secret header OR service-role bearer.
+    const givenSecret = presentedCronSecret(req);
     const authHeader = req.headers.get('Authorization') ?? '';
-    // Exact service-role key OR ?secret= — both constant-time. The previous
+    // Exact service-role key OR the X-Cron-Secret header — both constant-time. The previous
     // "base64-decode the JWT and trust its role claim" path was forgeable. Removed.
     // See AUDIT.md §3d.
     const isServiceRole = isExactServiceRoleBearer(authHeader, serviceKey);
-    const secretOk = isExactSecret(urlSecret, cronSecret);
+    const secretOk = isExactSecret(givenSecret, cronSecret);
     if (!isServiceRole && !secretOk) {
       return json({ ok: false, error: 'forbidden' }, 403);
     }
@@ -443,19 +443,15 @@ async function checkAccountantOrchestrator(
 
   try {
     const today = new Date().toISOString().slice(0, 10);
-    const response = await fetch(
-      `${supabaseUrl}/functions/v1/accountant-orchestrator?secret=${encodeURIComponent(
-        orchestratorSecret,
-      )}`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${serviceKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ organization_id: orgId, as_at_date: today }),
+    const response = await fetch(`${supabaseUrl}/functions/v1/accountant-orchestrator`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json',
+        [CRON_SECRET_HEADER]: orchestratorSecret,
       },
-    );
+      body: JSON.stringify({ organization_id: orgId, as_at_date: today }),
+    });
     const detail = (await response.json().catch(() => ({}))) as Record<string, unknown>;
     if (!response.ok || detail.ok === false) {
       errors.push(

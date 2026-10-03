@@ -30,6 +30,7 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
+import { isExactServiceRoleBearer } from "../_shared/serviceRole.ts";
 import { requireEnv } from "../_shared/env.ts";
 
 const AUTO_POST_THRESHOLD = 0.9; // plan §A.1
@@ -758,8 +759,7 @@ Deno.serve(async (req: Request) => {
     // isn't in config.toml, so verify_jwt defaults to true — but that only proves
     // the caller holds a valid key/JWT, NOT org membership, so this scoped load is
     // the actual tenant gate for user callers.)
-    const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
-    const isServiceCaller = bearer.length > 0 && bearer === serviceKey;
+    const isServiceCaller = serviceKey.length > 0 && isExactServiceRoleBearer(req.headers.get("Authorization"), serviceKey);
     const billLoader = isServiceCaller
       ? admin
       : createClient(supabaseUrl, anonKey, {

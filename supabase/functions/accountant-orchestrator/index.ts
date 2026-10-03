@@ -10,6 +10,7 @@ import {
   type SupabaseClient,
 } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
+import { presentedCronSecret } from "../_shared/cronSecret.ts";
 import {
   type AdvisorSignalRow,
   type BooksHealthRow,
@@ -298,12 +299,11 @@ export async function handleAccountantOrchestrator(
     }, 500);
   }
 
-  const url = new URL(req.url);
-  const urlSecret = url.searchParams.get("secret");
+  const givenSecret = presentedCronSecret(req);
   const authHeader = req.headers.get("Authorization") ?? "";
   const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
   if (
-    !safeEqual(bearer, serviceKey) && !safeEqual(urlSecret ?? "", cronSecret)
+    !safeEqual(bearer, serviceKey) && !safeEqual(givenSecret ?? "", cronSecret)
   ) {
     return json({ ok: false, error: "forbidden" }, 403);
   }

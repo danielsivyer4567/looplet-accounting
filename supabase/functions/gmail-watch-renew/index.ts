@@ -19,6 +19,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
+import { presentedCronSecret } from '../_shared/cronSecret.ts';
 import { loadAndRefreshGmail, registerGmailWatch } from '../_shared/gmail/auth.ts';
 
 interface GmailIntegrationRenewRow {
@@ -48,11 +49,10 @@ Deno.serve(async (req) => {
     // Previously this had NO auth gate at all — any anonymous POST swept every
     // tenant's active Gmail integrations and called Google's API on their behalf,
     // overwriting watch state across orgs. Mirrors bank-sync-all / notifications-cron.
-    const url = new URL(req.url);
-    const urlSecret = url.searchParams.get('secret');
+    const givenSecret = presentedCronSecret(req);
     const authHeader = req.headers.get('Authorization') ?? '';
     const bearer = authHeader.replace(/^Bearer\s+/i, '').trim();
-    if (!safeEqual(bearer, serviceKey) && !safeEqual(urlSecret ?? '', cronSecret)) {
+    if (!safeEqual(bearer, serviceKey) && !safeEqual(givenSecret ?? '', cronSecret)) {
       return json({ ok: false, error: 'forbidden' }, 403);
     }
 

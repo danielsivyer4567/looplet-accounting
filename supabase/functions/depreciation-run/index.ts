@@ -17,7 +17,7 @@
 // journal_entries(source_type, source_id, entry_date).)
 //
 // AUTH (cron, mirrors auto-reconcile): service-role bearer OR
-// ?secret=<DEPRECIATION_RUN_CRON_SECRET>, both constant-time compared. Deployed
+// an X-Cron-Secret header matching DEPRECIATION_RUN_CRON_SECRET, both constant-time compared. Deployed
 // verify_jwt=false (config.toml) so pg_cron can drive it (SC-1.G.03). A
 // forged/non-matching bearer is rejected (no unsigned-claim trust).
 //
@@ -43,12 +43,13 @@
 //   - chart_of_accounts seeded per org (seed_default_chart_of_accounts) so 6700/1900
 //     resolve; until then the run fails closed (records an error, posts no journal)
 //   - secret CONNECTOR_JWT_SECRET set (already required by api-gateway)
-//   - secret DEPRECIATION_RUN_CRON_SECRET set if driving via ?secret= (cron, SC-1.G.03)
+//   - secret DEPRECIATION_RUN_CRON_SECRET set if driving via the X-Cron-Secret header (cron, SC-1.G.03)
 //   - deploy: `supabase functions deploy depreciation-run` (verify_jwt=false)
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
+import { presentedCronSecret } from "../_shared/cronSecret.ts";
 import { requireEnv } from "../_shared/env.ts";
 import { isExactSecret, isExactServiceRoleBearer } from "../_shared/serviceRole.ts";
 import { assetName, resolveTargetDate, type ScheduleRow } from "./logic.ts";
@@ -183,13 +184,12 @@ Deno.serve(async (req: Request) => {
     const anonKey = requireEnv("SUPABASE_ANON_KEY");
     const cronSecret = Deno.env.get("DEPRECIATION_RUN_CRON_SECRET");
 
-    // Auth gate: service-role bearer OR ?secret= (cron). Both constant-time; the
+    // Auth gate: service-role bearer OR the X-Cron-Secret header (cron). Both constant-time; the
     // cron secret is unavailable when unset (fail closed). No user-JWT path — this
     // function is cron/admin-driven only.
-    const url = new URL(req.url);
-    const urlSecret = url.searchParams.get("secret");
+    const givenSecret = presentedCronSecret(req);
     const isServiceRole = isExactServiceRoleBearer(req.headers.get("Authorization"), serviceKey);
-    const secretOk = !!cronSecret && isExactSecret(urlSecret, cronSecret);
+    const secretOk = !!cronSecret && isExactSecret(givenSecret, cronSecret);
     if (!isServiceRole && !secretOk) return json({ ok: false, error: "Unauthorized" }, 401);
 
     const body = (await req.json().catch(() => ({}))) as RequestBody;

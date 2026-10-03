@@ -11,7 +11,7 @@
 //
 // AUTH: this writes GLOBAL reference data (the law is the same for every tenant),
 // so it is operator/back-end only — NO user-JWT path. Accepts a service-role
-// bearer OR ?secret=<LEGAL_INGEST_SECRET> (both constant-time compared); anything
+// bearer OR an X-Cron-Secret header matching LEGAL_INGEST_SECRET (both constant-time compared); anything
 // else fails CLOSED with 401. Writes use the service-role admin client.
 //
 // Request body:
@@ -27,12 +27,13 @@
 // DEPLOY PREREQUISITES (migration-history drift — see ledger SC-LC.C.02):
 //   - migration 0108 applied live (pgvector + legal_corpus)
 //   - secret OPENAI_API_KEY set (already used by OCR) — required to embed
-//   - secret LEGAL_INGEST_SECRET set if driving via ?secret= (else service-role only)
-//   - deploy with config.toml verify_jwt=false so the ?secret= seed path reaches
+//   - secret LEGAL_INGEST_SECRET set if driving via the X-Cron-Secret header (else service-role only)
+//   - deploy with config.toml verify_jwt=false so the X-Cron-Secret seed path reaches
 //     this function's own fail-closed auth gate.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { presentedCronSecret } from '../_shared/cronSecret.ts';
 import { requireEnv } from '../_shared/env.ts';
 import { chunkLegalText } from '../_shared/legal/chunk.ts';
 import { upsertVersionedChunks } from '../_shared/legal/upsert.ts';
@@ -70,13 +71,12 @@ Deno.serve(async (req: Request) => {
     const serviceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
     const adminSecret = Deno.env.get('LEGAL_INGEST_SECRET');
 
-    // Auth gate: service-role bearer OR ?secret= (operator). Global-write fn, so
+    // Auth gate: service-role bearer OR the X-Cron-Secret header (operator). Global-write fn, so
     // there is deliberately no authenticated-user path — fail closed.
-    const url = new URL(req.url);
-    const urlSecret = url.searchParams.get('secret');
+    const givenSecret = presentedCronSecret(req);
     const bearer = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '').trim();
     const isServiceRole = safeEqual(bearer, serviceKey);
-    const secretOk = !!adminSecret && safeEqual(urlSecret ?? '', adminSecret);
+    const secretOk = !!adminSecret && safeEqual(givenSecret ?? '', adminSecret);
     if (!isServiceRole && !secretOk) return json({ ok: false, error: 'Unauthorized' }, 401);
 
     const body = (await req.json().catch(() => ({}))) as RequestBody;

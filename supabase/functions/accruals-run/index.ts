@@ -31,7 +31,7 @@
 // inactive code makes the RPC fail closed for that bill (recorded, no journal).
 //
 // AUTH (cron, mirrors depreciation-run / auto-reconcile): service-role bearer OR
-// ?secret=<ACCRUALS_RUN_CRON_SECRET>, both constant-time compared. Deployed
+// an X-Cron-Secret header matching ACCRUALS_RUN_CRON_SECRET, both constant-time compared. Deployed
 // verify_jwt=false (config.toml) so pg_cron can drive it (0099 cron migration). A
 // forged / non-matching bearer is rejected (no unsigned-claim trust).
 //
@@ -55,12 +55,13 @@
 //     expense leg + 2600 resolve; until then each bill fails closed (records an
 //     error, posts no journal)
 //   - secret CONNECTOR_JWT_SECRET set (already required by api-gateway)
-//   - secret ACCRUALS_RUN_CRON_SECRET set if driving via ?secret= (cron, 0099)
+//   - secret ACCRUALS_RUN_CRON_SECRET set if driving via the X-Cron-Secret header (cron, 0099)
 //   - deploy: `supabase functions deploy accruals-run` (verify_jwt=false)
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
+import { presentedCronSecret } from "../_shared/cronSecret.ts";
 import { requireEnv } from "../_shared/env.ts";
 import { isExactSecret, isExactServiceRoleBearer } from "../_shared/serviceRole.ts";
 import { planAccrualJobs, type RecurringSeries } from "./logic.ts";
@@ -132,13 +133,12 @@ Deno.serve(async (req: Request) => {
     const anonKey = requireEnv("SUPABASE_ANON_KEY");
     const cronSecret = Deno.env.get("ACCRUALS_RUN_CRON_SECRET");
 
-    // Auth gate: service-role bearer OR ?secret= (cron). Both constant-time; the
+    // Auth gate: service-role bearer OR the X-Cron-Secret header (cron). Both constant-time; the
     // cron secret is unavailable when unset (fail closed). No user-JWT path — this
     // function is cron/admin-driven only.
-    const url = new URL(req.url);
-    const urlSecret = url.searchParams.get("secret");
+    const givenSecret = presentedCronSecret(req);
     const isServiceRole = isExactServiceRoleBearer(req.headers.get("Authorization"), serviceKey);
-    const secretOk = !!cronSecret && isExactSecret(urlSecret, cronSecret);
+    const secretOk = !!cronSecret && isExactSecret(givenSecret, cronSecret);
     if (!isServiceRole && !secretOk) return json({ ok: false, error: "Unauthorized" }, 401);
 
     const body = (await req.json().catch(() => ({}))) as RequestBody;

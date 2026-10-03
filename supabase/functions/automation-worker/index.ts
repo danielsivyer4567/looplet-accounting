@@ -1,7 +1,7 @@
 /**
  * automation-worker — claims due automation_jobs and dispatches by job_kind.
  *
- * Auth: service-role bearer OR ?secret=AUTOMATION_WORKER_SECRET (fail closed).
+ * Auth: service-role bearer OR an X-Cron-Secret header matching AUTOMATION_WORKER_SECRET (fail closed).
  * Deployed --no-verify-jwt so pg_cron can drive it via HTTP.
  *
  * Job kinds handled (this slice):
@@ -33,6 +33,7 @@
  */
 
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { CRON_SECRET_HEADER, presentedCronSecret } from '../_shared/cronSecret.ts';
 import {
   makeAdminClient,
   claimJobs,
@@ -200,9 +201,9 @@ async function dispatchJob(
     }
 
     case 'bank_reconcile': {
-      const res = await fetch(`${base}/auto-reconcile?secret=${workerSecret}`, {
+      const res = await fetch(`${base}/auto-reconcile`, {
         method: 'POST',
-        headers,
+        headers: { ...headers, [CRON_SECRET_HEADER]: workerSecret },
         body: JSON.stringify({ organization_id: job.organization_id }),
       });
       const body = await res.json().catch(() => ({}));
@@ -365,14 +366,13 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'Server config missing' }, 500);
     }
 
-    // Auth: service-role bearer OR ?secret=AUTOMATION_WORKER_SECRET
-    const url = new URL(req.url);
-    const urlSecret = url.searchParams.get('secret') ?? '';
+    // Auth: service-role bearer OR an X-Cron-Secret header matching AUTOMATION_WORKER_SECRET
+    const givenSecret = presentedCronSecret(req) ?? '';
     const authHeader = req.headers.get('Authorization') ?? '';
     const bearer = authHeader.replace(/^Bearer\s+/i, '').trim();
 
     const isServiceRole = safeEqual(bearer, serviceKey);
-    const secretOk = workerSecret.length > 0 && safeEqual(urlSecret, workerSecret);
+    const secretOk = workerSecret.length > 0 && safeEqual(givenSecret, workerSecret);
 
     if (!isServiceRole && !secretOk) {
       return json({ ok: false, error: 'Unauthorized' }, 401);

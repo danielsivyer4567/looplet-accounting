@@ -11,6 +11,7 @@ import {
   citeForAdvice,
 } from "../_shared/advisoryCite.ts";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
+import { presentedCronSecret } from "../_shared/cronSecret.ts";
 import { requireEnv } from "../_shared/env.ts";
 import {
   type AdvisoryFacts,
@@ -1137,9 +1138,9 @@ async function handleAdvisor(req: Request): Promise<Response> {
   const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const cronSecret = Deno.env.get("ADVISOR_CRON_SECRET");
-  const urlSecret = new URL(req.url).searchParams.get("secret") ?? "";
+  const givenSecret = presentedCronSecret(req) ?? "";
   const isServiceRole = serviceKey.length > 0 && safeEqual(bearer, serviceKey);
-  const secretOk = !!cronSecret && safeEqual(urlSecret, cronSecret);
+  const secretOk = !!cronSecret && safeEqual(givenSecret, cronSecret);
   const cronAuthorized = isServiceRole || secretOk;
   const hasBearer = bearer.length > 0;
 

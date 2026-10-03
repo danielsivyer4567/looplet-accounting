@@ -28,7 +28,7 @@
  *
  * Auth (mirrors bills-extract-batch + notifications-cron):
  *   - user JWT  -> RLS org-access check, then RPCs called as that user.
- *   - service-role bearer OR ?secret=<AUTO_RECONCILE_CRON_SECRET> -> cron path,
+ *   - service-role bearer OR an X-Cron-Secret header matching AUTO_RECONCILE_CRON_SECRET -> cron path,
  *     RPCs called via the admin client (org gate bypassed by service_role).
  *
  * Deployed with --no-verify-jwt so pg_cron can drive it (see migration 0065).
@@ -36,6 +36,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { presentedCronSecret } from '../_shared/cronSecret.ts';
 
 interface RequestBody {
   organization_id?: string;
@@ -126,7 +127,7 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'Server config missing' }, 500);
     }
 
-    // --- Auth gate: service-role bearer OR ?secret= OR user JWT --------------
+    // --- Auth gate: service-role bearer OR the X-Cron-Secret header OR user JWT --------------
     // SECURITY: the previous "base64-decode the bearer and trust its UNSIGNED
     // role claim" path was forgeable — this function is deployed --no-verify-jwt,
     // so an attacker-minted token (payload {"role":"service_role"}) reached the
@@ -136,13 +137,12 @@ Deno.serve(async (req) => {
     // token falls through to the user-JWT path below, where PostgREST verifies
     // the signature against the project secret and rejects it. See AUDIT.md §3d
     // (same fix already applied to bank-sync-all / notifications-cron).
-    const url = new URL(req.url);
-    const urlSecret = url.searchParams.get('secret');
+    const givenSecret = presentedCronSecret(req);
     const authHeader = req.headers.get('Authorization') ?? '';
     const bearer = authHeader.replace(/^Bearer\s+/i, '').trim();
 
     const isServiceRole = safeEqual(bearer, serviceKey);
-    const secretOk = !!cronSecret && safeEqual(urlSecret ?? '', cronSecret);
+    const secretOk = !!cronSecret && safeEqual(givenSecret ?? '', cronSecret);
     const cronAuthorized = isServiceRole || secretOk;
 
     // A user JWT (any non-service-role bearer) gets the RLS path; cron uses admin.

@@ -1,7 +1,7 @@
 /**
  * automation-watchdog — background scanner that detects anomalies and heals.
  *
- * Auth: service-role bearer OR ?secret=AUTOMATION_WATCHDOG_SECRET (fail closed).
+ * Auth: service-role bearer OR an X-Cron-Secret header matching AUTOMATION_WATCHDOG_SECRET (fail closed).
  * Deployed --no-verify-jwt so pg_cron can drive it.
  *
  * Signals + outcomes (per org):
@@ -33,6 +33,7 @@
  */
 
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { presentedCronSecret } from '../_shared/cronSecret.ts';
 import { makeAdminClient } from '../_shared/automationJobs.ts';
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -736,13 +737,12 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'Server config missing' }, 500);
     }
 
-    const url = new URL(req.url);
-    const urlSecret = url.searchParams.get('secret') ?? '';
+    const givenSecret = presentedCronSecret(req) ?? '';
     const authHeader = req.headers.get('Authorization') ?? '';
     const bearer = authHeader.replace(/^Bearer\s+/i, '').trim();
 
     const isServiceRole = safeEqual(bearer, serviceKey);
-    const secretOk = watchdogSecret.length > 0 && safeEqual(urlSecret, watchdogSecret);
+    const secretOk = watchdogSecret.length > 0 && safeEqual(givenSecret, watchdogSecret);
 
     if (!isServiceRole && !secretOk) {
       return json({ ok: false, error: 'Unauthorized' }, 401);

@@ -11,7 +11,7 @@
  *                     updates invoices.amount_paid_cents / balance_due_cents
  *
  * Called:
- *   - daily by pg_cron (03:30 AEST) via pg_net.http_post with ?secret=...
+ *   - daily by pg_cron (03:30 AEST) via pg_net.http_post with an X-Cron-Secret header
  *   - on-demand by the Settings page "Sync payments" button
  *
  * Input:  { organization_id?: string }  (omit for all-org cron sweep)
@@ -28,6 +28,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { hasCronSecret } from '../_shared/cronSecret.ts';
 import { requireEnv } from '../_shared/env.ts';
 import { callXeroWithRetry, xeroFetch } from '../_shared/xero/auth.ts';
 
@@ -55,8 +56,7 @@ interface XeroPaymentsResponse {
 const CRON_SECRET = Deno.env.get('XERO_CRON_SECRET');
 
 function isCronRequest(req: Request): boolean {
-  const url = new URL(req.url);
-  return url.searchParams.get('secret') === CRON_SECRET && Boolean(CRON_SECRET);
+  return hasCronSecret(req, CRON_SECRET);
 }
 
 // Xero date format: /Date(1234567890123+0000)/

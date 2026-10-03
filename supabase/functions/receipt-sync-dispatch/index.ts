@@ -9,6 +9,8 @@
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { billXeroSyncUpdate, pushBillToXero } from '../_shared/xero/adapter.ts';
+import { presentedCronSecret } from '../_shared/cronSecret.ts';
+import { pushBillToXero } from '../_shared/xero/adapter.ts';
 import {
   pushBillToGenericApi,
   GenericApiNotConfigured,
@@ -77,14 +79,13 @@ export async function handleReceiptSyncDispatchRequest(req: Request): Promise<Re
   if (pre) return pre;
   if (req.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405);
 
-  // Cron auth: a ?secret= URL param (or x-cron-secret header) that matches the
+  // Cron auth: an X-Cron-Secret header (or, for one release, a ?secret= URL param) that matches the
   // RECEIPT_SYNC_DISPATCH_CRON_SECRET env grants service-role-equivalent access —
   // the same pattern the xero-sync / notifications crons use. This lets pg_cron
   // drive the drain without the project's exact SUPABASE_SERVICE_ROLE_KEY, which
   // can diverge from the dashboard key under JWT signing-key rotation.
   const cronSecret = Deno.env.get('RECEIPT_SYNC_DISPATCH_CRON_SECRET');
-  const providedCronSecret =
-    new URL(req.url).searchParams.get('secret') ?? req.headers.get('x-cron-secret');
+  const providedCronSecret = presentedCronSecret(req);
   const cronAuthorized = Boolean(
     cronSecret && providedCronSecret && safeEqual(providedCronSecret, cronSecret),
   );

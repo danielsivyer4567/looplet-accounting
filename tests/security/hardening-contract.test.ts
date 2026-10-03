@@ -93,3 +93,120 @@ describe('CORS is an allow-list, not *', () => {
     }
   });
 });
+
+describe('secrets are compared in constant time and cron secrets travel in a header', () => {
+  const sources = filesUnder('supabase/functions', /\.ts$/).filter((f) => !/\.test\.ts$/.test(f));
+  const cronReceivers = [
+    'accountant-orchestrator',
+    'accountant-session-digest',
+    'accruals-run',
+    'advisor',
+    'auto-reconcile',
+    'automation-watchdog',
+    'automation-worker',
+    'bank-sync-all',
+    'bank-transaction-classifier',
+    'depreciation-run',
+    'gmail-watch-renew',
+    'legal-corpus-ingest',
+    'legal-corpus-sync',
+    'legal-horizon-scan',
+    'notifications-cron',
+    'receipt-sync-dispatch',
+    'xero-pull-bank-transactions',
+    'xero-sync-accounts',
+    'xero-sync-payments',
+  ];
+
+  it('no secret read from the environment is compared with === or !==', () => {
+    const secretEnv = /(SECRET|KEY|TOKEN|PASSWORD)/i;
+    const offenders: string[] = [];
+    for (const file of sources) {
+      const src = read(file);
+      const ids = new Set<string>();
+      for (const m of src.matchAll(
+        /(?:const|let)\s+([A-Za-z_$][\w$]*)\s*(?::[^=]+)?=\s*(?:requireEnv|Deno\.env\.get)\(\s*['"]([^'"]+)['"]/g,
+      )) {
+        if (m[1] && m[2] && secretEnv.test(m[2])) ids.add(m[1]);
+      }
+      src.split(/\r?\n/).forEach((line, i) => {
+        if (/^\s*(\/\/|\*)/.test(line)) return;
+        for (const id of ids) {
+          const cmp = new RegExp(
+            `(\\b${id}\\s*[!=]==(?!\\s*(undefined|null|''|""))|[!=]==\\s*${id}\\b)`,
+          );
+          if (cmp.test(line) && !/(undefined|null)\s*[!=]==/.test(line))
+            offenders.push(`${file}:${i + 1}: ${line.trim()}`);
+        }
+      });
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('the bearer and push-token checks that used === now use the constant-time helpers', () => {
+    expect(read('supabase/functions/coding-classifier/index.ts')).toMatch(
+      /isExactServiceRoleBearer\(req\.headers\.get\("Authorization"\), serviceKey\)/,
+    );
+    expect(read('supabase/functions/coding-classifier/index.ts')).not.toMatch(
+      /bearer === serviceKey/,
+    );
+    expect(read('supabase/functions/gmail-pubsub-push/index.ts')).toMatch(
+      /!isExactSecret\(got, expectedToken\)/,
+    );
+  });
+
+  it('only the shared helper reads ?secret=, and every cron receiver goes through it', () => {
+    for (const file of sources.filter((f) => !f.endsWith('_shared/cronSecret.ts'))) {
+      expect(read(file), file).not.toMatch(/searchParams\.get\(\s*['"]secret['"]\s*\)/);
+    }
+    for (const fn of cronReceivers) {
+      const src = read(`supabase/functions/${fn}/index.ts`);
+      expect(src, fn).toMatch(/from ['"]\.\.\/_shared\/cronSecret\.ts['"]/);
+      expect(src, fn).toMatch(/presentedCronSecret\(req\)|hasCronSecret\(req, /);
+    }
+    const helper = read('supabase/functions/_shared/cronSecret.ts');
+    expect(helper).toContain("export const CRON_SECRET_HEADER = 'X-Cron-Secret';");
+    expect(helper).toContain("import { isExactSecret } from './serviceRole.ts';");
+  });
+
+  it('functions never put a cron secret in a URL when they call each other', () => {
+    for (const file of sources) {
+      expect(read(file), file).not.toMatch(/\?secret=\$\{/);
+    }
+  });
+
+  it('the migration moves every production URL-secret job to the x-cron-secret header, in place', () => {
+    const migration = read('supabase/migrations/20261003160000_cron_secrets_in_headers.sql');
+    for (const job of [
+      'notifications-cron-nightly',
+      'accountant-digest-cron',
+      'auto-reconcile-daily',
+      'bank-txn-classifier-cron',
+      'automation-worker-every-2min',
+      'automation-watchdog-every-15min',
+      'gmail-watch-renew-daily',
+      'accountant-orchestrator-daily',
+      'legal-horizon-scan-3h',
+      'legal-corpus-sync-daily',
+      'advisor-scheduled-daily',
+      'bank-sync-all',
+    ]) {
+      expect(migration, job).toContain(`'${job}'`);
+    }
+    expect(migration).toContain('cron.alter_job(job.jobid, command := rewritten)');
+    expect(migration).toContain("''x-cron-secret''");
+    // Behaviour (rewrite, schedule and active kept, odd shapes left alone) is tested in Postgres:
+    // tests/db-sql/cron-secrets-in-headers.sql
+  });
+
+  it('no later migration schedules a job with a secret in its URL again', () => {
+    const later = readdirSync('supabase/migrations')
+      .filter((f) => f.endsWith('.sql') && f > '20261003160000')
+      .filter((f) => f !== '20261003160000_cron_secrets_in_headers.sql');
+    for (const file of later) {
+      const active = read(`supabase/migrations/${file}`).replace(/--[^\n]*/g, '');
+      if (/cron\.(schedule|alter_job)\s*\(/.test(active))
+        expect(active, file).not.toMatch(/\?secret=/);
+    }
+  });
+});
