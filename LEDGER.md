@@ -32,7 +32,7 @@
 | BANK-02 | Redbark client pages accounts and transactions, splits truncated date windows, converts dollars to exact cents and skips pending rows | done | done @ 7c9ecc42, awaiting independent verify |
 | BANK-03 | bank-webhook verifies Redbark signatures and timestamps, stores the event before acting and dispatches one sync per linked connection | done | done @ 6468e475, awaiting independent verify |
 | BANK-04 | bank-sync imports Redbark transactions idempotently on (bank account, provider id) and keeps the post-sync chain | done | done @ 418a2b2f, awaiting independent verify |
-| BANK-05 | Admins can list Redbark accounts and link each one to a bank account with an import-from date | open | not run |
+| BANK-05 | Admins can list Redbark accounts and link each one to a bank account with an import-from date | done | done @ b66e21cf, awaiting independent verify |
 | BANK-06 | Redbark migrations apply cleanly and enforce one organisation per Redbark connection | done | done @ 61c93125, awaiting independent verify |
 | BANK-07 | Redbark is live: migrations applied, functions deployed, secrets set and the destination delivering into the books | blocked | BLOCKED: Deploying needs a Supabase access token, function secrets and credential rotation first. (needs: Daniel: credential rotation (INC-02), a scoped Supabase access token for project looplet accounting (Database + Edge functions), the Redbark API key and webhook secret entered at a hidden prompt, and an explicit yes to deploy.) |
 | STP-01 | Employees TFNs can be captured securely so the STP export can complete | open | not run |

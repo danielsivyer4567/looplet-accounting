@@ -2076,7 +2076,7 @@
       "title": "Admins can list Redbark accounts and link each one to a bank account with an import-from date",
       "area": "bank",
       "priority": 44,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bank-feed-link/link.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/BankFeedLink.test.tsx\""
@@ -2086,7 +2086,60 @@
         "supabase/functions/bank-feed-link",
         "src/components/settings/BankConnect.tsx"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bank-feed-link/link.test.ts\"",
+          "exit": 1,
+          "head": "4fbb4832dcf873cdbf3bc895a9baa393e9f0e7dc",
+          "dirty": [],
+          "at": "2026-10-03T00:44:39.924Z",
+          "ms": 236,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-05-001.log",
+          "log_sha256": "a8a7c236fd293b79533dc31899761a1e65538006784843101b99c07daee97df3"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/BankFeedLink.test.tsx\"",
+          "exit": 1,
+          "head": "4fbb4832dcf873cdbf3bc895a9baa393e9f0e7dc",
+          "dirty": [],
+          "at": "2026-10-03T00:44:41.234Z",
+          "ms": 1309,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-05-002.log",
+          "log_sha256": "5607ac677589c33006bd2f4470e6f17b6fa79ae7d253683f7192ce44c31402f0"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bank-feed-link/link.test.ts\"",
+          "exit": 0,
+          "head": "b66e21cf0d577477b182781ab4d064a7ba0da05d",
+          "dirty": [],
+          "at": "2026-10-03T00:44:42.407Z",
+          "ms": 862,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-05-003.log",
+          "log_sha256": "f5410a95f9bdf2add46dab23f6428ff97f57f284c94ca5083351768534465efe"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/BankFeedLink.test.tsx\"",
+          "exit": 0,
+          "head": "b66e21cf0d577477b182781ab4d064a7ba0da05d",
+          "dirty": [],
+          "at": "2026-10-03T00:44:46.032Z",
+          "ms": 3624,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-05-004.log",
+          "log_sha256": "871127e75fd1e1f938633cbcdea3a856738d564d717ebf56b3595cc2ce81f6c4"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -2094,8 +2147,45 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:44:39.477Z",
+          "event": "start",
+          "head": "4fbb4832dcf873cdbf3bc895a9baa393e9f0e7dc",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:44:41.234Z",
+          "event": "run",
+          "head": "4fbb4832dcf873cdbf3bc895a9baa393e9f0e7dc",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:44:46.032Z",
+          "event": "run",
+          "head": "b66e21cf0d577477b182781ab4d064a7ba0da05d",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:44:46.422Z",
+          "event": "done",
+          "head": "b66e21cf0d577477b182781ab4d064a7ba0da05d",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T00:44:46.404Z",
+        "head": "b66e21cf0d577477b182781ab4d064a7ba0da05d",
+        "by": "claude-worker",
+        "runs": [
+          3,
+          4
+        ]
+      }
     },
     {
       "id": "BANK-06",
@@ -3236,5 +3326,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T00:44:39.205Z"
+  "updated_at": "2026-10-03T00:44:46.437Z"
 }
