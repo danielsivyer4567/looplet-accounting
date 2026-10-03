@@ -16,7 +16,7 @@
 | SEC-06 | CI uses least-privilege permissions, SHA-pinned actions and a deploy job separate from build | open | not run |
 | SEC-07 | Hardening: CORS allow-list, constant-time secret checks, bundled pdf.js worker, cron secrets in headers, generic error responses | open | not run |
 | PAY-01 | Pay runs calculate wages from the base hourly rate, not the loaded cost rate | done | done @ 43f7603e, awaiting independent verify |
-| PAY-02 | Super defaults to the statutory rate (12%) and a pay run never applies less than the SG rate for the pay date | open | not run |
+| PAY-02 | Super defaults to the statutory rate (12%) and a pay run never applies less than the SG rate for the pay date | done | done @ 23e8aa88, awaiting independent verify |
 | PAY-03 | PAYG withholding uses the financial year of the pay date and fails loudly instead of returning $0 when no table applies | open | not run |
 | PAY-04 | FY2026-27 PAYG withholding tables match the ATO schedule (NAT 1004) worked examples | open | not run |
 | PAY-05 | Payday Super (from 1 July 2026) drives super due dates instead of quarterly batching | open | not run |

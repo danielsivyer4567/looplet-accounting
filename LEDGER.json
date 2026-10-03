@@ -1592,7 +1592,7 @@
       "title": "Super defaults to the statutory rate (12%) and a pay run never applies less than the SG rate for the pay date",
       "area": "payroll",
       "priority": 21,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeSuperDefault.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/super.test.ts\""
@@ -1602,7 +1602,60 @@
         "src/pages/EmployeeDetail.tsx",
         "supabase/functions/payroll-create-pay-run"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeSuperDefault.test.tsx\"",
+          "exit": 1,
+          "head": "e7b8898ff8498ef19d3a120bb6ad7c8a138e98c0",
+          "dirty": [],
+          "at": "2026-10-03T00:49:25.933Z",
+          "ms": 1481,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-02-001.log",
+          "log_sha256": "8d4d13145a7eca1b6684b4bc5e8053579101192292aeacd86fff37edf9201f80"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/super.test.ts\"",
+          "exit": 1,
+          "head": "e7b8898ff8498ef19d3a120bb6ad7c8a138e98c0",
+          "dirty": [],
+          "at": "2026-10-03T00:49:26.269Z",
+          "ms": 335,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-02-002.log",
+          "log_sha256": "6b13dbc3ee697de07405375d352e8924286fce6658301a4bb3391ac7d05998f4"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeSuperDefault.test.tsx\"",
+          "exit": 0,
+          "head": "23e8aa88cde6d5505889b79458f784b0560dc945",
+          "dirty": [],
+          "at": "2026-10-03T00:49:29.675Z",
+          "ms": 2915,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-02-003.log",
+          "log_sha256": "762d08daeea07cf3b465e8d9535eed7245c18973ab43931f1584ac630c9ec25a"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/super.test.ts\"",
+          "exit": 0,
+          "head": "23e8aa88cde6d5505889b79458f784b0560dc945",
+          "dirty": [],
+          "at": "2026-10-03T00:49:30.623Z",
+          "ms": 946,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-02-004.log",
+          "log_sha256": "b1e58022ce3ee3f838e240bee6b1dc6f9fb25c557ec45d5d1000395bbb228555"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -1610,8 +1663,45 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:49:24.222Z",
+          "event": "start",
+          "head": "e7b8898ff8498ef19d3a120bb6ad7c8a138e98c0",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:49:26.269Z",
+          "event": "run",
+          "head": "e7b8898ff8498ef19d3a120bb6ad7c8a138e98c0",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:49:30.624Z",
+          "event": "run",
+          "head": "23e8aa88cde6d5505889b79458f784b0560dc945",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:49:30.869Z",
+          "event": "done",
+          "head": "23e8aa88cde6d5505889b79458f784b0560dc945",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T00:49:30.850Z",
+        "head": "23e8aa88cde6d5505889b79458f784b0560dc945",
+        "by": "claude-worker",
+        "runs": [
+          3,
+          4
+        ]
+      }
     },
     {
       "id": "PAY-03",
@@ -3750,5 +3840,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T00:49:22.904Z"
+  "updated_at": "2026-10-03T00:49:30.886Z"
 }
