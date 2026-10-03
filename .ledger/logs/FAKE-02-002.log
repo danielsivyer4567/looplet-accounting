@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/pages/ScanHonest.test.tsx"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  12:22:53
+   Duration  1.48s (transform 73ms, setup 60ms, import 180ms, tests 639ms, environment 493ms)
+

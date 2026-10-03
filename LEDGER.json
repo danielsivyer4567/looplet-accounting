@@ -4081,14 +4081,41 @@
       "title": "The Scan page describes only the checks it really runs (no simulated AI audit)",
       "area": "legitimacy",
       "priority": 32,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ScanHonest.test.tsx\""
       ],
       "paths": [
         "src/pages/Scan.tsx"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ScanHonest.test.tsx\"",
+          "exit": 1,
+          "head": "150a1a47399f55af6f96ce5596221c6abb49feb9",
+          "dirty": [],
+          "at": "2026-10-03T02:22:51.772Z",
+          "ms": 1508,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/FAKE-02-001.log",
+          "log_sha256": "b9111f7a33ed00ae65c335977e44953686ec284c6cb967518dde97e1eac14246"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ScanHonest.test.tsx\"",
+          "exit": 0,
+          "head": "45829b8b7b1c2488f837e7dcc9b162a4cafb4031",
+          "dirty": [],
+          "at": "2026-10-03T02:22:54.778Z",
+          "ms": 2581,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/FAKE-02-002.log",
+          "log_sha256": "f65ecf0faa19b7fc002441463635e017628d33598b6165ac00ad0481ac395bd7"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -4096,8 +4123,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:22:50.121Z",
+          "event": "start",
+          "head": "150a1a47399f55af6f96ce5596221c6abb49feb9",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:22:51.773Z",
+          "event": "run",
+          "head": "150a1a47399f55af6f96ce5596221c6abb49feb9",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:22:54.779Z",
+          "event": "run",
+          "head": "45829b8b7b1c2488f837e7dcc9b162a4cafb4031",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:22:54.899Z",
+          "event": "done",
+          "head": "45829b8b7b1c2488f837e7dcc9b162a4cafb4031",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T02:22:54.884Z",
+        "head": "45829b8b7b1c2488f837e7dcc9b162a4cafb4031",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "CONSENT-01",
@@ -9823,5 +9886,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T02:22:48.381Z"
+  "updated_at": "2026-10-03T02:22:54.913Z"
 }
