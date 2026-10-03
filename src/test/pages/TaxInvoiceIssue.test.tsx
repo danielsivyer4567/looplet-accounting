@@ -205,7 +205,11 @@ function renderInvoice(path = '/invoices/invoice-1') {
   );
 }
 
-function seedInvoice(org: { abn: string | null; gst_registered?: boolean; profile_gst?: boolean | null }) {
+function seedInvoice(org: {
+  abn: string | null;
+  gst_registered?: boolean;
+  profile_gst?: boolean | null;
+}) {
   db.tables = {
     customers: [{ id: 'cust-1', name: 'Acme Homes', email: 'accounts@example.com', abn: null }],
     jobs: [],
@@ -269,7 +273,9 @@ function seedInvoice(org: { abn: string | null; gst_registered?: boolean; profil
         settings: org.gst_registered === undefined ? {} : { gst_registered: org.gst_registered },
       },
     ],
-    business_profile: [{ is_gst_registered: org.profile_gst === undefined ? true : org.profile_gst }],
+    business_profile: [
+      { is_gst_registered: org.profile_gst === undefined ? true : org.profile_gst },
+    ],
   };
 }
 
@@ -334,7 +340,9 @@ describe('issuing from the invoice page (INV-01)', () => {
     seedInvoice({ abn: '12345678901', profile_gst: null });
     renderInvoice();
 
-    expect(await screen.findByRole('button', { name: /download invoice \(pdf\)/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: /download invoice \(pdf\)/i }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /download tax invoice/i })).not.toBeInTheDocument();
   });
 

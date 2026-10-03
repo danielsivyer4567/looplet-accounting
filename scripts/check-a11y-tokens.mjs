@@ -65,7 +65,8 @@ const PAIRS = [
 
 function parseThemeBlocks(css) {
   const blocks = {};
-  const re = /(^|\n)((?::root|html\[data-theme='(?:light|dark)'\])(?:,\s*html\[data-theme='(?:light|dark)'\])?)\s*\{([\s\S]*?)\n\}/g;
+  const re =
+    /(^|\n)((?::root|html\[data-theme='(?:light|dark)'\])(?:,\s*html\[data-theme='(?:light|dark)'\])?)\s*\{([\s\S]*?)\n\}/g;
   let m;
   while ((m = re.exec(css))) {
     const selector = m[2];
@@ -81,7 +82,8 @@ function parseThemeBlocks(css) {
     }
   }
   // :root common values apply to both themes.
-  if (blocks.light && blocks.dark) for (const [k, v] of Object.entries(blocks.light)) blocks.dark[k] ??= v;
+  if (blocks.light && blocks.dark)
+    for (const [k, v] of Object.entries(blocks.light)) blocks.dark[k] ??= v;
   return blocks;
 }
 
@@ -93,7 +95,11 @@ function parseColour(value, tokens, depth = 0) {
   const hex = /^#([0-9a-f]{3,8})$/i.exec(v);
   if (hex) {
     let h = hex[1];
-    if (h.length === 3 || h.length === 4) h = h.split('').map((c) => c + c).join('');
+    if (h.length === 3 || h.length === 4)
+      h = h
+        .split('')
+        .map((c) => c + c)
+        .join('');
     const n = parseInt(h.slice(0, 6), 16);
     const a = h.length === 8 ? parseInt(h.slice(6, 8), 16) / 255 : 1;
     return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255, a };
@@ -105,7 +111,12 @@ function parseColour(value, tokens, depth = 0) {
 
 function composite(fg, bg) {
   const a = fg.a;
-  return { r: fg.r * a + bg.r * (1 - a), g: fg.g * a + bg.g * (1 - a), b: fg.b * a + bg.b * (1 - a), a: 1 };
+  return {
+    r: fg.r * a + bg.r * (1 - a),
+    g: fg.g * a + bg.g * (1 - a),
+    b: fg.b * a + bg.b * (1 - a),
+    a: 1,
+  };
 }
 
 function luminance({ r, g, b }) {
@@ -148,7 +159,9 @@ for (const theme of ['light', 'dark']) {
     if (bg.a < 1) {
       const over = parseColour(tokens[pair.over ?? '--bg-card'] ?? '', tokens);
       if (!over) {
-        problems.push(`${theme}: ${pair.bg} is translucent and ${pair.over ?? '--bg-card'} cannot be resolved`);
+        problems.push(
+          `${theme}: ${pair.bg} is translucent and ${pair.over ?? '--bg-card'} cannot be resolved`,
+        );
         continue;
       }
       bg = composite(bg, over);
@@ -157,7 +170,9 @@ for (const theme of ['light', 'dark']) {
     const min = pair.large ? 3 : 4.5;
     pairsChecked += 1;
     if (ratio < min) {
-      problems.push(`${theme}: ${pair.fg} on ${pair.bg} is ${ratio.toFixed(2)}:1 (needs ${min}:1)  [${fgRaw} on ${bgRaw}]`);
+      problems.push(
+        `${theme}: ${pair.fg} on ${pair.bg} is ${ratio.toFixed(2)}:1 (needs ${min}:1)  [${fgRaw} on ${bgRaw}]`,
+      );
     }
   }
 }
@@ -184,8 +199,45 @@ function toPx(num, unit) {
   return null; // %, vw: not judged
 }
 
-// Literal sizes, plus any quoted px/rem/em value inside a fontSize expression (ternaries like `compact ? '8px' : '0.75rem'`).
-const FONT_SIZE_RE = /(?:font-size\s*:\s*|fontSize\s*:\s*['"]?)(\d*\.?\d+)\s*(px|rem|em|)(?=[;'",}\s)])|text-\[(\d*\.?\d+)px\]|fontSize\s*:[^,}\n]*?['"](\d*\.?\d+)\s*(px|rem|em)['"]/g;
+// Every font-size site on a line: CSS `font-size: 8px`, object `fontSize: 8` / `fontSize: '8px'`, JSX `fontSize={8}`,
+// Tailwind `text-[8px]`. The whole value expression is scanned, so each branch of a ternary, a template literal
+// (`${compact ? 8 : 12}px`) and a bare number inside braces are all judged, not just the first literal.
+const FONT_SIZE_START_RE = /\bfont-size\s*:|\bfontSize\s*(?::|=\s*\{)/g;
+
+/** The value expression that starts at `from`: balanced braces for JSX, else up to the top-level `,` `;` or `}`. */
+function fontValueExpression(line, from, jsx) {
+  let depth = jsx ? 1 : 0;
+  let quote = null;
+  for (let j = from; j < line.length; j += 1) {
+    const ch = line[j];
+    if (quote) {
+      if (ch === '\\') j += 1;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === "'" || ch === '"' || ch === '`') quote = ch;
+    else if (ch === '(' || ch === '[' || ch === '{') depth += 1;
+    else if (ch === ')' || ch === ']' || ch === '}') {
+      depth -= 1;
+      if (depth < 0 || (jsx && depth === 0)) return line.slice(from, j);
+    } else if (!jsx && depth === 0 && (ch === ',' || ch === ';')) return line.slice(from, j);
+  }
+  return line.slice(from);
+}
+
+/** Pixel sizes a font-size expression can resolve to; `null` entries are units this gate does not judge. */
+function fontSizesIn(expr) {
+  const sizes = [];
+  const unitRe = /(\d*\.?\d+)\s*(px|rem|em|%|vw|vh)\b/g;
+  let rest = expr;
+  for (const m of expr.matchAll(unitRe)) sizes.push({ text: m[0], px: toPx(Number(m[1]), m[2]) });
+  rest = rest.replace(unitRe, ' ');
+  // A quoted bare number ('12') or a bare numeric token (8, `? 8 : 12`, `{10}`) is a pixel size in React and in CSS-in-JS.
+  for (const m of rest.matchAll(/(?<![\w.$-])(\d*\.?\d+)(?![\w.$-])/g))
+    sizes.push({ text: m[1], px: Number(m[1]) });
+  return sizes;
+}
+
 let fontSitesChecked = 0;
 let iconButtonsChecked = 0;
 
@@ -193,11 +245,19 @@ for (const file of files) {
   const text = readFileSync(join(ROOT, file), 'utf8');
   const lines = text.split('\n');
   lines.forEach((line, i) => {
-    for (const m of line.matchAll(FONT_SIZE_RE)) {
+    const sites = [];
+    for (const m of line.matchAll(FONT_SIZE_START_RE)) {
+      sites.push(fontValueExpression(line, m.index + m[0].length, m[0].endsWith('{')));
+    }
+    for (const m of line.matchAll(/text-\[(\d*\.?\d+)px\]/g)) sites.push(m[1]);
+    for (const expr of sites) {
       fontSitesChecked += 1;
-      const px = m[3] !== undefined ? Number(m[3]) : m[4] !== undefined ? toPx(Number(m[4]), m[5]) : toPx(Number(m[1]), m[2]);
-      if (px !== null && px < MIN_FONT_PX) {
-        problems.push(`${file}:${i + 1}: font-size ${m[0].trim()} is ${px.toFixed(1)}px (< ${MIN_FONT_PX}px)  | ${line.trim().slice(0, 90)}`);
+      for (const { text: sizeText, px } of fontSizesIn(expr)) {
+        if (px !== null && px < MIN_FONT_PX) {
+          problems.push(
+            `${file}:${i + 1}: font-size ${sizeText} is ${px.toFixed(1)}px (< ${MIN_FONT_PX}px)  | ${line.trim().slice(0, 90)}`,
+          );
+        }
       }
     }
   });
@@ -262,13 +322,22 @@ for (const file of files) {
       // An empty button is rendered by children elsewhere (rare); treat as icon-only.
     }
     // Icon-only: only self-closing elements (icons), or a single glyph such as × or ….
-    const onlyElements = body.length > 0 && /^(?:<[A-Za-z][\w.]*(?:\s[^<>]*?)?\/>\s*)+$/.test(body.replace(/\{[^{}]*\}/g, (e) => (/^\{\s*<[^>]*\/>\s*\}$/.test(e) ? '<I />' : e)));
+    const onlyElements =
+      body.length > 0 &&
+      /^(?:<[A-Za-z][\w.]*(?:\s[^<>]*?)?\/>\s*)+$/.test(
+        body.replace(/\{[^{}]*\}/g, (e) => (/^\{\s*<[^>]*\/>\s*\}$/.test(e) ? '<I />' : e)),
+      );
     const onlyGlyph = /^(?:&times;|&#x2715;|&hellip;|[×✕✖✗⋯…‹›«»←→↑↓+\-–—•·]|×)$/.test(body);
-    const conditionalIcon = /^\{[^{}]*\?\s*<[A-Z][\w.]*[^<>]*\/>\s*:\s*<[A-Z][\w.]*[^<>]*\/>\s*\}$/.test(body);
+    const conditionalIcon =
+      /^\{[^{}]*\?\s*<[A-Z][\w.]*[^<>]*\/>\s*:\s*<[A-Z][\w.]*[^<>]*\/>\s*\}$/.test(body);
     if (!(onlyElements || onlyGlyph || conditionalIcon)) continue;
-    const named = /\baria-label(?:ledby)?\s*=|\btitle\s*=/.test(openTag) || /sr-only|visually-hidden|VisuallyHidden/.test(children);
+    const named =
+      /\baria-label(?:ledby)?\s*=|\btitle\s*=/.test(openTag) ||
+      /sr-only|visually-hidden|VisuallyHidden/.test(children);
     if (!named) {
-      problems.push(`${file}:${lineNo}: icon-only <button> without an accessible name  | ${openTag.replace(/\s+/g, ' ').slice(0, 90)}`);
+      problems.push(
+        `${file}:${lineNo}: icon-only <button> without an accessible name  | ${openTag.replace(/\s+/g, ' ').slice(0, 90)}`,
+      );
     }
   }
 }

@@ -11,8 +11,8 @@ on:
 # - every job only reads the repository, and a job asks for more only where it needs it (none do today);
 # - third-party actions are pinned to full commit SHAs (the tag is in the trailing comment), so a moved
 #   or hijacked tag cannot change what runs here;
-# - build and test never see deploy secrets: the deploy job runs no repository code and only uploads
-#   the files the build job produced.
+# - this workflow holds no deploy credentials at all: deployment is Cloudflare Pages' Git integration
+#   on `main`, which runs outside GitHub Actions, so a compromised build step has nothing to steal.
 permissions:
   contents: read
 
@@ -77,7 +77,7 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
-      # The deploy job publishes exactly these files; it never builds.
+      # Kept as a downloadable artefact for review and debugging; nothing in CI deploys it.
       - name: Upload build output
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -92,7 +92,7 @@ jobs:
     needs: build
     permissions:
       contents: read
-    # This job MUST be green for any deploy. Cross-tenant leak = P0.
+    # This job MUST be green before anything merges to main (which Cloudflare Pages deploys). Cross-tenant leak = P0.
     # See docs/ROADMAP.md → Foundational Disciplines → Multi-tenancy.
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0

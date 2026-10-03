@@ -721,7 +721,7 @@ function MonthlyBars({ bars }: { bars: { label: string; value: number }[] }) {
               y={HEIGHT + 30}
               textAnchor="middle"
               fill="var(--accent-primary)"
-              fontSize={10}
+              fontSize={11}
               fontWeight={600}
             >
               {b.value > 0 ? formatMoneyCompact(b.value) : ''}

@@ -913,13 +913,13 @@ function MarginSparkline({
           />
 
           {/* Axis labels: first and last week */}
-          <text x={PAD.left} y={H - 4} fontSize={9} fill="var(--text-muted)" fontWeight={600}>
+          <text x={PAD.left} y={H - 4} fontSize={11} fill="var(--text-muted)" fontWeight={600}>
             {buckets[0]?.weekStart.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
           </text>
           <text
             x={W - PAD.right}
             y={H - 4}
-            fontSize={9}
+            fontSize={11}
             fill="var(--text-muted)"
             fontWeight={600}
             textAnchor="end"
