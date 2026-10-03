@@ -46,14 +46,17 @@ describe('production security and performance polish', () => {
     expect(headers).toMatch(/Strict-Transport-Security:/);
   });
 
-  it('keeps Edge Function CORS origin configurable, with auth as the security boundary', () => {
+  it('keeps Edge Function CORS origins configurable, with auth as the security boundary', () => {
     const cors = readRepoFile('supabase/functions/_shared/cors.ts');
 
-    // Deliberate contract (see fix(cors) de7e52e): permissive default so every
-    // app domain works, with CORS_ALLOWED_ORIGIN as the explicit pin. CORS must
-    // never silently pin to the email SITE_URL/APP_ORIGIN again.
-    expect(cors).toMatch(/Deno\.env\.get\('CORS_ALLOWED_ORIGIN'\)/);
-    expect(cors).toMatch(/'Access-Control-Allow-Origin': allowedOrigin/);
+    // Contract since SEC-07 (replacing the permissive default of de7e52e): an
+    // allow-list of every app domain plus CORS_ALLOWED_ORIGINS (and the older
+    // CORS_ALLOWED_ORIGIN), reflected per request, never `*`. CORS must never
+    // silently pin to the email SITE_URL/APP_ORIGIN again. Behaviour is tested
+    // in supabase/functions/_shared/cors.test.ts.
+    expect(cors).toMatch(/env\.get\('CORS_ALLOWED_ORIGINS'\)/);
+    expect(cors).toMatch(/env\.get\('CORS_ALLOWED_ORIGIN'\)/);
+    expect(cors).not.toMatch(/\?\? '\*'/);
     expect(cors).not.toMatch(/Deno\.env\.get\('APP_ORIGIN'\)/);
     expect(cors).not.toMatch(/Deno\.env\.get\('SITE_URL'\)/);
   });

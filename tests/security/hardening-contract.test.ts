@@ -62,3 +62,34 @@ describe('pdf.js runs its worker from this site, not a CDN', () => {
     }
   });
 });
+
+describe('CORS is an allow-list, not *', () => {
+  const functionSources = filesUnder('supabase/functions', /\.ts$/).filter(
+    (f) => !/\.test\.ts$/.test(f),
+  );
+  const entrypoints = filesUnder('supabase/functions', /^index\.ts$/).filter(
+    (f) => !f.includes('/_shared/'),
+  );
+
+  it('the shared module has no wildcard default and wraps Deno.serve for per-request origins', () => {
+    const cors = read('supabase/functions/_shared/cors.ts');
+    expect(cors).not.toMatch(/\?\?\s*['"]\*['"]/);
+    expect(cors).toContain("env.get('CORS_ALLOWED_ORIGINS')");
+    expect(cors).toMatch(/^installCorsServeWrapper\(\);$/m);
+    expect(cors).toContain("'https://accounting.looplet.com.au'");
+  });
+
+  it('no function sets Access-Control-Allow-Origin to * itself', () => {
+    for (const file of functionSources) {
+      expect(read(file), file).not.toMatch(/['"]Access-Control-Allow-Origin['"]\s*:\s*['"]\*['"]/i);
+    }
+  });
+
+  it('every function that serves HTTP imports the shared CORS module (which installs the wrapper)', () => {
+    const serving = entrypoints.filter((f) => /\bDeno\.serve\(/.test(read(f)));
+    expect(serving.length).toBeGreaterThan(50);
+    for (const file of serving) {
+      expect(read(file), file).toMatch(/from ['"]\.\.\/_shared\/cors\.ts['"]/);
+    }
+  });
+});
