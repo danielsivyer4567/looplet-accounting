@@ -205,7 +205,7 @@ function renderInvoice(path = '/invoices/invoice-1') {
   );
 }
 
-function seedInvoice(org: { abn: string | null; gst_registered?: boolean }) {
+function seedInvoice(org: { abn: string | null; gst_registered?: boolean; profile_gst?: boolean | null }) {
   db.tables = {
     customers: [{ id: 'cust-1', name: 'Acme Homes', email: 'accounts@example.com', abn: null }],
     jobs: [],
@@ -269,7 +269,7 @@ function seedInvoice(org: { abn: string | null; gst_registered?: boolean }) {
         settings: org.gst_registered === undefined ? {} : { gst_registered: org.gst_registered },
       },
     ],
-    business_profile: [{ is_gst_registered: true }],
+    business_profile: [{ is_gst_registered: org.profile_gst === undefined ? true : org.profile_gst }],
   };
 }
 
@@ -327,6 +327,15 @@ describe('issuing from the invoice page (INV-01)', () => {
     expect(download).toBeDisabled();
     expect(screen.getByRole('alert')).toHaveTextContent(/must show the seller’s ABN/);
     expect(screen.queryByRole('link', { name: /email customer/i })).not.toBeInTheDocument();
+  });
+
+  it('a business that has never set its GST registration gets a plain invoice, never a tax invoice', async () => {
+    // No organisation setting and no profile answer: unknown is treated as not registered.
+    seedInvoice({ abn: '12345678901', profile_gst: null });
+    renderInvoice();
+
+    expect(await screen.findByRole('button', { name: /download invoice \(pdf\)/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /download tax invoice/i })).not.toBeInTheDocument();
   });
 
   it('a business not registered for GST is told it cannot charge GST on a plain invoice', async () => {
