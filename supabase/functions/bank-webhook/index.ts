@@ -16,6 +16,8 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { feedOrganizationIds } from '../_shared/bankfeed/access.ts';
+// Importing the shared CORS module also installs the response wrapper (generic 5xx bodies, per-origin headers).
+import { corsHeaders } from '../_shared/cors.ts';
 import { handleBankWebhook, type LinkedConnection } from './handler.ts';
 
 interface LinkedAccountRow {
@@ -29,7 +31,7 @@ Deno.serve(async (req) => {
   if (!supabaseUrl || !serviceKey) {
     return new Response(JSON.stringify({ ok: false, error: 'Server config missing' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
   const admin = createClient(supabaseUrl, serviceKey, {
