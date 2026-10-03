@@ -1132,6 +1132,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-05-002.log",
           "log_sha256": "2f7d0e56013fef65b06e5fa225c87a505df490f26eb82aa9b6d1a0269b65c35f"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/money-table-roles.sql\"",
+          "exit": 0,
+          "head": "295d83e4120c94cbc57023ab872b4214de6ecf57",
+          "dirty": [],
+          "at": "2026-10-03T00:14:54.654Z",
+          "ms": 42152,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-05-003.log",
+          "log_sha256": "acf6c6be9b4bc7ab7b68d3e91ed99ba1e728ed73e38758e47553589ff6602683"
         }
       ],
       "notes": [],
@@ -1169,14 +1182,38 @@
           "event": "done",
           "head": "d8455163c489993ca76cfc775c9307322ad7c3a3",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:14:12.151Z",
+          "event": "stale",
+          "head": "295d83e4120c94cbc57023ab872b4214de6ecf57",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003120000_money_table_write_roles.sql",
+            "tests/db-sql/money-table-roles.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T00:14:54.655Z",
+          "event": "run",
+          "head": "295d83e4120c94cbc57023ab872b4214de6ecf57",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:14:54.784Z",
+          "event": "done",
+          "head": "295d83e4120c94cbc57023ab872b4214de6ecf57",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-02T23:52:28.571Z",
-        "head": "d8455163c489993ca76cfc775c9307322ad7c3a3",
+        "at": "2026-10-03T00:14:54.767Z",
+        "head": "295d83e4120c94cbc57023ab872b4214de6ecf57",
         "by": "claude-worker",
         "runs": [
-          2
+          3
         ]
       }
     },
@@ -2424,5 +2461,5 @@
       ]
     }
   ],
-  "updated_at": "2026-10-03T00:09:05.322Z"
+  "updated_at": "2026-10-03T00:14:54.888Z"
 }
