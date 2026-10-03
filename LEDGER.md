@@ -21,14 +21,14 @@
 | PAY-04 | FY2026-27 PAYG withholding tables match the ATO schedule (NAT 1004) worked examples | done | done @ 32726f3a, awaiting independent verify |
 | PAY-05 | Payday Super (from 1 July 2026) drives super due dates instead of quarterly batching | done | done @ 32726f3a, awaiting independent verify |
 | XERO-01 | Bills and invoices are never marked synced to Xero unless Xero accepted them (no STUB ids in production) | done | done @ 34eae826, awaiting independent verify |
-| FAKE-01 | Receipt Hub has no POS simulator, fake receipts or hard-coded demo figures | done | done @ fc3f61ba, awaiting independent verify |
+| FAKE-01 | Receipt Hub has no POS simulator, fake receipts or hard-coded demo figures | done | done @ bd6577e1, awaiting independent verify |
 | FAKE-02 | The Scan page describes only the checks it really runs (no simulated AI audit) | open | not run |
 | CONSENT-01 | Settings has no pre-ticked, unsaved or unrelated template consent switches | open | not run |
 | LEGAL-01 | A privacy policy, terms of service and collection notice are published, linked, and accepted at sign-up | open | not run |
 | AI-01 | AI answers and advice are labelled general information, and the model is allowed to recommend an accountant | open | not run |
 | TFN-01 | TFNs are never returned to the browser or stored in plain text | done | done @ 32726f3a, awaiting independent verify |
 | LODGE-01 | Nothing claims to lodge with the ATO or send to a super fund when it only prepares a file | open | not run |
-| BANK-01 | Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs | done | done @ 02c98a13, awaiting independent verify |
+| BANK-01 | Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs | done | done @ bd6577e1, awaiting independent verify |
 | BANK-02 | Redbark client pages accounts and transactions, splits truncated date windows, converts dollars to exact cents and skips pending rows | done | done @ 62a46f2a, awaiting independent verify |
 | BANK-03 | bank-webhook verifies Redbark signatures and timestamps, stores the event before acting and dispatches one sync per linked connection | done | done @ 6468e475, awaiting independent verify |
 | BANK-04 | bank-sync imports Redbark transactions idempotently on (bank account, provider id) and keeps the post-sync chain | done | done @ 62a46f2a, awaiting independent verify |

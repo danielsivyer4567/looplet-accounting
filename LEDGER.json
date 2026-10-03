@@ -3992,6 +3992,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/FAKE-01-002.log",
           "log_sha256": "d137dc9ed6cecef2305e9f9931a4c4c4d56b770f9d5ae29d643fe9cbc4c619a6"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ReceiptHubNoDemo.test.tsx\"",
+          "exit": 0,
+          "head": "bd6577e1f8eab83c56585d3f0ce37c8633d76d13",
+          "dirty": [],
+          "at": "2026-10-03T02:22:47.435Z",
+          "ms": 2267,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/FAKE-01-003.log",
+          "log_sha256": "9b9de2fdbe62d5e675c040eb22f235b9899261ad81d5199cc088366c78721d65"
         }
       ],
       "notes": [],
@@ -4029,14 +4042,37 @@
           "event": "done",
           "head": "fc3f61ba4713f85a3de58e0e51dffa62ddb2902f",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:22:44.023Z",
+          "event": "stale",
+          "head": "bd6577e1f8eab83c56585d3f0ce37c8633d76d13",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/ReceiptHub.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T02:22:47.436Z",
+          "event": "run",
+          "head": "bd6577e1f8eab83c56585d3f0ce37c8633d76d13",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:22:47.600Z",
+          "event": "done",
+          "head": "bd6577e1f8eab83c56585d3f0ce37c8633d76d13",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T02:22:33.613Z",
-        "head": "fc3f61ba4713f85a3de58e0e51dffa62ddb2902f",
+        "at": "2026-10-03T02:22:47.584Z",
+        "head": "bd6577e1f8eab83c56585d3f0ce37c8633d76d13",
         "by": "claude-worker",
         "runs": [
-          2
+          3
         ]
       }
     },
@@ -5062,6 +5098,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-01-020.log",
           "log_sha256": "f898fc372eebef56b557ccf62dbaba07539229b9ffbaf067562c318ed6c8d3ca"
+        },
+        {
+          "n": 21,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 0,
+          "head": "bd6577e1f8eab83c56585d3f0ce37c8633d76d13",
+          "dirty": [],
+          "at": "2026-10-03T02:22:48.161Z",
+          "ms": 436,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-01-021.log",
+          "log_sha256": "400c0202072ef44d91a4f47dc9aecd512f044f1df377522c40b11bbb846b1a42"
         }
       ],
       "notes": [],
@@ -5460,14 +5509,46 @@
           "event": "done",
           "head": "02c98a13bf2e56cbfa2355162794e204560146ea",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:22:44.094Z",
+          "event": "stale",
+          "head": "bd6577e1f8eab83c56585d3f0ce37c8633d76d13",
+          "actor": "claude-worker",
+          "files": [
+            "src/lib/gst.ts",
+            "src/lib/receiptCapture.ts",
+            "src/pages/BillDetail.tsx",
+            "src/pages/ReceiptHub.tsx",
+            "src/test/db/accountingEngineGate.test.ts",
+            "src/test/lib/gstNoInvention.test.ts",
+            "supabase/functions/bills-extract/gst.ts",
+            "supabase/functions/bills-extract/index.ts",
+            "supabase/functions/coding-classifier/index.ts",
+            "supabase/functions/receipt-webhook/gst.test.ts"
+          ]
+        },
+        {
+          "at": "2026-10-03T02:22:48.162Z",
+          "event": "run",
+          "head": "bd6577e1f8eab83c56585d3f0ce37c8633d76d13",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:22:48.366Z",
+          "event": "done",
+          "head": "bd6577e1f8eab83c56585d3f0ce37c8633d76d13",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T02:22:35.810Z",
-        "head": "02c98a13bf2e56cbfa2355162794e204560146ea",
+        "at": "2026-10-03T02:22:48.352Z",
+        "head": "bd6577e1f8eab83c56585d3f0ce37c8633d76d13",
         "by": "claude-worker",
         "runs": [
-          20
+          21
         ]
       }
     },
@@ -9742,5 +9823,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T02:22:43.502Z"
+  "updated_at": "2026-10-03T02:22:48.381Z"
 }
