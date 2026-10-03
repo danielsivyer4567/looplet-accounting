@@ -151,7 +151,7 @@ describe('Receipt Hub capture payloads', () => {
     const payload = buildReceiptPayloadFromExtraction(
       {
         supplier_name: 'Corner Hardware',
-        supplier_abn: '51 824 753 556',
+        supplier_abn: '12 345 678 901',
         invoice_number: 'R-10',
         invoice_date: '2026-09-30',
         subtotal_ex_gst: 50,
