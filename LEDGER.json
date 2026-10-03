@@ -2647,7 +2647,7 @@
       "title": "CI uses least-privilege permissions, SHA-pinned actions and a deploy job separate from build",
       "area": "security",
       "priority": 15,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\""
       ],
@@ -2732,6 +2732,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-06-006.log",
           "log_sha256": "9b8da2a4eedb202648f1a8085a76a17b34f043b55809ffa5e2d92696e5f6d611"
+        },
+        {
+          "n": 7,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\"",
+          "exit": 0,
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "dirty": [],
+          "at": "2026-10-03T05:22:12.125Z",
+          "ms": 1524,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-06-007.log",
+          "log_sha256": "3b50a7a614872bca2df9f9e7174a0ac473bdc0d6353373624972664756e915ee"
         }
       ],
       "notes": [],
@@ -2846,6 +2859,13 @@
           "event": "done",
           "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:22:12.154Z",
+          "event": "verified",
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "actor": "claude-verifier",
+          "by": "claude-verifier F (independent subagent, round 3)"
         }
       ],
       "done": {
@@ -2854,6 +2874,15 @@
         "by": "claude-worker",
         "runs": [
           6
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:22:12.140Z",
+        "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+        "by": "claude-verifier F (independent subagent, round 3)",
+        "note": "Round 3 at 07abc2a. Read ci.yml and staging-deploy.yml in full: workflow and every job permissions are contents:read only; all five action refs SHA-pinned with tag comments; checkout persist-credentials false; npm ci --ignore-scripts after the integrity check; no Cloudflare secret, wrangler-action or 'pages deploy' anywhere in .github, and gh secret list shows only SUPABASE_SERVICE_ROLE_KEY, VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_URL. Non-vacuity in a scratch copy: a stub deploy job, a wrangler job holding the Cloudflare secrets, contents:write and a floating checkout tag each fail ci-hardening. Residual: ci.yml comments at lines 14-15, 80 and 95 still describe a deploy job and the dist artifact now has no consumer; tenant-isolation has no if: guard and runs vitest with the production service-role key on every same-repo PR (fails hard without it) and SUPABASE_SERVICE_ROLE_KEY is not in DEPLOY_SECRETS, so the test does not see it (known, CI-02 note).",
+        "runs": [
+          7
         ]
       }
     },
@@ -8092,7 +8121,7 @@
       "title": "AI answers and advice are labelled general information, and the model is allowed to recommend an accountant",
       "area": "legitimacy",
       "priority": 35,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AiDisclaimer.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/ask-bot/prompt.test.ts\""
@@ -8337,6 +8366,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/AI-01-018.log",
           "log_sha256": "fea04dfede4c8556d74534e9ebe4528cc6c8dcb99502522162ee8983d7de2923"
+        },
+        {
+          "n": 19,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AiDisclaimer.test.tsx\"",
+          "exit": 0,
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "dirty": [],
+          "at": "2026-10-03T05:22:18.004Z",
+          "ms": 2131,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/AI-01-019.log",
+          "log_sha256": "b4c382489e49e998561c7f643cd9f6b5e2bbad4fe1857b6b753ba145211eb89e"
+        },
+        {
+          "n": 20,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/ask-bot/prompt.test.ts\"",
+          "exit": 0,
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "dirty": [],
+          "at": "2026-10-03T05:22:18.274Z",
+          "ms": 269,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/AI-01-020.log",
+          "log_sha256": "81fa7e044053b0e3fd76599c463bfc694002e4b2e1ecda5b97a0ef43fd4e4f20"
         }
       ],
       "notes": [],
@@ -8509,6 +8564,13 @@
           "event": "done",
           "head": "ce5b68b701f72789a1ccaab57376b250f9029b72",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:22:18.387Z",
+          "event": "verified",
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "actor": "claude-verifier",
+          "by": "claude-verifier F (independent subagent, round 3)"
         }
       ],
       "done": {
@@ -8518,6 +8580,16 @@
         "runs": [
           17,
           18
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:22:18.289Z",
+        "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+        "by": "claude-verifier F (independent subagent, round 3)",
+        "note": "Round 3 at 07abc2a. Diff since 77778a0 over its paths (-w) is FIX-01's basQuery.ts, bas-query.test.ts and the index.ts schema note and summary line only; Ask.tsx, AdviceCard.tsx and advisor unchanged. AiDisclaimer.test.tsx and prompt.test.ts pass.",
+        "runs": [
+          19,
+          20
         ]
       }
     },
@@ -10254,7 +10326,7 @@
       "title": "Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs",
       "area": "bank",
       "priority": 40,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\""
       ],
@@ -10798,6 +10870,19 @@
           "ms": 518,
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-01-041.log",
+          "log_sha256": "edc1bd7c8759844a84242bb9335ed94322807eb215736a9943114a974db9c069"
+        },
+        {
+          "n": 42,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 0,
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "dirty": [],
+          "at": "2026-10-03T05:22:19.026Z",
+          "ms": 424,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/BANK-01-042.log",
           "log_sha256": "edc1bd7c8759844a84242bb9335ed94322807eb215736a9943114a974db9c069"
         }
       ],
@@ -11754,6 +11839,13 @@
           "event": "done",
           "head": "ce5b68b701f72789a1ccaab57376b250f9029b72",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:22:19.056Z",
+          "event": "verified",
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "actor": "claude-verifier",
+          "by": "claude-verifier F (independent subagent, round 3)"
         }
       ],
       "done": {
@@ -11762,6 +11854,15 @@
         "by": "claude-worker",
         "runs": [
           41
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:22:19.041Z",
+        "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+        "by": "claude-verifier F (independent subagent, round 3)",
+        "note": "Round 3 at 07abc2a. Diff since 77778a0 over its paths (-w): the FIX-01 ask-bot files, LegalLinks 8px to 11px and the INV-01 test only. check-no-basiq passes (1149 files, 31 allow-listed historical records).",
+        "runs": [
+          42
         ]
       }
     },
@@ -15346,7 +15447,7 @@
       "title": "Invoices can be issued as a tax invoice (PDF with \"Tax invoice\", ABN and GST) and sent",
       "area": "broken",
       "priority": 55,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/TaxInvoiceIssue.test.tsx\""
       ],
@@ -15470,6 +15571,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/INV-01-009.log",
           "log_sha256": "eb56930a66125c8a0d1c41d93e7b3f8e948e9ae2576424512b5f651679cd5f2c"
+        },
+        {
+          "n": 10,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/TaxInvoiceIssue.test.tsx\"",
+          "exit": 0,
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "dirty": [],
+          "at": "2026-10-03T05:22:21.700Z",
+          "ms": 2421,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/INV-01-010.log",
+          "log_sha256": "3cfd1d6d4947993c3b9d272b9ef09002c175ff67962eb60390df30db209b6087"
         }
       ],
       "notes": [
@@ -15633,6 +15747,13 @@
           "event": "done",
           "head": "4b757ce2ddfd77925212483e1af97f328509d255",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:22:21.731Z",
+          "event": "verified",
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "actor": "claude-verifier",
+          "by": "claude-verifier F (independent subagent, round 3)"
         }
       ],
       "done": {
@@ -15644,12 +15765,12 @@
         ]
       },
       "verified": {
-        "at": "2026-10-03T04:58:50.899Z",
-        "head": "77778a05acece90f1e286e52c9e30b1a79adb04a",
-        "by": "claude-verifier E (independent subagent, round 2)",
-        "note": "Round 2 at 77778a0. isGstRegistered (InvoiceDetail.tsx:118) requires an explicit true and no explicit false; scratch test in a worktree: unknown registration gives 'Download invoice (PDF)' at HEAD and 'Download tax invoice (PDF)' at 321b5fa^. TaxInvoiceIssue passes. GAP: that acceptance test also passes 8/8 at 321b5fa^ (seeds is_gst_registered:true), so the explicit-registration rule is not pinned; add an unknown-registration case.",
+        "at": "2026-10-03T05:22:21.716Z",
+        "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+        "by": "claude-verifier F (independent subagent, round 3)",
+        "note": "Round 3 at 07abc2a. InvoiceDetail.tsx unchanged since 77778a0 (-w). The new unknown-registration case is not vacuous: with the 321b5fa^ InvoiceDetail.tsx swapped into a scratch copy it fails (1 failed, 8 passed) and passes at HEAD. Residual: commit 21748e7 left src/test/pages/TaxInvoiceIssue.test.tsx unformatted, so npm run format:check fails and CI run 37099018439 on 07abc2a is red at Format check; prettier --write on that file is needed before merge (reported under SHIP).",
         "runs": [
-          8
+          10
         ]
       }
     },
@@ -17064,7 +17185,7 @@
       "title": "CI runs the Deno edge-function tests and reports environment-gated test files instead of skipping them silently",
       "area": "broken",
       "priority": 60,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-test-coverage.test.ts\""
       ],
@@ -17137,6 +17258,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/CI-01-005.log",
           "log_sha256": "65ae859a6fad26ee8395877267395bc5e9d127280f3f141336daae1ca2efb9d2"
+        },
+        {
+          "n": 6,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-test-coverage.test.ts\"",
+          "exit": 0,
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "dirty": [],
+          "at": "2026-10-03T05:22:13.871Z",
+          "ms": 1398,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/CI-01-006.log",
+          "log_sha256": "61bc623cb5d9d2a92a2ecb49759208bb6b19597fe224a2ecee4e4900149a0e0b"
         }
       ],
       "notes": [],
@@ -17228,6 +17362,13 @@
           "event": "done",
           "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:22:13.899Z",
+          "event": "verified",
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "actor": "claude-verifier",
+          "by": "claude-verifier F (independent subagent, round 3)"
         }
       ],
       "done": {
@@ -17237,6 +17378,15 @@
         "runs": [
           5
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:22:13.885Z",
+        "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+        "by": "claude-verifier F (independent subagent, round 3)",
+        "note": "Round 3 at 07abc2a. Only change since 6da4d8b besides CI-02 is NODE_VERSION 20 to 22 in both workflows (Node 22 ships the global WebSocket supabase-js needs). ci-test-coverage passes, and fails in a scratch copy when a deploy job is added; the Deno job is unchanged, holds no secrets, read-only. Residual: .nvmrc still pins 20.20.2 and engines says >=20, so an nvm user runs the suite on the Node where commit 4b757ce says the CSP header test fails.",
+        "runs": [
+          6
+        ]
       }
     },
     {
@@ -17244,7 +17394,7 @@
       "title": "Light theme polish: themed colours everywhere, no hard-coded dark-only colours, auth screens in the new style",
       "area": "ui",
       "priority": 70,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-hardcoded-colours.mjs\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AuthMobile.test.tsx\""
@@ -17436,6 +17586,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/UI-01-014.log",
           "log_sha256": "9fdb9bdd1c7a52a68607727bddc626db98cd1ee87a6d00dfdf325cadc39d5b07"
+        },
+        {
+          "n": 15,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-hardcoded-colours.mjs\"",
+          "exit": 0,
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "dirty": [],
+          "at": "2026-10-03T05:22:22.406Z",
+          "ms": 443,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/UI-01-015.log",
+          "log_sha256": "73325d2d7d8202f3cb7a7239aba4205ddc4431e15e6ee99fdd5879a2352c188b"
+        },
+        {
+          "n": 16,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AuthMobile.test.tsx\"",
+          "exit": 0,
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "dirty": [],
+          "at": "2026-10-03T05:22:24.538Z",
+          "ms": 2131,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/UI-01-016.log",
+          "log_sha256": "03fa75d35d16c4738a9b571e77db4b3937b099d4a5259f98a98347e6d334607e"
         }
       ],
       "notes": [
@@ -17606,6 +17782,13 @@
           "event": "done",
           "head": "ce5b68b701f72789a1ccaab57376b250f9029b72",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:22:24.567Z",
+          "event": "verified",
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "actor": "claude-verifier",
+          "by": "claude-verifier F (independent subagent, round 3)"
         }
       ],
       "done": {
@@ -17615,6 +17798,16 @@
         "runs": [
           13,
           14
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:22:24.553Z",
+        "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+        "by": "claude-verifier F (independent subagent, round 3)",
+        "note": "Round 3 at 07abc2a. Diff since 77778a0 under its paths (-w): LegalLinks.tsx 8px to 11px and the INV-01 test only. check-hardcoded-colours (232 files, 13 allow-listed literals) and AuthMobile pass.",
+        "runs": [
+          15,
+          16
         ]
       }
     },
@@ -17898,7 +18091,7 @@
       "title": "Modern app shell: labelled sectioned sidebar, top bar with breadcrumbs, org switcher, user menu, command palette",
       "area": "ui",
       "priority": 72,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/AppShell.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/LayoutResponsive.test.tsx\""
@@ -18090,6 +18283,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/UI-03-014.log",
           "log_sha256": "56e3d8d96b8af89645116a90483a713a086d588f1ff63d78827f8edc95ab84a3"
+        },
+        {
+          "n": 15,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/AppShell.test.tsx\"",
+          "exit": 0,
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "dirty": [],
+          "at": "2026-10-03T05:22:27.479Z",
+          "ms": 2692,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/UI-03-015.log",
+          "log_sha256": "ba951f83a6159bc87618f0d8b656f95201fd795eed8e0aff4e07d34a21da99de"
+        },
+        {
+          "n": 16,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/LayoutResponsive.test.tsx\"",
+          "exit": 0,
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "dirty": [],
+          "at": "2026-10-03T05:22:29.920Z",
+          "ms": 2440,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/UI-03-016.log",
+          "log_sha256": "ec47f9cc30ea540f0230c2b0e8a53489cc8aa8101b8ca548be3fee505a83361d"
         }
       ],
       "notes": [],
@@ -18172,6 +18391,13 @@
           "event": "done",
           "head": "4b757ce2ddfd77925212483e1af97f328509d255",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:22:29.949Z",
+          "event": "verified",
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "actor": "claude-verifier",
+          "by": "claude-verifier F (independent subagent, round 3)"
         }
       ],
       "done": {
@@ -18181,6 +18407,16 @@
         "runs": [
           13,
           14
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:22:29.935Z",
+        "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+        "by": "claude-verifier F (independent subagent, round 3)",
+        "note": "Round 3 at 07abc2a. Layout.tsx, OrgSelector.tsx and NotificationBell.tsx are unchanged since 8923e9f plus the prettier commit, the same bytes verifier E rendered at 360 and 1440 (scratchpad/verE-shots, 14:44). E's verify failed at 77778a0 only because LayoutResponsive needs VITE_SUPABASE_URL ('supabaseUrl is required' without the env); with .env.production loaded AppShell and LayoutResponsive pass.",
+        "runs": [
+          15,
+          16
         ]
       }
     },
@@ -21935,7 +22171,7 @@
       "title": "One production deploy path: Cloudflare Pages Git integration deploys main; the CI wrangler deploy step is removed and the Cloudflare token leaves GitHub",
       "area": "ci",
       "priority": 36,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\""
       ],
@@ -21968,6 +22204,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/CI-02-002.log",
           "log_sha256": "23d4ddfb8abbc2eed8e6eb598264b80568c0199f42460e0bab5ae383542d593e"
+        },
+        {
+          "n": 3,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\"",
+          "exit": 0,
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "dirty": [],
+          "at": "2026-10-03T05:22:15.545Z",
+          "ms": 1340,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/CI-02-003.log",
+          "log_sha256": "19f1579656fc8cc2eee0e7bb54f214ffd294e9919b29686fe3c9079e583d2d6d"
         }
       ],
       "notes": [
@@ -22016,6 +22265,13 @@
           "event": "done",
           "head": "40e40cc3ada417b5092d93ca1ce11569b005a4e1",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:22:15.573Z",
+          "event": "verified",
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "actor": "claude-verifier",
+          "by": "claude-verifier F (independent subagent, round 3)"
         }
       ],
       "done": {
@@ -22025,6 +22281,15 @@
         "runs": [
           2
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:22:15.560Z",
+        "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+        "by": "claude-verifier F (independent subagent, round 3)",
+        "note": "Round 3 at 07abc2a. Deploy job gone; no job in .github references CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID, cloudflare/wrangler-action or 'pages deploy'; gh secret list on the repo shows no CLOUDFLARE_* secret (SUPABASE_SERVICE_ROLE_KEY remains, as the note says); wrangler.toml kept for the Pages Git build (pages_build_output_dir). A scratch copy with a deploy job or a wrangler publish job fails ci-hardening and ci-test-coverage. Not checked from here: that the Pages project is Git-connected to main (worker's note). Residual: CI run 37099018439 on 07abc2a is red at Format check (TaxInvoiceIssue.test.tsx unformatted), so no green run of the new workflow shape exists yet; its Deno job passed.",
+        "runs": [
+          3
+        ]
       }
     },
     {
@@ -22032,7 +22297,7 @@
       "title": "Ask AI's BAS answer reads columns that v_bas_quarterly actually has",
       "area": "broken",
       "priority": 44,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/ask-bot/bas-query.test.ts\""
       ],
@@ -22078,6 +22343,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/FIX-01-003.log",
           "log_sha256": "4da9aa8412443d07e868e43a4a385af7b2ea4232eb1bc5881b7d4a56d5e7c442"
+        },
+        {
+          "n": 4,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/ask-bot/bas-query.test.ts\"",
+          "exit": 0,
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "dirty": [],
+          "at": "2026-10-03T05:22:30.567Z",
+          "ms": 395,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/FIX-01-004.log",
+          "log_sha256": "bcc2137b2dfcab8e83a1d4ba3b0dce77aad4f17d65f8c5f785580bd07a6cbe86"
         }
       ],
       "notes": [
@@ -22135,6 +22413,13 @@
           "event": "done",
           "head": "4b757ce2ddfd77925212483e1af97f328509d255",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:22:30.597Z",
+          "event": "verified",
+          "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+          "actor": "claude-verifier",
+          "by": "claude-verifier F (independent subagent, round 3)"
         }
       ],
       "done": {
@@ -22144,8 +22429,17 @@
         "runs": [
           3
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:22:30.582Z",
+        "head": "07abc2afb8fab741aa30cdfcfbf534c43422e68a",
+        "by": "claude-verifier F (independent subagent, round 3)",
+        "note": "Round 3 at 07abc2a. basQuarterSql() run verbatim (deno eval) against a fresh Postgres with all 304 migrations via run-pg-sql-tests: PASS; SELECT sales_inc_gst_cents and SELECT net_gst_owed_cents from v_bas_quarterly each FAIL with column does not exist. The view's 16 columns equal the index.ts schema note; the older 0080 view also exposes due_date, sales_ex_gst_cents and net_gst_cents, so the query works on either. Test non-vacuous: with 716df18's basQuery.ts (sales_inc_gst_cents) it fails, while 716df18's own test passed against that file. deno check ask-bot/index.ts clean.",
+        "runs": [
+          4
+        ]
       }
     }
   ],
-  "updated_at": "2026-10-03T05:11:13.961Z"
+  "updated_at": "2026-10-03T05:22:30.611Z"
 }
