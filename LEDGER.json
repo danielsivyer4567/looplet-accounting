@@ -1863,6 +1863,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/PAY-02-006.log",
           "log_sha256": "09f39c5036e855546757e8de9edd1b52680482b7d57244cc5ae66ae73351dcde"
+        },
+        {
+          "n": 7,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeSuperDefault.test.tsx\"",
+          "exit": 0,
+          "head": "c15d2808139aa25986976295c7f1cf6bc7002540",
+          "dirty": [],
+          "at": "2026-10-03T01:00:13.047Z",
+          "ms": 2464,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-02-007.log",
+          "log_sha256": "ad45ae934825f3531c7f5ab85e2ffba52cd11c975c106ab41761df4e0a6cd11d"
+        },
+        {
+          "n": 8,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/super.test.ts\"",
+          "exit": 0,
+          "head": "c15d2808139aa25986976295c7f1cf6bc7002540",
+          "dirty": [],
+          "at": "2026-10-03T01:00:14.224Z",
+          "ms": 1176,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-02-008.log",
+          "log_sha256": "1cd7f25838aa55d470e9c3f47c1b54ece03b6b8a636065bd2dcc9793b1180eee"
         }
       ],
       "notes": [],
@@ -1924,15 +1950,38 @@
           "event": "done",
           "head": "12c30b4b676c912b7176fef703ba6c32ecaf51a9",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:00:09.198Z",
+          "event": "stale",
+          "head": "c15d2808139aa25986976295c7f1cf6bc7002540",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/EmployeeDetail.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T01:00:14.224Z",
+          "event": "run",
+          "head": "c15d2808139aa25986976295c7f1cf6bc7002540",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:00:14.364Z",
+          "event": "done",
+          "head": "c15d2808139aa25986976295c7f1cf6bc7002540",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T00:51:11.554Z",
-        "head": "12c30b4b676c912b7176fef703ba6c32ecaf51a9",
+        "at": "2026-10-03T01:00:14.350Z",
+        "head": "c15d2808139aa25986976295c7f1cf6bc7002540",
         "by": "claude-worker",
         "runs": [
-          5,
-          6
+          7,
+          8
         ]
       }
     },
@@ -2555,6 +2604,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-01-008.log",
           "log_sha256": "d679ec857b83d0ba4e356671ebb91ed10b7a49aa0a988988b796ccc9f0856671"
+        },
+        {
+          "n": 9,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 0,
+          "head": "c15d2808139aa25986976295c7f1cf6bc7002540",
+          "dirty": [],
+          "at": "2026-10-03T01:00:15.032Z",
+          "ms": 456,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-01-009.log",
+          "log_sha256": "6ab43fccabbfeeed092a8938b9f57c4c75f1a7e4a039f467250e61e6ea3484b5"
         }
       ],
       "notes": [],
@@ -2720,14 +2782,38 @@
           "event": "done",
           "head": "60081782b16eab88a28f824e6ed2f1cb3bf8001d",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:00:09.402Z",
+          "event": "stale",
+          "head": "c15d2808139aa25986976295c7f1cf6bc7002540",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/EmployeeDetail.tsx",
+            "src/test/pages/EmployeeTfnCapture.test.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T01:00:15.033Z",
+          "event": "run",
+          "head": "c15d2808139aa25986976295c7f1cf6bc7002540",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:00:15.164Z",
+          "event": "done",
+          "head": "c15d2808139aa25986976295c7f1cf6bc7002540",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T00:57:13.778Z",
-        "head": "60081782b16eab88a28f824e6ed2f1cb3bf8001d",
+        "at": "2026-10-03T01:00:15.147Z",
+        "head": "c15d2808139aa25986976295c7f1cf6bc7002540",
         "by": "claude-worker",
         "runs": [
-          8
+          9
         ]
       }
     },
@@ -4692,5 +4778,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T01:00:08.516Z"
+  "updated_at": "2026-10-03T01:00:15.180Z"
 }
