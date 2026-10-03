@@ -2078,14 +2078,41 @@
       "title": "CI uses least-privilege permissions, SHA-pinned actions and a deploy job separate from build",
       "area": "security",
       "priority": 15,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\""
       ],
       "paths": [
         ".github/workflows"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\"",
+          "exit": 1,
+          "head": "39450e9d43bb155d2a7aeec85220c40bcd12b824",
+          "dirty": [],
+          "at": "2026-10-03T02:43:42.577Z",
+          "ms": 1232,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-06-001.log",
+          "log_sha256": "bf2842b51cfa757154fd74049aa12383ead317c6689720baa788d0f82a2d1b5f"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\"",
+          "exit": 0,
+          "head": "8677192e257ede62f0a93ac6aea6086e3488d1b7",
+          "dirty": [],
+          "at": "2026-10-03T02:43:44.700Z",
+          "ms": 1806,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-06-002.log",
+          "log_sha256": "8e36b4760284ad9a22607cf442cfdfcd926d8f4129bf823b0443bf5cfaf08d1e"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -2093,8 +2120,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:43:41.221Z",
+          "event": "start",
+          "head": "39450e9d43bb155d2a7aeec85220c40bcd12b824",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:43:42.577Z",
+          "event": "run",
+          "head": "39450e9d43bb155d2a7aeec85220c40bcd12b824",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:43:44.701Z",
+          "event": "run",
+          "head": "8677192e257ede62f0a93ac6aea6086e3488d1b7",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:43:44.820Z",
+          "event": "done",
+          "head": "8677192e257ede62f0a93ac6aea6086e3488d1b7",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T02:43:44.805Z",
+        "head": "8677192e257ede62f0a93ac6aea6086e3488d1b7",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "SEC-07",
@@ -11813,5 +11876,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T02:43:13.343Z"
+  "updated_at": "2026-10-03T02:43:44.836Z"
 }

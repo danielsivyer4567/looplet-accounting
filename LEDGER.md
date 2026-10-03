@@ -13,7 +13,7 @@
 | SEC-03 | Payment-run, ABA export, mark-paid, super-batch and termination functions require an accepted admin or owner | done | done @ ff315841, awaiting independent verify |
 | SEC-04 | Xero and Gmail OAuth state is signed, bound to the user and mandatory on callback | verified | verified by claude-verifier (independent subagent) @ 60b94a38 |
 | SEC-05 | Writes to money tables (payees, bills, invoices, journals, period locks, employees, payment runs) need an accountant or admin role; viewers are read-only | done | done @ ff315841, awaiting independent verify |
-| SEC-06 | CI uses least-privilege permissions, SHA-pinned actions and a deploy job separate from build | open | not run |
+| SEC-06 | CI uses least-privilege permissions, SHA-pinned actions and a deploy job separate from build | done | done @ 8677192e, awaiting independent verify |
 | SEC-07 | Hardening: CORS allow-list, constant-time secret checks, bundled pdf.js worker, cron secrets in headers, generic error responses | open | not run |
 | PAY-01 | Pay runs calculate wages from the base hourly rate, not the loaded cost rate | done | done @ 12c30b4b, awaiting independent verify |
 | PAY-02 | Super defaults to the statutory rate (12%) and a pay run never applies less than the SG rate for the pay date | done | done @ c15d2808, awaiting independent verify |
