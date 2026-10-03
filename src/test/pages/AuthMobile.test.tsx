@@ -78,10 +78,15 @@ describe('Auth mobile layout', () => {
     fireEvent.change(screen.getByLabelText(/password/i), {
       target: { value: 'long-enough-password' },
     });
+    fireEvent.click(screen.getByRole('checkbox', { name: /i agree to the terms of service/i }));
     fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 
     await waitFor(() =>
-      expect(signUp).toHaveBeenCalledWith('owner@example.com', 'long-enough-password'),
+      expect(signUp).toHaveBeenCalledWith(
+        'owner@example.com',
+        'long-enough-password',
+        expect.objectContaining({ legal_acceptance: expect.any(Object) }),
+      ),
     );
 
     const doneHeading = screen.getByRole('heading', { name: /account created/i });

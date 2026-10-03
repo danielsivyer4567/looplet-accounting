@@ -8,6 +8,7 @@ import { useTaxCalendar, buildObligationPrompt } from '@/hooks/useTaxCalendar';
 import { OrgSelector } from './OrgSelector';
 import { NotificationBell } from './NotificationBell';
 import { BrandLogo } from './BrandLogo';
+import { LegalLinks } from './LegalLinks';
 import { TaxTimeline } from './TaxTimeline';
 import { AdvisorFinishButton } from './AdvisorFinishButton';
 import { useTheme } from '@/contexts/theme-context';
@@ -257,6 +258,7 @@ function SidebarContent({ items, onNavClick }: { items: NavItem[]; onNavClick?: 
         }}
       >
         v1.0.0
+        <LegalLinks compact />
       </div>
     </div>
   );

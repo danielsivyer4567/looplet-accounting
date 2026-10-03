@@ -9,6 +9,15 @@ import { Layout } from '@/components/Layout';
 
 const LoginPage = lazy(() => import('@/pages/Login').then((m) => ({ default: m.LoginPage })));
 const SignupPage = lazy(() => import('@/pages/Signup').then((m) => ({ default: m.SignupPage })));
+const PrivacyPolicyPage = lazy(() =>
+  import('@/pages/Legal').then((m) => ({ default: m.PrivacyPolicyPage })),
+);
+const TermsOfServicePage = lazy(() =>
+  import('@/pages/Legal').then((m) => ({ default: m.TermsOfServicePage })),
+);
+const CollectionNoticePage = lazy(() =>
+  import('@/pages/Legal').then((m) => ({ default: m.CollectionNoticePage })),
+);
 const AcceptInvitePage = lazy(() =>
   import('@/pages/AcceptInvite').then((m) => ({ default: m.AcceptInvitePage })),
 );
@@ -200,6 +209,11 @@ export function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/accept-invite" element={<AcceptInvitePage />} />
+            {/* Public: linked from sign-in, sign-up and the app footer, and needed for Google's
+                OAuth review, so they must load without an account. */}
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsOfServicePage />} />
+            <Route path="/collection-notice" element={<CollectionNoticePage />} />
             <Route
               element={
                 <ProtectedRoute>

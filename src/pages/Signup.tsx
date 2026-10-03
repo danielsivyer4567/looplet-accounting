@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthShell } from '@/components/AuthShell';
 import { BrandHeader } from '@/components/BrandHeader';
+import { LegalLinks } from '@/components/LegalLinks';
+import { LEGAL_PATHS, legalAcceptanceRecord } from '@/lib/legal';
 
 /**
  * Turn raw Supabase auth errors into something a signing-up user can act on.
@@ -33,12 +35,24 @@ export function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [accepted, setAccepted] = useState(false);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!accepted) {
+      setError(
+        'To create an account, agree to the Terms of Service and confirm you have read the Privacy Policy and Collection Notice.',
+      );
+      return;
+    }
     setBusy(true);
     setError(null);
-    const { error, needsEmailConfirmation } = await signUp(email, password);
+    // The acceptance (document versions and time) is saved on the new account.
+    const { error, needsEmailConfirmation } = await signUp(
+      email,
+      password,
+      legalAcceptanceRecord('signup_checkbox'),
+    );
     setBusy(false);
     if (error) {
       setError(friendlySignupError(error.message));
@@ -100,6 +114,32 @@ export function SignupPage() {
           />
         </div>
 
+        <label
+          htmlFor="signup-legal"
+          style={{
+            display: 'flex',
+            gap: '0.5rem',
+            alignItems: 'flex-start',
+            fontSize: '0.8rem',
+            lineHeight: 1.45,
+            color: 'var(--text-body)',
+          }}
+        >
+          <input
+            id="signup-legal"
+            type="checkbox"
+            checked={accepted}
+            onChange={(e) => setAccepted(e.target.checked)}
+            required
+            style={{ marginTop: '0.2rem' }}
+          />
+          <span>
+            I agree to the <Link to={LEGAL_PATHS.terms}>Terms of Service</Link> and have read the{' '}
+            <Link to={LEGAL_PATHS.privacy}>Privacy Policy</Link> and{' '}
+            <Link to={LEGAL_PATHS.collectionNotice}>Collection Notice</Link>.
+          </span>
+        </label>
+
         {error && (
           <div className="auth-alert badge badge-danger" role="alert">
             {error}
@@ -114,6 +154,7 @@ export function SignupPage() {
       <div className="auth-footer">
         Already have an account? <Link to="/login">Sign in</Link>
       </div>
+      <LegalLinks />
     </div>
   );
 

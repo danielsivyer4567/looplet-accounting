@@ -32,6 +32,7 @@ import {
 } from '@/lib/automationDecision';
 import { useOrg } from '@/hooks/useOrg';
 import { supabase } from '@/lib/supabase';
+import { LEGAL_PATHS } from '@/lib/legal';
 
 type SettingsCategory = 'account' | 'privacy' | 'notification' | 'appearance' | 'automation';
 
@@ -468,6 +469,10 @@ export function SettingsPage() {
                 people who have been given access to an organisation can see its books. Looplet has
                 no advertising or social-media tracking, and there are no data-sharing switches to
                 set here.
+              </p>
+              <p style={{ fontSize: '0.85rem', margin: 0 }}>
+                Read the <Link to={LEGAL_PATHS.privacy}>privacy policy</Link> and{' '}
+                <Link to={LEGAL_PATHS.collectionNotice}>collection notice</Link>.
               </p>
             </div>
           )}
