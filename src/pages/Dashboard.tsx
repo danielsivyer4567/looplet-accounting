@@ -38,7 +38,7 @@ import {
   CalendarClock,
 } from 'lucide-react';
 
-const FEED_COLORS = ['#365fe4', '#10b981', '#f97316', '#eab308', '#ef4444', '#22c55e', '#0ea5e9'];
+const FEED_COLORS = [1, 2, 3, 4, 5, 6, 7].map((n) => `var(--palette-${n})`);
 
 /** Stable colour per label so the same supplier/customer always gets the same badge. */
 function feedColor(label: string): string {
@@ -1048,9 +1048,9 @@ const TASK_ICONS: Record<TaskKind, typeof Clock> = {
 const CONFIDENCE_COLORS: Record<string, string> = {
   auto_post: 'var(--accent-success)',
   quick_confirm: 'var(--accent-primary)',
-  review_needed: '#f59e0b',
-  advisor_required: '#ef4444',
-  blocked_external: '#dc2626',
+  review_needed: 'var(--accent-warning)',
+  advisor_required: 'var(--accent-danger)',
+  blocked_external: 'var(--accent-danger)',
 };
 
 function taskRoute(task: WorkstreamTask): string {

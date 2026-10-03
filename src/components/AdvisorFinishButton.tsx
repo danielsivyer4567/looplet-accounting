@@ -391,7 +391,7 @@ export function AdvisorFinishButton() {
             position: 'fixed',
             inset: 0,
             zIndex: 1000,
-            background: 'rgba(0, 0, 0, 0.62)',
+            background: 'var(--bg-scrim)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

@@ -670,7 +670,7 @@ function ClassificationControls({
           backgroundColor:
             s.is_business && !s.is_personal ? 'var(--bg-success-subtle)' : 'var(--bg-hover)',
           color: s.is_business && !s.is_personal ? 'var(--text-success)' : 'var(--text-muted)',
-          border: `1px solid ${s.is_business && !s.is_personal ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-subtle)'}`,
+          border: `1px solid ${s.is_business && !s.is_personal ? 'var(--border-success)' : 'var(--border-subtle)'}`,
         }}
       >
         Biz
@@ -688,7 +688,7 @@ function ClassificationControls({
           fontSize: '0.7rem',
           backgroundColor: s.is_personal ? 'var(--bg-warning-subtle)' : 'var(--bg-hover)',
           color: s.is_personal ? 'var(--text-warning)' : 'var(--text-muted)',
-          border: `1px solid ${s.is_personal ? 'rgba(245, 158, 11, 0.2)' : 'var(--border-subtle)'}`,
+          border: `1px solid ${s.is_personal ? 'var(--border-warning)' : 'var(--border-subtle)'}`,
         }}
       >
         Personal

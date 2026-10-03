@@ -221,8 +221,8 @@ export function GmailConnect({
                         padding: '0.15rem 0.5rem',
                         fontSize: 11,
                         borderRadius: 3,
-                        background: g.is_active ? '#0d2f1f' : '#2a2a2a',
-                        color: g.is_active ? '#86c7a3' : '#888',
+                        background: g.is_active ? 'var(--bg-success-subtle)' : 'var(--bg-hover)',
+                        color: g.is_active ? 'var(--text-success)' : 'var(--text-muted)',
                         textTransform: 'uppercase',
                       }}
                     >
@@ -304,8 +304,8 @@ export function GmailConnect({
                       padding: '0.15rem 0.5rem',
                       fontSize: 11,
                       borderRadius: 3,
-                      background: g.is_active ? '#0d2f1f' : '#2a2a2a',
-                      color: g.is_active ? '#86c7a3' : '#888',
+                      background: g.is_active ? 'var(--bg-success-subtle)' : 'var(--bg-hover)',
+                      color: g.is_active ? 'var(--text-success)' : 'var(--text-muted)',
                       textTransform: 'uppercase',
                     }}
                   >

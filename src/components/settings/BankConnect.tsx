@@ -281,12 +281,12 @@ export function BankConnect() {
 function StatusPill({ status }: { status: BankConnectionRow['status'] }) {
   const colour =
     status === 'active'
-      ? '#86c7a3'
+      ? 'var(--text-success)'
       : status === 'expired' || status === 'revoked'
-        ? '#e9a3a3'
+        ? 'var(--text-danger)'
         : status === 'error'
-          ? '#e9a3a3'
-          : '#888';
+          ? 'var(--text-danger)'
+          : 'var(--text-muted)';
   return (
     <span
       style={{
@@ -379,7 +379,7 @@ function BankAccountDetails({
             style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}
           >
             <strong>{account.name}</strong>
-            <span style={{ color: account.is_active ? '#86c7a3' : '#aaa', fontSize: 11 }}>
+            <span style={{ color: account.is_active ? 'var(--text-success)' : 'var(--text-muted)', fontSize: 11 }}>
               {account.is_active ? 'active' : 'inactive'}
               {account.is_primary ? ' · primary' : ''}
             </span>

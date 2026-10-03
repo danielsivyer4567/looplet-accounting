@@ -1665,7 +1665,7 @@ function ReceiptIdentityPass({ token }: { token: string }) {
         viewBox={`0 0 ${barcode.width} 72`}
         preserveAspectRatio="none"
       >
-        <rect width={barcode.width} height="72" fill="#ffffff" />
+        <rect width={barcode.width} height="72" fill="var(--bg-paper)" />
         {barcode.bars.map((bar) => (
           <rect key={`${bar.x}-${bar.width}`} x={bar.x} y="8" width={bar.width} height="44" />
         ))}

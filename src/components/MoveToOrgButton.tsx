@@ -102,7 +102,7 @@ export function MoveToOrgButton({
             background: 'var(--bg-card)',
             border: '1px solid var(--border-subtle)',
             borderRadius: 4,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+            boxShadow: 'var(--shadow-md)',
             zIndex: 100,
           }}
         >
@@ -135,7 +135,7 @@ export function MoveToOrgButton({
                 cursor: 'pointer',
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = '#222';
+                (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-hover)';
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLButtonElement).style.background = 'transparent';

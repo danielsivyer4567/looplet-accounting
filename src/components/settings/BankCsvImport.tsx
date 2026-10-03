@@ -217,7 +217,7 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
         style={{
           marginTop: 12,
           padding: '0.5rem 1rem',
-          background: busy ? '#333' : '#1c4868',
+          background: busy ? 'var(--bg-hover)' : 'var(--accent-info)',
           color: 'var(--text-title)',
           border: '1px solid var(--accent-info)',
           borderRadius: 4,

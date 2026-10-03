@@ -6,7 +6,7 @@ import {
 import { SkeletonCard } from '@/components/Skeleton';
 import { CalendarClock, RefreshCw } from 'lucide-react';
 
-const MUTED = 'var(--text-muted, #6b7280)';
+const MUTED = 'var(--text-muted)';
 
 // The legislative lifecycle, rendered for humans. Open items can sit at any stage
 // (an 'enacted' open item = law just landed, not yet reconciled to the corpus).
@@ -109,7 +109,7 @@ function HorizonCard({ item }: { item: LegalHorizonRow }) {
         <span
           style={{
             fontSize: '0.75rem',
-            color: lowConfidence ? 'var(--text-warning, #b45309)' : MUTED,
+            color: lowConfidence ? 'var(--text-warning)' : MUTED,
           }}
         >
           Confidence {pct}%{lowConfidence ? ' · low — treat with caution' : ''}

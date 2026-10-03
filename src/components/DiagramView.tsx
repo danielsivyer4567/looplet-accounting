@@ -238,7 +238,7 @@ function Node({ n, shown, active }: { n: PNode; shown: boolean; active: boolean 
             transition: 'fill 0.6s ease, stroke 0.6s ease, filter 0.6s ease',
             filter: active
               ? 'drop-shadow(0 0 10px color-mix(in srgb, var(--accent-primary) 45%, transparent))'
-              : 'drop-shadow(0 5px 12px rgba(0, 0, 0, 0.3))',
+              : 'drop-shadow(0 5px 12px var(--shadow-drop))',
           }}
         />
         <text

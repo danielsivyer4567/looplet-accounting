@@ -731,7 +731,7 @@ function RecordPaymentModal({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        backgroundColor: 'var(--bg-scrim)',
         backdropFilter: 'blur(4px)',
         display: 'flex',
         alignItems: 'center',

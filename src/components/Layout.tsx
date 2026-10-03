@@ -204,7 +204,7 @@ function SidebarContent({ items, onNavClick }: { items: NavItem[]; onNavClick?: 
                           padding: '1px 3px',
                           borderRadius: '3px',
                           background: 'var(--accent-primary)',
-                          color: '#fff',
+                          color: 'var(--text-on-accent)',
                           fontWeight: 700,
                         }}
                       >
@@ -280,7 +280,7 @@ function TagModeToggleButton() {
         isTagDropActive
           ? {
               background: 'var(--accent-primary)',
-              color: '#fff',
+              color: 'var(--text-on-accent)',
               borderColor: 'var(--accent-primary)',
             }
           : undefined
@@ -392,7 +392,7 @@ export function Layout() {
           align-items: center;
           justify-content: center;
           gap: 2px;
-          color: #fff;
+          color: var(--text-on-accent);
           font-weight: 700;
           font-size: 9px;
           cursor: pointer;
@@ -432,7 +432,7 @@ export function Layout() {
               style={{
                 position: 'fixed',
                 inset: 0,
-                background: 'rgba(0,0,0,0.4)',
+                background: 'var(--bg-scrim)',
                 backdropFilter: 'blur(4px)',
                 zIndex: 100,
               }}
@@ -564,12 +564,12 @@ export function Layout() {
                       Apps
                     </h4>
 
-                    <div className="app-switch-btn" style={{ background: '#0a192f' }}>
+                    <div className="app-switch-btn" style={{ background: 'var(--accent-primary)' }}>
                       <div style={{ fontSize: '14px', fontWeight: 800 }}>L</div>
                       <span style={{ fontSize: '8px' }}>Accounting</span>
                     </div>
 
-                    <div className="app-switch-btn" style={{ background: '#134e4a' }}>
+                    <div className="app-switch-btn" style={{ background: 'var(--accent-success)' }}>
                       <div style={{ fontSize: '14px', fontWeight: 800 }}>L</div>
                       <span style={{ fontSize: '8px' }}>CRM</span>
                     </div>
@@ -586,7 +586,7 @@ export function Layout() {
                   height: '32px',
                   borderRadius: '50%',
                   backgroundColor: 'var(--accent-primary)',
-                  color: '#fff',
+                  color: 'var(--text-on-accent)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -594,7 +594,7 @@ export function Layout() {
                   fontSize: '0.8rem',
                   cursor: 'pointer',
                   transition: 'var(--transition-smooth)',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                  boxShadow: 'var(--shadow-sm)',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = 'var(--accent-danger)';

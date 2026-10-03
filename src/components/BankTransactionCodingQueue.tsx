@@ -33,8 +33,8 @@ const CATEGORY_OPTIONS = [
 
 function confidenceColor(c: number): string {
   if (c >= 0.88) return 'var(--color-success)';
-  if (c >= 0.6) return 'var(--color-warning, #f59e0b)';
-  return 'var(--color-danger, #ef4444)';
+  if (c >= 0.6) return 'var(--accent-warning)';
+  return 'var(--accent-danger)';
 }
 
 function OverrideSelect({
@@ -139,7 +139,7 @@ function CodingRow({
         </span>
       </td>
       <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-        <span style={{ color: isDebit ? 'var(--text-danger, #ef4444)' : 'var(--color-success)' }}>
+        <span style={{ color: isDebit ? 'var(--text-danger)' : 'var(--text-success)' }}>
           {isDebit ? '-' : '+'}
           {formatMoney(Math.abs(row.txn_amount_cents))}
         </span>
@@ -268,7 +268,7 @@ export function BankTransactionCodingQueue() {
           {rows.length > 0 && (
             <span
               className="badge"
-              style={{ background: 'var(--accent-primary)', color: '#fff', fontSize: '0.7rem' }}
+              style={{ background: 'var(--accent-primary)', color: 'var(--text-on-accent)', fontSize: '0.7rem' }}
             >
               {rows.length}
             </span>

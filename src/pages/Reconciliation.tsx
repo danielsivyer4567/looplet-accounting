@@ -365,7 +365,7 @@ export function ReconciliationPage() {
                 marginBottom: '1.5rem',
                 padding: '1rem 1.25rem',
                 background: 'var(--bg-success-subtle)',
-                border: '1px solid rgba(16, 185, 129, 0.2)',
+                border: '1px solid var(--border-success)',
                 borderRadius: 'var(--radius-md)',
                 display: 'flex',
                 alignItems: 'center',
@@ -744,7 +744,7 @@ function EvidencePanel({ rows }: { rows: EvidenceRow[] }) {
             style={{
               padding: '0.15rem 0.45rem',
               background: 'var(--bg-success-subtle)',
-              border: '1px solid rgba(16,185,129,0.2)',
+              border: '1px solid var(--border-success)',
               borderRadius: '999px',
               fontSize: '0.7rem',
               color: 'var(--text-success)',

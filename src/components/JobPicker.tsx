@@ -60,7 +60,7 @@ export function JobPicker({
             zIndex: 10,
             maxHeight: 280,
             overflowY: 'auto',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+            boxShadow: 'var(--shadow-lg)',
           }}
         >
           {loading && (
@@ -89,7 +89,7 @@ export function JobPicker({
                 fontSize: 13,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#2a2a2a';
+                e.currentTarget.style.background = 'var(--bg-hover)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent';

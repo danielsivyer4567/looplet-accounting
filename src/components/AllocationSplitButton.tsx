@@ -188,9 +188,9 @@ export function AllocationSplitButton({
         disabled={busy}
         style={{
           padding: '0.3rem 0.75rem',
-          background: splits.length > 0 ? '#1c2c4868' : 'transparent',
-          color: splits.length > 0 ? '#5096d8' : '#aaa',
-          border: '1px solid ' + (splits.length > 0 ? '#5096d8' : '#333'),
+          background: splits.length > 0 ? 'var(--bg-info-subtle)' : 'transparent',
+          color: splits.length > 0 ? 'var(--accent-info)' : 'var(--text-muted)',
+          border: '1px solid ' + (splits.length > 0 ? 'var(--accent-info)' : 'var(--border-subtle)'),
           borderRadius: 3,
           fontSize: 12,
           cursor: busy ? 'wait' : 'pointer',
@@ -350,7 +350,7 @@ export function AllocationSplitButton({
                   alignItems: 'baseline',
                   marginTop: 8,
                   fontSize: 12,
-                  color: overTotal ? 'salmon' : '#aaa',
+                  color: overTotal ? 'var(--text-danger)' : 'var(--text-muted)',
                   fontWeight: 600,
                 }}
               >
@@ -367,9 +367,9 @@ export function AllocationSplitButton({
                   style={{
                     flex: 1,
                     padding: '0.4rem',
-                    background: overTotal ? '#3d1818' : '#1c4868',
+                    background: overTotal ? 'var(--bg-danger-subtle)' : 'var(--bg-info-subtle)',
                     color: 'var(--text-title)',
-                    border: '1px solid ' + (overTotal ? '#7d3838' : '#5096d8'),
+                    border: '1px solid ' + (overTotal ? 'var(--accent-danger)' : 'var(--accent-info)'),
                     borderRadius: 3,
                     fontSize: 12,
                     fontWeight: 600,

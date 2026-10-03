@@ -256,7 +256,7 @@ export function SettingsPage() {
           color: var(--text-title);
         }
         .settings-tab-btn:hover:not(.active) {
-          background-color: rgba(255, 255, 255, 0.03);
+          background-color: var(--bg-overlay-faint);
           color: var(--text-title);
         }
         .switch {
@@ -286,7 +286,7 @@ export function SettingsPage() {
           width: 14px;
           left: 3px;
           bottom: 3px;
-          background-color: #fff;
+          background-color: var(--bg-paper);
           transition: 0.2s;
           border-radius: 50%;
         }
@@ -514,7 +514,7 @@ export function SettingsPage() {
                     background: 'var(--accent-primary)',
                     border: 'none',
                     borderRadius: '6px',
-                    color: '#fff',
+                    color: 'var(--text-on-accent)',
                     fontWeight: 600,
                     fontSize: '0.8rem',
                     cursor: 'pointer',
@@ -684,7 +684,7 @@ export function SettingsPage() {
                         background: 'var(--accent-primary)',
                         border: 'none',
                         borderRadius: '6px',
-                        color: '#fff',
+                        color: 'var(--text-on-accent)',
                         fontWeight: 600,
                         fontSize: '0.8rem',
                         cursor: 'pointer',

@@ -190,7 +190,7 @@ export function AdviceNoteView({
         style={{
           ...panelStyle,
           background: 'var(--bg-warning-subtle)',
-          borderColor: 'rgba(245, 158, 11, 0.25)',
+          borderColor: 'var(--border-warning)',
         }}
         aria-labelledby={`disclaimer-${note.id}`}
       >

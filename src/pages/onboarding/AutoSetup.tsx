@@ -280,7 +280,7 @@ export function AutoSetupPage() {
                   className="btn btn-secondary"
                   style={{
                     padding: '0.625rem 1.25rem',
-                    border: '1px solid rgba(54, 95, 228, 0.4)',
+                    border: '1px solid var(--border-primary)',
                     color: 'var(--text-link)',
                   }}
                 >

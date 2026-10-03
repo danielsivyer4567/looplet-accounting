@@ -112,7 +112,7 @@ export function DetectedInsights() {
                       style={{
                         marginLeft: 8,
                         fontSize: 10,
-                        color: s.confidence >= 0.9 ? '#86c7a3' : '#aaa',
+                        color: s.confidence >= 0.9 ? 'var(--text-success)' : 'var(--text-muted)',
                         background: 'var(--bg-panel)',
                         padding: '0.1rem 0.4rem',
                         borderRadius: 3,

@@ -19,8 +19,8 @@ function Tbc({ children }: { children: ReactNode }) {
     <mark
       className="legal-tbc"
       style={{
-        background: 'var(--bg-warning-subtle, #fff4d6)',
-        color: 'var(--text-warning, #8a5a00)',
+        background: 'var(--bg-warning-subtle)',
+        color: 'var(--text-warning)',
         border: '1px dashed currentColor',
         borderRadius: '4px',
         padding: '0 0.3rem',
@@ -75,9 +75,9 @@ function LegalDocument({
           aria-label="Draft notice"
           style={{
             padding: '0.75rem 1rem',
-            border: '1px solid var(--accent-warning, #d99a00)',
+            border: '1px solid var(--accent-warning)',
             borderRadius: 'var(--radius-sm, 6px)',
-            background: 'var(--bg-warning-subtle, #fff8e6)',
+            background: 'var(--bg-warning-subtle)',
           }}
         >
           <strong>Draft awaiting legal review.</strong> Looplet has written this document to match

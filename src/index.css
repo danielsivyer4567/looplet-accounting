@@ -80,6 +80,40 @@ html[data-theme='light'] {
   --glass-bg: linear-gradient(135deg, #f7f8fa, #e1e6ed);
   --brand-tile-bg: #182b49;
   --brand-tile-fg: #abc2ff;
+
+  /* Washes, lines, overlays and glows: the only translucent colours pages use
+     (scripts/check-hardcoded-colours.mjs fails on any other literal). Ink here is
+     the title colour, so overlays read as shade on the grey canvas. */
+  --bg-paper: #ffffff; /* document previews and barcodes: paper stays white in both themes */
+  --bg-scrim: rgba(32, 37, 44, 0.45);
+  --bg-inset: rgba(32, 37, 44, 0.06);
+  --bg-overlay-faint: rgba(32, 37, 44, 0.03);
+  --bg-overlay-soft: rgba(32, 37, 44, 0.06);
+  --bg-overlay-strong: rgba(32, 37, 44, 0.1);
+  --line-faint: rgba(32, 37, 44, 0.1);
+  --line-soft: rgba(32, 37, 44, 0.18);
+  --line-strong: rgba(32, 37, 44, 0.3);
+  --focus-ring: rgba(47, 86, 214, 0.25);
+  --border-primary: rgba(47, 86, 214, 0.4);
+  --border-success: rgba(31, 138, 91, 0.3);
+  --border-danger: rgba(194, 65, 45, 0.3);
+  --border-warning: rgba(183, 121, 31, 0.3);
+  --border-info: rgba(66, 92, 170, 0.3);
+  --accent-primary-tint: rgba(47, 86, 214, 0.1);
+  --accent-primary-glow: rgba(47, 86, 214, 0.22);
+  --accent-success-glow: rgba(31, 138, 91, 0.28);
+  --shadow-drop: rgba(24, 43, 73, 0.18);
+  --bg-code: #20252c;
+  --text-code: #e6e9ed;
+
+  /* Categorical palette (merchant avatars, feed dots): white text on each. */
+  --palette-1: #2f56d6;
+  --palette-2: #1f8a5b;
+  --palette-3: #c9650f;
+  --palette-4: #a07d12;
+  --palette-5: #c2412d;
+  --palette-6: #3f9d57;
+  --palette-7: #1d7fa8;
 }
 
 /* Dark mode styles */
@@ -134,6 +168,36 @@ html[data-theme='dark'] {
   --glass-bg: #222222;
   --brand-tile-bg: #303030;
   --brand-tile-fg: #dedede;
+
+  --bg-paper: #ffffff;
+  --bg-scrim: rgba(0, 0, 0, 0.65);
+  --bg-inset: rgba(2, 6, 16, 0.5);
+  --bg-overlay-faint: rgba(255, 255, 255, 0.025);
+  --bg-overlay-soft: rgba(255, 255, 255, 0.06);
+  --bg-overlay-strong: rgba(255, 255, 255, 0.12);
+  --line-faint: rgba(148, 163, 184, 0.12);
+  --line-soft: rgba(148, 163, 184, 0.24);
+  --line-strong: rgba(148, 163, 184, 0.36);
+  --focus-ring: rgba(63, 99, 230, 0.35);
+  --border-primary: rgba(63, 99, 230, 0.45);
+  --border-success: rgba(111, 197, 154, 0.3);
+  --border-danger: rgba(240, 138, 117, 0.3);
+  --border-warning: rgba(230, 180, 80, 0.3);
+  --border-info: rgba(168, 185, 237, 0.3);
+  --accent-primary-tint: rgba(63, 99, 230, 0.16);
+  --accent-primary-glow: rgba(63, 99, 230, 0.3);
+  --accent-success-glow: rgba(111, 197, 154, 0.3);
+  --shadow-drop: rgba(0, 0, 0, 0.5);
+  --bg-code: #111111;
+  --text-code: #d4d4d4;
+
+  --palette-1: #5d7ff0;
+  --palette-2: #3fa87a;
+  --palette-3: #d9843a;
+  --palette-4: #b9962a;
+  --palette-5: #d9634d;
+  --palette-6: #4fae6a;
+  --palette-7: #3c9ac4;
 }
 
 /* Base resets & resets */
@@ -260,7 +324,7 @@ code {
 }
 
 .card-gradient {
-  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(54, 95, 228, 0.05) 100%);
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--accent-primary-tint) 100%);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 1.5rem;
@@ -276,7 +340,7 @@ code {
   right: 0;
   width: 150px;
   height: 150px;
-  background: radial-gradient(circle, rgba(54, 95, 228, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+  background: radial-gradient(circle, var(--accent-primary-tint) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -359,7 +423,7 @@ code {
 .auth-theme-switch button[aria-pressed='true'] {
   background: var(--bg-panel);
   color: var(--text-title);
-  box-shadow: 0 2px 6px rgba(19, 34, 57, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 
 .auth-layout {
@@ -630,7 +694,7 @@ code {
 .btn:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
-  box-shadow: 0 0 0 3px rgba(54, 95, 228, 0.25);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .btn-primary {
@@ -737,7 +801,7 @@ code {
 .form-textarea:focus,
 .form-select:focus {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(54, 95, 228, 0.15);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .form-textarea {
@@ -768,25 +832,25 @@ div.badge {
 .badge-success {
   background-color: var(--bg-success-subtle);
   color: var(--text-success);
-  border-color: rgba(16, 185, 129, 0.2);
+  border-color: var(--border-success);
 }
 
 .badge-danger {
   background-color: var(--bg-danger-subtle);
   color: var(--text-danger);
-  border-color: rgba(239, 68, 68, 0.2);
+  border-color: var(--border-danger);
 }
 
 .badge-warning {
   background-color: var(--bg-warning-subtle);
   color: var(--text-warning);
-  border-color: rgba(245, 158, 11, 0.2);
+  border-color: var(--border-warning);
 }
 
 .badge-info {
   background-color: var(--bg-info-subtle);
   color: var(--text-info);
-  border-color: rgba(59, 130, 246, 0.2);
+  border-color: var(--border-info);
 }
 
 .badge-neutral {
@@ -1189,10 +1253,10 @@ div.badge {
   margin-top: 4px;
   width: min(360px, calc(100vw - 2rem));
   max-width: calc(100vw - 2rem);
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
   border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-md);
   z-index: 100;
   padding: 0.5rem 0.75rem;
   box-sizing: border-box;
@@ -1203,7 +1267,7 @@ div.badge {
   flex-direction: column;
   gap: 3px;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .allocation-split-row__controls,
@@ -1551,9 +1615,9 @@ div.badge {
   justify-content: center;
   font-weight: 700;
   font-size: 0.85rem;
-  color: #ffffff;
+  color: var(--text-on-accent);
   flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-sm);
 }
 
 .app-switcher-popup {
@@ -1576,7 +1640,7 @@ div.badge {
 .drawer-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: var(--bg-scrim);
   backdrop-filter: blur(4px);
   z-index: 1000;
   animation: fadeInEffect 0.2s ease-out;
@@ -1694,7 +1758,7 @@ div.badge {
 }
 
 .insight-donut-track {
-  stroke: rgba(148, 163, 184, 0.13);
+  stroke: var(--line-faint);
 }
 
 .insight-donut-segment {
@@ -1710,8 +1774,8 @@ div.badge {
   transform: translate(-50%, -50%);
   border-radius: var(--radius-full);
   background:
-    radial-gradient(circle at 48% 42%, rgba(255, 255, 255, 0.08), transparent 70%),
-    rgba(12, 17, 29, 0.44);
+    radial-gradient(circle at 48% 42%, var(--bg-overlay-soft), transparent 70%),
+    var(--bg-inset);
   backdrop-filter: blur(8px);
   display: grid;
   place-items: center;
@@ -1816,8 +1880,8 @@ div.badge {
   margin-top: 0.35rem;
   border-radius: var(--radius-full);
   background:
-    linear-gradient(90deg, rgba(148, 163, 184, 0.12) 0 1px, transparent 1px 24%),
-    rgba(148, 163, 184, 0.1);
+    linear-gradient(90deg, var(--line-faint) 0 1px, transparent 1px 24%),
+    var(--line-faint);
   overflow: hidden;
 }
 
@@ -1954,7 +2018,7 @@ div.badge {
 }
 
 .insight-area-reference {
-  stroke: rgba(148, 163, 184, 0.24);
+  stroke: var(--line-soft);
   stroke-width: 1;
   stroke-dasharray: 2 6;
 }
@@ -2017,7 +2081,7 @@ div.badge {
   gap: 0.45rem;
   padding: 0.28rem 0.45rem;
   border-radius: var(--radius-sm);
-  background: rgba(15, 23, 42, 0.52);
+  background: var(--bg-inset);
   color: var(--text-title);
   font-size: 0.72rem;
   font-weight: 700;
@@ -2078,8 +2142,8 @@ div.badge {
   padding: 1rem 0.25rem 0.35rem;
   border: 0;
   background:
-    radial-gradient(circle at 50% 8%, rgba(0, 117, 255, 0.15), transparent 34%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 72%);
+    radial-gradient(circle at 50% 8%, var(--accent-primary-tint), transparent 34%),
+    linear-gradient(180deg, var(--bg-overlay-faint), transparent 72%);
   overflow: hidden;
 }
 
@@ -2089,10 +2153,10 @@ div.badge {
   margin: 0 auto;
   padding: 0.6rem 0.9rem;
   border-radius: var(--radius-sm);
-  background: rgba(0, 117, 255, 0.22);
+  background: var(--accent-primary-glow);
   color: var(--text-title);
   text-align: center;
-  box-shadow: 0 0 30px rgba(0, 117, 255, 0.22);
+  box-shadow: 0 0 30px var(--accent-primary-glow);
 }
 
 .mind-map-root span {
@@ -2113,7 +2177,7 @@ div.badge {
   width: 1px;
   height: 1rem;
   margin: 0 auto;
-  background: linear-gradient(180deg, rgba(148, 163, 184, 0.36), transparent);
+  background: linear-gradient(180deg, var(--line-strong), transparent);
 }
 
 .mind-map-branches {
@@ -2129,8 +2193,8 @@ div.badge {
   border-radius: var(--radius-sm);
   padding: 0.7rem;
   min-height: 92px;
-  background: linear-gradient(135deg, var(--node-bg), transparent 160%), rgba(255, 255, 255, 0.025);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background: linear-gradient(135deg, var(--node-bg), transparent 160%), var(--bg-overlay-faint);
+  box-shadow: inset 0 1px 0 var(--bg-overlay-soft);
 }
 
 .mind-map-node::before {
@@ -2292,7 +2356,7 @@ div.badge {
   max-width: 620px;
   padding: 0.75rem 0.85rem;
   border-radius: var(--radius-sm);
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--bg-danger-subtle);
   color: var(--text-danger);
   font-size: 0.82rem;
   font-weight: 700;
@@ -2308,8 +2372,8 @@ div.badge {
   padding: 0.78rem 0.9rem;
   border-radius: var(--radius-sm);
   background:
-    linear-gradient(90deg, rgba(16, 185, 129, 0.14), rgba(0, 117, 255, 0.06)),
-    rgba(255, 255, 255, 0.025);
+    linear-gradient(90deg, var(--bg-success-subtle), var(--accent-primary-tint)),
+    var(--bg-overlay-faint);
 }
 
 .receipt-token-strip span {
@@ -2335,11 +2399,11 @@ div.badge {
   display: grid;
   gap: 0.65rem;
   padding: 0.8rem 0.9rem;
-  border: 1px solid rgba(16, 185, 129, 0.24);
+  border: 1px solid var(--border-success);
   border-radius: var(--radius-sm);
   background:
-    linear-gradient(90deg, rgba(16, 185, 129, 0.12), rgba(0, 117, 255, 0.05)),
-    rgba(255, 255, 255, 0.025);
+    linear-gradient(90deg, var(--bg-success-subtle), var(--accent-primary-tint)),
+    var(--bg-overlay-faint);
 }
 
 .receipt-pass-heading {
@@ -2367,7 +2431,7 @@ div.badge {
   height: 4.5rem;
   display: block;
   border-radius: var(--radius-sm);
-  background: #ffffff;
+  background: var(--bg-paper);
 }
 
 .receipt-pass-card code {
@@ -2389,14 +2453,14 @@ div.badge {
   position: relative;
   min-height: 480px;
   padding: 1.1rem;
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  border: 1px solid var(--line-soft);
   border-radius: 2rem;
   background:
-    radial-gradient(circle at 50% 16%, rgba(16, 185, 129, 0.28), transparent 32%),
-    radial-gradient(circle at 50% 52%, rgba(0, 117, 255, 0.18), transparent 38%), #060913;
+    radial-gradient(circle at 50% 16%, var(--accent-success-glow), transparent 32%),
+    radial-gradient(circle at 50% 52%, var(--accent-primary-tint), transparent 38%), var(--brand-tile-bg);
   box-shadow:
-    inset 0 0 0 7px rgba(255, 255, 255, 0.02),
-    0 28px 80px rgba(0, 0, 0, 0.34);
+    inset 0 0 0 7px var(--bg-overlay-faint),
+    var(--shadow-lg);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2411,7 +2475,7 @@ div.badge {
   width: 5rem;
   height: 0.32rem;
   border-radius: var(--radius-full);
-  background: rgba(148, 163, 184, 0.24);
+  background: var(--line-soft);
 }
 
 .receipt-phone-top {
@@ -2434,8 +2498,8 @@ div.badge {
   place-items: center;
   color: var(--accent-success);
   background:
-    radial-gradient(circle, rgba(16, 185, 129, 0.24), transparent 62%), rgba(16, 185, 129, 0.06);
-  box-shadow: 0 0 72px rgba(16, 185, 129, 0.3);
+    radial-gradient(circle, var(--accent-success-glow), transparent 62%), var(--bg-success-subtle);
+  box-shadow: 0 0 72px var(--accent-success-glow);
 }
 
 .receipt-tap-orb::before,
@@ -2444,7 +2508,7 @@ div.badge {
   position: absolute;
   inset: -1.2rem;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(16, 185, 129, 0.22);
+  border: 1px solid var(--border-success);
 }
 
 .receipt-tap-orb::after {
@@ -2477,7 +2541,7 @@ div.badge {
   margin-bottom: 1rem;
   padding: 0.65rem 0.75rem;
   border-radius: 1rem;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(255, 255, 255, 0.035));
+  background: linear-gradient(135deg, var(--bg-success-subtle), var(--bg-overlay-faint));
   text-align: center;
 }
 
@@ -2508,7 +2572,7 @@ div.badge {
   gap: 0.35rem;
   padding: 0.42rem 0.6rem;
   border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-overlay-soft);
   color: var(--text-body);
   font-size: 0.76rem;
   font-weight: 700;
@@ -2526,7 +2590,7 @@ div.badge {
   border-radius: var(--radius-md);
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--channel-color), transparent 86%), transparent),
-    rgba(255, 255, 255, 0.025);
+    var(--bg-overlay-faint);
   color: var(--text-body);
   display: flex;
   flex-direction: column;
@@ -2554,7 +2618,7 @@ div.badge {
   transform: translateY(-2px);
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--channel-color), transparent 78%), transparent),
-    rgba(255, 255, 255, 0.04);
+    var(--bg-overlay-soft);
 }
 
 .receipt-grid {
@@ -2573,8 +2637,8 @@ div.badge {
   padding: 1.2rem;
   border-radius: var(--radius-md);
   background:
-    radial-gradient(circle at 18% 0%, rgba(0, 117, 255, 0.11), transparent 34%),
-    rgba(255, 255, 255, 0.025);
+    radial-gradient(circle at 18% 0%, var(--accent-primary-tint), transparent 34%),
+    var(--bg-overlay-faint);
 }
 
 .receipt-panel-heading {
@@ -2592,7 +2656,7 @@ div.badge {
   padding: 0.38rem 0.55rem;
   border: 0;
   border-radius: var(--radius-sm);
-  background: rgba(255, 183, 77, 0.12);
+  background: var(--bg-warning-subtle);
   color: var(--accent-warning);
   cursor: pointer;
   font-size: 0.74rem;
@@ -2601,7 +2665,7 @@ div.badge {
 }
 
 .receipt-panel-action:hover:not(:disabled) {
-  background: rgba(255, 183, 77, 0.18);
+  background: color-mix(in srgb, var(--accent-warning) 22%, transparent);
   transform: translateY(-1px);
 }
 
@@ -2635,12 +2699,12 @@ div.badge {
 }
 
 .receipt-panel-action-info {
-  background: rgba(59, 130, 246, 0.12);
+  background: var(--bg-info-subtle);
   color: var(--accent-info);
 }
 
 .receipt-panel-action-info:hover:not(:disabled) {
-  background: rgba(59, 130, 246, 0.18);
+  background: color-mix(in srgb, var(--accent-info) 22%, transparent);
 }
 
 .receipt-tag-actions {
@@ -2655,7 +2719,7 @@ div.badge {
   padding: 0.75rem 0.85rem;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--bg-overlay-faint);
   color: var(--text-muted);
   font-size: 0.84rem;
   line-height: 1.55;
@@ -2665,7 +2729,7 @@ div.badge {
   margin-top: 0.85rem;
   padding: 0.6rem 0.75rem;
   border-radius: var(--radius-sm);
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--bg-info-subtle);
   color: var(--accent-info);
   font-size: 0.82rem;
 }
@@ -2679,7 +2743,7 @@ div.badge {
   padding: 0.75rem 0.85rem;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--bg-overlay-faint);
 }
 
 .receipt-bridge-endpoint span,
@@ -2768,8 +2832,8 @@ div.badge {
   padding: 0.85rem;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  background: #020617;
-  color: #e2e8f0;
+  background: var(--bg-code);
+  color: var(--text-code);
   font-size: 0.74rem;
   line-height: 1.55;
   white-space: pre-wrap;
@@ -2796,7 +2860,7 @@ div.badge {
 .receipt-signal-row i {
   width: 1.5rem;
   height: 1px;
-  background: linear-gradient(90deg, rgba(148, 163, 184, 0.35), transparent);
+  background: linear-gradient(90deg, var(--line-strong), transparent);
 }
 
 .receipt-core-status {
@@ -2887,17 +2951,17 @@ div.badge {
 }
 
 .receipt-table-row-button:hover {
-  background: rgba(148, 163, 184, 0.08);
+  background: var(--bg-overlay-soft);
 }
 
 .receipt-table-row-button.is-active {
-  background: rgba(148, 163, 184, 0.14);
+  background: var(--bg-overlay-strong);
 }
 
 .receipt-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(2, 6, 16, 0.55);
+  background: var(--bg-scrim);
   z-index: 90;
 }
 
@@ -3021,7 +3085,7 @@ div.badge {
   padding: 0.5rem 0.65rem;
   border: 1px solid var(--border-subtle);
   border-radius: 0.5rem;
-  background: var(--bg-input, rgba(2, 6, 16, 0.4));
+  background: var(--bg-input);
   color: var(--text-body);
   font: inherit;
 }
@@ -3062,7 +3126,7 @@ div.badge {
 .receipt-decision-path {
   margin: 0;
   padding: 0.75rem;
-  background: rgba(2, 6, 16, 0.5);
+  background: var(--bg-inset);
   border: 1px solid var(--border-subtle);
   border-radius: 0.6rem;
   font-size: 0.74rem;
@@ -3103,17 +3167,17 @@ div.badge {
   padding: 0.82rem 0.9rem;
   border-radius: var(--radius-sm);
   background:
-    linear-gradient(90deg, rgba(16, 185, 129, 0.08), transparent), rgba(255, 255, 255, 0.024);
+    linear-gradient(90deg, var(--bg-success-subtle), transparent), var(--bg-overlay-faint);
 }
 
 .receipt-table-row.receipt-event-refund {
   background:
-    linear-gradient(90deg, rgba(245, 158, 11, 0.1), transparent), rgba(255, 255, 255, 0.024);
+    linear-gradient(90deg, var(--bg-warning-subtle), transparent), var(--bg-overlay-faint);
 }
 
 .receipt-table-row.receipt-event-void {
   background:
-    linear-gradient(90deg, rgba(148, 163, 184, 0.12), transparent), rgba(255, 255, 255, 0.024);
+    linear-gradient(90deg, var(--line-faint), transparent), var(--bg-overlay-faint);
 }
 
 .receipt-table-row strong,
@@ -3149,17 +3213,17 @@ div.badge {
 
 .receipt-event-chip.sale {
   color: var(--accent-success);
-  background: rgba(16, 185, 129, 0.12);
+  background: var(--bg-success-subtle);
 }
 
 .receipt-event-chip.refund {
   color: var(--accent-warning);
-  background: rgba(245, 158, 11, 0.14);
+  background: var(--bg-warning-subtle);
 }
 
 .receipt-event-chip.void {
   color: var(--text-muted);
-  background: rgba(148, 163, 184, 0.14);
+  background: var(--bg-overlay-strong);
 }
 
 .receipt-sync-list {
@@ -3174,8 +3238,8 @@ div.badge {
   padding: 0.82rem;
   border-radius: var(--radius-sm);
   background:
-    radial-gradient(circle at 100% 0%, rgba(255, 183, 77, 0.16), transparent 52%),
-    rgba(255, 255, 255, 0.024);
+    radial-gradient(circle at 100% 0%, var(--bg-warning-subtle), transparent 52%),
+    var(--bg-overlay-faint);
 }
 
 .receipt-sync-job span,
@@ -3224,7 +3288,7 @@ div.badge {
   padding: 0.9rem;
   border-radius: var(--radius-md);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent), rgba(255, 255, 255, 0.018);
+    linear-gradient(180deg, var(--bg-overlay-soft), transparent), var(--bg-overlay-faint);
 }
 
 .receipt-pipeline-node span {

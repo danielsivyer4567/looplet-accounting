@@ -221,7 +221,7 @@ export function ConnectorApiKeys({ organizationId }: ConnectorApiKeysProps) {
               background: 'var(--accent-primary)',
               border: 'none',
               borderRadius: '6px',
-              color: '#fff',
+              color: 'var(--text-on-accent)',
               fontWeight: 700,
               fontSize: '0.8rem',
               cursor: 'pointer',
@@ -372,7 +372,7 @@ export function ConnectorApiKeys({ organizationId }: ConnectorApiKeysProps) {
               background: 'var(--accent-primary)',
               border: 'none',
               borderRadius: '6px',
-              color: '#fff',
+              color: 'var(--text-on-accent)',
               fontWeight: 700,
               cursor: issuing || selectedScopes.length === 0 ? 'not-allowed' : 'pointer',
             }}

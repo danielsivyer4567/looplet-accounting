@@ -401,10 +401,10 @@ function SummaryStat({ label, value }: { label: string; value: number }) {
 function StatusBadge({ status }: { status: KeyStatus }) {
   const tone =
     status === 'active'
-      ? { color: 'var(--text-success)', bg: '#0d2f1f' }
+      ? { color: 'var(--text-success)', bg: 'var(--bg-success-subtle)' }
       : status === 'expired'
-        ? { color: 'var(--text-warning)', bg: '#2d230d' }
-        : { color: 'var(--text-danger)', bg: '#3d1818' };
+        ? { color: 'var(--text-warning)', bg: 'var(--bg-warning-subtle)' }
+        : { color: 'var(--text-danger)', bg: 'var(--bg-danger-subtle)' };
   return (
     <span style={{ ...badgeStyle, color: tone.color, background: tone.bg }}>
       {status === 'active' && <CheckCircle2 size={12} />}

@@ -157,7 +157,7 @@ function BillPreviewPane({ bill, onClose }: { bill: BillInfo; onClose: () => voi
           <iframe
             src={signedUrl}
             title={`Bill preview — ${bill.supplier_name_raw ?? bill.id}`}
-            style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
+            style={{ width: '100%', height: '100%', border: 'none', background: 'var(--bg-paper)' }}
           />
         ) : (
           <div style={{ height: '100%', overflowY: 'auto', padding: 12 }}>

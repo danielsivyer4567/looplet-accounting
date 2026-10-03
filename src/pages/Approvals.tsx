@@ -3,7 +3,7 @@ import { useApprovals, type ApprovalRow } from '@/hooks/useApprovals';
 import { SkeletonCard } from '@/components/Skeleton';
 import { ShieldCheck, CheckCircle2, X } from 'lucide-react';
 
-const MUTED = 'var(--text-muted, #6b7280)';
+const MUTED = 'var(--text-muted)';
 
 function humanizeType(t: string): string {
   return t.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());

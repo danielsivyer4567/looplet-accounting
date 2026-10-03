@@ -36,9 +36,9 @@ function ScoreBadge({ score }: { score: number | null }) {
       <span
         className="badge"
         style={{
-          background: 'rgba(34,197,94,0.12)',
+          background: 'var(--bg-success-subtle)',
           color: 'var(--text-success)',
-          border: '1px solid rgba(34,197,94,0.3)',
+          border: '1px solid var(--border-success)',
           fontSize: '0.72rem',
         }}
       >
@@ -52,9 +52,9 @@ function ScoreBadge({ score }: { score: number | null }) {
       <span
         className="badge"
         style={{
-          background: 'rgba(245,158,11,0.12)',
+          background: 'var(--bg-warning-subtle)',
           color: 'var(--text-warning)',
-          border: '1px solid rgba(245,158,11,0.3)',
+          border: '1px solid var(--border-warning)',
           fontSize: '0.72rem',
         }}
       >
@@ -266,9 +266,9 @@ export function AllocationQueuePanel() {
             fontSize: '0.825rem',
             ...(toast.type === 'success'
               ? {
-                  background: 'rgba(34,197,94,0.12)',
+                  background: 'var(--bg-success-subtle)',
                   color: 'var(--text-success)',
-                  border: '1px solid rgba(34,197,94,0.3)',
+                  border: '1px solid var(--border-success)',
                 }
               : {}),
           }}

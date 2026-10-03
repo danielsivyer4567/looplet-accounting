@@ -501,17 +501,17 @@ function FindingRow({ f, onMute }: { f: Finding; onMute: (id: string, muted: boo
 
   const severityStyles = {
     critical: {
-      border: 'rgba(239, 68, 68, 0.25)',
+      border: 'var(--border-danger)',
       badge: 'badge-danger',
       leftBorder: 'var(--accent-danger)',
     },
     warning: {
-      border: 'rgba(245, 158, 11, 0.25)',
+      border: 'var(--border-warning)',
       badge: 'badge-warning',
       leftBorder: 'var(--accent-warning)',
     },
     info: {
-      border: 'rgba(59, 130, 246, 0.25)',
+      border: 'var(--border-info)',
       badge: 'badge-info',
       leftBorder: 'var(--accent-info)',
     },
@@ -636,17 +636,17 @@ function SummaryCard({
   const colors = {
     critical: {
       text: 'var(--text-danger)',
-      border: 'rgba(239, 68, 68, 0.2)',
+      border: 'var(--border-danger)',
       bg: 'var(--bg-danger-subtle)',
     },
     warning: {
       text: 'var(--text-warning)',
-      border: 'rgba(245, 158, 11, 0.2)',
+      border: 'var(--border-warning)',
       bg: 'var(--bg-warning-subtle)',
     },
     info: {
       text: 'var(--text-info)',
-      border: 'rgba(59, 130, 246, 0.2)',
+      border: 'var(--border-info)',
       bg: 'var(--bg-info-subtle)',
     },
   }[type];

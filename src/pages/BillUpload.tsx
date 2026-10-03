@@ -64,11 +64,11 @@ export function BillUploadPage() {
             onDrop={onDrop}
             onClick={() => inputRef.current?.click()}
             style={{
-              border: `2px dashed ${dragOver ? '#86c7a3' : '#444'}`,
+              border: `2px dashed ${dragOver ? 'var(--accent-success)' : 'var(--border-subtle)'}`,
               borderRadius: 8,
               padding: '4rem 2rem',
               textAlign: 'center',
-              background: dragOver ? '#0d2f1f' : '#1a1a1a',
+              background: dragOver ? 'var(--bg-success-subtle)' : 'var(--bg-card)',
               cursor: 'pointer',
               transition: 'all 0.15s',
             }}
@@ -183,7 +183,7 @@ function ProgressBox({
           style={{
             width: `${stage.progress}%`,
             height: '100%',
-            background: isDone ? '#2da565' : '#5050a0',
+            background: isDone ? 'var(--accent-success)' : 'var(--accent-info)',
             transition: 'width 0.3s',
           }}
         />

@@ -279,16 +279,16 @@ export function XeroConnect() {
 function StatusPill({ status }: { status: string }) {
   const colour =
     status === 'active'
-      ? '#86c7a3'
+      ? 'var(--text-success)'
       : status === 'expired' || status === 'error'
-        ? '#e9a3a3'
-        : '#888';
+        ? 'var(--text-danger)'
+        : 'var(--text-muted)';
   const bg =
     status === 'active'
-      ? '#0d2f1f'
+      ? 'var(--bg-success-subtle)'
       : status === 'expired' || status === 'error'
-        ? '#3d1818'
-        : '#2a2a2a';
+        ? 'var(--bg-danger-subtle)'
+        : 'var(--bg-hover)';
   return (
     <span
       style={{
@@ -325,7 +325,7 @@ const metaValue: React.CSSProperties = { color: 'var(--text-body)' };
 
 const btnPrimXero: React.CSSProperties = {
   padding: '0.5rem 1rem',
-  background: '#1a3d6b',
+  background: 'var(--bg-info-subtle)',
   color: 'var(--text-title)',
   border: '1px solid #1ab4d7',
   borderRadius: 4,

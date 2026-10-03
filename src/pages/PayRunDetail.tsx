@@ -257,7 +257,7 @@ export function PayRunDetailPage() {
                   background: step.active ? 'var(--bg-success-subtle)' : 'var(--bg-hover)',
                   color: step.active ? 'var(--text-success)' : 'var(--text-muted)',
                   border: step.active
-                    ? '1px solid rgba(16, 185, 129, 0.2)'
+                    ? '1px solid var(--border-success)'
                     : '1px solid var(--border-subtle)',
                 }}
               >
@@ -699,7 +699,7 @@ export function TerminationWizard({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.5)',
+        background: 'var(--bg-scrim)',
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',

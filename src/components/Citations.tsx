@@ -127,7 +127,7 @@ function CitationMarker({
       title={`Show cited section [${n}]`}
       style={{
         ...MARKER_STYLE,
-        color: active ? '#fff' : 'var(--accent-info)',
+        color: active ? 'var(--text-on-accent)' : 'var(--accent-info)',
         background: active ? 'var(--accent-info)' : 'var(--bg-hover)',
         cursor: 'pointer',
       }}

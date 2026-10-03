@@ -163,7 +163,7 @@ function BillPreviewPane({ bill, onClose }: { bill: AllocationQueueRow; onClose:
           <iframe
             src={signedUrl}
             title={`Bill preview — ${bill.supplier_name_raw ?? bill.bill_id}`}
-            style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
+            style={{ width: '100%', height: '100%', border: 'none', background: 'var(--bg-paper)' }}
           />
         ) : (
           <div style={{ height: '100%', overflowY: 'auto', padding: 12 }}>
@@ -457,7 +457,7 @@ export function AllocationsPage() {
               marginBottom: '1.5rem',
               padding: '1rem 1.25rem',
               background: 'var(--bg-success-subtle)',
-              border: '1px solid rgba(16, 185, 129, 0.2)',
+              border: '1px solid var(--border-success)',
               borderRadius: 'var(--radius-md)',
               display: 'flex',
               alignItems: 'center',

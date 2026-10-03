@@ -34,7 +34,7 @@ export function Modal({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.72)',
+        background: 'var(--bg-scrim)',
         zIndex: 1000,
         display: 'flex',
         alignItems: 'center',

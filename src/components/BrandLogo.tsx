@@ -24,9 +24,9 @@ export function BrandLogo({
       role="img"
       aria-label="Looplet logo"
       className={className}
-      style={{ filter: glow ? 'drop-shadow(0 4px 10px rgba(24, 43, 73, 0.18))' : undefined, ...style }}
+      style={{ filter: glow ? 'drop-shadow(0 4px 10px var(--shadow-drop))' : undefined, ...style }}
     >
-      <rect width="100" height="100" rx="32" fill="var(--brand-tile-bg, #182b49)" />
+      <rect width="100" height="100" rx="32" fill="var(--brand-tile-bg)" />
       <text
         x="50"
         y="54"
@@ -35,7 +35,7 @@ export function BrandLogo({
         fontFamily="'Segoe UI', system-ui, -apple-system, sans-serif"
         fontSize="62"
         fontWeight="500"
-        fill="var(--brand-tile-fg, #abc2ff)"
+        fill="var(--brand-tile-fg)"
       >
         L
       </text>

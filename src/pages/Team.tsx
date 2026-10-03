@@ -93,7 +93,7 @@ function InviteModal({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.6)',
+        background: 'var(--bg-scrim)',
         backdropFilter: 'blur(4px)',
         display: 'flex',
         alignItems: 'center',
@@ -487,7 +487,7 @@ export function TeamPage() {
                               padding: '0.25rem 0.5rem',
                               fontSize: '0.75rem',
                               color: 'var(--text-danger)',
-                              borderColor: 'rgba(239, 68, 68, 0.2)',
+                              borderColor: 'var(--border-danger)',
                             }}
                           >
                             <Trash2 size={12} style={{ marginRight: '0.25rem' }} />

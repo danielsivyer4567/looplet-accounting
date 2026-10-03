@@ -451,7 +451,7 @@ export function SubscriptionDetailPage() {
                       draft.is_business && !draft.is_personal
                         ? 'var(--text-success)'
                         : 'var(--text-muted)',
-                    border: `1px solid ${draft.is_business && !draft.is_personal ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-subtle)'}`,
+                    border: `1px solid ${draft.is_business && !draft.is_personal ? 'var(--border-success)' : 'var(--border-subtle)'}`,
                   }}
                 >
                   Business (Deductible)
@@ -467,7 +467,7 @@ export function SubscriptionDetailPage() {
                       ? 'var(--bg-warning-subtle)'
                       : 'var(--bg-hover)',
                     color: draft.is_personal ? 'var(--text-warning)' : 'var(--text-muted)',
-                    border: `1px solid ${draft.is_personal ? 'rgba(245, 158, 11, 0.2)' : 'var(--border-subtle)'}`,
+                    border: `1px solid ${draft.is_personal ? 'var(--border-warning)' : 'var(--border-subtle)'}`,
                   }}
                 >
                   Personal (Non-Deductible)

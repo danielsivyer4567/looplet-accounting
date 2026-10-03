@@ -186,7 +186,7 @@ export function TaxTimeline({
           cursor: pointer; transition: var(--transition-smooth);
         }
         .ev-act:hover { border-color: var(--accent-primary); color: var(--text-title); }
-        .ev-act.primary { background: var(--accent-primary); border-color: var(--accent-primary); color: #fff; }
+        .ev-act.primary { background: var(--accent-primary); border-color: var(--accent-primary); color: var(--text-on-accent); }
         .ev-act.primary:hover { background: var(--accent-primary-hover); }
       `}</style>
 
