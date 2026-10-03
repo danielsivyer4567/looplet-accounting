@@ -5049,6 +5049,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-01-019.log",
           "log_sha256": "d7512421f4c83d3e61dfafaff69e71dfbe03bd0fde36410e52f02f6562c95fdd"
+        },
+        {
+          "n": 20,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 0,
+          "head": "02c98a13bf2e56cbfa2355162794e204560146ea",
+          "dirty": [],
+          "at": "2026-10-03T02:22:35.703Z",
+          "ms": 459,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-01-020.log",
+          "log_sha256": "f898fc372eebef56b557ccf62dbaba07539229b9ffbaf067562c318ed6c8d3ca"
         }
       ],
       "notes": [],
@@ -5422,14 +5435,39 @@
           "event": "done",
           "head": "32726f3a747112a0de8277552f9ae5ba3bd68401",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:22:34.200Z",
+          "event": "stale",
+          "head": "02c98a13bf2e56cbfa2355162794e204560146ea",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/ReceiptHub.tsx",
+            "src/test/pages/ReceiptHubNoDemo.test.tsx",
+            "supabase/functions/receipt-webhook/index.ts"
+          ]
+        },
+        {
+          "at": "2026-10-03T02:22:35.704Z",
+          "event": "run",
+          "head": "02c98a13bf2e56cbfa2355162794e204560146ea",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:22:35.824Z",
+          "event": "done",
+          "head": "02c98a13bf2e56cbfa2355162794e204560146ea",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T02:16:58.496Z",
-        "head": "32726f3a747112a0de8277552f9ae5ba3bd68401",
+        "at": "2026-10-03T02:22:35.810Z",
+        "head": "02c98a13bf2e56cbfa2355162794e204560146ea",
         "by": "claude-worker",
         "runs": [
-          19
+          20
         ]
       }
     },
@@ -9614,5 +9652,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T02:22:33.642Z"
+  "updated_at": "2026-10-03T02:22:35.839Z"
 }
