@@ -2719,6 +2719,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-06-005.log",
           "log_sha256": "aaff75c9cfb9ce854ce9956056575b3e384d7058e093b10e2a95e2ba3ec03587"
+        },
+        {
+          "n": 6,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\"",
+          "exit": 0,
+          "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
+          "dirty": [],
+          "at": "2026-10-03T05:08:44.557Z",
+          "ms": 1430,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-06-006.log",
+          "log_sha256": "9b8da2a4eedb202648f1a8085a76a17b34f043b55809ffa5e2d92696e5f6d611"
         }
       ],
       "notes": [],
@@ -2810,14 +2823,37 @@
           "event": "done",
           "head": "ce5b68b701f72789a1ccaab57376b250f9029b72",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:08:41.102Z",
+          "event": "stale",
+          "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
+          "actor": "claude-worker",
+          "files": [
+            ".github/workflows/ci.yml"
+          ]
+        },
+        {
+          "at": "2026-10-03T05:08:44.558Z",
+          "event": "run",
+          "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:08:44.705Z",
+          "event": "done",
+          "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T05:04:56.574Z",
-        "head": "ce5b68b701f72789a1ccaab57376b250f9029b72",
+        "at": "2026-10-03T05:08:44.690Z",
+        "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
         "by": "claude-worker",
         "runs": [
-          5
+          6
         ]
       }
     },
@@ -17088,6 +17124,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/CI-01-004.log",
           "log_sha256": "dbe687c5494f3c304a1129a7bb25c5169358fe4798c0326858870852ab41ffc2"
+        },
+        {
+          "n": 5,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-test-coverage.test.ts\"",
+          "exit": 0,
+          "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
+          "dirty": [],
+          "at": "2026-10-03T05:08:46.376Z",
+          "ms": 1506,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/CI-01-005.log",
+          "log_sha256": "65ae859a6fad26ee8395877267395bc5e9d127280f3f141336daae1ca2efb9d2"
         }
       ],
       "notes": [],
@@ -17156,14 +17205,37 @@
           "event": "done",
           "head": "ce5b68b701f72789a1ccaab57376b250f9029b72",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:08:41.768Z",
+          "event": "stale",
+          "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
+          "actor": "claude-worker",
+          "files": [
+            ".github/workflows/ci.yml"
+          ]
+        },
+        {
+          "at": "2026-10-03T05:08:46.377Z",
+          "event": "run",
+          "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:08:46.524Z",
+          "event": "done",
+          "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T05:05:02.360Z",
-        "head": "ce5b68b701f72789a1ccaab57376b250f9029b72",
+        "at": "2026-10-03T05:08:46.511Z",
+        "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
         "by": "claude-worker",
         "runs": [
-          4
+          5
         ]
       }
     },
@@ -18739,6 +18811,71 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SHIP-030.log",
           "log_sha256": "36e12634bd6735bf3d6ade3519c9440f5fa52e21032af41c72a3670cf2c2a4e0"
+        },
+        {
+          "n": 31,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run typecheck\"",
+          "exit": 0,
+          "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
+          "dirty": [],
+          "at": "2026-10-03T05:08:48.632Z",
+          "ms": 1859,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SHIP-031.log",
+          "log_sha256": "9f5cc03fa5f6d70ef3898d510b782ffb4ffec080f039ffbb1aaa9375c4bb371d"
+        },
+        {
+          "n": 32,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run lint\"",
+          "exit": 0,
+          "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
+          "dirty": [],
+          "at": "2026-10-03T05:08:54.795Z",
+          "ms": 6162,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SHIP-032.log",
+          "log_sha256": "fb1147ae1e108c498719100358b5d776e11e7168031d1934c3037b1b4b98ff76"
+        },
+        {
+          "n": 33,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"set -a && . ./.env.production && set +a && npx vitest run \"",
+          "exit": 0,
+          "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
+          "dirty": [],
+          "at": "2026-10-03T05:09:09.194Z",
+          "ms": 14399,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SHIP-033.log",
+          "log_sha256": "7d405e7e92e6d07e9ccc9fee0987a99eec2f680aefb6652e9bb1248e05313c1e"
+        },
+        {
+          "n": 34,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions\"",
+          "exit": 0,
+          "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
+          "dirty": [],
+          "at": "2026-10-03T05:09:55.029Z",
+          "ms": 45835,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SHIP-034.log",
+          "log_sha256": "386fc209a589d2435674fdd30d09344a317accbe4b8fff323d70cec7b297da8a"
+        },
+        {
+          "n": 35,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run build\"",
+          "exit": 0,
+          "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
+          "dirty": [],
+          "at": "2026-10-03T05:09:56.783Z",
+          "ms": 1753,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SHIP-035.log",
+          "log_sha256": "4760beb8b0f11dd2c41b1a3811c997473bfb80c24c890943df8be91c4511ea6d"
         }
       ],
       "notes": [],
@@ -18838,18 +18975,42 @@
           "event": "done",
           "head": "ff1a9f9a108091516d8d9c7546577d8f418da450",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:08:41.879Z",
+          "event": "stale",
+          "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
+          "actor": "claude-worker",
+          "files": [
+            "tests/security/ci-hardening.test.ts",
+            "tests/security/ci-test-coverage.test.ts"
+          ]
+        },
+        {
+          "at": "2026-10-03T05:09:56.783Z",
+          "event": "run",
+          "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:09:56.936Z",
+          "event": "done",
+          "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T05:07:29.947Z",
-        "head": "ff1a9f9a108091516d8d9c7546577d8f418da450",
+        "at": "2026-10-03T05:09:56.922Z",
+        "head": "b59cc2ae3b4d0b3708ed69228cff39a858787904",
         "by": "claude-worker",
         "runs": [
-          26,
-          27,
-          28,
-          29,
-          30
+          31,
+          32,
+          33,
+          34,
+          35
         ]
       }
     },
@@ -21902,5 +22063,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T05:08:40.653Z"
+  "updated_at": "2026-10-03T05:09:56.950Z"
 }

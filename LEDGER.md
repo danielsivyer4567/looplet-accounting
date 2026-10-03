@@ -13,7 +13,7 @@
 | SEC-03 | Payment-run, ABA export, mark-paid, super-batch and termination functions require an accepted admin or owner | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
 | SEC-04 | Xero and Gmail OAuth state is signed, bound to the user and mandatory on callback | verified | verified by claude-verifier (independent subagent) @ 60b94a38 |
 | SEC-05 | Writes to money tables (payees, bills, invoices, journals, period locks, employees, payment runs) need an accountant or admin role; viewers are read-only | verified | verified by claude-verifier (independent subagent) @ 77778a05 |
-| SEC-06 | CI uses least-privilege permissions, SHA-pinned actions and a deploy job separate from build | done | done @ ce5b68b7, awaiting independent verify |
+| SEC-06 | CI uses least-privilege permissions, SHA-pinned actions and a deploy job separate from build | done | done @ b59cc2ae, awaiting independent verify |
 | SEC-07 | Hardening: CORS allow-list, constant-time secret checks, bundled pdf.js worker, cron secrets in headers, generic error responses | verified | verified by claude-verifier (independent subagent) @ 77778a05 |
 | PAY-01 | Pay runs calculate wages from the base hourly rate, not the loaded cost rate | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
 | PAY-02 | Super defaults to the statutory rate (12%) and a pay run never applies less than the SG rate for the pay date | verified | verified by claude-verifier E (independent subagent, round 2) @ 77778a05 |
@@ -45,12 +45,12 @@
 | SEED-01 | New organisations do not inherit the pilot business known-sender list | verified | verified by claude-verifier (independent subagent) @ 77778a05 |
 | XERO-02 | The Xero bank pull writes schema-valid rows (real connection, valid account type) | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
 | BS-01 | The balance sheet does not count credit-card and loan balances as both cash and debts | verified | verified by claude-verifier (independent subagent) @ 77778a05 |
-| CI-01 | CI runs the Deno edge-function tests and reports environment-gated test files instead of skipping them silently | done | done @ ce5b68b7, awaiting independent verify |
+| CI-01 | CI runs the Deno edge-function tests and reports environment-gated test files instead of skipping them silently | done | done @ b59cc2ae, awaiting independent verify |
 | UI-01 | Light theme polish: themed colours everywhere, no hard-coded dark-only colours, auth screens in the new style | done | done @ ce5b68b7, awaiting independent verify |
 | UI-02 | Shared PageHeader, Stat, StatusBadge, EmptyState, Alert and Field replace page-local copies | verified | verified by claude-verifier E (independent subagent, round 2) @ 77778a05 |
 | UI-03 | Modern app shell: labelled sectioned sidebar, top bar with breadcrumbs, org switcher, user menu, command palette | done | done @ 4b757ce2, awaiting independent verify |
 | UI-04 | Accessibility: contrast-safe colour tokens, keyboard focus everywhere, labelled icon buttons, no text under 11px | done | done @ 4b757ce2, awaiting independent verify |
-| SHIP | Ship gate: typecheck, lint, the full test suite (Vitest and Deno) and the production build all pass | done | done @ ff1a9f9a, awaiting independent verify |
+| SHIP | Ship gate: typecheck, lint, the full test suite (Vitest and Deno) and the production build all pass | done | done @ b59cc2ae, awaiting independent verify |
 | DEPLOY | Production (accounting.looplet.com.au and the edge functions) serves the verified build after Daniel says go | blocked | BLOCKED: Production changes need the owner's explicit approval. (needs: Daniel reviews screenshots and the verified ledger, then says go for the production deploy.) |
 | SEC-08 | bills-allocate-batch checks the caller's own accepted membership and needs accountant or higher to change allocations | verified | verified by claude-verifier (independent subagent) @ bbdacc04 |
 | SEC-09 | accountant-email-query matches the sender's accepted accountant memberships by role_enum, so the emailed activity digest works | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
