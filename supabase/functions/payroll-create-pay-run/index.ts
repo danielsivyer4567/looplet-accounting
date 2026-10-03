@@ -14,8 +14,10 @@
  * For each employee:
  *   1. Pull approved timesheet_entries in [period_start..period_end].
  *   2. Sum hours per entry_type.
- *   3. Compute gross_* from employee.wage_components.loaded_hourly_rate_cents
- *      (split: ordinary/overtime/leave).
+ *   3. Compute gross_* from employee.wage_components.base_hourly_rate (dollars)
+ *      (split: ordinary/overtime/leave). loaded_hourly_rate_cents is the
+ *      employer's cost rate for job costing and is never paid as wages. An
+ *      employee with no base rate gets a per-employee error, not a payslip.
  *   4. Call calc_payg_tax + calc_super_ote.
  *   5. Pull YTD totals from prior pay_slips this fiscal year (1 July → 30 June).
  *   6. Insert pay_slips row.
@@ -28,8 +30,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { authorizeOrgMember, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
-
-type EntryType = 'ordinary' | 'overtime' | 'annual_leave' | 'sick_leave' | 'public_holiday';
+import { baseHourlyRateCents, grossPay, sumHours } from './calc.ts';
 
 interface Body {
   organization_id?: string;
@@ -192,10 +193,12 @@ Deno.serve(async (req) => {
     try {
       const wage = (emp.wage_components ?? {}) as {
         loaded_hourly_rate_cents?: number;
-        base_hourly_rate?: number;
+        base_hourly_rate?: number | string | null;
         super_pct?: number;
       };
-      const loadedRate = wage.loaded_hourly_rate_cents ?? 0;
+      // Wages come from the base rate. Throws (a per-employee error below) when it is missing,
+      // so a payslip is never priced at the loaded cost rate or at $0.
+      const baseRate = baseHourlyRateCents(wage);
 
       // Aggregate timesheet hours by entry_type for this employee in the period.
       const { data: ts, error: tsErr } = await admin
@@ -209,23 +212,18 @@ Deno.serve(async (req) => {
         .not('approved_at', 'is', null); // only approved time enters payroll
       if (tsErr) throw new Error(`timesheet fetch: ${tsErr.message}`);
 
-      let hOrd = 0,
-        hOt = 0,
-        hLeave = 0;
-      for (const row of ts ?? []) {
-        const h = Number(row.hours);
-        const et = (row.entry_type ?? 'ordinary') as EntryType;
-        if (et === 'ordinary' || et === 'public_holiday') hOrd += h;
-        else if (et === 'overtime') hOt += h;
-        else if (et === 'annual_leave' || et === 'sick_leave') hLeave += h;
-      }
+      const hours = sumHours(ts ?? []);
+      const hOrd = hours.ordinary;
+      const hOt = hours.overtime;
+      const hLeave = hours.leave;
 
-      // Gross splits (overtime gets 1.5x as a default loading; tweakable).
-      const grossOrd = Math.round(hOrd * loadedRate);
-      const grossOt = Math.round(hOt * loadedRate * 1.5);
-      const grossLeave = Math.round(hLeave * loadedRate);
-      const grossTotal = grossOrd + grossOt + grossLeave;
-      const ordinaryTimeEarnings = grossOrd + grossLeave;
+      // Gross splits on the base rate (overtime gets 1.5x as a default loading).
+      const gross = grossPay(hours, baseRate);
+      const grossOrd = gross.ordinaryCents;
+      const grossOt = gross.overtimeCents;
+      const grossLeave = gross.leaveCents;
+      const grossTotal = gross.totalCents;
+      const ordinaryTimeEarnings = gross.ordinaryTimeEarningsCents;
 
       // PAYG tax via DB function.
       const { data: taxRes, error: taxErr } = await admin.rpc('calc_payg_tax', {
@@ -291,7 +289,8 @@ Deno.serve(async (req) => {
           metadata: {
             frequency,
             claims_threshold,
-            loaded_hourly_rate_cents: loadedRate,
+            base_hourly_rate_cents: baseRate,
+            wage_rate_basis: 'base_hourly_rate',
             ordinary_time_earnings_cents: ordinaryTimeEarnings,
             super_basis: 'ordinary_time_earnings',
             overtime_excluded_from_super_cents: grossOt,

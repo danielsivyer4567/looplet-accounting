@@ -44,7 +44,8 @@ describe('0226 SGC statement migration', () => {
   it('updates payroll creation to calculate SG from OTE at the statutory/default 12% rate', () => {
     expect(payrollCreatePayRun).toMatch(/function statutorySuperRatePct/);
     expect(payrollCreatePayRun).toMatch(/return 12/);
-    expect(payrollCreatePayRun).toMatch(/const ordinaryTimeEarnings = grossOrd \+ grossLeave/);
+    // OTE = ordinary + leave, excluding overtime; computed by grossPay() in calc.ts (tested in calc.test.ts).
+    expect(payrollCreatePayRun).toMatch(/const ordinaryTimeEarnings = gross\.ordinaryTimeEarningsCents/);
     expect(payrollCreatePayRun).toMatch(/admin\.rpc\('calc_super_ote'/);
     expect(payrollCreatePayRun).toMatch(/p_ote_cents: ordinaryTimeEarnings/);
     expect(payrollCreatePayRun).toMatch(/super_basis: 'ordinary_time_earnings'/);
