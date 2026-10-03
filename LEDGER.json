@@ -713,7 +713,7 @@
       "title": "Payment-run, ABA export, mark-paid, super-batch and termination functions require an accepted admin or owner",
       "area": "security",
       "priority": 12,
-      "status": "in_progress",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/orgRole.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\""
@@ -830,6 +830,32 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/SEC-03-008.log",
           "log_sha256": "a684828fa7542e0b9210ff989022ee3818f67a10d5968201e3a7ddd5e9a3ed25"
+        },
+        {
+          "n": 9,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/orgRole.test.ts\"",
+          "exit": 0,
+          "head": "0e3d0128bd7d3d3576a3acfb7b279a8bff49d17c",
+          "dirty": [],
+          "at": "2026-10-03T00:28:00.933Z",
+          "ms": 755,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-03-009.log",
+          "log_sha256": "183fd3de39a20c6cd8e2ef83aa19f41c9e4e5fc0c11062cd4fed7859e4dc6783"
+        },
+        {
+          "n": 10,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\"",
+          "exit": 0,
+          "head": "0e3d0128bd7d3d3576a3acfb7b279a8bff49d17c",
+          "dirty": [],
+          "at": "2026-10-03T00:28:03.169Z",
+          "ms": 2235,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-03-010.log",
+          "log_sha256": "7dddc5a0fe3af0c7e2ab012c12bad8d17bda62739f9c8a0c1c283559aab64c8b"
         }
       ],
       "notes": [
@@ -918,8 +944,31 @@
           "files": [
             "supabase/functions/payment-runs-create/index.ts"
           ]
+        },
+        {
+          "at": "2026-10-03T00:28:03.170Z",
+          "event": "run",
+          "head": "0e3d0128bd7d3d3576a3acfb7b279a8bff49d17c",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:28:03.316Z",
+          "event": "done",
+          "head": "0e3d0128bd7d3d3576a3acfb7b279a8bff49d17c",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T00:28:03.299Z",
+        "head": "0e3d0128bd7d3d3576a3acfb7b279a8bff49d17c",
+        "by": "claude-worker",
+        "runs": [
+          9,
+          10
+        ]
+      }
     },
     {
       "id": "SEC-04",
@@ -2762,5 +2811,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T00:27:52.078Z"
+  "updated_at": "2026-10-03T00:28:03.335Z"
 }
