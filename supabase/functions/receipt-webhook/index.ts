@@ -3,7 +3,7 @@
  *
  * Auth modes:
  * - External POS: Authorization: Bearer llp_<prefix>.<secret> with write:receipts.
- * - App simulator: signed-in Supabase JWT plus organization_id in the body.
+ * - In-app capture (typed, photo or PDF): signed-in Supabase JWT plus organization_id in the body.
  *
  * The receipt identity token is separate from caller auth. It identifies the
  * phone/pass/tag used at checkout and is stored hashed in receipt_identities.
@@ -247,7 +247,7 @@ async function resolveCaller(
   }
 
   if (!body.organization_id) {
-    return { response: json({ ok: false, error: 'organization_id required for app simulator' }, 400) };
+    return { response: json({ ok: false, error: 'organization_id required for in-app capture' }, 400) };
   }
 
   const userClient = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_ANON_KEY'), {
