@@ -1976,7 +1976,7 @@
       "title": "Redbark migrations apply cleanly and enforce one organisation per Redbark connection",
       "area": "bank",
       "priority": 45,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/redbark-migrations.sql\""
       ],
@@ -1984,7 +1984,34 @@
         "supabase/migrations",
         "tests/db-sql/redbark-migrations.sql"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/redbark-migrations.sql\"",
+          "exit": 1,
+          "head": "9036ff5485f7a19608b1a1c1af9cbee8452dcd6f",
+          "dirty": [],
+          "at": "2026-10-03T00:43:50.157Z",
+          "ms": 243,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-06-001.log",
+          "log_sha256": "e5e91dadd25505aa036033452eb172dd2c04aa5539f866e8fb1fd3be7bfe9fd4"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/redbark-migrations.sql\"",
+          "exit": 0,
+          "head": "61c93125750694bcb91d773a5df5b83fae558d2d",
+          "dirty": [],
+          "at": "2026-10-03T00:44:33.575Z",
+          "ms": 43031,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-06-002.log",
+          "log_sha256": "e04b8204ff3667938c23ee9b68c4fca3758f4265c7f2f0764c70870c1641d424"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -1992,8 +2019,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:43:49.796Z",
+          "event": "start",
+          "head": "9036ff5485f7a19608b1a1c1af9cbee8452dcd6f",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:43:50.158Z",
+          "event": "run",
+          "head": "9036ff5485f7a19608b1a1c1af9cbee8452dcd6f",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:44:33.575Z",
+          "event": "run",
+          "head": "61c93125750694bcb91d773a5df5b83fae558d2d",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:44:33.820Z",
+          "event": "done",
+          "head": "61c93125750694bcb91d773a5df5b83fae558d2d",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T00:44:33.714Z",
+        "head": "61c93125750694bcb91d773a5df5b83fae558d2d",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "BANK-07",
@@ -3047,5 +3110,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T00:43:49.520Z"
+  "updated_at": "2026-10-03T00:44:33.842Z"
 }
