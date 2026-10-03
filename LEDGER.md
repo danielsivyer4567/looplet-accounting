@@ -18,8 +18,8 @@
 | PAY-01 | Pay runs calculate wages from the base hourly rate, not the loaded cost rate | open | not run |
 | PAY-02 | Super defaults to the statutory rate (12%) and a pay run never applies less than the SG rate for the pay date | open | not run |
 | PAY-03 | PAYG withholding uses the financial year of the pay date and fails loudly instead of returning $0 when no table applies | open | not run |
-| PAY-04 | FY2026-27 PAYG withholding tables match the ATO schedule (NAT 1004) worked examples | blocked | BLOCKED: The FY2026-27 withholding coefficients must come from the ATO published schedule, not be guessed. (needs: Official ATO NAT 1004 (Schedule 1) coefficients and worked examples for 1 July 2026 onwards, sourced and checked.) |
-| PAY-05 | Payday Super (from 1 July 2026) drives super due dates instead of quarterly batching | blocked | BLOCKED: Payday Super start date and rules must be confirmed against legislation before changing super due dates. (needs: Confirmation that Payday Super applies from 1 July 2026 and the final due-date rule (e.g. within 7 days of payday).) |
+| PAY-04 | FY2026-27 PAYG withholding tables match the ATO schedule (NAT 1004) worked examples | open | not run |
+| PAY-05 | Payday Super (from 1 July 2026) drives super due dates instead of quarterly batching | open | not run |
 | XERO-01 | Bills and invoices are never marked synced to Xero unless Xero accepted them (no STUB ids in production) | open | not run |
 | FAKE-01 | Receipt Hub has no POS simulator, fake receipts or hard-coded demo figures | open | not run |
 | FAKE-02 | The Scan page describes only the checks it really runs (no simulated AI audit) | open | not run |

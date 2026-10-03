@@ -1544,7 +1544,7 @@
       "title": "FY2026-27 PAYG withholding tables match the ATO schedule (NAT 1004) worked examples",
       "area": "payroll",
       "priority": 23,
-      "status": "blocked",
+      "status": "open",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-2026-27-ato-examples.sql\""
       ],
@@ -1568,20 +1568,22 @@
           "actor": "claude-worker",
           "reason": "The FY2026-27 withholding coefficients must come from the ATO published schedule, not be guessed.",
           "need": "Official ATO NAT 1004 (Schedule 1) coefficients and worked examples for 1 July 2026 onwards, sourced and checked."
+        },
+        {
+          "at": "2026-10-03T00:47:45.737Z",
+          "event": "unblocked",
+          "head": "8f1a89f1754e886f18107c58b7eb8e7331fa27b0",
+          "actor": "claude-worker",
+          "why": ""
         }
-      ],
-      "blocked": {
-        "reason": "The FY2026-27 withholding coefficients must come from the ATO published schedule, not be guessed.",
-        "need": "Official ATO NAT 1004 (Schedule 1) coefficients and worked examples for 1 July 2026 onwards, sourced and checked.",
-        "at": "2026-10-02T22:50:14.156Z"
-      }
+      ]
     },
     {
       "id": "PAY-05",
       "title": "Payday Super (from 1 July 2026) drives super due dates instead of quarterly batching",
       "area": "payroll",
       "priority": 24,
-      "status": "blocked",
+      "status": "open",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payday-super.sql\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/PaydaySuper.test.tsx\""
@@ -1606,13 +1608,15 @@
           "actor": "claude-worker",
           "reason": "Payday Super start date and rules must be confirmed against legislation before changing super due dates.",
           "need": "Confirmation that Payday Super applies from 1 July 2026 and the final due-date rule (e.g. within 7 days of payday)."
+        },
+        {
+          "at": "2026-10-03T00:47:46.004Z",
+          "event": "unblocked",
+          "head": "8f1a89f1754e886f18107c58b7eb8e7331fa27b0",
+          "actor": "claude-worker",
+          "why": ""
         }
-      ],
-      "blocked": {
-        "reason": "Payday Super start date and rules must be confirmed against legislation before changing super due dates.",
-        "need": "Confirmation that Payday Super applies from 1 July 2026 and the final due-date rule (e.g. within 7 days of payday).",
-        "at": "2026-10-02T22:50:14.234Z"
-      }
+      ]
     },
     {
       "id": "XERO-01",
@@ -3497,5 +3501,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T00:47:22.495Z"
+  "updated_at": "2026-10-03T00:47:46.020Z"
 }
