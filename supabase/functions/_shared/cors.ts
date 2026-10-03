@@ -22,7 +22,8 @@
 // calls Deno.serve): when a response carries CORS headers, the wrapper sets Access-Control-Allow-Origin
 // to the request's own Origin if it is allowed, and removes it if not. Requests without an Origin
 // (servers, cron, webhooks) are left alone. New code can call corsHeadersFor(req) or withCors(req, res)
-// directly.
+// directly. The same wrapper keeps raw error text out of 5xx bodies (errors.ts).
+import { redactServerError, serverError } from './errors.ts';
 
 export const APP_ORIGIN = 'https://accounting.looplet.com.au';
 
@@ -137,10 +138,22 @@ type Handler = (req: Request, info: Deno.ServeHandlerInfo) => Response | Promise
 const WRAPPED = Symbol.for('looplet.cors.serve');
 
 function wrapHandler(handler: Handler): Handler {
-  return async (req, info) => withCors(req, await handler(req, info));
+  return async (req, info) => {
+    let res: Response;
+    try {
+      res = await handler(req, info);
+    } catch (err) {
+      // An uncaught exception becomes a logged, generic 500 that still carries CORS headers.
+      res = serverError(err, req, corsHeaders);
+    }
+    return withCors(req, await redactServerError(req, res));
+  };
 }
 
-/** Wraps Deno.serve once so every function's responses get per-request CORS headers. */
+/**
+ * Wraps Deno.serve once so every function's responses get per-request CORS headers, and 5xx bodies are
+ * replaced with a generic message (the original is logged server-side; see errors.ts).
+ */
 export function installCorsServeWrapper(): boolean {
   const original = Deno.serve as unknown as ((...args: unknown[]) => unknown) & { [WRAPPED]?: true };
   if (typeof original !== 'function') return false;

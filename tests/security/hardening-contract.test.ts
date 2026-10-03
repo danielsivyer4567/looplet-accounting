@@ -210,3 +210,27 @@ describe('secrets are compared in constant time and cron secrets travel in a hea
     }
   });
 });
+
+describe('server errors reach the client as a generic message', () => {
+  it('the shared wrapper redacts every 5xx body and turns a throw into a generic 500', () => {
+    const cors = read('supabase/functions/_shared/cors.ts');
+    expect(cors).toContain("import { redactServerError, serverError } from './errors.ts';");
+    expect(cors).toContain('res = serverError(err, req, corsHeaders);');
+    expect(cors).toContain('return withCors(req, await redactServerError(req, res));');
+    const errors = read('supabase/functions/_shared/errors.ts');
+    expect(errors).toMatch(/if \(res\.status < 500 \|\| res\.status > 599\) return res;/);
+    expect(errors).toMatch(
+      /JSON\.stringify\(\{ ok: false, error: GENERIC_SERVER_ERROR, request_id: reference \}\)/,
+    );
+    // Behaviour, over HTTP through Deno.serve: supabase/functions/_shared/cors.test.ts and errors.test.ts.
+  });
+
+  it('every function that serves HTTP is behind that wrapper', () => {
+    const entrypoints = filesUnder('supabase/functions', /^index\.ts$/).filter(
+      (f) => !f.includes('/_shared/') && /\bDeno\.serve\(/.test(read(f)),
+    );
+    for (const file of entrypoints) {
+      expect(read(file), file).toMatch(/from ['"]\.\.\/_shared\/cors\.ts['"]/);
+    }
+  });
+});

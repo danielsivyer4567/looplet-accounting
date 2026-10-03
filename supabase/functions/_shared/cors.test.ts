@@ -161,3 +161,49 @@ Deno.test("an existing function served with Deno.serve answers each allowed orig
     }
   });
 });
+
+Deno.test("the same wrapper keeps raw error text out of 5xx bodies, and errors still carry CORS headers", async () => {
+  await withEnv({ CORS_ALLOWED_ORIGINS: undefined, CORS_ALLOWED_ORIGIN: undefined }, async () => {
+    const logged: string[] = [];
+    const originalError = console.error;
+    console.error = (...args: unknown[]) => logged.push(args.map(String).join(" "));
+    // The shapes existing functions use: a database error in a 500 body, an uncaught throw, and a 400.
+    const server: Deno.HttpServer<Deno.NetAddr> = Deno.serve({ hostname: "127.0.0.1", port: 0, onListen() {} }, (r): Response => {
+      const path = new URL(r.url).pathname;
+      const headers = { ...corsHeaders, "Content-Type": "application/json" };
+      if (path === "/db-error") {
+        return new Response(JSON.stringify({ ok: false, error: 'load schedules: relation "public.asset_schedules" does not exist' }), { status: 500, headers });
+      }
+      if (path === "/throw") throw new Error('duplicate key value violates unique constraint "bills_pkey"');
+      return new Response(JSON.stringify({ ok: false, error: "organization_id is required" }), { status: 400, headers });
+    });
+    const url = `http://127.0.0.1:${server.addr.port}`;
+    const origin = { Origin: "http://localhost:4000" };
+    try {
+      const dbError = await fetch(`${url}/db-error`, { method: "POST", headers: origin });
+      assertEquals(dbError.status, 500);
+      assertEquals(dbError.headers.get("Access-Control-Allow-Origin"), "http://localhost:4000");
+      const dbBody = await dbError.json();
+      assertEquals(dbBody.ok, false);
+      assertEquals(dbBody.error, "Something went wrong on our side. Please try again.");
+      assert(typeof dbBody.request_id === "string" && dbBody.request_id.length > 0);
+      assertFalse(JSON.stringify(dbBody).includes("asset_schedules"));
+
+      const thrown = await fetch(`${url}/throw`, { method: "POST", headers: origin });
+      assertEquals(thrown.status, 500);
+      assertEquals(thrown.headers.get("Access-Control-Allow-Origin"), "http://localhost:4000");
+      assertFalse((await thrown.text()).includes("bills_pkey"));
+
+      const bad = await fetch(`${url}/bad`, { method: "POST", headers: origin });
+      assertEquals(bad.status, 400);
+      assertEquals((await bad.json()).error, "organization_id is required");
+
+      // The details went to the server log instead, with the reference the client was given.
+      assert(logged.some((l) => l.includes("asset_schedules") && l.includes(dbBody.request_id)));
+      assert(logged.some((l) => l.includes("bills_pkey")));
+    } finally {
+      console.error = originalError;
+      await server.shutdown();
+    }
+  });
+});
