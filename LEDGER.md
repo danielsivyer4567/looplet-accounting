@@ -2,7 +2,7 @@
 
 **Goal:** Old Looplet Accounting (accounting.looplet.com.au) made legitimate, secure, modern and connected to Redbark bank feeds. Local proof first; production deploys, migrations and credential use need Daniel's explicit yes.
 
-**Progress:** 4/51 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
+**Progress:** 3/51 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
 
 | ID | Item | Status | Proof |
 |---|---|---|---|
@@ -53,7 +53,7 @@
 | SHIP | Ship gate: typecheck, lint, the full test suite (Vitest and Deno) and the production build all pass | open | not run |
 | DEPLOY | Production (accounting.looplet.com.au and the edge functions) serves the verified build after Daniel says go | blocked | BLOCKED: Production changes need the owner's explicit approval. (needs: Daniel reviews screenshots and the verified ledger, then says go for the production deploy.) |
 | SEC-08 | bills-allocate-batch checks the caller's own accepted membership and needs accountant or higher to change allocations | verified | verified by claude-verifier (independent subagent) @ bbdacc04 |
-| SEC-09 | accountant-email-query matches the sender's accepted accountant memberships by role_enum, so the emailed activity digest works | verified | verified by claude-verifier (independent subagent) @ bbdacc04 |
+| SEC-09 | accountant-email-query matches the sender's accepted accountant memberships by role_enum, so the emailed activity digest works | done | done @ 91b934af, awaiting independent verify |
 | MIG-01 | Every migration applies in order to a fresh database, so the history can rebuild the schema (no known failures left) | done | done @ 32686c65, awaiting independent verify |
 | SEC-10 | SECURITY DEFINER functions that users call and that write money tables check the caller's role | done | done @ 32686c65, awaiting independent verify |
 | SEC-11 | Bills only reference suppliers of their own organisation, so payment runs never copy another organisation's payee bank details | done | done @ 32686c65, awaiting independent verify |

@@ -11290,7 +11290,7 @@
       "title": "accountant-email-query matches the sender's accepted accountant memberships by role_enum, so the emailed activity digest works",
       "area": "security",
       "priority": 14,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/accountant-email-query/match.test.ts\""
       ],
@@ -11336,6 +11336,19 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/SEC-09-003.log",
           "log_sha256": "181dd0872472c15eb53bada199fa2d8e0ed66e492a70d44c3e5a1eda4507bf76"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/accountant-email-query/match.test.ts\"",
+          "exit": 0,
+          "head": "91b934af2c0ccc26f35933ba350c433ada625b0e",
+          "dirty": [],
+          "at": "2026-10-03T03:05:39.964Z",
+          "ms": 722,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-09-004.log",
+          "log_sha256": "6513526067f165d5de05e856288295f8143efee0f9030fe14098ab0f4ada2a08"
         }
       ],
       "notes": [],
@@ -11380,14 +11393,28 @@
           "head": "bbdacc04f04a6da223f6fd695654ec508b6df3d0",
           "actor": "claude-verifier",
           "by": "claude-verifier (independent subagent)"
+        },
+        {
+          "at": "2026-10-03T03:05:39.965Z",
+          "event": "run",
+          "head": "91b934af2c0ccc26f35933ba350c433ada625b0e",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T03:05:40.163Z",
+          "event": "done",
+          "head": "91b934af2c0ccc26f35933ba350c433ada625b0e",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T00:09:05.285Z",
-        "head": "0e7befa3e3ebe7857f2caaa4fb8579ac34964baf",
+        "at": "2026-10-03T03:05:40.148Z",
+        "head": "91b934af2c0ccc26f35933ba350c433ada625b0e",
         "by": "claude-worker",
         "runs": [
-          2
+          4
         ]
       },
       "verified": {
@@ -13195,5 +13222,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T03:05:38.024Z"
+  "updated_at": "2026-10-03T03:05:40.177Z"
 }
