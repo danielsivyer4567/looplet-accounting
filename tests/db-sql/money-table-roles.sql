@@ -132,6 +132,18 @@ INSERT INTO public.bank_connections (id, organization_id, provider, encrypted_ac
   VALUES (pg_temp.id('conn'), pg_temp.id('org_a'), 'manual', 'x');
 INSERT INTO public.bank_accounts (id, organization_id, bank_connection_id, external_id, name)
   VALUES (pg_temp.id('bank_account'), pg_temp.id('org_a'), pg_temp.id('conn'), 'acct-1', 'Everyday');
+INSERT INTO public.period_locks (id, organization_id, period_start, period_end, reason)
+  VALUES (pg_temp.id('lock'), pg_temp.id('org_a'), DATE '2001-01-01', DATE '2001-01-31', 'test lock');
+INSERT INTO public.employees (id, organization_id, full_name) VALUES
+  (pg_temp.id('employee_row'), pg_temp.id('org_a'), 'Staff Member'), (pg_temp.id('employee_b'), pg_temp.id('org_b'), 'Other Org Staff');
+INSERT INTO public.payment_runs (id, organization_id, pay_date) VALUES
+  (pg_temp.id('run'), pg_temp.id('org_a'), DATE '2030-01-15'), (pg_temp.id('run_del'), pg_temp.id('org_a'), DATE '2030-01-16');
+INSERT INTO public.payment_run_items (id, payment_run_id, organization_id, bill_id, amount_cents, payee_bsb, payee_account_number, payee_account_name)
+  VALUES (pg_temp.id('item'), pg_temp.id('run'), pg_temp.id('org_a'), pg_temp.id('bill'), 1000, '062-000', '12345678', 'Payee Pty Ltd');
+INSERT INTO public.super_batches (id, organization_id, fy_start_year, quarter) VALUES (pg_temp.id('super'), pg_temp.id('org_a'), 2030, 1);
+INSERT INTO public.pay_runs (id, organization_id, period_start, period_end, pay_date)
+  VALUES (pg_temp.id('pay_run_b'), pg_temp.id('org_b'), DATE '2030-01-01', DATE '2030-01-07', DATE '2030-01-08');
+
 -- Adjacent tables whose writes flow into invoices, bills and the bank: lines, payments, transactions, time and pay.
 INSERT INTO public.invoice_line_items (id, invoice_id, organization_id, line_number, description, unit_price_cents, line_total_ex_gst_cents, line_total_inc_gst_cents)
   VALUES (pg_temp.id('inv_line'), pg_temp.id('invoice'), pg_temp.id('org_a'), 1, 'Fence panels', 9091, 9091, 10000);
@@ -144,17 +156,6 @@ INSERT INTO public.timesheet_entries (id, organization_id, employee_id, work_dat
   VALUES (pg_temp.id('timesheet'), pg_temp.id('org_a'), pg_temp.id('employee_row'), DATE '2030-01-06', 7.6);
 INSERT INTO public.super_batch_lines (id, batch_id, organization_id, employee_id, employee_name, super_cents)
   VALUES (pg_temp.id('super_line'), pg_temp.id('super'), pg_temp.id('org_a'), pg_temp.id('employee_row'), 'Staff Member', 12000);
-INSERT INTO public.period_locks (id, organization_id, period_start, period_end, reason)
-  VALUES (pg_temp.id('lock'), pg_temp.id('org_a'), DATE '2001-01-01', DATE '2001-01-31', 'test lock');
-INSERT INTO public.employees (id, organization_id, full_name) VALUES
-  (pg_temp.id('employee_row'), pg_temp.id('org_a'), 'Staff Member'), (pg_temp.id('employee_b'), pg_temp.id('org_b'), 'Other Org Staff');
-INSERT INTO public.payment_runs (id, organization_id, pay_date) VALUES
-  (pg_temp.id('run'), pg_temp.id('org_a'), DATE '2030-01-15'), (pg_temp.id('run_del'), pg_temp.id('org_a'), DATE '2030-01-16');
-INSERT INTO public.payment_run_items (id, payment_run_id, organization_id, bill_id, amount_cents, payee_bsb, payee_account_number, payee_account_name)
-  VALUES (pg_temp.id('item'), pg_temp.id('run'), pg_temp.id('org_a'), pg_temp.id('bill'), 1000, '062-000', '12345678', 'Payee Pty Ltd');
-INSERT INTO public.super_batches (id, organization_id, fy_start_year, quarter) VALUES (pg_temp.id('super'), pg_temp.id('org_a'), 2030, 1);
-INSERT INTO public.pay_runs (id, organization_id, period_start, period_end, pay_date)
-  VALUES (pg_temp.id('pay_run_b'), pg_temp.id('org_b'), DATE '2030-01-01', DATE '2030-01-07', DATE '2030-01-08');
 
 -- Probe statements. %s placeholders are filled from ids at run time.
 CREATE TEMP TABLE cases (tbl text, op text, min_role text, sql text);
