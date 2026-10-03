@@ -13689,7 +13689,7 @@
       "title": "Light theme polish: themed colours everywhere, no hard-coded dark-only colours, auth screens in the new style",
       "area": "ui",
       "priority": 70,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-hardcoded-colours.mjs\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AuthMobile.test.tsx\""
@@ -13699,7 +13699,60 @@
         "index.html",
         "scripts/check-hardcoded-colours.mjs"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-hardcoded-colours.mjs\"",
+          "exit": 1,
+          "head": "a92f4d9595bced9099ca0d9ee5ea7e404f6efa91",
+          "dirty": [],
+          "at": "2026-10-03T04:15:15.595Z",
+          "ms": 483,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-01-001.log",
+          "log_sha256": "12065764d1a1de83be518b8038f977ffc466b6c2a53f189b2d678d3199ae4a2f"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AuthMobile.test.tsx\"",
+          "exit": 0,
+          "head": "a92f4d9595bced9099ca0d9ee5ea7e404f6efa91",
+          "dirty": [],
+          "at": "2026-10-03T04:15:17.797Z",
+          "ms": 2201,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-01-002.log",
+          "log_sha256": "e01cc6a6ef57234d15ed91acdfe2d7415a3a69eae123129ac360705eaec591dc"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-hardcoded-colours.mjs\"",
+          "exit": 0,
+          "head": "92732d637072d4d95d458bbc4276fb9bc4a76d0e",
+          "dirty": [],
+          "at": "2026-10-03T04:15:18.596Z",
+          "ms": 340,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-01-003.log",
+          "log_sha256": "5db2f18aee94c139a5ffa9eaad1596bcc6e6099bdf1f95e0c00522d093926d07"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AuthMobile.test.tsx\"",
+          "exit": 0,
+          "head": "92732d637072d4d95d458bbc4276fb9bc4a76d0e",
+          "dirty": [],
+          "at": "2026-10-03T04:15:20.877Z",
+          "ms": 2280,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-01-004.log",
+          "log_sha256": "b1757324cead5a982ca6ec3cb21bb24fbe9084d85c1ce540e2e0d356f9b66828"
+        }
+      ],
       "notes": [
         {
           "at": "2026-10-02T22:50:14.605Z",
@@ -13713,8 +13766,45 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:15:14.870Z",
+          "event": "start",
+          "head": "a92f4d9595bced9099ca0d9ee5ea7e404f6efa91",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:15:17.797Z",
+          "event": "run",
+          "head": "a92f4d9595bced9099ca0d9ee5ea7e404f6efa91",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:15:20.877Z",
+          "event": "run",
+          "head": "92732d637072d4d95d458bbc4276fb9bc4a76d0e",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:15:21.022Z",
+          "event": "done",
+          "head": "92732d637072d4d95d458bbc4276fb9bc4a76d0e",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T04:15:21.007Z",
+        "head": "92732d637072d4d95d458bbc4276fb9bc4a76d0e",
+        "by": "claude-worker",
+        "runs": [
+          3,
+          4
+        ]
+      }
     },
     {
       "id": "UI-02",
@@ -16657,5 +16747,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T04:15:12.526Z"
+  "updated_at": "2026-10-03T04:15:21.038Z"
 }
