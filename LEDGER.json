@@ -4648,7 +4648,7 @@
       "title": "A privacy policy, terms of service and collection notice are published, linked, and accepted at sign-up",
       "area": "legitimacy",
       "priority": 34,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LegalPages.test.tsx\""
       ],
@@ -4656,7 +4656,34 @@
         "src/pages",
         "src/App.tsx"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LegalPages.test.tsx\"",
+          "exit": 1,
+          "head": "5500ae2f19b092d2914e135ac6db8e7cfb5bf3d7",
+          "dirty": [],
+          "at": "2026-10-03T02:42:42.863Z",
+          "ms": 1673,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/LEGAL-01-001.log",
+          "log_sha256": "d998456c6c723b5f4c0fe4aa43fd6f4747b4acbf338a23bc4554311f1146b5c6"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LegalPages.test.tsx\"",
+          "exit": 0,
+          "head": "b54a213f7e46ae76de22de84752ffbbe322a8555",
+          "dirty": [],
+          "at": "2026-10-03T02:42:45.663Z",
+          "ms": 2443,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/LEGAL-01-002.log",
+          "log_sha256": "cd39c5a95f3c215aff22b974f9347d9cdace6fb94003fe6536a010cf44cc5780"
+        }
+      ],
       "notes": [
         {
           "at": "2026-10-02T22:50:14.544Z",
@@ -4670,8 +4697,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:42:41.066Z",
+          "event": "start",
+          "head": "5500ae2f19b092d2914e135ac6db8e7cfb5bf3d7",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:42:42.864Z",
+          "event": "run",
+          "head": "5500ae2f19b092d2914e135ac6db8e7cfb5bf3d7",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:42:45.664Z",
+          "event": "run",
+          "head": "b54a213f7e46ae76de22de84752ffbbe322a8555",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:42:45.885Z",
+          "event": "done",
+          "head": "b54a213f7e46ae76de22de84752ffbbe322a8555",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T02:42:45.871Z",
+        "head": "b54a213f7e46ae76de22de84752ffbbe322a8555",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "AI-01",
@@ -11394,5 +11457,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T02:42:39.058Z"
+  "updated_at": "2026-10-03T02:42:45.900Z"
 }
