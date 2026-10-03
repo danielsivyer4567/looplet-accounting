@@ -1988,7 +1988,7 @@
       "title": "bank-sync imports Redbark transactions idempotently on (bank account, provider id) and keeps the post-sync chain",
       "area": "bank",
       "priority": 43,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bank-sync/sync.test.ts\""
       ],
@@ -1997,7 +1997,34 @@
         "supabase/functions/bank-sync-all",
         "supabase/functions/_shared/redbark"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bank-sync/sync.test.ts\"",
+          "exit": 1,
+          "head": "640526b05ebbad12676427be67d68db161f6ebaa",
+          "dirty": [],
+          "at": "2026-10-03T00:44:37.504Z",
+          "ms": 393,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-04-001.log",
+          "log_sha256": "c987fecce199f57212f90da743d1136d0fcf214608b8b3af2b61954c58f3d59d"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bank-sync/sync.test.ts\"",
+          "exit": 0,
+          "head": "418a2b2f22e9d2defdadfe0200fd50da20f834c4",
+          "dirty": [],
+          "at": "2026-10-03T00:44:39.060Z",
+          "ms": 825,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-04-002.log",
+          "log_sha256": "71213851db49ff5ede1a72347660cfda6334ffb7f2652286bed0ab9503ab64c4"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -2005,8 +2032,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:44:36.982Z",
+          "event": "start",
+          "head": "640526b05ebbad12676427be67d68db161f6ebaa",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:44:37.505Z",
+          "event": "run",
+          "head": "640526b05ebbad12676427be67d68db161f6ebaa",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:44:39.061Z",
+          "event": "run",
+          "head": "418a2b2f22e9d2defdadfe0200fd50da20f834c4",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:44:39.190Z",
+          "event": "done",
+          "head": "418a2b2f22e9d2defdadfe0200fd50da20f834c4",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T00:44:39.174Z",
+        "head": "418a2b2f22e9d2defdadfe0200fd50da20f834c4",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "BANK-05",
@@ -3173,5 +3236,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T00:44:36.716Z"
+  "updated_at": "2026-10-03T00:44:39.205Z"
 }
