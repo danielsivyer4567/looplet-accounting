@@ -6875,7 +6875,7 @@
       "title": "No GST credit is invented when GST is missing or the supplier is not GST-registered",
       "area": "broken",
       "priority": 53,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/gstNoInvention.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/receipt-webhook/gst.test.ts\""
@@ -6885,7 +6885,60 @@
         "src/pages/BillDetail.tsx",
         "supabase/functions/receipt-webhook"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/gstNoInvention.test.ts\"",
+          "exit": 1,
+          "head": "4c40eb42e4f4d488e135215bc382c0c54061f299",
+          "dirty": [],
+          "at": "2026-10-03T02:22:39.227Z",
+          "ms": 1271,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/GST-01-001.log",
+          "log_sha256": "4957f61e0ba810cc7f56337d9d6c287bc624fecb905ee44816dc46259d8a9d55"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/receipt-webhook/gst.test.ts\"",
+          "exit": 1,
+          "head": "4c40eb42e4f4d488e135215bc382c0c54061f299",
+          "dirty": [],
+          "at": "2026-10-03T02:22:39.541Z",
+          "ms": 313,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/GST-01-002.log",
+          "log_sha256": "b004798a42710d91f6f066a50e800fe31983c235e3129444e2c52ef954109862"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/gstNoInvention.test.ts\"",
+          "exit": 0,
+          "head": "3159f8e1b044ef8e2d9e5bdb4775a5e1e0196883",
+          "dirty": [],
+          "at": "2026-10-03T02:22:42.293Z",
+          "ms": 2273,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/GST-01-003.log",
+          "log_sha256": "5f6d11e6eb9f788d9163d4fed7b2d764a832eaa728301a01a71ff1aec0ef8a18"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/receipt-webhook/gst.test.ts\"",
+          "exit": 0,
+          "head": "3159f8e1b044ef8e2d9e5bdb4775a5e1e0196883",
+          "dirty": [],
+          "at": "2026-10-03T02:22:43.361Z",
+          "ms": 1067,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/GST-01-004.log",
+          "log_sha256": "22e30406ad842516cd7af3a3f0e9adec8628c830afeafe32b62a176a6ace5f86"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -6893,8 +6946,45 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:22:37.737Z",
+          "event": "start",
+          "head": "4c40eb42e4f4d488e135215bc382c0c54061f299",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:22:39.542Z",
+          "event": "run",
+          "head": "4c40eb42e4f4d488e135215bc382c0c54061f299",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:22:43.361Z",
+          "event": "run",
+          "head": "3159f8e1b044ef8e2d9e5bdb4775a5e1e0196883",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:22:43.487Z",
+          "event": "done",
+          "head": "3159f8e1b044ef8e2d9e5bdb4775a5e1e0196883",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T02:22:43.473Z",
+        "head": "3159f8e1b044ef8e2d9e5bdb4775a5e1e0196883",
+        "by": "claude-worker",
+        "runs": [
+          3,
+          4
+        ]
+      }
     },
     {
       "id": "TAX-01",
@@ -9652,5 +9742,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T02:22:35.839Z"
+  "updated_at": "2026-10-03T02:22:43.502Z"
 }

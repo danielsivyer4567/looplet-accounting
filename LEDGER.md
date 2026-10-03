@@ -38,7 +38,7 @@
 | STP-01 | Employees TFNs can be captured securely so the STP export can complete | done | done @ 13a8b935, awaiting independent verify |
 | CSP-01 | PDF previews and the microphone feature work under the production security headers | open | not run |
 | BAS-01 | BAS includes credit notes, supports cash basis and computes W3/W4 instead of hard-coded zeros | done | done @ 32726f3a, awaiting independent verify |
-| GST-01 | No GST credit is invented when GST is missing or the supplier is not GST-registered | open | not run |
+| GST-01 | No GST credit is invented when GST is missing or the supplier is not GST-registered | done | done @ 3159f8e1, awaiting independent verify |
 | TAX-01 | The tax set-aside uses GST-exclusive figures for one financial year | done | done @ 32726f3a, awaiting independent verify |
 | INV-01 | Invoices can be issued as a tax invoice (PDF with "Tax invoice", ABN and GST) and sent | open | not run |
 | DATE-01 | Default dates use Australian local time, not UTC | open | not run |
