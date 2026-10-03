@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { useOrgRole } from '@/hooks/useOrgRole';
+import { writeProblem } from '@/lib/roles';
+import { ReadOnlyNotice } from '@/components/ReadOnlyNotice';
 import { formatMoney } from '@/lib/money';
 import { currentStatutorySuperRatePct } from '@/lib/superGuarantee';
 import { formatLoadError, formatActionError } from '@/lib/errorMessages';
@@ -126,6 +129,9 @@ function computeLoadedRate(w: WageComponents): number {
 export function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { currentOrg } = useOrg();
+  const { canWrite } = useOrgRole();
+  const canEditPay = canWrite('pay');
+  const canLogTime = canWrite('time');
   const navigate = useNavigate();
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [recentTs, setRecentTs] = useState<Timesheet[]>([]);
@@ -253,10 +259,15 @@ export function EmployeeDetailPage() {
       classification_level: draft.classification_level?.toString().trim() || null,
       wage_components: wage,
     };
-    const { error: e } = await supabase.from('employees').update(payload).eq('id', employee.id);
+    // .select('id') returns the changed rows: a write refused by row-level security changes
+    // 0 rows without an error.
+    const problem = writeProblem(
+      'save this employee',
+      await supabase.from('employees').update(payload).eq('id', employee.id).select('id'),
+    );
     setSaving(false);
-    if (e) {
-      setError(formatActionError('save this employee', e.message));
+    if (problem) {
+      setError(problem);
       return;
     }
     setEditing(false);
@@ -270,9 +281,12 @@ export function EmployeeDetailPage() {
     if (patch.hours != null) {
       newPatch.total_cost_cents = Math.round(patch.hours * ts.loaded_hourly_rate_cents);
     }
-    const { error: e } = await supabase.from('timesheet_entries').update(newPatch).eq('id', tid);
-    if (e) {
-      setError(formatActionError('update this timesheet entry', e.message));
+    const problem = writeProblem(
+      'update this timesheet entry',
+      await supabase.from('timesheet_entries').update(newPatch).eq('id', tid).select('id'),
+    );
+    if (problem) {
+      setError(problem);
       return;
     }
     void refresh();
@@ -280,12 +294,16 @@ export function EmployeeDetailPage() {
 
   const deleteTimesheet = async (tid: string) => {
     if (!confirm('Delete this timesheet entry?')) return;
-    const { error: e } = await supabase
-      .from('timesheet_entries')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', tid);
-    if (e) {
-      setError(formatActionError('delete this timesheet entry', e.message));
+    const problem = writeProblem(
+      'delete this timesheet entry',
+      await supabase
+        .from('timesheet_entries')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', tid)
+        .select('id'),
+    );
+    if (problem) {
+      setError(problem);
       return;
     }
     void refresh();
@@ -395,13 +413,17 @@ export function EmployeeDetailPage() {
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button onClick={() => setShowLogTime(true)} className="btn btn-primary">
+          <button
+            onClick={() => setShowLogTime(true)}
+            disabled={!canLogTime}
+            className="btn btn-primary"
+          >
             <Plus size={16} />
             <span>Log time</span>
           </button>
 
           {!editing && (
-            <button onClick={startEdit} className="btn btn-secondary">
+            <button onClick={startEdit} disabled={!canEditPay} className="btn btn-secondary">
               <Edit3 size={14} />
               <span>Edit Info</span>
             </button>
@@ -429,6 +451,28 @@ export function EmployeeDetailPage() {
           )}
         </div>
       </div>
+
+      {!canEditPay && (
+        <ReadOnlyNotice area="pay">
+          {canLogTime
+            ? 'You can view this page and log time. Ask an owner or admin for the admin role to change employee details or leave balances.'
+            : undefined}
+        </ReadOnlyNotice>
+      )}
+      {error && !editing && (
+        <div
+          className="badge badge-danger"
+          role="alert"
+          style={{
+            display: 'block',
+            padding: '0.625rem',
+            marginBottom: '1rem',
+            textTransform: 'none',
+          }}
+        >
+          {error}
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div
@@ -845,6 +889,7 @@ export function EmployeeDetailPage() {
                 <TimesheetRow
                   key={t.id}
                   ts={t}
+                  readOnly={!canLogTime}
                   onUpdate={(patch) => void updateTimesheet(t.id, patch)}
                   onDelete={() => void deleteTimesheet(t.id)}
                 />
@@ -921,6 +966,7 @@ export function EmployeeDetailPage() {
           orgId={currentOrg.id}
           employeeId={employee.id}
           balances={leave}
+          readOnly={!canEditPay}
           onChange={() => void refresh()}
         />
       </div>
@@ -1194,11 +1240,13 @@ function LeaveBalancesPanel({
   orgId,
   employeeId,
   balances,
+  readOnly,
   onChange,
 }: {
   orgId: string;
   employeeId: string;
   balances: LeaveBalance[];
+  readOnly: boolean;
   onChange: () => void;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
@@ -1214,11 +1262,15 @@ function LeaveBalancesPanel({
     setErr(null);
     const existing = balances.find((b) => b.leave_type === leave_type);
     if (existing) {
-      const { error: e } = await supabase
-        .from('leave_balances')
-        .update({ [field]: value })
-        .eq('id', existing.id);
-      if (e) setErr(formatActionError('update the leave balance', e.message));
+      const problem = writeProblem(
+        'update the leave balance',
+        await supabase
+          .from('leave_balances')
+          .update({ [field]: value })
+          .eq('id', existing.id)
+          .select('id'),
+      );
+      if (problem) setErr(problem);
     } else {
       const { error: e } = await supabase.from('leave_balances').insert({
         organization_id: orgId,
@@ -1278,7 +1330,7 @@ function LeaveBalancesPanel({
                   step="0.5"
                   defaultValue={Number(b?.hours_accrued ?? 0)}
                   onBlur={(e) => void upsert(t, 'hours_accrued', parseFloat(e.target.value) || 0)}
-                  disabled={busy === `${t}:hours_accrued`}
+                  disabled={readOnly || busy === `${t}:hours_accrued`}
                   className="form-input"
                   style={{ padding: '0.35rem 0.5rem', fontSize: '0.825rem' }}
                 />
@@ -1289,7 +1341,7 @@ function LeaveBalancesPanel({
                   step="0.5"
                   defaultValue={Number(b?.hours_taken ?? 0)}
                   onBlur={(e) => void upsert(t, 'hours_taken', parseFloat(e.target.value) || 0)}
-                  disabled={busy === `${t}:hours_taken`}
+                  disabled={readOnly || busy === `${t}:hours_taken`}
                   className="form-input"
                   style={{ padding: '0.35rem 0.5rem', fontSize: '0.825rem' }}
                 />
@@ -1312,10 +1364,12 @@ function LeaveBalancesPanel({
 
 function TimesheetRow({
   ts,
+  readOnly,
   onUpdate,
   onDelete,
 }: {
   ts: Timesheet;
+  readOnly: boolean;
   onUpdate: (patch: { hours?: number; notes?: string | null }) => void;
   onDelete: () => void;
 }) {
@@ -1407,6 +1461,7 @@ function TimesheetRow({
           <div style={{ display: 'inline-flex', gap: '0.25rem' }}>
             <button
               onClick={() => setEditing(true)}
+              disabled={readOnly}
               aria-label="Edit timesheet"
               className="btn btn-secondary"
               style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
@@ -1415,6 +1470,7 @@ function TimesheetRow({
             </button>
             <button
               onClick={onDelete}
+              disabled={readOnly}
               aria-label="Delete timesheet"
               className="btn btn-secondary"
               style={{

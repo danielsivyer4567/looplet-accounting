@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { useOrgRole } from '@/hooks/useOrgRole';
+import { writeProblem } from '@/lib/roles';
+import { ReadOnlyNotice } from '@/components/ReadOnlyNotice';
 import {
   usePaymentRunDetail,
   type PaymentRunRow,
@@ -32,6 +35,8 @@ export function PaymentRunDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { currentOrg } = useOrg();
   const { run, items, loading, error, refresh } = usePaymentRunDetail(id);
+  const { canWrite } = useOrgRole();
+  const readOnly = !canWrite('pay');
   const [actionBusy, setActionBusy] = useState(false);
   const [actionErr, setActionErr] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
@@ -101,12 +106,18 @@ export function PaymentRunDetailPage() {
   };
 
   const handleApprove = async () => {
-    const { error: err } = await supabase
-      .from('payment_runs')
-      .update({ status: 'approved', approved_at: new Date().toISOString() })
-      .eq('id', run.id);
-    if (err) {
-      setActionErr(err.message);
+    // .select('id') returns the changed rows: a write refused by row-level security changes
+    // 0 rows without an error.
+    const problem = writeProblem(
+      'approve this payment run',
+      await supabase
+        .from('payment_runs')
+        .update({ status: 'approved', approved_at: new Date().toISOString() })
+        .eq('id', run.id)
+        .select('id'),
+    );
+    if (problem) {
+      setActionErr(problem);
       return;
     }
     setActionMsg('Payment run approved.');
@@ -236,7 +247,7 @@ export function PaymentRunDetailPage() {
           {run.status === 'draft' && (
             <button
               onClick={() => void handleApprove()}
-              disabled={actionBusy}
+              disabled={actionBusy || readOnly}
               className="btn btn-primary"
             >
               <CheckCircle size={16} />
@@ -247,7 +258,7 @@ export function PaymentRunDetailPage() {
           {(run.status === 'draft' || run.status === 'approved') && (
             <button
               onClick={() => void handleDownloadAba()}
-              disabled={actionBusy}
+              disabled={actionBusy || readOnly}
               className="btn btn-success"
             >
               <Download size={16} />
@@ -258,7 +269,7 @@ export function PaymentRunDetailPage() {
           {run.status === 'exported' && (
             <button
               onClick={() => void handleDownloadAba()}
-              disabled={actionBusy}
+              disabled={actionBusy || readOnly}
               className="btn btn-success"
             >
               <Download size={16} />
@@ -269,7 +280,7 @@ export function PaymentRunDetailPage() {
           {(run.status === 'approved' || run.status === 'exported') && (
             <button
               onClick={() => void handleMarkPaid()}
-              disabled={actionBusy}
+              disabled={actionBusy || readOnly}
               className="btn btn-secondary"
               style={{ color: 'var(--text-success)', borderColor: 'var(--accent-success)' }}
             >
@@ -280,6 +291,7 @@ export function PaymentRunDetailPage() {
         </div>
       </div>
 
+      {readOnly && <ReadOnlyNotice area="pay" />}
       {actionMsg && (
         <div
           className="badge badge-success"
@@ -342,6 +354,7 @@ export function PaymentRunDetailPage() {
                   key={item.id}
                   item={item}
                   runStatus={run.status}
+                  writable={!readOnly}
                   onSaved={() => void refresh()}
                 />
               ))}
@@ -370,10 +383,13 @@ export function PaymentRunDetailPage() {
 function PaymentItemRow({
   item,
   runStatus,
+  writable,
   onSaved,
 }: {
   item: PaymentRunItem;
   runStatus: PaymentRunRow['status'];
+  /** False for roles below admin: the row is shown but cannot be edited. */
+  writable: boolean;
   onSaved: () => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -384,24 +400,28 @@ function PaymentItemRow({
   });
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState<string | null>(null);
-  const canEdit = runStatus === 'draft' || runStatus === 'approved';
+  const canEdit = writable && (runStatus === 'draft' || runStatus === 'approved');
   const missingBsb = !item.payee_bsb;
   const missingAccount = !item.payee_account_number;
 
   const save = async () => {
     setSaving(true);
     setSaveErr(null);
-    const { error } = await supabase
-      .from('payment_run_items')
-      .update({
-        payee_bsb: draft.payee_bsb,
-        payee_account_number: draft.payee_account_number,
-        payee_account_name: draft.payee_account_name,
-      })
-      .eq('id', item.id);
+    const problem = writeProblem(
+      'save the payee details',
+      await supabase
+        .from('payment_run_items')
+        .update({
+          payee_bsb: draft.payee_bsb,
+          payee_account_number: draft.payee_account_number,
+          payee_account_name: draft.payee_account_name,
+        })
+        .eq('id', item.id)
+        .select('id'),
+    );
     setSaving(false);
-    if (error) {
-      setSaveErr(error.message);
+    if (problem) {
+      setSaveErr(problem);
       return;
     }
     setEditing(false);

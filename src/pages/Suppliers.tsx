@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
+import { useOrgRole } from '@/hooks/useOrgRole';
+import { ReadOnlyNotice } from '@/components/ReadOnlyNotice';
 import { useSuppliers, type SupplierRow } from '@/hooks/useSuppliers';
 import { supabase } from '@/lib/supabase';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
@@ -83,6 +85,8 @@ export function SuppliersPage() {
   const { currentOrg } = useOrg();
   const { suppliers, spendMap, loading, loadingMore, error, hasMore, loadMore, refresh } =
     useSuppliers();
+  const { canWrite } = useOrgRole();
+  const readOnly = !canWrite('books');
   const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
 
@@ -145,6 +149,7 @@ export function SuppliersPage() {
           )}
           <button
             onClick={() => setShowCreate(true)}
+            disabled={readOnly}
             className="btn btn-primary"
             aria-label="+ New supplier"
           >
@@ -153,6 +158,8 @@ export function SuppliersPage() {
           </button>
         </div>
       </div>
+
+      {readOnly && <ReadOnlyNotice area="books" />}
 
       {showCreate && (
         <CreateSupplierForm

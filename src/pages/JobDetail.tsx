@@ -2,6 +2,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { useOrgRole } from '@/hooks/useOrgRole';
+import { writeProblem } from '@/lib/roles';
+import { ReadOnlyNotice } from '@/components/ReadOnlyNotice';
 import { formatMoney } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { DetailPageSkeleton } from '@/components/Skeleton';
@@ -91,6 +94,8 @@ const JOB_STATUSES = ['quoted', 'active', 'on_hold', 'completed', 'cancelled', '
 export function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { currentOrg } = useOrg();
+  const { canWrite } = useOrgRole();
+  const readOnly = !canWrite('time');
   const navigate = useNavigate();
   const [job, setJob] = useState<JobRow | null>(null);
   const [pnl, setPnl] = useState<PnlRow | null>(null);
@@ -181,10 +186,15 @@ export function JobDetailPage() {
       start_date: draft.start_date || null,
       end_date: draft.end_date || null,
     };
-    const { error: saveErr } = await supabase.from('jobs').update(payload).eq('id', job.id);
+    // .select('id') returns the changed rows: a write refused by row-level security changes
+    // 0 rows without an error.
+    const problem = writeProblem(
+      'save this job',
+      await supabase.from('jobs').update(payload).eq('id', job.id).select('id'),
+    );
     setSaving(false);
-    if (saveErr) {
-      setError(saveErr.message);
+    if (problem) {
+      setError(problem);
       return;
     }
     setEditing(false);
@@ -193,7 +203,18 @@ export function JobDetailPage() {
 
   const detachBill = async (billId: string) => {
     if (!confirm('Detach this bill from the job?')) return;
-    await supabase.from('bills').update({ job_id: null, status: 'verified' }).eq('id', billId);
+    const problem = writeProblem(
+      'detach this bill',
+      await supabase
+        .from('bills')
+        .update({ job_id: null, status: 'verified' })
+        .eq('id', billId)
+        .select('id'),
+    );
+    if (problem) {
+      setError(problem);
+      return;
+    }
     void refresh();
   };
 
@@ -307,7 +328,7 @@ export function JobDetailPage() {
             </button>
           )}
           {!editing && (
-            <button onClick={startEdit} className="btn btn-secondary">
+            <button onClick={startEdit} disabled={readOnly} className="btn btn-secondary">
               <Edit3 size={14} />
               <span>Edit</span>
             </button>
@@ -335,6 +356,22 @@ export function JobDetailPage() {
           />
         </div>
       </div>
+
+      {readOnly && <ReadOnlyNotice area="time" />}
+      {error && !editing && (
+        <div
+          className="badge badge-danger"
+          role="alert"
+          style={{
+            display: 'block',
+            padding: '0.625rem',
+            marginBottom: '1rem',
+            textTransform: 'none',
+          }}
+        >
+          {error}
+        </div>
+      )}
 
       {/* Warning banner */}
       {(overBudget || lowMargin) && (
@@ -704,6 +741,7 @@ export function JobDetailPage() {
                         e.stopPropagation();
                         void detachBill(b.id);
                       }}
+                      disabled={!canWrite('books')}
                       className="btn btn-secondary"
                       style={{
                         padding: '0.25rem 0.5rem',

@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
+import { useOrgRole } from '@/hooks/useOrgRole';
+import { writeProblem } from '@/lib/roles';
+import { ReadOnlyNotice } from '@/components/ReadOnlyNotice';
 import { useAllocationQueue, type AllocationQueueRow } from '@/hooks/useAllocationQueue';
 import { useJobs } from '@/hooks/useJobs';
 import type { JobListRow } from '@/hooks/useJobs';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
-import { formatLoadError, formatActionError } from '@/lib/errorMessages';
+import { formatLoadError } from '@/lib/errorMessages';
 import { SkeletonLine } from '@/components/Skeleton';
 import { GitPullRequest, Eye, EyeOff, CheckCircle2, ChevronRight, X } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -190,6 +193,8 @@ export function AllocationsPage() {
   const { currentOrg } = useOrg();
   const { queue, loading, error, refresh } = useAllocationQueue();
   const { jobs } = useJobs();
+  const { canWrite } = useOrgRole();
+  const readOnly = !canWrite('books');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
@@ -332,12 +337,18 @@ export function AllocationsPage() {
   const rejectSuggestion = async (billId: string) => {
     setBusyId(billId);
     setActionError(null);
-    const { error: rejectErr } = await supabase
-      .from('bills')
-      .update({ suggested_job_id: null, suggested_match_score: null })
-      .eq('id', billId);
-    if (rejectErr) {
-      setActionError(formatActionError('reject this suggestion', rejectErr.message));
+    // .select('id') returns the changed rows: a write refused by row-level security changes
+    // 0 rows without an error.
+    const problem = writeProblem(
+      'reject this suggestion',
+      await supabase
+        .from('bills')
+        .update({ suggested_job_id: null, suggested_match_score: null })
+        .eq('id', billId)
+        .select('id'),
+    );
+    if (problem) {
+      setActionError(problem);
     } else {
       await refresh();
     }
@@ -362,18 +373,22 @@ export function AllocationsPage() {
     let firstErr: string | null = null;
     for (const b of billsWithSuggestion) {
       if (!b.suggested_job_id) continue;
-      const { error: attachErr } = await supabase
-        .from('bills')
-        .update({
-          job_id: b.suggested_job_id,
-          suggested_job_id: null,
-          suggested_match_score: null,
-          status: 'attached',
-        })
-        .eq('id', b.bill_id);
-      if (attachErr) {
+      const problem = writeProblem(
+        'attach this bill',
+        await supabase
+          .from('bills')
+          .update({
+            job_id: b.suggested_job_id,
+            suggested_job_id: null,
+            suggested_match_score: null,
+            status: 'attached',
+          })
+          .eq('id', b.bill_id)
+          .select('id'),
+      );
+      if (problem) {
         failed += 1;
-        if (!firstErr) firstErr = attachErr.message;
+        if (!firstErr) firstErr = problem;
       } else {
         n += 1;
       }
@@ -385,7 +400,7 @@ export function AllocationsPage() {
         : `✓ Attached ${n} bills.`,
     );
     if (firstErr) {
-      setActionError(formatActionError('attach some bills', firstErr));
+      setActionError(firstErr);
     }
     setBulkBusy(false);
     await refresh();
@@ -394,17 +409,21 @@ export function AllocationsPage() {
   const quickAssignToJob = async (billId: string, jobId: string) => {
     setBusyId(billId);
     setActionError(null);
-    const { error: assignErr } = await supabase
-      .from('bills')
-      .update({
-        job_id: jobId,
-        suggested_job_id: null,
-        suggested_match_score: null,
-        status: 'attached',
-      })
-      .eq('id', billId);
-    if (assignErr) {
-      setActionError(formatActionError('assign this bill to the job', assignErr.message));
+    const problem = writeProblem(
+      'assign this bill to the job',
+      await supabase
+        .from('bills')
+        .update({
+          job_id: jobId,
+          suggested_job_id: null,
+          suggested_match_score: null,
+          status: 'attached',
+        })
+        .eq('id', billId)
+        .select('id'),
+    );
+    if (problem) {
+      setActionError(problem);
     } else {
       await refresh();
     }
@@ -436,6 +455,7 @@ export function AllocationsPage() {
           </p>
         </div>
 
+        {readOnly && <ReadOnlyNotice area="books" />}
         {actionError && (
           <div
             className="badge badge-danger"
@@ -471,7 +491,7 @@ export function AllocationsPage() {
             </div>
             <button
               onClick={bulkAttachAllSuggestions}
-              disabled={bulkBusy}
+              disabled={bulkBusy || readOnly}
               className="btn btn-primary"
               style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
             >
@@ -500,6 +520,7 @@ export function AllocationsPage() {
               busy={busyId === b.bill_id}
               jobs={jobs}
               isPreviewing={previewBillId === b.bill_id}
+              readOnly={readOnly}
               onConfirm={(jobId) => confirmAttach(b, jobId)}
               onReject={() => rejectSuggestion(b.bill_id)}
               onQuickAssign={(jobId) => quickAssignToJob(b.bill_id, jobId)}
@@ -520,6 +541,7 @@ function BillCard({
   busy,
   jobs,
   isPreviewing,
+  readOnly,
   onConfirm,
   onReject,
   onQuickAssign,
@@ -529,6 +551,7 @@ function BillCard({
   busy: boolean;
   jobs: JobListRow[];
   isPreviewing: boolean;
+  readOnly: boolean;
   onConfirm: (jobId: string) => void;
   onReject: () => void;
   onQuickAssign: (jobId: string) => void;
@@ -661,7 +684,7 @@ function BillCard({
             <div style={{ display: 'flex', gap: '0.35rem' }}>
               <button
                 onClick={() => bill.suggested_job_id && onConfirm(bill.suggested_job_id)}
-                disabled={busy}
+                disabled={busy || readOnly}
                 className="btn btn-primary"
                 style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', flex: 1 }}
               >
@@ -669,7 +692,7 @@ function BillCard({
               </button>
               <button
                 onClick={onReject}
-                disabled={busy}
+                disabled={busy || readOnly}
                 className="btn btn-secondary"
                 style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
               >
@@ -682,7 +705,7 @@ function BillCard({
             <select
               onChange={(e) => e.target.value && onQuickAssign(e.target.value)}
               defaultValue=""
-              disabled={busy}
+              disabled={busy || readOnly}
               className="form-select"
               style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem' }}
             >

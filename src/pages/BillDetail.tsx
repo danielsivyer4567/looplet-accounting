@@ -9,6 +9,9 @@ import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
 import { gstIncludedInTotal, resolveDocumentGst, type GstSource } from '@/lib/gst';
 import { useOrg } from '@/hooks/useOrg';
+import { useOrgRole } from '@/hooks/useOrgRole';
+import { writeProblem } from '@/lib/roles';
+import { ReadOnlyNotice } from '@/components/ReadOnlyNotice';
 import { ConfidenceBadge } from '@/components/ConfidenceBadge';
 import { DetailPageSkeleton, SkeletonLine } from '@/components/Skeleton';
 import type {
@@ -103,6 +106,8 @@ function centsToDraft(cents: number): string {
 export function BillDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { bill, loading, error, refresh } = useBill(id);
+  const { canWrite } = useOrgRole();
+  const readOnly = !canWrite('books');
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -237,10 +242,15 @@ export function BillDetailPage() {
       // is still worked out as total minus subtotal.
       if (amountsChanged) payload.gst_estimated = computed.source === 'subtotal_difference';
 
-      const { error: saveErr } = await supabase.from('bills').update(payload).eq('id', bill.id);
+      // .select('id') returns the changed rows: row-level security refuses a write by changing
+      // 0 rows without an error, which would otherwise look like a save.
+      const problem = writeProblem(
+        'save this bill',
+        await supabase.from('bills').update(payload).eq('id', bill.id).select('id'),
+      );
 
-      if (saveErr) {
-        setActionError(saveErr.message);
+      if (problem) {
+        setActionError(problem);
         return;
       }
 
@@ -417,10 +427,15 @@ export function BillDetailPage() {
             </button>
           )}
 
-          <PersonalToggle bill={bill} onChange={() => void refresh()} />
+          <PersonalToggle
+            bill={bill}
+            disabled={readOnly}
+            onChange={() => void refresh()}
+            onError={setActionError}
+          />
 
           {!editing && (
-            <button onClick={startEdit} className="btn btn-secondary">
+            <button onClick={startEdit} disabled={readOnly} className="btn btn-secondary">
               <Edit3 size={14} />
               <span>Edit Details</span>
             </button>
@@ -464,6 +479,8 @@ export function BillDetailPage() {
           reasonCodes={decisionState.reasonCodes}
         />
       )}
+
+      {readOnly && <ReadOnlyNotice area="books" />}
 
       <StatusBar bill={bill} />
 
@@ -1073,18 +1090,39 @@ function EffectiveAllocations({ billId }: { billId: string }) {
   );
 }
 
-function PersonalToggle({ bill, onChange }: { bill: Bill; onChange: () => void }) {
+function PersonalToggle({
+  bill,
+  disabled,
+  onChange,
+  onError,
+}: {
+  bill: Bill;
+  disabled?: boolean;
+  onChange: () => void;
+  onError: (message: string) => void;
+}) {
   const [busy, setBusy] = useState(false);
   const toggle = async () => {
     setBusy(true);
-    await supabase.from('bills').update({ is_personal: !bill.is_personal }).eq('id', bill.id);
+    const problem = writeProblem(
+      'change whether this bill is personal',
+      await supabase
+        .from('bills')
+        .update({ is_personal: !bill.is_personal })
+        .eq('id', bill.id)
+        .select('id'),
+    );
     setBusy(false);
+    if (problem) {
+      onError(problem);
+      return;
+    }
     onChange();
   };
   return (
     <button
       onClick={toggle}
-      disabled={busy}
+      disabled={busy || disabled}
       className="btn"
       style={{
         background: bill.is_personal ? 'var(--bg-warning-subtle)' : 'transparent',

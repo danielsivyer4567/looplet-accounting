@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
+import { useOrgRole } from '@/hooks/useOrgRole';
+import { ReadOnlyNotice } from '@/components/ReadOnlyNotice';
 import { useCustomers } from '@/hooks/useCustomers';
 import type { BillingAddress, CustomerRow } from '@/hooks/useCustomers';
 import { supabase } from '@/lib/supabase';
@@ -20,6 +22,8 @@ function formatAddress(addr: BillingAddress | null): string {
 export function CustomersPage() {
   const { currentOrg } = useOrg();
   const { customers, loading, error, refresh } = useCustomers();
+  const { canWrite } = useOrgRole();
+  const readOnly = !canWrite('books');
   const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
 
@@ -54,6 +58,7 @@ export function CustomersPage() {
         />
         <button
           onClick={() => setShowCreate(true)}
+          disabled={readOnly}
           className="btn btn-primary"
           aria-label="+ New customer"
         >
@@ -61,6 +66,8 @@ export function CustomersPage() {
           <span>New customer</span>
         </button>
       </div>
+
+      {readOnly && <ReadOnlyNotice area="books" />}
 
       {showCreate && (
         <CreateCustomerForm
