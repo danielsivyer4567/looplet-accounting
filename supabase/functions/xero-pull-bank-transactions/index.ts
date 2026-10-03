@@ -5,12 +5,16 @@
  * without a Redbark feed. The existing classifier / reconcile / job-attribution
  * pipeline runs on the resulting bank_transactions unchanged.
  *
- * Bank accounts: Xero Accounts where Type=="BANK" → bank_accounts with
- *   bank_connection_id NULL. Deduped by (organization_id, external_id) via a
- *   read-then-insert map, because the table's unique index includes the nullable
- *   bank_connection_id (NULLs are distinct, so onConflict can't dedupe them).
+ * Connection: one bank_connections row per org + Xero tenant (provider 'xero'),
+ *   upserted on (organization_id, provider, external_item_id). Tokens stay in
+ *   xero_integrations.
+ * Bank accounts: Xero Accounts where Type=="BANK" → bank_accounts under that
+ *   connection, upserted on (organization_id, bank_connection_id, external_id).
+ *   account_type maps Xero's BankAccountType (CREDITCARD → credit_card, BANK →
+ *   checking, other → other); see rows.ts.
  * Transactions: Xero BankTransactions (paginated, newest first) → bank_transactions,
- *   upserted on (bank_account_id, external_id). RECEIVE* = +, SPEND* = −.
+ *   upserted on (bank_account_id, external_id). RECEIVE* = +, SPEND* = −; voided
+ *   (DELETED) transactions are skipped.
  *
  * Auth: cron secret (?secret=XERO_CRON_SECRET) OR a user JWT with org access.
  * Input:  { organization_id?: string }  (omitted on cron = all enabled orgs)
@@ -21,50 +25,19 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { callXeroWithRetry, xeroFetch } from '../_shared/xero/auth.ts';
 import { requireEnv } from '../_shared/env.ts';
-
-interface XeroBankAccount {
-  AccountID: string;
-  Code?: string;
-  Name: string;
-  Type: string;
-  Status?: string;
-  CurrencyCode?: string;
-  BankAccountNumber?: string;
-}
-
-interface XeroBankTransaction {
-  BankTransactionID: string;
-  Type: string; // SPEND* | RECEIVE*
-  BankAccount?: { AccountID: string };
-  Date?: string; // "/Date(ms+tz)/" or ISO
-  DateString?: string;
-  Total?: number;
-  Reference?: string;
-  Contact?: { Name?: string };
-  LineItems?: { AccountCode?: string; Description?: string }[];
-  Status?: string;
-}
+import {
+  bankAccountRow,
+  bankTransactionRow,
+  type XeroBankAccount,
+  xeroBankConnectionRow,
+  type XeroBankTransaction,
+} from './rows.ts';
 
 const MAX_PAGES = 100; // 100 txns/page → up to 10k per run; log if capped.
 const CRON_SECRET = Deno.env.get('XERO_CRON_SECRET');
 
 function isCronRequest(req: Request): boolean {
   return Boolean(CRON_SECRET) && new URL(req.url).searchParams.get('secret') === CRON_SECRET;
-}
-
-/** Xero JSON dates come as "/Date(1518685950940+0000)/"; DateString is ISO. */
-function parseXeroDate(ms?: string, iso?: string): string | null {
-  if (iso) {
-    const t = Date.parse(iso);
-    if (Number.isFinite(t)) return new Date(t).toISOString();
-  }
-  if (ms) {
-    const m = /\/Date\((\d+)/.exec(ms);
-    if (m) return new Date(parseInt(m[1], 10)).toISOString();
-    const t = Date.parse(ms);
-    if (Number.isFinite(t)) return new Date(t).toISOString();
-  }
-  return null;
 }
 
 Deno.serve(async (req) => {
@@ -124,6 +97,24 @@ Deno.serve(async (req) => {
 
     for (const orgId of orgIds) {
       try {
+        // ---- 0. The org's Xero bank connection (bank_accounts need a real one) ----
+        const { data: integ, error: integErr } = await admin
+          .from('xero_integrations')
+          .select('xero_tenant_id')
+          .eq('organization_id', orgId)
+          .eq('is_enabled', true)
+          .maybeSingle();
+        if (integErr) throw new Error(`xero_integrations read failed: ${integErr.message}`);
+        if (!integ?.xero_tenant_id) throw new Error('Xero is not connected for this organisation');
+        const { data: conn, error: connErr } = await admin
+          .from('bank_connections')
+          .upsert(xeroBankConnectionRow(orgId, integ.xero_tenant_id), {
+            onConflict: 'organization_id,provider,external_item_id',
+          })
+          .select('id')
+          .single();
+        if (connErr || !conn) throw new Error(`bank_connections upsert failed: ${connErr?.message}`);
+
         // ---- 1. Xero bank accounts (Type==BANK) → bank_accounts ----
         const acctData = await callXeroWithRetry<{ Accounts?: XeroBankAccount[] }>(
           admin,
@@ -132,44 +123,20 @@ Deno.serve(async (req) => {
         );
         const bankAccounts = acctData?.Accounts ?? [];
 
-        // Read existing Xero-sourced (bank_connection_id IS NULL) accounts to dedupe.
-        const { data: existing } = await admin
-          .from('bank_accounts')
-          .select('id, external_id')
-          .eq('organization_id', orgId)
-          .is('bank_connection_id', null);
-        const idByExternal = new Map<string, string>(
-          (existing ?? []).map((a: { id: string; external_id: string }) => [a.external_id, a.id]),
-        );
-
+        const idByExternal = new Map<string, string>();
         for (const a of bankAccounts) {
-          const row = {
-            organization_id: orgId,
-            bank_connection_id: null,
-            external_id: a.AccountID,
-            name: a.Name,
-            account_number_last4: a.BankAccountNumber
-              ? a.BankAccountNumber.replace(/\s+/g, '').slice(-4)
-              : null,
-            account_type: 'bank',
-            currency_code: a.CurrencyCode ?? null,
-            is_active: a.Status !== 'ARCHIVED',
-          };
-          const existingId = idByExternal.get(a.AccountID);
-          if (existingId) {
-            await admin.from('bank_accounts').update(row).eq('id', existingId);
-          } else {
-            const { data: ins, error: insErr } = await admin
-              .from('bank_accounts')
-              .insert(row)
-              .select('id')
-              .single();
-            if (insErr || !ins) {
-              console.error(`[xero-pull] bank_accounts insert failed (org ${orgId}): ${insErr?.message}`);
-              continue;
-            }
-            idByExternal.set(a.AccountID, ins.id);
+          const { data: acct, error: acctErr } = await admin
+            .from('bank_accounts')
+            .upsert(bankAccountRow(orgId, conn.id, a), {
+              onConflict: 'organization_id,bank_connection_id,external_id',
+            })
+            .select('id')
+            .single();
+          if (acctErr || !acct) {
+            console.error(`[xero-pull] bank_accounts upsert failed (org ${orgId}): ${acctErr?.message}`);
+            continue;
           }
+          idByExternal.set(a.AccountID, acct.id);
           accountsUpserted++;
         }
 
@@ -184,28 +151,9 @@ Deno.serve(async (req) => {
           const txns = txData?.BankTransactions ?? [];
           if (txns.length === 0) break;
 
+          const nowIso = new Date().toISOString();
           const rows = txns
-            .map((t) => {
-              const bankAccountId = t.BankAccount?.AccountID
-                ? idByExternal.get(t.BankAccount.AccountID)
-                : undefined;
-              if (!bankAccountId) return null; // account not in our map — skip, never orphan
-              const sign = t.Type?.startsWith('RECEIVE') ? 1 : -1;
-              const cents = Math.round(Math.abs(t.Total ?? 0) * 100) * sign;
-              const desc =
-                t.Reference || t.Contact?.Name || t.LineItems?.[0]?.Description || t.Type || 'Xero transaction';
-              return {
-                organization_id: orgId,
-                bank_account_id: bankAccountId,
-                external_id: t.BankTransactionID,
-                posted_at: parseXeroDate(t.Date, t.DateString) ?? new Date().toISOString(),
-                description: desc,
-                amount_cents: cents,
-                reference: t.Reference ?? null,
-                category_external: t.LineItems?.[0]?.AccountCode ?? null,
-                raw: t,
-              };
-            })
+            .map((t) => bankTransactionRow(orgId, idByExternal, t, nowIso))
             .filter((r): r is NonNullable<typeof r> => r !== null);
 
           if (rows.length > 0) {
@@ -224,6 +172,10 @@ Deno.serve(async (req) => {
             console.warn(`[xero-pull] org ${orgId} hit MAX_PAGES (${MAX_PAGES}); more transactions may exist.`);
           }
         }
+        await admin
+          .from('bank_connections')
+          .update({ last_synced_at: new Date().toISOString(), last_error: null })
+          .eq('id', conn.id);
       } catch (orgErr) {
         const msg = orgErr instanceof Error ? orgErr.message : String(orgErr);
         console.error(`[xero-pull] org ${orgId} failed: ${msg}`);
