@@ -4440,7 +4440,7 @@
       "title": "AI answers and advice are labelled general information, and the model is allowed to recommend an accountant",
       "area": "legitimacy",
       "priority": 35,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AiDisclaimer.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/ask-bot/prompt.test.ts\""
@@ -4451,7 +4451,60 @@
         "supabase/functions/ask-bot",
         "supabase/functions/advisor"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AiDisclaimer.test.tsx\"",
+          "exit": 1,
+          "head": "564a6cc91b07af0123614377e5723e25451aeb14",
+          "dirty": [],
+          "at": "2026-10-03T02:32:45.890Z",
+          "ms": 1654,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/AI-01-001.log",
+          "log_sha256": "a96a1a0958f2317679c7f33e96c60aedd4a7cab41d025ac71b8cbbc8aad81775"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/ask-bot/prompt.test.ts\"",
+          "exit": 1,
+          "head": "564a6cc91b07af0123614377e5723e25451aeb14",
+          "dirty": [],
+          "at": "2026-10-03T02:32:46.964Z",
+          "ms": 1073,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/AI-01-002.log",
+          "log_sha256": "926e8b0321a2ff12b9236bf16816af9d184339c48d38aecc7571380ff93e4eb2"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AiDisclaimer.test.tsx\"",
+          "exit": 0,
+          "head": "b2d43c0b85e0a0d09375d6c3450437d35daa5f55",
+          "dirty": [],
+          "at": "2026-10-03T02:32:49.393Z",
+          "ms": 2094,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/AI-01-003.log",
+          "log_sha256": "4105c69d73266a8c895ad66b5ceeb6b498184bbc9097d5520590bcd690b5c6a0"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/ask-bot/prompt.test.ts\"",
+          "exit": 0,
+          "head": "b2d43c0b85e0a0d09375d6c3450437d35daa5f55",
+          "dirty": [],
+          "at": "2026-10-03T02:32:50.179Z",
+          "ms": 785,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/AI-01-004.log",
+          "log_sha256": "6f352b6851d4034b82fcc0b303f394f8121608e88535127ca2356f781d187be3"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -4459,8 +4512,45 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:32:44.094Z",
+          "event": "start",
+          "head": "564a6cc91b07af0123614377e5723e25451aeb14",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:32:46.964Z",
+          "event": "run",
+          "head": "564a6cc91b07af0123614377e5723e25451aeb14",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:32:50.180Z",
+          "event": "run",
+          "head": "b2d43c0b85e0a0d09375d6c3450437d35daa5f55",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:32:50.408Z",
+          "event": "done",
+          "head": "b2d43c0b85e0a0d09375d6c3450437d35daa5f55",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T02:32:50.394Z",
+        "head": "b2d43c0b85e0a0d09375d6c3450437d35daa5f55",
+        "by": "claude-worker",
+        "runs": [
+          3,
+          4
+        ]
+      }
     },
     {
       "id": "TFN-01",
@@ -10530,5 +10620,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T02:32:42.143Z"
+  "updated_at": "2026-10-03T02:32:50.423Z"
 }

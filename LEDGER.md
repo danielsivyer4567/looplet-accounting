@@ -25,7 +25,7 @@
 | FAKE-02 | The Scan page describes only the checks it really runs (no simulated AI audit) | done | done @ 45829b8b, awaiting independent verify |
 | CONSENT-01 | Settings has no pre-ticked, unsaved or unrelated template consent switches | done | done @ e1638336, awaiting independent verify |
 | LEGAL-01 | A privacy policy, terms of service and collection notice are published, linked, and accepted at sign-up | open | not run |
-| AI-01 | AI answers and advice are labelled general information, and the model is allowed to recommend an accountant | open | not run |
+| AI-01 | AI answers and advice are labelled general information, and the model is allowed to recommend an accountant | done | done @ b2d43c0b, awaiting independent verify |
 | TFN-01 | TFNs are never returned to the browser or stored in plain text | done | done @ 2d399e9e, awaiting independent verify |
 | LODGE-01 | Nothing claims to lodge with the ATO or send to a super fund when it only prepares a file | open | not run |
 | BANK-01 | Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs | done | done @ d56b8370, awaiting independent verify |
