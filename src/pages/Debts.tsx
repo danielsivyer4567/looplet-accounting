@@ -301,7 +301,7 @@ export function DebtsPage() {
               />
               Add New Debt Account
             </h3>
-            <button
+            <button aria-label="Close"
               className="btn btn-ghost"
               onClick={() => setShowAdd(false)}
               style={{ padding: '0.25rem' }}

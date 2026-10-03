@@ -284,7 +284,7 @@ function CreateCustomerForm({
         }}
       >
         <h3 style={{ margin: 0, fontSize: '1.15rem' }}>New Customer</h3>
-        <button onClick={onClose} className="btn btn-ghost" style={{ padding: '0.2rem 0.4rem' }}>
+        <button onClick={onClose} className="btn btn-ghost" aria-label="Close" style={{ padding: '0.2rem 0.4rem' }}>
           <X size={16} />
         </button>
       </div>

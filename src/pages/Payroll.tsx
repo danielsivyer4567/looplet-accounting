@@ -283,7 +283,7 @@ export function PayrollPage() {
             position: 'relative',
           }}
         >
-          <button
+          <button aria-label="Close"
             onClick={() => setShowCreate(false)}
             style={{
               position: 'absolute',

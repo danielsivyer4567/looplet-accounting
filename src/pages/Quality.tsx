@@ -234,7 +234,7 @@ export function QualityPage() {
                       Same supplier & invoice date (
                       <span style={{ color: 'var(--text-title)' }}>{d.invoice_date}</span>),
                       totaling{' '}
-                      <strong style={{ color: 'var(--accent-danger)' }}>
+                      <strong style={{ color: 'var(--text-danger)' }}>
                         {formatMoney(d.total_inc_gst_cents)}
                       </strong>
                     </div>

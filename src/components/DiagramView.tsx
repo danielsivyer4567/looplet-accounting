@@ -246,7 +246,7 @@ function Node({ n, shown, active }: { n: PNode; shown: boolean; active: boolean 
           y={23}
           style={{
             fill: 'var(--accent-primary)',
-            fontSize: '10px',
+            fontSize: '11px',
             fontWeight: 700,
             letterSpacing: '1.5px',
           }}
@@ -264,7 +264,7 @@ function Node({ n, shown, active }: { n: PNode; shown: boolean; active: boolean 
           <text
             x={16}
             y={57}
-            style={{ fill: 'var(--text-muted)', fontSize: '10.5px', letterSpacing: '0.3px' }}
+            style={{ fill: 'var(--text-muted)', fontSize: '11px', letterSpacing: '0.3px' }}
           >
             {clip(n.tag, 30)}
           </text>
@@ -388,7 +388,7 @@ function Diagram({
                     x={e.mx}
                     y={e.my + 3}
                     textAnchor="middle"
-                    style={{ fill: 'var(--text-muted)', fontSize: '10px', fontWeight: 600 }}
+                    style={{ fill: 'var(--text-muted)', fontSize: '11px', fontWeight: 600 }}
                   >
                     {e.label}
                   </text>
@@ -417,7 +417,7 @@ function Diagram({
       >
         <div
           style={{
-            fontSize: '0.65rem',
+            fontSize: '0.6875rem',
             fontWeight: 700,
             letterSpacing: '0.1em',
             textTransform: 'uppercase',

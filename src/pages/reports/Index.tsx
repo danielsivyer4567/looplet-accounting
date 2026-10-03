@@ -156,7 +156,7 @@ export function ReportsIndexPage() {
                 </div>
                 <span
                   className={`badge ${r.status === 'live' ? 'badge-success' : 'badge-neutral'}`}
-                  style={{ fontSize: '0.675rem' }}
+                  style={{ fontSize: '0.6875rem' }}
                 >
                   {r.status}
                 </span>

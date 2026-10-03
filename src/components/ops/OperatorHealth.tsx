@@ -188,7 +188,7 @@ export function OperatorHealth() {
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{formatWhen(job.last_run_at)}</td>
                     <td
-                      style={{ textAlign: 'right', fontWeight: 600, color: 'var(--accent-danger)' }}
+                      style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-danger)' }}
                     >
                       {formatOverdue(job.seconds_overdue)}
                     </td>

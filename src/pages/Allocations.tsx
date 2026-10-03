@@ -630,7 +630,7 @@ function BillCard({
               }}
             >
               <span>AI Suggested Match:</span>
-              <span className={`badge ${scoreClass}`} style={{ fontSize: '8px' }}>
+              <span className={`badge ${scoreClass}`} style={{ fontSize: '11px' }}>
                 {(score * 100).toFixed(0)}% Match
               </span>
             </div>

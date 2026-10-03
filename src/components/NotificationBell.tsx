@@ -139,7 +139,7 @@ export function NotificationBell() {
               right: -6,
               background: 'var(--accent-danger)',
               color: 'var(--text-on-accent)',
-              fontSize: 10,
+              fontSize: 11,
               fontWeight: 700,
               minWidth: 16,
               height: 16,
@@ -267,7 +267,7 @@ export function NotificationBell() {
                         <span
                           style={{
                             display: 'inline-block',
-                            fontSize: 10,
+                            fontSize: 11,
                             color: 'var(--text-success)',
                             marginTop: 3,
                             fontWeight: 600,
@@ -282,7 +282,7 @@ export function NotificationBell() {
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: 4,
-                            fontSize: 10,
+                            fontSize: 11,
                             color: 'var(--text-success)',
                             marginTop: 3,
                             fontWeight: 700,
@@ -292,7 +292,7 @@ export function NotificationBell() {
                           View tag
                         </span>
                       )}
-                      <span style={{ display: 'block', fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
                         {new Date(n.created_at).toLocaleString()}
                       </span>
                     </span>

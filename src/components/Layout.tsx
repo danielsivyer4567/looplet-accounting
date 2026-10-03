@@ -148,7 +148,7 @@ function SidebarContent({ items, onNavClick }: { items: NavItem[]; onNavClick?: 
                   aria-hidden="true"
                   style={{
                     margin: index === 0 ? '0 0 0.2rem' : '0.55rem 0 0.2rem',
-                    fontSize: '7px',
+                    fontSize: '11px',
                     fontWeight: 800,
                     color: 'var(--text-muted)',
                     textAlign: 'center',
@@ -186,7 +186,7 @@ function SidebarContent({ items, onNavClick }: { items: NavItem[]; onNavClick?: 
                     <Icon size={18} strokeWidth={isActive ? 2.25 : 1.75} />
                     <span
                       style={{
-                        fontSize: '9px',
+                        fontSize: '11px',
                         fontWeight: 600,
                         textAlign: 'center',
                         display: 'block',
@@ -201,7 +201,7 @@ function SidebarContent({ items, onNavClick }: { items: NavItem[]; onNavClick?: 
                           position: 'absolute',
                           top: '2px',
                           right: '2px',
-                          fontSize: '7px',
+                          fontSize: '11px',
                           padding: '1px 3px',
                           borderRadius: '3px',
                           background: 'var(--accent-primary)',
@@ -232,7 +232,7 @@ function SidebarContent({ items, onNavClick }: { items: NavItem[]; onNavClick?: 
             background: 'transparent',
             color: 'var(--text-muted)',
             cursor: 'pointer',
-            fontSize: '7px',
+            fontSize: '11px',
             fontWeight: 700,
             textTransform: 'uppercase',
             letterSpacing: '0.08em',
@@ -252,7 +252,7 @@ function SidebarContent({ items, onNavClick }: { items: NavItem[]; onNavClick?: 
           padding: '0.75rem 0',
           borderTop: '1px solid var(--border-sidebar)',
           marginTop: 'auto',
-          fontSize: '8px',
+          fontSize: '11px',
           color: 'var(--text-muted)',
           textAlign: 'center',
           width: '100%',
@@ -395,7 +395,7 @@ export function Layout() {
           gap: 2px;
           color: var(--text-on-accent);
           font-weight: 700;
-          font-size: 9px;
+          font-size: 11px;
           cursor: pointer;
           transition: var(--transition-smooth);
         }
@@ -558,12 +558,12 @@ export function Layout() {
 
                     <div className="app-switch-btn" style={{ background: 'var(--accent-primary)' }}>
                       <div style={{ fontSize: '14px', fontWeight: 800 }}>L</div>
-                      <span style={{ fontSize: '8px' }}>Accounting</span>
+                      <span style={{ fontSize: '11px' }}>Accounting</span>
                     </div>
 
                     <div className="app-switch-btn" style={{ background: 'var(--accent-success)' }}>
                       <div style={{ fontSize: '14px', fontWeight: 800 }}>L</div>
-                      <span style={{ fontSize: '8px' }}>CRM</span>
+                      <span style={{ fontSize: '11px' }}>CRM</span>
                     </div>
                   </div>
                 )}
@@ -668,7 +668,7 @@ export function Layout() {
               style={{
                 writingMode: 'vertical-rl',
                 transform: 'rotate(180deg)',
-                fontSize: '0.68rem',
+                fontSize: '0.6875rem',
                 fontWeight: 700,
                 letterSpacing: '0.08em',
               }}

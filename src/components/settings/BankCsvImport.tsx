@@ -122,7 +122,7 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <h3 style={{ fontSize: 14, margin: 0 }}>Import bank CSV</h3>
-        <button onClick={() => setOpen(false)} style={closeBtn}>
+        <button onClick={() => setOpen(false)} style={closeBtn} aria-label="Close">
           ×
         </button>
       </div>

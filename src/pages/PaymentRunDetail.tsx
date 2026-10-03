@@ -439,7 +439,7 @@ function PaymentItemRow({
             </Field>
 
             <div style={{ display: 'flex', gap: '0.25rem' }}>
-              <button
+              <button aria-label="Save payee bank details"
                 onClick={() => void save()}
                 disabled={saving}
                 className="btn btn-primary"
@@ -447,7 +447,7 @@ function PaymentItemRow({
               >
                 <Save size={14} />
               </button>
-              <button
+              <button aria-label="Cancel editing"
                 onClick={() => setEditing(false)}
                 className="btn btn-secondary"
                 style={{ padding: '0.45rem 0.75rem', fontSize: '0.825rem' }}
@@ -556,7 +556,7 @@ function PaymentItemRow({
             <span style={{ marginLeft: '0.25rem' }}>View</span>
           </Link>
           {canEdit && !missingBsb && !missingAccount && (
-            <button
+            <button aria-label="Edit payee bank details"
               onClick={() => setEditing(true)}
               className="btn btn-secondary"
               style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}

@@ -132,7 +132,7 @@ export function JobsPage() {
             position: 'relative',
           }}
         >
-          <button
+          <button aria-label="Close"
             onClick={() => setShowCreate(false)}
             style={{
               position: 'absolute',

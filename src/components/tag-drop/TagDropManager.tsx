@@ -972,7 +972,7 @@ export const TagDropManagerContent: React.FC<TagDropManagerProps> = ({
                     type="button"
                     onClick={() => setTagStatusFilter(f)}
                     className={cn(
-                      'px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors',
+                      'px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition-colors',
                       active
                         ? 'bg-slate-900 text-white'
                         : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100',

@@ -379,7 +379,7 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
     <div className="card" style={{ padding: '1rem' }}>
       <div
         style={{
-          fontSize: '0.68rem',
+          fontSize: '0.6875rem',
           color: 'var(--text-muted)',
           textTransform: 'uppercase',
           fontWeight: 700,

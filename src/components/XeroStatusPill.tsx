@@ -72,7 +72,7 @@ export function XeroStatusPill({
         <span
           style={{
             display: 'block',
-            fontSize: 10,
+            fontSize: 11,
             color: 'var(--text-danger)',
             maxWidth: 240,
             whiteSpace: 'nowrap',

@@ -486,7 +486,7 @@ function AddEmployeeForm({
         }}
       >
         <h3 style={{ margin: 0, fontSize: '1.15rem' }}>Add Employee</h3>
-        <button onClick={onClose} className="btn btn-ghost" style={{ padding: '0.2rem 0.4rem' }}>
+        <button onClick={onClose} className="btn btn-ghost" aria-label="Close" style={{ padding: '0.2rem 0.4rem' }}>
           <X size={16} />
         </button>
       </div>
@@ -722,7 +722,7 @@ function LogTimeForm({
         }}
       >
         <h3 style={{ margin: 0, fontSize: '1.15rem' }}>Log Hours Work</h3>
-        <button onClick={onClose} className="btn btn-ghost" style={{ padding: '0.2rem 0.4rem' }}>
+        <button onClick={onClose} className="btn btn-ghost" aria-label="Close" style={{ padding: '0.2rem 0.4rem' }}>
           <X size={16} />
         </button>
       </div>

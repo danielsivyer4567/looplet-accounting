@@ -80,7 +80,7 @@ export function AdviceCard({ note, onOpen, disabled = false }: AdviceCardProps) 
           <span
             style={{
               color: 'var(--text-muted)',
-              fontSize: '0.68rem',
+              fontSize: '0.6875rem',
               fontWeight: 700,
               letterSpacing: '0.04em',
               textTransform: 'uppercase',

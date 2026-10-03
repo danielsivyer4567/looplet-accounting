@@ -768,7 +768,7 @@ function RecordPaymentModal({
             />
             Record Payment
           </h3>
-          <button className="btn btn-ghost" onClick={onClose} style={{ padding: '0.25rem' }}>
+          <button className="btn btn-ghost" onClick={onClose} aria-label="Close" style={{ padding: '0.25rem' }}>
             <X className="w-5 h-5" />
           </button>
         </div>

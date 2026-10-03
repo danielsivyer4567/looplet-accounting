@@ -312,7 +312,7 @@ export function BasReportPage() {
                           style={{
                             marginLeft: '0.5rem',
                             padding: '0.15rem 0.35rem',
-                            fontSize: '0.625rem',
+                            fontSize: '0.6875rem',
                           }}
                         >
                           OVERDUE
@@ -368,7 +368,7 @@ export function BasReportPage() {
                     </div>
                   </div>
                   {isOverdue(r.due_date) && r.net_gst_cents > 0 && (
-                    <span className="badge badge-danger" style={{ fontSize: '0.625rem' }}>
+                    <span className="badge badge-danger" style={{ fontSize: '0.6875rem' }}>
                       OVERDUE
                     </span>
                   )}

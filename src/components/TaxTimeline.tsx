@@ -108,7 +108,7 @@ export function TaxTimeline({
           cursor: pointer; padding: 0.2rem; border-radius: 6px; display: flex; transition: var(--transition-smooth);
         }
         .tt-hide:hover { background: var(--bg-hover); color: var(--text-title); }
-        .tt-sub { color: var(--text-muted); font-size: 0.66rem; margin: 0 0 1.25rem; }
+        .tt-sub { color: var(--text-muted); font-size: 0.75rem; margin: 0 0 1.25rem; }
         .tt-empty { color: var(--text-muted); font-size: 0.72rem; line-height: 1.5; }
         .tt-skel { height: 12px; border-radius: 4px; background: var(--border-subtle); margin-bottom: 0.55rem; opacity: 0.6; }
 
@@ -123,7 +123,7 @@ export function TaxTimeline({
           position: absolute; right: 1px; top: 0.35rem; width: 34px; height: 34px; border-radius: 50%;
           background: var(--bg-card); border: 1px solid var(--border-subtle); color: var(--text-title);
           display: flex; align-items: center; justify-content: center;
-          font-size: 0.62rem; font-weight: 800; z-index: 2; box-shadow: var(--shadow-sm);
+          font-size: 0.75rem; font-weight: 800; z-index: 2; box-shadow: var(--shadow-sm);
         }
 
         .tt-row { position: relative; min-height: 2rem; padding: 0 3.2rem 0.6rem 0; }
@@ -136,14 +136,14 @@ export function TaxTimeline({
           background: var(--bg-app); border: 2px solid var(--text-muted); z-index: 1;
         }
         .tt-row .mlabel {
-          position: absolute; right: 30px; top: 0.26rem; font-size: 0.6rem; font-weight: 800;
+          position: absolute; right: 30px; top: 0.26rem; font-size: 0.75rem; font-weight: 800;
           letter-spacing: 0.05em; color: var(--text-muted); background: var(--bg-app); padding-left: 4px;
         }
         .tt-row.is-now .mdot {
           border-color: var(--accent-primary); background: var(--accent-primary);
           box-shadow: 0 0 0 3px var(--bg-app), 0 0 10px var(--accent-primary);
         }
-        .tt-row.is-now .mlabel { color: var(--accent-primary); }
+        .tt-row.is-now .mlabel { color: var(--text-link); }
 
         .tt-events { display: flex; flex-direction: column; gap: 0.2rem; padding-top: 0.05rem; }
 
@@ -162,9 +162,9 @@ export function TaxTimeline({
         .ev-body { flex: 1; min-width: 0; }
         .ev-title { color: var(--text-title); font-weight: 600; line-height: 1.25; font-size: 0.78rem; }
         .ev-meta { display: flex; align-items: center; gap: 0.35rem; margin-top: 0.15rem; flex-wrap: wrap; }
-        .ev-date { color: var(--text-muted); font-size: 0.64rem; }
+        .ev-date { color: var(--text-muted); font-size: 0.75rem; }
         .ev-badge {
-          font-size: 0.55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em;
+          font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em;
           padding: 0.05rem 0.35rem; border-radius: var(--radius-full); white-space: nowrap;
           color: var(--c); background: color-mix(in srgb, var(--c), transparent 86%);
         }
@@ -181,7 +181,7 @@ export function TaxTimeline({
         .ev-actions { display: flex; flex-wrap: wrap; gap: 0.3rem; }
         .ev-act {
           display: inline-flex; align-items: center; gap: 0.25rem;
-          font-size: 0.64rem; font-weight: 600; padding: 0.3rem 0.55rem; border-radius: var(--radius-full);
+          font-size: 0.75rem; font-weight: 600; padding: 0.3rem 0.55rem; border-radius: var(--radius-full);
           border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-body);
           cursor: pointer; transition: var(--transition-smooth);
         }

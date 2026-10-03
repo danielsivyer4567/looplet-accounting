@@ -210,7 +210,7 @@ export function BankStatementImport({ onImported }: { onImported?: () => void })
     <div className="bank-import-card" style={card}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <h3 style={{ fontSize: 14, margin: 0 }}>Import PDF bank statement</h3>
-        <button onClick={() => setOpen(false)} style={closeBtn}>
+        <button onClick={() => setOpen(false)} style={closeBtn} aria-label="Close">
           ×
         </button>
       </div>

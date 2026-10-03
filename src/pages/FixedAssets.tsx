@@ -153,7 +153,7 @@ export function FixedAssetsPage() {
           >
             <Sparkles size={18} style={{ color: 'var(--accent-warning)' }} />
             Capitalisation proposals
-            <span className="badge badge-warning" style={{ fontSize: '9px' }}>
+            <span className="badge badge-warning" style={{ fontSize: '11px' }}>
               {proposals.length}
             </span>
           </h2>
@@ -256,7 +256,7 @@ export function FixedAssetsPage() {
                         <td>
                           <span
                             className={`badge ${statusBadgeClass(a.status)}`}
-                            style={{ fontSize: '9px', textTransform: 'capitalize' }}
+                            style={{ fontSize: '11px', textTransform: 'capitalize' }}
                           >
                             {a.status}
                           </span>

@@ -1013,7 +1013,7 @@ function TriageSenderDetails({ entity }: { entity: StagedEntity }) {
             lineHeight: '1.4',
           }}
         >
-          <span style={{ color: 'var(--accent-info)', fontWeight: 700 }}>✦ Sonar Search:</span>{' '}
+          <span style={{ color: 'var(--text-info)', fontWeight: 700 }}>✦ Sonar Search:</span>{' '}
           {entity.sonar_summary}
           {entity.sonar_evidence_url && (
             <a

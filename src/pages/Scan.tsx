@@ -546,12 +546,12 @@ function FindingRow({ f, onMute }: { f: Finding; onMute: (id: string, muted: boo
         >
           {f.title}
           {isResolved && (
-            <span className="badge badge-success" style={{ fontSize: '9px', padding: '1px 4px' }}>
+            <span className="badge badge-success" style={{ fontSize: '11px', padding: '1px 4px' }}>
               Resolved
             </span>
           )}
           {isMuted && (
-            <span className="badge badge-neutral" style={{ fontSize: '9px', padding: '1px 4px' }}>
+            <span className="badge badge-neutral" style={{ fontSize: '11px', padding: '1px 4px' }}>
               Muted
             </span>
           )}

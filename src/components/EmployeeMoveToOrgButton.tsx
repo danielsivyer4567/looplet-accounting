@@ -98,7 +98,7 @@ export function EmployeeMoveToOrgButton({ employeeId, currentOrgId, onMoved }: P
               }}
             >
               {o.name}
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{o.organization_type}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{o.organization_type}</div>
             </button>
           ))}
           <button

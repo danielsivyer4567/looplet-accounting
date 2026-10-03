@@ -269,14 +269,14 @@ export const ModernTagOverlay: React.FC<ModernTagOverlayProps> = ({
                   <button
                     onClick={() => handleApproval('approved')}
                     disabled={approvalLoading !== null}
-                    className="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 hover:bg-emerald-200 disabled:opacity-50"
+                    className="text-[11px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 hover:bg-emerald-200 disabled:opacity-50"
                   >
                     {approvalLoading === 'approved' ? 'Approving...' : 'Approve'}
                   </button>
                   <button
                     onClick={() => handleApproval('rejected')}
                     disabled={approvalLoading !== null}
-                    className="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50"
+                    className="text-[11px] font-bold uppercase px-2 py-0.5 rounded bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50"
                   >
                     {approvalLoading === 'rejected' ? 'Rejecting...' : 'Reject'}
                   </button>

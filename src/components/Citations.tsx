@@ -146,7 +146,7 @@ function SonarMarker({ n, url }: { n: number; url: string }) {
       title={url}
       style={{
         ...MARKER_STYLE,
-        color: 'var(--accent-info)',
+        color: 'var(--text-info)',
         background: 'var(--bg-hover)',
         textDecoration: 'none',
       }}
@@ -161,7 +161,7 @@ function ModelAssertionChip() {
     <span
       title="This legal claim is the model's assertion — it is NOT backed by a retrieved law section. Verify it before relying on it."
       style={{
-        fontSize: '0.68rem',
+        fontSize: '0.6875rem',
         fontWeight: 700,
         color: 'var(--text-warning)',
         background: 'color-mix(in srgb, var(--accent-warning) 16%, transparent)',
@@ -203,7 +203,7 @@ function CitedLawPanel({
         style={{
           fontSize: '0.75rem',
           fontWeight: 700,
-          color: 'var(--accent-info)',
+          color: 'var(--text-info)',
           textTransform: 'uppercase',
           letterSpacing: '0.05em',
           marginBottom: '0.6rem',
@@ -235,7 +235,7 @@ function CitedLawPanel({
               cursor: 'pointer',
             }}
           >
-            <span style={{ color: 'var(--accent-info)', fontWeight: 700 }}>[{c.n}]</span>
+            <span style={{ color: 'var(--text-info)', fontWeight: 700 }}>[{c.n}]</span>
             <span>
               {c.doc_ref} <strong style={{ color: 'var(--text-title)' }}>{c.section_ref}</strong>
             </span>

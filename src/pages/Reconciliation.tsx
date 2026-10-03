@@ -466,7 +466,7 @@ export function ReconciliationPage() {
                               {!m.manually_matched && (
                                 <span
                                   className="badge badge-info"
-                                  style={{ fontSize: '9px', padding: '1px 4px', fontWeight: 500 }}
+                                  style={{ fontSize: '11px', padding: '1px 4px', fontWeight: 500 }}
                                 >
                                   auto
                                 </span>
@@ -515,7 +515,7 @@ export function ReconciliationPage() {
                     <div className="reconciliation-mobile-card__header">
                       <strong>{m.description}</strong>
                       {!m.manually_matched && (
-                        <span className="badge badge-info" style={{ fontSize: '9px' }}>
+                        <span className="badge badge-info" style={{ fontSize: '11px' }}>
                           auto
                         </span>
                       )}
@@ -728,7 +728,7 @@ function EvidencePanel({ rows }: { rows: EvidenceRow[] }) {
         <Info size={12} />
         Why Looplet picked this match
         {latest.auto_applied && (
-          <span className="badge badge-info" style={{ fontSize: '9px', padding: '1px 4px' }}>
+          <span className="badge badge-info" style={{ fontSize: '11px', padding: '1px 4px' }}>
             auto-applied
           </span>
         )}
@@ -907,7 +907,7 @@ function TxnRow({
                       >
                         <span
                           className="badge badge-info"
-                          style={{ fontSize: '8px', padding: '1px 3px' }}
+                          style={{ fontSize: '11px', padding: '1px 3px' }}
                         >
                           BILL
                         </span>
@@ -933,7 +933,7 @@ function TxnRow({
                       >
                         <span
                           className="badge badge-success"
-                          style={{ fontSize: '8px', padding: '1px 3px' }}
+                          style={{ fontSize: '11px', padding: '1px 3px' }}
                         >
                           INV
                         </span>

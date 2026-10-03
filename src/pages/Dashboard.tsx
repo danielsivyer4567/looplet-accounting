@@ -707,7 +707,7 @@ export function DashboardPage() {
                   <span>Australian dollar</span>
                 </div>
               </div>
-              <button
+              <button aria-label="Close"
                 onClick={() => setDrawerOpen(false)}
                 style={{
                   background: 'var(--bg-hover)',
@@ -1177,7 +1177,7 @@ function TodayFeed({ tasks, loading }: { tasks: WorkstreamTask[]; loading: boole
                     </span>
                     <span
                       style={{
-                        fontSize: '0.65rem',
+                        fontSize: '0.6875rem',
                         padding: '0.1rem 0.4rem',
                         borderRadius: 'var(--radius-sm)',
                         background: CONFIDENCE_COLORS[task.confidence] ?? 'var(--text-muted)',
@@ -1202,7 +1202,7 @@ function TodayFeed({ tasks, loading }: { tasks: WorkstreamTask[]; loading: boole
                     {task.blocking_reason && (
                       <span
                         style={{
-                          fontSize: '0.65rem',
+                          fontSize: '0.6875rem',
                           padding: '0.1rem 0.4rem',
                           borderRadius: 'var(--radius-sm)',
                           background: 'var(--bg-danger-subtle)',

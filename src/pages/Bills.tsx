@@ -350,7 +350,7 @@ export function BillsPage() {
                           <span
                             className="badge badge-danger"
                             style={{
-                              fontSize: '9px',
+                              fontSize: '11px',
                               padding: '1px 5px',
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -375,7 +375,7 @@ export function BillsPage() {
                     </td>
                     <td>
                       {b.attached_job?.job_number ? (
-                        <code style={{ color: 'var(--accent-success)', fontWeight: 600 }}>
+                        <code style={{ color: 'var(--text-success)', fontWeight: 600 }}>
                           {b.attached_job.job_number}
                         </code>
                       ) : (
@@ -490,7 +490,7 @@ function BillCard({
             <span
               className="badge badge-danger"
               style={{
-                fontSize: '9px',
+                fontSize: '11px',
                 padding: '1px 5px',
                 marginTop: '0.25rem',
                 display: 'inline-flex',

@@ -178,7 +178,7 @@ export function BalanceSheetPage() {
         <div>
           <div
             style={{
-              fontSize: '0.675rem',
+              fontSize: '0.6875rem',
               color: 'var(--text-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
@@ -433,7 +433,7 @@ function MiniCard({
       <div>
         <div
           style={{
-            fontSize: '0.625rem',
+            fontSize: '0.6875rem',
             color: 'var(--text-muted)',
             textTransform: 'uppercase',
             letterSpacing: '0.05em',

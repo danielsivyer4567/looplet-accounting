@@ -404,14 +404,14 @@ export function NotificationsPage() {
                     </span>
                     <span
                       className="badge badge-neutral"
-                      style={{ fontSize: '0.625rem', padding: '0.1rem 0.35rem' }}
+                      style={{ fontSize: '0.6875rem', padding: '0.1rem 0.35rem' }}
                     >
                       {CATEGORY_LABELS[n.category] ?? n.category}
                     </span>
                     {crossOrg && orgNameById.get(n.organization_id) && (
                       <span
                         className="badge badge-primary"
-                        style={{ fontSize: '0.625rem', padding: '0.1rem 0.35rem' }}
+                        style={{ fontSize: '0.6875rem', padding: '0.1rem 0.35rem' }}
                       >
                         {orgNameById.get(n.organization_id)}
                       </span>

@@ -744,7 +744,7 @@ export function EmployeeDetailPage() {
             position: 'relative',
           }}
         >
-          <button
+          <button aria-label="Close"
             onClick={() => setShowLogTime(false)}
             style={{
               position: 'absolute',
@@ -1201,7 +1201,7 @@ function LeaveBalancesPanel({
           >
             <div
               style={{
-                fontSize: '0.675rem',
+                fontSize: '0.6875rem',
                 color: 'var(--text-muted)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',

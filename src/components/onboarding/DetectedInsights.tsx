@@ -111,7 +111,7 @@ export function DetectedInsights() {
                     <span
                       style={{
                         marginLeft: 8,
-                        fontSize: 10,
+                        fontSize: 11,
                         color: s.confidence >= 0.9 ? 'var(--text-success)' : 'var(--text-muted)',
                         background: 'var(--bg-panel)',
                         padding: '0.1rem 0.4rem',

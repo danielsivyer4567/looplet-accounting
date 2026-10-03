@@ -284,7 +284,7 @@ function BankConnectionStatus({ connection }: { connection: BankConnectionRow })
     <>
       <StatusBadge tones={{ active: 'success', expired: 'danger', revoked: 'danger', error: 'danger' }} status={connection.status} />
       {connection.last_error && (
-        <div style={{ color: 'var(--text-danger)', fontSize: 10, marginTop: 4 }}>{connection.last_error}</div>
+        <div style={{ color: 'var(--text-danger)', fontSize: 11, marginTop: 4 }}>{connection.last_error}</div>
       )}
     </>
   );

@@ -483,7 +483,7 @@ function SuggestionCard({
           <span>·</span>
           <span>{bill?.invoice_date ?? '—'}</span>
           <span>·</span>
-          <span className={`badge ${confClass}`} style={{ fontSize: '8px' }}>
+          <span className={`badge ${confClass}`} style={{ fontSize: '11px' }}>
             {(confidence * 100).toFixed(0)}% confidence
           </span>
         </div>
@@ -504,7 +504,7 @@ function SuggestionCard({
             {suggestion.account_code ?? '— no account —'}
           </code>
           {suggestion.tax_code && (
-            <span className="badge badge-neutral" style={{ fontSize: '8px' }}>
+            <span className="badge badge-neutral" style={{ fontSize: '11px' }}>
               {suggestion.tax_code}
             </span>
           )}

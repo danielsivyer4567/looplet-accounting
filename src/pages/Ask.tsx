@@ -22,6 +22,7 @@ import {
   ChevronDown,
   ExternalLink,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 interface AskResponse {
   ok: boolean;
@@ -367,17 +368,7 @@ export function AskPage() {
           }}
         >
           <div>
-            <h1
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                marginBottom: '0.25rem',
-              }}
-            >
-              <Sparkles size={24} style={{ color: 'var(--text-link)' }} />
-              Ask AI
-            </h1>
+            <PageHeader title={<><Sparkles size={24} style={{ color: 'var(--text-link)' }} /> Ask AI</>} style={{ marginBottom: '0.25rem' }} />
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
               Ask anything about your books or Australian tax regulations. Powered by live
               accounting records + citation search.
@@ -601,7 +592,7 @@ export function AskPage() {
                             style={{
                               fontSize: '0.75rem',
                               fontWeight: 700,
-                              color: 'var(--accent-info)',
+                              color: 'var(--text-info)',
                               textTransform: 'uppercase',
                               letterSpacing: '0.05em',
                               marginBottom: '0.5rem',
@@ -620,7 +611,7 @@ export function AskPage() {
                                 alignItems: 'baseline',
                               }}
                             >
-                              <span style={{ color: 'var(--accent-info)', fontWeight: 'bold' }}>
+                              <span style={{ color: 'var(--text-info)', fontWeight: 'bold' }}>
                                 [{i + 1}]
                               </span>
                               <a
@@ -819,7 +810,7 @@ export function AskPage() {
           style={{
             display: 'flex',
             justifyContent: 'space-between',
-            fontSize: '0.675rem',
+            fontSize: '0.6875rem',
             color: 'var(--text-muted)',
             marginTop: '0.35rem',
             padding: '0 0.25rem',
