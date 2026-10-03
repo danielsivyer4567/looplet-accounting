@@ -1403,6 +1403,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-05-011.log",
           "log_sha256": "01cbc291994f7dc77acef8667f5333ff09f6da4a74b7b44176a64c58c397e510"
+        },
+        {
+          "n": 12,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/money-table-roles.sql\"",
+          "exit": 0,
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "dirty": [],
+          "at": "2026-10-03T01:20:20.237Z",
+          "ms": 46051,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-05-012.log",
+          "log_sha256": "38875d6f6ab7cd6fa2b3707f8aad67140fe147f2e5086789418b409641666f31"
         }
       ],
       "notes": [],
@@ -1649,14 +1662,37 @@
           "event": "done",
           "head": "a1207fd22d6eff5be132b1f117134e6ba66ffe5c",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:19:32.901Z",
+          "event": "stale",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003151000_tax_set_aside_ex_gst_fy.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T01:20:20.238Z",
+          "event": "run",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:20:20.478Z",
+          "event": "done",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T01:13:24.510Z",
-        "head": "a1207fd22d6eff5be132b1f117134e6ba66ffe5c",
+        "at": "2026-10-03T01:20:20.461Z",
+        "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
         "by": "claude-worker",
         "runs": [
-          11
+          12
         ]
       }
     },
@@ -2184,6 +2220,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/PAY-03-006.log",
           "log_sha256": "bf36d458da3e659f9d702bfbf95c7276e21c962596d0f38fc04da36f9ca613f7"
+        },
+        {
+          "n": 7,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-year-selection.sql\"",
+          "exit": 0,
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "dirty": [],
+          "at": "2026-10-03T01:21:05.002Z",
+          "ms": 44376,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-03-007.log",
+          "log_sha256": "ad1c11017eeceec4afee7bb9d5f98b9c1e032b1832489a64ff5bcbdb725218af"
         }
       ],
       "notes": [],
@@ -2313,14 +2362,37 @@
           "event": "done",
           "head": "a1207fd22d6eff5be132b1f117134e6ba66ffe5c",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:19:32.990Z",
+          "event": "stale",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003151000_tax_set_aside_ex_gst_fy.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T01:21:05.003Z",
+          "event": "run",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:21:05.147Z",
+          "event": "done",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T01:14:10.021Z",
-        "head": "a1207fd22d6eff5be132b1f117134e6ba66ffe5c",
+        "at": "2026-10-03T01:21:05.130Z",
+        "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
         "by": "claude-worker",
         "runs": [
-          6
+          7
         ]
       }
     },
@@ -2376,6 +2448,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/PAY-04-003.log",
           "log_sha256": "669682711d27bce121d2c9702512a9bc50bb20a7668a4fbe15f02bdf10ae3c2a"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-2026-27-ato-examples.sql\"",
+          "exit": 0,
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "dirty": [],
+          "at": "2026-10-03T01:21:49.022Z",
+          "ms": 43643,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-04-004.log",
+          "log_sha256": "d72609a822f6aee2f2a09db3755766873e44488ba567fd4680088af8a7ed9606"
         }
       ],
       "notes": [],
@@ -2451,14 +2536,37 @@
           "event": "done",
           "head": "a1207fd22d6eff5be132b1f117134e6ba66ffe5c",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:19:33.041Z",
+          "event": "stale",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003151000_tax_set_aside_ex_gst_fy.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T01:21:49.023Z",
+          "event": "run",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:21:49.162Z",
+          "event": "done",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T01:14:54.455Z",
-        "head": "a1207fd22d6eff5be132b1f117134e6ba66ffe5c",
+        "at": "2026-10-03T01:21:49.146Z",
+        "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
         "by": "claude-worker",
         "runs": [
-          3
+          4
         ]
       }
     },
@@ -2580,6 +2688,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/PAY-05-008.log",
           "log_sha256": "2fa4b65844d633c1d19fc684b153cbd17170f9d0f0942ed4c6f9f1f198805423"
+        },
+        {
+          "n": 9,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payday-super.sql\"",
+          "exit": 0,
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "dirty": [],
+          "at": "2026-10-03T01:22:34.944Z",
+          "ms": 45653,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-05-009.log",
+          "log_sha256": "f8e092c0629a4e92152542fd9bf511776e4a0d3111875e7bf248bd2d3136961f"
+        },
+        {
+          "n": 10,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/PaydaySuper.test.tsx\"",
+          "exit": 0,
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "dirty": [],
+          "at": "2026-10-03T01:22:37.165Z",
+          "ms": 2219,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-05-010.log",
+          "log_sha256": "6a833c4214bdfcb3643aa97fa213d401b63947e3654933100a6ff9f233659aa0"
         }
       ],
       "notes": [],
@@ -2678,15 +2812,38 @@
           "event": "done",
           "head": "a1207fd22d6eff5be132b1f117134e6ba66ffe5c",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:19:33.091Z",
+          "event": "stale",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003151000_tax_set_aside_ex_gst_fy.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T01:22:37.165Z",
+          "event": "run",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:22:37.295Z",
+          "event": "done",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T01:15:43.388Z",
-        "head": "a1207fd22d6eff5be132b1f117134e6ba66ffe5c",
+        "at": "2026-10-03T01:22:37.281Z",
+        "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
         "by": "claude-worker",
         "runs": [
-          7,
-          8
+          9,
+          10
         ]
       }
     },
@@ -2988,6 +3145,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/TFN-01-010.log",
           "log_sha256": "2e10c3e7b420cfaff4332d6d7aa2ed3164784bf3b5d29440355edbd002863023"
+        },
+        {
+          "n": 11,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/tfn-handling.test.ts\"",
+          "exit": 0,
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "dirty": [],
+          "at": "2026-10-03T01:22:39.327Z",
+          "ms": 1907,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/TFN-01-011.log",
+          "log_sha256": "78e7dab9fd9c8cd74dfd4ad9c383423738790624bd961d4952698dc3d570e40a"
+        },
+        {
+          "n": 12,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/trust-tfn-encryption.sql\"",
+          "exit": 0,
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "dirty": [],
+          "at": "2026-10-03T01:23:22.308Z",
+          "ms": 42980,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/TFN-01-012.log",
+          "log_sha256": "c70dbdb812f1462ecaad3ff261b49e133e65e828f7681c32fbae64b907df499c"
         }
       ],
       "notes": [],
@@ -3094,15 +3277,38 @@
           "event": "done",
           "head": "a1207fd22d6eff5be132b1f117134e6ba66ffe5c",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:19:33.228Z",
+          "event": "stale",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003151000_tax_set_aside_ex_gst_fy.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T01:23:22.309Z",
+          "event": "run",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:23:22.459Z",
+          "event": "done",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T01:16:28.961Z",
-        "head": "a1207fd22d6eff5be132b1f117134e6ba66ffe5c",
+        "at": "2026-10-03T01:23:22.442Z",
+        "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
         "by": "claude-worker",
         "runs": [
-          9,
-          10
+          11,
+          12
         ]
       }
     },
@@ -4099,6 +4305,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-06-007.log",
           "log_sha256": "3ee7eb4a64daa5f1f47031ed09dd6a8668645a8bb318d02f9b4a73ca0b392f9e"
+        },
+        {
+          "n": 8,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/redbark-migrations.sql\"",
+          "exit": 0,
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "dirty": [],
+          "at": "2026-10-03T01:24:07.304Z",
+          "ms": 44713,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-06-008.log",
+          "log_sha256": "cb3363f75da5676ada5196d5b8c62d38f570657675dbff12de1c4485b4630e01"
         }
       ],
       "notes": [],
@@ -4251,14 +4470,37 @@
           "event": "done",
           "head": "a1207fd22d6eff5be132b1f117134e6ba66ffe5c",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:19:33.390Z",
+          "event": "stale",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003151000_tax_set_aside_ex_gst_fy.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T01:24:07.306Z",
+          "event": "run",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:24:07.541Z",
+          "event": "done",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T01:17:13.240Z",
-        "head": "a1207fd22d6eff5be132b1f117134e6ba66ffe5c",
+        "at": "2026-10-03T01:24:07.525Z",
+        "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
         "by": "claude-worker",
         "runs": [
-          7
+          8
         ]
       }
     },
@@ -4447,6 +4689,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BAS-01-002.log",
           "log_sha256": "e1fc18fdfc20e31635d7bf7c735cc1effa828152e1f3066c1cdef534c2849e26"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bas-correctness.sql\"",
+          "exit": 0,
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "dirty": [],
+          "at": "2026-10-03T01:24:51.243Z",
+          "ms": 43570,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BAS-01-003.log",
+          "log_sha256": "0395dfc0cf65029c43ab524820c3ec81bb55c5589fef83dabd38a4c718b2b094"
         }
       ],
       "notes": [],
@@ -4484,14 +4739,37 @@
           "event": "done",
           "head": "09f8b4f0b8a27f3d334b85169c41c0d108a8b642",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:19:33.463Z",
+          "event": "stale",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003151000_tax_set_aside_ex_gst_fy.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T01:24:51.244Z",
+          "event": "run",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:24:51.481Z",
+          "event": "done",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T01:12:37.542Z",
-        "head": "09f8b4f0b8a27f3d334b85169c41c0d108a8b642",
+        "at": "2026-10-03T01:24:51.464Z",
+        "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
         "by": "claude-worker",
         "runs": [
-          2
+          3
         ]
       }
     },
@@ -5334,6 +5612,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-10-010.log",
           "log_sha256": "6f02b0fcfedaf84176a9c637fa0747aafde3d1e3cd18cb0579d22bd42a2f8fa1"
+        },
+        {
+          "n": 11,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/definer-write-roles.sql\"",
+          "exit": 0,
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "dirty": [],
+          "at": "2026-10-03T01:25:33.966Z",
+          "ms": 42355,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-10-011.log",
+          "log_sha256": "1b9f91ccd379ce0deb90ff84f2b87f41c05baeb07aaf1e4455d513f2ad50531d"
         }
       ],
       "notes": [],
@@ -5540,14 +5831,37 @@
           "event": "done",
           "head": "a1207fd22d6eff5be132b1f117134e6ba66ffe5c",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:19:33.569Z",
+          "event": "stale",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003151000_tax_set_aside_ex_gst_fy.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T01:25:33.968Z",
+          "event": "run",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:25:34.122Z",
+          "event": "done",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T01:17:57.810Z",
-        "head": "a1207fd22d6eff5be132b1f117134e6ba66ffe5c",
+        "at": "2026-10-03T01:25:34.106Z",
+        "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
         "by": "claude-worker",
         "runs": [
-          10
+          11
         ]
       }
     },
@@ -5800,6 +6114,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-11-018.log",
           "log_sha256": "6d2b688be40aa80acfc6935cd0c18dbe9876552236ea42bae09bbc8411711c75"
+        },
+        {
+          "n": 19,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bill-supplier-same-org.sql\"",
+          "exit": 0,
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "dirty": [],
+          "at": "2026-10-03T01:26:18.887Z",
+          "ms": 44628,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-11-019.log",
+          "log_sha256": "713f322ecc26044c0d73e9527bd71143ff1554c69177c194144da87f984cf65c"
+        },
+        {
+          "n": 20,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\"",
+          "exit": 0,
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "dirty": [],
+          "at": "2026-10-03T01:26:20.654Z",
+          "ms": 1766,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-11-020.log",
+          "log_sha256": "c6efd75d172ac97ae1fd6148f3191a6942f16215d67711f837f40bd25411d6fd"
         }
       ],
       "notes": [],
@@ -5983,18 +6323,41 @@
           "event": "done",
           "head": "a1207fd22d6eff5be132b1f117134e6ba66ffe5c",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:19:33.620Z",
+          "event": "stale",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003151000_tax_set_aside_ex_gst_fy.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T01:26:20.655Z",
+          "event": "run",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:26:20.770Z",
+          "event": "done",
+          "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T01:18:44.507Z",
-        "head": "a1207fd22d6eff5be132b1f117134e6ba66ffe5c",
+        "at": "2026-10-03T01:26:20.756Z",
+        "head": "3c0322f05c975788c2d988d3653d2275e5f50c56",
         "by": "claude-worker",
         "runs": [
-          17,
-          18
+          19,
+          20
         ]
       }
     }
   ],
-  "updated_at": "2026-10-03T01:19:32.568Z"
+  "updated_at": "2026-10-03T01:26:20.784Z"
 }
