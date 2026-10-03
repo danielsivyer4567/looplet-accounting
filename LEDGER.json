@@ -4986,7 +4986,7 @@
       "title": "The balance sheet does not count credit-card and loan balances as both cash and debts",
       "area": "broken",
       "priority": 59,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/balance-sheet-debts.sql\""
       ],
@@ -4994,7 +4994,34 @@
         "supabase/migrations",
         "tests/db-sql/balance-sheet-debts.sql"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/balance-sheet-debts.sql\"",
+          "exit": 1,
+          "head": "8549b2dcbd50d7b7c1ea5dca981b1d040d0324dc",
+          "dirty": [],
+          "at": "2026-10-03T01:26:22.802Z",
+          "ms": 316,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BS-01-001.log",
+          "log_sha256": "5e22d5e0871838e487fc279300df307eb60393f0558d6148acde126bb4c26d17"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/balance-sheet-debts.sql\"",
+          "exit": 0,
+          "head": "fc93a9d91bead99ce84720cb00b2fe52a3f1236b",
+          "dirty": [],
+          "at": "2026-10-03T01:27:05.066Z",
+          "ms": 41822,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BS-01-002.log",
+          "log_sha256": "4cabe823646bb511514c05c8eafa20c56adee69edd2683de47ebd6a3bf50e020"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -5002,8 +5029,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:26:22.255Z",
+          "event": "start",
+          "head": "8549b2dcbd50d7b7c1ea5dca981b1d040d0324dc",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:26:22.803Z",
+          "event": "run",
+          "head": "8549b2dcbd50d7b7c1ea5dca981b1d040d0324dc",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:27:05.068Z",
+          "event": "run",
+          "head": "fc93a9d91bead99ce84720cb00b2fe52a3f1236b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:27:05.305Z",
+          "event": "done",
+          "head": "fc93a9d91bead99ce84720cb00b2fe52a3f1236b",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T01:27:05.199Z",
+        "head": "fc93a9d91bead99ce84720cb00b2fe52a3f1236b",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "CI-01",
@@ -6359,5 +6422,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T01:26:20.784Z"
+  "updated_at": "2026-10-03T01:27:05.320Z"
 }

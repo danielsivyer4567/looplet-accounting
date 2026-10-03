@@ -44,7 +44,7 @@
 | DATE-01 | Default dates use Australian local time, not UTC | open | not run |
 | SEED-01 | New organisations do not inherit the pilot business known-sender list | open | not run |
 | XERO-02 | The Xero bank pull writes schema-valid rows (real connection, valid account type) | open | not run |
-| BS-01 | The balance sheet does not count credit-card and loan balances as both cash and debts | open | not run |
+| BS-01 | The balance sheet does not count credit-card and loan balances as both cash and debts | done | done @ fc93a9d9, awaiting independent verify |
 | CI-01 | CI runs the Deno edge-function tests and reports environment-gated test files instead of skipping them silently | open | not run |
 | UI-01 | Light theme polish: themed colours everywhere, no hard-coded dark-only colours, auth screens in the new style | open | not run |
 | UI-02 | Shared PageHeader, Stat, StatusBadge, EmptyState, Alert and Field replace page-local copies | open | not run |
