@@ -24,6 +24,7 @@ import {
   Plus,
   Trash2,
   AlertTriangle,
+  Lock,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -726,6 +727,8 @@ export function EmployeeDetailPage() {
         </div>
       )}
 
+      <TfnPanel organizationId={employee.organization_id} employeeId={employee.id} />
+
       {/* Log Time Popup Form */}
       {showLogTime && (
         <div
@@ -1032,6 +1035,150 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
         {label}
       </span>
       <div style={{ marginTop: '0.25rem' }}>{children}</div>
+    </div>
+  );
+}
+
+/** Masked TFN status from employee_tfn_status(): the last four digits only, never the TFN itself. */
+interface TfnStatus {
+  has_tfn: boolean;
+  tfn_masked: string | null;
+  declaration_status: string;
+}
+
+/** The message from a non-2xx edge function response, else the client's own error message. */
+async function functionErrorMessage(err: unknown): Promise<string> {
+  const e = err as { message?: string; context?: { json?: () => Promise<unknown> } };
+  try {
+    const body = (await e.context?.json?.()) as { error?: unknown } | undefined;
+    if (typeof body?.error === 'string' && body.error.trim()) return body.error;
+  } catch {
+    // Not JSON, or already read: fall back to the client message.
+  }
+  return e.message ?? 'Request failed';
+}
+
+/**
+ * Records the employee's TFN for STP through the employee-tfn-save edge function, which encrypts it into
+ * employee_tfn_vault (accepted admins and owners only). The full TFN is never read back: the panel shows the masked
+ * form from employee_tfn_status() and clears the field as soon as the TFN is saved.
+ */
+function TfnPanel({ organizationId, employeeId }: { organizationId: string; employeeId: string }) {
+  // null while loading; false when the viewer is not an admin or owner (the status RPC returns no row).
+  const [canManage, setCanManage] = useState<boolean | null>(null);
+  const [status, setStatus] = useState<TfnStatus | null>(null);
+  const [tfn, setTfn] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [savedMasked, setSavedMasked] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const { data, error } = await supabase.rpc('employee_tfn_status', {
+      p_org: organizationId,
+      p_employee_id: employeeId,
+    });
+    const row = !error && Array.isArray(data) ? ((data[0] as TfnStatus | undefined) ?? null) : null;
+    setCanManage(row != null);
+    setStatus(row);
+  }, [organizationId, employeeId]);
+
+  useEffect(() => void load(), [load]);
+
+  const digits = tfn.replace(/\D/g, '');
+
+  const save = async () => {
+    setErr(null);
+    setSavedMasked(null);
+    if (!/^\d{8,9}$/.test(digits)) {
+      setErr('A TFN has 8 or 9 digits.');
+      return;
+    }
+    setSaving(true);
+    const { data, error } = await supabase.functions.invoke('employee-tfn-save', {
+      body: { organization_id: organizationId, employee_id: employeeId, tfn: digits },
+    });
+    setSaving(false);
+    const result = data as { ok?: boolean; tfn_masked?: string; error?: string } | null;
+    if (error || !result?.ok) {
+      const message = error ? await functionErrorMessage(error) : (result?.error ?? 'unknown error');
+      setErr(formatActionError('save the TFN', message));
+      return;
+    }
+    // The full TFN leaves the page as soon as it is saved; only the masked form is shown from here on.
+    setTfn('');
+    setSavedMasked(result.tfn_masked ?? null);
+    void load();
+  };
+
+  return (
+    <div className="card" style={{ marginBottom: '2rem' }} aria-label="Tax file number">
+      <h4
+        style={{
+          margin: '0 0 0.5rem',
+          fontSize: '0.95rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.35rem',
+        }}
+      >
+        <Lock size={14} style={{ color: 'var(--text-muted)' }} />
+        Tax file number
+      </h4>
+      {canManage === null ? (
+        <p style={{ margin: 0, fontSize: '0.825rem', color: 'var(--text-muted)' }}>Checking TFN…</p>
+      ) : !canManage ? (
+        <p style={{ margin: 0, fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+          Only an admin or owner can view or record this employee&apos;s TFN.
+        </p>
+      ) : (
+        <>
+          <p style={{ margin: '0 0 0.75rem', fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+            {status?.has_tfn && status.tfn_masked ? (
+              <>
+                On file: <strong style={{ color: 'var(--text-title)' }}>{status.tfn_masked}</strong>.
+                It is stored encrypted and only the last four digits are shown.
+              </>
+            ) : (
+              <>No TFN recorded. The STP file can&apos;t be prepared for this employee until one is.</>
+            )}
+          </p>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <input
+              type="password"
+              inputMode="numeric"
+              autoComplete="off"
+              aria-label="Tax file number"
+              placeholder={status?.has_tfn ? 'Enter a new TFN to replace it' : 'Enter TFN'}
+              value={tfn}
+              onChange={(e) => setTfn(e.target.value)}
+              className="form-input"
+              style={{ maxWidth: '16rem' }}
+              disabled={saving}
+            />
+            <button
+              onClick={() => void save()}
+              disabled={saving || digits.length === 0}
+              className="btn btn-secondary"
+            >
+              {saving ? 'Saving TFN…' : status?.has_tfn ? 'Replace TFN' : 'Save TFN'}
+            </button>
+          </div>
+          {savedMasked && (
+            <p role="status" style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: 'var(--text-success)' }}>
+              TFN saved. On file: {savedMasked}.
+            </p>
+          )}
+          {err && (
+            <div
+              role="alert"
+              className="badge badge-danger"
+              style={{ display: 'block', marginTop: '0.5rem', padding: '0.5rem', textTransform: 'none' }}
+            >
+              {err}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
