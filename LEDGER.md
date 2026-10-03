@@ -2,7 +2,7 @@
 
 **Goal:** Old Looplet Accounting (accounting.looplet.com.au) made legitimate, secure, modern and connected to Redbark bank feeds. Local proof first; production deploys, migrations and credential use need Daniel's explicit yes.
 
-**Progress:** 5/51 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
+**Progress:** 4/51 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
 
 | ID | Item | Status | Proof |
 |---|---|---|---|
@@ -10,9 +10,9 @@
 | INC-02 | Credentials exposed by the August implant are rotated and recorded (Supabase service-role/JWT secret/DB password/access tokens, Cloudflare token, integration keys, GitHub PATs) | blocked | BLOCKED: Rotation of credentials exposed between 2026-08-08 and 2026-08-29 has not been recorded. (needs: Daniel rotates the Supabase service-role key, JWT secret, DB password and access tokens, the Cloudflare API token (and GitHub repo secrets), Xero/Gmail/Groq/Perplexity/Resend keys, ENCRYPTION_KEY and GitHub PATs, then confirms the rotation record.) |
 | SEC-01 | intake-routing-apply accepts only the service role or an accepted member of the target organisation | verified | verified by claude-verifier (independent subagent) @ 60b94a38 |
 | SEC-02 | staged-entities-enrich-sonar, bank-statement-extract, crm-pnl-sync-push and ato-lodge refuse unauthenticated calls | verified | verified by claude-verifier (independent subagent) @ 60b94a38 |
-| SEC-03 | Payment-run, ABA export, mark-paid, super-batch and termination functions require an accepted admin or owner | verified | verified by claude-verifier (independent subagent) @ 0adf087f |
+| SEC-03 | Payment-run, ABA export, mark-paid, super-batch and termination functions require an accepted admin or owner | in_progress | last run pass @ 0adf087f |
 | SEC-04 | Xero and Gmail OAuth state is signed, bound to the user and mandatory on callback | verified | verified by claude-verifier (independent subagent) @ 60b94a38 |
-| SEC-05 | Writes to money tables (payees, bills, invoices, journals, period locks, employees, payment runs) need an accountant or admin role; viewers are read-only | done | done @ 8abdf24e, awaiting independent verify |
+| SEC-05 | Writes to money tables (payees, bills, invoices, journals, period locks, employees, payment runs) need an accountant or admin role; viewers are read-only | done | done @ bcd70120, awaiting independent verify |
 | SEC-06 | CI uses least-privilege permissions, SHA-pinned actions and a deploy job separate from build | open | not run |
 | SEC-07 | Hardening: CORS allow-list, constant-time secret checks, bundled pdf.js worker, cron secrets in headers, generic error responses | open | not run |
 | PAY-01 | Pay runs calculate wages from the base hourly rate, not the loaded cost rate | open | not run |
@@ -55,7 +55,7 @@
 | SEC-08 | bills-allocate-batch checks the caller's own accepted membership and needs accountant or higher to change allocations | done | done @ 89cb803a, awaiting independent verify |
 | SEC-09 | accountant-email-query matches the sender's accepted accountant memberships by role_enum, so the emailed activity digest works | done | done @ 0e7befa3, awaiting independent verify |
 | MIG-01 | Every migration applies in order to a fresh database, so the history can rebuild the schema (no known failures left) | open | not run |
-| SEC-10 | SECURITY DEFINER functions that users call and that write money tables check the caller's role | done | done @ 7e16c71b, awaiting independent verify |
-| SEC-11 | Bills only reference suppliers of their own organisation, so payment runs never copy another organisation's payee bank details | in_progress | last run pass @ ed0a07df |
+| SEC-10 | SECURITY DEFINER functions that users call and that write money tables check the caller's role | done | done @ bcd70120, awaiting independent verify |
+| SEC-11 | Bills only reference suppliers of their own organisation, so payment runs never copy another organisation's payee bank details | done | done @ bcd70120, awaiting independent verify |
 
 Acceptance commands, every run, exit codes and log hashes are in LEDGER.json; logs are in .ledger/logs/.

@@ -713,7 +713,7 @@
       "title": "Payment-run, ABA export, mark-paid, super-batch and termination functions require an accepted admin or owner",
       "area": "security",
       "priority": 12,
-      "status": "verified",
+      "status": "in_progress",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/orgRole.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\""
@@ -909,27 +909,17 @@
           "head": "0adf087f68195af8946ade7f8c9cff3e23c48588",
           "actor": "claude-verifier",
           "by": "claude-verifier (independent subagent)"
+        },
+        {
+          "at": "2026-10-03T00:26:23.978Z",
+          "event": "stale",
+          "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/functions/payment-runs-create/index.ts"
+          ]
         }
-      ],
-      "done": {
-        "at": "2026-10-02T23:37:10.342Z",
-        "head": "73ce785cb5e43ea6f144d70d3fa0fe90a5d0c1c5",
-        "by": "claude-worker",
-        "runs": [
-          5,
-          6
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T00:06:44.544Z",
-        "head": "0adf087f68195af8946ade7f8c9cff3e23c48588",
-        "by": "claude-verifier (independent subagent)",
-        "note": "Read all eight functions and team-invite in full: every membership check now goes through authorizeOrgMember (accepted_at required, admin minimum), every service-role write is scoped by organization_id or by ids loaded under an org filter, deno check passes for all nine, and the 14 test files that reference these functions pass (incl. the pinned TFN message). Residual (not role gating): payment-runs-create embeds the supplier through bills.supplier_id with the service role, so a bill pointing at another org's supplier UUID copies that supplier's payee BSB/account into the caller's run; payer_bank_account_id is unvalidated, and the ABA-export and STP item loads are not org-filtered, relying on the SEC-05 same-org triggers.",
-        "runs": [
-          7,
-          8
-        ]
-      }
+      ]
     },
     {
       "id": "SEC-04",
@@ -1158,6 +1148,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-05-004.log",
           "log_sha256": "40be233e3f02f1b6d37e742438145f83467160a38f03be62a1e3ec7f00f539b4"
+        },
+        {
+          "n": 5,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/money-table-roles.sql\"",
+          "exit": 0,
+          "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
+          "dirty": [],
+          "at": "2026-10-03T00:27:08.096Z",
+          "ms": 43616,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-05-005.log",
+          "log_sha256": "acf88746a53029c53804688f0b30ae98a02c5b08a4974cd3f0d506c5d8668d82"
         }
       ],
       "notes": [],
@@ -1242,14 +1245,37 @@
           "event": "done",
           "head": "8abdf24e2b53c0fd02ed8cdf81b1e138900c73e3",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:26:24.053Z",
+          "event": "stale",
+          "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003122000_bill_supplier_same_org.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T00:27:08.097Z",
+          "event": "run",
+          "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:27:08.266Z",
+          "event": "done",
+          "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T00:20:59.032Z",
-        "head": "8abdf24e2b53c0fd02ed8cdf81b1e138900c73e3",
+        "at": "2026-10-03T00:27:08.249Z",
+        "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
         "by": "claude-worker",
         "runs": [
-          4
+          5
         ]
       }
     },
@@ -2535,6 +2561,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-10-002.log",
           "log_sha256": "5bd00b35f0ac3cb2259ceb2daf700a3527912ca859caf25ca4ade25876fb7878"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/definer-write-roles.sql\"",
+          "exit": 0,
+          "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
+          "dirty": [],
+          "at": "2026-10-03T00:27:51.911Z",
+          "ms": 43497,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-10-003.log",
+          "log_sha256": "8cee7ff3a1e26fbf0767dd4b65edc84ce8eff2390b650468620e3f511da5fc81"
         }
       ],
       "notes": [],
@@ -2572,14 +2611,37 @@
           "event": "done",
           "head": "7e16c71b0e8302dd6faf17ad0e96a6e819a30d35",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:26:24.144Z",
+          "event": "stale",
+          "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/migrations/20261003122000_bill_supplier_same_org.sql"
+          ]
+        },
+        {
+          "at": "2026-10-03T00:27:51.912Z",
+          "event": "run",
+          "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:27:52.061Z",
+          "event": "done",
+          "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T00:20:08.498Z",
-        "head": "7e16c71b0e8302dd6faf17ad0e96a6e819a30d35",
+        "at": "2026-10-03T00:27:52.045Z",
+        "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
         "by": "claude-worker",
         "runs": [
-          2
+          3
         ]
       }
     },
@@ -2588,7 +2650,7 @@
       "title": "Bills only reference suppliers of their own organisation, so payment runs never copy another organisation's payee bank details",
       "area": "security",
       "priority": 14,
-      "status": "in_progress",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bill-supplier-same-org.sql\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\""
@@ -2624,6 +2686,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-11-002.log",
           "log_sha256": "4742f76523aa23b8a78f0f2c302f195c962c9b2ec1323d1606fce674ffa40031"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bill-supplier-same-org.sql\"",
+          "exit": 0,
+          "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
+          "dirty": [],
+          "at": "2026-10-03T00:26:21.474Z",
+          "ms": 42069,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-11-003.log",
+          "log_sha256": "9ed606c390755d80f21d5011c7556d1fcae895823ada73b256321708b903aa15"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\"",
+          "exit": 0,
+          "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
+          "dirty": [],
+          "at": "2026-10-03T00:26:23.565Z",
+          "ms": 2089,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-11-004.log",
+          "log_sha256": "9f587da3f68953b6b0feea0745fe989d7e643e03fb0f066a52d97821db9031fd"
         }
       ],
       "notes": [],
@@ -2647,9 +2735,32 @@
           "actor": "claude-worker",
           "ok": false,
           "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:26:23.565Z",
+          "event": "run",
+          "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:26:23.691Z",
+          "event": "done",
+          "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T00:26:23.674Z",
+        "head": "bcd7012003197a1872a9d99bf8f702f3fe96277b",
+        "by": "claude-worker",
+        "runs": [
+          3,
+          4
+        ]
+      }
     }
   ],
-  "updated_at": "2026-10-03T00:21:16.462Z"
+  "updated_at": "2026-10-03T00:27:52.078Z"
 }
