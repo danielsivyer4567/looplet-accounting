@@ -178,8 +178,13 @@ describe('App shell', () => {
     expect(within(dialog).getByRole('option', { name: /sign out/i })).toBeInTheDocument();
 
     fireEvent.change(input, { target: { value: 'invoi' } });
-    expect(within(dialog).getByRole('option', { name: /invoices/i })).toBeInTheDocument();
-    expect(within(dialog).queryByRole('option', { name: /^bills/i })).not.toBeInTheDocument();
+    // The Invoices page and the "New invoice" action both match; Bills does not.
+    const names = within(dialog)
+      .getAllByRole('option')
+      .map((o) => o.textContent ?? '');
+    expect(names.some((n) => n.startsWith('Invoices'))).toBe(true);
+    expect(names.some((n) => n.startsWith('New invoice'))).toBe(true);
+    expect(names.some((n) => n.startsWith('Bills'))).toBe(false);
 
     fireEvent.keyDown(input, { key: 'Enter' });
     expect(screen.queryByRole('dialog', { name: /command palette/i })).not.toBeInTheDocument();
