@@ -11,7 +11,10 @@ const watchdog = readFileSync(
   'utf8',
 );
 const bankExchange = readFileSync(join(root, 'supabase/functions/bank-exchange/index.ts'), 'utf8');
-const bankWebhook = readFileSync(join(root, 'supabase/functions/bank-webhook/index.ts'), 'utf8');
+// The webhook's order of work lives in handler.ts; index.ts wires it to Supabase and bank-sync.
+const bankWebhook = ['index.ts', 'handler.ts']
+  .map((file) => readFileSync(join(root, 'supabase/functions/bank-webhook', file), 'utf8'))
+  .join('\n');
 const bankSync = readFileSync(join(root, 'supabase/functions/bank-sync/index.ts'), 'utf8');
 const bankTransactionClassifier = readFileSync(
   join(root, 'supabase/functions/bank-transaction-classifier/index.ts'),
