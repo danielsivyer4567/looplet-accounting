@@ -10,7 +10,6 @@ import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supa
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { billXeroSyncUpdate, pushBillToXero } from '../_shared/xero/adapter.ts';
 import { presentedCronSecret } from '../_shared/cronSecret.ts';
-import { pushBillToXero } from '../_shared/xero/adapter.ts';
 import {
   pushBillToGenericApi,
   GenericApiNotConfigured,
