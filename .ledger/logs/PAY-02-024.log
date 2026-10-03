@@ -1,0 +1,11 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/super.test.ts"
+[0m[38;5;245mrunning 6 tests from ./supabase/functions/payroll-create-pay-run/super.test.ts[0m
+the statutory rate follows the pay date, changing on 1 July ... [0m[32mok[0m [0m[38;5;245m(478µs)[0m
+a malformed or unsupported pay date fails loudly instead of guessing a rate ... [0m[32mok[0m [0m[38;5;245m(391µs)[0m
+an employee rate below the SG rate is raised to it ... [0m[32mok[0m [0m[38;5;245m(120µs)[0m
+a rate above the SG rate is honoured, employee before organisation ... [0m[32mok[0m [0m[38;5;245m(58µs)[0m
+with no rate set, the pay date statutory rate applies ... [0m[32mok[0m [0m[38;5;245m(6ms)[0m
+the pay run uses the floored rate for every payslip and validates the pay date up front ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+
+[0m[32mok[0m | 6 passed | 0 failed [0m[38;5;245m(12ms)[0m
+

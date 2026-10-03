@@ -1,0 +1,58 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "set -a && . ./.env.production && set +a && npx vitest run "
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  166 passed | 29 skipped (195)
+      Tests  972 passed | 121 skipped (1093)
+   Start at  16:05:17
+   Duration  14.46s (transform 27.74s, setup 27.65s, import 61.88s, tests 54.70s, environment 205.67s)
+
+Not implemented: navigation to another Document
+Not implemented: navigation to another Document
+Error: boom
+    at Bomb (C:/repos/looplet-accounting/src/test/components/ErrorBoundary.test.tsx:24:11)
+    at renderWithHooks (C:\repos\looplet-accounting\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\repos\looplet-accounting\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\repos\looplet-accounting\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\repos\looplet-accounting\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\repos\looplet-accounting\node_modules\jsdom\lib\generated\idl\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\repos\looplet-accounting\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:360:16)
+    at invokeEventListeners (C:\repos\looplet-accounting\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:296:3)
+    at HTMLUnknownElementImpl._dispatch (C:\repos\looplet-accounting\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:243:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\repos\looplet-accounting\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:114:17)
+Error: boom
+    at Bomb (C:/repos/looplet-accounting/src/test/components/ErrorBoundary.test.tsx:24:11)
+    at renderWithHooks (C:\repos\looplet-accounting\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\repos\looplet-accounting\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\repos\looplet-accounting\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\repos\looplet-accounting\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\repos\looplet-accounting\node_modules\jsdom\lib\generated\idl\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\repos\looplet-accounting\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:360:16)
+    at invokeEventListeners (C:\repos\looplet-accounting\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:296:3)
+    at HTMLUnknownElementImpl._dispatch (C:\repos\looplet-accounting\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:243:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\repos\looplet-accounting\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:114:17)
+Error: boom
+    at Bomb (C:/repos/looplet-accounting/src/test/components/ErrorBoundary.test.tsx:24:11)
+    at renderWithHooks (C:\repos\looplet-accounting\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\repos\looplet-accounting\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\repos\looplet-accounting\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\repos\looplet-accounting\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\repos\looplet-accounting\node_modules\jsdom\lib\generated\idl\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\repos\looplet-accounting\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:360:16)
+    at invokeEventListeners (C:\repos\looplet-accounting\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:296:3)
+    at HTMLUnknownElementImpl._dispatch (C:\repos\looplet-accounting\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:243:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\repos\looplet-accounting\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:114:17)
+Error: boom
+    at Bomb (C:/repos/looplet-accounting/src/test/components/ErrorBoundary.test.tsx:24:11)
+    at renderWithHooks (C:\repos\looplet-accounting\node_modules\react-dom\cjs\react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (C:\repos\looplet-accounting\node_modules\react-dom\cjs\react-dom.development.js:20103:13)
+    at beginWork (C:\repos\looplet-accounting\node_modules\react-dom\cjs\react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (C:\repos\looplet-accounting\node_modules\react-dom\cjs\react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (C:\repos\looplet-accounting\node_modules\jsdom\lib\generated\idl\EventListener.js:26:30)
+    at innerInvokeEventListeners (C:\repos\looplet-accounting\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:360:16)
+    at invokeEventListeners (C:\repos\looplet-accounting\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:296:3)
+    at HTMLUnknownElementImpl._dispatch (C:\repos\looplet-accounting\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:243:9)
+    at HTMLUnknownElementImpl.dispatchEvent (C:\repos\looplet-accounting\node_modules\jsdom\lib\jsdom\living\events\EventTarget-impl.js:114:17)
+Not implemented: navigation to another Document
+Not implemented: navigation to another Document

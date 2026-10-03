@@ -3690,7 +3690,7 @@
       "title": "Super defaults to the statutory rate (12%) and a pay run never applies less than the SG rate for the pay date",
       "area": "payroll",
       "priority": 21,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeSuperDefault.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/super.test.ts\""
@@ -3986,6 +3986,32 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/PAY-02-022.log",
           "log_sha256": "78b4cc9d907132a4da47d5ef9aa820e451a892e6910a0f94fe1bcad9ffe35593"
+        },
+        {
+          "n": 23,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeSuperDefault.test.tsx\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:04:35.721Z",
+          "ms": 2477,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-02-023.log",
+          "log_sha256": "4ba0e4656d08661a84702cad77393c386c5b1d34efc22d5353ad1721757484b1"
+        },
+        {
+          "n": 24,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/super.test.ts\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:04:36.305Z",
+          "ms": 583,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-02-024.log",
+          "log_sha256": "74021dbae6ce5f177f63485b2ecdf7d72d6322153a8eefa69b21a480b5ba9ec5"
         }
       ],
       "notes": [],
@@ -4203,25 +4229,38 @@
           "head": "77778a05acece90f1e286e52c9e30b1a79adb04a",
           "actor": "claude-verifier",
           "by": "claude-verifier E (independent subagent, round 2)"
+        },
+        {
+          "at": "2026-10-03T06:04:30.922Z",
+          "event": "stale",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/EmployeeDetail.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T06:04:36.305Z",
+          "event": "run",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T06:04:36.550Z",
+          "event": "done",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:21:01.516Z",
-        "head": "10b7b1d6d00dbced51dbf028109943724f669397",
+        "at": "2026-10-03T06:04:36.535Z",
+        "head": "defb676706635184f2ee58628d7c798a50d6e69b",
         "by": "claude-worker",
         "runs": [
-          19,
-          20
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T04:53:21.970Z",
-        "head": "77778a05acece90f1e286e52c9e30b1a79adb04a",
-        "by": "claude-verifier E (independent subagent, round 2)",
-        "note": "Round 2 at 77778a0. Diff 6da4d8b..HEAD -w over Employees/EmployeeDetail reviewed: page-local Kpi/Field/EmptyState swapped for shared Stat/Field/EmptyState, dates via localDates; the 12% default (currentStatutorySuperRatePct) and the 'Below the N% super guarantee. Pay runs use at least N%' warnings survive; payroll-create-pay-run untouched. EmployeeSuperDefault vitest + super.test.ts deno pass; deno check ok.",
-        "runs": [
-          21,
-          22
+          23,
+          24
         ]
       }
     },
@@ -7891,7 +7930,7 @@
       "title": "A privacy policy, terms of service and collection notice are published, linked, and accepted at sign-up",
       "area": "legitimacy",
       "priority": 34,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LegalPages.test.tsx\""
       ],
@@ -8068,6 +8107,19 @@
           "actor": "verifier-G",
           "log": ".ledger/logs/LEGAL-01-013.log",
           "log_sha256": "9167ecff6d77d05ee0ef23fb8890e246ae2c1f693693a280effa3e1fa1c4164f"
+        },
+        {
+          "n": 14,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LegalPages.test.tsx\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:04:39.703Z",
+          "ms": 2715,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/LEGAL-01-014.log",
+          "log_sha256": "a5452d91f30c62e7cb12aae9babbdfd1c9e9f6ccb280ce39e829377b91698e2b"
         }
       ],
       "notes": [
@@ -8368,23 +8420,43 @@
           "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
           "actor": "verifier-G",
           "by": "verifier-G"
+        },
+        {
+          "at": "2026-10-03T06:04:31.097Z",
+          "event": "stale",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/Allocations.tsx",
+            "src/pages/BillDetail.tsx",
+            "src/pages/Customers.tsx",
+            "src/pages/EmployeeDetail.tsx",
+            "src/pages/JobDetail.tsx",
+            "src/pages/PaymentRunDetail.tsx",
+            "src/pages/Suppliers.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T06:04:39.704Z",
+          "event": "run",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T06:04:39.886Z",
+          "event": "done",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T05:29:59.676Z",
-        "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
-        "by": "claude-fable",
+        "at": "2026-10-03T06:04:39.871Z",
+        "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+        "by": "claude-worker",
         "runs": [
-          12
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T05:36:17.606Z",
-        "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
-        "by": "verifier-G",
-        "note": "Diff since E's verification head 77778a0 restricted to this item's paths is JobDetail.tsx:916,922 and SubscriptionDetail.tsx:724 SVG fontSize 9/10->11 only (f8a7c5b); LegalLinks.tsx 8->11px (fa2aa55) is outside the paths. Acceptance re-run green at f3ea6a7.",
-        "runs": [
-          13
+          14
         ]
       }
     },
@@ -10002,7 +10074,7 @@
       "title": "Nothing claims to lodge with the ATO or send to a super fund when it only prepares a file",
       "area": "legitimacy",
       "priority": 37,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LodgementWording.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/super-batch-send/status.test.ts\""
@@ -10377,6 +10449,32 @@
           "actor": "verifier-G",
           "log": ".ledger/logs/LODGE-01-028.log",
           "log_sha256": "007bb527ad38ea9c2e1315620f44c82512f323f2c8a3910124ed33add8303118"
+        },
+        {
+          "n": 29,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LodgementWording.test.tsx\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:04:42.789Z",
+          "ms": 2646,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/LODGE-01-029.log",
+          "log_sha256": "545d2da11c1ca23588c669c1c0fd694a5284fb34fcd08c76cf83d42d007f6a18"
+        },
+        {
+          "n": 30,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/super-batch-send/status.test.ts\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:04:43.515Z",
+          "ms": 725,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/LODGE-01-030.log",
+          "log_sha256": "52b9c618cb9377a1b0a2dd7cd566e29eafaa6a7b69dfda3d7be304de17c49c94"
         }
       ],
       "notes": [],
@@ -10693,25 +10791,44 @@
           "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
           "actor": "verifier-G",
           "by": "verifier-G"
+        },
+        {
+          "at": "2026-10-03T06:04:31.271Z",
+          "event": "stale",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/Allocations.tsx",
+            "src/pages/BillDetail.tsx",
+            "src/pages/Customers.tsx",
+            "src/pages/EmployeeDetail.tsx",
+            "src/pages/JobDetail.tsx",
+            "src/pages/PaymentRunDetail.tsx",
+            "src/pages/Suppliers.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T06:04:43.515Z",
+          "event": "run",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T06:04:43.674Z",
+          "event": "done",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T05:30:03.014Z",
-        "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
-        "by": "claude-fable",
+        "at": "2026-10-03T06:04:43.659Z",
+        "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+        "by": "claude-worker",
         "runs": [
-          25,
-          26
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T05:36:20.706Z",
-        "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
-        "by": "verifier-G",
-        "note": "Diff since E's verification head 77778a0 restricted to this item's paths is JobDetail.tsx:916,922 and SubscriptionDetail.tsx:724 SVG fontSize 9/10->11 only (f8a7c5b); LegalLinks.tsx 8->11px (fa2aa55) is outside the paths. Acceptance re-run green at f3ea6a7.",
-        "runs": [
-          27,
-          28
+          29,
+          30
         ]
       }
     },
@@ -11317,6 +11434,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-01-045.log",
           "log_sha256": "e614bd7f89743cbc40a7aa1a978e9e93ef53a4e276ffbc2a203ec0e5d70a56a8"
+        },
+        {
+          "n": 46,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:04:44.301Z",
+          "ms": 444,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-01-046.log",
+          "log_sha256": "1f4d0aab9e25300b1b4854f3fcad1edd0bc8629a4398db92510aa08b30624ec1"
         }
       ],
       "notes": [],
@@ -12336,14 +12466,46 @@
           "event": "done",
           "head": "255070fc12d148c9610d9f4f916e4aba06f5b8bc",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T06:04:31.322Z",
+          "event": "stale",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "files": [
+            "src/components/ReadOnlyNotice.tsx",
+            "src/hooks/useOrgRole.ts",
+            "src/lib/roles.ts",
+            "src/pages/Allocations.tsx",
+            "src/pages/BillDetail.tsx",
+            "src/pages/Customers.tsx",
+            "src/pages/EmployeeDetail.tsx",
+            "src/pages/JobDetail.tsx",
+            "src/pages/PaymentRunDetail.tsx",
+            "src/pages/Suppliers.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T06:04:44.301Z",
+          "event": "run",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T06:04:44.454Z",
+          "event": "done",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T05:56:24.574Z",
-        "head": "255070fc12d148c9610d9f4f916e4aba06f5b8bc",
+        "at": "2026-10-03T06:04:44.438Z",
+        "head": "defb676706635184f2ee58628d7c798a50d6e69b",
         "by": "claude-worker",
         "runs": [
-          45
+          46
         ]
       }
     },
@@ -14026,7 +14188,7 @@
       "title": "Employees TFNs can be captured securely so the STP export can complete",
       "area": "broken",
       "priority": 50,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeTfnCapture.test.tsx\""
       ],
@@ -14138,6 +14300,19 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/STP-01-008.log",
           "log_sha256": "39d8ece559273f546c570a07898d9a66b1cfbe446edf35d13de6f56dfd35f96c"
+        },
+        {
+          "n": 9,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/EmployeeTfnCapture.test.tsx\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:04:47.458Z",
+          "ms": 2739,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/STP-01-009.log",
+          "log_sha256": "bac589a17dbde8851cbce722f450b972ca3f2b227b10b2306eb340e6e3f40941"
         }
       ],
       "notes": [],
@@ -14281,23 +14456,37 @@
           "head": "77778a05acece90f1e286e52c9e30b1a79adb04a",
           "actor": "claude-verifier",
           "by": "claude-verifier E (independent subagent, round 2)"
+        },
+        {
+          "at": "2026-10-03T06:04:31.466Z",
+          "event": "stale",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/EmployeeDetail.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T06:04:47.459Z",
+          "event": "run",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T06:04:47.704Z",
+          "event": "done",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:22:59.150Z",
-        "head": "10b7b1d6d00dbced51dbf028109943724f669397",
+        "at": "2026-10-03T06:04:47.688Z",
+        "head": "defb676706635184f2ee58628d7c798a50d6e69b",
         "by": "claude-worker",
         "runs": [
-          7
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T04:56:24.314Z",
-        "head": "77778a05acece90f1e286e52c9e30b1a79adb04a",
-        "by": "claude-verifier E (independent subagent, round 2)",
-        "note": "Round 2 at 77778a0. EmployeeDetail -w diff reviewed: TfnPanel copy ('On file: masked... stored encrypted and only the last four digits are shown', 'No TFN recorded...') and the employee-tfn-save call unchanged; only primitives/dates/aria-label changed. EmployeeTfnCapture vitest pass; employee-tfn-save deno check ok.",
-        "runs": [
-          8
+          9
         ]
       }
     },
@@ -15035,7 +15224,7 @@
       "title": "No GST credit is invented when GST is missing or the supplier is not GST-registered",
       "area": "broken",
       "priority": 53,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/gstNoInvention.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/receipt-webhook/gst.test.ts\""
@@ -15279,6 +15468,32 @@
           "actor": "claude-verifier",
           "log": ".ledger/logs/GST-01-018.log",
           "log_sha256": "b7e86b702ca7303b048d8ec615b4faf13b5774d1d206240921bf5707ace6f5ce"
+        },
+        {
+          "n": 19,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/gstNoInvention.test.ts\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:04:50.703Z",
+          "ms": 2748,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/GST-01-019.log",
+          "log_sha256": "e9d1a355740dc6eed4c1119ed4a89f089d99c29aba3c49f6afc9741ef72f5c4e"
+        },
+        {
+          "n": 20,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/receipt-webhook/gst.test.ts\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:04:51.153Z",
+          "ms": 449,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/GST-01-020.log",
+          "log_sha256": "5c9c4e6162c1e73136d534ad2b40f72f09238cca150a7d98ebb9dc818be00bae"
         }
       ],
       "notes": [],
@@ -15446,25 +15661,38 @@
           "head": "77778a05acece90f1e286e52c9e30b1a79adb04a",
           "actor": "claude-verifier",
           "by": "claude-verifier E (independent subagent, round 2)"
+        },
+        {
+          "at": "2026-10-03T06:04:31.551Z",
+          "event": "stale",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/BillDetail.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T06:04:51.154Z",
+          "event": "run",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T06:04:51.327Z",
+          "event": "done",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T04:23:02.793Z",
-        "head": "10b7b1d6d00dbced51dbf028109943724f669397",
+        "at": "2026-10-03T06:04:51.312Z",
+        "head": "defb676706635184f2ee58628d7c798a50d6e69b",
         "by": "claude-worker",
         "runs": [
-          15,
-          16
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T04:56:46.413Z",
-        "head": "77778a05acece90f1e286e52c9e30b1a79adb04a",
-        "by": "claude-verifier E (independent subagent, round 2)",
-        "note": "Round 2 at 77778a0. BillDetail -w diff: EditField->shared Field (hint 'Leave GST and subtotal blank...' kept), 'No GST (supplier not registered or GST-free)' button kept, StatusBadge; ReceiptHub minor; receipt-webhook unchanged. gstNoInvention vitest and gst.test.ts pass.",
-        "runs": [
-          17,
-          18
+          19,
+          20
         ]
       }
     },
@@ -16341,7 +16569,7 @@
       "title": "Default dates use Australian local time, not UTC",
       "area": "broken",
       "priority": 56,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/localDates.test.ts\""
       ],
@@ -16467,6 +16695,19 @@
           "actor": "verifier-G",
           "log": ".ledger/logs/DATE-01-009.log",
           "log_sha256": "0c5b69ddf39f3108a6db8cdb744215973cc381d474a662a55c6d061f099f6109"
+        },
+        {
+          "n": 10,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/localDates.test.ts\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:04:53.695Z",
+          "ms": 2187,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/DATE-01-010.log",
+          "log_sha256": "5173ecd94c8d6a85015a25977e93fa8f148806b16701857aaa220172c1045c2c"
         }
       ],
       "notes": [],
@@ -16670,23 +16911,45 @@
           "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
           "actor": "verifier-G",
           "by": "verifier-G"
+        },
+        {
+          "at": "2026-10-03T06:04:31.635Z",
+          "event": "stale",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "files": [
+            "src/hooks/useOrgRole.ts",
+            "src/lib/roles.ts",
+            "src/pages/Allocations.tsx",
+            "src/pages/BillDetail.tsx",
+            "src/pages/Customers.tsx",
+            "src/pages/EmployeeDetail.tsx",
+            "src/pages/JobDetail.tsx",
+            "src/pages/PaymentRunDetail.tsx",
+            "src/pages/Suppliers.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T06:04:53.696Z",
+          "event": "run",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T06:04:54.127Z",
+          "event": "done",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T05:30:06.303Z",
-        "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
-        "by": "claude-fable",
+        "at": "2026-10-03T06:04:54.112Z",
+        "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+        "by": "claude-worker",
         "runs": [
-          8
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T05:36:22.776Z",
-        "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
-        "by": "verifier-G",
-        "note": "Diff since E's verification head 77778a0 restricted to this item's paths is JobDetail.tsx:916,922 and SubscriptionDetail.tsx:724 SVG fontSize 9/10->11 only (f8a7c5b); LegalLinks.tsx 8->11px (fa2aa55) is outside the paths. Acceptance re-run green at f3ea6a7.",
-        "runs": [
-          9
+          10
         ]
       }
     },
@@ -18419,6 +18682,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/UI-01-022.log",
           "log_sha256": "8c461cf7a7b1d4ac041a28b63e39b77816667c7078a96e4d0d15fba67a94dc0d"
+        },
+        {
+          "n": 23,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-hardcoded-colours.mjs\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:04:54.654Z",
+          "ms": 359,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-01-023.log",
+          "log_sha256": "daf9902dbf134c28d7a9f8981e7e3e3bbc3fcf88646908ed958f2c34360fc76d"
+        },
+        {
+          "n": 24,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AuthMobile.test.tsx\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:04:56.896Z",
+          "ms": 2241,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-01-024.log",
+          "log_sha256": "6481daba7f254cfcde28e2c5de0d5e10beaf85cbcfe49ce33aad883838c6e97e"
         }
       ],
       "notes": [
@@ -18651,15 +18940,47 @@
           "event": "done",
           "head": "255070fc12d148c9610d9f4f916e4aba06f5b8bc",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T06:04:31.752Z",
+          "event": "stale",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "files": [
+            "src/components/ReadOnlyNotice.tsx",
+            "src/hooks/useOrgRole.ts",
+            "src/lib/roles.ts",
+            "src/pages/Allocations.tsx",
+            "src/pages/BillDetail.tsx",
+            "src/pages/Customers.tsx",
+            "src/pages/EmployeeDetail.tsx",
+            "src/pages/JobDetail.tsx",
+            "src/pages/PaymentRunDetail.tsx",
+            "src/pages/Suppliers.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T06:04:56.897Z",
+          "event": "run",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T06:04:57.052Z",
+          "event": "done",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T06:00:09.047Z",
-        "head": "255070fc12d148c9610d9f4f916e4aba06f5b8bc",
+        "at": "2026-10-03T06:04:57.035Z",
+        "head": "defb676706635184f2ee58628d7c798a50d6e69b",
         "by": "claude-worker",
         "runs": [
-          21,
-          22
+          23,
+          24
         ]
       }
     },
@@ -18668,7 +18989,7 @@
       "title": "Shared PageHeader, Stat, StatusBadge, EmptyState, Alert and Field replace page-local copies",
       "area": "ui",
       "priority": 71,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/SharedPrimitives.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-ui-duplication.mjs\""
@@ -18860,6 +19181,32 @@
           "actor": "verifier-G",
           "log": ".ledger/logs/UI-02-014.log",
           "log_sha256": "4b95bcee0909937d331b1b2f4bf188529c4ad3fb56914ec0f0b5e6ce192611b9"
+        },
+        {
+          "n": 15,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/SharedPrimitives.test.tsx\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:04:59.672Z",
+          "ms": 2355,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-02-015.log",
+          "log_sha256": "ff28e77c697125fed338f7852c51b2dd583d7c86f39c3d9568b58684098c9f3a"
+        },
+        {
+          "n": 16,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-ui-duplication.mjs\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:05:00.013Z",
+          "ms": 340,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-02-016.log",
+          "log_sha256": "b26622e8e1431003623748938ec9531a221eeb74486d5fca04ede0f8f66bf626"
         }
       ],
       "notes": [],
@@ -18999,25 +19346,44 @@
           "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
           "actor": "verifier-G",
           "by": "verifier-G"
+        },
+        {
+          "at": "2026-10-03T06:04:31.800Z",
+          "event": "stale",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "files": [
+            "src/pages/Allocations.tsx",
+            "src/pages/BillDetail.tsx",
+            "src/pages/Customers.tsx",
+            "src/pages/EmployeeDetail.tsx",
+            "src/pages/JobDetail.tsx",
+            "src/pages/PaymentRunDetail.tsx",
+            "src/pages/Suppliers.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T06:05:00.013Z",
+          "event": "run",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T06:05:00.176Z",
+          "event": "done",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T05:30:13.964Z",
-        "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
-        "by": "claude-fable",
+        "at": "2026-10-03T06:05:00.162Z",
+        "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+        "by": "claude-worker",
         "runs": [
-          11,
-          12
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T05:36:25.586Z",
-        "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
-        "by": "verifier-G",
-        "note": "Diff since E's verification head 77778a0 restricted to this item's paths is JobDetail.tsx:916,922 and SubscriptionDetail.tsx:724 SVG fontSize 9/10->11 only (f8a7c5b); LegalLinks.tsx 8->11px (fa2aa55) is outside the paths. Acceptance re-run green at f3ea6a7.",
-        "runs": [
-          13,
-          14
+          15,
+          16
         ]
       }
     },
@@ -19360,7 +19726,7 @@
       "title": "Accessibility: contrast-safe colour tokens, keyboard focus everywhere, labelled icon buttons, no text under 11px",
       "area": "ui",
       "priority": 73,
-      "status": "verified",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-a11y-tokens.mjs\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/a11y/IconButtons.test.tsx\""
@@ -19527,6 +19893,32 @@
           "actor": "verifier-G",
           "log": ".ledger/logs/UI-04-012.log",
           "log_sha256": "d7211a9bbd95dc7b4ea8839953cea8a4aec56f546b305aefc3b78bf275cfd0ad"
+        },
+        {
+          "n": 13,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-a11y-tokens.mjs\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:05:00.650Z",
+          "ms": 300,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-04-013.log",
+          "log_sha256": "69d7f9e473c9074637c14e659b913c76e0fd4050853b404c681d97303af61b15"
+        },
+        {
+          "n": 14,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/a11y/IconButtons.test.tsx\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:05:05.387Z",
+          "ms": 4736,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-04-014.log",
+          "log_sha256": "4f867d99887b534170dd2170a59380b6bb100c72fd67039d2100390b38898ef4"
         }
       ],
       "notes": [],
@@ -19642,25 +20034,45 @@
           "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
           "actor": "verifier-G",
           "by": "verifier-G"
+        },
+        {
+          "at": "2026-10-03T06:04:31.864Z",
+          "event": "stale",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "files": [
+            "src/components/ReadOnlyNotice.tsx",
+            "src/pages/Allocations.tsx",
+            "src/pages/BillDetail.tsx",
+            "src/pages/Customers.tsx",
+            "src/pages/EmployeeDetail.tsx",
+            "src/pages/JobDetail.tsx",
+            "src/pages/PaymentRunDetail.tsx",
+            "src/pages/Suppliers.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T06:05:05.387Z",
+          "event": "run",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T06:05:05.977Z",
+          "event": "done",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T05:30:19.171Z",
-        "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
-        "by": "claude-fable",
+        "at": "2026-10-03T06:05:05.961Z",
+        "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+        "by": "claude-worker",
         "runs": [
-          9,
-          10
-        ]
-      },
-      "verified": {
-        "at": "2026-10-03T05:37:03.029Z",
-        "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
-        "by": "verifier-G",
-        "note": "Read f8a7c5b in full and the new scanner. Probe src/__ProbeG.tsx (deleted): all 8 single-line forms flagged (ternary 2nd branch, numeric ternary, template literal, JSX {N}, 0.5rem, clamp(6px..), Math.max(8,n), text-[9px]); lineHeight:8 / padding:4 beside fontSize NOT flagged (top-level comma stops the expression). Non-vacuous: new scanner on f8a7c5b^ tree fails on exactly JobDetail:916,922 and SubscriptionDetail:724 while the old scanner passed it. Known blind spots, none present in src today (grep): value on the next line (fontSize:\\n 8, multi-line JSX), CSS font: shorthand, Tailwind text-[Nrem]. Charts not rendered; by geometry MonthlyBars (66px slot, centred) and the sparkline (2 end-anchored labels in 600 units) cannot overlap at 11px. Residual: sparkline is viewBox-scaled (width 100%), so 11 user units render smaller than 11px on narrow screens; TaxTimeline at 0.7/0.72rem is above the 11px gate but below the 12px the audit backlog named.",
-        "runs": [
-          11,
-          12
+          13,
+          14
         ]
       }
     },
@@ -20401,6 +20813,71 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SHIP-055.log",
           "log_sha256": "c3d3c6f57f5220f6c7b1340571726a21934e184d2dd934b7a51fb166856ca3fe"
+        },
+        {
+          "n": 56,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run typecheck\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:05:09.965Z",
+          "ms": 3795,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SHIP-056.log",
+          "log_sha256": "9f5cc03fa5f6d70ef3898d510b782ffb4ffec080f039ffbb1aaa9375c4bb371d"
+        },
+        {
+          "n": 57,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run lint\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:05:16.331Z",
+          "ms": 6365,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SHIP-057.log",
+          "log_sha256": "fb1147ae1e108c498719100358b5d776e11e7168031d1934c3037b1b4b98ff76"
+        },
+        {
+          "n": 58,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"set -a && . ./.env.production && set +a && npx vitest run \"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:05:32.280Z",
+          "ms": 15949,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SHIP-058.log",
+          "log_sha256": "3e694727162462b9c0a7ef9afbc9e9ab0c47eaabb55d36c0dab36b88f044611b"
+        },
+        {
+          "n": 59,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:06:18.771Z",
+          "ms": 46491,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SHIP-059.log",
+          "log_sha256": "129934caeeacc4c990cc602796e9a2cc98eadeb04585767f7ab0c16675e01bb5"
+        },
+        {
+          "n": 60,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run build\"",
+          "exit": 0,
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "dirty": [],
+          "at": "2026-10-03T06:06:21.353Z",
+          "ms": 2581,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SHIP-060.log",
+          "log_sha256": "787627972fea92697a3cd98fd12b0c02b2940bdfe6aa1d635309a6d864ec994b"
         }
       ],
       "notes": [],
@@ -20595,18 +21072,50 @@
           "event": "done",
           "head": "255070fc12d148c9610d9f4f916e4aba06f5b8bc",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T06:04:32.000Z",
+          "event": "stale",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "files": [
+            "src/components/ReadOnlyNotice.tsx",
+            "src/hooks/useOrgRole.ts",
+            "src/lib/roles.ts",
+            "src/pages/Allocations.tsx",
+            "src/pages/BillDetail.tsx",
+            "src/pages/Customers.tsx",
+            "src/pages/EmployeeDetail.tsx",
+            "src/pages/JobDetail.tsx",
+            "src/pages/PaymentRunDetail.tsx",
+            "src/pages/Suppliers.tsx"
+          ]
+        },
+        {
+          "at": "2026-10-03T06:06:21.353Z",
+          "event": "run",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T06:06:21.515Z",
+          "event": "done",
+          "head": "defb676706635184f2ee58628d7c798a50d6e69b",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T06:01:20.126Z",
-        "head": "255070fc12d148c9610d9f4f916e4aba06f5b8bc",
+        "at": "2026-10-03T06:06:21.500Z",
+        "head": "defb676706635184f2ee58628d7c798a50d6e69b",
         "by": "claude-worker",
         "runs": [
-          51,
-          52,
-          53,
-          54,
-          55
+          56,
+          57,
+          58,
+          59,
+          60
         ]
       }
     },
@@ -24024,5 +24533,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T06:04:30.481Z"
+  "updated_at": "2026-10-03T06:06:21.530Z"
 }

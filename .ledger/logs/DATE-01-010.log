@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/lib/localDates.test.ts"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  18 passed (18)
+   Start at  16:04:52
+   Duration  704ms (transform 31ms, setup 62ms, import 22ms, tests 16ms, environment 504ms)
+

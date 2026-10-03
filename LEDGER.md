@@ -2,7 +2,7 @@
 
 **Goal:** Old Looplet Accounting (accounting.looplet.com.au) made legitimate, secure, modern and connected to Redbark bank feeds. Local proof first; production deploys, migrations and credential use need Daniel's explicit yes.
 
-**Progress:** 33/57 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
+**Progress:** 25/57 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
 
 | ID | Item | Status | Proof |
 |---|---|---|---|
@@ -16,7 +16,7 @@
 | SEC-06 | CI uses least-privilege permissions, SHA-pinned actions and a deploy job separate from build | verified | verified by verifier-G @ f3ea6a74 |
 | SEC-07 | Hardening: CORS allow-list, constant-time secret checks, bundled pdf.js worker, cron secrets in headers, generic error responses | done | done @ 255070fc, awaiting independent verify |
 | PAY-01 | Pay runs calculate wages from the base hourly rate, not the loaded cost rate | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
-| PAY-02 | Super defaults to the statutory rate (12%) and a pay run never applies less than the SG rate for the pay date | verified | verified by claude-verifier E (independent subagent, round 2) @ 77778a05 |
+| PAY-02 | Super defaults to the statutory rate (12%) and a pay run never applies less than the SG rate for the pay date | done | done @ defb6767, awaiting independent verify |
 | PAY-03 | PAYG withholding uses the financial year of the pay date and fails loudly instead of returning $0 when no table applies | done | done @ 255070fc, awaiting independent verify |
 | PAY-04 | FY2026-27 PAYG withholding tables match the ATO schedule (NAT 1004) worked examples | done | done @ 255070fc, awaiting independent verify |
 | PAY-05 | Payday Super (from 1 July 2026) drives super due dates instead of quarterly batching | done | done @ 255070fc, awaiting independent verify |
@@ -24,33 +24,33 @@
 | FAKE-01 | Receipt Hub has no POS simulator, fake receipts or hard-coded demo figures | verified | verified by claude-verifier E (independent subagent, round 2) @ 77778a05 |
 | FAKE-02 | The Scan page describes only the checks it really runs (no simulated AI audit) | verified | verified by claude-verifier E (independent subagent, round 2) @ 77778a05 |
 | CONSENT-01 | Settings has no pre-ticked, unsaved or unrelated template consent switches | verified | verified by claude-verifier E (independent subagent, round 2) @ 77778a05 |
-| LEGAL-01 | A privacy policy, terms of service and collection notice are published, linked, and accepted at sign-up | verified | verified by verifier-G @ f3ea6a74 |
+| LEGAL-01 | A privacy policy, terms of service and collection notice are published, linked, and accepted at sign-up | done | done @ defb6767, awaiting independent verify |
 | AI-01 | AI answers and advice are labelled general information, and the model is allowed to recommend an accountant | verified | verified by claude-verifier F (independent subagent, round 3) @ 07abc2af |
 | TFN-01 | TFNs are never returned to the browser or stored in plain text | done | done @ 255070fc, awaiting independent verify |
-| LODGE-01 | Nothing claims to lodge with the ATO or send to a super fund when it only prepares a file | verified | verified by verifier-G @ f3ea6a74 |
-| BANK-01 | Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs | done | done @ 255070fc, awaiting independent verify |
+| LODGE-01 | Nothing claims to lodge with the ATO or send to a super fund when it only prepares a file | done | done @ defb6767, awaiting independent verify |
+| BANK-01 | Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs | done | done @ defb6767, awaiting independent verify |
 | BANK-02 | Redbark client pages accounts and transactions, splits truncated date windows, converts dollars to exact cents and skips pending rows | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
 | BANK-03 | bank-webhook verifies Redbark signatures and timestamps, stores the event before acting and dispatches one sync per linked connection | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
 | BANK-04 | bank-sync imports Redbark transactions idempotently on (bank account, provider id) and keeps the post-sync chain | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
 | BANK-05 | Admins can list Redbark accounts and link each one to a bank account with an import-from date | verified | verified by claude-verifier (independent subagent) @ 77778a05 |
 | BANK-06 | Redbark migrations apply cleanly and enforce one organisation per Redbark connection | done | done @ 255070fc, awaiting independent verify |
 | BANK-07 | Redbark is live: migrations applied, functions deployed, secrets set and the destination delivering into the books | blocked | BLOCKED: Deploying needs a Supabase access token, function secrets and credential rotation first. (needs: Daniel: credential rotation (INC-02), a scoped Supabase access token for project looplet accounting (Database + Edge functions), the Redbark API key and webhook secret entered at a hidden prompt, and an explicit yes to deploy.) |
-| STP-01 | Employees TFNs can be captured securely so the STP export can complete | verified | verified by claude-verifier E (independent subagent, round 2) @ 77778a05 |
+| STP-01 | Employees TFNs can be captured securely so the STP export can complete | done | done @ defb6767, awaiting independent verify |
 | CSP-01 | PDF previews and the microphone feature work under the production security headers | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
 | BAS-01 | BAS includes credit notes, supports cash basis and computes W3/W4 instead of hard-coded zeros | done | done @ 255070fc, awaiting independent verify |
-| GST-01 | No GST credit is invented when GST is missing or the supplier is not GST-registered | verified | verified by claude-verifier E (independent subagent, round 2) @ 77778a05 |
+| GST-01 | No GST credit is invented when GST is missing or the supplier is not GST-registered | done | done @ defb6767, awaiting independent verify |
 | TAX-01 | The tax set-aside uses GST-exclusive figures for one financial year | done | done @ 255070fc, awaiting independent verify |
 | INV-01 | Invoices can be issued as a tax invoice (PDF with "Tax invoice", ABN and GST) and sent | verified | verified by claude-verifier F (independent subagent, round 3) @ 07abc2af |
-| DATE-01 | Default dates use Australian local time, not UTC | verified | verified by verifier-G @ f3ea6a74 |
+| DATE-01 | Default dates use Australian local time, not UTC | done | done @ defb6767, awaiting independent verify |
 | SEED-01 | New organisations do not inherit the pilot business known-sender list | done | done @ 255070fc, awaiting independent verify |
 | XERO-02 | The Xero bank pull writes schema-valid rows (real connection, valid account type) | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
 | BS-01 | The balance sheet does not count credit-card and loan balances as both cash and debts | done | done @ 255070fc, awaiting independent verify |
 | CI-01 | CI runs the Deno edge-function tests and reports environment-gated test files instead of skipping them silently | verified | verified by verifier-G @ f3ea6a74 |
-| UI-01 | Light theme polish: themed colours everywhere, no hard-coded dark-only colours, auth screens in the new style | done | done @ 255070fc, awaiting independent verify |
-| UI-02 | Shared PageHeader, Stat, StatusBadge, EmptyState, Alert and Field replace page-local copies | verified | verified by verifier-G @ f3ea6a74 |
+| UI-01 | Light theme polish: themed colours everywhere, no hard-coded dark-only colours, auth screens in the new style | done | done @ defb6767, awaiting independent verify |
+| UI-02 | Shared PageHeader, Stat, StatusBadge, EmptyState, Alert and Field replace page-local copies | done | done @ defb6767, awaiting independent verify |
 | UI-03 | Modern app shell: labelled sectioned sidebar, top bar with breadcrumbs, org switcher, user menu, command palette | verified | verified by claude-verifier F (independent subagent, round 3) @ 07abc2af |
-| UI-04 | Accessibility: contrast-safe colour tokens, keyboard focus everywhere, labelled icon buttons, no text under 11px | verified | verified by verifier-G @ f3ea6a74 |
-| SHIP | Ship gate: typecheck, lint, the full test suite (Vitest and Deno) and the production build all pass | done | done @ 255070fc, awaiting independent verify |
+| UI-04 | Accessibility: contrast-safe colour tokens, keyboard focus everywhere, labelled icon buttons, no text under 11px | done | done @ defb6767, awaiting independent verify |
+| SHIP | Ship gate: typecheck, lint, the full test suite (Vitest and Deno) and the production build all pass | done | done @ defb6767, awaiting independent verify |
 | DEPLOY | Production (accounting.looplet.com.au and the edge functions) serves the verified build after Daniel says go | blocked | BLOCKED: Production changes need the owner's explicit approval. (needs: Daniel reviews screenshots and the verified ledger, then says go for the production deploy.) |
 | SEC-08 | bills-allocate-batch checks the caller's own accepted membership and needs accountant or higher to change allocations | verified | verified by claude-verifier (independent subagent) @ bbdacc04 |
 | SEC-09 | accountant-email-query matches the sender's accepted accountant memberships by role_enum, so the emailed activity digest works | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
