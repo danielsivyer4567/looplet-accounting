@@ -13,6 +13,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { enforceAiQuota } from '../_shared/aiRateLimit.ts';
 import { requireSignedInCaller } from '../_shared/authGuards.ts';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
@@ -81,6 +82,11 @@ Deno.serve(async (req) => {
     }
     if (body.image_base64.length > MAX_IMAGE_BASE64_CHARS) {
       return json({ ok: false, error: 'image_base64 is too large: send one statement page of at most 8 MB' }, 413);
+    }
+    // Each page is a paid vision call: signed-in users get an hourly quota (backend callers are not limited).
+    if (caller.caller.kind === 'user') {
+      const limited = await enforceAiQuota(admin, caller.caller.userId, 'bank_statement_extract', corsHeaders);
+      if (limited) return limited;
     }
     const mime = body.mime_type ?? 'image/png';
     const dataUrl = `data:${mime};base64,${body.image_base64}`;

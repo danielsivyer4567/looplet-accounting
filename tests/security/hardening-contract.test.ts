@@ -234,3 +234,96 @@ describe('server errors reach the client as a generic message', () => {
     }
   });
 });
+
+describe('paid AI features have a per-user hourly quota', () => {
+  // [function, feature, a marker that the caller has been verified, the first paid call in the handler]
+  const wired: [string, string, string, string][] = [
+    [
+      'bank-statement-extract',
+      'bank_statement_extract',
+      'requireSignedInCaller(',
+      'fetch(`${baseUrl}/chat/completions`',
+    ],
+    [
+      'staged-entities-enrich-sonar',
+      'staged_entities_enrich',
+      'authorizeOrgCaller(',
+      'classifyWithSonar(',
+    ],
+    ['ask-bot', 'ask_bot', 'requireSignedInCaller(', 'routeQuestion('],
+    ['gmail-classify-ai', 'gmail_classify_ai', 'requireSignedInCaller(', 'classifyBatch('],
+    ['bills-extract', 'bills_extract', 'auth.getUser()', 'extractBillData('],
+    ['advisor', 'advisor', 'userIdFromJwt(bearer)', 'buildAdviceNoteForMode({'],
+    [
+      'bank-transaction-classifier',
+      'bank_transaction_classifier',
+      'userIdFromJwt(bearer)',
+      'classifyOne(admin',
+    ],
+  ];
+
+  for (const [fn, feature, verified, paid] of wired) {
+    it(`${fn} takes a unit of the ${feature} quota after verifying the user and before spending credit`, () => {
+      const src = read(`supabase/functions/${fn}/index.ts`);
+      // advisor serves a named handler (Deno.serve(handleAdvisor) is at the end of the file).
+      const start = src.includes('async function handleAdvisor(')
+        ? src.indexOf('async function handleAdvisor(')
+        : src.indexOf('Deno.serve(');
+      expect(start).toBeGreaterThanOrEqual(0);
+      const handler = src.slice(start);
+      const quota = handler.search(new RegExp(`enforceAiQuota\\([^)]*['"]${feature}['"]`));
+      expect(quota, 'quota call').toBeGreaterThanOrEqual(0);
+      expect(handler.indexOf(verified), 'user verified first').toBeGreaterThanOrEqual(0);
+      expect(handler.indexOf(verified)).toBeLessThan(quota);
+      expect(handler.indexOf(paid), 'paid call').toBeGreaterThan(quota);
+      expect(handler.slice(quota, quota + 200)).toMatch(/\n\s*if \(limited\) return limited;/);
+    });
+  }
+
+  it('ask-bot and gmail-classify-ai no longer accept a header that is merely present', () => {
+    for (const fn of ['ask-bot', 'gmail-classify-ai']) {
+      const handler = read(`supabase/functions/${fn}/index.ts`).split('Deno.serve(')[1] ?? '';
+      expect(handler.indexOf('requireSignedInCaller('), fn).toBeGreaterThanOrEqual(0);
+      expect(handler.indexOf('requireSignedInCaller('), fn).toBeLessThan(
+        handler.indexOf('await req.json()'),
+      );
+    }
+  });
+
+  it('every function that reads a paid AI key is quota-wired or reachable only by backend callers', () => {
+    const backendOnly: Record<string, string> = {
+      'accountant-email-query': 'inbound-email webhook, x-inbound-secret only',
+      'legal-corpus-ingest': 'service role or operator secret only',
+      'legal-corpus-sync': 'service role or cron secret only',
+      'legal-horizon-scan': 'service role or cron secret only',
+    };
+    const aiKey =
+      /(Deno\.env\.get|requireEnv)\(\s*['"](GROQ|PERPLEXITY|OPENAI|ANTHROPIC|GEMINI|MINIMAX)_API_KEY['"]/;
+    // Shared modules that call a paid model on the function's behalf (OCR, embeddings, citations).
+    const aiModule = /from ['"]\.\.\/_shared\/(ocr\/[\w-]+|advisoryCite)\.ts['"]/;
+    const readers = filesUnder('supabase/functions', /^index\.ts$/)
+      .filter((f) => !f.includes('/_shared/'))
+      .filter((f) => aiKey.test(read(f)) || aiModule.test(read(f)));
+    expect(readers.length).toBeGreaterThanOrEqual(9);
+    for (const file of readers) {
+      const fn = file.split('/').slice(-2)[0] ?? file;
+      if (backendOnly[fn]) continue;
+      expect(read(file), `${fn} spends AI credit without a per-user quota`).toMatch(
+        /enforceAiQuota\(/,
+      );
+    }
+  });
+
+  it('the quota lives in Postgres, callable by the service role only', () => {
+    const migration = read('supabase/migrations/20261003160100_ai_usage_rate_limit.sql');
+    expect(migration).toMatch(/security definer/);
+    expect(migration).toMatch(/pg_advisory_xact_lock/);
+    expect(migration).toMatch(
+      /revoke all on function public\.consume_ai_quota\(uuid, text, integer, integer\) from public, anon, authenticated;/,
+    );
+    expect(migration).toMatch(
+      /grant execute on function public\.consume_ai_quota\(uuid, text, integer, integer\) to service_role;/,
+    );
+    // Behaviour (limits, window, retry time, API roles locked out): tests/db-sql/ai-rate-limit.sql
+  });
+});

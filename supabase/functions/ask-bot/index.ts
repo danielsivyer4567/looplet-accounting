@@ -17,7 +17,10 @@
  */
 
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { enforceAiQuota } from '../_shared/aiRateLimit.ts';
+import { requireSignedInCaller } from '../_shared/authGuards.ts';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 import { embedTexts } from '../_shared/ocr/openai.ts';
 import {
   buildCitations,
@@ -81,12 +84,23 @@ Deno.serve(async (req) => {
     const groqKey = Deno.env.get('GROQ_API_KEY');
     const sonarKey = Deno.env.get('PERPLEXITY_API_KEY');
 
-    if (!supabaseUrl || !anonKey) return json({ ok: false, error: 'Server config missing' }, 500);
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !anonKey || !serviceKey) return json({ ok: false, error: 'Server config missing' }, 500);
     if (!groqKey) return json({ ok: false, error: 'GROQ_API_KEY not set' }, 500);
+
+    // Answering spends Groq (and sometimes Perplexity) credit, so the caller must be a signed-in user or the
+    // service role. A header that is merely present, such as the public anon key, is not enough.
+    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const caller = await requireSignedInCaller(authHeader, supabaseOrgAccessDeps(admin, serviceKey));
+    if (!caller.ok) return json({ ok: false, error: caller.error }, caller.status);
 
     const body = (await req.json()) as RequestBody;
     if (!body.organization_id) return json({ ok: false, error: 'organization_id required' }, 400);
     if (!body.question || body.question.trim().length === 0) return json({ ok: false, error: 'question required' }, 400);
+    if (caller.caller.kind === 'user') {
+      const limited = await enforceAiQuota(admin, caller.caller.userId, 'ask_bot', corsHeaders);
+      if (limited) return limited;
+    }
 
     const userClient: SupabaseClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },

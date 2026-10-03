@@ -20,6 +20,7 @@
  */
 
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { enforceAiQuota } from '../_shared/aiRateLimit.ts';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { isExactServiceRoleBearer } from '../_shared/serviceRole.ts';
 import { extractBillData } from '../_shared/ocr/index.ts';
@@ -91,6 +92,9 @@ Deno.serve(async (req) => {
         error: userErr,
       } = await userClient.auth.getUser();
       if (userErr || !user) return json({ ok: false, error: 'Invalid token' }, 401);
+      // OCR spends model credit: signed-in users get an hourly quota (backend callers are not limited).
+      const limited = await enforceAiQuota(admin, user.id, 'bills_extract', corsHeaders);
+      if (limited) return limited;
       dbClient = userClient;
     }
 

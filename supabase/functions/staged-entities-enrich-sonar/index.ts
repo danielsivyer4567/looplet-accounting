@@ -14,6 +14,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { enforceAiQuota } from '../_shared/aiRateLimit.ts';
 import { boundedInt } from '../_shared/authGuards.ts';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { authorizeOrgCaller, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
@@ -80,6 +81,11 @@ Deno.serve(async (req) => {
       'accountant',
     );
     if (!access.ok) return json({ ok: false, error: access.error }, access.status);
+    // Public sign-up makes anyone an owner of their own organisation, so members also get an hourly quota.
+    if (access.caller.kind === 'member') {
+      const limited = await enforceAiQuota(admin, access.caller.userId, 'staged_entities_enrich', corsHeaders);
+      if (limited) return limited;
+    }
 
     // Caller-chosen sizes are capped so one request cannot run an unbounded paid batch.
     const batchSize = boundedInt(body.batch_size, 15, 1, 25);
