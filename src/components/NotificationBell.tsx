@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Tag } from 'lucide-react';
+import { Bell, Tag } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { useNotificationOrgScope } from '@/hooks/useNotificationOrgScope';
@@ -112,46 +112,17 @@ export function NotificationBell() {
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
       <button
+        type="button"
         onClick={() => setOpen((o) => !o)}
         aria-label={`Notifications${unread > 0 ? ` (${unread} unread)` : ''}`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
         title="Notifications"
-        style={{
-          position: 'relative',
-          background: 'transparent',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: 4,
-          color: 'var(--text-muted)',
-          fontSize: 14,
-          padding: '0.3rem 0.55rem',
-          cursor: 'pointer',
-          lineHeight: 1,
-        }}
+        className="btn btn-ghost btn-icon topbar-icon-btn bell-button"
       >
-        <span aria-hidden style={{ fontSize: 14 }}>
-          🔔
-        </span>
+        <Bell size={18} aria-hidden="true" />
         {unread > 0 && (
-          <span
-            aria-hidden
-            style={{
-              position: 'absolute',
-              top: -6,
-              right: -6,
-              background: 'var(--accent-danger)',
-              color: 'var(--text-on-accent)',
-              fontSize: 11,
-              fontWeight: 700,
-              minWidth: 16,
-              height: 16,
-              borderRadius: 8,
-              padding: '0 4px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxSizing: 'border-box',
-              border: '1px solid var(--border-subtle)',
-            }}
-          >
+          <span aria-hidden="true" className="bell-badge">
             {unread > 99 ? '99+' : unread}
           </span>
         )}
