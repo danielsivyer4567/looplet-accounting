@@ -14281,7 +14281,7 @@
       "title": "Shared PageHeader, Stat, StatusBadge, EmptyState, Alert and Field replace page-local copies",
       "area": "ui",
       "priority": 71,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/SharedPrimitives.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-ui-duplication.mjs\""
@@ -14291,7 +14291,60 @@
         "src/pages",
         "scripts/check-ui-duplication.mjs"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/SharedPrimitives.test.tsx\"",
+          "exit": 1,
+          "head": "b52f6d97d6b925cd586ebd7f7e69b7ce0393c9b3",
+          "dirty": [],
+          "at": "2026-10-03T04:16:42.359Z",
+          "ms": 1607,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-02-001.log",
+          "log_sha256": "9c1ca3ef234a9352102a0ab99cf218092dc711bcd67ea5d70a66046b37d10374"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-ui-duplication.mjs\"",
+          "exit": 1,
+          "head": "b52f6d97d6b925cd586ebd7f7e69b7ce0393c9b3",
+          "dirty": [],
+          "at": "2026-10-03T04:16:42.607Z",
+          "ms": 247,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-02-002.log",
+          "log_sha256": "65bf262b8a55802e0fcbfc247f3aa6a22337052c996f2ee9cf567cee636cf91f"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/SharedPrimitives.test.tsx\"",
+          "exit": 0,
+          "head": "6198a3e3d889a692fc4e29a977c69543b3ad4807",
+          "dirty": [],
+          "at": "2026-10-03T04:16:45.102Z",
+          "ms": 2063,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-02-003.log",
+          "log_sha256": "eafc65b81da00bd468d83f30f85c1e42569cbacbf1c9c06745383d05342f71bd"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-ui-duplication.mjs\"",
+          "exit": 0,
+          "head": "6198a3e3d889a692fc4e29a977c69543b3ad4807",
+          "dirty": [],
+          "at": "2026-10-03T04:16:45.492Z",
+          "ms": 389,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UI-02-004.log",
+          "log_sha256": "2ac856973e8b3e79eafa3b87ad82775097bc0b05b228b4f56fcab9c7992c1cf8"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -14299,8 +14352,45 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:16:40.510Z",
+          "event": "start",
+          "head": "b52f6d97d6b925cd586ebd7f7e69b7ce0393c9b3",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T04:16:42.607Z",
+          "event": "run",
+          "head": "b52f6d97d6b925cd586ebd7f7e69b7ce0393c9b3",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:16:45.492Z",
+          "event": "run",
+          "head": "6198a3e3d889a692fc4e29a977c69543b3ad4807",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T04:16:45.719Z",
+          "event": "done",
+          "head": "6198a3e3d889a692fc4e29a977c69543b3ad4807",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T04:16:45.705Z",
+        "head": "6198a3e3d889a692fc4e29a977c69543b3ad4807",
+        "by": "claude-worker",
+        "runs": [
+          3,
+          4
+        ]
+      }
     },
     {
       "id": "UI-03",
@@ -17217,5 +17307,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T04:16:38.115Z"
+  "updated_at": "2026-10-03T04:16:45.733Z"
 }

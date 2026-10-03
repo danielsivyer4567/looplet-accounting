@@ -47,7 +47,7 @@
 | BS-01 | The balance sheet does not count credit-card and loan balances as both cash and debts | done | done @ 56e21d96, awaiting independent verify |
 | CI-01 | CI runs the Deno edge-function tests and reports environment-gated test files instead of skipping them silently | verified | verified by claude-verifier (independent subagent) @ 6da4d8b8 |
 | UI-01 | Light theme polish: themed colours everywhere, no hard-coded dark-only colours, auth screens in the new style | done | done @ 92732d63, awaiting independent verify |
-| UI-02 | Shared PageHeader, Stat, StatusBadge, EmptyState, Alert and Field replace page-local copies | open | not run |
+| UI-02 | Shared PageHeader, Stat, StatusBadge, EmptyState, Alert and Field replace page-local copies | done | done @ 6198a3e3, awaiting independent verify |
 | UI-03 | Modern app shell: labelled sectioned sidebar, top bar with breadcrumbs, org switcher, user menu, command palette | open | not run |
 | UI-04 | Accessibility: contrast-safe colour tokens, keyboard focus everywhere, labelled icon buttons, no text under 11px | open | not run |
 | SHIP | Ship gate: typecheck, lint, the full test suite (Vitest and Deno) and the production build all pass | open | not run |
