@@ -40,17 +40,25 @@ interface Employee {
   is_active: boolean;
 }
 
+/** Row of v_pay_run_super_due: when the fund must receive the super guarantee for a pay run. */
+interface PayRunSuperDue {
+  pay_run_id: string;
+  super_due_rule: 'payday_super' | 'quarterly';
+  super_due_date: string;
+}
+
 export function PayrollPage() {
   const { currentOrg } = useOrg();
   const [runs, setRuns] = useState<PayRun[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [superDue, setSuperDue] = useState<Record<string, PayRunSuperDue>>({});
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
     setLoading(true);
-    const [runsRes, empRes] = await Promise.all([
+    const [runsRes, empRes, dueRes] = await Promise.all([
       supabase
         .from('pay_runs')
         .select('*')
@@ -62,9 +70,16 @@ export function PayrollPage() {
         .eq('organization_id', currentOrg.id)
         .is('deleted_at', null)
         .order('full_name'),
+      supabase
+        .from('v_pay_run_super_due')
+        .select('pay_run_id, super_due_rule, super_due_date')
+        .eq('organization_id', currentOrg.id),
     ]);
     setRuns((runsRes.data ?? []) as PayRun[]);
     setEmployees((empRes.data ?? []) as Employee[]);
+    // Best-effort: without the view (migration 20261003130200 not applied) the column shows a dash.
+    const dueRows = dueRes.error ? [] : ((dueRes.data ?? []) as PayRunSuperDue[]);
+    setSuperDue(Object.fromEntries(dueRows.map((d) => [d.pay_run_id, d])));
     setLoading(false);
   }, [currentOrg]);
 
@@ -297,7 +312,7 @@ export function PayrollPage() {
       </h2>
 
       {loading ? (
-        <SkeletonTable rows={3} cols={7} />
+        <SkeletonTable rows={3} cols={8} />
       ) : runs.length === 0 ? (
         <div
           style={{
@@ -322,6 +337,7 @@ export function PayrollPage() {
                 <th style={{ textAlign: 'right' }}>Gross</th>
                 <th style={{ textAlign: 'right' }}>PAYG</th>
                 <th style={{ textAlign: 'right' }}>Super</th>
+                <th>Super due</th>
                 <th style={{ textAlign: 'right' }}>Net</th>
               </tr>
             </thead>
@@ -340,6 +356,9 @@ export function PayrollPage() {
                   <td style={{ textAlign: 'right' }}>{formatMoney(Number(r.total_gross_cents))}</td>
                   <td style={{ textAlign: 'right' }}>{formatMoney(Number(r.total_tax_cents))}</td>
                   <td style={{ textAlign: 'right' }}>{formatMoney(Number(r.total_super_cents))}</td>
+                  <td>
+                    <SuperDueCell due={superDue[r.id]} />
+                  </td>
                   <td style={{ textAlign: 'right', fontWeight: 600 }}>
                     {formatMoney(Number(r.total_net_cents))}
                   </td>
@@ -347,10 +366,36 @@ export function PayrollPage() {
               ))}
             </tbody>
           </table>
+          <p
+            style={{
+              margin: '0.75rem 1rem',
+              fontSize: '0.75rem',
+              color: 'var(--text-muted)',
+              lineHeight: 1.5,
+            }}
+          >
+            Super due is the date the employee&apos;s fund must receive the super guarantee. For pay
+            dates from 1 July 2026 (Payday Super) that is 7 business days after payday, or 20 for a
+            new employee&apos;s first contribution to a fund. Before then it was 28 days after the end
+            of the quarter. Public holidays are only counted once recorded in Looplet, so a date can
+            be earlier than the legal deadline but never later.
+          </p>
         </div>
       )}
       <SuperBatchSection fy={superFyStart} quarter={superQuarter} />
     </section>
+  );
+}
+
+function SuperDueCell({ due }: { due: PayRunSuperDue | undefined }) {
+  if (!due) return <span style={{ color: 'var(--text-muted)' }}>—</span>;
+  return (
+    <span>
+      {due.super_due_date}
+      <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+        {due.super_due_rule === 'payday_super' ? 'Payday Super' : 'Quarterly'}
+      </span>
+    </span>
   );
 }
 
