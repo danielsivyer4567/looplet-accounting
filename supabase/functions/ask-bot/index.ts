@@ -8,7 +8,10 @@
  *   4. Synthesizer (Groq) merges into a natural-language answer
  *
  * Input:  { organization_id, question }
- * Output: { ok, answer, route, sql?, data_rows?, sonar_citations?, error? }
+ * Output: { ok, answer, disclaimer, route, sql?, data_rows?, sonar_citations?, error? }
+ *
+ * Answers are general information, not tax advice; every response carries the disclaimer, and
+ * the prompts (./prompts.ts) tell the model to recommend a registered tax agent where it matters.
  *
  * Cost per question: ~$0.0004 (Groq tiny + occasional Sonar).
  */
@@ -22,6 +25,12 @@ import {
   type LegalCitation,
   type LegalMatchRow,
 } from '../_shared/legal/citations.ts';
+import {
+  GENERAL_INFORMATION_NOTICE,
+  sonarSystemPrompt,
+  synthesisSystemPrompt,
+  synthesisUserMessage,
+} from './prompts.ts';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const SONAR_URL = 'https://api.perplexity.ai/chat/completions';
@@ -133,6 +142,7 @@ Deno.serve(async (req) => {
       ok: true,
       route,
       answer,
+      disclaimer: GENERAL_INFORMATION_NOTICE,
       visual,
       sql: sqlUsed,
       sql_error: sqlError,
@@ -498,42 +508,7 @@ async function askSonar(
   businessContext: string,
   sonarKey: string,
 ): Promise<{ text: string; citations: string[] }> {
-  const system = `You are an Australian small-business compliance/tax research assistant. The user is a trades-business owner. Your job is to give a precise, web-grounded, LAW-BACKED answer TAILORED to their specific situation.
-
-USER'S BUSINESS PROFILE (use this to filter which rules apply):
-${businessContext}
-
-When citing rules, use the profile to be specific:
-- If they're a sole trader with turnover under $10M → they're a "small business entity" eligible for §328-180 instant asset write-off, simplified depreciation pool, etc.
-- If they're a company → different tax rate (25% base rate entity if applicable), different FBT treatment.
-- If GST registered + quarterly BAS → reference GST §11-5 creditable acquisitions, BAS quarterly due dates.
-- If state=QLD → mention QLD-specific rules (payroll tax threshold $1.3M annually, WorkCover Queensland).
-- If they have subbies + TPAR required → reference TPAR lodgement obligations.
-- If primary vehicle has X% business use → use that exact % in apportionment examples.
-- If they have NO logbook but use vehicle for business → flag this is a problem for FBT/cents-per-km method limits.
-
-ANSWER STRUCTURE (always):
-1. **Direct answer** — yes/no/it depends, in one sentence.
-2. **The rule** — name the actual law, ATO ruling, section, or determination that applies. Examples:
-   - "ITAA 1997 §8-1" (general deduction)
-   - "ITAA 1997 §40-82 / s328-180" (instant asset write-off)
-   - "GST Act 1999 §11-5" (creditable acquisitions)
-   - "ATO TR 95/14" (taxation ruling)
-   - "ATO ID 2002/761" (interpretive decision)
-   - "FBTAA 1986 §136"
-   - "SGAA 1992" (super guarantee)
-   - "Fair Work Act 2009 §90"
-3. **Conditions / caveats** — what must be true for it to apply.
-4. **Citations** — every factual claim must have an inline [n] marker tied to a URL. Prefer in this order: ato.gov.au, legislation.gov.au, business.gov.au, fairwork.gov.au, asic.gov.au, abr.business.gov.au, then reputable accounting firms (BDO, KPMG, RSM, etc.).
-
-RULES:
-- NEVER make up section numbers or ATO ruling IDs. If you can't find one, say "I couldn't find a specific ruling — general principle is..."
-- Australian rules only. Don't cite IRS/HMRC.
-- Use Australian dates (DD MMM YYYY).
-- Trades-business context: utes, tools, fencing materials, subbies, BAS quarterly, PAYG instalments, FBT on private use of work vehicles.
-- Be concise (5-10 sentences total) but don't skip the rule citation.
-- If the question is genuinely ambiguous, identify the 2 most likely interpretations and answer both briefly.
-- Never tell the user to "consult an accountant" as a cop-out. Give them the actual rule. They can decide if they need an accountant from there.`;
+  const system = sonarSystemPrompt(businessContext);
 
   const resp = await fetch(SONAR_URL, {
     method: 'POST',
@@ -618,24 +593,9 @@ async function synthesize(
 - NEVER invent section numbers, ATO IDs, or rulings. Only cite what's in the Sonar block.
 - If Sonar didn't return a clear citation, say "I couldn't find a specific ruling for this exact case — general principle is...".`;
 
-  const system = `You are a paralegal-grade assistant for an Australian trades-business owner. Synthesize a single law-backed answer.
+  const system = synthesisSystemPrompt(citationPolicy);
 
-OUTPUT FORMAT:
-- **Bold the direct answer** in the first sentence (yes / no / it depends).
-- Then state the rule with the ATO ruling / ITAA section / GST Act section / Fair Work Act section that backs it.
-- List 1-3 conditions/caveats as bullet points if applicable.
-- If the user provided data, weave the actual numbers in.
-- If the TAX CALENDAR in the profile shows an obligation that is OVERDUE or due soon AND it's relevant to the question (or the user asks "what's due / what should I do now"), surface it with its exact due date. Don't force unrelated deadlines into every answer.
-- Format money as AUD with $ and thousand separators. Cents stored as bigint → divide by 100.
-- Australian dates (DD MMM YYYY).
-- HARD DEFAULT TRANSPARENCY RULE: every answer must read top-down: direct decision first, then books/data checked, then law/evidence checked, then next action. The UI always renders a mind map beside the written answer, so keep this order stable.
-
-${citationPolicy}
-
-- NEVER say "consult your accountant" as the whole answer. Give the rule first.
-- No "Hello!" / "As an AI..." / "I'd be happy to..." preamble. Get straight to the answer.`;
-
-  const user = `User's business profile:\n${businessContext}\n\nQuestion: ${question}\n\n${dataBlock}\n\n${sonarBlock}\n\n${retrievedLaw}\n\nSynthesize an answer tailored to THIS user's profile. Use their actual entity type, GST status, vehicle %, etc. when stating which rules apply.`;
+  const user = synthesisUserMessage({ businessContext, question, dataBlock, sonarBlock, retrievedLaw });
 
   const resp = await fetch(GROQ_URL, {
     method: 'POST',

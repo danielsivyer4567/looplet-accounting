@@ -7,6 +7,7 @@ import { AdviceNoteView } from '@/components/AdviceNoteView';
 import { TopDownMindMap, type MindMapBranch } from '@/components/InsightCharts';
 import { DiagramView, type DiagramSpec } from '@/components/DiagramView';
 import { CitedAnswer, type LegalCitation } from '@/components/Citations';
+import { GeneralInformationNotice } from '@/components/GeneralInformationNotice';
 import {
   Sparkles,
   ArrowRight,
@@ -385,6 +386,11 @@ export function AskPage() {
           <KnowledgeBaseMenu />
         </div>
 
+        {/* Answers and advisor notes are general information; say so before anything is read. */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <GeneralInformationNotice />
+        </div>
+
         <AdvisorPanel
           scenarios={ADVISOR_SCENARIOS}
           notes={sortedAdviceNotes}
@@ -539,6 +545,9 @@ export function AskPage() {
                         citations={r.citations ?? []}
                         sonarCitations={r.sonar_citations ?? []}
                       />
+                      <div style={{ marginTop: '0.85rem' }}>
+                        <GeneralInformationNotice compact />
+                      </div>
 
                       {/* Progressive explainer — an ordered, node-by-node walkthrough the bot
                           authors only when the answer has a shape worth walking through. It

@@ -1,5 +1,6 @@
 import { ArrowRight, FileText } from 'lucide-react';
 import type { AdviceNote } from '@/hooks/useAdviceNotes';
+import { GeneralInformationNotice } from '@/components/GeneralInformationNotice';
 
 interface AdviceCardProps {
   note: AdviceNote;
@@ -62,6 +63,8 @@ export function AdviceCard({ note, onOpen, disabled = false }: AdviceCardProps) 
           {compactText(note.summary, 130)}
         </span>
       </div>
+
+      <GeneralInformationNotice compact />
 
       <div
         style={{
