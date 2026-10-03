@@ -9776,7 +9776,7 @@
       "title": "CI runs the Deno edge-function tests and reports environment-gated test files instead of skipping them silently",
       "area": "broken",
       "priority": 60,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-test-coverage.test.ts\""
       ],
@@ -9784,7 +9784,34 @@
         ".github/workflows",
         "vitest.config.ts"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-test-coverage.test.ts\"",
+          "exit": 1,
+          "head": "dd285b3f87ded863af41d782064a0fea542491f2",
+          "dirty": [],
+          "at": "2026-10-03T02:43:48.186Z",
+          "ms": 1226,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/CI-01-001.log",
+          "log_sha256": "a632fcb193d106dbb4c25519c8c618f68ec3a438debed154b49b07089551283b"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-test-coverage.test.ts\"",
+          "exit": 0,
+          "head": "589d0315ac767f86c8c6750b911db9a9e11005d4",
+          "dirty": [],
+          "at": "2026-10-03T02:43:50.058Z",
+          "ms": 1547,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/CI-01-002.log",
+          "log_sha256": "147e965718c9da4b39937d602466a978f8f1ebdc8c3b0c5f0951f01134f4aa23"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -9792,8 +9819,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:43:46.835Z",
+          "event": "start",
+          "head": "dd285b3f87ded863af41d782064a0fea542491f2",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:43:48.187Z",
+          "event": "run",
+          "head": "dd285b3f87ded863af41d782064a0fea542491f2",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:43:50.059Z",
+          "event": "run",
+          "head": "589d0315ac767f86c8c6750b911db9a9e11005d4",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:43:50.217Z",
+          "event": "done",
+          "head": "589d0315ac767f86c8c6750b911db9a9e11005d4",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T02:43:50.201Z",
+        "head": "589d0315ac767f86c8c6750b911db9a9e11005d4",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "UI-01",
@@ -11876,5 +11939,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T02:43:44.836Z"
+  "updated_at": "2026-10-03T02:43:50.234Z"
 }

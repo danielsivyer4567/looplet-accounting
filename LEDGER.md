@@ -45,7 +45,7 @@
 | SEED-01 | New organisations do not inherit the pilot business known-sender list | done | done @ ff315841, awaiting independent verify |
 | XERO-02 | The Xero bank pull writes schema-valid rows (real connection, valid account type) | done | done @ a222e68f, awaiting independent verify |
 | BS-01 | The balance sheet does not count credit-card and loan balances as both cash and debts | done | done @ ff315841, awaiting independent verify |
-| CI-01 | CI runs the Deno edge-function tests and reports environment-gated test files instead of skipping them silently | open | not run |
+| CI-01 | CI runs the Deno edge-function tests and reports environment-gated test files instead of skipping them silently | done | done @ 589d0315, awaiting independent verify |
 | UI-01 | Light theme polish: themed colours everywhere, no hard-coded dark-only colours, auth screens in the new style | open | not run |
 | UI-02 | Shared PageHeader, Stat, StatusBadge, EmptyState, Alert and Field replace page-local copies | open | not run |
 | UI-03 | Modern app shell: labelled sectioned sidebar, top bar with breadcrumbs, org switcher, user menu, command palette | open | not run |
