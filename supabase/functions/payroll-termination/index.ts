@@ -14,6 +14,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
+import { authorizeOrgMember, supabaseOrgAccessDeps } from "../_shared/orgRole.ts";
 import { calculateTermination, type TerminationInput, type TerminationReason } from "./calc.ts";
 
 function json(body: unknown, status = 200): Response {
@@ -72,15 +73,10 @@ Deno.serve(async (req: Request) => {
     return json({ ok: false, error: "organization_id and input are required" }, 400);
   }
 
-  // Caller must belong to the org (employee pay data; never trust the body alone).
   const admin = createClient(supabaseUrl, serviceKey);
-  const { data: membership } = await admin
-    .from("organization_memberships")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("organization_id", organization_id)
-    .maybeSingle();
-  if (!membership) return json({ ok: false, error: "Forbidden" }, 403);
+  // Termination pay is confidential employee pay data: an accepted admin or owner of this org (never trust the body alone).
+  const access = await authorizeOrgMember(user.id, organization_id, supabaseOrgAccessDeps(admin, serviceKey), "admin");
+  if (!access.ok) return json({ ok: false, error: access.error }, access.status);
 
   // Validate the calculation input.
   if (!raw.reason || !REASONS.includes(raw.reason)) {

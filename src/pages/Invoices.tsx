@@ -6,9 +6,12 @@ import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
 import { SkeletonCard, SkeletonTable } from '@/components/Skeleton';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
-import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { LoadMoreButton } from '@/components/LoadMoreButton';
-import { FileText, Plus, DollarSign, Wallet, Clock, type LucideIcon } from 'lucide-react';
+import { FileText, Plus, DollarSign, Wallet, Clock } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Stat } from '@/components/ui/Stat';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 const STATUS_FILTERS = [
   'all',
@@ -133,7 +136,7 @@ export function InvoicesPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0 }}>Invoices</h1>
+        <PageHeader title="Invoices" />
         <button onClick={() => navigate('/invoices/new')} className="btn btn-primary">
           <Plus size={16} />
           <span>Raise invoice</span>
@@ -149,34 +152,34 @@ export function InvoicesPage() {
           marginBottom: '1.5rem',
         }}
       >
-        <Kpi
+        <Stat
           label="Total invoiced"
           value={totalInvoiced}
-          type="info"
+          tone="info"
           icon={FileText}
           sub={loadedSub}
           formatter={formatMoney}
         />
-        <Kpi
+        <Stat
           label="Total paid"
           value={totalPaid}
-          type="success"
+          tone="success"
           icon={Wallet}
           sub={loadedSub ?? `${invoices.length} invoices`}
           formatter={formatMoney}
         />
-        <Kpi
+        <Stat
           label="Outstanding"
           value={totalOwing}
-          type={totalOwing > 0 ? 'warning' : 'neutral'}
+          tone={totalOwing > 0 ? 'warning' : 'neutral'}
           icon={DollarSign}
           sub={loadedSub}
           formatter={formatMoney}
         />
-        <Kpi
+        <Stat
           label="Overdue"
           value={overdueCount}
-          type={overdueCount > 0 ? 'danger' : 'neutral'}
+          tone={overdueCount > 0 ? 'danger' : 'neutral'}
           icon={Clock}
           sub={overdueCount > 0 ? 'Needs chasing' : 'All good'}
         />
@@ -274,19 +277,7 @@ export function InvoicesPage() {
           {formatLoadError('invoices', error)}
         </div>
       ) : invoices.length === 0 ? (
-        <div
-          style={{
-            padding: '2.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-            fontSize: '0.9rem',
-          }}
-        >
-          No invoices yet. Raise one to start tracking Accounts Receivable.
-        </div>
+        <EmptyState>No invoices yet. Raise one to start tracking Accounts Receivable.</EmptyState>
       ) : (
         <>
           <div className="invoices-table-view table-premium-container">
@@ -338,7 +329,7 @@ export function InvoicesPage() {
                     <td>{inv.issue_date}</td>
                     <td>{inv.due_date}</td>
                     <td>
-                      <StatusPill status={inv.status} />
+                      <StatusBadge status={inv.status} />
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 600 }}>
                       {formatMoney(inv.total_inc_gst_cents)}
@@ -394,7 +385,7 @@ function InvoiceCard({ invoice, onOpen }: { invoice: InvoiceListRow; onOpen: () 
               e.preventDefault();
               onOpen();
             }}
-            style={{ fontWeight: 700, color: 'var(--accent-primary)', textDecoration: 'none' }}
+            style={{ fontWeight: 700, color: 'var(--text-link)', textDecoration: 'none' }}
           >
             <code>{invoice.invoice_number}</code>
           </a>
@@ -406,7 +397,7 @@ function InvoiceCard({ invoice, onOpen }: { invoice: InvoiceListRow; onOpen: () 
             Issued {invoice.issue_date} · Due {invoice.due_date}
           </div>
         </div>
-        <StatusPill status={invoice.status} />
+        <StatusBadge status={invoice.status} />
       </div>
       <div className="invoice-mobile-card__metrics">
         <div>
@@ -432,82 +423,4 @@ function InvoiceCard({ invoice, onOpen }: { invoice: InvoiceListRow; onOpen: () 
       </div>
     </article>
   );
-}
-
-function Kpi({
-  label,
-  value,
-  type,
-  icon: Icon,
-  sub,
-  formatter = (v: number) => v.toLocaleString(),
-}: {
-  label: string;
-  value: number;
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
-  icon: LucideIcon;
-  sub?: string | undefined;
-  formatter?: (val: number) => string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.5rem',
-          color: 'var(--text-title)',
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        <AnimatedNumber value={value} formatter={formatter} />
-      </div>
-      {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-          {sub}
-        </div>
-      ) : (
-        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
-      )}
-      <div
-        style={{
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
-          opacity: 0.7,
-        }}
-      >
-        <Icon size={18} />
-      </div>
-    </div>
-  );
-}
-
-function StatusPill({ status }: { status: string }) {
-  let badgeClass = 'badge-neutral';
-  if (status === 'paid') badgeClass = 'badge-success';
-  else if (status === 'sent') badgeClass = 'badge-info';
-  else if (status === 'partially_paid') badgeClass = 'badge-warning';
-  else if (status === 'overdue') badgeClass = 'badge-danger';
-
-  return <span className={`badge ${badgeClass}`}>{status.replace('_', ' ')}</span>;
 }

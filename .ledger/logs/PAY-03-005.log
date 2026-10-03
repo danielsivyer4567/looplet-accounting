@@ -1,0 +1,4 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-year-selection.sql"
+migrations: 280 applied, 9 known failures, 0 problems (289 files)
+PASS tests/db-sql/payg-year-selection.sql
+  NOTICE:  payg-year-selection: PAYG table follows the pay date's financial year; uncovered years, null dates and unknown frequencies raise; anon cannot execute

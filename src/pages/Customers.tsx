@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
+import { useOrgRole } from '@/hooks/useOrgRole';
+import { ReadOnlyNotice } from '@/components/ReadOnlyNotice';
 import { useCustomers } from '@/hooks/useCustomers';
 import type { BillingAddress, CustomerRow } from '@/hooks/useCustomers';
 import { supabase } from '@/lib/supabase';
 import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { SkeletonTable } from '@/components/Skeleton';
 import { Plus, Users, X } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Field } from '@/components/ui/Field';
+import { Stat } from '@/components/ui/Stat';
 
 function formatAddress(addr: BillingAddress | null): string {
   if (!addr) return '—';
@@ -17,6 +22,8 @@ function formatAddress(addr: BillingAddress | null): string {
 export function CustomersPage() {
   const { currentOrg } = useOrg();
   const { customers, loading, error, refresh } = useCustomers();
+  const { canWrite } = useOrgRole();
+  const readOnly = !canWrite('books');
   const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
 
@@ -42,12 +49,16 @@ export function CustomersPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Users size={24} style={{ color: 'var(--accent-primary)' }} />
-          Customers
-        </h1>
+        <PageHeader
+          title={
+            <>
+              <Users size={24} style={{ color: 'var(--text-link)' }} /> Customers
+            </>
+          }
+        />
         <button
           onClick={() => setShowCreate(true)}
+          disabled={readOnly}
           className="btn btn-primary"
           aria-label="+ New customer"
         >
@@ -55,6 +66,8 @@ export function CustomersPage() {
           <span>New customer</span>
         </button>
       </div>
+
+      {readOnly && <ReadOnlyNotice area="books" />}
 
       {showCreate && (
         <CreateCustomerForm
@@ -69,43 +82,12 @@ export function CustomersPage() {
 
       {/* Customer Count Card */}
       {!loading && !error && (
-        <div
-          className="card"
-          style={{
-            display: 'inline-flex',
-            flexDirection: 'column',
-            padding: '1rem 1.5rem',
-            borderLeft: '4px solid var(--accent-primary)',
-            marginBottom: '1.5rem',
-            minWidth: '180px',
-          }}
-        >
-          <span
-            style={{
-              fontSize: '0.675rem',
-              color: 'var(--text-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              fontWeight: 700,
-            }}
-          >
-            Total Customers
-          </span>
-          <span
-            style={{
-              fontSize: '2rem',
-              fontWeight: 800,
-              color: 'var(--text-title)',
-              marginTop: '0.25rem',
-              fontFamily: 'var(--font-title)',
-            }}
-          >
-            {customers.length}{' '}
-            <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)' }}>
-              {customers.length === 1 ? 'customer' : 'customers'}
-            </span>
-          </span>
-        </div>
+        <Stat
+          label="Total customers"
+          value={String(customers.length)}
+          sub={customers.length === 1 ? 'customer' : 'customers'}
+          style={{ display: 'inline-flex', marginBottom: '1.5rem', minWidth: '180px' }}
+        />
       )}
 
       {loading ? (
@@ -132,7 +114,7 @@ export function CustomersPage() {
             gap: '0.75rem',
           }}
         >
-          <Users size={40} style={{ color: 'var(--accent-primary)', opacity: 0.7 }} />
+          <Users size={40} style={{ color: 'var(--text-link)', opacity: 0.7 }} />
           <h3 style={{ margin: 0, color: 'var(--text-title)', fontSize: '1.1rem' }}>
             No customers yet
           </h3>
@@ -225,7 +207,7 @@ function CustomerCard({ customer, onOpen }: { customer: CustomerRow; onOpen: () 
               e.preventDefault();
               onOpen();
             }}
-            style={{ fontWeight: 700, color: 'var(--accent-primary)', textDecoration: 'none' }}
+            style={{ fontWeight: 700, color: 'var(--text-link)', textDecoration: 'none' }}
           >
             {customer.name}
           </a>
@@ -315,7 +297,12 @@ function CreateCustomerForm({
         }}
       >
         <h3 style={{ margin: 0, fontSize: '1.15rem' }}>New Customer</h3>
-        <button onClick={onClose} className="btn btn-ghost" style={{ padding: '0.2rem 0.4rem' }}>
+        <button
+          onClick={onClose}
+          className="btn btn-ghost"
+          aria-label="Close"
+          style={{ padding: '0.2rem 0.4rem' }}
+        >
           <X size={16} />
         </button>
       </div>
@@ -438,17 +425,6 @@ function CreateCustomerForm({
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="form-group" style={{ marginBottom: 0 }}>
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>
-        {label}
-      </span>
-      <div style={{ marginTop: '0.25rem' }}>{children}</div>
     </div>
   );
 }

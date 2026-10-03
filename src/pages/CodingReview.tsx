@@ -10,6 +10,7 @@ import { SkeletonLine } from '@/components/Skeleton';
 import { ListChecks, Eye, EyeOff, CheckCircle2, X, Pencil } from 'lucide-react';
 import { recordFeedback } from '@/lib/automationDecision';
 import { noop } from '@/lib/utils';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 // Bill fields the queue needs beyond the suggestion itself: a label for the card
 // and storage_key/mime_type for the PDF preview. coding_review_queue carries only
@@ -105,7 +106,7 @@ function BillPreviewPane({ bill, onClose }: { bill: BillInfo; onClose: () => voi
             href={`/bills/${bill.id}`}
             target="_blank"
             rel="noreferrer"
-            style={{ color: 'var(--accent-primary)', fontSize: '0.75rem', fontWeight: 600 }}
+            style={{ color: 'var(--text-link)', fontSize: '0.75rem', fontWeight: 600 }}
           >
             Open page &rarr;
           </a>
@@ -120,7 +121,9 @@ function BillPreviewPane({ bill, onClose }: { bill: BillInfo; onClose: () => voi
         </div>
       </div>
 
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', background: '#e2e8f0' }}>
+      <div
+        style={{ flex: 1, overflow: 'hidden', position: 'relative', background: 'var(--bg-hover)' }}
+      >
         {!loaded ? (
           <div
             style={{
@@ -145,10 +148,7 @@ function BillPreviewPane({ bill, onClose }: { bill: BillInfo; onClose: () => voi
           >
             <p style={{ margin: 0, fontWeight: 'bold' }}>Could not load preview.</p>
             <p style={{ marginTop: 12 }}>
-              <Link
-                to={`/bills/${bill.id}`}
-                style={{ color: 'var(--accent-primary)', fontWeight: 600 }}
-              >
+              <Link to={`/bills/${bill.id}`} style={{ color: 'var(--text-link)', fontWeight: 600 }}>
                 Open bill detail page instead &rarr;
               </Link>
             </p>
@@ -157,7 +157,7 @@ function BillPreviewPane({ bill, onClose }: { bill: BillInfo; onClose: () => voi
           <iframe
             src={signedUrl}
             title={`Bill preview — ${bill.supplier_name_raw ?? bill.id}`}
-            style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
+            style={{ width: '100%', height: '100%', border: 'none', background: 'var(--bg-paper)' }}
           />
         ) : (
           <div style={{ height: '100%', overflowY: 'auto', padding: 12 }}>
@@ -312,7 +312,7 @@ export function CodingReviewPage() {
   if (suggestions.length === 0) {
     return (
       <section className="animated-fade-in" style={{ padding: '2rem 0' }}>
-        <h1 style={{ marginBottom: '0.5rem' }}>Coding Review</h1>
+        <PageHeader title="Coding Review" style={{ marginBottom: '0.5rem' }} />
         <div
           style={{
             padding: '2.5rem 2rem',
@@ -369,17 +369,14 @@ export function CodingReviewPage() {
         className="animated-fade-in"
       >
         <div style={{ marginBottom: '1.5rem' }}>
-          <h1
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              marginBottom: '0.25rem',
-            }}
-          >
-            <ListChecks size={24} style={{ color: 'var(--accent-primary)' }} />
-            Coding Review
-          </h1>
+          <PageHeader
+            title={
+              <>
+                <ListChecks size={24} style={{ color: 'var(--text-link)' }} /> Coding Review
+              </>
+            }
+            style={{ marginBottom: '0.25rem' }}
+          />
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
             {suggestions.length} bill{suggestions.length === 1 ? '' : 's'} the classifier wants a
             human to code.
@@ -492,7 +489,7 @@ function SuggestionCard({
           <span>·</span>
           <span>{bill?.invoice_date ?? '—'}</span>
           <span>·</span>
-          <span className={`badge ${confClass}`} style={{ fontSize: '8px' }}>
+          <span className={`badge ${confClass}`} style={{ fontSize: '11px' }}>
             {(confidence * 100).toFixed(0)}% confidence
           </span>
         </div>
@@ -509,11 +506,11 @@ function SuggestionCard({
           }}
         >
           <span style={{ color: 'var(--text-muted)' }}>Proposed:</span>
-          <code style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
+          <code style={{ color: 'var(--text-link)', fontWeight: 600 }}>
             {suggestion.account_code ?? '— no account —'}
           </code>
           {suggestion.tax_code && (
-            <span className="badge badge-neutral" style={{ fontSize: '8px' }}>
+            <span className="badge badge-neutral" style={{ fontSize: '11px' }}>
               {suggestion.tax_code}
             </span>
           )}

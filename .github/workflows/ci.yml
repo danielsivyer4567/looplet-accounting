@@ -6,8 +6,18 @@ on:
   pull_request:
     branches: [main]
 
+# Least privilege. In August 2026 an implant in this repo's build config ran during CI builds while the
+# deploy secrets were in the same job. Now:
+# - every job only reads the repository, and a job asks for more only where it needs it (none do today);
+# - third-party actions are pinned to full commit SHAs (the tag is in the trailing comment), so a moved
+#   or hijacked tag cannot change what runs here;
+# - this workflow holds no deploy credentials at all: deployment is Cloudflare Pages' Git integration
+#   on `main`, which runs outside GitHub Actions, so a compromised build step has nothing to steal.
+permissions:
+  contents: read
+
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -17,16 +27,25 @@ jobs:
   build:
     name: Lint, Typecheck, Test, Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
+      - name: Build-config integrity check
+        run: node scripts/check-build-config-integrity.mjs
+
+      # No dependency in the lockfile needs an install script on Linux; refusing them closes the
+      # install-time route for a compromised package.
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Format check
         run: npm run format:check
@@ -42,6 +61,8 @@ jobs:
           # The build job runs local unit/source-contract tests. Live Supabase
           # deploy gates live in dedicated jobs and fail hard when their real
           # secrets are missing; keep this broad unit sweep deterministic on PRs.
+          # Live suites therefore skip here; vitest.config.ts lists every skipped file in
+          # this step's log and the job summary (tests/support/skippedTestsReporter.ts).
           CI: ''
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://dxoikltymmknxqpkpyhi.supabase.co' }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'ci-placeholder-anon-key' }}
@@ -56,22 +77,38 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
+      # Kept as a downloadable artefact for review and debugging; nothing in CI deploys it.
+      - name: Upload build output
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dist
+          path: dist
+          if-no-files-found: error
+          retention-days: 7
+
   tenant-isolation:
-    name: Tenant Isolation (Deploy Blocker)
+    name: Tenant Isolation
     runs-on: ubuntu-latest
     needs: build
-    # This job MUST be green for any deploy. Cross-tenant leak = P0.
+    permissions:
+      contents: read
+    # This job MUST be green before anything merges to main (which Cloudflare Pages deploys). Cross-tenant leak = P0.
     # See docs/ROADMAP.md → Foundational Disciplines → Multi-tenancy.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
+      - name: Build-config integrity check
+        run: node scripts/check-build-config-integrity.mjs
+
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Run tenant-isolation suite
         run: npm run test:tenant-isolation
@@ -83,32 +120,25 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
-  deploy:
-    name: Deploy to Cloudflare Pages
+  edge-functions:
+    name: Edge function tests (Deno)
     runs-on: ubuntu-latest
-    needs: [build, tenant-isolation]
-    # Only deploy on direct pushes to main — not on PRs.
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          persist-credentials: false
 
-      - name: Install dependencies
-        run: npm ci
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: 2.9.7
 
-      - name: Build
+      # Unit tests for supabase/functions (auth guards, posting, PDFs, parsers); no secrets, no live calls.
+      # --node-modules-dir=none: functions import npm: packages straight from the registry (as the edge
+      # runtime does), not from the app's node_modules. DENO_SERVE_ADDRESS: modules that call Deno.serve on
+      # import bind a free loopback port instead of :8000.
+      - name: Deno tests
         env:
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://dxoikltymmknxqpkpyhi.supabase.co' }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-        run: npm run build
-
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy ./dist --project-name=looplet-accounting --branch=main
+          DENO_SERVE_ADDRESS: tcp:127.0.0.1:0
+        run: deno test --allow-env --allow-read --allow-net --node-modules-dir=none supabase/functions

@@ -300,15 +300,16 @@ Deno.test('POS payload size and line totals are bounded', () => {
 Deno.test('POS GST/subtotal breakdown requires both fields and must reconcile', () => {
   assertEquals(
     normalizeReceiptTaxBreakdown(36000, 3273, 32727, { requireBothSupplied: true }),
-    { subtotalCents: 32727, gstCents: 3273, gstEstimated: false },
+    { subtotalCents: 32727, gstCents: 3273, gstStatus: 'supplied' },
   );
   assertEquals(
     normalizeReceiptTaxBreakdown(36000, undefined, 32727),
-    { subtotalCents: 32727, gstCents: 3273, gstEstimated: false },
+    { subtotalCents: 32727, gstCents: 3273, gstStatus: 'supplied' },
   );
+  // No GST and no subtotal on the receipt: GST stays unknown for review (GST-01), never 1/11.
   assertEquals(
     normalizeReceiptTaxBreakdown(36000, undefined, undefined),
-    { subtotalCents: 32727, gstCents: 3273, gstEstimated: true },
+    { subtotalCents: null, gstCents: null, gstStatus: 'review' },
   );
 
   assertThrows(

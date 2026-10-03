@@ -7,7 +7,11 @@ import {
 } from '@/hooks/useCreditNotes';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
+import { orgTimeZone, todayLocal } from '@/lib/localDates';
 import { SkeletonTable } from '@/components/Skeleton';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Field } from '@/components/ui/Field';
 
 function centsToInput(cents: number): string {
   return (cents / 100).toFixed(2);
@@ -33,7 +37,7 @@ export function CreditNotesPage() {
   const [kind, setKind] = useState<CreditNoteKind>('customer');
   const [sourceId, setSourceId] = useState('');
   const [creditNoteNumber, setCreditNoteNumber] = useState('');
-  const [creditNoteDate, setCreditNoteDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [creditNoteDate, setCreditNoteDate] = useState(() => todayLocal(orgTimeZone(currentOrg)));
   const [subtotal, setSubtotal] = useState('0.00');
   const [gst, setGst] = useState('0.00');
   const [accountCode, setAccountCode] = useState('4000');
@@ -143,10 +147,13 @@ export function CreditNotesPage() {
           marginBottom: '1.5rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileMinus2 size={24} style={{ color: 'var(--accent-primary)' }} />
-          Credit notes
-        </h1>
+        <PageHeader
+          title={
+            <>
+              <FileMinus2 size={24} style={{ color: 'var(--text-link)' }} /> Credit notes
+            </>
+          }
+        />
       </div>
 
       <div
@@ -330,17 +337,7 @@ export function CreditNotesPage() {
           {error}
         </div>
       ) : notes.length === 0 ? (
-        <div
-          style={{
-            padding: '2rem',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-          }}
-        >
-          No credit notes posted yet.
-        </div>
+        <EmptyState>No credit notes posted yet.</EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">
@@ -383,23 +380,12 @@ export function CreditNotesPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-      <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 700 }}>
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
-
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="card" style={{ padding: '1rem' }}>
       <div
         style={{
-          fontSize: '0.68rem',
+          fontSize: '0.6875rem',
           color: 'var(--text-muted)',
           textTransform: 'uppercase',
           fontWeight: 700,

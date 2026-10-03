@@ -7,9 +7,11 @@ export interface AuthContextValue {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
+  /** `metadata` is saved on the new user (for example the legal acceptance record). */
   signUp: (
     email: string,
     password: string,
+    metadata?: Record<string, unknown>,
   ) => Promise<{ error: Error | null; needsEmailConfirmation: boolean }>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   /**

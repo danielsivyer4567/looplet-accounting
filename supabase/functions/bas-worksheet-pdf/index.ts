@@ -29,13 +29,14 @@ interface RequestBody {
 }
 
 interface BasPayload {
+  gst_accounting_basis?: "accruals" | "cash";
   fy_start_year?: number;
   quarter?: number;
   due_date?: string | null;
   quarter_start?: string | null;
   quarter_end?: string | null;
   gst?: Record<string, number>;
-  payg_withholding?: Record<string, number>;
+  payg_withholding?: Record<string, number | null>;
   payg_instalment?: Record<string, number | string | null> | null;
   summary?: Record<string, number>;
 }
@@ -53,6 +54,13 @@ function money(cents: unknown): string {
   return `$${(n / 100).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+/** A label Looplet has no figure for (null/absent) is shown as such, never as $0.00. */
+function labelMoney(cents: unknown, blank: string): string {
+  return cents === null || cents === undefined ? blank : money(cents);
+}
+
+const NOT_RECORDED = "Not recorded in Looplet (blank)";
+
 /** Map the generate_bas_worksheet payload into the generic worksheet doc. */
 function toWorksheetDoc(p: BasPayload, fy: number, quarter: number): WorksheetDoc {
   const gst = p.gst ?? {};
@@ -67,7 +75,9 @@ function toWorksheetDoc(p: BasPayload, fy: number, quarter: number): WorksheetDo
   const sections: WorksheetDoc["sections"] = [
     {
       heading: "GST",
-      caption: "From invoices (sales) and bills (purchases) - v_bas_quarterly",
+      caption: `${
+        p.gst_accounting_basis === "cash" ? "Cash basis" : "Accruals (non-cash) basis"
+      } - invoices, bills and credit notes`,
       rows: [
         { label: "G1   Total sales (inc GST)", value: money(gst["G1"]) },
         { label: "G2   Export sales", value: money(gst["G2"]) },
@@ -84,8 +94,8 @@ function toWorksheetDoc(p: BasPayload, fy: number, quarter: number): WorksheetDo
       rows: [
         { label: "W1   Total salary, wages and payments", value: money(payg["W1"]) },
         { label: "W2   Amounts withheld from W1", value: money(payg["W2"]) },
-        { label: "W3   Other amounts withheld", value: money(payg["W3"]) },
-        { label: "W4   Amounts withheld (no ABN)", value: money(payg["W4"]) },
+        { label: "W3   Other amounts withheld", value: labelMoney(payg["W3"], NOT_RECORDED) },
+        { label: "W4   Amounts withheld (no ABN)", value: labelMoney(payg["W4"], NOT_RECORDED) },
         { label: "W5   Total amounts withheld", value: money(payg["W5"]) },
         { label: "4    PAYG tax withheld", value: money(payg["4"]) },
       ],
@@ -99,9 +109,12 @@ function toWorksheetDoc(p: BasPayload, fy: number, quarter: number): WorksheetDo
       heading: "PAYG instalment",
       caption: `PAYG-I registered - values are sourced from bas_payg_instalment_amounts${status}`,
       rows: [
-        { label: "T7   PAYG instalment amount", value: money(inst["T7"]) },
-        { label: "5A   PAYG income tax instalment", value: money(inst["5A"]) },
-        { label: "5B   Credit from PAYG instalment variation", value: money(inst["5B"]) },
+        { label: "T7   PAYG instalment amount", value: labelMoney(inst["T7"], "Not entered") },
+        { label: "5A   PAYG income tax instalment", value: labelMoney(inst["5A"], "Not entered") },
+        {
+          label: "5B   Credit from PAYG instalment variation",
+          value: labelMoney(inst["5B"], "Not entered"),
+        },
       ],
     });
   }

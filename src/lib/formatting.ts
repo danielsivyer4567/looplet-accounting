@@ -1,6 +1,8 @@
 // Small shared display formatters (parallel to money.ts). Keep these dependency-free
 // and presentation-only.
 
+import { DEFAULT_TIME_ZONE, financialYearStartYear, todayLocal } from '@/lib/localDates';
+
 /** Capitalise the first letter: "discretionary" -> "Discretionary"; null/"" -> "". */
 export function titleCase(s: string | null | undefined): string {
   if (!s) return '';
@@ -21,15 +23,17 @@ export function formatDay(d: string | null | undefined): string {
   });
 }
 
-/** The current AU income year as its start year (Jul-Dec => this year; Jan-Jun => prior). */
-export function currentFyStartYear(): number {
-  const now = new Date();
-  return now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+/**
+ * The current AU income year as its start year (Jul-Dec => this year; Jan-Jun => prior),
+ * judged on today's date in the organisation's time zone (lib/localDates.ts).
+ */
+export function currentFyStartYear(timeZone: string = DEFAULT_TIME_ZONE): number {
+  return financialYearStartYear(todayLocal(timeZone));
 }
 
 /** Short label for the current AU financial year window, e.g. "FY26–27 (from 1 Jul 2026)". */
-export function currentFyLabel(): string {
-  const start = currentFyStartYear();
+export function currentFyLabel(timeZone: string = DEFAULT_TIME_ZONE): string {
+  const start = currentFyStartYear(timeZone);
   const endShort = String((start + 1) % 100).padStart(2, '0');
   return `FY${String(start % 100).padStart(2, '0')}–${endShort} (from 1 Jul ${start})`;
 }

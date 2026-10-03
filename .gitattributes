@@ -1,0 +1,2 @@
+# Finish-line ledger logs are pinned by SHA-256 in LEDGER.json; keep their bytes exactly as written.
+.ledger/logs/*.log -text

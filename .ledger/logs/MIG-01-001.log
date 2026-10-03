@@ -1,0 +1,21 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/db/run-pg-sql-tests.mjs --strict"
+migrations: 286 applied, 0 known failures, 9 problems (295 files)
+migration problems:
+- 0200_workstream_tasks.sql failed:
+psql:<stdin>:291: ERROR:  column "se.organization_id" must appear in the GROUP BY clause or be used in an aggregate function
+- 0202_anomaly_signals.sql failed:
+psql:<stdin>:356: ERROR:  type "public.workstream_task" does not exist
+- 0203_ap_exception_review.sql failed:
+psql:<stdin>:37: ERROR:  unterminated dollar-quoted string at or near "$$;"
+- 0204_close_tasks.sql failed:
+psql:<stdin>:373: ERROR:  type "public.workstream_task" does not exist
+- 0206_bank_classifier_schema.sql failed:
+psql:<stdin>:43: ERROR:  column "deleted_at" does not exist
+- 0208_advisor_work_proofs.sql failed:
+psql:<stdin>:14: ERROR:  relation "public.organisations" does not exist
+- 0232_automation_decisions.sql failed:
+psql:<stdin>:20: ERROR:  type "automation_confidence" already exists
+- 0236_automation_feedback.sql failed:
+psql:<stdin>:25: ERROR:  relation "automation_feedback" already exists
+- 20260701160000_close_task_preflight_detail.sql failed:
+psql:<stdin>:421: ERROR:  column "se.organization_id" must appear in the GROUP BY clause or be used in an aggregate function

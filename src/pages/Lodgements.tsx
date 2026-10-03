@@ -4,6 +4,10 @@ import { SkeletonTable } from '@/components/Skeleton';
 import { LodgeReadinessChecklist } from '@/components/lodge/LodgeReadinessChecklist';
 import { useBasLodgementPack } from '@/hooks/useBasLodgementPack';
 import { useLodgements, type LodgementRow, type LodgementStatus } from '@/hooks/useLodgements';
+import { Stat, type Tone } from '@/components/ui/Stat';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 const MUTED = 'var(--text-muted)';
 const TYPE_LABELS: Record<LodgementRow['lodgement_type'], string> = {
@@ -39,15 +43,11 @@ function prettyJson(value: unknown): string {
   }
 }
 
-function statusTone(status: LodgementStatus): string {
-  if (status === 'accepted') return 'badge-success';
-  if (status === 'rejected' || status === 'error') return 'badge-danger';
-  if (status === 'submitted' || status === 'queued') return 'badge-info';
-  return 'badge-warning';
-}
-
-function StatusPill({ status }: { status: LodgementStatus }) {
-  return <span className={`badge ${statusTone(status)}`}>{humanize(status)}</span>;
+function statusTone(status: LodgementStatus): Tone {
+  if (status === 'accepted') return 'success';
+  if (status === 'rejected' || status === 'error') return 'danger';
+  if (status === 'submitted' || status === 'queued') return 'info';
+  return 'warning';
 }
 
 function JsonBlock({ value, maxHeight }: { value: unknown; maxHeight: string }) {
@@ -91,7 +91,11 @@ function DetailPanel({
           </div>
           <h2 style={{ margin: '0.2rem 0 0', fontSize: '1.15rem' }}>{lodgement.period_label}</h2>
         </div>
-        <StatusPill status={lodgement.status} />
+        <StatusBadge
+          status={lodgement.status}
+          tone={statusTone(lodgement.status)}
+          label={humanize(lodgement.status)}
+        />
       </div>
 
       {canDownloadPack && (
@@ -132,7 +136,7 @@ function DetailPanel({
       >
         <dt style={{ color: MUTED }}>Receipt</dt>
         <dd style={{ margin: 0 }}>{lodgement.ato_receipt_id ?? '-'}</dd>
-        <dt style={{ color: MUTED }}>Submitted</dt>
+        <dt style={{ color: MUTED }}>Recorded as submitted</dt>
         <dd style={{ margin: 0 }}>{formatDateTime(lodgement.submitted_at)}</dd>
         <dt style={{ color: MUTED }}>Payload hash</dt>
         <dd style={{ margin: 0, fontFamily: 'monospace', wordBreak: 'break-all' }}>
@@ -149,10 +153,10 @@ function DetailPanel({
         </div>
       )}
 
-      <h3 style={{ fontSize: '0.9rem', margin: '1rem 0 0.4rem' }}>Submitted payload</h3>
+      <h3 style={{ fontSize: '0.9rem', margin: '1rem 0 0.4rem' }}>Prepared payload</h3>
       <JsonBlock value={lodgement.payload} maxHeight="18rem" />
 
-      <h3 style={{ fontSize: '0.9rem', margin: '1rem 0 0.4rem' }}>ATO response</h3>
+      <h3 style={{ fontSize: '0.9rem', margin: '1rem 0 0.4rem' }}>ATO response (if recorded)</h3>
       <JsonBlock value={lodgement.response} maxHeight="14rem" />
     </aside>
   );
@@ -185,13 +189,17 @@ export function LodgementsPage() {
         }}
       >
         <div>
-          <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <FileCheck2 size={24} style={{ color: 'var(--accent-primary)' }} />
-            Lodgements
-          </h1>
+          <PageHeader
+            title={
+              <>
+                <FileCheck2 size={24} style={{ color: 'var(--text-link)' }} /> Prepared returns
+              </>
+            }
+          />
           <p style={{ color: MUTED, margin: '0.35rem 0 0', maxWidth: '48rem' }}>
-            Read-only history of ATO/SBR lodgement ledger rows, including receipts, status and the
-            submitted payload used for audit review.
+            Returns and statements Looplet has prepared for you, with their status and the payload
+            kept for review. Looplet does not lodge with the ATO: lodge them yourself or through
+            your registered tax or BAS agent. An ATO receipt shows only if one has been recorded.
           </p>
         </div>
         <button className="btn btn-secondary" type="button" onClick={() => void refresh()}>
@@ -210,9 +218,9 @@ export function LodgementsPage() {
           marginBottom: '1rem',
         }}
       >
-        <Kpi label="Total" value={lodgements.length} />
-        <Kpi label="Accepted" value={acceptedCount} tone="success" />
-        <Kpi
+        <Stat label="Total" value={lodgements.length} />
+        <Stat label="Accepted" value={acceptedCount} tone="success" />
+        <Stat
           label="Needs attention"
           value={problemCount}
           tone={problemCount > 0 ? 'danger' : 'neutral'}
@@ -229,18 +237,9 @@ export function LodgementsPage() {
           Lodgement history unavailable: {error}
         </div>
       ) : lodgements.length === 0 ? (
-        <div
-          style={{
-            padding: '2.5rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: MUTED,
-          }}
-        >
-          No lodgement records yet. Rows will appear here after the lodgement ledger is populated.
-        </div>
+        <EmptyState>
+          Nothing prepared yet. Prepared BAS, STP and other returns will be listed here.
+        </EmptyState>
       ) : (
         <div style={{ display: 'grid', gap: '1rem' }}>
           <div className="table-premium-container">
@@ -262,7 +261,11 @@ export function LodgementsPage() {
                     <td style={{ fontWeight: 600 }}>{TYPE_LABELS[item.lodgement_type]}</td>
                     <td>{item.period_label}</td>
                     <td>
-                      <StatusPill status={item.status} />
+                      <StatusBadge
+                        status={item.status}
+                        tone={statusTone(item.status)}
+                        label={humanize(item.status)}
+                      />
                     </td>
                     <td>{item.ato_receipt_id ?? <span style={{ color: MUTED }}>-</span>}</td>
                     <td style={{ fontSize: '0.825rem' }}>{formatDateTime(item.submitted_at)}</td>
@@ -296,31 +299,5 @@ export function LodgementsPage() {
         </div>
       )}
     </section>
-  );
-}
-
-function Kpi({
-  label,
-  value,
-  tone = 'neutral',
-}: {
-  label: string;
-  value: number;
-  tone?: 'neutral' | 'success' | 'danger';
-}) {
-  const color =
-    tone === 'success'
-      ? 'var(--accent-success)'
-      : tone === 'danger'
-        ? 'var(--accent-danger)'
-        : 'var(--text-title)';
-
-  return (
-    <div className="card" style={{ padding: '0.85rem 1rem' }}>
-      <div style={{ color: MUTED, fontSize: '0.75rem', fontWeight: 700 }}>{label}</div>
-      <div style={{ color, fontSize: '1.45rem', fontWeight: 800, marginTop: '0.2rem' }}>
-        {value}
-      </div>
-    </div>
   );
 }

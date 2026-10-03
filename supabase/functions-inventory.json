@@ -3,12 +3,16 @@
   "project_ref": "dxoikltymmknxqpkpyhi",
   "evidence": "supabase functions list --project-ref dxoikltymmknxqpkpyhi --output json",
   "local_function_count": 76,
-  "live_observed_count": 69,
+  "live_observed_count": 65,
   "local_only": [
     "ato-correspondence",
     "bank-disconnect",
+    "bank-feed-accounts",
+    "bank-feed-link",
     "bank-transaction-attach-job",
     "crm-pnl-sync-push",
+    "entity-tfn-backfill",
+    "entity-tfn-save",
     "lodgements",
     "xero-pull-bank-transactions",
     "xero-webhook"
@@ -71,20 +75,12 @@
       "deploy_by_default": false
     },
     {
-      "name": "bank-discover",
-      "deploy_by_default": true
+      "name": "bank-feed-accounts",
+      "deploy_by_default": false
     },
     {
-      "name": "bank-exchange",
-      "deploy_by_default": true
-    },
-    {
-      "name": "bank-job-poll",
-      "deploy_by_default": true
-    },
-    {
-      "name": "bank-link-token",
-      "deploy_by_default": true
+      "name": "bank-feed-link",
+      "deploy_by_default": false
     },
     {
       "name": "bank-statement-extract",
@@ -153,6 +149,14 @@
     {
       "name": "employee-tfn-save",
       "deploy_by_default": true
+    },
+    {
+      "name": "entity-tfn-backfill",
+      "deploy_by_default": false
+    },
+    {
+      "name": "entity-tfn-save",
+      "deploy_by_default": false
     },
     {
       "name": "eofy-pack",

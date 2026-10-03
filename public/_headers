@@ -1,7 +1,7 @@
 /*
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self'; worker-src 'self' blob: https://cdnjs.cloudflare.com https://unpkg.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://api.perplexity.ai https://*.googleapis.com https://api.basiq.io https://*.xero.com; form-action 'self'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self'; worker-src 'self'; frame-src https://*.supabase.co/storage/v1/object/; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://api.perplexity.ai https://*.googleapis.com https://*.xero.com; form-action 'self'; upgrade-insecure-requests
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Permissions-Policy: camera=(), microphone=(self), geolocation=()
   Strict-Transport-Security: max-age=31536000; includeSubDomains

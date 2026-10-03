@@ -7,11 +7,13 @@ import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import { BankCsvImport } from './BankCsvImport';
+import { BankFeedLink } from './BankFeedLink';
 import { BankStatementImport } from './BankStatementImport';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 interface BankConnectionRow {
   id: string;
-  provider: 'plaid' | 'basiq' | 'manual';
+  provider: 'manual' | 'redbark' | 'plaid';
   institution_name: string | null;
   status: 'pending' | 'active' | 'error' | 'expired' | 'revoked';
   last_synced_at: string | null;
@@ -41,7 +43,6 @@ export function BankConnect() {
     Record<string, BankAccountRow[]>
   >({});
   const [loading, setLoading] = useState(false);
-  const [connecting, setConnecting] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [disablingId, setDisablingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -95,41 +96,6 @@ export function BankConnect() {
 
   if (!currentOrg) return null;
 
-  const handleConnect = async () => {
-    setError(null);
-    const mobile = window.prompt(
-      'Australian mobile number (Basiq requires this to start the Connect flow):',
-      '04',
-    );
-    if (!mobile) return;
-    setConnecting(true);
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not signed in');
-      const redirect_uri = `${window.location.origin}/settings/bank-callback`;
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bank-link-token`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ organization_id: currentOrg.id, redirect_uri, mobile }),
-      });
-      const body = await res.json();
-      if (!res.ok || !body.ok) throw new Error(body.error ?? `${res.status}`);
-      // Open Basiq's hosted Connect UI
-      window.location.href = body.url;
-    } catch (e) {
-      setError(
-        formatActionError('start the bank connection', e instanceof Error ? e.message : String(e)),
-      );
-      setConnecting(false);
-    }
-  };
-
   const handleSync = async (id: string) => {
     setError(null);
     setSyncingId(id);
@@ -140,7 +106,7 @@ export function BankConnect() {
         sourceKind: 'bank_connection',
         sourceId: id,
         priority: 3,
-        payload: { bank_connection_id: id, days: 180, source: 'manual_bank_sync' },
+        payload: { bank_connection_id: id, source: 'manual_bank_sync' },
       });
       await refresh();
     } catch (e) {
@@ -154,7 +120,7 @@ export function BankConnect() {
 
   const handleDisable = async (connection: BankConnectionRow) => {
     const ok = window.confirm(
-      `Disable syncing for ${connection.institution_name ?? 'this bank connection'}? Existing transactions stay in Looplet. For a Basiq-connected bank, this also revokes the upstream consent so Basiq stops holding your data — this cannot be undone from here; you'll need to reconnect from scratch.`,
+      `Stop the bank feed for ${connection.institution_name ?? 'this bank connection'}? Looplet stops importing from it and keeps the transactions already imported. Your bank connection in Redbark is not changed; manage or remove it in your Redbark account. To start the feed again, link its accounts again.`,
     );
     if (!ok) return;
 
@@ -194,10 +160,10 @@ export function BankConnect() {
   return (
     <div style={{ marginTop: '2rem' }}>
       <h2 style={{ fontSize: 18, marginBottom: '0.5rem' }}>Bank accounts</h2>
-      <p style={{ color: '#888', fontSize: 13, marginBottom: '1rem', maxWidth: 720 }}>
-        Connect your business bank accounts via Basiq (CommBank, NAB, Westpac, ANZ + 100s of
-        others). Transactions are imported and matched against your bills + invoices, ready for you
-        to review and reconcile on the Reconciliation page.{' '}
+      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: '1rem', maxWidth: 720 }}>
+        Link your business bank accounts through a Redbark bank feed, or import CSV and PDF
+        statements. Transactions are matched against your bills and invoices, ready for you to
+        review and reconcile on the Reconciliation page.{' '}
         <Link to="/data-sharing">How your data is shared and managed</Link>.
       </p>
 
@@ -210,8 +176,8 @@ export function BankConnect() {
           role="alert"
           style={{
             padding: '0.75rem',
-            background: '#3d1818',
-            color: '#e9a3a3',
+            background: 'var(--bg-danger-subtle)',
+            color: 'var(--text-danger)',
             borderRadius: 4,
             fontSize: 13,
           }}
@@ -220,22 +186,7 @@ export function BankConnect() {
         </div>
       ) : connections.length === 0 ? (
         <div>
-          <button
-            onClick={handleConnect}
-            disabled={connecting}
-            style={{
-              padding: '0.5rem 1rem',
-              background: '#1c4868',
-              color: '#fff',
-              border: '1px solid #5096d8',
-              borderRadius: 4,
-              cursor: connecting ? 'wait' : 'pointer',
-              fontSize: 13,
-              fontWeight: 600,
-            }}
-          >
-            {connecting ? 'Opening Basiq…' : '+ Connect bank account (Basiq)'}
-          </button>
+          <BankFeedLink organizationId={currentOrg.id} onLinked={refresh} />
           <BankCsvImport onImported={refresh} />
           <BankStatementImport onImported={refresh} />
         </div>
@@ -246,7 +197,7 @@ export function BankConnect() {
             style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}
           >
             <thead>
-              <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
+              <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                 <th style={th}>Bank</th>
                 <th style={th}>Provider</th>
                 <th style={th}>Status</th>
@@ -257,10 +208,10 @@ export function BankConnect() {
             <tbody>
               {connections.map((c) => (
                 <Fragment key={c.id}>
-                  <tr style={{ borderBottom: '1px solid #1a1a1a' }}>
+                  <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                     <td style={td}>{c.institution_name ?? '—'}</td>
                     <td style={td}>
-                      <code style={{ color: '#888', fontSize: 11 }}>{c.provider}</code>
+                      <code style={{ color: 'var(--text-muted)', fontSize: 11 }}>{c.provider}</code>
                     </td>
                     <td style={td}>
                       <BankConnectionStatus connection={c} />
@@ -315,73 +266,30 @@ export function BankConnect() {
             ))}
           </div>
 
-          <button
-            onClick={handleConnect}
-            disabled={connecting}
-            style={{
-              marginTop: 12,
-              padding: '0.4rem 1rem',
-              background: 'transparent',
-              color: '#86c7a3',
-              border: '1px solid #2da565',
-              borderRadius: 3,
-              cursor: connecting ? 'wait' : 'pointer',
-              fontSize: 12,
-            }}
-          >
-            {connecting ? 'Opening…' : '+ Connect another account (Basiq)'}
-          </button>
+          <BankFeedLink organizationId={currentOrg.id} onLinked={refresh} />
           <BankCsvImport onImported={refresh} />
           <BankStatementImport onImported={refresh} />
         </>
       )}
 
       {error && (
-        <p style={{ color: 'salmon', fontSize: 12, marginTop: '0.5rem' }}>
-          {error}
-          {error.includes('BASIQ_API_KEY') && (
-            <>
-              {' '}
-              — set up Basiq via <code>SETUP_BANK_FEEDS.md</code> first.
-            </>
-          )}
-        </p>
+        <p style={{ color: 'var(--text-danger)', fontSize: 12, marginTop: '0.5rem' }}>{error}</p>
       )}
     </div>
-  );
-}
-
-function StatusPill({ status }: { status: BankConnectionRow['status'] }) {
-  const colour =
-    status === 'active'
-      ? '#86c7a3'
-      : status === 'expired' || status === 'revoked'
-        ? '#e9a3a3'
-        : status === 'error'
-          ? '#e9a3a3'
-          : '#888';
-  return (
-    <span
-      style={{
-        padding: '0.15rem 0.5rem',
-        fontSize: 11,
-        borderRadius: 3,
-        background: '#222',
-        color: colour,
-        textTransform: 'uppercase',
-      }}
-    >
-      {status}
-    </span>
   );
 }
 
 function BankConnectionStatus({ connection }: { connection: BankConnectionRow }) {
   return (
     <>
-      <StatusPill status={connection.status} />
+      <StatusBadge
+        tones={{ active: 'success', expired: 'danger', revoked: 'danger', error: 'danger' }}
+        status={connection.status}
+      />
       {connection.last_error && (
-        <div style={{ color: '#e9a3a3', fontSize: 10, marginTop: 4 }}>{connection.last_error}</div>
+        <div style={{ color: 'var(--text-danger)', fontSize: 11, marginTop: 4 }}>
+          {connection.last_error}
+        </div>
       )}
     </>
   );
@@ -400,7 +308,7 @@ function BankConnectionAction({
   onSync: (id: string) => Promise<void>;
   onDisable?: (connection: BankConnectionRow) => Promise<void>;
 }) {
-  if (connection.provider === 'basiq') {
+  if (connection.provider === 'redbark') {
     return (
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
         <button
@@ -416,7 +324,7 @@ function BankConnectionAction({
             disabled={disablingId === connection.id}
             style={dangerBtn}
           >
-            {disablingId === connection.id ? 'Disabling…' : 'Disable feed'}
+            {disablingId === connection.id ? 'Stopping…' : 'Disable feed'}
           </button>
         )}
       </div>
@@ -425,8 +333,8 @@ function BankConnectionAction({
 
   return (
     <span
-      style={{ color: '#777', fontSize: 11, fontStyle: 'italic' }}
-      title="Imported from a CSV/PDF statement — not a live bank feed. Use 'Connect bank account (Basiq)' for automatic syncing."
+      style={{ color: 'var(--text-muted)', fontSize: 11, fontStyle: 'italic' }}
+      title="Imported from a CSV or PDF statement, not a live bank feed. Link a Redbark account above for automatic imports."
     >
       imported (no live feed)
     </span>
@@ -452,7 +360,12 @@ function BankAccountDetails({
             style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}
           >
             <strong>{account.name}</strong>
-            <span style={{ color: account.is_active ? '#86c7a3' : '#aaa', fontSize: 11 }}>
+            <span
+              style={{
+                color: account.is_active ? 'var(--text-success)' : 'var(--text-muted)',
+                fontSize: 11,
+              }}
+            >
               {account.is_active ? 'active' : 'inactive'}
               {account.is_primary ? ' · primary' : ''}
             </span>
@@ -477,7 +390,7 @@ const th: React.CSSProperties = {
   padding: '0.4rem 0.5rem',
   textAlign: 'left',
   fontSize: 11,
-  color: '#888',
+  color: 'var(--text-muted)',
   textTransform: 'uppercase',
   letterSpacing: 0.5,
   fontWeight: 500,
@@ -485,8 +398,8 @@ const th: React.CSSProperties = {
 const td: React.CSSProperties = { padding: '0.5rem' };
 const smallBtn: React.CSSProperties = {
   background: 'transparent',
-  color: '#aaa',
-  border: '1px solid #2a2a2a',
+  color: 'var(--text-muted)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: 3,
   fontSize: 11,
   padding: '0.2rem 0.5rem',
@@ -494,14 +407,14 @@ const smallBtn: React.CSSProperties = {
 };
 const dangerBtn: React.CSSProperties = {
   ...smallBtn,
-  color: '#e9a3a3',
-  borderColor: '#653333',
+  color: 'var(--text-danger)',
+  borderColor: 'var(--accent-danger)',
 };
 const accountEmpty: React.CSSProperties = {
-  color: '#777',
+  color: 'var(--text-muted)',
   fontSize: 11,
   padding: '0.4rem 0.6rem',
-  borderLeft: '2px solid #333',
+  borderLeft: '2px solid var(--border-subtle)',
 };
 const accountList: React.CSSProperties = {
   display: 'grid',
@@ -515,16 +428,16 @@ const accountListCompact: React.CSSProperties = {
   paddingTop: 8,
 };
 const accountCard: React.CSSProperties = {
-  border: '1px solid #222',
+  border: '1px solid var(--border-subtle)',
   borderRadius: 4,
   padding: '0.55rem 0.65rem',
-  background: '#111',
+  background: 'var(--bg-panel)',
 };
 const accountMeta: React.CSSProperties = {
   display: 'flex',
   gap: 10,
   flexWrap: 'wrap',
-  color: '#888',
+  color: 'var(--text-muted)',
   fontSize: 11,
   marginTop: 4,
   textTransform: 'capitalize',
@@ -533,7 +446,7 @@ const accountBalances: React.CSSProperties = {
   display: 'flex',
   gap: 14,
   flexWrap: 'wrap',
-  color: '#ccc',
+  color: 'var(--text-body)',
   fontSize: 12,
   marginTop: 6,
 };

@@ -1,0 +1,7 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/check-no-basiq.mjs"
+check-no-basiq: 2 problem(s)
+- .ledger/logs/BANK-01-002.log: 1 reference(s)
+    2: check-no-basiq: 1120 files scanned; no Basiq references outside 31 allow-listed historical records
+- .ledger/logs/BANK-01-003.log: 2 reference(s)
+    2: check-no-basiq: 1 problem(s)
+    4: 2: check-no-basiq: 1120 files scanned; no Basiq references outside 31 allow-listed historical records

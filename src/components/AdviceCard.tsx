@@ -1,5 +1,6 @@
 import { ArrowRight, FileText } from 'lucide-react';
 import type { AdviceNote } from '@/hooks/useAdviceNotes';
+import { GeneralInformationNotice } from '@/components/GeneralInformationNotice';
 
 interface AdviceCardProps {
   note: AdviceNote;
@@ -51,7 +52,7 @@ export function AdviceCard({ note, onOpen, disabled = false }: AdviceCardProps) 
           </span>
           <span className="badge badge-info">{labelFromKind(note.kind)}</span>
         </span>
-        <FileText size={17} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+        <FileText size={17} style={{ color: 'var(--text-link)', flexShrink: 0 }} />
       </div>
 
       <div style={{ display: 'grid', gap: '0.35rem', minHeight: '5.25rem' }}>
@@ -62,6 +63,8 @@ export function AdviceCard({ note, onOpen, disabled = false }: AdviceCardProps) 
           {compactText(note.summary, 130)}
         </span>
       </div>
+
+      <GeneralInformationNotice compact />
 
       <div
         style={{
@@ -77,7 +80,7 @@ export function AdviceCard({ note, onOpen, disabled = false }: AdviceCardProps) 
           <span
             style={{
               color: 'var(--text-muted)',
-              fontSize: '0.68rem',
+              fontSize: '0.6875rem',
               fontWeight: 700,
               letterSpacing: '0.04em',
               textTransform: 'uppercase',

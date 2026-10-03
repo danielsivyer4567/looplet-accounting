@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run tests/security/edge-auth-guards.test.ts"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  09:34:55
+   Duration  734ms (transform 23ms, setup 66ms, import 11ms, tests 3ms, environment 529ms)
+

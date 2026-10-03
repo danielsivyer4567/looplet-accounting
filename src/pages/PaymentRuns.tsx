@@ -1,10 +1,13 @@
 import { Link } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
-import { usePaymentRuns, type PaymentRunRow } from '@/hooks/usePaymentRuns';
+import { usePaymentRuns } from '@/hooks/usePaymentRuns';
 import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoney } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import { Layers, Plus } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export function PaymentRunsPage() {
   const { currentOrg } = useOrg();
@@ -32,10 +35,13 @@ export function PaymentRunsPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Layers size={24} style={{ color: 'var(--accent-primary)' }} />
-          Payment Runs
-        </h1>
+        <PageHeader
+          title={
+            <>
+              <Layers size={24} style={{ color: 'var(--text-link)' }} /> Payment Runs
+            </>
+          }
+        />
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <Link to="/payment-runs/new" className="btn btn-primary">
             <Plus size={16} />
@@ -66,22 +72,13 @@ export function PaymentRunsPage() {
           {formatLoadError('payment runs', error)}
         </div>
       ) : runs.length === 0 ? (
-        <div
-          style={{
-            padding: '3rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
+        <EmptyState>
           No payment runs yet.{' '}
           <Link to="/payment-runs/new" style={{ fontWeight: 600 }}>
             Create your first one
           </Link>
           .
-        </div>
+        </EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">
@@ -108,7 +105,7 @@ export function PaymentRunsPage() {
                     {formatMoney(run.total_cents)}
                   </td>
                   <td>
-                    <Pill status={run.status} />
+                    <StatusBadge status={run.status} />
                   </td>
                   <td style={{ fontSize: '0.825rem' }}>
                     {run.aba_file_generated_at ? (
@@ -131,14 +128,4 @@ export function PaymentRunsPage() {
       )}
     </section>
   );
-}
-
-function Pill({ status }: { status: PaymentRunRow['status'] }) {
-  let badgeClass = 'badge-neutral';
-  if (status === 'paid' || status === 'exported') badgeClass = 'badge-success';
-  else if (status === 'approved') badgeClass = 'badge-info';
-  else if (status === 'draft') badgeClass = 'badge-warning';
-  else if (status === 'cancelled') badgeClass = 'badge-danger';
-
-  return <span className={`badge ${badgeClass}`}>{status}</span>;
 }

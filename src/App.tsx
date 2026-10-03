@@ -9,6 +9,15 @@ import { Layout } from '@/components/Layout';
 
 const LoginPage = lazy(() => import('@/pages/Login').then((m) => ({ default: m.LoginPage })));
 const SignupPage = lazy(() => import('@/pages/Signup').then((m) => ({ default: m.SignupPage })));
+const PrivacyPolicyPage = lazy(() =>
+  import('@/pages/Legal').then((m) => ({ default: m.PrivacyPolicyPage })),
+);
+const TermsOfServicePage = lazy(() =>
+  import('@/pages/Legal').then((m) => ({ default: m.TermsOfServicePage })),
+);
+const CollectionNoticePage = lazy(() =>
+  import('@/pages/Legal').then((m) => ({ default: m.CollectionNoticePage })),
+);
 const AcceptInvitePage = lazy(() =>
   import('@/pages/AcceptInvite').then((m) => ({ default: m.AcceptInvitePage })),
 );
@@ -124,9 +133,6 @@ const AuditLogPage = lazy(() =>
 const GmailCallbackPage = lazy(() =>
   import('@/pages/GmailCallback').then((m) => ({ default: m.GmailCallbackPage })),
 );
-const BankCallbackPage = lazy(() =>
-  import('@/pages/BankCallback').then((m) => ({ default: m.BankCallbackPage })),
-);
 const XeroCallbackPage = lazy(() =>
   import('@/pages/XeroCallback').then((m) => ({ default: m.XeroCallbackPage })),
 );
@@ -203,6 +209,11 @@ export function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/accept-invite" element={<AcceptInvitePage />} />
+            {/* Public: linked from sign-in, sign-up and the app footer, and needed for Google's
+                OAuth review, so they must load without an account. */}
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsOfServicePage />} />
+            <Route path="/collection-notice" element={<CollectionNoticePage />} />
             <Route
               element={
                 <ProtectedRoute>
@@ -257,7 +268,6 @@ export function App() {
               <Route path="settings/team" element={<TeamPage />} />
               <Route path="settings/audit-log" element={<AuditLogPage />} />
               <Route path="settings/gmail-callback" element={<GmailCallbackPage />} />
-              <Route path="settings/bank-callback" element={<BankCallbackPage />} />
               <Route path="settings/xero-callback" element={<XeroCallbackPage />} />
               <Route path="auth/callback/xero" element={<XeroCallbackPage />} />
               <Route path="payment-runs" element={<PaymentRunsPage />} />

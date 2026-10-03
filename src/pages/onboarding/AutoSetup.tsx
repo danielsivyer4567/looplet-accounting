@@ -6,6 +6,7 @@ import { useGmailIntegrations } from '@/hooks/useGmailIntegrations';
 import { useStagedEntities } from '@/hooks/onboarding/useStagedEntities';
 import { DetectedInsights } from '@/components/onboarding/DetectedInsights';
 import { Sparkles, Mail, ShieldAlert, ArrowRight, Play, RefreshCw } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 export function AutoSetupPage() {
   const { currentOrg } = useOrg();
@@ -152,12 +153,14 @@ export function AutoSetupPage() {
     <section className="animated-fade-in">
       {/* Header section */}
       <div style={{ marginBottom: '2rem' }}>
-        <h1
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}
-        >
-          <Sparkles size={24} style={{ color: 'var(--accent-primary)' }} />
-          Auto Setup
-        </h1>
+        <PageHeader
+          title={
+            <>
+              <Sparkles size={24} style={{ color: 'var(--text-link)' }} /> Auto Setup
+            </>
+          }
+          style={{ marginBottom: '0.25rem' }}
+        />
         <p
           style={{
             color: 'var(--text-muted)',
@@ -241,7 +244,7 @@ export function AutoSetupPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Mail size={18} style={{ color: 'var(--accent-primary)' }} />
+                <Mail size={18} style={{ color: 'var(--text-link)' }} />
                 <strong style={{ color: 'var(--text-title)' }}>{activeGmail.gmail_address}</strong>
               </div>
               <span className="badge badge-success">● Connected</span>
@@ -280,11 +283,11 @@ export function AutoSetupPage() {
                   className="btn btn-secondary"
                   style={{
                     padding: '0.625rem 1.25rem',
-                    border: '1px solid rgba(99, 102, 241, 0.4)',
-                    color: 'var(--accent-primary)',
+                    border: '1px solid var(--border-primary)',
+                    color: 'var(--text-link)',
                   }}
                 >
-                  <Sparkles size={14} style={{ color: 'var(--accent-primary)' }} />
+                  <Sparkles size={14} style={{ color: 'var(--text-link)' }} />
                   <span>{aiRunning ? 'AI Classifying…' : '2. AI-Classify Unknown Senders'}</span>
                 </button>
               )}
@@ -299,7 +302,8 @@ export function AutoSetupPage() {
               style={{
                 padding: '0.75rem 1.5rem',
                 alignSelf: 'flex-start',
-                background: 'linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%)',
+                background:
+                  'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-hover) 100%)',
                 fontSize: '0.9rem',
                 borderRadius: 'var(--radius-md)',
                 boxShadow: 'var(--shadow-md)',

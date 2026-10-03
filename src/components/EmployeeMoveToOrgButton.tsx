@@ -61,10 +61,10 @@ export function EmployeeMoveToOrgButton({ employeeId, currentOrgId, onMoved }: P
             right: 0,
             marginTop: 4,
             minWidth: 240,
-            background: '#1a1a1a',
-            border: '1px solid #2a2a2a',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: 4,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+            boxShadow: 'var(--shadow-md)',
             zIndex: 100,
           }}
         >
@@ -72,10 +72,10 @@ export function EmployeeMoveToOrgButton({ employeeId, currentOrgId, onMoved }: P
             style={{
               padding: '0.4rem 0.75rem',
               fontSize: 11,
-              color: '#666',
+              color: 'var(--text-muted)',
               textTransform: 'uppercase',
               letterSpacing: 0.5,
-              borderBottom: '1px solid #2a2a2a',
+              borderBottom: '1px solid var(--border-subtle)',
             }}
           >
             Move employee to…
@@ -90,15 +90,15 @@ export function EmployeeMoveToOrgButton({ employeeId, currentOrgId, onMoved }: P
                 textAlign: 'left',
                 padding: '0.5rem 0.75rem',
                 background: 'transparent',
-                color: '#ddd',
+                color: 'var(--text-body)',
                 border: 'none',
-                borderBottom: '1px solid #1a1a1a',
+                borderBottom: '1px solid var(--border-subtle)',
                 fontSize: 13,
                 cursor: 'pointer',
               }}
             >
               {o.name}
-              <div style={{ fontSize: 10, color: '#666' }}>{o.organization_type}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{o.organization_type}</div>
             </button>
           ))}
           <button
@@ -109,7 +109,7 @@ export function EmployeeMoveToOrgButton({ employeeId, currentOrgId, onMoved }: P
               textAlign: 'center',
               padding: '0.4rem',
               background: 'transparent',
-              color: '#666',
+              color: 'var(--text-muted)',
               border: 'none',
               fontSize: 11,
               cursor: 'pointer',
@@ -118,7 +118,14 @@ export function EmployeeMoveToOrgButton({ employeeId, currentOrgId, onMoved }: P
             cancel
           </button>
           {err && (
-            <p style={{ margin: 0, padding: '0.4rem 0.75rem', color: 'salmon', fontSize: 11 }}>
+            <p
+              style={{
+                margin: 0,
+                padding: '0.4rem 0.75rem',
+                color: 'var(--text-danger)',
+                fontSize: 11,
+              }}
+            >
               {err}
             </p>
           )}

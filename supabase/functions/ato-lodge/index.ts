@@ -4,9 +4,15 @@
 // configuration health. It does not sign, transport, lodge, poll, or send any
 // outward request.
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { atoConfigHealth, type EnvReader } from "../_shared/ato/config.ts";
+import { type CallerCheck, requireSignedInCaller } from "../_shared/authGuards.ts";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
 import { requireLodgeReady } from "../_shared/lodge/gate.ts";
+import { supabaseOrgAccessDeps } from "../_shared/orgRole.ts";
+
+/** Decides whether the request's Authorization header belongs to a signed-in user or the service role. */
+export type AtoLodgeAuthorizer = (authorization: string | null) => Promise<CallerCheck>;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -23,13 +29,18 @@ interface AtoLodgeRequest {
 
 export async function handleAtoLodge(
   req: Request,
-  env: EnvReader = Deno.env,
+  env: EnvReader,
+  authorize: AtoLodgeAuthorizer,
 ): Promise<Response> {
   const pre = preflight(req);
   if (pre) return pre;
   if (req.method !== "POST") {
     return json({ ok: false, error: "Method not allowed" }, 405);
   }
+
+  // The health response names the ATO, DSP and SBR settings that are missing, so it is for signed-in users only.
+  const caller = await authorize(req.headers.get("Authorization"));
+  if (!caller.ok) return json({ ok: false, error: caller.error }, caller.status);
 
   const body = await req.json().catch(() => ({})) as AtoLodgeRequest;
   const isSubmissionAttempt = Boolean(
@@ -98,5 +109,12 @@ export async function handleAtoLodge(
 }
 
 if (import.meta.main) {
-  Deno.serve((req) => handleAtoLodge(req));
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceKey) throw new Error("ato-lodge needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY");
+  const admin = createClient(supabaseUrl, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const deps = supabaseOrgAccessDeps(admin, serviceKey);
+  Deno.serve((req) => handleAtoLodge(req, Deno.env, (authorization) => requireSignedInCaller(authorization, deps)));
 }

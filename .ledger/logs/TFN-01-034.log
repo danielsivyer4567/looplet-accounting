@@ -1,0 +1,4 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/db/run-pg-sql-tests.mjs tests/db-sql/trust-tfn-encryption.sql"
+migrations: 303 applied, 0 known failures, 0 problems (303 files)
+PASS tests/db-sql/trust-tfn-encryption.sql
+  NOTICE:  trust-tfn-encryption: plain TFN columns reject writes for every role; vault is service-only and ciphertext-only; legacy TFNs are held for encryption and audit_log copies redacted, idempotently

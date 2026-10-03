@@ -18,7 +18,7 @@
 // PROPOSALS. legal_horizon is GLOBAL reference data → writes via service_role only.
 //
 // AUTH: operator/back-end only, NO user-JWT path (mirrors legal-corpus-sync):
-// service-role bearer OR ?secret=<LEGAL_SCAN_SECRET> (constant-time); else 401.
+// service-role bearer OR an X-Cron-Secret header matching LEGAL_SCAN_SECRET (constant-time); else 401.
 // SC-LC.F.03 makes this cron-driven every 3h (verify_jwt=false + the cron secret).
 //
 // Request body (all optional):
@@ -33,6 +33,7 @@
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
+import { presentedCronSecret } from "../_shared/cronSecret.ts";
 import { requireEnv } from "../_shared/env.ts";
 import { sha256Hex } from "../_shared/apiKeys.ts";
 
@@ -340,12 +341,11 @@ Deno.serve(async (req: Request) => {
     const serviceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
     const scanSecret = Deno.env.get("LEGAL_SCAN_SECRET");
 
-    // Auth: service-role bearer OR ?secret= (cron/operator). No user-JWT path.
-    const url = new URL(req.url);
-    const urlSecret = url.searchParams.get("secret");
+    // Auth: service-role bearer OR the X-Cron-Secret header (cron/operator). No user-JWT path.
+    const givenSecret = presentedCronSecret(req);
     const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
     const isServiceRole = safeEqual(bearer, serviceKey);
-    const secretOk = !!scanSecret && safeEqual(urlSecret ?? "", scanSecret);
+    const secretOk = !!scanSecret && safeEqual(givenSecret ?? "", scanSecret);
     if (!isServiceRole && !secretOk) return json({ ok: false, error: "Unauthorized" }, 401);
 
     const body = (await req.json().catch(() => ({}))) as RequestBody;

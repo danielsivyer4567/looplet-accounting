@@ -33,7 +33,7 @@ const toneColor: Record<InsightTone, string> = {
 };
 
 const subtleBg: Record<InsightTone, string> = {
-  primary: 'rgba(99, 102, 241, 0.12)',
+  primary: 'var(--accent-primary-tint)',
   success: 'var(--bg-success-subtle)',
   warning: 'var(--bg-warning-subtle)',
   danger: 'var(--bg-danger-subtle)',
@@ -295,7 +295,7 @@ export function InsightDonutChart({
           <svg className="insight-donut-svg" viewBox="0 0 200 200" aria-hidden="true">
             <defs>
               <filter id={`${chartId}-soft-shadow`} x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="10" stdDeviation="7" floodColor="rgba(15, 23, 42, 0.24)" />
+                <feDropShadow dx="0" dy="10" stdDeviation="7" floodColor="var(--shadow-drop)" />
               </filter>
             </defs>
             <circle className="insight-donut-track" cx="100" cy="100" r={radius} />

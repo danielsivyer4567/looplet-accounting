@@ -3,7 +3,7 @@
  * xero_account_codes for each org that has an active Xero integration.
  *
  * Called:
- *   - daily by pg_cron (03:00 AEST) via pg_net.http_post with ?secret=...
+ *   - daily by pg_cron (03:00 AEST) via pg_net.http_post with an X-Cron-Secret header
  *   - on-demand by the Settings page "Refresh accounts" button (authenticated)
  *
  * Input:  { organization_id?: string }
@@ -15,6 +15,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { hasCronSecret } from '../_shared/cronSecret.ts';
 import { callXeroWithRetry, xeroFetch } from '../_shared/xero/auth.ts';
 import { requireEnv } from '../_shared/env.ts';
 
@@ -36,10 +37,7 @@ interface XeroAccountsResponse {
 const CRON_SECRET = Deno.env.get('XERO_CRON_SECRET');
 
 function isCronRequest(req: Request): boolean {
-  const url = new URL(req.url);
-  return (
-    url.searchParams.get('secret') === CRON_SECRET && Boolean(CRON_SECRET)
-  );
+  return hasCronSecret(req, CRON_SECRET);
 }
 
 Deno.serve(async (req) => {

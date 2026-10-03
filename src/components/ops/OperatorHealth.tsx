@@ -104,7 +104,7 @@ export function OperatorHealth() {
             margin: 0,
           }}
         >
-          <Activity size={18} style={{ color: 'var(--accent-primary)' }} />
+          <Activity size={18} style={{ color: 'var(--text-link)' }} />
           Cron health
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.25rem 0 0' }}>
@@ -134,7 +134,7 @@ export function OperatorHealth() {
             style={{
               margin: '0 auto 0.75rem',
               opacity: 0.5,
-              color: 'var(--accent-success, #4ade80)',
+              color: 'var(--accent-success, var(--text-success))',
             }}
           />
           <p style={{ margin: 0, fontSize: '0.9rem' }}>All monitored cron jobs are healthy.</p>
@@ -188,7 +188,7 @@ export function OperatorHealth() {
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{formatWhen(job.last_run_at)}</td>
                     <td
-                      style={{ textAlign: 'right', fontWeight: 600, color: 'var(--accent-danger)' }}
+                      style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-danger)' }}
                     >
                       {formatOverdue(job.seconds_overdue)}
                     </td>

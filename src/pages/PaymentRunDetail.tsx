@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { useOrgRole } from '@/hooks/useOrgRole';
+import { writeProblem } from '@/lib/roles';
+import { ReadOnlyNotice } from '@/components/ReadOnlyNotice';
 import {
   usePaymentRunDetail,
   type PaymentRunRow,
@@ -23,11 +26,17 @@ import {
   Eye,
   AlertTriangle,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Field } from '@/components/ui/Field';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 export function PaymentRunDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { currentOrg } = useOrg();
   const { run, items, loading, error, refresh } = usePaymentRunDetail(id);
+  const { canWrite } = useOrgRole();
+  const readOnly = !canWrite('pay');
   const [actionBusy, setActionBusy] = useState(false);
   const [actionErr, setActionErr] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
@@ -97,12 +106,18 @@ export function PaymentRunDetailPage() {
   };
 
   const handleApprove = async () => {
-    const { error: err } = await supabase
-      .from('payment_runs')
-      .update({ status: 'approved', approved_at: new Date().toISOString() })
-      .eq('id', run.id);
-    if (err) {
-      setActionErr(err.message);
+    // .select('id') returns the changed rows: a write refused by row-level security changes
+    // 0 rows without an error.
+    const problem = writeProblem(
+      'approve this payment run',
+      await supabase
+        .from('payment_runs')
+        .update({ status: 'approved', approved_at: new Date().toISOString() })
+        .eq('id', run.id)
+        .select('id'),
+    );
+    if (problem) {
+      setActionErr(problem);
       return;
     }
     setActionMsg('Payment run approved.');
@@ -169,10 +184,14 @@ export function PaymentRunDetailPage() {
         }}
       >
         <div>
-          <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Layers size={24} style={{ color: 'var(--accent-primary)' }} />
-            Payment Run — {run.pay_date}
-          </h1>
+          <PageHeader
+            title={
+              <>
+                <Layers size={24} style={{ color: 'var(--text-link)' }} /> Payment Run —{' '}
+                {run.pay_date}
+              </>
+            }
+          />
           <div
             style={{
               display: 'flex',
@@ -189,7 +208,7 @@ export function PaymentRunDetailPage() {
               Pay Date: <strong style={{ color: 'var(--text-title)' }}>{run.pay_date}</strong>
             </span>
             <span>•</span>
-            <Pill status={run.status} />
+            <StatusBadge status={run.status} />
             <span>•</span>
             <span>{run.bill_count} bills</span>
             <span>•</span>
@@ -228,7 +247,7 @@ export function PaymentRunDetailPage() {
           {run.status === 'draft' && (
             <button
               onClick={() => void handleApprove()}
-              disabled={actionBusy}
+              disabled={actionBusy || readOnly}
               className="btn btn-primary"
             >
               <CheckCircle size={16} />
@@ -239,7 +258,7 @@ export function PaymentRunDetailPage() {
           {(run.status === 'draft' || run.status === 'approved') && (
             <button
               onClick={() => void handleDownloadAba()}
-              disabled={actionBusy}
+              disabled={actionBusy || readOnly}
               className="btn btn-success"
             >
               <Download size={16} />
@@ -250,7 +269,7 @@ export function PaymentRunDetailPage() {
           {run.status === 'exported' && (
             <button
               onClick={() => void handleDownloadAba()}
-              disabled={actionBusy}
+              disabled={actionBusy || readOnly}
               className="btn btn-success"
             >
               <Download size={16} />
@@ -261,7 +280,7 @@ export function PaymentRunDetailPage() {
           {(run.status === 'approved' || run.status === 'exported') && (
             <button
               onClick={() => void handleMarkPaid()}
-              disabled={actionBusy}
+              disabled={actionBusy || readOnly}
               className="btn btn-secondary"
               style={{ color: 'var(--text-success)', borderColor: 'var(--accent-success)' }}
             >
@@ -272,6 +291,7 @@ export function PaymentRunDetailPage() {
         </div>
       </div>
 
+      {readOnly && <ReadOnlyNotice area="pay" />}
       {actionMsg && (
         <div
           className="badge badge-success"
@@ -314,18 +334,7 @@ export function PaymentRunDetailPage() {
       </h2>
 
       {items.length === 0 ? (
-        <div
-          style={{
-            padding: '3rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
-          No items in this payment run.
-        </div>
+        <EmptyState>No items in this payment run.</EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">
@@ -345,6 +354,7 @@ export function PaymentRunDetailPage() {
                   key={item.id}
                   item={item}
                   runStatus={run.status}
+                  writable={!readOnly}
                   onSaved={() => void refresh()}
                 />
               ))}
@@ -373,10 +383,13 @@ export function PaymentRunDetailPage() {
 function PaymentItemRow({
   item,
   runStatus,
+  writable,
   onSaved,
 }: {
   item: PaymentRunItem;
   runStatus: PaymentRunRow['status'];
+  /** False for roles below admin: the row is shown but cannot be edited. */
+  writable: boolean;
   onSaved: () => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -387,24 +400,28 @@ function PaymentItemRow({
   });
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState<string | null>(null);
-  const canEdit = runStatus === 'draft' || runStatus === 'approved';
+  const canEdit = writable && (runStatus === 'draft' || runStatus === 'approved');
   const missingBsb = !item.payee_bsb;
   const missingAccount = !item.payee_account_number;
 
   const save = async () => {
     setSaving(true);
     setSaveErr(null);
-    const { error } = await supabase
-      .from('payment_run_items')
-      .update({
-        payee_bsb: draft.payee_bsb,
-        payee_account_number: draft.payee_account_number,
-        payee_account_name: draft.payee_account_name,
-      })
-      .eq('id', item.id);
+    const problem = writeProblem(
+      'save the payee details',
+      await supabase
+        .from('payment_run_items')
+        .update({
+          payee_bsb: draft.payee_bsb,
+          payee_account_number: draft.payee_account_number,
+          payee_account_name: draft.payee_account_name,
+        })
+        .eq('id', item.id)
+        .select('id'),
+    );
     setSaving(false);
-    if (error) {
-      setSaveErr(error.message);
+    if (problem) {
+      setSaveErr(problem);
       return;
     }
     setEditing(false);
@@ -418,10 +435,7 @@ function PaymentItemRow({
           <div
             style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}
           >
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <span className="form-label" style={{ fontSize: '0.725rem' }}>
-                Payee name (max 32)
-              </span>
+            <Field label="Payee name (max 32)">
               <input
                 value={draft.payee_account_name}
                 onChange={(e) =>
@@ -430,12 +444,9 @@ function PaymentItemRow({
                 className="form-input"
                 style={{ width: '200px', padding: '0.4rem 0.625rem' }}
               />
-            </div>
+            </Field>
 
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <span className="form-label" style={{ fontSize: '0.725rem' }}>
-                BSB (NNN-NNN)
-              </span>
+            <Field label="BSB (NNN-NNN)">
               <input
                 value={draft.payee_bsb}
                 onChange={(e) => setDraft((d) => ({ ...d, payee_bsb: e.target.value }))}
@@ -443,22 +454,20 @@ function PaymentItemRow({
                 className="form-input"
                 style={{ width: '100px', padding: '0.4rem 0.625rem' }}
               />
-            </div>
+            </Field>
 
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <span className="form-label" style={{ fontSize: '0.725rem' }}>
-                Account number
-              </span>
+            <Field label="Account number">
               <input
                 value={draft.payee_account_number}
                 onChange={(e) => setDraft((d) => ({ ...d, payee_account_number: e.target.value }))}
                 className="form-input"
                 style={{ width: '140px', padding: '0.4rem 0.625rem' }}
               />
-            </div>
+            </Field>
 
             <div style={{ display: 'flex', gap: '0.25rem' }}>
               <button
+                aria-label="Save payee bank details"
                 onClick={() => void save()}
                 disabled={saving}
                 className="btn btn-primary"
@@ -467,6 +476,7 @@ function PaymentItemRow({
                 <Save size={14} />
               </button>
               <button
+                aria-label="Cancel editing"
                 onClick={() => setEditing(false)}
                 className="btn btn-secondary"
                 style={{ padding: '0.45rem 0.75rem', fontSize: '0.825rem' }}
@@ -576,6 +586,7 @@ function PaymentItemRow({
           </Link>
           {canEdit && !missingBsb && !missingAccount && (
             <button
+              aria-label="Edit payee bank details"
               onClick={() => setEditing(true)}
               className="btn btn-secondary"
               style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
@@ -587,16 +598,6 @@ function PaymentItemRow({
       </td>
     </tr>
   );
-}
-
-function Pill({ status }: { status: PaymentRunRow['status'] }) {
-  let badgeClass = 'badge-neutral';
-  if (status === 'paid' || status === 'exported') badgeClass = 'badge-success';
-  else if (status === 'approved') badgeClass = 'badge-info';
-  else if (status === 'draft') badgeClass = 'badge-warning';
-  else if (status === 'cancelled') badgeClass = 'badge-danger';
-
-  return <span className={`badge ${badgeClass}`}>{status}</span>;
 }
 
 function maskAccount(acct: string): string {

@@ -8,20 +8,14 @@ import { SkeletonTable } from '@/components/Skeleton';
 import { XeroStatusPill } from '@/components/XeroStatusPill';
 import { DocumentPreviewModal } from '@/components/DocumentPreviewModal';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
-import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { ConfidenceBadge } from '@/components/ConfidenceBadge';
 import type { AutomationConfidence } from '@/lib/automationDecision';
 import { AllocationQueuePanel } from '@/components/AllocationQueuePanel';
 import { LoadMoreButton } from '@/components/LoadMoreButton';
-import {
-  Plus,
-  Eye,
-  AlertTriangle,
-  FileText,
-  Wallet,
-  DollarSign,
-  type LucideIcon,
-} from 'lucide-react';
+import { Plus, Eye, AlertTriangle, FileText, Wallet, DollarSign } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Stat } from '@/components/ui/Stat';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 const filters: { label: string; value: BillListRow['status'] | null }[] = [
   { label: 'All Bills', value: null },
@@ -159,7 +153,7 @@ export function BillsPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0 }}>Bills</h1>
+        <PageHeader title="Bills" />
         <Link to="/bills/upload" className="btn btn-primary">
           <Plus size={16} />
           <span>Upload bill</span>
@@ -175,26 +169,26 @@ export function BillsPage() {
           marginBottom: '1.5rem',
         }}
       >
-        <Kpi
+        <Stat
           label="Total Billed"
           value={totalBilled}
-          type="neutral"
+          tone="neutral"
           icon={FileText}
           sub={loadedSub}
           formatter={formatMoney}
         />
-        <Kpi
+        <Stat
           label="Total Paid"
           value={totalPaid}
-          type="success"
+          tone="success"
           icon={Wallet}
           sub={loadedSub ?? `${bills.filter((b) => b.status === 'paid').length} bills`}
           formatter={formatMoney}
         />
-        <Kpi
+        <Stat
           label="Outstanding AP"
           value={totalOutstanding}
-          type={totalOutstanding > 0 ? 'danger' : 'neutral'}
+          tone={totalOutstanding > 0 ? 'danger' : 'neutral'}
           icon={DollarSign}
           sub={loadedSub}
           formatter={formatMoney}
@@ -349,7 +343,7 @@ export function BillsPage() {
                           <span
                             className="badge badge-danger"
                             style={{
-                              fontSize: '9px',
+                              fontSize: '11px',
                               padding: '1px 5px',
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -374,7 +368,7 @@ export function BillsPage() {
                     </td>
                     <td>
                       {b.attached_job?.job_number ? (
-                        <code style={{ color: 'var(--accent-success)', fontWeight: 600 }}>
+                        <code style={{ color: 'var(--text-success)', fontWeight: 600 }}>
                           {b.attached_job.job_number}
                         </code>
                       ) : (
@@ -385,7 +379,7 @@ export function BillsPage() {
                       {formatMoney(b.total_inc_gst_cents)}
                     </td>
                     <td>
-                      <StatusBadge status={b.status} />
+                      <StatusBadge tones={{ paid: 'info' }} status={b.status} />
                     </td>
                     <td>
                       {b.automation_confidence ? (
@@ -477,7 +471,7 @@ function BillCard({
               e.preventDefault();
               onOpen();
             }}
-            style={{ fontWeight: 700, color: 'var(--accent-primary)', textDecoration: 'none' }}
+            style={{ fontWeight: 700, color: 'var(--text-link)', textDecoration: 'none' }}
           >
             {bill.supplier_name_raw ?? 'Unknown supplier'}
           </a>
@@ -489,7 +483,7 @@ function BillCard({
             <span
               className="badge badge-danger"
               style={{
-                fontSize: '9px',
+                fontSize: '11px',
                 padding: '1px 5px',
                 marginTop: '0.25rem',
                 display: 'inline-flex',
@@ -503,7 +497,7 @@ function BillCard({
             </span>
           )}
         </div>
-        <StatusBadge status={bill.status} />
+        <StatusBadge tones={{ paid: 'info' }} status={bill.status} />
       </div>
 
       <div className="bill-mobile-card__metrics">
@@ -540,83 +534,5 @@ function BillCard({
         </button>
       </div>
     </article>
-  );
-}
-
-function StatusBadge({ status }: { status: BillListRow['status'] }) {
-  let badgeClass = 'badge-neutral';
-  if (status === 'received') badgeClass = 'badge-neutral';
-  else if (status === 'verified') badgeClass = 'badge-warning';
-  else if (status === 'attached') badgeClass = 'badge-success';
-  else if (status === 'paid') badgeClass = 'badge-info';
-
-  return <span className={`badge ${badgeClass}`}>{status}</span>;
-}
-
-function Kpi({
-  label,
-  value,
-  type,
-  icon: Icon,
-  sub,
-  formatter = (v: number) => v.toLocaleString(),
-}: {
-  label: string;
-  value: number;
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
-  icon: LucideIcon;
-  sub?: string | undefined;
-  formatter?: (val: number) => string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.5rem',
-          color: 'var(--text-title)',
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        <AnimatedNumber value={value} formatter={formatter} />
-      </div>
-      {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-          {sub}
-        </div>
-      ) : (
-        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
-      )}
-      <div
-        style={{
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
-          opacity: 0.7,
-        }}
-      >
-        <Icon size={18} />
-      </div>
-    </div>
   );
 }

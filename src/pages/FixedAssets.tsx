@@ -19,6 +19,8 @@ import {
   ChevronRight,
   TrendingDown,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 // 0093 depreciation_method enum -> human label.
 function methodLabel(method: DepreciationMethod): string {
@@ -127,12 +129,14 @@ export function FixedAssetsPage() {
       style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}
     >
       <div>
-        <h1
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}
-        >
-          <Boxes size={24} style={{ color: 'var(--accent-primary)' }} />
-          Fixed Assets
-        </h1>
+        <PageHeader
+          title={
+            <>
+              <Boxes size={24} style={{ color: 'var(--text-link)' }} /> Fixed Assets
+            </>
+          }
+          style={{ marginBottom: '0.25rem' }}
+        />
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
           {assets.length} asset{assets.length === 1 ? '' : 's'} on the register
           {assets.length > 0 && <> · {formatMoney(totalCostBase)} total cost base</>}
@@ -156,7 +160,7 @@ export function FixedAssetsPage() {
           >
             <Sparkles size={18} style={{ color: 'var(--accent-warning)' }} />
             Capitalisation proposals
-            <span className="badge badge-warning" style={{ fontSize: '9px' }}>
+            <span className="badge badge-warning" style={{ fontSize: '11px' }}>
               {proposals.length}
             </span>
           </h2>
@@ -183,16 +187,9 @@ export function FixedAssetsPage() {
           <h2 style={{ fontSize: '1.05rem', marginBottom: '0.75rem' }}>Asset register</h2>
         )}
         {assets.length === 0 ? (
-          <div
-            className="card"
-            style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}
-          >
-            <Boxes size={40} style={{ margin: '0 auto 1rem', opacity: 0.4 }} />
-            <p style={{ margin: 0 }}>No assets on the register yet.</p>
-            <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem' }}>
-              Capital purchases the classifier detects appear above as proposals to confirm.
-            </p>
-          </div>
+          <EmptyState icon={Boxes} title="No assets on the register yet.">
+            Capital purchases the classifier detects appear above as proposals to confirm.
+          </EmptyState>
         ) : (
           <div className="table-premium-container">
             <table className="table-premium">
@@ -245,7 +242,7 @@ export function FixedAssetsPage() {
                               <Link
                                 to={`/bills/${a.source_bill_id}`}
                                 onClick={(e) => e.stopPropagation()}
-                                style={{ color: 'var(--accent-primary)', fontWeight: 600 }}
+                                style={{ color: 'var(--text-link)', fontWeight: 600 }}
                               >
                                 Source bill &rarr;
                               </Link>
@@ -266,7 +263,7 @@ export function FixedAssetsPage() {
                         <td>
                           <span
                             className={`badge ${statusBadgeClass(a.status)}`}
-                            style={{ fontSize: '9px', textTransform: 'capitalize' }}
+                            style={{ fontSize: '11px', textTransform: 'capitalize' }}
                           >
                             {a.status}
                           </span>
@@ -410,7 +407,7 @@ function ProposalCard({
           {asset.asset_account_code && (
             <>
               <span>·</span>
-              <code style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
+              <code style={{ color: 'var(--text-link)', fontWeight: 600 }}>
                 {asset.asset_account_code}
               </code>
             </>
@@ -426,7 +423,7 @@ function ProposalCard({
             style={{
               display: 'inline-block',
               marginTop: '0.5rem',
-              color: 'var(--accent-primary)',
+              color: 'var(--text-link)',
               fontSize: '0.75rem',
               fontWeight: 600,
             }}

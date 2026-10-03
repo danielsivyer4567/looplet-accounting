@@ -12,7 +12,7 @@
  *       totals: { gross, payg, super, net },
  *       employees: [
  *         {
- *           tfn, name, address,
+ *           tfn_masked, name, address,
  *           ytd: { gross, payg, super },
  *           pay: {
  *             gross_ordinary_cents, gross_overtime_cents, gross_leave_cents,
@@ -27,12 +27,16 @@
  * NOTE: actual ATO submission requires SBR (Standard Business Reporting)
  * gateway integration — out of scope. This file is for tax-agent lodgement.
  *
+ * TFNs: the file carries each employee's masked TFN (last four digits) only.
+ * The function reads tfn_last4 from employee_tfn_vault and never decrypts, so a
+ * full TFN never reaches the browser or the downloaded file.
+ *
  * Auth: Bearer JWT, caller must be admin+ for the org.
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
-import { decryptToken } from '../_shared/xero/crypto.ts';
+import { authorizeOrgMember, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 import { buildStpEvent, type StpOrg, type StpRun, type StpSlip } from './stp.ts';
 
 function json(body: unknown, status = 200): Response {
@@ -51,17 +55,6 @@ function bytesToHex(bytes: Uint8Array): string {
 async function sha256Hex(value: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
   return bytesToHex(new Uint8Array(digest));
-}
-
-function redactStpForLedger(stp: Record<string, unknown>): Record<string, unknown> {
-  const redacted = structuredClone(stp) as {
-    pay_event?: { employees?: Record<string, unknown>[] };
-  };
-  for (const employee of redacted.pay_event?.employees ?? []) {
-    const masked = typeof employee.tfn_masked === 'string' ? employee.tfn_masked : null;
-    employee.tfn = masked ?? null;
-  }
-  return redacted as Record<string, unknown>;
 }
 
 Deno.serve(async (req) => {
@@ -109,15 +102,9 @@ Deno.serve(async (req) => {
     .single();
   if (runErr || !run) return json({ ok: false, error: 'pay_run not found' }, 404);
 
-  const { data: callerMembership } = await userClient
-    .from('organization_memberships')
-    .select('role_enum')
-    .eq('user_id', user.id)
-    .eq('organization_id', run.organization_id)
-    .maybeSingle();
-  if (!callerMembership || !['admin', 'owner'].includes(callerMembership.role_enum ?? '')) {
-    return json({ ok: false, error: 'Only admin or owner can export STP' }, 403);
-  }
+  // STP export reads pay and TFN-vault data: an ACCEPTED admin or owner of the run's org only.
+  const access = await authorizeOrgMember(user.id, run.organization_id, supabaseOrgAccessDeps(admin, serviceKey), 'admin');
+  if (!access.ok) return json({ ok: false, error: 'Only an admin or owner can export STP' }, access.status);
 
   // Org-level info (ABN etc.) lives in organizations.settings.
   const { data: org } = await admin
@@ -148,43 +135,26 @@ Deno.serve(async (req) => {
         .filter((id): id is string => Boolean(id)),
     ),
   );
+  // Only the last four digits: the encrypted TFN is not read, so nothing here can decrypt it.
   const { data: tfnRows, error: tfnErr } = await admin
     .from('employee_tfn_vault')
-    .select('employee_id, tfn_encrypted, tfn_last4, declaration_status')
+    .select('employee_id, tfn_last4, declaration_status')
     .eq('organization_id', run.organization_id)
     .in('employee_id', employeeIds);
   if (tfnErr) return json({ ok: false, error: tfnErr.message }, 500);
 
-  const tfnByEmployee = new Map<string, { tfn: string; masked: string }>();
-  for (const row of (tfnRows ?? []) as {
-    employee_id: string;
-    tfn_encrypted: string;
-    tfn_last4: string;
-  }[]) {
-    try {
-      tfnByEmployee.set(row.employee_id, {
-        tfn: await decryptToken(row.tfn_encrypted),
-        masked: `*****${row.tfn_last4}`,
-      });
-    } catch {
-      return json(
-        { ok: false, error: `Failed to decrypt TFN for employee ${row.employee_id}` },
-        500,
-      );
-    }
+  const maskedTfnByEmployee = new Map<string, string>();
+  for (const row of (tfnRows ?? []) as { employee_id: string; tfn_last4: string }[]) {
+    maskedTfnByEmployee.set(row.employee_id, `*****${row.tfn_last4}`);
   }
 
-  const slipsWithTfn = ((slips ?? []) as unknown as StpSlip[]).map((slip) => {
-    const tfn = tfnByEmployee.get(slip.employee.id) ?? null;
-    return {
-      ...slip,
-      employee: {
-        ...slip.employee,
-        tfn: tfn?.tfn ?? null,
-        tfn_masked: tfn?.masked ?? null,
-      },
-    };
-  });
+  const slipsWithTfn = ((slips ?? []) as unknown as StpSlip[]).map((slip) => ({
+    ...slip,
+    employee: {
+      ...slip.employee,
+      tfn_masked: maskedTfnByEmployee.get(slip.employee.id) ?? null,
+    },
+  }));
 
   // Shape the STP Phase 2 event (incl. the termination/ETP block when the run carries
   // run.metadata.termination) via the pure, unit-tested builder.
@@ -200,8 +170,8 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: err instanceof Error ? err.message : String(err) }, 400);
   }
 
-  const redactedPayload = redactStpForLedger(stp);
-  const payloadHash = await sha256Hex(JSON.stringify(redactedPayload));
+  // The event already carries masked TFNs only, so the ledger keeps the same payload the browser receives.
+  const payloadHash = await sha256Hex(JSON.stringify(stp));
   let lodgementId: string | null = null;
   const periodLabel = `${run.period_start} to ${run.period_end}`;
   const { data: lodgement, error: lodgementErr } = await admin
@@ -211,7 +181,7 @@ Deno.serve(async (req) => {
       lodgement_type: 'stp',
       period_label: periodLabel,
       payload_hash: payloadHash,
-      payload: redactedPayload,
+      payload: stp,
       status: 'draft',
       response: {
         transport: 'disabled',

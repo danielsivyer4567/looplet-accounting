@@ -22,6 +22,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { isTagMentionNotification } from '@/lib/notificationMeta';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface NotificationRow {
   id: string;
@@ -219,10 +221,13 @@ export function NotificationsPage() {
         }}
       >
         <div>
-          <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Bell size={24} style={{ color: 'var(--accent-primary)' }} />
-            Notifications
-          </h1>
+          <PageHeader
+            title={
+              <>
+                <Bell size={24} style={{ color: 'var(--text-link)' }} /> Notifications
+              </>
+            }
+          />
           <p
             style={{
               color: 'var(--text-muted)',
@@ -232,7 +237,7 @@ export function NotificationsPage() {
             }}
           >
             {unreadCount > 0 ? (
-              <span style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>
+              <span style={{ fontWeight: 600, color: 'var(--text-link)' }}>
                 {unreadCount} unread notifications
               </span>
             ) : (
@@ -333,20 +338,11 @@ export function NotificationsPage() {
           {error}
         </div>
       ) : filtered.length === 0 ? (
-        <div
-          style={{
-            padding: '3rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
+        <EmptyState>
           {rows.length === 0
             ? "You're all caught up — no notifications."
             : 'No notifications match the current filters.'}
-        </div>
+        </EmptyState>
       ) : (
         <ul
           style={{
@@ -418,14 +414,14 @@ export function NotificationsPage() {
                     </span>
                     <span
                       className="badge badge-neutral"
-                      style={{ fontSize: '0.625rem', padding: '0.1rem 0.35rem' }}
+                      style={{ fontSize: '0.6875rem', padding: '0.1rem 0.35rem' }}
                     >
                       {CATEGORY_LABELS[n.category] ?? n.category}
                     </span>
                     {crossOrg && orgNameById.get(n.organization_id) && (
                       <span
                         className="badge badge-primary"
-                        style={{ fontSize: '0.625rem', padding: '0.1rem 0.35rem' }}
+                        style={{ fontSize: '0.6875rem', padding: '0.1rem 0.35rem' }}
                       >
                         {orgNameById.get(n.organization_id)}
                       </span>
@@ -451,7 +447,7 @@ export function NotificationsPage() {
                       <span
                         style={{
                           marginLeft: '0.5rem',
-                          color: 'var(--accent-primary)',
+                          color: 'var(--text-link)',
                           fontWeight: 600,
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -502,10 +498,7 @@ export function NotificationsPage() {
           alignItems: 'flex-start',
         }}
       >
-        <Info
-          size={16}
-          style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }}
-        />
+        <Info size={16} style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }} />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
           <span
             style={{

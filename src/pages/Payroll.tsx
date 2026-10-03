@@ -6,7 +6,14 @@ import { useSuperBatch } from '@/hooks/useSuperBatch';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
-import { AnimatedNumber } from '@/components/AnimatedNumber';
+import {
+  addDays,
+  financialYearQuarter,
+  orgTimeZone,
+  startOfFinancialYear,
+  todayLocal,
+  weekdayOf,
+} from '@/lib/localDates';
 import {
   Plus,
   DollarSign,
@@ -18,8 +25,12 @@ import {
   Send,
   CheckCircle2,
   Loader2,
-  type LucideIcon,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Field } from '@/components/ui/Field';
+import { Stat } from '@/components/ui/Stat';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface PayRun {
   id: string;
@@ -40,17 +51,25 @@ interface Employee {
   is_active: boolean;
 }
 
+/** Row of v_pay_run_super_due: when the fund must receive the super guarantee for a pay run. */
+interface PayRunSuperDue {
+  pay_run_id: string;
+  super_due_rule: 'payday_super' | 'quarterly';
+  super_due_date: string;
+}
+
 export function PayrollPage() {
   const { currentOrg } = useOrg();
   const [runs, setRuns] = useState<PayRun[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [superDue, setSuperDue] = useState<Record<string, PayRunSuperDue>>({});
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
     setLoading(true);
-    const [runsRes, empRes] = await Promise.all([
+    const [runsRes, empRes, dueRes] = await Promise.all([
       supabase
         .from('pay_runs')
         .select('*')
@@ -62,9 +81,16 @@ export function PayrollPage() {
         .eq('organization_id', currentOrg.id)
         .is('deleted_at', null)
         .order('full_name'),
+      supabase
+        .from('v_pay_run_super_due')
+        .select('pay_run_id, super_due_rule, super_due_date')
+        .eq('organization_id', currentOrg.id),
     ]);
     setRuns((runsRes.data ?? []) as PayRun[]);
     setEmployees((empRes.data ?? []) as Employee[]);
+    // Best-effort: without the view (migration 20261003130200 not applied) the column shows a dash.
+    const dueRows = dueRes.error ? [] : ((dueRes.data ?? []) as PayRunSuperDue[]);
+    setSuperDue(Object.fromEntries(dueRows.map((d) => [d.pay_run_id, d])));
     setLoading(false);
   }, [currentOrg]);
 
@@ -73,7 +99,7 @@ export function PayrollPage() {
   if (!currentOrg) return null;
 
   const ytdTotals = runs
-    .filter((r) => r.status === 'paid' && r.pay_date >= fyStart())
+    .filter((r) => r.status === 'paid' && r.pay_date >= fyStart(orgTimeZone(currentOrg)))
     .reduce(
       (acc, r) => ({
         gross: acc.gross + Number(r.total_gross_cents),
@@ -147,7 +173,9 @@ export function PayrollPage() {
   });
 
   // Current AU FY quarter for the super-batch section.
-  const { fyStart: superFyStart, quarter: superQuarter } = currentAuFyQuarter();
+  const { fyStart: superFyStart, quarter: superQuarter } = currentAuFyQuarter(
+    orgTimeZone(currentOrg),
+  );
 
   return (
     <section className="animated-fade-in">
@@ -161,10 +189,13 @@ export function PayrollPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Layers size={24} style={{ color: 'var(--accent-primary)' }} />
-          Payroll
-        </h1>
+        <PageHeader
+          title={
+            <>
+              <Layers size={24} style={{ color: 'var(--text-link)' }} /> Payroll
+            </>
+          }
+        />
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <button
             onClick={() => setShowCreate(true)}
@@ -186,32 +217,32 @@ export function PayrollPage() {
           marginBottom: '1.5rem',
         }}
       >
-        <KpiCard
+        <Stat
           label="YTD Gross Paid"
           value={ytdTotals.gross}
           formatter={formatMoney}
-          type="neutral"
+          tone="neutral"
           icon={DollarSign}
         />
-        <KpiCard
+        <Stat
           label="YTD PAYG Withheld"
           value={ytdTotals.tax}
           formatter={formatMoney}
-          type="danger"
+          tone="danger"
           icon={DollarSign}
         />
-        <KpiCard
+        <Stat
           label="YTD Super Guarantee"
           value={ytdTotals.sup}
           formatter={formatMoney}
-          type="info"
+          tone="info"
           icon={Wallet}
         />
-        <KpiCard
+        <Stat
           label="YTD Net Paid"
           value={ytdTotals.net}
           formatter={formatMoney}
-          type="success"
+          tone="success"
           icon={Wallet}
         />
       </div>
@@ -259,6 +290,7 @@ export function PayrollPage() {
           }}
         >
           <button
+            aria-label="Close"
             onClick={() => setShowCreate(false)}
             style={{
               position: 'absolute',
@@ -297,20 +329,11 @@ export function PayrollPage() {
       </h2>
 
       {loading ? (
-        <SkeletonTable rows={3} cols={7} />
+        <SkeletonTable rows={3} cols={8} />
       ) : runs.length === 0 ? (
-        <div
-          style={{
-            padding: '3rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
+        <EmptyState>
           No pay runs yet. Approve some timesheets and click <strong>New pay run</strong> to start.
-        </div>
+        </EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">
@@ -322,6 +345,7 @@ export function PayrollPage() {
                 <th style={{ textAlign: 'right' }}>Gross</th>
                 <th style={{ textAlign: 'right' }}>PAYG</th>
                 <th style={{ textAlign: 'right' }}>Super</th>
+                <th>Super due</th>
                 <th style={{ textAlign: 'right' }}>Net</th>
               </tr>
             </thead>
@@ -335,11 +359,14 @@ export function PayrollPage() {
                   </td>
                   <td>{r.pay_date}</td>
                   <td>
-                    <Pill status={r.status} />
+                    <StatusBadge status={r.status} />
                   </td>
                   <td style={{ textAlign: 'right' }}>{formatMoney(Number(r.total_gross_cents))}</td>
                   <td style={{ textAlign: 'right' }}>{formatMoney(Number(r.total_tax_cents))}</td>
                   <td style={{ textAlign: 'right' }}>{formatMoney(Number(r.total_super_cents))}</td>
+                  <td>
+                    <SuperDueCell due={superDue[r.id]} />
+                  </td>
                   <td style={{ textAlign: 'right', fontWeight: 600 }}>
                     {formatMoney(Number(r.total_net_cents))}
                   </td>
@@ -347,10 +374,36 @@ export function PayrollPage() {
               ))}
             </tbody>
           </table>
+          <p
+            style={{
+              margin: '0.75rem 1rem',
+              fontSize: '0.75rem',
+              color: 'var(--text-muted)',
+              lineHeight: 1.5,
+            }}
+          >
+            Super due is the date the employee&apos;s fund must receive the super guarantee. For pay
+            dates from 1 July 2026 (Payday Super) that is 7 business days after payday, or 20 for a
+            new employee&apos;s first contribution to a fund. Before then it was 28 days after the
+            end of the quarter. Public holidays are only counted once recorded in Looplet, so a date
+            can be earlier than the legal deadline but never later.
+          </p>
         </div>
       )}
       <SuperBatchSection fy={superFyStart} quarter={superQuarter} />
     </section>
+  );
+}
+
+function SuperDueCell({ due }: { due: PayRunSuperDue | undefined }) {
+  if (!due) return <span style={{ color: 'var(--text-muted)' }}>—</span>;
+  return (
+    <span>
+      {due.super_due_date}
+      <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+        {due.super_due_rule === 'payday_super' ? 'Payday Super' : 'Quarterly'}
+      </span>
+    </span>
   );
 }
 
@@ -362,6 +415,8 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
 
   const fyLabel = `Q${quarter} FY${fy}-${String((fy + 1) % 100).padStart(2, '0')}`;
   const isSent = batch !== null && (batch.status === 'sent' || batch.status === 'confirmed');
+  // file_prepared: the clearing-house file exists, but nothing has been sent to a fund or paid.
+  const isPrepared = batch?.status === 'file_prepared';
 
   const downloadPayload = (payload: Record<string, unknown>, filename: string) => {
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -395,14 +450,16 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
     setActionError(null);
     try {
       const r = await send();
-      if (r.sent || r.already_sent) {
+      if (r.file_prepared || r.already_prepared || r.already_sent) {
         if (r.payload) {
           downloadPayload(r.payload, `superstream-${fyLabel.replace(/\s+/g, '-')}.json`);
         }
         setMsg(
-          r.sent
-            ? 'SuperStream clearing-house file exported for manual upload. Mark the obligation paid only after clearing-house/payment confirmation.'
-            : 'Super batch already exported.',
+          r.already_sent
+            ? 'This batch is already recorded as sent.'
+            : r.already_prepared
+              ? 'Clearing-house file downloaded again. Looplet has not sent or paid anything.'
+              : 'Clearing-house file prepared and downloaded for manual upload. Looplet has not sent it or paid anything: upload it to your clearing house and pay the contributions there.',
         );
       } else if (r.approval_id) {
         setMsg('Approval requested - pending Tier-2 approval before this batch can export.');
@@ -447,8 +504,8 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
       </div>
       <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 1rem' }}>
         Quarterly super guarantee per employee from finalised pay runs. Export is Tier-2 gated and
-        produces a clearing-house upload file; live SuperStream API dispatch remains disabled until
-        a provider transport is configured.
+        prepares a clearing-house upload file. Looplet does not send contributions to funds or pay
+        them: you upload the file to your clearing house and pay there.
       </p>
 
       {loading ? (
@@ -519,7 +576,7 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
             }}
           >
             <span
-              className={`badge ${isSent ? 'badge-success' : 'badge-warning'}`}
+              className={`badge ${isSent ? 'badge-success' : isPrepared ? 'badge-info' : 'badge-warning'}`}
               style={{
                 textTransform: 'none',
                 display: 'inline-flex',
@@ -528,16 +585,22 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
               }}
             >
               {isSent ? <CheckCircle2 size={13} /> : null}
-              {batch.status}
+              {superBatchStatusLabel(batch.status)}
             </span>
             <button
               className="btn btn-primary"
               onClick={handleSend}
               disabled={busy !== null || isSent || batch.line_count === 0}
-              title={isSent ? 'Already exported' : 'Open a Tier-2 approval and export'}
+              title={
+                isSent
+                  ? 'Already recorded as sent'
+                  : isPrepared
+                    ? 'Download the prepared clearing-house file again'
+                    : 'Open a Tier-2 approval and prepare the clearing-house file'
+              }
             >
               {busy === 'send' ? <Loader2 size={14} /> : <Send size={14} />}
-              <span>Approve &amp; export</span>
+              <span>{isPrepared ? 'Download file again' : 'Approve & export'}</span>
             </button>
           </div>
           {msg && (
@@ -556,6 +619,12 @@ export function SuperBatchSection({ fy, quarter }: { fy: number; quarter: number
   );
 }
 
+function superBatchStatusLabel(status: string): string {
+  if (status === 'file_prepared') return 'File prepared, not paid';
+  if (status === 'sent') return 'Recorded as sent';
+  return status.replace(/_/g, ' ');
+}
+
 function CreatePayRunForm({
   employees,
   onClose,
@@ -567,19 +636,18 @@ function CreatePayRunForm({
 }) {
   const { currentOrg } = useOrg();
   const [frequency, setFrequency] = useState<'weekly' | 'fortnightly' | 'monthly'>('weekly');
-  const today = new Date();
-  const monday = new Date(today);
-  const day = monday.getDay();
+  // Default to last week (Monday to Sunday), paid the Wednesday after, as dates in the
+  // organisation's time zone.
+  const today = todayLocal(orgTimeZone(currentOrg));
+  const day = weekdayOf(today);
   const diffToMon = day === 0 ? -6 : 1 - day;
-  monday.setDate(today.getDate() + diffToMon - 7);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  const payDate = new Date(sunday);
-  payDate.setDate(sunday.getDate() + 3);
+  const monday = addDays(today, diffToMon - 7);
+  const sunday = addDays(monday, 6);
+  const payDate = addDays(sunday, 3);
 
-  const [periodStart, setPeriodStart] = useState(monday.toISOString().slice(0, 10));
-  const [periodEnd, setPeriodEnd] = useState(sunday.toISOString().slice(0, 10));
-  const [payDateStr, setPayDateStr] = useState(payDate.toISOString().slice(0, 10));
+  const [periodStart, setPeriodStart] = useState(monday);
+  const [periodEnd, setPeriodEnd] = useState(sunday);
+  const [payDateStr, setPayDateStr] = useState(payDate);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(employees.map((e) => e.id)));
   const [claimsThreshold, setClaimsThreshold] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -622,7 +690,7 @@ function CreatePayRunForm({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.5rem' }}>
       <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <Plus size={18} style={{ color: 'var(--accent-primary)' }} />
+        <Plus size={18} style={{ color: 'var(--text-link)' }} />
         Create New Pay Run
       </h3>
 
@@ -754,10 +822,7 @@ function CreatePayRunForm({
           alignItems: 'flex-start',
         }}
       >
-        <Info
-          size={14}
-          style={{ flexShrink: 0, marginTop: '2px', color: 'var(--accent-primary)' }}
-        />
+        <Info size={14} style={{ flexShrink: 0, marginTop: '2px', color: 'var(--text-link)' }} />
         <span>
           The run will pull <strong>approved</strong> timesheets in [{periodStart} → {periodEnd}],
           split into ordinary / overtime / leave hours by <code>entry_type</code>, and compute PAYG
@@ -795,108 +860,13 @@ function CreatePayRunForm({
   );
 }
 
-function fyStart(): string {
-  const now = new Date();
-  const y = now.getMonth() + 1 >= 7 ? now.getFullYear() : now.getFullYear() - 1;
-  return `${y}-07-01`;
+/** 1 July of the current AU financial year, judged on today's date in the org's time zone. */
+function fyStart(timeZone: string): string {
+  return startOfFinancialYear(todayLocal(timeZone));
 }
 
-/** Current AU FY quarter (FY starts 1 Jul). getMonth() is 0-based, so Jul = 6. */
-function currentAuFyQuarter(): { fyStart: number; quarter: number } {
-  const now = new Date();
-  const m = now.getMonth(); // 0 = Jan … 11 = Dec
-  const fyMonth = (m + 6) % 12; // 0 = Jul … 11 = Jun
-  return {
-    fyStart: m >= 6 ? now.getFullYear() : now.getFullYear() - 1,
-    quarter: Math.floor(fyMonth / 3) + 1,
-  };
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="form-group" style={{ marginBottom: 0 }}>
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>
-        {label}
-      </span>
-      <div style={{ marginTop: '0.25rem' }}>{children}</div>
-    </div>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  type,
-  icon: Icon,
-  sub,
-  formatter,
-}: {
-  label: string;
-  value: number;
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
-  icon: LucideIcon;
-  sub?: string;
-  formatter?: (val: number) => string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.5rem',
-          color: 'var(--text-title)',
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        <AnimatedNumber value={value} formatter={formatter} />
-      </div>
-      {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-          {sub}
-        </div>
-      ) : (
-        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
-      )}
-      <div
-        style={{
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
-          opacity: 0.7,
-        }}
-      >
-        <Icon size={18} />
-      </div>
-    </div>
-  );
-}
-
-function Pill({ status }: { status: PayRun['status'] }) {
-  let badgeClass = 'badge-neutral';
-  if (status === 'paid') badgeClass = 'badge-success';
-  else if (status === 'approved') badgeClass = 'badge-info';
-  else if (status === 'draft') badgeClass = 'badge-warning';
-  else if (status === 'cancelled' || status === 'reversed') badgeClass = 'badge-danger';
-
-  return <span className={`badge ${badgeClass}`}>{status}</span>;
+/** Current AU FY quarter (FY starts 1 Jul) in the org's time zone. */
+function currentAuFyQuarter(timeZone: string): { fyStart: number; quarter: number } {
+  const { fyStartYear, quarter } = financialYearQuarter(todayLocal(timeZone));
+  return { fyStart: fyStartYear, quarter };
 }

@@ -36,8 +36,10 @@ describe('0227 STP secure TFN lifecycle', () => {
 
   it('requires vault TFNs and records redacted STP lifecycle rows', () => {
     expect(exportStp).toMatch(/employee_tfn_vault/);
-    expect(exportStp).toMatch(/decryptToken/);
-    expect(exportStp).toMatch(/redactStpForLedger/);
+    // TFN-01: the export reads only tfn_last4 and never decrypts, so the file and the ledger hold masked TFNs only.
+    expect(exportStp).not.toMatch(/decryptToken/);
+    expect(exportStp).not.toMatch(/tfn_encrypted/);
+    expect(exportStp).toMatch(/payload: stp,/);
     expect(exportStp).toMatch(/from\('lodgements'\)/);
     expect(exportStp).toMatch(/lodgement_type: 'stp'/);
     expect(exportStp).toMatch(/status: 'draft'/);

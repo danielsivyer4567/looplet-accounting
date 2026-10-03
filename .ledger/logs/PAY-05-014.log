@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/pages/PaydaySuper.test.tsx"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  11:38:29
+   Duration  1.12s (transform 91ms, setup 71ms, import 212ms, tests 225ms, environment 508ms)
+

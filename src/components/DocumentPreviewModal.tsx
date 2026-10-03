@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+// Vite emits the worker as a same-origin asset and returns its URL; the worker code itself loads only
+// when a PDF is previewed.
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { Modal } from './Modal';
 import { getBillFileUrl } from '@/hooks/useBill';
 import { SkeletonCard } from '@/components/Skeleton';
@@ -39,7 +42,6 @@ interface PdfDocument {
 }
 
 interface PdfjsModule {
-  version: string;
   GlobalWorkerOptions: { workerSrc: string };
   getDocument: (args: { data: Uint8Array }) => { promise: Promise<PdfDocument> };
 }
@@ -49,9 +51,9 @@ let pdfjsCache: PdfjsModule | null = null;
 async function loadPdfjs(): Promise<PdfjsModule> {
   if (pdfjsCache) return pdfjsCache;
   const pdfjs = (await import('pdfjs-dist')) as unknown as PdfjsModule;
-  // Worker must match the installed pdfjs version; served from CDN (same
-  // approach as BankStatementImport) and loaded only when previewing a PDF.
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+  // The worker is bundled from the installed pdfjs-dist, so its version always matches the library
+  // and it loads from this site under the CSP (script-src/worker-src 'self'), not from a CDN.
+  pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
   pdfjsCache = pdfjs;
   return pdfjs;
 }
@@ -137,12 +139,12 @@ export function DocumentPreviewModal({
         </div>
       )}
       {s.noDoc && (
-        <p style={{ color: '#888', lineHeight: 1.5 }}>
+        <p style={{ color: 'var(--text-muted)', lineHeight: 1.5 }}>
           No source document for this transaction — it was imported from a CommBank statement, not
           an uploaded file.
         </p>
       )}
-      {s.error && <p style={{ color: 'salmon' }}>{s.error}</p>}
+      {s.error && <p style={{ color: 'var(--text-danger)' }}>{s.error}</p>}
       {s.imageUrl && (
         <img
           src={s.imageUrl}

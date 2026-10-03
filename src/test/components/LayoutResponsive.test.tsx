@@ -110,4 +110,54 @@ describe('Layout responsive shell', () => {
     expect(screen.getByRole('link', { name: /^Bills$/i })).toBeInTheDocument();
     expect(screen.getByText('Timeline')).toBeInTheDocument();
   });
+
+  // UI-03: the timeline rail starts collapsed to its edge pill below 1440px and open from 1440px,
+  // unless the user has chosen otherwise.
+  function setViewportByQuery({ mobile, wide }: { mobile: boolean; wide: boolean }) {
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: /max-width/.test(query)
+          ? mobile
+          : /min-width:\s*1440px/.test(query)
+            ? wide
+            : false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+  }
+
+  it('collapses the timeline rail to the edge pill on a desktop narrower than 1440px', () => {
+    setViewportByQuery({ mobile: false, wide: false });
+    renderLayout();
+
+    expect(screen.getByRole('button', { name: /show timeline/i })).toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: /tax timeline/i })).not.toBeInTheDocument();
+  });
+
+  it('opens the timeline rail on a 1440px-or-wider desktop and lets the user hide it', () => {
+    setViewportByQuery({ mobile: false, wide: true });
+    renderLayout();
+
+    expect(screen.getByRole('complementary', { name: /tax timeline/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /show timeline/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /hide timeline/i }));
+    expect(screen.getByRole('button', { name: /show timeline/i })).toBeInTheDocument();
+    expect(localStorage.getItem('looplet_timeline_open')).toBe('false');
+  });
+
+  it('remembers a user who opened the rail on a narrow desktop', () => {
+    localStorage.setItem('looplet_timeline_open', 'true');
+    setViewportByQuery({ mobile: false, wide: false });
+    renderLayout();
+
+    expect(screen.getByRole('complementary', { name: /tax timeline/i })).toBeInTheDocument();
+  });
 });

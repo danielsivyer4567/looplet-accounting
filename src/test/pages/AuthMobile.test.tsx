@@ -35,7 +35,7 @@ describe('Auth mobile layout', () => {
   it('renders login in the responsive auth shell without fixed inline viewport styles', () => {
     renderAuthPage(<LoginPage />);
 
-    const heading = screen.getByRole('heading', { name: /sign in to your account/i });
+    const heading = screen.getByRole('heading', { name: /welcome back/i });
     const shell = heading.closest('.auth-shell');
     const panel = heading.closest('.auth-panel');
 
@@ -78,10 +78,15 @@ describe('Auth mobile layout', () => {
     fireEvent.change(screen.getByLabelText(/password/i), {
       target: { value: 'long-enough-password' },
     });
+    fireEvent.click(screen.getByRole('checkbox', { name: /i agree to the terms of service/i }));
     fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 
     await waitFor(() =>
-      expect(signUp).toHaveBeenCalledWith('owner@example.com', 'long-enough-password'),
+      expect(signUp).toHaveBeenCalledWith(
+        'owner@example.com',
+        'long-enough-password',
+        expect.objectContaining({ legal_acceptance: expect.any(Object) }),
+      ),
     );
 
     const doneHeading = screen.getByRole('heading', { name: /account created/i });
@@ -97,7 +102,7 @@ describe('Auth mobile layout', () => {
     const mobileBlock = css.slice(css.indexOf('@media (max-width: 768px)'));
 
     expect(css).toMatch(/\.auth-shell\s*\{[\s\S]*min-height:\s*100dvh/);
-    expect(css).toMatch(/\.auth-panel\s*\{[\s\S]*width:\s*min\(100%, 420px\)/);
+    expect(css).toMatch(/\.auth-panel\s*\{[\s\S]*width:\s*min\(100%, 480px\)/);
     expect(mobileBlock).toMatch(/\.auth-shell\s*\{[\s\S]*align-items:\s*flex-start/);
     expect(mobileBlock).toMatch(/\.auth-panel\s*\{[\s\S]*padding:\s*1\.5rem 1rem/);
     expect(mobileBlock).toMatch(/\.auth-row-between\s*\{[\s\S]*flex-direction:\s*column/);

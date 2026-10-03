@@ -5,8 +5,12 @@ import { useOrg } from '@/hooks/useOrg';
 import { useUnpaidBillsForRun, type UnpaidBillForRun } from '@/hooks/usePaymentRuns';
 import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoney } from '@/lib/money';
+import { addDays, orgTimeZone, todayLocal, weekdayOf } from '@/lib/localDates';
 import { SkeletonTable } from '@/components/Skeleton';
 import { ChevronLeft, Layers, CheckCircle, AlertTriangle } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Field } from '@/components/ui/Field';
 
 export function NewPaymentRunPage() {
   const { currentOrg } = useOrg();
@@ -15,11 +19,10 @@ export function NewPaymentRunPage() {
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [payDate, setPayDate] = useState<string>(() => {
-    const d = new Date();
-    const day = d.getDay();
-    const daysUntilFriday = (5 - day + 7) % 7 || 7;
-    d.setDate(d.getDate() + daysUntilFriday);
-    return d.toISOString().split('T')[0] ?? '';
+    // Next Friday (a week out when today is Friday), in the organisation's time zone.
+    const today = todayLocal(orgTimeZone(currentOrg));
+    const daysUntilFriday = (5 - weekdayOf(today) + 7) % 7 || 7;
+    return addDays(today, daysUntilFriday);
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitErr, setSubmitErr] = useState<string | null>(null);
@@ -121,10 +124,13 @@ export function NewPaymentRunPage() {
         <span>Payment runs</span>
       </Link>
 
-      <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <Layers size={24} style={{ color: 'var(--accent-primary)' }} />
-        New Payment Run
-      </h1>
+      <PageHeader
+        title={
+          <>
+            <Layers size={24} style={{ color: 'var(--text-link)' }} /> New Payment Run
+          </>
+        }
+      />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -144,10 +150,7 @@ export function NewPaymentRunPage() {
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}
       >
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <span className="form-label" style={{ fontSize: '0.725rem' }}>
-              Payment Date
-            </span>
+          <Field label="Payment Date">
             <input
               type="date"
               value={payDate}
@@ -155,7 +158,7 @@ export function NewPaymentRunPage() {
               className="form-input"
               style={{ width: '160px', marginTop: '0.25rem' }}
             />
-          </div>
+          </Field>
 
           {selected.size > 0 && (
             <div
@@ -167,7 +170,7 @@ export function NewPaymentRunPage() {
               }}
             >
               {selected.size} bill{selected.size !== 1 ? 's' : ''} selected —{' '}
-              <span style={{ color: 'var(--accent-primary)' }}>{formatMoney(totalCents)}</span>
+              <span style={{ color: 'var(--text-link)' }}>{formatMoney(totalCents)}</span>
               {missingBank.length > 0 && (
                 <span
                   className="badge badge-warning"
@@ -192,18 +195,9 @@ export function NewPaymentRunPage() {
           {formatLoadError('unpaid bills', error)}
         </div>
       ) : bills.length === 0 ? (
-        <div
-          style={{
-            padding: '3rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
+        <EmptyState>
           No unpaid bills ready for payment (status "attached", not yet in a run).
-        </div>
+        </EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">

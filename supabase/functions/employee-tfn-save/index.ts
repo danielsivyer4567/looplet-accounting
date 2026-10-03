@@ -14,6 +14,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { authorizeOrgMember, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 import { encryptToken } from '../_shared/xero/crypto.ts';
 
 type DeclarationStatus = 'declared' | 'not_provided' | 'exemption';
@@ -94,16 +95,9 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: 'invalid declaration_status' }, 400);
   }
 
-  const { data: callerMembership, error: memErr } = await userClient
-    .from('organization_memberships')
-    .select('role_enum')
-    .eq('user_id', user.id)
-    .eq('organization_id', organizationId)
-    .maybeSingle();
-  if (memErr) return json({ ok: false, error: 'Failed to verify membership' }, 500);
-  if (!callerMembership || !['admin', 'owner'].includes(callerMembership.role_enum ?? '')) {
-    return json({ ok: false, error: 'Only admin or owner can store employee TFNs' }, 403);
-  }
+  // TFNs are stored only by an ACCEPTED admin or owner; a pending admin invite is not enough.
+  const access = await authorizeOrgMember(user.id, organizationId, supabaseOrgAccessDeps(admin, serviceKey), 'admin');
+  if (!access.ok) return json({ ok: false, error: 'Only admin or owner can store employee TFNs' }, access.status);
 
   const { data: employee, error: employeeErr } = await admin
     .from('employees')

@@ -19,6 +19,27 @@ import {
   Calendar,
   LayoutGrid,
 } from 'lucide-react';
+import { Stat, type Tone } from '@/components/ui/Stat';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+
+const SUBSCRIPTION_TONES: Partial<Record<string, Tone>> = {
+  confirmed: 'success',
+  candidate: 'info',
+  detected: 'info',
+  cancelled: 'neutral',
+  dismissed: 'warning',
+  paused: 'warning',
+};
+const SUBSCRIPTION_LABELS: Record<string, string> = {
+  confirmed: 'Confirmed',
+  candidate: 'Candidate',
+  detected: 'Candidate',
+  cancelled: 'Cancelled',
+  dismissed: 'Dismissed',
+  paused: 'Dismissed',
+};
 
 interface Subscription {
   id: string;
@@ -186,7 +207,7 @@ export function SubscriptionsPage() {
             marginBottom: '0.5rem',
           }}
         >
-          <h1 style={{ margin: 0 }}>Subscriptions</h1>
+          <PageHeader title="Subscriptions" />
           <button className="btn btn-primary" onClick={detect} disabled={detecting}>
             <RefreshCw className={`w-4 h-4 ${detecting ? 'animate-spin' : ''}`} />
             {detecting ? 'Detecting…' : 'Sync Subscription Feeds'}
@@ -221,7 +242,7 @@ export function SubscriptionsPage() {
           gap: '1rem',
         }}
       >
-        <KpiCard
+        <Stat
           label="Active Subscriptions"
           value={String(
             subs.filter((s) => s.status !== 'cancelled' && s.status !== 'dismissed').length,
@@ -229,21 +250,21 @@ export function SubscriptionsPage() {
           accentColor="var(--accent-info)"
           icon={<LayoutGrid className="w-5 h-5" style={{ color: 'var(--accent-info)' }} />}
         />
-        <KpiCard
+        <Stat
           label="Monthly Run Rate"
           value={formatMoney(totalMonthly)}
           accentColor="var(--accent-warning)"
           icon={<Calendar className="w-5 h-5" style={{ color: 'var(--accent-warning)' }} />}
           sub="consolidated monthly total"
         />
-        <KpiCard
+        <Stat
           label="Annual Business Spend"
           value={formatMoney(businessOnly)}
           accentColor="var(--accent-success)"
           icon={<Briefcase className="w-5 h-5" style={{ color: 'var(--accent-success)' }} />}
           sub="tax deductible items"
         />
-        <KpiCard
+        <Stat
           label="Annual Personal Spend"
           value={formatMoney(personalOnly)}
           accentColor="var(--text-muted)"
@@ -303,19 +324,10 @@ export function SubscriptionsPage() {
             <SkeletonTable rows={6} cols={10} />
           </>
         ) : subs.length === 0 ? (
-          <div
-            className="card"
-            style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}
-          >
-            <Calendar
-              className="w-12 h-12 text-muted"
-              style={{ margin: '0 auto 1rem', opacity: 0.4 }}
-            />
-            <p style={{ margin: 0, fontSize: '0.925rem' }}>
-              No subscriptions detected matching the status filter. Run a scan or sync your bank
-              feeds to detect payments.
-            </p>
-          </div>
+          <EmptyState
+            icon={Calendar}
+            title="No subscriptions detected matching the status filter. Run a scan or sync your bank feeds to detect payments."
+          />
         ) : (
           <>
             <div className="subscriptions-table-view table-premium-container">
@@ -419,7 +431,12 @@ export function SubscriptionsPage() {
                           <td>
                             <div style={{ display: 'flex', gap: '0.25rem' }}>
                               {Array.from(distinctStatuses).map((s) => (
-                                <StatusPill key={s} status={s} />
+                                <StatusBadge
+                                  key={s}
+                                  status={s}
+                                  tones={SUBSCRIPTION_TONES}
+                                  label={SUBSCRIPTION_LABELS[s]}
+                                />
                               ))}
                             </div>
                           </td>
@@ -482,7 +499,7 @@ export function SubscriptionsPage() {
       >
         <Info
           className="w-5 h-5 text-accent-primary"
-          style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--accent-primary)' }}
+          style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--text-link)' }}
         />
         <div>
           <strong style={{ color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>
@@ -529,7 +546,7 @@ function SubRow({
               navigate(`/subscriptions/${s.id}`);
             }}
             href={`/subscriptions/${s.id}`}
-            style={{ fontWeight: 600, color: 'var(--accent-primary)', textDecoration: 'none' }}
+            style={{ fontWeight: 600, color: 'var(--text-link)', textDecoration: 'none' }}
           >
             {s.merchant_name}
           </a>
@@ -552,7 +569,11 @@ function SubRow({
       <td style={{ textAlign: 'right' }}>{monthly > 0 ? formatMoney(monthly) : '—'}</td>
       <td style={{ textAlign: 'right' }}>{annual > 0 ? formatMoney(annual) : '—'}</td>
       <td>
-        <StatusPill status={s.status} />
+        <StatusBadge
+          status={s.status}
+          tones={SUBSCRIPTION_TONES}
+          label={SUBSCRIPTION_LABELS[s.status]}
+        />
       </td>
       <td>
         <ClassificationControls s={s} setFlag={setFlag} />
@@ -603,7 +624,7 @@ function SubscriptionCard({
             href={`/subscriptions/${s.id}`}
             style={{
               fontWeight: 700,
-              color: 'var(--accent-primary)',
+              color: 'var(--text-link)',
               textDecoration: 'none',
             }}
           >
@@ -613,14 +634,26 @@ function SubscriptionCard({
             {sourceHint}
           </div>
         </div>
-        <StatusPill status={s.status} />
+        <StatusBadge
+          status={s.status}
+          tones={SUBSCRIPTION_TONES}
+          label={SUBSCRIPTION_LABELS[s.status]}
+        />
       </div>
 
       <div className="subscription-mobile-card__metrics">
-        <Metric label="Cadence" value={s.cadence} />
-        <Metric label="Amount" value={s.amount_cents > 0 ? formatMoney(s.amount_cents) : '—'} />
-        <Metric label="Monthly Eq." value={monthly > 0 ? formatMoney(monthly) : '—'} />
-        <Metric label="Annual Eq." value={annual > 0 ? formatMoney(annual) : '—'} />
+        <Stat variant="inline" label="Cadence" value={s.cadence} />
+        <Stat
+          variant="inline"
+          label="Amount"
+          value={s.amount_cents > 0 ? formatMoney(s.amount_cents) : '—'}
+        />
+        <Stat
+          variant="inline"
+          label="Monthly Eq."
+          value={monthly > 0 ? formatMoney(monthly) : '—'}
+        />
+        <Stat variant="inline" label="Annual Eq." value={annual > 0 ? formatMoney(annual) : '—'} />
       </div>
 
       <div className="subscription-mobile-card__row">
@@ -635,15 +668,6 @@ function SubscriptionCard({
         <SubscriptionActions s={s} setStatus={setStatus} refresh={refresh} />
       </div>
     </article>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
   );
 }
 
@@ -670,7 +694,7 @@ function ClassificationControls({
           backgroundColor:
             s.is_business && !s.is_personal ? 'var(--bg-success-subtle)' : 'var(--bg-hover)',
           color: s.is_business && !s.is_personal ? 'var(--text-success)' : 'var(--text-muted)',
-          border: `1px solid ${s.is_business && !s.is_personal ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-subtle)'}`,
+          border: `1px solid ${s.is_business && !s.is_personal ? 'var(--border-success)' : 'var(--border-subtle)'}`,
         }}
       >
         Biz
@@ -688,7 +712,7 @@ function ClassificationControls({
           fontSize: '0.7rem',
           backgroundColor: s.is_personal ? 'var(--bg-warning-subtle)' : 'var(--bg-hover)',
           color: s.is_personal ? 'var(--text-warning)' : 'var(--text-muted)',
-          border: `1px solid ${s.is_personal ? 'rgba(245, 158, 11, 0.2)' : 'var(--border-subtle)'}`,
+          border: `1px solid ${s.is_personal ? 'var(--border-warning)' : 'var(--border-subtle)'}`,
         }}
       >
         Personal
@@ -786,86 +810,4 @@ function SubscriptionActions({
       />
     </div>
   );
-}
-
-function KpiCard({
-  label,
-  value,
-  icon,
-  accentColor,
-  sub,
-}: {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  accentColor: string;
-  sub?: string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        borderLeft: `4px solid ${accentColor}`,
-      }}
-    >
-      <div>
-        <div
-          style={{
-            fontSize: '0.75rem',
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            fontWeight: 600,
-            marginBottom: '0.35rem',
-          }}
-        >
-          {label}
-        </div>
-        <div
-          style={{
-            fontSize: '1.65rem',
-            color: 'var(--text-title)',
-            fontWeight: 700,
-            fontFamily: 'var(--font-title)',
-          }}
-        >
-          {value}
-        </div>
-        {sub && (
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            {sub}
-          </div>
-        )}
-      </div>
-      <div
-        style={{
-          padding: '0.5rem',
-          background: 'var(--bg-hover)',
-          borderRadius: 'var(--radius-sm)',
-        }}
-      >
-        {icon}
-      </div>
-    </div>
-  );
-}
-
-function StatusPill({ status }: { status: string }) {
-  switch (status) {
-    case 'confirmed':
-      return <span className="badge badge-success">Confirmed</span>;
-    case 'candidate':
-    case 'detected':
-      return <span className="badge badge-info">Candidate</span>;
-    case 'cancelled':
-      return <span className="badge badge-neutral">Cancelled</span>;
-    case 'dismissed':
-    case 'paused':
-      return <span className="badge badge-warning">Dismissed</span>;
-    default:
-      return <span className="badge badge-neutral">{status}</span>;
-  }
 }

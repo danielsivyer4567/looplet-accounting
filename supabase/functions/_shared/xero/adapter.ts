@@ -4,6 +4,11 @@
  *
  * Single-shot ACCPAY push on bill attachment to a job. Original-dated so
  * GST input credits land in the correct BAS quarter.
+ *
+ * A bill is only ever reported as synced with an InvoiceID that Xero returned.
+ * When Xero is not set up, turned off (XERO_STUB_MODE) or not connected for the
+ * organisation, nothing is sent and the result says `not_connected`; callers
+ * leave the bill `pending` (billXeroSyncUpdate). There is no placeholder id.
  */
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -39,10 +44,10 @@ interface PushArgs {
   job: { id: string; job_number: string; name: string };
 }
 
-interface PushResult {
-  xeroInvoiceId: string;
-  isStub: boolean;
-}
+/** Outcome of a push: `synced` only when Xero accepted the bill and returned its id. */
+export type PushResult =
+  | { status: 'synced'; xeroInvoiceId: string }
+  | { status: 'not_connected'; reason: string };
 
 async function loadGlEvidence(
   admin: SupabaseClient,
@@ -78,8 +83,47 @@ async function loadGlEvidence(
   };
 }
 
-function isStubModeRequested(): boolean {
-  return Deno.env.get('XERO_STUB_MODE') === 'true' || !Deno.env.get('XERO_CLIENT_ID');
+/** Why a bill cannot be sent to Xero for this organisation, or null when it can. */
+async function xeroNotConnectedReason(
+  admin: SupabaseClient,
+  organizationId: string,
+): Promise<string | null> {
+  if (Deno.env.get('XERO_STUB_MODE') === 'true') {
+    return 'Xero sync is turned off on this server, so nothing was sent to Xero.';
+  }
+  if (!Deno.env.get('XERO_CLIENT_ID')) {
+    return 'Xero is not set up on this server, so nothing was sent to Xero.';
+  }
+  const { data: integ } = await admin
+    .from('xero_integrations')
+    .select('id, xero_tenant_id, is_enabled')
+    .eq('organization_id', organizationId)
+    .eq('is_enabled', true)
+    .maybeSingle();
+  if (!integ?.xero_tenant_id) {
+    return 'Xero is not connected for this organisation, so nothing was sent to Xero.';
+  }
+  return null;
+}
+
+/**
+ * The bills columns to write after a push. Only an id Xero returned marks the
+ * bill synced; otherwise it stays pending (not connected is not a failure).
+ */
+export function billXeroSyncUpdate(
+  result: PushResult,
+  syncedAtIso: string,
+):
+  | { xero_status: 'synced'; xero_invoice_id: string; xero_synced_at: string }
+  | { xero_status: 'pending' } {
+  if (result.status === 'synced') {
+    return {
+      xero_status: 'synced',
+      xero_invoice_id: result.xeroInvoiceId,
+      xero_synced_at: syncedAtIso,
+    };
+  }
+  return { xero_status: 'pending' };
 }
 
 function validateBillForXero(bill: BillForPush): string | null {
@@ -90,51 +134,18 @@ function validateBillForXero(bill: BillForPush): string | null {
 }
 
 export async function pushBillToXero(args: PushArgs): Promise<PushResult> {
+  // Not connected: send nothing, log nothing, invent no id.
+  const reason = await xeroNotConnectedReason(args.admin, args.organizationId);
+  if (reason) return { status: 'not_connected', reason };
+
   const v = validateBillForXero(args.bill);
   if (v) throw new Error(v);
 
-  // Decide stub vs real
-  let useStub = isStubModeRequested();
-  if (!useStub) {
-    const { data: integ } = await args.admin
-      .from('xero_integrations')
-      .select('id, xero_tenant_id, is_enabled')
-      .eq('organization_id', args.organizationId)
-      .eq('is_enabled', true)
-      .maybeSingle();
-    if (!integ?.xero_tenant_id) {
-      useStub = true; // No active integration → fall back to stub
-    }
-  }
-
-  if (useStub) return pushBillStub(args);
-  return pushBillReal(args);
+  const xeroInvoiceId = await pushBillReal(args);
+  return { status: 'synced', xeroInvoiceId };
 }
 
-async function pushBillStub(args: PushArgs): Promise<PushResult> {
-  const stubId = `STUB-${args.bill.id.slice(0, 8).toUpperCase()}`;
-  const idempotencyKey = await resolveXeroIdempotencyKey(undefined, [
-    'xero',
-    'bill',
-    args.organizationId,
-    args.bill.id,
-  ]);
-  const glEvidence = await loadGlEvidence(args.admin, args.organizationId, 'bill', args.bill.id);
-  await args.admin.from('xero_sync_log').insert({
-    organization_id: args.organizationId,
-    record_type: 'bill',
-    record_id: args.bill.id,
-    xero_id: stubId,
-    operation: 'push',
-    status: 'success',
-    idempotency_key: idempotencyKey,
-    request: { stub: true, jobNumber: args.job.job_number },
-    response: { stub: true, id: stubId, looplet_gl_evidence: glEvidence },
-  });
-  return { xeroInvoiceId: stubId, isStub: true };
-}
-
-async function pushBillReal(args: PushArgs): Promise<PushResult> {
+async function pushBillReal(args: PushArgs): Promise<string> {
   const { admin, organizationId, bill, job } = args;
 
   // 1. Resolve / create Xero contact for the supplier
@@ -204,7 +215,7 @@ async function pushBillReal(args: PushArgs): Promise<PushResult> {
     response: { ...data, looplet_gl_evidence: glEvidence },
   });
 
-  return { xeroInvoiceId, isStub: false };
+  return xeroInvoiceId;
 }
 
 async function resolveOrCreateContact(

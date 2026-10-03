@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run tests/security/edge-auth-guards.test.ts"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+No test files found, exiting with code 1
+
+filter: tests/security/edge-auth-guards.test.ts
+include: tests/**/*.test.ts, src/**/*.test.{ts,tsx}
+exclude:  node_modules, dist
+

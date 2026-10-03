@@ -109,7 +109,7 @@ dxoikltymmknxqpkpyhi` deployed `team-invite` v37.
 This slice ships the accountant-portal accept-invite RPC, the tag-drop schema +
 data-plane functions, and the finish-line Wave A/B hardening migrations, then
 redeploys the `team-invite` edge function. The broader local migration
-ceiling is now `20260703160000_xero_webhook_events.sql`; use
+ceiling is now `20261003190000_payg_tables_2025_26.sql`; use
 `docs/MIGRATION_BASELINE_RUNBOOK.md` for full-release baseline proof before any
 production migration apply.
 

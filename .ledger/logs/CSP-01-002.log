@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run tests/security/csp-headers.test.ts"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  12:44:33
+   Duration  257ms (transform 31ms, setup 66ms, import 49ms, tests 38ms, environment 0ms)
+

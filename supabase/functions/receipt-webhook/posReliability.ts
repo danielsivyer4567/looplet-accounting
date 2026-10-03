@@ -38,10 +38,18 @@ export interface IdempotencyInput {
   eventType?: ReceiptEventType;
 }
 
+/**
+ * How the receipt's GST was established, stored as receipt_audit_packages.gst_status:
+ * - supplied: the receipt shows GST (or a subtotal, so GST is total minus subtotal);
+ * - none: the receipt shows no GST, or the merchant is not registered for GST, so there is no credit;
+ * - review: the receipt does not show GST. GST stays unknown and no credit is recorded.
+ */
+export type ReceiptGstStatus = 'supplied' | 'none' | 'review';
+
 export interface ReceiptTaxBreakdown {
-  subtotalCents: number;
-  gstCents: number;
-  gstEstimated: boolean;
+  subtotalCents: number | null;
+  gstCents: number | null;
+  gstStatus: ReceiptGstStatus;
 }
 
 export class ReceiptValidationError extends Error {}
@@ -204,11 +212,18 @@ export function assertReceiptIsRetrySafe(idempotencyKey: string | null): asserts
   }
 }
 
+/**
+ * Reads the receipt's GST without inventing any. A total on its own does not show GST: the sale may
+ * be GST-free or the merchant may not be registered for GST, so GST is left unknown for review
+ * rather than assumed to be 1/11. You can't claim a GST credit for purchases with no GST in the
+ * price, including from a supplier that is not registered for GST:
+ * https://www.ato.gov.au/businesses-and-organisations/gst-excise-and-indirect-taxes/gst/claiming-gst-credits/when-you-cannot-claim-a-gst-credit
+ */
 export function normalizeReceiptTaxBreakdown(
   totalCents: number,
   suppliedGstValue: unknown,
   suppliedSubtotalValue: unknown,
-  options: { requireBothSupplied?: boolean } = {},
+  options: { requireBothSupplied?: boolean; merchantGstRegistered?: boolean | null } = {},
 ): ReceiptTaxBreakdown {
   if (!Number.isInteger(totalCents) || totalCents < 0) {
     throw new ReceiptValidationError('receipt.total_inc_gst_cents must be whole cents');
@@ -240,14 +255,29 @@ export function normalizeReceiptTaxBreakdown(
     throw new ReceiptValidationError('receipt subtotal + GST must match receipt.total_inc_gst_cents');
   }
 
-  const gstCents = suppliedGst ??
-    (suppliedSubtotal != null ? Math.max(totalCents - suppliedSubtotal, 0) : Math.round(totalCents / 11));
-  const subtotalCents = suppliedSubtotal ?? Math.max(totalCents - gstCents, 0);
-  return {
-    subtotalCents,
-    gstCents,
-    gstEstimated: suppliedGst == null && suppliedSubtotal == null,
-  };
+  if (options.merchantGstRegistered === false) {
+    // A merchant that is not registered for GST can't charge it, so there is no credit to claim.
+    if (suppliedGst != null && suppliedGst > 0) {
+      throw new ReceiptValidationError(
+        'receipt.gst_cents must be 0 when merchant.gst_registered is false',
+      );
+    }
+    return { subtotalCents: totalCents, gstCents: 0, gstStatus: 'none' };
+  }
+
+  if (suppliedGst != null) {
+    return {
+      subtotalCents: suppliedSubtotal ?? totalCents - suppliedGst,
+      gstCents: suppliedGst,
+      gstStatus: suppliedGst === 0 ? 'none' : 'supplied',
+    };
+  }
+  if (suppliedSubtotal != null) {
+    const gstCents = totalCents - suppliedSubtotal;
+    return { subtotalCents: suppliedSubtotal, gstCents, gstStatus: gstCents === 0 ? 'none' : 'supplied' };
+  }
+  // Neither GST nor subtotal on the receipt: GST is unknown. Do not assume 1/11.
+  return { subtotalCents: null, gstCents: null, gstStatus: 'review' };
 }
 
 export function assertReceiptOriginalReferencePresent(

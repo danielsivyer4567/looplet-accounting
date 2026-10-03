@@ -23,7 +23,12 @@ vi.mock('@/lib/supabase', () => {
     let operation: 'select' | 'insert' | 'update' | 'delete' = 'select';
     const resolved = () => h.tables[table] ?? { data: [], error: null };
     const terminal = () =>
-      Promise.resolve(operation === 'select' ? resolved() : { data: null, error: null });
+      // Updates end in .select('id') and get the changed row back, as PostgREST returns it.
+      Promise.resolve(
+        operation === 'select'
+          ? resolved()
+          : { data: operation === 'update' ? [{ id: table }] : null, error: null },
+      );
     const chain: Record<string, unknown> = {};
     const pass = () => chain;
     [

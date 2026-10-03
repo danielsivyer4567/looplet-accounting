@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { DEFAULT_TIME_ZONE, localDateParts } from '@/lib/localDates';
 
 export interface TparPaymentRow {
   bill_id: string;
@@ -71,9 +72,13 @@ export interface TparReportPayload {
   };
 }
 
-/** Most recent completed AU financial year start year. FY runs 1 July - 30 June. */
-export function latestCompletedTparFyStartYear(today = new Date()): number {
-  return today.getMonth() >= 6 ? today.getFullYear() - 1 : today.getFullYear() - 2;
+/** Most recent completed AU financial year start year. FY runs 1 July - 30 June, judged in Australian time. */
+export function latestCompletedTparFyStartYear(
+  today = new Date(),
+  timeZone = DEFAULT_TIME_ZONE,
+): number {
+  const { year, month } = localDateParts(today, timeZone);
+  return month >= 7 ? year - 1 : year - 2;
 }
 
 export function tparFyLabel(fyStartYear: number): string {

@@ -6,7 +6,6 @@ import { formatMoney, formatMoneyCompact } from '@/lib/money';
 import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { SkeletonTable } from '@/components/Skeleton';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
-import { AnimatedNumber } from '@/components/AnimatedNumber';
 import {
   Plus,
   CreditCard,
@@ -21,6 +20,9 @@ import {
   TrendingDown,
   X,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Stat } from '@/components/ui/Stat';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface Debt {
   id: string;
@@ -68,10 +70,7 @@ function getDebtIcon(kind: string) {
     case 'personal_loan':
     case 'business_loan':
       return (
-        <Landmark
-          className="w-4 h-4 text-accent-primary"
-          style={{ color: 'var(--accent-primary)' }}
-        />
+        <Landmark className="w-4 h-4 text-accent-primary" style={{ color: 'var(--text-link)' }} />
       );
     case 'mortgage':
       return (
@@ -205,7 +204,7 @@ export function DebtsPage() {
             marginBottom: '0.5rem',
           }}
         >
-          <h1 style={{ margin: 0 }}>Debts Tracker</h1>
+          <PageHeader title="Debts Tracker" />
           <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
             <Plus className="w-4 h-4" /> Add Debt
           </button>
@@ -225,25 +224,25 @@ export function DebtsPage() {
           gap: '1rem',
         }}
       >
-        <KpiCard
+        <Stat
           label="Business Debt"
           value={businessDebt}
           formatter={formatMoney}
           icon={<Briefcase className="w-5 h-5" style={{ color: 'var(--accent-danger)' }} />}
           accentColor="var(--accent-danger)"
         />
-        <KpiCard
+        <Stat
           label="Personal Debt"
           value={personalDebt}
           formatter={formatMoney}
           icon={<User className="w-5 h-5" style={{ color: 'var(--accent-warning)' }} />}
           accentColor="var(--accent-warning)"
         />
-        <KpiCard
+        <Stat
           label="Min Monthly Payments"
           value={totalMinPayments}
           formatter={formatMoney}
-          icon={<Calendar className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />}
+          icon={<Calendar className="w-5 h-5" style={{ color: 'var(--text-link)' }} />}
           accentColor="var(--accent-primary)"
           sub="all debts combined"
         />
@@ -295,11 +294,12 @@ export function DebtsPage() {
             <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <TrendingDown
                 className="w-5 h-5 text-accent-primary"
-                style={{ color: 'var(--accent-primary)' }}
+                style={{ color: 'var(--text-link)' }}
               />
               Add New Debt Account
             </h3>
             <button
+              aria-label="Close"
               className="btn btn-ghost"
               onClick={() => setShowAdd(false)}
               style={{ padding: '0.25rem' }}
@@ -330,18 +330,10 @@ export function DebtsPage() {
             {loadError}
           </div>
         ) : debts.length === 0 ? (
-          <div
-            className="card"
-            style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}
-          >
-            <Landmark
-              className="w-12 h-12 text-muted"
-              style={{ margin: '0 auto 1rem', opacity: 0.4 }}
-            />
-            <p style={{ margin: 0, fontSize: '0.925rem' }}>
-              No debts tracked yet. Add one to start watching the cash bleed.
-            </p>
-          </div>
+          <EmptyState
+            icon={Landmark}
+            title="No debts tracked yet. Add one to start watching the cash bleed."
+          />
         ) : (
           <>
             <div className="debts-table-view table-premium-container">
@@ -441,7 +433,7 @@ export function DebtsPage() {
                         }}
                         style={{
                           fontWeight: 700,
-                          color: 'var(--accent-primary)',
+                          color: 'var(--text-link)',
                           textDecoration: 'none',
                         }}
                       >
@@ -558,7 +550,7 @@ export function DebtsPage() {
       >
         <Info
           className="w-5 h-5 text-accent-primary"
-          style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--accent-primary)' }}
+          style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--text-link)' }}
         />
         <div>
           <strong style={{ color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>
@@ -729,73 +721,6 @@ function AddDebtForm({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
           {err}
         </div>
       )}
-    </div>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  icon,
-  accentColor,
-  sub,
-  formatter,
-}: {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  accentColor: string;
-  sub?: string;
-  formatter?: (val: number) => string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        borderLeft: `4px solid ${accentColor}`,
-      }}
-    >
-      <div>
-        <div
-          style={{
-            fontSize: '0.75rem',
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            fontWeight: 600,
-            marginBottom: '0.35rem',
-          }}
-        >
-          {label}
-        </div>
-        <div
-          style={{
-            fontSize: '1.65rem',
-            color: 'var(--text-title)',
-            fontWeight: 700,
-            fontFamily: 'var(--font-title)',
-          }}
-        >
-          <AnimatedNumber value={value} formatter={formatter} />
-        </div>
-        {sub && (
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            {sub}
-          </div>
-        )}
-      </div>
-      <div
-        style={{
-          padding: '0.5rem',
-          background: 'var(--bg-hover)',
-          borderRadius: 'var(--radius-sm)',
-        }}
-      >
-        {icon}
-      </div>
     </div>
   );
 }

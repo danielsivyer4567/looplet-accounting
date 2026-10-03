@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { rememberOAuthState } from '@/lib/oauthState';
 import { useOrg } from '@/hooks/useOrg';
 import { SkeletonCard } from '@/components/Skeleton';
 import { formatLoadError } from '@/lib/errorMessages';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 interface XeroIntegration {
   id: string;
@@ -93,8 +95,8 @@ export function XeroConnect() {
       const body = await res.json();
       if (!res.ok || !body.ok) throw new Error(body.error ?? `${res.status}`);
 
-      // Store state for CSRF validation in the callback
-      sessionStorage.setItem('xero_oauth_state', body.state);
+      // The callback page only finishes a connection whose state this tab stored.
+      rememberOAuthState('xero_oauth_state', body.state);
       window.location.href = body.auth_url;
     } catch (e) {
       setError(`Could not start Xero connection. ${e instanceof Error ? e.message : String(e)}`);
@@ -178,7 +180,7 @@ export function XeroConnect() {
   return (
     <div style={{ marginTop: '2rem' }}>
       <h2 style={{ fontSize: 18, marginBottom: '0.5rem' }}>Xero</h2>
-      <p style={{ color: '#888', fontSize: 13, marginBottom: '1rem', maxWidth: 720 }}>
+      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: '1rem', maxWidth: 720 }}>
         Connect your Xero organisation to push bills as ACCPAY and invoices as ACCREC. Payments
         recorded in Xero sync back nightly. Account codes and tax types are mapped per
         supplier/customer via intake rules.
@@ -200,7 +202,10 @@ export function XeroConnect() {
                 <span style={{ fontSize: 15, fontWeight: 600 }}>
                   {integration.xero_tenant_name}
                 </span>
-                <StatusPill status={integration.status} />
+                <StatusBadge
+                  tones={{ active: 'success', expired: 'danger', error: 'danger' }}
+                  status={integration.status}
+                />
               </div>
               <div style={metaRow}>
                 <span style={metaLabel}>Tenant ID</span>
@@ -225,10 +230,10 @@ export function XeroConnect() {
                   style={{
                     marginTop: 8,
                     padding: '6px 10px',
-                    background: '#3d1818',
+                    background: 'var(--bg-danger-subtle)',
                     borderRadius: 4,
                     fontSize: 12,
-                    color: '#e9a3a3',
+                    color: 'var(--text-danger)',
                     maxWidth: 520,
                   }}
                 >
@@ -269,45 +274,18 @@ export function XeroConnect() {
         </div>
       )}
       {successMessage && (
-        <p style={{ color: '#86c7a3', fontSize: 12, marginTop: '0.5rem' }}>{successMessage}</p>
+        <p style={{ color: 'var(--text-success)', fontSize: 12, marginTop: '0.5rem' }}>
+          {successMessage}
+        </p>
       )}
     </div>
   );
 }
 
-function StatusPill({ status }: { status: string }) {
-  const colour =
-    status === 'active'
-      ? '#86c7a3'
-      : status === 'expired' || status === 'error'
-        ? '#e9a3a3'
-        : '#888';
-  const bg =
-    status === 'active'
-      ? '#0d2f1f'
-      : status === 'expired' || status === 'error'
-        ? '#3d1818'
-        : '#2a2a2a';
-  return (
-    <span
-      style={{
-        padding: '0.15rem 0.5rem',
-        fontSize: 11,
-        borderRadius: 3,
-        background: bg,
-        color: colour,
-        textTransform: 'uppercase',
-      }}
-    >
-      {status}
-    </span>
-  );
-}
-
 const card: React.CSSProperties = {
   padding: 16,
-  background: '#0e0e0e',
-  border: '1px solid #2a2a2a',
+  background: 'var(--bg-panel)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: 6,
   maxWidth: 720,
 };
@@ -319,13 +297,13 @@ const metaRow: React.CSSProperties = {
   marginBottom: 4,
 };
 
-const metaLabel: React.CSSProperties = { color: '#888', minWidth: 100 };
-const metaValue: React.CSSProperties = { color: '#ccc' };
+const metaLabel: React.CSSProperties = { color: 'var(--text-muted)', minWidth: 100 };
+const metaValue: React.CSSProperties = { color: 'var(--text-body)' };
 
 const btnPrimXero: React.CSSProperties = {
   padding: '0.5rem 1rem',
-  background: '#1a3d6b',
-  color: '#fff',
+  background: 'var(--bg-info-subtle)',
+  color: 'var(--text-title)',
   border: '1px solid #1ab4d7',
   borderRadius: 4,
   cursor: 'pointer',
@@ -336,8 +314,8 @@ const btnPrimXero: React.CSSProperties = {
 const btnSmall: React.CSSProperties = {
   padding: '0.25rem 0.75rem',
   background: 'transparent',
-  color: '#aaa',
-  border: '1px solid #2a2a2a',
+  color: 'var(--text-muted)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: 3,
   cursor: 'pointer',
   fontSize: 12,
@@ -345,6 +323,6 @@ const btnSmall: React.CSSProperties = {
 
 const btnDanger: React.CSSProperties = {
   ...btnSmall,
-  color: '#e9a3a3',
-  border: '1px solid #4a2828',
+  color: 'var(--text-danger)',
+  border: '1px solid var(--accent-danger)',
 };

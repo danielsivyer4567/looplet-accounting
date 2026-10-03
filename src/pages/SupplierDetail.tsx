@@ -15,8 +15,12 @@ import {
   DollarSign,
   Wallet,
   FileSpreadsheet,
-  type LucideIcon,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Field } from '@/components/ui/Field';
+import { Stat } from '@/components/ui/Stat';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 interface Supplier {
   id: string;
@@ -166,10 +170,13 @@ export function SupplierDetailPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Building2 size={24} style={{ color: 'var(--accent-primary)' }} />
-          {supplier.name}
-        </h1>
+        <PageHeader
+          title={
+            <>
+              <Building2 size={24} style={{ color: 'var(--text-link)' }} /> {supplier.name}
+            </>
+          }
+        />
 
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
@@ -329,12 +336,25 @@ export function SupplierDetailPage() {
             marginBottom: '1.5rem',
           }}
         >
-          <Stat label="ABN" value={supplier.abn ?? '—'} />
-          <Stat label="Email" value={supplier.email ?? '—'} />
-          <Stat label="Phone" value={supplier.contact_phone ?? '—'} />
-          <Stat label="Default Account Code" value={supplier.default_account_code ?? '—'} mono />
-          <Stat label="Payment Terms" value={`${supplier.payment_terms_days} days`} />
-          <Stat label="Created" value={new Date(supplier.created_at).toLocaleDateString()} />
+          <Stat variant="inline" label="ABN" value={supplier.abn ?? '—'} />
+          <Stat variant="inline" label="Email" value={supplier.email ?? '—'} />
+          <Stat variant="inline" label="Phone" value={supplier.contact_phone ?? '—'} />
+          <Stat
+            variant="inline"
+            label="Default Account Code"
+            value={supplier.default_account_code ?? '—'}
+            mono
+          />
+          <Stat
+            variant="inline"
+            label="Payment Terms"
+            value={`${supplier.payment_terms_days} days`}
+          />
+          <Stat
+            variant="inline"
+            label="Created"
+            value={new Date(supplier.created_at).toLocaleDateString()}
+          />
         </div>
       )}
 
@@ -347,18 +367,18 @@ export function SupplierDetailPage() {
           marginBottom: '2.5rem',
         }}
       >
-        <Kpi label="Total Spend" value={formatMoney(totalSpend)} type="neutral" icon={Wallet} />
-        <Kpi
+        <Stat label="Total Spend" value={formatMoney(totalSpend)} tone="neutral" icon={Wallet} />
+        <Stat
           label="Balance Owing"
           value={formatMoney(balanceOwing)}
-          type={balanceOwing > 0 ? 'danger' : 'neutral'}
+          tone={balanceOwing > 0 ? 'danger' : 'neutral'}
           icon={DollarSign}
           sub={`${unpaid.length} unpaid`}
         />
-        <Kpi
+        <Stat
           label="Bills Received"
           value={String(bills.length)}
-          type="info"
+          tone="info"
           icon={FileSpreadsheet}
           sub={`${billsAttached} attached to jobs`}
         />
@@ -378,19 +398,7 @@ export function SupplierDetailPage() {
         Bills from this supplier
       </h2>
       {bills.length === 0 ? (
-        <div
-          style={{
-            padding: '2rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '0.875rem',
-          }}
-        >
-          No bills yet from this supplier.
-        </div>
+        <EmptyState>No bills yet from this supplier.</EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">
@@ -417,7 +425,10 @@ export function SupplierDetailPage() {
                   <td>{b.invoice_date ?? '—'}</td>
                   <td>{b.due_date ?? '—'}</td>
                   <td>
-                    <Pill status={b.status} />
+                    <StatusBadge
+                      tones={{ attached: 'info', verified: 'success' }}
+                      status={b.status}
+                    />
                   </td>
                   <td>
                     {b.job_id ? (
@@ -441,121 +452,4 @@ export function SupplierDetailPage() {
       )}
     </section>
   );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="form-group" style={{ marginBottom: 0 }}>
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>
-        {label}
-      </span>
-      <div style={{ marginTop: '0.25rem' }}>{children}</div>
-    </div>
-  );
-}
-
-function Stat({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div>
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.25rem',
-          color: 'var(--text-title)',
-          fontSize: '0.9rem',
-          fontWeight: 600,
-          fontFamily: mono ? 'var(--font-mono, monospace)' : 'inherit',
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function Kpi({
-  label,
-  value,
-  type,
-  icon: Icon,
-  sub,
-}: {
-  label: string;
-  value: string;
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
-  icon: LucideIcon;
-  sub?: string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.5rem',
-          color: 'var(--text-title)',
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        {value}
-      </div>
-      {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-          {sub}
-        </div>
-      ) : (
-        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
-      )}
-      <div
-        style={{
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
-          opacity: 0.7,
-        }}
-      >
-        <Icon size={18} />
-      </div>
-    </div>
-  );
-}
-
-function Pill({ status }: { status: string }) {
-  let badgeClass = 'badge-neutral';
-  if (status === 'paid' || status === 'completed' || status === 'active' || status === 'verified')
-    badgeClass = 'badge-success';
-  else if (status === 'attached' || status === 'sent') badgeClass = 'badge-info';
-  else if (status === 'partially_paid' || status === 'draft') badgeClass = 'badge-warning';
-  else if (status === 'void' || status === 'overdue') badgeClass = 'badge-danger';
-
-  return <span className={`badge ${badgeClass}`}>{status.replace('_', ' ')}</span>;
 }

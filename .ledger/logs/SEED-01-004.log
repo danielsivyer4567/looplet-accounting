@@ -1,0 +1,4 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/db/run-pg-sql-tests.mjs tests/db-sql/known-senders-seed.sql"
+migrations: 286 applied, 9 known failures, 0 problems (295 files)
+PASS tests/db-sql/known-senders-seed.sql
+  NOTICE:  Known senders seed: 13 checks passed (new orgs inherit nothing, pilot keeps its 723 rows, RLS per org)

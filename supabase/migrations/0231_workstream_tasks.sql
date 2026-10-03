@@ -6,26 +6,34 @@
 -- standard workstream_task shape.
 --
 -- SECURITY INVOKER — RLS on each underlying table/view scopes the caller.
+--
+-- MIG-01 repair (2026-10-03): this file is a renumbered copy of 0200_workstream_tasks.sql,
+-- which creates the same objects earlier in a fresh database. Live ran this copy
+-- (0231, recorded 2026-06-30) with non-idempotent CREATEs, so 0200_workstream_tasks.sql cannot
+-- have run there first. This file is kept and made idempotent instead of deleted:
+-- CREATE TYPE public.workstream_task is skipped when the type exists. On live the result is unchanged.
 -- ============================================================================
 
 -- -- Composite type -----------------------------------------------------------
 
-CREATE TYPE public.workstream_task AS (
-  id                uuid,
-  organization_id   uuid,
-  task_kind         text,
-  owner_label       text,
-  why_now           text,
-  source_refs       jsonb,
-  suggested_action  text,
-  confidence        text,
-  impact_cents      bigint,
-  due_at            timestamptz,
-  blocking_reason   text,
-  completion_event  jsonb,
-  urgency           integer,
-  created_at        timestamptz
-);
+DO $$ BEGIN
+  CREATE TYPE public.workstream_task AS (
+    id                uuid,
+    organization_id   uuid,
+    task_kind         text,
+    owner_label       text,
+    why_now           text,
+    source_refs       jsonb,
+    suggested_action  text,
+    confidence        text,
+    impact_cents      bigint,
+    due_at            timestamptz,
+    blocking_reason   text,
+    completion_event  jsonb,
+    urgency           integer,
+    created_at        timestamptz
+  );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 COMMENT ON TYPE public.workstream_task IS
   'Single row in the owner-facing Today feed. Each row is derived from an '

@@ -4,6 +4,7 @@
 // Fails with FORBIDDEN if ATO DSP credentials absent.
 // This is the primary gate for lodge operations.
 
+import { corsHeaders } from "../_shared/cors.ts";
 import { lodgeOperationsHealth, type LodgeOperationsHealth } from "../_shared/lodge/operations-health.ts";
 
 export interface LodgeReadyResult {
@@ -55,8 +56,8 @@ Deno.serve(async (req: Request) => {
   return new Response(JSON.stringify(result), {
     status: result.allowed ? 200 : 403,
     headers: {
+      ...corsHeaders,
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
     },
   });
 });

@@ -1,0 +1,5 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npm run typecheck"
+
+> looplet-accounting@0.1.0 typecheck
+> tsc -b --noEmit
+

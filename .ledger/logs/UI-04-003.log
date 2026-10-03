@@ -1,0 +1,2 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/check-a11y-tokens.mjs"
+Accessibility check passed: 122 token pairs meet WCAG AA in both themes, 1172 font sizes >= 11px, 382 buttons scanned and every icon-only one is named.

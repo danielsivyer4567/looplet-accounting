@@ -68,13 +68,18 @@ function rpcError(message: string) {
   return Promise.resolve({ data: null, error: { message } });
 }
 
+// A chainable stand-in for a Supabase query builder. Typed explicitly because each method returns the object itself.
+type TableQuery = Record<string, ReturnType<typeof vi.fn>>;
+
 function tableQuery(data: unknown, error: { message: string } | null = null) {
-  const query = {
+  const query: TableQuery = {
     select: vi.fn(() => query),
     eq: vi.fn(() => query),
     is: vi.fn(() => query),
     order: vi.fn(() => query),
-    then: vi.fn((resolve) => Promise.resolve({ data, error }).then(resolve)),
+    then: vi.fn((resolve: (value: unknown) => unknown) =>
+      Promise.resolve({ data, error }).then(resolve),
+    ),
   };
   return query;
 }

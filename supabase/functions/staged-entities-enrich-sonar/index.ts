@@ -14,7 +14,10 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { enforceAiQuota } from '../_shared/aiRateLimit.ts';
+import { boundedInt } from '../_shared/authGuards.ts';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { authorizeOrgCaller, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 
 const SONAR_URL = 'https://api.perplexity.ai/chat/completions';
 // 'sonar' = small online model. 'sonar-pro' is more expensive. Small is plenty for this.
@@ -65,13 +68,29 @@ Deno.serve(async (req) => {
     const body = (await req.json()) as RequestBody;
     if (!body.organization_id) return json({ ok: false, error: 'organization_id required' }, 400);
 
-    const batchSize = body.batch_size ?? 15;
-    const maxBatches = body.max_batches ?? 4;
-    const onlyUnenriched = body.only_unenriched !== false; // default true
-
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
+
+    // Enrichment spends Perplexity credit and rewrites the organisation's staged entities, so the caller must be the
+    // service role or an accepted accountant-or-higher member of that organisation.
+    const access = await authorizeOrgCaller(
+      req.headers.get('Authorization'),
+      body.organization_id,
+      supabaseOrgAccessDeps(admin, serviceKey),
+      'accountant',
+    );
+    if (!access.ok) return json({ ok: false, error: access.error }, access.status);
+    // Public sign-up makes anyone an owner of their own organisation, so members also get an hourly quota.
+    if (access.caller.kind === 'member') {
+      const limited = await enforceAiQuota(admin, access.caller.userId, 'staged_entities_enrich', corsHeaders);
+      if (limited) return limited;
+    }
+
+    // Caller-chosen sizes are capped so one request cannot run an unbounded paid batch.
+    const batchSize = boundedInt(body.batch_size, 15, 1, 25);
+    const maxBatches = boundedInt(body.max_batches, 4, 1, 10);
+    const onlyUnenriched = body.only_unenriched !== false; // default true
 
     // Load category catalogue (Sonar must pick from these)
     const { data: cats, error: catErr } = await admin
@@ -107,8 +126,15 @@ Deno.serve(async (req) => {
       try {
         const results = await classifyWithSonar(rows as CandidateRow[], catalogue, sonarKey);
 
-        // Persist results
+        // Persist results. Row ids come back in the model's reply, so only ids from this batch are accepted and every
+        // write is also scoped to the organisation: a crafted sender name must not steer a write to another row.
+        const batchIds = new Set(rows.map((row) => row.id));
         for (const r of results) {
+          if (!batchIds.has(r.id)) {
+            errors += 1;
+            console.error(`sonar returned an id outside this batch; ignored`);
+            continue;
+          }
           const validKind = ENTITY_KINDS.includes(r.kind as typeof ENTITY_KINDS[number]) ? r.kind : null;
           const validCategory = catalogue.find((c) => c.code === r.category)?.code ?? null;
 
@@ -124,7 +150,8 @@ Deno.serve(async (req) => {
           const { error: upErr } = await admin
             .from('staged_entities')
             .update(update)
-            .eq('id', r.id);
+            .eq('id', r.id)
+            .eq('organization_id', body.organization_id);
 
           if (upErr) {
             errors += 1;
@@ -142,7 +169,8 @@ Deno.serve(async (req) => {
             sonar_summary: `Enrichment error: ${err instanceof Error ? err.message : String(err)}`.slice(0, 280),
             sonar_enriched_at: new Date().toISOString(),
           })
-          .in('id', ids);
+          .in('id', ids)
+          .eq('organization_id', body.organization_id);
         errors += rows.length;
         unchanged += rows.length;
       }

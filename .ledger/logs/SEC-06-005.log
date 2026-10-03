@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run tests/security/ci-hardening.test.ts"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  22 passed (22)
+   Start at  15:04:56
+   Duration  199ms (transform 31ms, setup 65ms, import 22ms, tests 10ms, environment 0ms)
+

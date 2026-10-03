@@ -2,10 +2,11 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
-import { useBasWorksheet } from '@/hooks/useBasWorksheet';
+import { useBasWorksheet, type BasWorksheetPayload } from '@/hooks/useBasWorksheet';
 import { formatMoney } from '@/lib/money';
 import { formatLoadError } from '@/lib/errorMessages';
 import { downloadCsv } from '@/lib/csv';
+import { orgTimeZone, todayLocal } from '@/lib/localDates';
 import { SkeletonTable } from '@/components/Skeleton';
 import {
   ChevronLeft,
@@ -19,8 +20,10 @@ import {
   ShieldAlert,
   CheckCircle2,
   Loader2,
-  type LucideIcon,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Stat } from '@/components/ui/Stat';
 
 interface BasRow {
   fy_start_year: number;
@@ -113,8 +116,8 @@ export function BasReportPage() {
     }
     const last = rows[0];
     if (!last) return;
-    const today = new Date();
-    const filename = `bas-${last.fy_start_year}-Q${last.quarter_num}-export-${today.toISOString().slice(0, 10)}.csv`;
+    const today = todayLocal(orgTimeZone(currentOrg));
+    const filename = `bas-${last.fy_start_year}-Q${last.quarter_num}-export-${today}.csv`;
     const exportRows = rows.map((r) => ({
       FY: `${r.fy_start_year}-${(r.fy_start_year + 1).toString().slice(2)}`,
       Quarter: QUARTER_NAMES[r.quarter_num],
@@ -171,7 +174,7 @@ export function BasReportPage() {
         )}
       </div>
 
-      <h1 style={{ margin: 0 }}>BAS Quarterly (GST)</h1>
+      <PageHeader title="BAS Quarterly (GST)" />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -228,23 +231,23 @@ export function BasReportPage() {
           marginBottom: '2rem',
         }}
       >
-        <KpiCard
+        <Stat
           label="Net GST (Lifetime)"
           value={formatMoney(totalNet)}
-          type={totalNet > 0 ? 'danger' : 'success'}
+          tone={totalNet > 0 ? 'danger' : 'success'}
           icon={Calendar}
           sub={totalNet > 0 ? 'owed to ATO' : 'refundable'}
         />
-        <KpiCard
+        <Stat
           label="Total Sales ex GST"
           value={formatMoney(totalSales)}
-          type="success"
+          tone="success"
           icon={Wallet}
         />
-        <KpiCard
+        <Stat
           label="Total Purchases ex GST"
           value={formatMoney(totalPurchases)}
-          type="neutral"
+          tone="neutral"
           icon={DollarSign}
         />
       </div>
@@ -270,18 +273,9 @@ export function BasReportPage() {
           {error}
         </div>
       ) : rows.length === 0 ? (
-        <div
-          style={{
-            padding: '3rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
+        <EmptyState>
           No BAS data yet. Issue invoices and process bills to start a BAS rollup.
-        </div>
+        </EmptyState>
       ) : (
         <>
           <div className="bas-table-view table-premium-container">
@@ -320,7 +314,7 @@ export function BasReportPage() {
                           style={{
                             marginLeft: '0.5rem',
                             padding: '0.15rem 0.35rem',
-                            fontSize: '0.625rem',
+                            fontSize: '0.6875rem',
                           }}
                         >
                           OVERDUE
@@ -376,7 +370,7 @@ export function BasReportPage() {
                     </div>
                   </div>
                   {isOverdue(r.due_date) && r.net_gst_cents > 0 && (
-                    <span className="badge badge-danger" style={{ fontSize: '0.625rem' }}>
+                    <span className="badge badge-danger" style={{ fontSize: '0.6875rem' }}>
                       OVERDUE
                     </span>
                   )}
@@ -429,10 +423,7 @@ export function BasReportPage() {
           alignItems: 'flex-start',
         }}
       >
-        <Info
-          size={16}
-          style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }}
-        />
+        <Info size={16} style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }} />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
           <span
             style={{
@@ -449,6 +440,48 @@ export function BasReportPage() {
         </div>
       </div>
     </section>
+  );
+}
+
+/** Basis used, labels Looplet does not record, and items it could not place. */
+function BasWorksheetNotes({ worksheet }: { worksheet: BasWorksheetPayload }) {
+  const basis = worksheet.gst_accounting_basis === 'cash' ? 'Cash' : 'Accruals (non-cash)';
+  const basisSource =
+    worksheet.gst_accounting_basis_source === 'business_profile'
+      ? 'from your business profile'
+      : 'not chosen yet; set it in Settings > Business profile';
+  const notRecorded = worksheet.payg_withholding?.not_recorded ?? [];
+  const review = worksheet.needs_review ?? [];
+  return (
+    <div
+      style={{
+        fontSize: '0.8rem',
+        color: 'var(--text-muted)',
+        lineHeight: 1.5,
+        marginBottom: '1.25rem',
+      }}
+    >
+      <div>
+        GST accounting method: <strong style={{ color: 'var(--text-title)' }}>{basis}</strong> (
+        {basisSource}).
+      </div>
+      {notRecorded.length > 0 && (
+        <div>
+          {notRecorded.join(' and ')} not recorded in Looplet. If you withheld any of these amounts,
+          add them yourself before lodging.
+        </div>
+      )}
+      {review.length > 0 && (
+        <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }} aria-label="BAS items to check">
+          {review.map((item, i) => (
+            <li key={`${item.source_type}-${item.document_number ?? i}`}>
+              {item.document_number ? <strong>{item.document_number}: </strong> : null}
+              {item.note}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -470,72 +503,6 @@ function renderCoverage(c: CoverageRow | undefined) {
       {c.gst_ready ? '✓ ' : '⚠ '}
       <span>{c.coverage_pct}%</span>
     </span>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  type,
-  icon: Icon,
-  sub,
-}: {
-  label: string;
-  value: string;
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
-  icon: LucideIcon;
-  sub?: string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.5rem',
-          color: 'var(--text-title)',
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        {value}
-      </div>
-      {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-          {sub}
-        </div>
-      ) : (
-        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
-      )}
-      <div
-        style={{
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
-          opacity: 0.7,
-        }}
-      >
-        <Icon size={18} />
-      </div>
-    </div>
   );
 }
 
@@ -628,7 +595,7 @@ export function BasPrepCard({
     try {
       await requestLodgeApproval();
       setLodgeMsg(
-        'Draft lodgement created and approval requested. The BAS will only be submitted or marked lodged after the approved lodge flow completes.',
+        'BAS prepared and approval requested. Looplet does not lodge with the ATO: once it is approved, lodge it yourself or through your registered BAS or tax agent.',
       );
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e));
@@ -642,13 +609,14 @@ export function BasPrepCard({
       <div
         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}
       >
-        <FileText size={18} style={{ color: 'var(--accent-primary)' }} />
+        <FileText size={18} style={{ color: 'var(--text-link)' }} />
         <h2 style={{ margin: 0, fontSize: '1.1rem' }}>
           Prepare {quarterName} FY{fy}-{(fy + 1).toString().slice(2)} BAS
         </h2>
       </div>
       <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 1rem' }}>
-        Due {dueDate}. Review the worksheet, clear any blockers, then approve and lodge.
+        Due {dueDate}. Review the worksheet, clear any blockers and approve it, then lodge it with
+        the ATO yourself or through your agent. Looplet prepares the BAS; it does not lodge it.
       </p>
 
       {loading ? (
@@ -681,6 +649,8 @@ export function BasPrepCard({
               strong
             />
           </div>
+
+          <BasWorksheetNotes worksheet={worksheet} />
 
           <div style={{ marginBottom: '1.25rem' }}>
             <BlockerRow
@@ -733,12 +703,12 @@ export function BasPrepCard({
                 blocked
                   ? hasUnavailableCheck
                     ? 'Required BAS checks are unavailable'
-                    : 'Clear blockers before lodging'
-                  : 'Open a Tier-2 approval request'
+                    : 'Clear blockers before approving'
+                  : 'Open a Tier-2 approval request for the prepared BAS'
               }
             >
               {busy === 'lodge' ? <Loader2 size={14} /> : <ShieldAlert size={14} />}
-              <span>Request lodge approval</span>
+              <span>Request approval of prepared BAS</span>
             </button>
           </div>
           {lodgeMsg && (

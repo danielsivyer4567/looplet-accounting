@@ -1,0 +1,12 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/pages/LodgementWording.test.tsx"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  13:34:20
+   Duration  1.32s (transform 255ms, setup 60ms, import 425ms, tests 259ms, environment 472ms)
+
+Not implemented: navigation to another Document
+Not implemented: navigation to another Document

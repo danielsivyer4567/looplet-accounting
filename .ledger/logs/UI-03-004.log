@@ -1,0 +1,33 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/components/LayoutResponsive.test.tsx"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+ ❯ |unit| src/test/components/LayoutResponsive.test.tsx (0 test)
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  14:20:54
+   Duration  809ms (transform 94ms, setup 53ms, import 0ms, tests 0ms, environment 450ms)
+
+stderr | src/test/components/LayoutResponsive.test.tsx
+Missing Supabase config: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |unit| src/test/components/LayoutResponsive.test.tsx [ src/test/components/LayoutResponsive.test.tsx ]
+Error: supabaseUrl is required.
+ ❯ validateSupabaseUrl node_modules/@supabase/supabase-js/src/lib/helpers.ts:111:10
+ ❯ new SupabaseClient node_modules/@supabase/supabase-js/src/SupabaseClient.ts:314:20
+ ❯ Module.createClient node_modules/@supabase/supabase-js/src/index.ts:65:9
+ ❯ src/lib/supabase.ts:28:25
+     26|  * and the rest of the codebase gets full row/insert/update types for …
+     27|  */
+     28| export const supabase = createClient(url ?? '', anonKey ?? '', {
+       |                         ^
+     29|   auth: {
+     30|     persistSession: true,
+ ❯ src/components/AdvisorFinishButton.tsx:12:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

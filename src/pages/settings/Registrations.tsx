@@ -15,6 +15,7 @@ import {
   UserRound,
   Wand2,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 // Display a possibly-null field, formatting it when present (— when absent).
 const orDash = (value: unknown, format?: (v: never) => string): string =>
@@ -99,7 +100,7 @@ function AsicRegisterSection() {
   return (
     <section style={{ marginTop: '2.5rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-        <Building2 size={22} style={{ color: 'var(--accent-primary)' }} />
+        <Building2 size={22} style={{ color: 'var(--text-link)' }} />
         <h2 style={{ margin: 0, fontSize: '1.25rem' }}>ASIC company register</h2>
       </div>
 
@@ -345,8 +346,8 @@ export function RegistrationsPage() {
     <section className="animated-fade-in">
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-        <ClipboardCheck size={24} style={{ color: 'var(--accent-primary)' }} />
-        <h1 style={{ margin: 0 }}>Registrations</h1>
+        <ClipboardCheck size={24} style={{ color: 'var(--text-link)' }} />
+        <PageHeader title="Registrations" />
       </div>
       <p
         style={{

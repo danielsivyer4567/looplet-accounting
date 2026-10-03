@@ -231,7 +231,7 @@ const TagMarkerComponent = memo<TagMarkerComponentProps>(({ marker }) => {
              owns the top-right corner. */}
         {marker.pinNumber > 0 && !marker.isClusterHead && (
           <div className="absolute -bottom-1 -left-1 min-w-5 h-5 px-1 bg-slate-900/90 dark:bg-slate-100/90 rounded-full flex items-center justify-center shadow-md border-2 border-white">
-            <span className="text-[10px] font-black text-white dark:text-slate-900 leading-none">
+            <span className="text-[11px] font-black text-white dark:text-slate-900 leading-none">
               {marker.pinNumber}
             </span>
           </div>
@@ -254,7 +254,7 @@ const TagMarkerComponent = memo<TagMarkerComponentProps>(({ marker }) => {
         {/* Cluster count badge */}
         {marker.isClusterHead && marker.clusterCount && marker.clusterCount > 1 && (
           <div className="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-blue-600 rounded-full flex items-center justify-center shadow-md border border-white">
-            <span className="text-[10px] font-bold text-white">
+            <span className="text-[11px] font-bold text-white">
               {marker.clusterCount > 9 ? '9+' : marker.clusterCount}
             </span>
           </div>

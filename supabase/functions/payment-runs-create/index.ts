@@ -27,6 +27,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { authorizeOrgMember, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -101,18 +102,11 @@ Deno.serve(async (req) => {
   const admin = createClient(supabaseUrl, serviceKey);
 
   // --------------------------------------------------------------------------
-  // 4. Verify caller belongs to org
+  // 4. Verify the caller is an accepted admin or owner of the org
   // --------------------------------------------------------------------------
-  const { data: membership } = await admin
-    .from('organization_memberships')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('organization_id', organization_id)
-    .maybeSingle();
-
-  if (!membership) {
-    return json({ ok: false, error: 'Forbidden — not a member of this organisation' }, 403);
-  }
+  // A payment run decides which suppliers are paid from which account. Pending invites and viewers must not.
+  const access = await authorizeOrgMember(user.id, organization_id, supabaseOrgAccessDeps(admin, serviceKey), 'admin');
+  if (!access.ok) return json({ ok: false, error: access.error }, access.status);
 
   // --------------------------------------------------------------------------
   // 5. Load bills + supplier payee details
@@ -129,6 +123,7 @@ Deno.serve(async (req) => {
       supplier_id,
       supplier:suppliers!supplier_id (
         id,
+        organization_id,
         name,
         payee_bsb,
         payee_account_number,
@@ -162,6 +157,20 @@ Deno.serve(async (req) => {
     if (!total || total <= 0) {
       errors.push(`Bill ${bAny['id']}: total_inc_gst_cents must be > 0`);
     }
+    // Payee bank details are copied from the supplier, so it must be this organisation's own supplier.
+    const supplier = bAny['supplier'] as Record<string, unknown> | null;
+    if (supplier && supplier['organization_id'] !== organization_id) {
+      errors.push(`Bill ${bAny['id']}: its supplier belongs to another organisation`);
+    }
+  }
+  if (payer_bank_account_id) {
+    const { data: payerAccount } = await admin
+      .from('bank_accounts')
+      .select('id')
+      .eq('id', payer_bank_account_id)
+      .eq('organization_id', organization_id)
+      .maybeSingle();
+    if (!payerAccount) errors.push('payer_bank_account_id is not a bank account of this organisation');
   }
   if (errors.length > 0) {
     return json({ ok: false, error: errors.join('; ') }, 422);
@@ -251,10 +260,13 @@ Deno.serve(async (req) => {
   // --------------------------------------------------------------------------
   // 9. Mark bills as part of this run
   // --------------------------------------------------------------------------
+  // Only the bills loaded above (already filtered to this organisation), never the raw ids from the request body.
+  const linkedBillIds = items.map((item) => item.bill_id);
   const { error: billUpdateErr } = await admin
     .from('bills')
     .update({ payment_run_id })
-    .in('id', bill_ids);
+    .in('id', linkedBillIds)
+    .eq('organization_id', organization_id);
 
   if (billUpdateErr) {
     return json({ ok: false, error: `Failed to link bills: ${billUpdateErr.message}` }, 500);

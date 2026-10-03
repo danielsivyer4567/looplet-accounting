@@ -1,14 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  AlertTriangle,
-  ChevronLeft,
-  FileText,
-  Landmark,
-  Scale,
-  ShieldCheck,
-  Users,
-} from 'lucide-react';
+import { ChevronLeft, FileText, Landmark, Scale, ShieldCheck, Users } from 'lucide-react';
 import {
   frankingFyLabel,
   latestCompletedFrankingFyStartYear,
@@ -18,6 +10,10 @@ import {
   useFrankingRegister,
 } from '@/hooks/useFrankingRegister';
 import { formatMoney } from '@/lib/money';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Stat } from '@/components/ui/Stat';
+import { Alert } from '@/components/ui/Alert';
 
 function formatDate(value: string | null): string {
   if (!value) return '-';
@@ -58,10 +54,13 @@ export function FrankingReportPage() {
         <span>Reports</span>
       </Link>
 
-      <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <Landmark size={24} style={{ color: 'var(--accent-primary)' }} />
-        Franking Register
-      </h1>
+      <PageHeader
+        title={
+          <>
+            <Landmark size={24} style={{ color: 'var(--text-link)' }} /> Franking Register
+          </>
+        }
+      />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -107,9 +106,9 @@ export function FrankingReportPage() {
       </div>
 
       {error && (
-        <Banner>
+        <Alert tone="warning">
           <strong>Franking register unavailable.</strong> {error}
-        </Banner>
+        </Alert>
       )}
 
       {loading ? (
@@ -126,7 +125,7 @@ export function FrankingReportPage() {
           <EvidenceCard frankingRegister={frankingRegister} />
         </>
       ) : (
-        <Empty>No franking register is available for this financial year.</Empty>
+        <EmptyState>No franking register is available for this financial year.</EmptyState>
       )}
     </section>
   );
@@ -142,22 +141,22 @@ function Kpis({ frankingRegister }: { frankingRegister: FrankingRegisterPayload 
         marginBottom: '1.5rem',
       }}
     >
-      <Kpi
+      <Stat
         label="Opening balance"
         value={formatMoney(frankingRegister.summary.opening_balance_cents)}
         icon={Landmark}
       />
-      <Kpi
+      <Stat
         label="Credits"
         value={formatMoney(frankingRegister.summary.credit_cents)}
         icon={ShieldCheck}
       />
-      <Kpi
+      <Stat
         label="Debits"
         value={formatMoney(frankingRegister.summary.debit_cents)}
         icon={FileText}
       />
-      <Kpi
+      <Stat
         label="Closing balance"
         value={formatMoney(frankingRegister.summary.closing_balance_cents)}
         icon={Scale}
@@ -189,7 +188,7 @@ function EntriesCard({ entries }: { entries: FrankingAccountEntry[] }) {
   return (
     <Card title="Franking account entries" icon={Landmark}>
       {entries.length === 0 ? (
-        <Empty>No franking account entries for this year.</Empty>
+        <EmptyState>No franking account entries for this year.</EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">
@@ -231,7 +230,7 @@ function StatementsCard({ statements }: { statements: DividendStatementRow[] }) 
   return (
     <Card title="Dividend statements" icon={Users}>
       {statements.length === 0 ? (
-        <Empty>No member dividend statements for this year.</Empty>
+        <EmptyState>No member dividend statements for this year.</EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">
@@ -289,7 +288,7 @@ function EvidenceCard({ frankingRegister }: { frankingRegister: FrankingRegister
 
 function Warnings({ warnings }: { warnings: string[] }) {
   return (
-    <Banner>
+    <Alert tone="warning">
       <strong>Review before issuing statements.</strong>{' '}
       {warnings.map((warning, index) => (
         <span key={warning}>
@@ -298,36 +297,7 @@ function Warnings({ warnings }: { warnings: string[] }) {
           {index < warnings.length - 1 ? ';' : '.'}
         </span>
       ))}
-    </Banner>
-  );
-}
-
-function Kpi({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  icon: typeof Landmark;
-}) {
-  return (
-    <div className="card" style={{ padding: '1rem 1.1rem', position: 'relative' }}>
-      <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 700 }}>
-        {label}
-      </div>
-      <div style={{ marginTop: '0.35rem', fontSize: '1.35rem', fontWeight: 800 }}>{value}</div>
-      <Icon
-        size={18}
-        style={{
-          color: 'var(--accent-primary)',
-          opacity: 0.65,
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-        }}
-      />
-    </div>
+    </Alert>
   );
 }
 
@@ -343,7 +313,7 @@ function Card({
   return (
     <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-        <Icon size={18} style={{ color: 'var(--accent-primary)' }} />
+        <Icon size={18} style={{ color: 'var(--text-link)' }} />
         <h2 style={{ margin: 0, fontSize: '1.1rem' }}>{title}</h2>
       </div>
       {children}
@@ -377,43 +347,5 @@ function Rows({ rows, monoKeys }: { rows: [string, string][]; monoKeys?: Set<str
         </div>
       ))}
     </dl>
-  );
-}
-
-function Banner({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      className="badge badge-warning"
-      style={{
-        display: 'flex',
-        gap: '0.5rem',
-        alignItems: 'flex-start',
-        justifyContent: 'flex-start',
-        padding: '0.875rem 1rem',
-        marginBottom: '1.5rem',
-        textTransform: 'none',
-        width: '100%',
-        lineHeight: 1.45,
-      }}
-    >
-      <AlertTriangle size={16} style={{ marginTop: '2px', flexShrink: 0 }} />
-      <span>{children}</span>
-    </div>
-  );
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        padding: '1.5rem',
-        border: '1px dashed var(--border-subtle)',
-        borderRadius: 'var(--radius-md)',
-        color: 'var(--text-muted)',
-        fontSize: '0.85rem',
-      }}
-    >
-      {children}
-    </div>
   );
 }

@@ -129,14 +129,62 @@ describe('BasPrepCard (SC-3.E.01)', () => {
     expect(screen.getByText(/GL reconciles to the BAS/)).toBeInTheDocument();
     expect(screen.getByText(/GST coverage verified \(100.0% \(4\/4 bills\)\)/)).toBeInTheDocument();
 
-    const lodge = screen.getByRole('button', { name: /Request lodge approval/i });
+    const lodge = screen.getByRole('button', { name: /Request approval of prepared BAS/i });
     expect(lodge).not.toBeDisabled();
     fireEvent.click(lodge);
     await waitFor(() => expect(h.requestLodgeApproval).toHaveBeenCalledTimes(1));
     expect(supabase.from).not.toHaveBeenCalledWith('obligation_status');
+    expect(await screen.findByText(/BAS prepared and approval requested/i)).toBeInTheDocument();
+  });
+
+  it('shows the GST accounting method, W3/W4 as not recorded, and items to check (BAS-01)', () => {
+    h.worksheet = {
+      ...SAMPLE,
+      gst_accounting_basis: 'cash',
+      gst_accounting_basis_source: 'business_profile',
+      payg_withholding: {
+        W1: 800000,
+        W2: 160000,
+        W3: null,
+        W4: null,
+        W5: 160000,
+        '4': 160000,
+        not_recorded: ['W3', 'W4'],
+      },
+      needs_review: [
+        {
+          source_type: 'customer_credit_note',
+          document_number: 'CN-9',
+          note: 'Credit note issued after the customer paid.',
+        },
+      ],
+    };
+    h.blockers = cleanBlockers();
+    renderCard();
+
+    expect(screen.getByText(/GST accounting method:/)).toHaveTextContent(
+      'GST accounting method: Cash (from your business profile).',
+    );
+    expect(screen.getByText(/W3 and W4 not recorded in Looplet/)).toBeInTheDocument();
+    const review = screen.getByRole('list', { name: /BAS items to check/i });
     expect(
-      await screen.findByText(/Draft lodgement created and approval requested/i),
+      within(review).getByText(/Credit note issued after the customer paid/),
     ).toBeInTheDocument();
+    expect(within(review).getByText('CN-9:')).toBeInTheDocument();
+  });
+
+  it('says when no GST accounting method has been chosen (BAS-01)', () => {
+    h.worksheet = {
+      ...SAMPLE,
+      gst_accounting_basis: 'accruals',
+      gst_accounting_basis_source: 'default',
+    };
+    h.blockers = cleanBlockers();
+    renderCard();
+
+    expect(screen.getByText(/GST accounting method:/)).toHaveTextContent(
+      'Accruals (non-cash) (not chosen yet; set it in Settings > Business profile).',
+    );
   });
 
   it('disables approve-and-lodge and surfaces both blockers when exceptions or variance exist', () => {
@@ -146,7 +194,9 @@ describe('BasPrepCard (SC-3.E.01)', () => {
 
     expect(screen.getByText(/3 GST-treatment exceptions - resolve/)).toBeInTheDocument();
     expect(screen.getByText(/GL vs BAS variance .* reconcile/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Request lodge approval/i })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /Request approval of prepared BAS/i }),
+    ).toBeDisabled();
     expect(h.requestLodgeApproval).not.toHaveBeenCalled();
   });
 
@@ -162,7 +212,9 @@ describe('BasPrepCard (SC-3.E.01)', () => {
     renderCard();
 
     expect(screen.getByText(/GST coverage is 72.5% \(29\/40 bills\)/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Request lodge approval/i })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /Request approval of prepared BAS/i }),
+    ).toBeDisabled();
     expect(h.requestLodgeApproval).not.toHaveBeenCalled();
   });
 
@@ -176,7 +228,9 @@ describe('BasPrepCard (SC-3.E.01)', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/Reconciliation not available - cannot approve/)).toBeInTheDocument();
     expect(screen.getByText(/GST coverage check unavailable - cannot approve/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Request lodge approval/i })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /Request approval of prepared BAS/i }),
+    ).toBeDisabled();
   });
 
   it('exports BAS quarter data as CSV with worksheet coverage fields present', async () => {

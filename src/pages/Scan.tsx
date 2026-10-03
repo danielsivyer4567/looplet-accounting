@@ -14,8 +14,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
-import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { SkeletonTable } from '@/components/Skeleton';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Stat } from '@/components/ui/Stat';
 
 interface Finding {
   id: string;
@@ -45,13 +46,57 @@ interface ScanSummary {
 
 const SEVERITY_ORDER = { critical: 0, warning: 1, info: 2 } as const;
 
+// The checks public.run_data_completeness_scan really runs (latest definition in
+// supabase/migrations). Keep this list in step with the SQL: ScanHonest.test.tsx compares them.
+const SCAN_CHECKS: { code: string; severity: Finding['severity']; label: string }[] = [
+  {
+    code: 'subbie_without_abn',
+    severity: 'critical',
+    label: 'Suppliers coded as subcontractors with no ABN recorded',
+  },
+  { code: 'bill_no_category', severity: 'warning', label: 'Bills with no expense category' },
+  {
+    code: 'bill_high_value_no_attachment',
+    severity: 'warning',
+    label: 'Bills over $1,000 not yet attached to a job',
+  },
+  {
+    code: 'bill_gst_mismatch',
+    severity: 'warning',
+    label: 'Bills over $100 whose GST is more than $2 away from 1/11 of the total',
+  },
+  {
+    code: 'invoice_overdue_60d',
+    severity: 'warning',
+    label: 'Unpaid invoices more than 60 days past their due date',
+  },
+  {
+    code: 'vehicle_expenses_no_logbook',
+    severity: 'warning',
+    label: 'Motor vehicle bills when your business profile says there is no logbook',
+  },
+  {
+    code: 'bill_personal_with_business_category',
+    severity: 'warning',
+    label: 'Bills marked personal that still have a business expense category',
+  },
+  {
+    code: 'subscription_unclassified',
+    severity: 'info',
+    label: 'Subscriptions not tagged as business or personal',
+  },
+  {
+    code: 'profile_incomplete',
+    severity: 'info',
+    label: 'Business profile missing entity type, state, turnover bracket or GST/BAS details',
+  },
+];
+
 export function ScanPage() {
   const { currentOrg } = useOrg();
   const [findings, setFindings] = useState<Finding[]>([]);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
-  const [scanProgress, setScanProgress] = useState(0);
-  const [scanStatus, setScanStatus] = useState('');
   const [summary, setSummary] = useState<ScanSummary | null>(null);
   const [showResolved, setShowResolved] = useState(false);
   const [showMuted, setShowMuted] = useState(false);
@@ -82,75 +127,27 @@ export function ScanPage() {
 
   if (!currentOrg) return null;
 
+  // One database call that runs the fixed checks in SCAN_CHECKS; nothing else is checked.
   const runScan = async () => {
     setScanning(true);
-    setScanProgress(0);
     setError(null);
-    setFindings([]);
     setSummary(null);
-    setLoading(true);
-
-    // Dynamic scanning status stages
-    const statuses = [
-      'Auditing invoice integrity & GST treatment…',
-      'Checking supplier tax file declarations…',
-      'Verifying payroll superannuation compliance…',
-      'Cross-referencing ledger entries against ATO rules…',
-      'Compiling compliance risk score and summary…',
-    ];
-
-    const startTime = Date.now();
-    const minDuration = 2400; // Enforce a 2.4s scan to feel deliberate and thorough
-
-    // Start animating the progress bar
-    const progressInterval = setInterval(() => {
-      setScanProgress((prev) => {
-        if (prev >= 98) {
-          clearInterval(progressInterval);
-          return 98;
-        }
-        const step = Math.max(1, Math.round((100 - prev) * 0.15));
-        const nextProgress = prev + step;
-
-        // Cycle statuses based on progress range
-        const statusIdx = Math.min(statuses.length - 1, Math.floor(nextProgress / 20));
-        setScanStatus(statuses[statusIdx] || '');
-
-        return nextProgress;
-      });
-    }, 120);
-
     try {
       const { data, error: e } = await supabase.rpc('run_data_completeness_scan', {
         p_org_id: currentOrg.id,
       });
-
-      const elapsedTime = Date.now() - startTime;
-      if (elapsedTime < minDuration) {
-        await new Promise((resolve) => setTimeout(resolve, minDuration - elapsedTime));
-      }
-
-      clearInterval(progressInterval);
-      setScanProgress(100);
-      setScanStatus('Audit complete!');
-
-      // Give a tiny moment for user to see the 100% state before rendering results
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
       if (e) {
         setError(e.message);
-        setScanning(false);
-        setLoading(false);
         return;
       }
       setSummary(data as ScanSummary);
-      setScanning(false);
       await refresh();
     } catch (err) {
-      clearInterval(progressInterval);
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred during scan.');
+      setError(
+        err instanceof Error ? err.message : 'An unexpected error occurred during the scan.',
+      );
+    } finally {
       setScanning(false);
-      setLoading(false);
     }
   };
 
@@ -214,181 +211,6 @@ export function ScanPage() {
 
   return (
     <section className="animated-fade-in" style={{ position: 'relative' }}>
-      {/* Dynamic Laser Scanning Overlay */}
-      {scanning && (
-        <div
-          className="glass-panel"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 40,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(6, 9, 19, 0.92)',
-            backdropFilter: 'blur(16px)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '2.5rem',
-            textAlign: 'center',
-            overflow: 'hidden',
-            minHeight: '400px',
-            animation: 'fadeInEffect 0.3s ease-out',
-          }}
-        >
-          {/* Sweeping Laser Beam Line */}
-          <div
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              height: '3px',
-              background: 'linear-gradient(90deg, transparent, var(--accent-primary), transparent)',
-              boxShadow: '0 0 16px var(--accent-primary), 0 0 8px var(--accent-primary)',
-              animation: 'laserSweep 2s ease-in-out infinite',
-              pointerEvents: 'none',
-            }}
-          />
-
-          {/* Animated Radar concentric rings backdrop */}
-          <div
-            style={{
-              position: 'absolute',
-              width: '320px',
-              height: '320px',
-              borderRadius: '50%',
-              border: '1px solid rgba(0, 117, 255, 0.1)',
-              background: 'radial-gradient(circle, rgba(0, 117, 255, 0.05) 0%, transparent 70%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              animation: 'radarPulse 3s linear infinite',
-              pointerEvents: 'none',
-              zIndex: -1,
-            }}
-          >
-            <div
-              style={{
-                width: '220px',
-                height: '220px',
-                borderRadius: '50%',
-                border: '1px dashed rgba(0, 117, 255, 0.15)',
-              }}
-            />
-            <div
-              style={{
-                width: '120px',
-                height: '120px',
-                borderRadius: '50%',
-                border: '1px solid rgba(0, 117, 255, 0.2)',
-              }}
-            />
-          </div>
-
-          <style>{`
-            @keyframes laserSweep {
-              0% { top: 0%; }
-              50% { top: 100%; }
-              100% { top: 0%; }
-            }
-            @keyframes radarPulse {
-              0% { transform: scale(0.9); opacity: 0.6; }
-              50% { transform: scale(1.05); opacity: 0.9; }
-              100% { transform: scale(0.9); opacity: 0.6; }
-            }
-            @keyframes indicatorPing {
-              0% { transform: scale(0.8); opacity: 0.5; }
-              50% { transform: scale(1.8); opacity: 0; }
-              100% { transform: scale(0.8); opacity: 0; }
-            }
-            @keyframes buttonPulseRing {
-              0% { box-shadow: 0 0 0 0 rgba(0, 117, 255, 0.5); }
-              70% { box-shadow: 0 0 0 10px rgba(0, 117, 255, 0); }
-              100% { box-shadow: 0 0 0 0 rgba(0, 117, 255, 0); }
-            }
-          `}</style>
-
-          <div
-            style={{
-              maxWidth: '400px',
-              width: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1.5rem',
-              alignItems: 'center',
-            }}
-          >
-            <div
-              style={{
-                position: 'relative',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Loader2 className="spin" size={48} style={{ color: 'var(--accent-primary)' }} />
-              <ShieldAlert
-                size={20}
-                style={{ position: 'absolute', color: 'var(--accent-primary)' }}
-              />
-            </div>
-
-            <div>
-              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem' }}>
-                Performing Tax-Readiness Scan
-              </h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
-                Auditing organization compliance against Australian tax regulations.
-              </p>
-            </div>
-
-            {/* Premium Progress Bar Container */}
-            <div
-              style={{
-                width: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.5rem',
-                marginTop: '0.5rem',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                }}
-              >
-                <span style={{ color: 'var(--accent-primary)' }}>{scanStatus}</span>
-                <span style={{ color: 'var(--text-title)' }}>{scanProgress}%</span>
-              </div>
-              <div
-                style={{
-                  height: '6px',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  borderRadius: 'var(--radius-full)',
-                  overflow: 'hidden',
-                  border: '1px solid var(--border-subtle)',
-                }}
-              >
-                <div
-                  style={{
-                    height: '100%',
-                    width: `${scanProgress}%`,
-                    background:
-                      'linear-gradient(90deg, var(--accent-primary-hover), var(--accent-primary))',
-                    boxShadow: '0 0 8px var(--accent-primary)',
-                    borderRadius: 'var(--radius-full)',
-                    transition: 'width 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div
         style={{
           display: 'flex',
@@ -400,117 +222,57 @@ export function ScanPage() {
         }}
       >
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
-            <h1 style={{ margin: 0 }}>Tax-Readiness Scan</h1>
-            <span
-              className="badge"
-              style={{
-                marginLeft: '0.75rem',
-                background: 'rgba(52, 211, 153, 0.08)',
-                border: '1px solid rgba(52, 211, 153, 0.25)',
-                color: 'var(--accent-success)',
-                boxShadow: '0 0 8px rgba(52, 211, 153, 0.15)',
-                padding: '0.25rem 0.6rem',
-                borderRadius: 'var(--radius-full)',
-                fontSize: '0.65rem',
-                letterSpacing: '0.075em',
-                fontWeight: 800,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                height: '22px',
-              }}
-            >
-              <span
-                style={{
-                  position: 'relative',
-                  display: 'inline-flex',
-                  width: '6px',
-                  height: '6px',
-                }}
-              >
-                <span
-                  style={{
-                    animation: 'indicatorPing 1.5s cubic-bezier(0, 0, 0.2, 1) infinite',
-                    position: 'absolute',
-                    display: 'inline-flex',
-                    borderRadius: '50%',
-                    height: '100%',
-                    width: '100%',
-                    background: 'var(--accent-success)',
-                    opacity: 0.75,
-                  }}
-                />
-                <span
-                  style={{
-                    position: 'absolute',
-                    display: 'inline-flex',
-                    borderRadius: '50%',
-                    height: '6px',
-                    width: '6px',
-                    background: 'var(--accent-success)',
-                  }}
-                />
-              </span>
-              AI AUDIT ACTIVE
-            </span>
-          </div>
+          <PageHeader title="Data checks" />
           <p
             style={{
               color: 'var(--text-muted)',
               fontSize: '0.875rem',
               marginTop: '0.35rem',
               marginBottom: 0,
+              maxWidth: '640px',
             }}
           >
-            Audits your books for ATO compliance gaps, missing data, and audit risks.
+            Runs {SCAN_CHECKS.length} fixed checks on the data in your books and lists what needs
+            fixing. It is not an audit and does not check every tax rule.
           </p>
         </div>
 
-        {/* High-emphasis Pulse Run Button */}
-        <div style={{ position: 'relative', display: 'inline-block' }}>
-          {!scanning && (
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                borderRadius: '9999px',
-                animation: 'buttonPulseRing 2s cubic-bezier(0.25, 0, 0, 1) infinite',
-                pointerEvents: 'none',
-              }}
-            />
-          )}
-          <button
-            onClick={runScan}
-            disabled={scanning}
-            className="btn"
-            style={{
-              padding: '0.75rem 1.6rem',
-              background: 'linear-gradient(135deg, var(--accent-primary) 0%, #0056cc 100%)',
-              color: '#ffffff',
-              borderRadius: '9999px',
-              fontWeight: 700,
-              boxShadow: '0 4px 14px rgba(0, 117, 255, 0.35)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              transition: 'var(--transition-smooth)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.04) translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 6px 18px rgba(0, 117, 255, 0.45)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1) translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 14px rgba(0, 117, 255, 0.35)';
-            }}
-          >
-            <Play size={14} fill="currentColor" />
-            {scanning ? 'Running scan…' : 'Run scan now'}
-          </button>
-        </div>
+        <button
+          onClick={() => void runScan()}
+          disabled={scanning}
+          className="btn btn-primary"
+          aria-busy={scanning}
+        >
+          {scanning ? <Loader2 size={14} className="spin" /> : <Play size={14} />}
+          {scanning ? 'Running checks…' : 'Run checks now'}
+        </button>
       </div>
+
+      <section
+        className="card"
+        aria-labelledby="scan-checks-heading"
+        style={{ padding: '1rem 1.25rem', marginBottom: '1.5rem' }}
+      >
+        <h2 id="scan-checks-heading" style={{ margin: '0 0 0.5rem', fontSize: '1rem' }}>
+          What these checks look at
+        </h2>
+        <ul
+          style={{
+            margin: 0,
+            paddingLeft: '1.1rem',
+            display: 'grid',
+            gap: '0.3rem',
+            fontSize: '0.825rem',
+            color: 'var(--text-body)',
+          }}
+        >
+          {SCAN_CHECKS.map((check) => (
+            <li key={check.code} data-check-code={check.code}>
+              {check.label} <span style={{ color: 'var(--text-muted)' }}>({check.severity})</span>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <div
         style={{
@@ -545,7 +307,7 @@ export function ScanPage() {
               ...item,
               detail:
                 item.label === 'Critical'
-                  ? 'Blocks trustworthy lodgement or financial decisions'
+                  ? 'Fix before relying on these figures'
                   : item.label === 'Warning'
                     ? 'Should be cleared before relying on the books'
                     : 'Context and hygiene checks',
@@ -568,8 +330,8 @@ export function ScanPage() {
             lineHeight: '1.4',
           }}
         >
-          🔍 Last scan summary: {summary.critical} critical, {summary.warning} warnings,{' '}
-          {summary.info} info · {summary.resolved_this_run} auto-resolved · ran{' '}
+          Last run: {summary.critical} critical, {summary.warning} warnings, {summary.info} info ·{' '}
+          {summary.resolved_this_run} auto-resolved · ran{' '}
           {new Date(summary.scanned_at).toLocaleString('en-AU')}
         </div>
       )}
@@ -676,10 +438,11 @@ export function ScanPage() {
             <h3
               style={{ color: 'var(--text-success)', margin: '0 0 0.25rem 0', fontSize: '1.15rem' }}
             >
-              Your books are tax-ready!
+              No open findings from these checks
             </h3>
             <p style={{ margin: 0, fontSize: '0.875rem', opacity: 0.85 }}>
-              All clear — no open compliance findings detected.
+              That covers only the {SCAN_CHECKS.length} checks listed above. It is not a full tax
+              review.
             </p>
           </div>
         </div>
@@ -740,17 +503,17 @@ function FindingRow({ f, onMute }: { f: Finding; onMute: (id: string, muted: boo
 
   const severityStyles = {
     critical: {
-      border: 'rgba(239, 68, 68, 0.25)',
+      border: 'var(--border-danger)',
       badge: 'badge-danger',
       leftBorder: 'var(--accent-danger)',
     },
     warning: {
-      border: 'rgba(245, 158, 11, 0.25)',
+      border: 'var(--border-warning)',
       badge: 'badge-warning',
       leftBorder: 'var(--accent-warning)',
     },
     info: {
-      border: 'rgba(59, 130, 246, 0.25)',
+      border: 'var(--border-info)',
       badge: 'badge-info',
       leftBorder: 'var(--accent-info)',
     },
@@ -784,12 +547,12 @@ function FindingRow({ f, onMute }: { f: Finding; onMute: (id: string, muted: boo
         >
           {f.title}
           {isResolved && (
-            <span className="badge badge-success" style={{ fontSize: '9px', padding: '1px 4px' }}>
+            <span className="badge badge-success" style={{ fontSize: '11px', padding: '1px 4px' }}>
               Resolved
             </span>
           )}
           {isMuted && (
-            <span className="badge badge-neutral" style={{ fontSize: '9px', padding: '1px 4px' }}>
+            <span className="badge badge-neutral" style={{ fontSize: '11px', padding: '1px 4px' }}>
               Muted
             </span>
           )}
@@ -861,77 +624,19 @@ function FindingRow({ f, onMute }: { f: Finding; onMute: (id: string, muted: boo
   );
 }
 
+/** A severity count at the top of the page; critical reads as danger. */
 function SummaryCard({
   label,
   value,
   type,
-  icon: Icon,
+  icon,
 }: {
   label: string;
   value: number;
   type: 'critical' | 'warning' | 'info';
   icon: LucideIcon;
 }) {
-  const colors = {
-    critical: {
-      text: 'var(--text-danger)',
-      border: 'rgba(239, 68, 68, 0.2)',
-      bg: 'var(--bg-danger-subtle)',
-    },
-    warning: {
-      text: 'var(--text-warning)',
-      border: 'rgba(245, 158, 11, 0.2)',
-      bg: 'var(--bg-warning-subtle)',
-    },
-    info: {
-      text: 'var(--text-info)',
-      border: 'rgba(59, 130, 246, 0.2)',
-      bg: 'var(--bg-info-subtle)',
-    },
-  }[type];
-
   return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        borderLeft: `4px solid ${type === 'critical' ? 'var(--accent-danger)' : type === 'warning' ? 'var(--accent-warning)' : 'var(--accent-info)'}`,
-        position: 'relative',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.75rem',
-          color: colors.text,
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        <AnimatedNumber value={value} />
-      </div>
-      <div
-        style={{
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-          color: colors.text,
-          opacity: 0.6,
-        }}
-      >
-        <Icon size={20} />
-      </div>
-    </div>
+    <Stat label={label} value={value} tone={type === 'critical' ? 'danger' : type} icon={icon} />
   );
 }

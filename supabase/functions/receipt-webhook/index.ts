@@ -3,7 +3,7 @@
  *
  * Auth modes:
  * - External POS: Authorization: Bearer llp_<prefix>.<secret> with write:receipts.
- * - App simulator: signed-in Supabase JWT plus organization_id in the body.
+ * - In-app capture (typed, photo or PDF): signed-in Supabase JWT plus organization_id in the body.
  *
  * The receipt identity token is separate from caller auth. It identifies the
  * phone/pass/tag used at checkout and is stored hashed in receipt_identities.
@@ -41,6 +41,7 @@ import {
   parseReceiptSource,
   ReceiptValidationError,
   type ReceiptEventType,
+  type ReceiptGstStatus,
   type ReceiptSource,
 } from './posReliability.ts';
 
@@ -60,6 +61,8 @@ interface ReceiptPayload {
     name?: unknown;
     abn?: unknown;
     external_id?: unknown;
+    /** false when the merchant is not registered for GST (no GST, so no GST credit). */
+    gst_registered?: unknown;
   };
   receipt?: {
     number?: unknown;
@@ -247,7 +250,7 @@ async function resolveCaller(
   }
 
   if (!body.organization_id) {
-    return { response: json({ ok: false, error: 'organization_id required for app simulator' }, 400) };
+    return { response: json({ ok: false, error: 'organization_id required for in-app capture' }, 400) };
   }
 
   const userClient = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_ANON_KEY'), {
@@ -302,11 +305,14 @@ async function ingestReceipt(admin: SupabaseClient, organizationId: string, body
         : 'receipt.total_inc_gst_cents must be greater than zero',
     );
   }
-  const { gstCents, subtotalCents, gstEstimated } = normalizeReceiptTaxBreakdown(
+  const { gstCents, subtotalCents, gstStatus } = normalizeReceiptTaxBreakdown(
     totalCents,
     payload.receipt?.gst_cents,
     payload.receipt?.subtotal_ex_gst_cents,
-    { requireBothSupplied: sourceChannel === 'pos' },
+    {
+      requireBothSupplied: sourceChannel === 'pos',
+      merchantGstRegistered: payload.merchant?.gst_registered === false ? false : null,
+    },
   );
   const purchaseAt = normalizeReceiptPurchaseAt(payload.receipt?.purchase_at, {
     required: sourceChannel === 'pos',
@@ -326,7 +332,7 @@ async function ingestReceipt(admin: SupabaseClient, organizationId: string, body
   assertReceiptLinesReliable(payload.line_items, totalCents, {
     requireItemised: sourceChannel === 'pos',
     requireLineGst: sourceChannel === 'pos',
-    expectedGstCents: gstCents,
+    expectedGstCents: gstCents ?? undefined,
   });
   const classification = classifyReceipt(payload, merchantName, totalCents);
   const job = await resolveJob(admin, organizationId, classification.jobId, classification.jobReference);
@@ -400,7 +406,7 @@ async function ingestReceipt(admin: SupabaseClient, organizationId: string, body
     classification: {
       ...classification,
       jobId: job?.id ?? null,
-      gstEstimated,
+      gstStatus,
       reason: classification.reason,
     },
   };
@@ -442,7 +448,7 @@ async function ingestReceipt(admin: SupabaseClient, organizationId: string, body
   const eventId = receiptEvent.id as string;
   let billId: string | null = null;
   try {
-    const lineItems = normalizeLines(payload.line_items, totalCents, gstCents, classification.category);
+    const lineItems = normalizeLines(payload.line_items, totalCents, gstCents, gstStatus, classification.category);
     await insertReceiptLines(admin, organizationId, eventId, lineItems);
 
     if (eventType === 'sale' && classification.businessUse !== 'personal') {
@@ -457,7 +463,6 @@ async function ingestReceipt(admin: SupabaseClient, organizationId: string, body
         totalCents,
         gstCents,
         subtotalCents,
-        gstEstimated,
         currency: asCurrency(payload.receipt?.currency),
         jobReference: classification.jobReference,
         payload,
@@ -473,7 +478,7 @@ async function ingestReceipt(admin: SupabaseClient, organizationId: string, body
       storageKey: `receipt-hub/${organizationId}/${eventId}.json`,
       payload,
       classification,
-      gstEstimated,
+      gstStatus,
       sourceChannel,
       eventType,
       relatedReceiptEventId: relatedReceipt?.id ?? null,
@@ -508,7 +513,7 @@ async function ingestReceipt(admin: SupabaseClient, organizationId: string, body
         deductibility_status: classification.deductibility,
         job_id: job?.id ?? null,
         job_reference: classification.jobReference,
-        gst_estimated: gstEstimated,
+        gst_status: gstStatus,
         reason: classification.reason,
       },
     };
@@ -558,8 +563,8 @@ function assertExistingReceiptMatchesRetry(
     idempotencyKey: string;
     merchantName: string;
     receiptNumber: string | null;
-    subtotalCents: number;
-    gstCents: number;
+    subtotalCents: number | null;
+    gstCents: number | null;
     totalCents: number;
     paymentReference: string | null;
     paymentLast4: string | null;
@@ -840,9 +845,8 @@ async function createBillFromReceipt(admin: SupabaseClient, args: {
   receiptNumber: string | null;
   purchaseAt: string;
   totalCents: number;
-  gstCents: number;
-  subtotalCents: number;
-  gstEstimated: boolean;
+  gstCents: number | null;
+  subtotalCents: number | null;
   currency: string;
   jobReference: string | null;
   payload: ReceiptPayload;
@@ -866,9 +870,11 @@ async function createBillFromReceipt(admin: SupabaseClient, args: {
       invoice_date: args.purchaseAt.slice(0, 10),
       due_date: args.purchaseAt.slice(0, 10),
       total_inc_gst_cents: args.totalCents,
+      // null when the receipt does not show GST: no credit is recorded and the BAS coverage
+      // check counts the bill as incomplete until someone enters the GST.
       gst_cents: args.gstCents,
       subtotal_ex_gst_cents: args.subtotalCents,
-      gst_estimated: args.gstEstimated,
+      gst_estimated: false,
       currency_code: args.currency,
       job_reference_raw: args.jobReference,
       document_kind: 'receipt',
@@ -931,7 +937,7 @@ async function createAuditPackage(admin: SupabaseClient, args: {
   storageKey: string;
   payload: ReceiptPayload;
   classification: ReturnType<typeof classifyReceipt>;
-  gstEstimated: boolean;
+  gstStatus: ReceiptGstStatus;
   sourceChannel: ReceiptSource;
   eventType: ReceiptEventType;
   relatedReceiptEventId: string | null;
@@ -948,7 +954,7 @@ async function createAuditPackage(admin: SupabaseClient, args: {
     root: 'Receipt Hub decision',
     branches: [
       { title: 'Identity', detail: 'Receipt pass token matched active Looplet identity.' },
-      { title: 'GST', detail: args.gstEstimated ? 'GST was estimated from total using AU 1/11 rule.' : 'GST was supplied by POS payload.' },
+      { title: 'GST', detail: gstDecisionDetail(args.gstStatus) },
       { title: 'Business use', detail: args.classification.businessUse },
       { title: 'Deductibility', detail: args.classification.deductibility },
       {
@@ -971,7 +977,7 @@ async function createAuditPackage(admin: SupabaseClient, args: {
       storage_key: args.storageKey,
       evidence,
       decision_path: decisionPath,
-      gst_status: args.gstEstimated ? 'estimated' : 'supplied',
+      gst_status: args.gstStatus,
       deductibility_status: args.classification.deductibility,
     })
     .select('id')
@@ -988,7 +994,7 @@ async function createAuditPackage(admin: SupabaseClient, args: {
       organization_id: args.organizationId,
       receipt_event_id: args.eventId,
       bill_id: args.billId,
-      gst_status: args.gstEstimated ? 'estimated' : 'supplied',
+      gst_status: args.gstStatus,
       deductibility_status: args.classification.deductibility,
       payload: args.payload,
       evidence,
@@ -1068,7 +1074,16 @@ interface NormalizedLine {
   metadata: Record<string, unknown>;
 }
 
-function normalizeLines(lines: ReceiptLine[] | undefined, totalCents: number, gstCents: number, category: string): NormalizedLine[] {
+// Line GST columns are NOT NULL, so a line whose GST the receipt does not show is stored as 0 with
+// metadata.gst_unknown. GST credits come from the bill header (gst_cents null when unknown), never
+// from a guessed line figure.
+function normalizeLines(
+  lines: ReceiptLine[] | undefined,
+  totalCents: number,
+  gstCents: number | null,
+  gstStatus: ReceiptGstStatus,
+  category: string,
+): NormalizedLine[] {
   if (!Array.isArray(lines) || lines.length === 0) {
     return [{
       lineNumber: 1,
@@ -1076,26 +1091,36 @@ function normalizeLines(lines: ReceiptLine[] | undefined, totalCents: number, gs
       quantity: 1,
       unitPriceCents: totalCents,
       totalIncGstCents: totalCents,
-      gstCents,
+      gstCents: gstCents ?? 0,
       category,
-      metadata: { generated: true },
+      metadata: gstCents == null ? { generated: true, gst_unknown: true } : { generated: true },
     }];
   }
   return lines.map((line, index) => {
     const quantity = asNumber(line.quantity) ?? 1;
     const unitPrice = asCents(line.unit_price_cents);
     const lineTotal = asCents(line.total_inc_gst_cents) ?? (unitPrice != null ? Math.round(quantity * unitPrice) : 0);
+    const lineGst = asCents(line.gst_cents);
+    const gstUnknown = lineGst == null && gstStatus !== 'none';
     return {
       lineNumber: index + 1,
       description: asText(line.description) ?? `Receipt line ${index + 1}`,
       quantity,
       unitPriceCents: unitPrice ?? (quantity > 0 ? Math.round(lineTotal / quantity) : lineTotal),
       totalIncGstCents: lineTotal,
-      gstCents: asCents(line.gst_cents) ?? Math.round(lineTotal / 11),
+      gstCents: lineGst ?? 0,
       category: asText(line.category) ?? category,
-      metadata: { source: 'pos_line_item' },
+      metadata: gstUnknown ? { source: 'pos_line_item', gst_unknown: true } : { source: 'pos_line_item' },
     };
   });
+}
+
+function gstDecisionDetail(status: ReceiptGstStatus): string {
+  if (status === 'supplied') return 'GST taken from the receipt.';
+  if (status === 'none') {
+    return 'No GST on this receipt (GST-free, or the merchant is not registered for GST), so no GST credit.';
+  }
+  return 'The receipt does not show GST. No GST credit is recorded until someone enters the GST from the tax invoice.';
 }
 
 function syncTargets(body: RequestBody, payload: ReceiptPayload): SyncProvider[] {

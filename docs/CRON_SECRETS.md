@@ -37,7 +37,10 @@ To check whether a secret is already set: `supabase secrets list
 
 ## Cron secrets
 
-Each cron job POSTs to its edge function with `?secret=<VALUE>` in the URL. The
+Each cron job POSTs to its edge function with the secret in an `X-Cron-Secret: <VALUE>`
+header (migration `20261003160000` moved the scheduled jobs there; a secret in the URL ends up
+in logs). The old `?secret=<VALUE>` URL form is still accepted for one release, with a
+warning in the function log, and is removed after that. The
 function constant-time-compares that value to its env secret. When the secret is
 **unset**, the comparison can never pass, so the cron path is unreachable — the
 job effectively does nothing.
@@ -48,7 +51,7 @@ job effectively does nothing.
   drive the function without a user JWT.
 - **Consumed by:** `supabase/functions/auto-reconcile/index.ts`
   (`Deno.env.get('AUTO_RECONCILE_CRON_SECRET')`); auth gate accepts a
-  service-role bearer **or** `?secret=<AUTO_RECONCILE_CRON_SECRET>`.
+  service-role bearer **or** `X-Cron-Secret: <AUTO_RECONCILE_CRON_SECRET>`.
 - **Cron:** `auto-reconcile-daily`, `15 3 * * *` (03:15 daily), registered by
   `supabase/migrations/0065_auto_reconcile_cron.sql` (currently inert). The cron
   iterates active orgs and POSTs once per org.
@@ -70,7 +73,7 @@ job effectively does nothing.
 - **Consumed by:**
   - `supabase/functions/accountant-orchestrator/index.ts`
     (`Deno.env.get("ACCOUNTANT_ORCHESTRATOR_CRON_SECRET")`); auth gate accepts a
-    service-role bearer **or** `?secret=<ACCOUNTANT_ORCHESTRATOR_CRON_SECRET>`.
+    service-role bearer **or** `X-Cron-Secret: <ACCOUNTANT_ORCHESTRATOR_CRON_SECRET>`.
   - `supabase/functions/notifications-cron/index.ts` reads the same secret as an
     **optional** handoff — when set, notifications-cron also fires the
     orchestrator.
@@ -95,7 +98,7 @@ job effectively does nothing.
   multi-month bills) so pg_cron can drive the function.
 - **Consumed by:** `supabase/functions/accruals-run/index.ts`
   (`Deno.env.get("ACCRUALS_RUN_CRON_SECRET")`); auth gate accepts a service-role
-  bearer **or** `?secret=<ACCRUALS_RUN_CRON_SECRET>`. There is **no user-JWT
+  bearer **or** `X-Cron-Secret: <ACCRUALS_RUN_CRON_SECRET>`. There is **no user-JWT
   path** — this function is cron-only.
 - **Cron:** `accruals-run-monthly`, `30 4 3 * *` (04:30 on the 3rd of each
   month), registered by `supabase/migrations/0099_accruals_cron.sql` (currently
@@ -117,7 +120,7 @@ job effectively does nothing.
   schedules, previous-month period) so pg_cron can drive the function.
 - **Consumed by:** `supabase/functions/depreciation-run/index.ts`
   (`Deno.env.get("DEPRECIATION_RUN_CRON_SECRET")`); auth gate accepts a
-  service-role bearer **or** `?secret=<DEPRECIATION_RUN_CRON_SECRET>`. There is
+  service-role bearer **or** `X-Cron-Secret: <DEPRECIATION_RUN_CRON_SECRET>`. There is
   **no user-JWT path** — this function is cron-only.
 - **Cron:** `depreciation-run-monthly`, `0 4 3 * *` (04:00 on the 3rd of each
   month), registered by `supabase/migrations/0096_depreciation_cron.sql`

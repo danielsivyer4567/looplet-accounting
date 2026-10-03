@@ -11,12 +11,13 @@
  * Email delivery via Resend (RESEND_API_KEY required).
  *
  * Deployed with verify_jwt=false because pg_cron calls cron mode with a scoped
- * ?secret=. On-demand/browser modes still verify the caller JWT in-function
+ * X-Cron-Secret header. On-demand/browser modes still verify the caller JWT in-function
  * before reading sessions or activity.
  */
 
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { presentedCronSecret } from '../_shared/cronSecret.ts';
 import { isExactSecret, isExactServiceRoleBearer } from '../_shared/serviceRole.ts';
 
 const RESEND_URL = 'https://api.resend.com/emails';
@@ -62,9 +63,8 @@ Deno.serve(async (req) => {
     const isCronMode = !body.session_id && !body.proof_id && !body.organization_id;
 
     if (isCronMode) {
-      const url = new URL(req.url);
       const secretOk = cronSecret
-        ? isExactSecret(url.searchParams.get('secret'), cronSecret)
+        ? isExactSecret(presentedCronSecret(req), cronSecret)
         : false;
       const serviceRoleOk = isExactServiceRoleBearer(authHeader, serviceKey);
       if (!secretOk && !serviceRoleOk) {

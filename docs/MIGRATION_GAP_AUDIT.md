@@ -5,6 +5,45 @@
 **Branch:** `chore-migration-reconciliation`
 **Author:** automated reconciliation pass
 
+## 2026-10-03 MIG-01: every migration applies to a fresh database
+
+`node scripts/db/run-pg-sql-tests.mjs --strict` builds a disposable Supabase
+Postgres from the migration files in order. Nine files failed; they were listed
+in `scripts/db/known-migration-failures.json`, which is now empty. Each repair
+below is in place, keeps what live already ran, and is marked in the file with a
+`MIG-01 repair (2026-10-03)` comment.
+
+Why "what live ran" is unaffected: several numbered versions are shared by two
+files (for example `0200_tag_drop.sql` and `0200_workstream_tasks.sql`), and the
+2026-06-30 batch applied renumbered copies `0230`-`0236`. Every file repaired
+in place below either raised an error on any database (so it never ran
+anywhere) or only changes statement order. The renumbered copies that did run
+live are only made idempotent, which changes nothing where their objects
+already exist.
+
+| File | Failure on a fresh database | Repair |
+|---|---|---|
+| `0200_workstream_tasks.sql` | `get_workstream_tasks`: `se.organization_id` (and `b`/`ci`/`bt`) selected in aggregate arms without `GROUP BY`; behind that, `public.customer_invoices` (dropped in `0042`), `data_completeness_findings.deleted_at` (no such column) and `ORDER BY urgency, created_at` on a `UNION` that exposes no such names | The same corrections the live copy `0231` carries: `p_org_id` in those arms (each arm's `WHERE` already restricts to `p_org_id`, so the rows are identical), `public.invoices`, no `deleted_at` filter, `ORDER BY 13, 14` (urgency, created_at). Function body now identical to `0231`'s. |
+| `0202_anomaly_signals.sql` | Needed `public.workstream_task` from `0200`, and carries the same function errors | Same corrections; body identical to the live copy `0233`. |
+| `0204_close_tasks.sql` | As `0202` | Same corrections; body identical to the live copy `0235`. |
+| `20260701160000_close_task_preflight_detail.sql` | Arms 1-11 copied "unchanged from 0204", with its errors | Arms 1-11 corrected to match `0235`; arm 12 (the pre-flight close signal) and the output columns are unchanged. |
+| `0203_ap_exception_review.sql` | A stray second `$$;` after the function body (unterminated dollar-quoted string) | Removed the stray line. |
+| `0206_bank_classifier_schema.sql` | Partial index `WHERE ... deleted_at IS NULL` created before `ADD COLUMN deleted_at` | Swapped the two statements. |
+| `0208_advisor_work_proofs.sql` | References `public.organisations` and `public.organisation_users(organisation_id)`; neither exists in any Looplet database | Kept as a documented no-op with the original statements commented out. Fixing only the spelling is not enough: the policy still names `organisation_users`, and the file would create an older `advisor_work_proofs` shape (`org_id`, `session_id`, ...) before `0230`, whose `CREATE TABLE IF NOT EXISTS` would then skip and whose `organization_id` indexes would fail. Live's table comes from `0230`. |
+| `0231_workstream_tasks.sql` | (Applied before only because `0200` failed.) `CREATE TYPE public.workstream_task` now meets the type `0200` creates | `CREATE TYPE` wrapped in a `duplicate_object` guard. |
+| `0232_automation_decisions.sql` | Renumbered copy of `0201`: `type automation_confidence already exists` | Made idempotent: guarded enum, `CREATE TABLE/INDEX IF NOT EXISTS`, `DROP POLICY IF EXISTS` before each `CREATE POLICY`. Functions were already `CREATE OR REPLACE`. |
+| `0236_automation_feedback.sql` | Renumbered copy of `0205`: `relation automation_feedback already exists` | Made idempotent: `CREATE TABLE/INDEX IF NOT EXISTS`, `CREATE OR REPLACE VIEW`, `DROP POLICY IF EXISTS` before each `CREATE POLICY`. |
+
+Live ran `0231`/`0232`/`0236` with plain `CREATE TYPE`/`CREATE TABLE`, which
+would have failed had `0200`/`0201`/`0205` run there first; that is the
+evidence that those originals never ran live.
+
+Proof: `node scripts/db/run-pg-sql-tests.mjs --strict` reports
+`287 applied, 0 known failures, 0 problems (287 files)` on the books worktree
+(which also carries the new `20261003150000`-`20261003155000` migrations).
+None of these repairs has been applied to live, and none needs to be: the
+repaired files are either already recorded there (the copies) or never ran.
+
 ## 2026-06-29 Wrap-up Addendum
 
 The live project `dxoikltymmknxqpkpyhi` now has migration-history parity with

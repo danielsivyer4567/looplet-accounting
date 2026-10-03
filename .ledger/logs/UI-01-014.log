@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/pages/AuthMobile.test.tsx"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  15:05:04
+   Duration  898ms (transform 66ms, setup 62ms, import 150ms, tests 137ms, environment 449ms)
+

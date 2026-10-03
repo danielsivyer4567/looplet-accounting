@@ -1,12 +1,4 @@
-import {
-  cloneElement,
-  isValidElement,
-  useCallback,
-  useEffect,
-  useId,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
@@ -16,6 +8,13 @@ import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { XeroStatusPill } from '@/components/XeroStatusPill';
 import { DetailPageSkeleton } from '@/components/Skeleton';
 import { ArchiveButton } from '@/components/ArchiveButton';
+import { addDays, isIsoDate, orgTimeZone, todayLocal } from '@/lib/localDates';
+import {
+  invoiceDocumentTitle,
+  invoiceIssueProblems,
+  renderInvoicePdf,
+  type InvoiceDocumentInput,
+} from '@/lib/taxInvoice';
 import {
   ChevronLeft,
   Save,
@@ -27,12 +26,24 @@ import {
   Plus,
   AlertCircle,
   FileSpreadsheet,
+  Download,
+  Share2,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Field } from '@/components/ui/Field';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface Customer {
   id: string;
   name: string;
   email: string | null;
+  abn?: string | null;
+}
+interface Seller {
+  name: string;
+  abn: string | null;
+  gstRegistered: boolean;
 }
 interface Job {
   id: string;
@@ -103,6 +114,11 @@ const NEW_LINE: Omit<LineItem, 'line_number'> = {
   line_total_inc_gst_cents: 0,
 };
 
+/** Registered only when at least one setting says so and none says it isn't; unknown counts as not registered. */
+function isGstRegistered(flags: (boolean | null | undefined)[]): boolean {
+  return flags.some((f) => f === true) && !flags.some((f) => f === false);
+}
+
 export function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const isNew = !id || id === 'new';
@@ -120,18 +136,17 @@ export function InvoiceDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(isNew);
   const [xeroBusy, setXeroBusy] = useState(false);
+  const [seller, setSeller] = useState<Seller | null>(null);
 
   const [customerId, setCustomerId] = useState<string>(searchParams.get('customer_id') ?? '');
   const [jobId, setJobId] = useState<string>(searchParams.get('job_id') ?? '');
-  const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10));
+  const [issueDate, setIssueDate] = useState(() => todayLocal(orgTimeZone(currentOrg)));
   const [termsDays, setTermsDays] = useState(14);
   const [notes, setNotes] = useState('');
 
-  const dueDate = (() => {
-    const d = new Date(issueDate);
-    d.setDate(d.getDate() + termsDays);
-    return d.toISOString().slice(0, 10);
-  })();
+  // Calendar arithmetic on the date string: no UTC round trip, and no crash when the
+  // issue-date input has been cleared.
+  const dueDate = isIsoDate(issueDate) ? addDays(issueDate, termsDays) : '';
 
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
@@ -156,13 +171,13 @@ export function InvoiceDetailPage() {
     setJobs((jobsRes.data ?? []) as Job[]);
 
     if (!isNew && id) {
-      const [invRes, linesRes, paysRes] = await Promise.all([
+      const [invRes, linesRes, paysRes, orgRes, profileRes] = await Promise.all([
         supabase
           .from('invoices')
           .select(
             `
           *,
-          customer:customers!invoices_customer_id_fkey(id, name, email),
+          customer:customers!invoices_customer_id_fkey(id, name, email, abn),
           job:jobs!invoices_job_id_fkey(id, job_number, name, customer_id)
         `,
           )
@@ -175,7 +190,32 @@ export function InvoiceDetailPage() {
           .select('*')
           .eq('invoice_id', id)
           .order('paid_at', { ascending: false }),
+        // The seller on the tax invoice: business name, ABN and GST registration.
+        supabase
+          .from('organizations')
+          .select('name, abn, settings')
+          .eq('id', currentOrg.id)
+          .maybeSingle(),
+        supabase
+          .from('business_profile')
+          .select('is_gst_registered')
+          .eq('organization_id', currentOrg.id)
+          .maybeSingle(),
       ]);
+      const org = orgRes.data as {
+        name: string | null;
+        abn: string | null;
+        settings: { gst_registered?: boolean } | null;
+      } | null;
+      const profile = profileRes.data as { is_gst_registered: boolean | null } | null;
+      setSeller({
+        name: org?.name ?? currentOrg.name,
+        abn: org?.abn ?? null,
+        // A tax invoice needs an explicit "registered" setting, and no setting saying otherwise. Unknown is
+        // treated as not registered, so a business that never set its status gets a plain invoice with no GST,
+        // never a wrong tax invoice.
+        gstRegistered: isGstRegistered([org?.settings?.gst_registered, profile?.is_gst_registered]),
+      });
       if (invRes.error) setError(invRes.error.message);
       const inv = (invRes.data as unknown as Invoice | null) ?? null;
       setInvoice(inv);
@@ -216,7 +256,9 @@ export function InvoiceDetailPage() {
         gst = Math.round(ex / 11);
         inc = ex;
       }
-      next.line_total_ex_gst_cents = ex;
+      // For a GST-inclusive price the ex-GST amount is the price less its GST (it was stored as the
+      // full price, so subtotal + GST overstated the invoice total).
+      next.line_total_ex_gst_cents = inc - gst;
       next.line_gst_cents = gst;
       next.line_total_inc_gst_cents = inc;
       copy[idx] = next;
@@ -409,15 +451,19 @@ export function InvoiceDetailPage() {
   }
   if (!isNew && !invoice) {
     return (
-      <section className="animated-fade-in" style={{ padding: '2rem 0', textAlign: 'center' }}>
-        <AlertCircle size={48} style={{ color: 'var(--accent-danger)', marginBottom: '1rem' }} />
-        <h2>Invoice not found</h2>
-        <p style={{ color: 'var(--text-muted)' }}>
+      <section className="animated-fade-in">
+        <EmptyState
+          icon={AlertCircle}
+          title="Invoice not found"
+          action={
+            <Link to="/invoices" className="btn btn-secondary">
+              {' '}
+              <ChevronLeft size={16} /> Back to invoices{' '}
+            </Link>
+          }
+        >
           No invoice details were found under this organization.
-        </p>
-        <Link to="/invoices" className="btn btn-secondary" style={{ marginTop: '1rem' }}>
-          <ChevronLeft size={16} /> Back to invoices
-        </Link>
+        </EmptyState>
       </section>
     );
   }
@@ -451,14 +497,18 @@ export function InvoiceDetailPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileSpreadsheet size={24} style={{ color: 'var(--accent-primary)' }} />
-          {isNew ? 'New invoice' : <code>{invoice?.invoice_number}</code>}
-        </h1>
+        <PageHeader
+          title={
+            <>
+              <FileSpreadsheet size={24} style={{ color: 'var(--text-link)' }} />{' '}
+              {isNew ? 'New invoice' : <code>{invoice?.invoice_number}</code>}
+            </>
+          }
+        />
 
         {!isNew && invoice && (
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <StatusPill status={invoice.status} />
+            <StatusBadge status={invoice.status} />
 
             {invoice.status === 'draft' && (
               <button onClick={markSent} disabled={busy} className="btn btn-primary">
@@ -832,6 +882,33 @@ export function InvoiceDetailPage() {
         )}
       </div>
 
+      {!isNew && invoice && !editing && seller && (
+        <TaxInvoicePanel
+          input={{
+            invoiceNumber: invoice.invoice_number,
+            issueDate: invoice.issue_date,
+            dueDate: invoice.due_date,
+            seller,
+            buyer: {
+              name: invoice.customer?.name ?? null,
+              abn: invoice.customer?.abn ?? null,
+              email: invoice.customer?.email ?? null,
+            },
+            lines: lines.map((line) => ({
+              description: line.description,
+              quantity: line.quantity,
+              unitPriceCents: line.unit_price_cents,
+              gstTreatment: line.gst_treatment,
+              totalIncGstCents: line.line_total_inc_gst_cents,
+              gstCents: line.line_gst_cents,
+            })),
+            notes: invoice.notes,
+            amountPaidCents: invoice.amount_paid_cents,
+          }}
+          status={invoice.status}
+        />
+      )}
+
       {/* Save / Cancel action panel */}
       {editing && (
         <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -936,23 +1013,129 @@ export function InvoiceDetailPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  const generatedId = useId();
-  const child = isValidElement<{ id?: string }>(children) ? children : null;
-  const labelable =
-    child && typeof child.type === 'string' && ['input', 'select', 'textarea'].includes(child.type);
-  const controlId =
-    labelable && child ? (child.props.id ?? `invoice-field-${generatedId}`) : undefined;
-  const labelledChild =
-    labelable && child && controlId ? cloneElement(child, { id: controlId }) : children;
+/**
+ * Issues the invoice as a PDF: "Tax invoice" with the seller's ABN and GST for a GST-registered
+ * business, or a plain "Invoice" otherwise. Looplet doesn't email it: the owner downloads it (or
+ * shares it from a phone) and sends it, then marks the invoice sent.
+ */
+function TaxInvoicePanel({ input, status }: { input: InvoiceDocumentInput; status: string }) {
+  const [message, setMessage] = useState<string | null>(null);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const problems = invoiceIssueProblems(input);
+  const title = invoiceDocumentTitle(input);
+  const fileName = `${title.replace(/\s+/g, '-')}-${input.invoiceNumber || 'draft'}.pdf`;
+
+  const pdfFile = () => new File([renderInvoicePdf(input)], fileName, { type: 'application/pdf' });
+
+  const download = () => {
+    const url = URL.createObjectURL(pdfFile());
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setMessage(
+      status === 'draft'
+        ? `${title} downloaded. Send it to your customer, then click Mark sent.`
+        : `${title} downloaded.`,
+    );
+  };
+
+  const canShareFiles =
+    typeof navigator !== 'undefined' &&
+    typeof navigator.canShare === 'function' &&
+    typeof navigator.share === 'function';
+
+  const share = async () => {
+    setShareError(null);
+    const file = pdfFile();
+    if (!navigator.canShare({ files: [file] })) {
+      setShareError('This device can’t share files. Download the PDF instead.');
+      return;
+    }
+    try {
+      await navigator.share({ files: [file], title: `${title} ${input.invoiceNumber}` });
+      setMessage(status === 'draft' ? 'Shared. Click Mark sent once your customer has it.' : null);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      setShareError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const mailto = input.buyer.email
+    ? `mailto:${encodeURIComponent(input.buyer.email)}?subject=${encodeURIComponent(
+        `${title} ${input.invoiceNumber} from ${input.seller.name}`,
+      )}&body=${encodeURIComponent(
+        `Hi,\n\nPlease find attached ${title.toLowerCase()} ${input.invoiceNumber}.\n\nThanks,\n${input.seller.name}`,
+      )}`
+    : null;
 
   return (
-    <div className="form-group">
-      <label className="form-label" htmlFor={controlId} style={{ fontSize: '0.725rem' }}>
-        {label}
-      </label>
-      <div style={{ marginTop: '0.25rem' }}>{labelledChild}</div>
-    </div>
+    <section
+      className="card"
+      aria-labelledby="tax-invoice-heading"
+      style={{ marginTop: '1.5rem', display: 'grid', gap: '0.75rem' }}
+    >
+      <h2 id="tax-invoice-heading" style={{ margin: 0, fontSize: '1.1rem' }}>
+        Issue {title.toLowerCase()}
+      </h2>
+      <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+        {input.seller.gstRegistered
+          ? 'The PDF is headed “Tax invoice” and shows your business name and ABN, the date, each item with its quantity, price and GST, which items are taxable, the customer, and the GST and total payable.'
+          : 'Your business is set as not registered for GST, so this is a plain invoice: it does not say “Tax invoice” and charges no GST.'}{' '}
+        Looplet doesn’t email invoices for you: send the PDF yourself, then click Mark sent.
+      </p>
+      {problems.length > 0 ? (
+        <div role="alert" style={{ color: 'var(--text-danger)', fontSize: '0.85rem' }}>
+          <strong>Before you can issue it:</strong>
+          <ul style={{ margin: '0.35rem 0 0', paddingLeft: '1.1rem' }}>
+            {problems.map((problem) => (
+              <li key={problem}>{problem}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={download}
+          disabled={problems.length > 0}
+        >
+          <Download size={14} />
+          <span>Download {title.toLowerCase()} (PDF)</span>
+        </button>
+        {canShareFiles ? (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => void share()}
+            disabled={problems.length > 0}
+          >
+            <Share2 size={14} />
+            <span>Share PDF</span>
+          </button>
+        ) : null}
+        {mailto && problems.length === 0 ? (
+          <a className="btn btn-secondary" href={mailto}>
+            <Mail size={14} />
+            <span>Email customer (attach the PDF)</span>
+          </a>
+        ) : null}
+      </div>
+      {message ? (
+        <p role="status" style={{ margin: 0, color: 'var(--text-success)', fontSize: '0.85rem' }}>
+          {message}
+        </p>
+      ) : null}
+      {shareError ? (
+        <p role="alert" style={{ margin: 0, color: 'var(--text-danger)', fontSize: '0.85rem' }}>
+          {shareError}
+        </p>
+      ) : null}
+    </section>
   );
 }
 
@@ -982,19 +1165,5 @@ function Total({
       <span style={{ color: 'var(--text-muted)' }}>{label}</span>
       <span>{value}</span>
     </div>
-  );
-}
-
-function StatusPill({ status }: { status: string }) {
-  let badgeClass = 'badge-neutral';
-  if (status === 'paid') badgeClass = 'badge-success';
-  else if (status === 'sent') badgeClass = 'badge-info';
-  else if (status === 'partially_paid') badgeClass = 'badge-warning';
-  else if (status === 'overdue') badgeClass = 'badge-danger';
-
-  return (
-    <span className={`badge ${badgeClass}`} style={{ alignSelf: 'center' }}>
-      {status.replace('_', ' ')}
-    </span>
   );
 }

@@ -1,0 +1,78 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "deno test --allow-env --allow-read --allow-net supabase/functions"
+[0m[32mCheck[0m supabase/functions/_shared/advisoryCite.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/advisoryFacts.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/aiRateLimit.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/apiKeys.hardening.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/ato/config.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/authGuards.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/bankfeed/webhook.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/cors.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/cronSecret.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/errors.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/gl/gstControlAccounts.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/gl/postJournalEntry.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/gmail/dedupe.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/gmail/pubsub.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/gmail/reconnect.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/lodge/gate.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/models/cgt.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/models/fbt.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/models/profitExtraction.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/models/structuring.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/models/yearEnd.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/oauthState.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/ocr/index.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/onboarding/stagedEntityApproval.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/orchestrator/decide.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/orchestrator/dispatch.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/orgRole.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/pdf/worksheet.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/receipt-sync/genericApi.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/redbark/client.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/sbr/as4-envelope.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/serviceRole.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/xero/adapter.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/xero/idempotency.test.ts
+[0m[32mCheck[0m supabase/functions/_shared/xero/retry.test.ts
+[0m[32mCheck[0m supabase/functions/accountant-email-query/index.test.ts
+[0m[32mCheck[0m supabase/functions/accountant-email-query/match.test.ts
+[0m[32mCheck[0m supabase/functions/accountant-orchestrator/index.test.ts
+[0m[32mCheck[0m supabase/functions/accruals-run/logic.test.ts
+[0m[32mCheck[0m supabase/functions/advisor/index.test.ts
+[0m[32mCheck[0m supabase/functions/api-gateway/index.test.ts
+[0m[32mCheck[0m supabase/functions/ask-bot/bas-query.test.ts
+[0m[32mCheck[0m supabase/functions/ask-bot/prompt.test.ts
+[0m[32mCheck[0m supabase/functions/ato-correspondence/draft.test.ts
+[0m[32mCheck[0m supabase/functions/ato-lodge/index.test.ts
+[0m[32mCheck[0m supabase/functions/bank-feed-link/link.test.ts
+[0m[32mCheck[0m supabase/functions/bank-sync/sync.test.ts
+[0m[32mCheck[0m supabase/functions/bank-webhook/handler.test.ts
+[0m[32mCheck[0m supabase/functions/bas-lodgement-pack/pack.test.ts
+[0m[32mCheck[0m supabase/functions/bills-allocate-batch/auth.test.ts
+[0m[32mCheck[0m supabase/functions/depreciation-run/logic.test.ts
+[0m[32mCheck[0m supabase/functions/div7a-agreement/agreement.test.ts
+[0m[32mCheck[0m supabase/functions/gmail-watch-renew/index.test.ts
+[0m[32mCheck[0m supabase/functions/ingest/handlers.test.ts
+[0m[32mCheck[0m supabase/functions/intake-routing-apply/auth.test.ts
+[0m[32mCheck[0m supabase/functions/payroll-create-pay-run/calc.test.ts
+[0m[32mCheck[0m supabase/functions/payroll-create-pay-run/super.test.ts
+[0m[32mCheck[0m supabase/functions/payroll-export-stp/stp.test.ts
+[0m[32mCheck[0m supabase/functions/payroll-termination/calc.test.ts
+[0m[32mCheck[0m supabase/functions/receipt-webhook/gst.test.ts
+[0m[32mCheck[0m supabase/functions/receipt-webhook/posReliability.test.ts
+[0m[32mCheck[0m supabase/functions/smsf-audit-pack/pack.test.ts
+[0m[32mCheck[0m supabase/functions/super-batch-send/status.test.ts
+[0m[32mCheck[0m supabase/functions/trust-minute/minute.test.ts
+[0m[32mCheck[0m supabase/functions/working-papers/bundle.test.ts
+[0m[32mCheck[0m supabase/functions/xero-pull-bank-transactions/rows.test.ts
+[0m[1m[31merror[0m: Error: Could not find a matching package for 'npm:mupdf@1.27.0' in the node_modules directory. Ensure you have all your JSR and npm dependencies listed in your deno.json or package.json, then run `deno install`. Alternatively, turn on auto-install by specifying `"nodeModulesDir": "auto"` in your deno.json file.
+    at Object.resolveModuleNameLiterals (ext:deno_cli_tsc/97_ts_host.js:587:26)
+    at ext:deno_cli_tsc/97_ts_host.js:749:49
+    at spanned (ext:deno_cli_tsc/97_ts_host.js:16:12)
+    at Object.host.<computed> [as resolveModuleNameLiterals] (ext:deno_cli_tsc/97_ts_host.js:749:14)
+    at resolveModuleNamesWorker (ext:deno_cli_tsc/00_typescript.js:128286:20)
+    at resolveNamesReusingOldState (ext:deno_cli_tsc/00_typescript.js:128422:14)
+    at resolveModuleNamesReusingOldState (ext:deno_cli_tsc/00_typescript.js:128378:12)
+    at processImportedModules (ext:deno_cli_tsc/00_typescript.js:129811:118)
+    at findSourceFileWorker (ext:deno_cli_tsc/00_typescript.js:129623:7)
+    at findSourceFile (ext:deno_cli_tsc/00_typescript.js:129476:20)

@@ -101,3 +101,24 @@ Deno.test("basLodgementFilename is stable and filesystem-safe", () => {
     "bas-lodgement-pack-Q4-FY2025-26-7bd6a947.pdf",
   );
 });
+
+Deno.test("W3/W4 Looplet does not record are shown as blank, not $0.00", () => {
+  const blankRow: BasLodgementRow = {
+    ...row,
+    payload: {
+      ...row.payload,
+      gst_accounting_basis: "cash",
+      payg_withholding: { W1: 0, W2: 0, W3: null, W4: null, W5: 0, "4": 0 },
+      payg_instalment: { T7: null, "5A": null, "5B": null, source_status: "missing" },
+    },
+  };
+  const doc = toBasLodgementWorksheetDoc(blankRow, buildBasLodgementBundle(blankRow, "2026-07-02T01:00:00Z"));
+  const rows = doc.sections.flatMap((section) => section.rows);
+  const value = (prefix: string) => rows.find((r) => r.label.startsWith(prefix))?.value;
+
+  assertEquals(value("W3"), "Not recorded in Looplet (blank)");
+  assertEquals(value("W4"), "Not recorded in Looplet (blank)");
+  assertEquals(value("5A"), "Not entered");
+  assertEquals(value("W1"), "$0.00");
+  assertStringIncludes(doc.sections.find((s) => s.heading === "GST")?.caption ?? "", "cash basis");
+});

@@ -4,15 +4,16 @@
  * Input:  { organization_id: UUID, redirect_uri: string }
  * Output: { auth_url: string, state: string }
  *
- * The frontend stashes `state` in localStorage (or a server session) and
- * verifies on the callback. The state is also HMAC-signed server-side so the
- * organization_id embedded in it cannot be forged.
- *
- * STATUS: skeleton. Port from Loopletnumero `xero.controller.ts authStart`.
+ * Only an accepted admin or owner may start a connection. The returned state is
+ * HMAC-signed and bound to this user, this organisation and a 15-minute window
+ * (_shared/oauthState.ts); the browser also keeps a copy in sessionStorage and
+ * the callback page refuses a state it did not store.
  */
 
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
-import { createXeroOAuthState } from '../_shared/xero/oauthState.ts';
+import { createOAuthState, oauthStateSecret } from '../_shared/oauthState.ts';
+import { authorizeOrgCaller, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 
 const XERO_AUTHORIZE_URL = 'https://login.xero.com/identity/connect/authorize';
 // Fine-grained scopes Xero actually grants for this app (verified against a live
@@ -40,7 +41,24 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'organization_id and redirect_uri required' }, 400);
     }
 
-    const state = await createXeroOAuthState(body.organization_id);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !serviceKey) return json({ ok: false, error: 'Server config missing' }, 500);
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    // Connecting Xero lets the app read and write this organisation's books in Xero: accepted admins and owners only.
+    const access = await authorizeOrgCaller(
+      req.headers.get('Authorization'),
+      body.organization_id,
+      supabaseOrgAccessDeps(admin, serviceKey),
+      'admin',
+    );
+    if (!access.ok) return json({ ok: false, error: access.error }, access.status);
+    if (access.caller.kind !== 'member') return json({ ok: false, error: 'Connect Xero from a signed-in session' }, 401);
+
+    const state = await createOAuthState({ provider: 'xero', organizationId: body.organization_id, userId: access.caller.userId }, oauthStateSecret('xero'));
 
     const params = new URLSearchParams({
       response_type: 'code',

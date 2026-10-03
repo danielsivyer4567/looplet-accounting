@@ -16,8 +16,12 @@ import {
   FileSpreadsheet,
   DollarSign,
   Wallet,
-  type LucideIcon,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Field } from '@/components/ui/Field';
+import { Stat } from '@/components/ui/Stat';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 interface Customer {
   id: string;
@@ -192,10 +196,13 @@ export function CustomerDetailPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Users size={24} style={{ color: 'var(--accent-primary)' }} />
-          {customer.name}
-        </h1>
+        <PageHeader
+          title={
+            <>
+              <Users size={24} style={{ color: 'var(--text-link)' }} /> {customer.name}
+            </>
+          }
+        />
 
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
@@ -337,9 +344,9 @@ export function CustomerDetailPage() {
             marginBottom: '1.5rem',
           }}
         >
-          <Stat label="ABN" value={customer.abn ?? '—'} />
-          <Stat label="Email" value={customer.email ?? '—'} />
-          <Stat label="Phone" value={customer.phone ?? '—'} />
+          <Stat variant="inline" label="ABN" value={customer.abn ?? '—'} />
+          <Stat variant="inline" label="Email" value={customer.email ?? '—'} />
+          <Stat variant="inline" label="Phone" value={customer.phone ?? '—'} />
           {customer.notes && (
             <div
               style={{
@@ -351,7 +358,7 @@ export function CustomerDetailPage() {
             >
               <div
                 style={{
-                  fontSize: '0.675rem',
+                  fontSize: '0.6875rem',
                   color: 'var(--text-muted)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
@@ -385,28 +392,28 @@ export function CustomerDetailPage() {
           marginBottom: '2.5rem',
         }}
       >
-        <Kpi
+        <Stat
           label="Total Invoices"
           value={String(pnl?.invoice_count ?? 0)}
-          type="info"
+          tone="info"
           icon={FileSpreadsheet}
         />
-        <Kpi
+        <Stat
           label="Total Invoiced"
           value={formatMoney(pnl?.total_invoiced_cents ?? 0)}
-          type="neutral"
+          tone="neutral"
           icon={DollarSign}
         />
-        <Kpi
+        <Stat
           label="Amount Paid"
           value={formatMoney(pnl?.total_paid_cents ?? 0)}
-          type="success"
+          tone="success"
           icon={Wallet}
         />
-        <Kpi
+        <Stat
           label="Outstanding Balance"
           value={formatMoney(pnl?.balance_owing_cents ?? 0)}
-          type={(pnl?.balance_owing_cents ?? 0) > 0 ? 'warning' : 'neutral'}
+          tone={(pnl?.balance_owing_cents ?? 0) > 0 ? 'warning' : 'neutral'}
           icon={DollarSign}
           sub={
             (pnl?.overdue_cents ?? 0) > 0
@@ -430,20 +437,7 @@ export function CustomerDetailPage() {
         Jobs ({jobs.length})
       </h2>
       {jobs.length === 0 ? (
-        <div
-          style={{
-            padding: '2rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '0.875rem',
-            marginBottom: '2.5rem',
-          }}
-        >
-          No jobs associated with this customer yet.
-        </div>
+        <EmptyState>No jobs associated with this customer yet.</EmptyState>
       ) : (
         <div className="table-premium-container" style={{ marginBottom: '2.5rem' }}>
           <table className="table-premium">
@@ -469,7 +463,7 @@ export function CustomerDetailPage() {
                   </td>
                   <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{j.name}</td>
                   <td>
-                    <Pill status={j.status} />
+                    <StatusBadge status={j.status} />
                   </td>
                   <td>{j.start_date ?? '—'}</td>
                   <td>{j.end_date ?? '—'}</td>
@@ -497,19 +491,7 @@ export function CustomerDetailPage() {
         Invoices ({invoices.length})
       </h2>
       {invoices.length === 0 ? (
-        <div
-          style={{
-            padding: '2rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '0.875rem',
-          }}
-        >
-          No invoices raised for this customer yet.
-        </div>
+        <EmptyState>No invoices raised for this customer yet.</EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">
@@ -536,7 +518,7 @@ export function CustomerDetailPage() {
                   <td>{inv.issue_date}</td>
                   <td>{inv.due_date}</td>
                   <td>
-                    <Pill status={inv.status} />
+                    <StatusBadge status={inv.status} />
                   </td>
                   <td style={{ textAlign: 'right', fontWeight: 600 }}>
                     {formatMoney(inv.total_inc_gst_cents)}
@@ -559,120 +541,4 @@ export function CustomerDetailPage() {
       )}
     </section>
   );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="form-group" style={{ marginBottom: 0 }}>
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>
-        {label}
-      </span>
-      <div style={{ marginTop: '0.25rem' }}>{children}</div>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.25rem',
-          color: 'var(--text-title)',
-          fontSize: '0.9rem',
-          fontWeight: 600,
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function Kpi({
-  label,
-  value,
-  type,
-  icon: Icon,
-  sub,
-}: {
-  label: string;
-  value: string;
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
-  icon: LucideIcon;
-  sub?: string | undefined;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.5rem',
-          color: 'var(--text-title)',
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        {value}
-      </div>
-      {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-          {sub}
-        </div>
-      ) : (
-        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
-      )}
-      <div
-        style={{
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
-          opacity: 0.7,
-        }}
-      >
-        <Icon size={18} />
-      </div>
-    </div>
-  );
-}
-
-function Pill({ status }: { status: string }) {
-  let badgeClass = 'badge-neutral';
-  if (status === 'paid' || status === 'completed' || status === 'active')
-    badgeClass = 'badge-success';
-  else if (status === 'sent') badgeClass = 'badge-info';
-  else if (status === 'partially_paid' || status === 'quoted') badgeClass = 'badge-warning';
-  else if (status === 'overdue') badgeClass = 'badge-danger';
-
-  return <span className={`badge ${badgeClass}`}>{status.replace('_', ' ')}</span>;
 }

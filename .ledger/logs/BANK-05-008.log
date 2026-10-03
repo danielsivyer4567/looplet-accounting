@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/components/BankFeedLink.test.tsx"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  14:16:30
+   Duration  941ms (transform 56ms, setup 55ms, import 105ms, tests 228ms, environment 456ms)
+

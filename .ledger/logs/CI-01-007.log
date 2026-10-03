@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run tests/security/ci-test-coverage.test.ts"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  15:30:07
+   Duration  282ms (transform 35ms, setup 59ms, import 24ms, tests 96ms, environment 0ms)
+

@@ -81,8 +81,8 @@ export function MoveToOrgButton({
         style={{
           padding: '0.3rem 0.75rem',
           background: 'transparent',
-          color: '#aaa',
-          border: '1px solid #333',
+          color: 'var(--text-muted)',
+          border: '1px solid var(--border-subtle)',
           borderRadius: 3,
           fontSize: 12,
           cursor: busy ? 'wait' : 'pointer',
@@ -99,10 +99,10 @@ export function MoveToOrgButton({
             right: 0,
             marginTop: 4,
             minWidth: 220,
-            background: '#1a1a1a',
-            border: '1px solid #2a2a2a',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: 4,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+            boxShadow: 'var(--shadow-md)',
             zIndex: 100,
           }}
         >
@@ -110,10 +110,10 @@ export function MoveToOrgButton({
             style={{
               padding: '0.4rem 0.75rem',
               fontSize: 11,
-              color: '#666',
+              color: 'var(--text-muted)',
               textTransform: 'uppercase',
               letterSpacing: 0.5,
-              borderBottom: '1px solid #2a2a2a',
+              borderBottom: '1px solid var(--border-subtle)',
             }}
           >
             Move to…
@@ -128,21 +128,21 @@ export function MoveToOrgButton({
                 textAlign: 'left',
                 padding: '0.5rem 0.75rem',
                 background: 'transparent',
-                color: '#ddd',
+                color: 'var(--text-body)',
                 border: 'none',
-                borderBottom: '1px solid #1a1a1a',
+                borderBottom: '1px solid var(--border-subtle)',
                 fontSize: 13,
                 cursor: 'pointer',
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = '#222';
+                (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-hover)';
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
               }}
             >
               {o.name}
-              <div style={{ fontSize: 10, color: '#666' }}>{o.organization_type}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{o.organization_type}</div>
             </button>
           ))}
           <button
@@ -153,7 +153,7 @@ export function MoveToOrgButton({
               textAlign: 'center',
               padding: '0.4rem',
               background: 'transparent',
-              color: '#666',
+              color: 'var(--text-muted)',
               border: 'none',
               fontSize: 11,
               cursor: 'pointer',
@@ -162,7 +162,14 @@ export function MoveToOrgButton({
             cancel
           </button>
           {err && (
-            <p style={{ margin: 0, padding: '0.4rem 0.75rem', color: 'salmon', fontSize: 11 }}>
+            <p
+              style={{
+                margin: 0,
+                padding: '0.4rem 0.75rem',
+                color: 'var(--text-danger)',
+                fontSize: 11,
+              }}
+            >
               {err}
             </p>
           )}

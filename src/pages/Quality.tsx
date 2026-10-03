@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { enqueueJob } from '@/lib/automationJobs';
 import { useOrg } from '@/hooks/useOrg';
+import { addMonths, orgTimeZone, startOfMonth, todayLocal } from '@/lib/localDates';
 import { useBooksHealth } from '@/hooks/useBooksHealth';
 import { usePeriodClose, type CloseResult } from '@/hooks/usePeriodClose';
 import { formatLoadError } from '@/lib/errorMessages';
@@ -20,6 +21,8 @@ import {
   RefreshCw,
   ShieldAlert,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Stat } from '@/components/ui/Stat';
 
 interface DupGroup {
   organization_id: string;
@@ -118,7 +121,7 @@ export function QualityPage() {
       style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}
     >
       <div>
-        <h1 style={{ margin: 0 }}>Data Quality</h1>
+        <PageHeader title="Data Quality" />
         <p
           style={{
             color: 'var(--text-muted)',
@@ -144,7 +147,7 @@ export function QualityPage() {
           gap: '1rem',
         }}
       >
-        <KpiCard
+        <Stat
           label="Duplicate Groups"
           value={String(duplicates.length)}
           accentColor={duplicates.length > 0 ? 'var(--accent-danger)' : 'var(--accent-success)'}
@@ -157,7 +160,7 @@ export function QualityPage() {
           }
           sub={`${duplicates.reduce((a, d) => a + d.dup_count, 0)} bills involved`}
         />
-        <KpiCard
+        <Stat
           label="Needs OCR Review"
           value={String(lowConf.length)}
           accentColor={lowConf.length > 0 ? 'var(--accent-warning)' : 'var(--accent-success)'}
@@ -231,7 +234,7 @@ export function QualityPage() {
                       Same supplier & invoice date (
                       <span style={{ color: 'var(--text-title)' }}>{d.invoice_date}</span>),
                       totaling{' '}
-                      <strong style={{ color: 'var(--accent-danger)' }}>
+                      <strong style={{ color: 'var(--text-danger)' }}>
                         {formatMoney(d.total_inc_gst_cents)}
                       </strong>
                     </div>
@@ -332,7 +335,7 @@ export function QualityPage() {
                             to={`/bills/${b.id}`}
                             style={{
                               fontWeight: 600,
-                              color: 'var(--accent-primary)',
+                              color: 'var(--text-link)',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '0.35rem',
@@ -419,7 +422,7 @@ export function QualityPage() {
                     <div className="quality-mobile-card__header">
                       <Link
                         to={`/bills/${b.id}`}
-                        style={{ fontWeight: 600, color: 'var(--accent-primary)' }}
+                        style={{ fontWeight: 600, color: 'var(--text-link)' }}
                       >
                         {b.supplier_name_raw ?? 'Unknown supplier'}
                       </Link>
@@ -486,7 +489,7 @@ export function QualityPage() {
       >
         <Info
           className="w-5 h-5 text-accent-primary"
-          style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--accent-primary)' }}
+          style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--text-link)' }}
         />
         <div>
           <strong style={{ color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>
@@ -619,11 +622,10 @@ function BooksHealthHeader() {
   );
 }
 
-// YYYY-MM for the month `monthsBack` before the current one (0 = this month).
-function monthValue(monthsBack: number): string {
-  const now = new Date();
-  const d = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+// YYYY-MM for the month `monthsBack` before the current one (0 = this month), in the
+// organisation's time zone.
+function monthValue(monthsBack: number, timeZone: string): string {
+  return addMonths(startOfMonth(todayLocal(timeZone)), -monthsBack).slice(0, 7);
 }
 
 const humanizeCheck = (name: string) =>
@@ -643,7 +645,7 @@ const CLOSE_STATUS_STYLE: Record<
   { color: string; Icon: typeof CheckCircle2 }
 > = {
   closed: { color: 'var(--accent-success)', Icon: CheckCircle2 },
-  already_locked: { color: 'var(--accent-primary)', Icon: Info },
+  already_locked: { color: 'var(--text-link)', Icon: Info },
   refused: { color: 'var(--accent-warning)', Icon: AlertTriangle },
 };
 
@@ -653,9 +655,11 @@ const CLOSE_STATUS_STYLE: Record<
 // once every check passes. Books-health blocking is a separate close-time gate
 // surfaced via the result — the score itself lives in the header above.
 function PeriodCloseSection() {
+  const { currentOrg } = useOrg();
+  const timeZone = orgTimeZone(currentOrg);
   // Default to the previous (completed) month — the typical close target. The
   // hook treats the period as any day in the month, so we append -01.
-  const [month, setMonth] = useState(() => monthValue(1));
+  const [month, setMonth] = useState(() => monthValue(1, timeZone));
   const { period, checks, blockers, canClose, close, closing, loading, error } = usePeriodClose(
     `${month}-01`,
   );
@@ -709,7 +713,7 @@ function PeriodCloseSection() {
               borderRadius: 'var(--radius-sm)',
             }}
           >
-            <Lock className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
+            <Lock className="w-5 h-5" style={{ color: 'var(--text-link)' }} />
           </div>
           <div>
             <div
@@ -740,7 +744,7 @@ function PeriodCloseSection() {
             type="month"
             className="form-input"
             value={month}
-            max={monthValue(0)}
+            max={monthValue(0, timeZone)}
             onChange={(e) => handleMonthChange(e.target.value)}
             style={{ padding: '0.4rem 0.6rem' }}
           />
@@ -888,71 +892,6 @@ function HealthMetric({ label, value, warn }: { label: string; value: string; wa
         }}
       >
         {value}
-      </div>
-    </div>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  icon,
-  accentColor,
-  sub,
-}: {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  accentColor: string;
-  sub?: string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        borderLeft: `4px solid ${accentColor}`,
-      }}
-    >
-      <div>
-        <div
-          style={{
-            fontSize: '0.75rem',
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            fontWeight: 600,
-            marginBottom: '0.35rem',
-          }}
-        >
-          {label}
-        </div>
-        <div
-          style={{
-            fontSize: '1.65rem',
-            color: 'var(--text-title)',
-            fontWeight: 700,
-            fontFamily: 'var(--font-title)',
-          }}
-        >
-          {value}
-        </div>
-        {sub && (
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            {sub}
-          </div>
-        )}
-      </div>
-      <div
-        style={{
-          padding: '0.5rem',
-          background: 'var(--bg-hover)',
-          borderRadius: 'var(--radius-sm)',
-        }}
-      >
-        {icon}
       </div>
     </div>
   );

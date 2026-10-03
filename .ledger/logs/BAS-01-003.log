@@ -1,0 +1,4 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bas-correctness.sql"
+migrations: 282 applied, 9 known failures, 0 problems (291 files)
+PASS tests/db-sql/bas-correctness.sql
+  NOTICE:  BAS correctness: 56 checks passed (credit notes, cash basis, W3/W4 blank, PAYG-I, settlement)

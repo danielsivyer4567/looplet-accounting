@@ -7,6 +7,7 @@ import { AdviceNoteView } from '@/components/AdviceNoteView';
 import { TopDownMindMap, type MindMapBranch } from '@/components/InsightCharts';
 import { DiagramView, type DiagramSpec } from '@/components/DiagramView';
 import { CitedAnswer, type LegalCitation } from '@/components/Citations';
+import { GeneralInformationNotice } from '@/components/GeneralInformationNotice';
 import {
   Sparkles,
   ArrowRight,
@@ -21,6 +22,7 @@ import {
   ChevronDown,
   ExternalLink,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 interface AskResponse {
   ok: boolean;
@@ -366,23 +368,25 @@ export function AskPage() {
           }}
         >
           <div>
-            <h1
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                marginBottom: '0.25rem',
-              }}
-            >
-              <Sparkles size={24} style={{ color: 'var(--accent-primary)' }} />
-              Ask AI
-            </h1>
+            <PageHeader
+              title={
+                <>
+                  <Sparkles size={24} style={{ color: 'var(--text-link)' }} /> Ask AI
+                </>
+              }
+              style={{ marginBottom: '0.25rem' }}
+            />
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
               Ask anything about your books or Australian tax regulations. Powered by live
               accounting records + citation search.
             </p>
           </div>
           <KnowledgeBaseMenu />
+        </div>
+
+        {/* Answers and advisor notes are general information; say so before anything is read. */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <GeneralInformationNotice />
         </div>
 
         <AdvisorPanel
@@ -462,8 +466,9 @@ export function AskPage() {
                     alignSelf: 'flex-end',
                     maxWidth: '80%',
                     padding: '0.75rem 1.25rem',
-                    background: 'linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%)',
-                    color: '#fff',
+                    background:
+                      'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-hover) 100%)',
+                    color: 'var(--text-title)',
                     borderRadius: 'var(--radius-md) var(--radius-md) 0 var(--radius-md)',
                     fontSize: '0.9rem',
                     lineHeight: '1.45',
@@ -539,6 +544,9 @@ export function AskPage() {
                         citations={r.citations ?? []}
                         sonarCitations={r.sonar_citations ?? []}
                       />
+                      <div style={{ marginTop: '0.85rem' }}>
+                        <GeneralInformationNotice compact />
+                      </div>
 
                       {/* Progressive explainer — an ordered, node-by-node walkthrough the bot
                           authors only when the answer has a shape worth walking through. It
@@ -592,7 +600,7 @@ export function AskPage() {
                             style={{
                               fontSize: '0.75rem',
                               fontWeight: 700,
-                              color: 'var(--accent-info)',
+                              color: 'var(--text-info)',
                               textTransform: 'uppercase',
                               letterSpacing: '0.05em',
                               marginBottom: '0.5rem',
@@ -611,14 +619,14 @@ export function AskPage() {
                                 alignItems: 'baseline',
                               }}
                             >
-                              <span style={{ color: 'var(--accent-info)', fontWeight: 'bold' }}>
+                              <span style={{ color: 'var(--text-info)', fontWeight: 'bold' }}>
                                 [{i + 1}]
                               </span>
                               <a
                                 href={url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                style={{ color: 'var(--accent-primary)', wordBreak: 'break-all' }}
+                                style={{ color: 'var(--text-link)', wordBreak: 'break-all' }}
                               >
                                 {url}
                               </a>
@@ -810,7 +818,7 @@ export function AskPage() {
           style={{
             display: 'flex',
             justifyContent: 'space-between',
-            fontSize: '0.675rem',
+            fontSize: '0.6875rem',
             color: 'var(--text-muted)',
             marginTop: '0.35rem',
             padding: '0 0.25rem',
@@ -1094,7 +1102,7 @@ export function AdvisorPanel({
                 letterSpacing: 0,
               }}
             >
-              <Sparkles size={18} style={{ color: 'var(--accent-primary)' }} />
+              <Sparkles size={18} style={{ color: 'var(--text-link)' }} />
               Advisor
             </h2>
             <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>

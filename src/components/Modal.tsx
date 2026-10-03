@@ -1,8 +1,10 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { X } from 'lucide-react';
 
 /**
  * Minimal reusable modal: dimmed backdrop, centred panel, closes on Escape,
- * backdrop click, or the × button. `wide` widens it for document previews.
+ * backdrop click, or the close button. `wide` widens it for document previews.
+ * Focus moves into the dialog on open and returns to the opener on close.
  */
 export function Modal({
   open,
@@ -17,81 +19,50 @@ export function Modal({
   children: ReactNode;
   wide?: boolean;
 }) {
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!open) return;
+    const opener = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      opener?.focus?.();
+    };
   }, [open, onClose]);
 
   if (!open) return null;
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.72)',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
-      }}
-    >
+    <div className="modal-backdrop" onClick={onClose}>
       <div
+        ref={panelRef}
+        className={`modal-panel${wide ? ' modal-panel-wide' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        style={{
-          background: '#111',
-          border: '1px solid #2a2a2a',
-          borderRadius: 8,
-          width: wide ? 'min(920px, 96vw)' : 'min(560px, 96vw)',
-          maxHeight: '92vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
       >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '12px 16px',
-            borderBottom: '1px solid #2a2a2a',
-            gap: 12,
-          }}
-        >
-          <strong
-            style={{
-              fontSize: 14,
-              color: '#fff',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
+        <div className="modal-header">
+          <strong id={titleId} className="modal-title">
             {title}
           </strong>
           <button
+            type="button"
             onClick={onClose}
             aria-label="Close"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#888',
-              fontSize: 22,
-              cursor: 'pointer',
-              lineHeight: 1,
-            }}
+            className="btn btn-ghost btn-icon"
           >
-            &times;
+            <X size={18} />
           </button>
         </div>
-        <div style={{ overflow: 'auto', padding: 16 }}>{children}</div>
+        <div className="modal-body">{children}</div>
       </div>
     </div>
   );

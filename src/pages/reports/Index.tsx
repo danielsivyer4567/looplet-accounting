@@ -11,6 +11,7 @@ import {
   Landmark,
   PiggyBank,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 const REPORTS = [
   {
@@ -98,10 +99,14 @@ const REPORTS = [
 export function ReportsIndexPage() {
   return (
     <section className="animated-fade-in">
-      <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-        <FileSpreadsheet size={24} style={{ color: 'var(--accent-primary)' }} />
-        Reports
-      </h1>
+      <PageHeader
+        title={
+          <>
+            <FileSpreadsheet size={24} style={{ color: 'var(--text-link)' }} /> Reports
+          </>
+        }
+        style={{ marginBottom: '0.5rem' }}
+      />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -158,7 +163,7 @@ export function ReportsIndexPage() {
                 </div>
                 <span
                   className={`badge ${r.status === 'live' ? 'badge-success' : 'badge-neutral'}`}
-                  style={{ fontSize: '0.675rem' }}
+                  style={{ fontSize: '0.6875rem' }}
                 >
                   {r.status}
                 </span>

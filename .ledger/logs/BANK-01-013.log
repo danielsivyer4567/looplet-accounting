@@ -1,0 +1,4 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/check-no-basiq.mjs"
+check-no-basiq: 1 problem(s)
+- tests/db-sql/balance-sheet-debts.sql: 1 reference(s)
+    47: VALUES (pg_temp.id('conn'), pg_temp.id('org'), 'basiq', 'test-only', 'active');

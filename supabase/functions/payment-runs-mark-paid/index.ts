@@ -21,6 +21,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { authorizeOrgMember, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -81,17 +82,9 @@ Deno.serve(async (req) => {
   const status   = runRow['status'] as string;
   const pay_date = runRow['pay_date'] as string;
 
-  // Verify caller belongs to org
-  const { data: membership } = await admin
-    .from('organization_memberships')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('organization_id', organization_id)
-    .maybeSingle();
-
-  if (!membership) {
-    return json({ ok: false, error: 'Forbidden' }, 403);
-  }
+  // Marking a run paid settles its bills in the books: accepted admins and owners only.
+  const access = await authorizeOrgMember(user.id, organization_id, supabaseOrgAccessDeps(admin, serviceKey), 'admin');
+  if (!access.ok) return json({ ok: false, error: access.error }, access.status);
 
   // Allow marking as paid from approved or exported state
   if (status !== 'exported' && status !== 'approved') {
@@ -105,7 +98,8 @@ Deno.serve(async (req) => {
   const { data: items, error: itemsErr } = await admin
     .from('payment_run_items')
     .select('bill_id')
-    .eq('payment_run_id', payment_run_id);
+    .eq('payment_run_id', payment_run_id)
+    .eq('organization_id', organization_id);
 
   if (itemsErr) {
     return json({ ok: false, error: `Failed to load items: ${itemsErr.message}` }, 500);
@@ -117,10 +111,12 @@ Deno.serve(async (req) => {
   const billIds = (items as Record<string, unknown>[]).map((r) => r['bill_id'] as string);
 
   // Update bills: paid_at = pay_date, status = 'paid'
+  // Scoped to the run's organisation: an item that points at another organisation's bill must not mark it paid.
   const { error: billsErr, count } = await admin
     .from('bills')
     .update({ status: 'paid', paid_at: pay_date })
-    .in('id', billIds);
+    .in('id', billIds)
+    .eq('organization_id', organization_id);
 
   if (billsErr) {
     return json({ ok: false, error: `Failed to update bills: ${billsErr.message}` }, 500);

@@ -13,6 +13,8 @@ export interface Organization {
   accepted_at?: string | null;
   /** Entity structure from business_profile, if recorded. */
   entity_type?: string | null;
+  /** State or territory from business_profile (QLD, NSW, …); picks the org's time zone. */
+  state_code?: string | null;
 }
 
 export interface OrgContextValue {

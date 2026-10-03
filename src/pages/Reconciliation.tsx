@@ -22,6 +22,7 @@ import { ConfidenceBadge } from '@/components/ConfidenceBadge';
 import { recordFeedback, type AutomationConfidence } from '@/lib/automationDecision';
 import { noop } from '@/lib/utils';
 import { enqueueJob } from '@/lib/automationJobs';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 interface BankTxn {
   id: string;
@@ -330,12 +331,14 @@ export function ReconciliationPage() {
     <section className="animated-fade-in">
       {/* Header title */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <h1
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}
-        >
-          <Scale size={24} style={{ color: 'var(--accent-primary)' }} />
-          Reconciliation
-        </h1>
+        <PageHeader
+          title={
+            <>
+              <Scale size={24} style={{ color: 'var(--text-link)' }} /> Reconciliation
+            </>
+          }
+          style={{ marginBottom: '0.25rem' }}
+        />
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
           Match bank transactions to bills (money out) and invoices (money in).
         </p>
@@ -365,7 +368,7 @@ export function ReconciliationPage() {
                 marginBottom: '1.5rem',
                 padding: '1rem 1.25rem',
                 background: 'var(--bg-success-subtle)',
-                border: '1px solid rgba(16, 185, 129, 0.2)',
+                border: '1px solid var(--border-success)',
                 borderRadius: 'var(--radius-md)',
                 display: 'flex',
                 alignItems: 'center',
@@ -470,7 +473,7 @@ export function ReconciliationPage() {
                               {!m.manually_matched && (
                                 <span
                                   className="badge badge-info"
-                                  style={{ fontSize: '9px', padding: '1px 4px', fontWeight: 500 }}
+                                  style={{ fontSize: '11px', padding: '1px 4px', fontWeight: 500 }}
                                 >
                                   auto
                                 </span>
@@ -519,7 +522,7 @@ export function ReconciliationPage() {
                     <div className="reconciliation-mobile-card__header">
                       <strong>{m.description}</strong>
                       {!m.manually_matched && (
-                        <span className="badge badge-info" style={{ fontSize: '9px' }}>
+                        <span className="badge badge-info" style={{ fontSize: '11px' }}>
                           auto
                         </span>
                       )}
@@ -732,7 +735,7 @@ function EvidencePanel({ rows }: { rows: EvidenceRow[] }) {
         <Info size={12} />
         Why Looplet picked this match
         {latest.auto_applied && (
-          <span className="badge badge-info" style={{ fontSize: '9px', padding: '1px 4px' }}>
+          <span className="badge badge-info" style={{ fontSize: '11px', padding: '1px 4px' }}>
             auto-applied
           </span>
         )}
@@ -744,7 +747,7 @@ function EvidencePanel({ rows }: { rows: EvidenceRow[] }) {
             style={{
               padding: '0.15rem 0.45rem',
               background: 'var(--bg-success-subtle)',
-              border: '1px solid rgba(16,185,129,0.2)',
+              border: '1px solid var(--border-success)',
               borderRadius: '999px',
               fontSize: '0.7rem',
               color: 'var(--text-success)',
@@ -911,7 +914,7 @@ function TxnRow({
                       >
                         <span
                           className="badge badge-info"
-                          style={{ fontSize: '8px', padding: '1px 3px' }}
+                          style={{ fontSize: '11px', padding: '1px 3px' }}
                         >
                           BILL
                         </span>
@@ -937,7 +940,7 @@ function TxnRow({
                       >
                         <span
                           className="badge badge-success"
-                          style={{ fontSize: '8px', padding: '1px 3px' }}
+                          style={{ fontSize: '11px', padding: '1px 3px' }}
                         >
                           INV
                         </span>

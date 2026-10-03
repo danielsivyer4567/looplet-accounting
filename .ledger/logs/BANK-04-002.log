@@ -1,0 +1,12 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "deno test --allow-env --allow-read --allow-net supabase/functions/bank-sync/sync.test.ts"
+[0m[38;5;245mrunning 6 tests from ./supabase/functions/bank-sync/sync.test.ts[0m
+the first sync imports posted rows from the import-from date in exact cents, skips pending rows and stores the checkpoint ... [0m[32mok[0m [0m[38;5;245m(8ms)[0m
+syncing again is idempotent on (bank account, Redbark id): only new rows are inserted and existing rows are not rewritten ... [0m[32mok[0m [0m[38;5;245m(593µs)[0m
+the same Redbark transaction id on two linked accounts is two transactions ... [0m[32mok[0m [0m[38;5;245m(171µs)[0m
+a long history is read in split windows over several runs, resuming from the checkpoint ... [0m[32mok[0m [0m[38;5;245m(901µs)[0m
+a failed insert leaves the checkpoint where it was, so the next run imports the same window ... [0m[32mok[0m [0m[38;5;245m(216µs)[0m
+an account Redbark no longer lists on this connection, or one never given an import-from date, is reported while the others sync ... [0m[32mok[0m [0m[38;5;245m(212µs)[0m
+
+[0m[32mok[0m | 6 passed | 0 failed [0m[38;5;245m(16ms)[0m
+
+[0m[32mCheck[0m supabase/functions/bank-sync/sync.test.ts

@@ -13,7 +13,7 @@
 // — the seed ingest (C.02) must use the same name so re-sync targets the same rows.
 //
 // AUTH: writes GLOBAL reference data → operator/back-end only, NO user-JWT path.
-// Service-role bearer OR ?secret=<LEGAL_SYNC_SECRET> (constant-time); else 401.
+// Service-role bearer OR an X-Cron-Secret header matching LEGAL_SYNC_SECRET (constant-time); else 401.
 // SC-LC.E.04 makes this cron-driven (verify_jwt=false + the cron secret).
 //
 // Request body (sync ONE source; the "all due sources" loop is the cron's job, E.04):
@@ -33,6 +33,7 @@
 
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { presentedCronSecret } from '../_shared/cronSecret.ts';
 import { requireEnv } from '../_shared/env.ts';
 import { sha256Hex } from '../_shared/apiKeys.ts';
 import { chunkLegalText } from '../_shared/legal/chunk.ts';
@@ -110,12 +111,11 @@ Deno.serve(async (req: Request) => {
     const serviceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
     const cronSecret = Deno.env.get('LEGAL_SYNC_SECRET');
 
-    // Auth: service-role bearer OR ?secret= (cron/operator). No user-JWT path.
-    const url = new URL(req.url);
-    const urlSecret = url.searchParams.get('secret');
+    // Auth: service-role bearer OR the X-Cron-Secret header (cron/operator). No user-JWT path.
+    const givenSecret = presentedCronSecret(req);
     const bearer = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '').trim();
     const isServiceRole = safeEqual(bearer, serviceKey);
-    const secretOk = !!cronSecret && safeEqual(urlSecret ?? '', cronSecret);
+    const secretOk = !!cronSecret && safeEqual(givenSecret ?? '', cronSecret);
     if (!isServiceRole && !secretOk) return json({ ok: false, error: 'Unauthorized' }, 401);
 
     const body = (await req.json().catch(() => ({}))) as RequestBody;

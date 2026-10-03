@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/pages/EmployeeTfnCapture.test.tsx"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  16:04:45
+   Duration  1.43s (transform 117ms, setup 57ms, import 235ms, tests 555ms, environment 472ms)
+

@@ -79,8 +79,8 @@ export function ArchiveButton({ table, rowId, isArchived, onChange }: ArchiveBut
         style={{
           padding: '0.3rem 0.75rem',
           background: 'transparent',
-          color: isArchived ? '#86c7a3' : '#e9a3a3',
-          border: `1px solid ${isArchived ? '#2a4a3a' : '#4a2a2a'}`,
+          color: isArchived ? 'var(--text-success)' : 'var(--text-danger)',
+          border: `1px solid ${isArchived ? 'var(--border-success)' : 'var(--border-danger)'}`,
           borderRadius: 3,
           fontSize: 12,
           cursor: busy ? 'wait' : 'pointer',
@@ -97,7 +97,7 @@ export function ArchiveButton({ table, rowId, isArchived, onChange }: ArchiveBut
             right: 0,
             marginTop: 4,
             fontSize: 11,
-            color: 'salmon',
+            color: 'var(--text-danger)',
             whiteSpace: 'nowrap',
           }}
         >

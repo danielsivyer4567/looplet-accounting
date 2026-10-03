@@ -190,9 +190,14 @@ interface ClassificationResult {
 async function lookupKnownSenderViaRpc(
   admin: SupabaseClient,
   email: string,
+  organizationId: string,
 ): Promise<ClassificationResult | null> {
   if (!email) return null;
-  const { data, error } = await admin.rpc('lookup_known_sender', { p_email: email });
+  // Known senders are per organisation (SEED-01): never classify with another tenant's list.
+  const { data, error } = await admin.rpc('lookup_known_sender', {
+    p_email: email,
+    p_org: organizationId,
+  });
   interface KnownSenderRow {
     kind?: ClassificationResult['kind'];
     category_code?: string | null;
@@ -323,7 +328,7 @@ async function upsertCluster(
 
   // === Signal cascade (highest priority first) ===
   // 1. Known senders DB lookup
-  let cls = await lookupKnownSenderViaRpc(admin, sampleEmail);
+  let cls = await lookupKnownSenderViaRpc(admin, sampleEmail, organization_id);
 
   // 2. Subject "Invoice from X" extraction — overrides if no DB match
   const supplierFromSubject = bestSupplierFromSubjects(c.sample_subjects);

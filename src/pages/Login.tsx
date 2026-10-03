@@ -2,7 +2,10 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Globe } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { AuthShell } from '@/components/AuthShell';
 import { BrandHeader } from '@/components/BrandHeader';
+import { LegalLinks } from '@/components/LegalLinks';
+import { LEGAL_PATHS, PENDING_GOOGLE_ACCEPTANCE_KEY } from '@/lib/legal';
 
 export function LoginPage() {
   const { user, signIn, signInWithGoogle, resetPassword } = useAuth();
@@ -46,6 +49,13 @@ export function LoginPage() {
   };
 
   const onGoogleSignIn = async () => {
+    // Continuing with Google is agreement to the terms shown under the button; AuthProvider
+    // records it on the account when Google returns.
+    try {
+      sessionStorage.setItem(PENDING_GOOGLE_ACCEPTANCE_KEY, 'google_continue');
+    } catch {
+      // storage unavailable: the acceptance can't be carried across the redirect
+    }
     setGoogleBusy(true);
     setError(null);
     setNotice(null);
@@ -59,14 +69,15 @@ export function LoginPage() {
   const isReset = mode === 'reset';
 
   return (
-    <div className="auth-shell">
+    <AuthShell>
       <a href="#login-main" className="skip-link">
         Skip to sign-in form
       </a>
       <main id="login-main" className="auth-panel glass-panel animated-fade-in">
         <BrandHeader />
 
-        <h2 className="auth-heading">{isReset ? 'Reset password' : 'Sign in to your account'}</h2>
+        <h2 className="auth-heading">{isReset ? 'Reset password' : 'Welcome back.'}</h2>
+        {!isReset && <p className="auth-subheading">Sign in to your account.</p>}
 
         {!isReset && (
           <>
@@ -74,11 +85,17 @@ export function LoginPage() {
               type="button"
               onClick={() => void onGoogleSignIn()}
               disabled={busy || googleBusy}
-              className="btn"
+              className="btn btn-secondary"
             >
               <Globe size={16} aria-hidden="true" />
               {googleBusy ? 'Opening Google…' : 'Continue with Google'}
             </button>
+            <p className="auth-legal-note" style={{ fontSize: '0.75rem', margin: 0 }}>
+              New to Looplet? Continuing with Google means you agree to the{' '}
+              <Link to={LEGAL_PATHS.terms}>Terms of Service</Link> and have read the{' '}
+              <Link to={LEGAL_PATHS.privacy}>Privacy Policy</Link> and{' '}
+              <Link to={LEGAL_PATHS.collectionNotice}>Collection Notice</Link>.
+            </p>
             <div className="auth-divider" aria-hidden="true">
               <span />
               <span>Email</span>
@@ -170,7 +187,8 @@ export function LoginPage() {
             </>
           )}
         </div>
+        <LegalLinks />
       </main>
-    </div>
+    </AuthShell>
   );
 }

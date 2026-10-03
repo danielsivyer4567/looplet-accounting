@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
+import { useOrgRole } from '@/hooks/useOrgRole';
+import { writeProblem } from '@/lib/roles';
+import { ReadOnlyNotice } from '@/components/ReadOnlyNotice';
 import { useAllocationQueue, type AllocationQueueRow } from '@/hooks/useAllocationQueue';
 import { useJobs } from '@/hooks/useJobs';
 import type { JobListRow } from '@/hooks/useJobs';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/money';
-import { formatLoadError, formatActionError } from '@/lib/errorMessages';
+import { formatLoadError } from '@/lib/errorMessages';
 import { SkeletonLine } from '@/components/Skeleton';
 import { GitPullRequest, Eye, EyeOff, CheckCircle2, ChevronRight, X } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 // Fetch storage fields from bills table on-demand (not in v_allocation_queue)
 function BillPreviewPane({ bill, onClose }: { bill: AllocationQueueRow; onClose: () => void }) {
@@ -108,7 +112,7 @@ function BillPreviewPane({ bill, onClose }: { bill: AllocationQueueRow; onClose:
               href={`/bills/${bill.bill_id}`}
               target="_blank"
               rel="noreferrer"
-              style={{ color: 'var(--accent-primary)', fontSize: '0.75rem', fontWeight: 600 }}
+              style={{ color: 'var(--text-link)', fontSize: '0.75rem', fontWeight: 600 }}
             >
               Open page &rarr;
             </a>
@@ -125,7 +129,9 @@ function BillPreviewPane({ bill, onClose }: { bill: AllocationQueueRow; onClose:
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', background: '#e2e8f0' }}>
+      <div
+        style={{ flex: 1, overflow: 'hidden', position: 'relative', background: 'var(--bg-hover)' }}
+      >
         {urlError ? (
           <div
             style={{
@@ -141,7 +147,7 @@ function BillPreviewPane({ bill, onClose }: { bill: AllocationQueueRow; onClose:
             <p style={{ marginTop: 12 }}>
               <Link
                 to={`/bills/${bill.bill_id}`}
-                style={{ color: 'var(--accent-primary)', fontWeight: 600 }}
+                style={{ color: 'var(--text-link)', fontWeight: 600 }}
               >
                 Open bill detail page instead &rarr;
               </Link>
@@ -163,7 +169,7 @@ function BillPreviewPane({ bill, onClose }: { bill: AllocationQueueRow; onClose:
           <iframe
             src={signedUrl}
             title={`Bill preview — ${bill.supplier_name_raw ?? bill.bill_id}`}
-            style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
+            style={{ width: '100%', height: '100%', border: 'none', background: 'var(--bg-paper)' }}
           />
         ) : (
           <div style={{ height: '100%', overflowY: 'auto', padding: 12 }}>
@@ -187,6 +193,8 @@ export function AllocationsPage() {
   const { currentOrg } = useOrg();
   const { queue, loading, error, refresh } = useAllocationQueue();
   const { jobs } = useJobs();
+  const { canWrite } = useOrgRole();
+  const readOnly = !canWrite('books');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
@@ -248,7 +256,7 @@ export function AllocationsPage() {
   if (queue.length === 0) {
     return (
       <section className="animated-fade-in" style={{ padding: '2rem 0' }}>
-        <h1 style={{ marginBottom: '0.5rem' }}>Allocations</h1>
+        <PageHeader title="Allocations" style={{ marginBottom: '0.5rem' }} />
         <div
           style={{
             padding: '2.5rem 2rem',
@@ -329,12 +337,18 @@ export function AllocationsPage() {
   const rejectSuggestion = async (billId: string) => {
     setBusyId(billId);
     setActionError(null);
-    const { error: rejectErr } = await supabase
-      .from('bills')
-      .update({ suggested_job_id: null, suggested_match_score: null })
-      .eq('id', billId);
-    if (rejectErr) {
-      setActionError(formatActionError('reject this suggestion', rejectErr.message));
+    // .select('id') returns the changed rows: a write refused by row-level security changes
+    // 0 rows without an error.
+    const problem = writeProblem(
+      'reject this suggestion',
+      await supabase
+        .from('bills')
+        .update({ suggested_job_id: null, suggested_match_score: null })
+        .eq('id', billId)
+        .select('id'),
+    );
+    if (problem) {
+      setActionError(problem);
     } else {
       await refresh();
     }
@@ -359,18 +373,22 @@ export function AllocationsPage() {
     let firstErr: string | null = null;
     for (const b of billsWithSuggestion) {
       if (!b.suggested_job_id) continue;
-      const { error: attachErr } = await supabase
-        .from('bills')
-        .update({
-          job_id: b.suggested_job_id,
-          suggested_job_id: null,
-          suggested_match_score: null,
-          status: 'attached',
-        })
-        .eq('id', b.bill_id);
-      if (attachErr) {
+      const problem = writeProblem(
+        'attach this bill',
+        await supabase
+          .from('bills')
+          .update({
+            job_id: b.suggested_job_id,
+            suggested_job_id: null,
+            suggested_match_score: null,
+            status: 'attached',
+          })
+          .eq('id', b.bill_id)
+          .select('id'),
+      );
+      if (problem) {
         failed += 1;
-        if (!firstErr) firstErr = attachErr.message;
+        if (!firstErr) firstErr = problem;
       } else {
         n += 1;
       }
@@ -382,7 +400,7 @@ export function AllocationsPage() {
         : `✓ Attached ${n} bills.`,
     );
     if (firstErr) {
-      setActionError(formatActionError('attach some bills', firstErr));
+      setActionError(firstErr);
     }
     setBulkBusy(false);
     await refresh();
@@ -391,17 +409,21 @@ export function AllocationsPage() {
   const quickAssignToJob = async (billId: string, jobId: string) => {
     setBusyId(billId);
     setActionError(null);
-    const { error: assignErr } = await supabase
-      .from('bills')
-      .update({
-        job_id: jobId,
-        suggested_job_id: null,
-        suggested_match_score: null,
-        status: 'attached',
-      })
-      .eq('id', billId);
-    if (assignErr) {
-      setActionError(formatActionError('assign this bill to the job', assignErr.message));
+    const problem = writeProblem(
+      'assign this bill to the job',
+      await supabase
+        .from('bills')
+        .update({
+          job_id: jobId,
+          suggested_job_id: null,
+          suggested_match_score: null,
+          status: 'attached',
+        })
+        .eq('id', billId)
+        .select('id'),
+    );
+    if (problem) {
+      setActionError(problem);
     } else {
       await refresh();
     }
@@ -420,22 +442,20 @@ export function AllocationsPage() {
         className="animated-fade-in allocations-main"
       >
         <div style={{ marginBottom: '1.5rem' }}>
-          <h1
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              marginBottom: '0.25rem',
-            }}
-          >
-            <GitPullRequest size={24} style={{ color: 'var(--accent-primary)' }} />
-            Allocations
-          </h1>
+          <PageHeader
+            title={
+              <>
+                <GitPullRequest size={24} style={{ color: 'var(--text-link)' }} /> Allocations
+              </>
+            }
+            style={{ marginBottom: '0.25rem' }}
+          />
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
             {queue.length} bill{queue.length === 1 ? '' : 's'} waiting to be allocated to jobs.
           </p>
         </div>
 
+        {readOnly && <ReadOnlyNotice area="books" />}
         {actionError && (
           <div
             className="badge badge-danger"
@@ -457,7 +477,7 @@ export function AllocationsPage() {
               marginBottom: '1.5rem',
               padding: '1rem 1.25rem',
               background: 'var(--bg-success-subtle)',
-              border: '1px solid rgba(16, 185, 129, 0.2)',
+              border: '1px solid var(--border-success)',
               borderRadius: 'var(--radius-md)',
               display: 'flex',
               alignItems: 'center',
@@ -471,7 +491,7 @@ export function AllocationsPage() {
             </div>
             <button
               onClick={bulkAttachAllSuggestions}
-              disabled={bulkBusy}
+              disabled={bulkBusy || readOnly}
               className="btn btn-primary"
               style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
             >
@@ -500,6 +520,7 @@ export function AllocationsPage() {
               busy={busyId === b.bill_id}
               jobs={jobs}
               isPreviewing={previewBillId === b.bill_id}
+              readOnly={readOnly}
               onConfirm={(jobId) => confirmAttach(b, jobId)}
               onReject={() => rejectSuggestion(b.bill_id)}
               onQuickAssign={(jobId) => quickAssignToJob(b.bill_id, jobId)}
@@ -520,6 +541,7 @@ function BillCard({
   busy,
   jobs,
   isPreviewing,
+  readOnly,
   onConfirm,
   onReject,
   onQuickAssign,
@@ -529,6 +551,7 @@ function BillCard({
   busy: boolean;
   jobs: JobListRow[];
   isPreviewing: boolean;
+  readOnly: boolean;
   onConfirm: (jobId: string) => void;
   onReject: () => void;
   onQuickAssign: (jobId: string) => void;
@@ -639,7 +662,7 @@ function BillCard({
               }}
             >
               <span>AI Suggested Match:</span>
-              <span className={`badge ${scoreClass}`} style={{ fontSize: '8px' }}>
+              <span className={`badge ${scoreClass}`} style={{ fontSize: '11px' }}>
                 {(score * 100).toFixed(0)}% Match
               </span>
             </div>
@@ -652,7 +675,7 @@ function BillCard({
                 marginBottom: '0.75rem',
               }}
             >
-              <code style={{ marginRight: '0.5rem', color: 'var(--accent-primary)' }}>
+              <code style={{ marginRight: '0.5rem', color: 'var(--text-link)' }}>
                 {bill.suggested_job_number}
               </code>
               <span>{bill.suggested_job_name}</span>
@@ -661,7 +684,7 @@ function BillCard({
             <div style={{ display: 'flex', gap: '0.35rem' }}>
               <button
                 onClick={() => bill.suggested_job_id && onConfirm(bill.suggested_job_id)}
-                disabled={busy}
+                disabled={busy || readOnly}
                 className="btn btn-primary"
                 style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', flex: 1 }}
               >
@@ -669,7 +692,7 @@ function BillCard({
               </button>
               <button
                 onClick={onReject}
-                disabled={busy}
+                disabled={busy || readOnly}
                 className="btn btn-secondary"
                 style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
               >
@@ -682,7 +705,7 @@ function BillCard({
             <select
               onChange={(e) => e.target.value && onQuickAssign(e.target.value)}
               defaultValue=""
-              disabled={busy}
+              disabled={busy || readOnly}
               className="form-select"
               style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem' }}
             >

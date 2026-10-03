@@ -188,7 +188,10 @@ describe('accounting-engine CI gate', () => {
     const reconciliationTest = readRepoFile('tests/invoice-reconciliation-migration.test.ts');
 
     expect(receiptTest).toMatch(/normalizeReceiptTaxBreakdown/);
-    expect(receiptTest).toMatch(/estimates GST as 1\/11/);
+    // GST-01: a receipt with no GST figure stays unknown for review; 1/11 is never assumed.
+    expect(receiptTest).toMatch(
+      /leaves GST unknown for review when neither GST nor subtotal is supplied/,
+    );
     expect(basUiTest).toMatch(/1A GST on sales/);
     expect(basUiTest).toMatch(/1B GST on purchases/);
     expect(registrationsTest).toMatch(/PAYG withholding/);

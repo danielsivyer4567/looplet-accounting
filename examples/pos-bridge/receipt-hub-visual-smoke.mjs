@@ -454,7 +454,6 @@ async function runViewportSmoke(browser, port, browserName, viewportCase) {
 async function assertKeyboardReachableControls(page, viewportName) {
   const required = [
     'Generate pass',
-    'POS simulator',
     'Phone pass',
     'Key fob / tag',
     'POS webhook',

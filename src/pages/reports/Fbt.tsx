@@ -1,14 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  AlertTriangle,
-  Calculator,
-  ChevronLeft,
-  Clock,
-  FileText,
-  Loader2,
-  ShieldCheck,
-} from 'lucide-react';
+import { Calculator, ChevronLeft, Clock, FileText, Loader2, ShieldCheck } from 'lucide-react';
 import { useApprovals } from '@/hooks/useApprovals';
 import {
   fbtYearLabel,
@@ -19,6 +11,10 @@ import {
 } from '@/hooks/useFbtReturn';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Stat } from '@/components/ui/Stat';
+import { Alert } from '@/components/ui/Alert';
 
 const RESOURCE_TYPE = 'fbt_return';
 
@@ -112,10 +108,13 @@ export function FbtReportPage() {
         <span>Reports</span>
       </Link>
 
-      <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <Calculator size={24} style={{ color: 'var(--accent-primary)' }} />
-        FBT Return
-      </h1>
+      <PageHeader
+        title={
+          <>
+            <Calculator size={24} style={{ color: 'var(--text-link)' }} /> FBT Return
+          </>
+        }
+      />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -171,9 +170,9 @@ export function FbtReportPage() {
       />
 
       {error && (
-        <Banner>
+        <Alert tone="warning">
           <strong>FBT return unavailable.</strong> {error}
-        </Banner>
+        </Alert>
       )}
 
       {loading ? (
@@ -186,7 +185,7 @@ export function FbtReportPage() {
           <EvidenceCard fbtReturn={fbtReturn} />
         </>
       ) : (
-        <Empty>No FBT return is available for this year.</Empty>
+        <EmptyState>No FBT return is available for this year.</EmptyState>
       )}
     </section>
   );
@@ -202,16 +201,16 @@ function Kpis({ fbtReturn }: { fbtReturn: FbtReturnPayload }) {
         marginBottom: '1.5rem',
       }}
     >
-      <Kpi
+      <Stat
         label="Taxable value"
         value={formatMoney(fbtReturn.summary.aggregate_taxable_value_cents)}
       />
-      <Kpi
+      <Stat
         label="Grossed-up amount"
         value={formatMoney(fbtReturn.summary.grossed_up_taxable_amount_cents)}
       />
-      <Kpi label="FBT payable" value={formatMoney(fbtReturn.summary.fbt_payable_cents)} />
-      <Kpi label="Benefit rows" value={String(fbtReturn.benefits.length)} />
+      <Stat label="FBT payable" value={formatMoney(fbtReturn.summary.fbt_payable_cents)} />
+      <Stat label="Benefit rows" value={String(fbtReturn.benefits.length)} />
     </div>
   );
 }
@@ -258,7 +257,7 @@ function BenefitsCard({ benefits }: { benefits: FbtBenefitRow[] }) {
   return (
     <Card title="Benefit inputs" icon={FileText}>
       {benefits.length === 0 ? (
-        <Empty>No curated FBT benefit rows for this year.</Empty>
+        <EmptyState>No curated FBT benefit rows for this year.</EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">
@@ -351,7 +350,7 @@ function ApprovalCard({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <ShieldCheck size={18} style={{ color: 'var(--accent-primary)' }} />
+          <ShieldCheck size={18} style={{ color: 'var(--text-link)' }} />
           <h2 style={{ margin: 0, fontSize: '1.05rem' }}>Return approval</h2>
         </div>
         <span className={`badge ${badge}`}>{status}</span>
@@ -392,17 +391,6 @@ function ApprovalCard({
   );
 }
 
-function Kpi({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="card" style={{ padding: '1rem 1.1rem' }}>
-      <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 700 }}>
-        {label}
-      </div>
-      <div style={{ marginTop: '0.35rem', fontSize: '1.35rem', fontWeight: 800 }}>{value}</div>
-    </div>
-  );
-}
-
 function Card({
   title,
   icon: Icon,
@@ -415,7 +403,7 @@ function Card({
   return (
     <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-        <Icon size={18} style={{ color: 'var(--accent-primary)' }} />
+        <Icon size={18} style={{ color: 'var(--text-link)' }} />
         <h2 style={{ margin: 0, fontSize: '1.1rem' }}>{title}</h2>
       </div>
       {children}
@@ -449,42 +437,5 @@ function Rows({ rows, monoKeys }: { rows: [string, string][]; monoKeys?: Set<str
         </div>
       ))}
     </dl>
-  );
-}
-
-function Banner({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      className="badge badge-warning"
-      style={{
-        display: 'flex',
-        gap: '0.5rem',
-        alignItems: 'flex-start',
-        justifyContent: 'flex-start',
-        padding: '0.875rem 1rem',
-        marginBottom: '1.5rem',
-        textTransform: 'none',
-        width: '100%',
-      }}
-    >
-      <AlertTriangle size={16} style={{ marginTop: '2px', flexShrink: 0 }} />
-      <span>{children}</span>
-    </div>
-  );
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        padding: '1.5rem',
-        border: '1px dashed var(--border-subtle)',
-        borderRadius: 'var(--radius-md)',
-        color: 'var(--text-muted)',
-        fontSize: '0.85rem',
-      }}
-    >
-      {children}
-    </div>
   );
 }

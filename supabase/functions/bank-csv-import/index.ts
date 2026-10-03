@@ -1,10 +1,10 @@
 /**
  * bank-csv-import — manual import of bank transactions from a CSV export.
  *
- * For users on Basiq tiers without CDR Connections, or for one-off historical
- * backfills. Populates the same bank_connections / bank_accounts /
- * bank_transactions tables that Basiq sync writes to, so the reconciliation
- * matcher and per-job P&L work identically.
+ * For accounts without a live bank feed, or for one-off historical backfills.
+ * Populates the same bank_connections / bank_accounts / bank_transactions
+ * tables that the Redbark bank-sync writes to, so the reconciliation matcher
+ * and per-job P&L work identically.
  *
  * Input:
  *   {

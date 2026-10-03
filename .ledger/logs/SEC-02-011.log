@@ -1,0 +1,11 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "deno test --allow-env --allow-read --allow-net supabase/functions/_shared/authGuards.test.ts"
+[0m[38;5;245mrunning 5 tests from ./supabase/functions/_shared/authGuards.test.ts[0m
+requireServiceRole accepts only the exact service-role key ... [0m[32mok[0m [0m[38;5;245m(501µs)[0m
+requireServiceRole never matches when the service key is not configured ... [0m[32mok[0m [0m[38;5;245m(65µs)[0m
+requireSignedInCaller accepts a signed-in user or the service role ... [0m[32mok[0m [0m[38;5;245m(118µs)[0m
+requireSignedInCaller refuses no header, the anon key and forged tokens with 401 ... [0m[32mok[0m [0m[38;5;245m(68µs)[0m
+boundedInt clamps caller-supplied counts and ignores junk ... [0m[32mok[0m [0m[38;5;245m(61µs)[0m
+
+[0m[32mok[0m | 5 passed | 0 failed [0m[38;5;245m(3ms)[0m
+
+[0m[32mCheck[0m supabase/functions/_shared/authGuards.test.ts

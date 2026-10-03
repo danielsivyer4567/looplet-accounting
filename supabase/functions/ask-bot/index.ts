@@ -8,13 +8,20 @@
  *   4. Synthesizer (Groq) merges into a natural-language answer
  *
  * Input:  { organization_id, question }
- * Output: { ok, answer, route, sql?, data_rows?, sonar_citations?, error? }
+ * Output: { ok, answer, disclaimer, route, sql?, data_rows?, sonar_citations?, error? }
+ *
+ * Answers are general information, not tax advice; every response carries the disclaimer, and
+ * the prompts (./prompts.ts) tell the model to recommend a registered tax agent where it matters.
  *
  * Cost per question: ~$0.0004 (Groq tiny + occasional Sonar).
  */
 
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { enforceAiQuota } from '../_shared/aiRateLimit.ts';
+import { requireSignedInCaller } from '../_shared/authGuards.ts';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { basQuarterSql } from './basQuery.ts';
+import { supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 import { embedTexts } from '../_shared/ocr/openai.ts';
 import {
   buildCitations,
@@ -22,6 +29,12 @@ import {
   type LegalCitation,
   type LegalMatchRow,
 } from '../_shared/legal/citations.ts';
+import {
+  GENERAL_INFORMATION_NOTICE,
+  sonarSystemPrompt,
+  synthesisSystemPrompt,
+  synthesisUserMessage,
+} from './prompts.ts';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const SONAR_URL = 'https://api.perplexity.ai/chat/completions';
@@ -49,7 +62,7 @@ bank_transactions (id, organization_id, posted_at, description, amount_cents big
 subscriptions (id, organization_id, merchant_name, supplier_id, cadence, amount_cents bigint, status, is_personal bool, is_business bool)
 
 -- Aggregated views (PREFER THESE for summaries)
-v_bas_quarterly (organization_id, fy_start_year, quarter_num, quarter_start, quarter_end, due_date, sales_inc_gst_cents bigint, sales_ex_gst_cents bigint, gst_collected_cents bigint, purchases_inc_gst_cents bigint, purchases_ex_gst_cents bigint, gst_paid_cents bigint, net_gst_owed_cents bigint)
+v_bas_quarterly (organization_id, fy_start_year, quarter_num, quarter_start, quarter_end, due_date, gst_collected_cents bigint, gst_paid_cents bigint, net_gst_cents bigint, sales_ex_gst_cents bigint, purchases_ex_gst_cents bigint, increasing_adjustments_gst_cents bigint, decreasing_adjustments_gst_cents bigint, gst_accounting_basis, invoice_count, bill_count)
 v_organization_realtime_pnl (organization_id, organization_name, revenue_inc_gst_cents bigint, revenue_ex_gst_cents bigint, total_cost_cents bigint, gross_profit_cents bigint, gst_set_aside_cents bigint, tax_set_aside_cents bigint, really_yours_cents bigint)
 v_job_pnl (job_id, organization_id, job_number, job_name, revenue_inc_gst_cents bigint, total_cost_cents bigint, gross_profit_cents bigint, budget_cents bigint, currency_code)
 v_unpaid_bills_for_payment_run (id, organization_id, supplier_name, supplier_id, invoice_date, due_date, total_inc_gst_cents bigint, days_overdue int)
@@ -72,12 +85,23 @@ Deno.serve(async (req) => {
     const groqKey = Deno.env.get('GROQ_API_KEY');
     const sonarKey = Deno.env.get('PERPLEXITY_API_KEY');
 
-    if (!supabaseUrl || !anonKey) return json({ ok: false, error: 'Server config missing' }, 500);
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !anonKey || !serviceKey) return json({ ok: false, error: 'Server config missing' }, 500);
     if (!groqKey) return json({ ok: false, error: 'GROQ_API_KEY not set' }, 500);
+
+    // Answering spends Groq (and sometimes Perplexity) credit, so the caller must be a signed-in user or the
+    // service role. A header that is merely present, such as the public anon key, is not enough.
+    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const caller = await requireSignedInCaller(authHeader, supabaseOrgAccessDeps(admin, serviceKey));
+    if (!caller.ok) return json({ ok: false, error: caller.error }, caller.status);
 
     const body = (await req.json()) as RequestBody;
     if (!body.organization_id) return json({ ok: false, error: 'organization_id required' }, 400);
     if (!body.question || body.question.trim().length === 0) return json({ ok: false, error: 'question required' }, 400);
+    if (caller.caller.kind === 'user') {
+      const limited = await enforceAiQuota(admin, caller.caller.userId, 'ask_bot', corsHeaders);
+      if (limited) return limited;
+    }
 
     const userClient: SupabaseClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -133,6 +157,7 @@ Deno.serve(async (req) => {
       ok: true,
       route,
       answer,
+      disclaimer: GENERAL_INFORMATION_NOTICE,
       visual,
       sql: sqlUsed,
       sql_error: sqlError,
@@ -242,10 +267,7 @@ async function loadBusinessContext(
     client.from('v_organization_realtime_pnl').select('*').eq('organization_id', orgId).maybeSingle(),
     // Most recent BAS quarter
     client.rpc('ask_bot_query', {
-      p_sql: `SELECT fy_start_year, quarter_num, quarter_start, quarter_end, due_date,
-                     sales_inc_gst_cents, gst_collected_cents, gst_paid_cents, net_gst_owed_cents
-              FROM v_bas_quarterly WHERE organization_id = '${orgId}'
-              ORDER BY fy_start_year DESC, quarter_num DESC LIMIT 1`,
+      p_sql: basQuarterSql(orgId),
       p_max_rows: 1,
     }),
     // Tax calendar — personalized obligations (BAS, super, TPAR, FBT, income tax, EOFY,
@@ -333,7 +355,7 @@ async function loadBusinessContext(
     parts.push('');
     parts.push('=== MOST RECENT BAS QUARTER ===');
     parts.push(`FY${bas.fy_start_year}-Q${bas.quarter_num} (${bas.quarter_start} to ${bas.quarter_end}, due ${bas.due_date})`);
-    parts.push(`  Sales inc GST: ${fmt(bas.sales_inc_gst_cents)}, GST collected: ${fmt(bas.gst_collected_cents)}, GST paid: ${fmt(bas.gst_paid_cents)}, NET GST owed: ${fmt(bas.net_gst_owed_cents)}`);
+    parts.push(`  Sales ex GST: ${fmt(bas.sales_ex_gst_cents)}, GST collected: ${fmt(bas.gst_collected_cents)}, GST paid: ${fmt(bas.gst_paid_cents)}, Net GST: ${fmt(bas.net_gst_cents)}`);
   }
 
   // TAX CALENDAR — time-aware obligations so the bot can be proactive about deadlines.
@@ -498,42 +520,7 @@ async function askSonar(
   businessContext: string,
   sonarKey: string,
 ): Promise<{ text: string; citations: string[] }> {
-  const system = `You are an Australian small-business compliance/tax research assistant. The user is a trades-business owner. Your job is to give a precise, web-grounded, LAW-BACKED answer TAILORED to their specific situation.
-
-USER'S BUSINESS PROFILE (use this to filter which rules apply):
-${businessContext}
-
-When citing rules, use the profile to be specific:
-- If they're a sole trader with turnover under $10M → they're a "small business entity" eligible for §328-180 instant asset write-off, simplified depreciation pool, etc.
-- If they're a company → different tax rate (25% base rate entity if applicable), different FBT treatment.
-- If GST registered + quarterly BAS → reference GST §11-5 creditable acquisitions, BAS quarterly due dates.
-- If state=QLD → mention QLD-specific rules (payroll tax threshold $1.3M annually, WorkCover Queensland).
-- If they have subbies + TPAR required → reference TPAR lodgement obligations.
-- If primary vehicle has X% business use → use that exact % in apportionment examples.
-- If they have NO logbook but use vehicle for business → flag this is a problem for FBT/cents-per-km method limits.
-
-ANSWER STRUCTURE (always):
-1. **Direct answer** — yes/no/it depends, in one sentence.
-2. **The rule** — name the actual law, ATO ruling, section, or determination that applies. Examples:
-   - "ITAA 1997 §8-1" (general deduction)
-   - "ITAA 1997 §40-82 / s328-180" (instant asset write-off)
-   - "GST Act 1999 §11-5" (creditable acquisitions)
-   - "ATO TR 95/14" (taxation ruling)
-   - "ATO ID 2002/761" (interpretive decision)
-   - "FBTAA 1986 §136"
-   - "SGAA 1992" (super guarantee)
-   - "Fair Work Act 2009 §90"
-3. **Conditions / caveats** — what must be true for it to apply.
-4. **Citations** — every factual claim must have an inline [n] marker tied to a URL. Prefer in this order: ato.gov.au, legislation.gov.au, business.gov.au, fairwork.gov.au, asic.gov.au, abr.business.gov.au, then reputable accounting firms (BDO, KPMG, RSM, etc.).
-
-RULES:
-- NEVER make up section numbers or ATO ruling IDs. If you can't find one, say "I couldn't find a specific ruling — general principle is..."
-- Australian rules only. Don't cite IRS/HMRC.
-- Use Australian dates (DD MMM YYYY).
-- Trades-business context: utes, tools, fencing materials, subbies, BAS quarterly, PAYG instalments, FBT on private use of work vehicles.
-- Be concise (5-10 sentences total) but don't skip the rule citation.
-- If the question is genuinely ambiguous, identify the 2 most likely interpretations and answer both briefly.
-- Never tell the user to "consult an accountant" as a cop-out. Give them the actual rule. They can decide if they need an accountant from there.`;
+  const system = sonarSystemPrompt(businessContext);
 
   const resp = await fetch(SONAR_URL, {
     method: 'POST',
@@ -618,24 +605,9 @@ async function synthesize(
 - NEVER invent section numbers, ATO IDs, or rulings. Only cite what's in the Sonar block.
 - If Sonar didn't return a clear citation, say "I couldn't find a specific ruling for this exact case — general principle is...".`;
 
-  const system = `You are a paralegal-grade assistant for an Australian trades-business owner. Synthesize a single law-backed answer.
+  const system = synthesisSystemPrompt(citationPolicy);
 
-OUTPUT FORMAT:
-- **Bold the direct answer** in the first sentence (yes / no / it depends).
-- Then state the rule with the ATO ruling / ITAA section / GST Act section / Fair Work Act section that backs it.
-- List 1-3 conditions/caveats as bullet points if applicable.
-- If the user provided data, weave the actual numbers in.
-- If the TAX CALENDAR in the profile shows an obligation that is OVERDUE or due soon AND it's relevant to the question (or the user asks "what's due / what should I do now"), surface it with its exact due date. Don't force unrelated deadlines into every answer.
-- Format money as AUD with $ and thousand separators. Cents stored as bigint → divide by 100.
-- Australian dates (DD MMM YYYY).
-- HARD DEFAULT TRANSPARENCY RULE: every answer must read top-down: direct decision first, then books/data checked, then law/evidence checked, then next action. The UI always renders a mind map beside the written answer, so keep this order stable.
-
-${citationPolicy}
-
-- NEVER say "consult your accountant" as the whole answer. Give the rule first.
-- No "Hello!" / "As an AI..." / "I'd be happy to..." preamble. Get straight to the answer.`;
-
-  const user = `User's business profile:\n${businessContext}\n\nQuestion: ${question}\n\n${dataBlock}\n\n${sonarBlock}\n\n${retrievedLaw}\n\nSynthesize an answer tailored to THIS user's profile. Use their actual entity type, GST status, vehicle %, etc. when stating which rules apply.`;
+  const user = synthesisUserMessage({ businessContext, question, dataBlock, sonarBlock, retrievedLaw });
 
   const resp = await fetch(GROQ_URL, {
     method: 'POST',

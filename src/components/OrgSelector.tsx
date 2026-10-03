@@ -1,8 +1,29 @@
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
+import { Building2, Plus } from 'lucide-react';
 import { useOrg } from '@/hooks/useOrg';
 import { SkeletonLine } from '@/components/Skeleton';
+import { Field } from '@/components/ui/Field';
 
-export function OrgSelector() {
+interface OrgSelectorProps {
+  /** Icon-rail mode: show the organisation's initial; activating it asks the shell to expand. */
+  compact?: boolean | undefined;
+  onExpand?: (() => void) | undefined;
+}
+
+function initialsOf(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w.charAt(0).toUpperCase())
+    .join('');
+}
+
+/**
+ * The organisation switcher at the top of the sidebar: a labelled select over the caller's
+ * organisations, plus "New organisation" for owners. Accountants only ever see client orgs.
+ */
+export function OrgSelector({ compact, onExpand }: OrgSelectorProps) {
   const {
     organizations,
     currentOrg,
@@ -15,32 +36,45 @@ export function OrgSelector() {
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const selectId = useId();
 
   if (loading) {
     return (
-      <div style={{ padding: '0.75rem' }} aria-busy="true" aria-label="Loading organisations">
+      <div className="org-selector" aria-busy="true" aria-label="Loading organisations">
         <SkeletonLine width="100%" height={14} />
       </div>
     );
   }
 
+  if (compact) {
+    const label = currentOrg
+      ? `Organisation: ${currentOrg.name}. Expand the sidebar to switch.`
+      : 'No organisation yet. Expand the sidebar to create one.';
+    return (
+      <button
+        type="button"
+        className="org-selector-compact"
+        aria-label={label}
+        title={currentOrg?.name ?? 'No organisation yet'}
+        onClick={onExpand}
+      >
+        {currentOrg ? (
+          <span aria-hidden="true">{initialsOf(currentOrg.name) || <Building2 size={16} />}</span>
+        ) : (
+          <Building2 size={16} aria-hidden="true" />
+        )}
+      </button>
+    );
+  }
+
   if (organizations.length === 0 && !creating) {
     return (
-      <div style={{ background: '#1a1a1a', padding: '0.75rem', borderRadius: 6 }}>
-        <div style={{ fontSize: 13, color: '#aaa', marginBottom: '0.5rem' }}>
-          No organisation yet
-        </div>
+      <div className="org-selector">
+        <p className="org-selector-empty">No organisation yet</p>
         <button
+          type="button"
+          className="btn btn-secondary btn-sm"
           onClick={() => setCreating(true)}
-          style={{
-            padding: '0.5rem',
-            width: '100%',
-            background: '#3a3a3a',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 4,
-            cursor: 'pointer',
-          }}
         >
           Create one
         </button>
@@ -63,39 +97,27 @@ export function OrgSelector() {
       setName('');
     };
     return (
-      <form
-        onSubmit={onSubmit}
-        style={{ background: '#1a1a1a', padding: '0.75rem', borderRadius: 6 }}
-      >
-        <input
-          type="text"
-          placeholder="Business name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-          minLength={2}
-          style={{
-            width: '100%',
-            padding: '0.4rem',
-            background: '#2a2a2a',
-            color: '#fff',
-            border: '1px solid #444',
-            borderRadius: 4,
-            marginBottom: '0.5rem',
-          }}
-        />
-        {error && (
-          <div style={{ color: 'salmon', fontSize: 12, marginBottom: '0.5rem' }}>{error}</div>
-        )}
-        <div style={{ display: 'flex', gap: '0.25rem' }}>
-          <button type="submit" disabled={busy} style={{ flex: 1, padding: '0.4rem' }}>
+      <form onSubmit={onSubmit} className="org-selector org-selector-form">
+        <Field label="Business name" error={error ?? undefined}>
+          <input
+            type="text"
+            className="form-input"
+            placeholder="Business name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            minLength={2}
+          />
+        </Field>
+        <div className="org-selector-actions">
+          <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>
             {busy ? 'Creating…' : 'Create'}
           </button>
           {organizations.length > 0 && (
             <button
               type="button"
+              className="btn btn-ghost btn-sm"
               onClick={() => setCreating(false)}
-              style={{ padding: '0.4rem 0.75rem' }}
             >
               Cancel
             </button>
@@ -106,20 +128,17 @@ export function OrgSelector() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+    <div className="org-selector">
+      <label htmlFor={selectId} className="sr-only">
+        Organisation
+      </label>
       <select
+        id={selectId}
+        className="form-select org-selector-select"
         value={currentOrg?.id ?? ''}
         onChange={(e) => {
           const org = organizations.find((o) => o.id === e.target.value);
           if (org) setCurrentOrg(org);
-        }}
-        style={{
-          width: '100%',
-          padding: '0.4rem',
-          background: '#2a2a2a',
-          color: '#fff',
-          border: '1px solid #444',
-          borderRadius: 4,
         }}
       >
         {organizations.map((o) => (
@@ -132,18 +151,11 @@ export function OrgSelector() {
           create their own (billable) org. See docs/ACCOUNTANT_PORTAL.md. */}
       {!isAccountantOnly && (
         <button
+          type="button"
+          className="btn btn-ghost btn-sm org-selector-new"
           onClick={() => setCreating(true)}
-          style={{
-            padding: '0.3rem',
-            fontSize: 12,
-            background: 'transparent',
-            color: '#888',
-            border: '1px dashed #444',
-            borderRadius: 4,
-            cursor: 'pointer',
-          }}
         >
-          + New organisation
+          <Plus size={14} aria-hidden="true" /> New organisation
         </button>
       )}
     </div>

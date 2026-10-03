@@ -37,8 +37,10 @@ import {
   ShieldAlert,
   CalendarClock,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
 
-const FEED_COLORS = ['#6366f1', '#10b981', '#f97316', '#eab308', '#ef4444', '#22c55e', '#0ea5e9'];
+const FEED_COLORS = [1, 2, 3, 4, 5, 6, 7].map((n) => `var(--palette-${n})`);
 
 /** Stable colour per label so the same supplier/customer always gets the same badge. */
 function feedColor(label: string): string {
@@ -301,7 +303,7 @@ export function DashboardPage() {
         >
           👋
         </div>
-        <h1 style={{ marginBottom: '1rem' }}>Welcome to Looplet</h1>
+        <PageHeader title="Welcome to Looplet" style={{ marginBottom: '1rem' }} />
         <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
           Create or select your first organisation in the header to get started. Each organisation
           is fully isolated — bills, jobs, employees, and Xero connection are yours alone.
@@ -567,17 +569,10 @@ export function DashboardPage() {
           </div>
         )}
         {!activityLoading && activityItems.length === 0 && (
-          <div
-            style={{
-              padding: '1.5rem 1.25rem',
-              textAlign: 'center',
-              color: 'var(--text-muted)',
-              fontSize: '0.85rem',
-            }}
-          >
+          <EmptyState>
             No money activity yet — upload a bill, raise an invoice, or import a bank statement and
             it shows up here.
-          </div>
+          </EmptyState>
         )}
         {activityItems.map((tx, idx) => (
           <div
@@ -657,7 +652,7 @@ export function DashboardPage() {
             to="/reconciliation"
             style={{
               fontSize: '0.8rem',
-              color: 'var(--accent-primary)',
+              color: 'var(--text-link)',
               fontWeight: 600,
             }}
           >
@@ -716,6 +711,7 @@ export function DashboardPage() {
                 </div>
               </div>
               <button
+                aria-label="Close"
                 onClick={() => setDrawerOpen(false)}
                 style={{
                   background: 'var(--bg-hover)',
@@ -840,10 +836,7 @@ export function DashboardPage() {
                     }}
                   >
                     Add your organisation&apos;s bank details in{' '}
-                    <Link
-                      to="/settings"
-                      style={{ color: 'var(--accent-primary)', fontWeight: 600 }}
-                    >
+                    <Link to="/settings" style={{ color: 'var(--text-link)', fontWeight: 600 }}>
                       Settings → Payments
                     </Link>{' '}
                     to show and share your receiving account here.
@@ -999,7 +992,9 @@ function DetailRow({
           style={{
             fontSize: '0.85rem',
             color:
-              label.includes('BSB') || label.includes('Account') ? '#0075ff' : 'var(--text-title)',
+              label.includes('BSB') || label.includes('Account')
+                ? 'var(--accent-primary)'
+                : 'var(--text-title)',
             fontWeight: 600,
             lineHeight: 1.4,
             wordBreak: 'break-word',
@@ -1047,10 +1042,10 @@ const TASK_ICONS: Record<TaskKind, typeof Clock> = {
 
 const CONFIDENCE_COLORS: Record<string, string> = {
   auto_post: 'var(--accent-success)',
-  quick_confirm: '#0075ff',
-  review_needed: '#f59e0b',
-  advisor_required: '#ef4444',
-  blocked_external: '#dc2626',
+  quick_confirm: 'var(--accent-primary)',
+  review_needed: 'var(--accent-warning)',
+  advisor_required: 'var(--accent-danger)',
+  blocked_external: 'var(--accent-danger)',
 };
 
 function taskRoute(task: WorkstreamTask): string {
@@ -1185,11 +1180,11 @@ function TodayFeed({ tasks, loading }: { tasks: WorkstreamTask[]; loading: boole
                     </span>
                     <span
                       style={{
-                        fontSize: '0.65rem',
+                        fontSize: '0.6875rem',
                         padding: '0.1rem 0.4rem',
                         borderRadius: 'var(--radius-sm)',
                         background: CONFIDENCE_COLORS[task.confidence] ?? 'var(--text-muted)',
-                        color: '#fff',
+                        color: 'var(--text-title)',
                         fontWeight: 600,
                         textTransform: 'uppercase',
                         letterSpacing: '0.04em',
@@ -1210,11 +1205,11 @@ function TodayFeed({ tasks, loading }: { tasks: WorkstreamTask[]; loading: boole
                     {task.blocking_reason && (
                       <span
                         style={{
-                          fontSize: '0.65rem',
+                          fontSize: '0.6875rem',
                           padding: '0.1rem 0.4rem',
                           borderRadius: 'var(--radius-sm)',
-                          background: '#fef2f2',
-                          color: '#dc2626',
+                          background: 'var(--bg-danger-subtle)',
+                          color: 'var(--text-danger)',
                           fontWeight: 600,
                         }}
                       >
@@ -1241,7 +1236,9 @@ function TodayFeed({ tasks, loading }: { tasks: WorkstreamTask[]; loading: boole
                       alignItems: 'center',
                     }}
                   >
-                    <span style={{ fontSize: '0.75rem', color: '#0075ff', fontWeight: 600 }}>
+                    <span
+                      style={{ fontSize: '0.75rem', color: 'var(--text-link)', fontWeight: 600 }}
+                    >
                       {task.suggested_action}
                     </span>
                     {task.impact_cents != null && task.impact_cents !== 0 && (
@@ -1280,7 +1277,9 @@ function AdvisoryItem({ icon, text, link }: { icon: string; text: string; link?:
         {link ? (
           <>
             {text.replace(link, '')}
-            <span style={{ color: '#0075ff', cursor: 'pointer', fontWeight: 600 }}>{link}</span>
+            <span style={{ color: 'var(--text-link)', cursor: 'pointer', fontWeight: 600 }}>
+              {link}
+            </span>
           </>
         ) : (
           text

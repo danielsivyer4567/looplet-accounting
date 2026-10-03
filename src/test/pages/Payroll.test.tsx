@@ -118,7 +118,8 @@ describe('SuperBatchSection (SC-3.H.01)', () => {
     h.batch = BATCH;
     h.send = vi.fn().mockResolvedValue({
       ok: true,
-      sent: true,
+      file_prepared: true,
+      status: 'file_prepared',
       payload: { schema_version: 'build_superstream_payload:v1' },
     });
     const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:superstream');

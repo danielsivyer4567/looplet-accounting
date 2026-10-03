@@ -1,0 +1,2 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/check-no-basiq.mjs"
+check-no-basiq: 1129 files scanned; no Basiq references outside 31 allow-listed historical records

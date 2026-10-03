@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run tests/security/tfn-handling.test.ts"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  11:15:44
+   Duration  738ms (transform 46ms, setup 61ms, import 44ms, tests 31ms, environment 491ms)
+

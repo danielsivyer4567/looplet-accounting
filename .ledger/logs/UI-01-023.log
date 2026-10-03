@@ -1,0 +1,2 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/check-hardcoded-colours.mjs"
+Hard-coded colour check passed: 234 files scanned, 13 allow-listed literal(s) in 4 rule(s), no other colour literals outside src/index.css token definitions.

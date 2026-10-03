@@ -1,0 +1,4 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/db/run-pg-sql-tests.mjs tests/db-sql/money-table-roles.sql"
+migrations: 303 applied, 0 known failures, 0 problems (303 files)
+PASS tests/db-sql/money-table-roles.sql
+  NOTICE:  money-table roles: 583 write probes, 8 read probes, 3 link checks and 59 audited tables as expected

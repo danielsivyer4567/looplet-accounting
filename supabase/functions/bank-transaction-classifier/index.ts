@@ -27,7 +27,7 @@
  *   Accept  → flip to 'classified', no new rule written
  *   Override → flip to 'classified', write bank_coding_rule for future learning
  *
- * AUTH: service-role bearer OR ?secret=BANK_CLASSIFIER_CRON_SECRET (cron path)
+ * AUTH: service-role bearer OR an X-Cron-Secret header matching BANK_CLASSIFIER_CRON_SECRET (cron path)
  *       OR user JWT with org membership (interactive path).
  * Deployed --no-verify-jwt so pg_cron can drive it without a user token.
  *
@@ -39,7 +39,10 @@
  */
 
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { enforceAiQuota } from '../_shared/aiRateLimit.ts';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { presentedCronSecret } from '../_shared/cronSecret.ts';
+import { supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 import { postJournalEntry } from '../_shared/gl/postJournalEntry.ts';
 import type { GlAdminClient } from '../_shared/gl/client.ts';
 
@@ -892,13 +895,12 @@ Deno.serve(async (req: Request) => {
     }
 
     // Auth gate (same pattern as auto-reconcile)
-    const url       = new URL(req.url);
-    const urlSecret = url.searchParams.get('secret');
+    const givenSecret = presentedCronSecret(req);
     const authHeader = req.headers.get('Authorization') ?? '';
     const bearer    = authHeader.replace(/^Bearer\s+/i, '').trim();
 
     const isServiceRole  = safeEqual(bearer, serviceKey);
-    const secretOk       = !!cronSecret && safeEqual(urlSecret ?? '', cronSecret);
+    const secretOk       = !!cronSecret && safeEqual(givenSecret ?? '', cronSecret);
     const cronAuthorized = isServiceRole || secretOk;
     const hasUserJwt     = !!bearer && !isServiceRole;
 
@@ -952,6 +954,11 @@ Deno.serve(async (req: Request) => {
         .eq('id', orgId)
         .maybeSingle();
       if (!org) return json({ ok: false, error: 'Organisation not accessible' }, 403);
+      // A run classifies up to 500 transactions with a paid model: signed-in users get an hourly quota.
+      const userId = await supabaseOrgAccessDeps(admin, serviceKey).userIdFromJwt(bearer);
+      if (!userId) return json({ ok: false, error: 'Unauthorized' }, 401);
+      const limited = await enforceAiQuota(admin, userId, 'bank_transaction_classifier', corsHeaders);
+      if (limited) return limited;
     }
 
     // Fetch unclassified transactions + shared lookup data in parallel

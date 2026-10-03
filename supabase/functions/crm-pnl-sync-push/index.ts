@@ -23,6 +23,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { requireServiceRole } from '../_shared/authGuards.ts';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
 import { requireEnv } from '../_shared/env.ts';
 
@@ -59,6 +60,9 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = requireEnv('SUPABASE_URL');
     const serviceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
+    // Only automation-worker dispatches CRM P&L pushes, with the service-role key. Users never call this directly.
+    const caller = requireServiceRole(req.headers.get('Authorization'), serviceKey);
+    if (!caller.ok) return json({ ok: false, error: caller.error }, caller.status);
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });

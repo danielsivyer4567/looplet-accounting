@@ -10,8 +10,11 @@ import {
   type AdviceCitationResult,
   citeForAdvice,
 } from "../_shared/advisoryCite.ts";
+import { enforceAiQuota } from "../_shared/aiRateLimit.ts";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
+import { presentedCronSecret } from "../_shared/cronSecret.ts";
 import { requireEnv } from "../_shared/env.ts";
+import { supabaseOrgAccessDeps } from "../_shared/orgRole.ts";
 import {
   type AdvisoryFacts,
   type AdvisoryFactsClient,
@@ -1137,9 +1140,9 @@ async function handleAdvisor(req: Request): Promise<Response> {
   const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const cronSecret = Deno.env.get("ADVISOR_CRON_SECRET");
-  const urlSecret = new URL(req.url).searchParams.get("secret") ?? "";
+  const givenSecret = presentedCronSecret(req) ?? "";
   const isServiceRole = serviceKey.length > 0 && safeEqual(bearer, serviceKey);
-  const secretOk = !!cronSecret && safeEqual(urlSecret, cronSecret);
+  const secretOk = !!cronSecret && safeEqual(givenSecret, cronSecret);
   const cronAuthorized = isServiceRole || secretOk;
   const hasBearer = bearer.length > 0;
 
@@ -1217,6 +1220,18 @@ async function handleAdvisor(req: Request): Promise<Response> {
         organization_id: orgId,
         ...scheduled,
       });
+    }
+
+    // Advice modes cite sources through Perplexity: a bearer that is merely present (such as the public
+    // anon key) is not enough, and signed-in users get an hourly quota. The service role is not limited.
+    if (mode !== "noop_echo" && !isServiceRole) {
+      const admin = createClient(supabaseUrl, requireEnv("SUPABASE_SERVICE_ROLE_KEY"), {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const userId = await supabaseOrgAccessDeps(admin, serviceKey).userIdFromJwt(bearer);
+      if (!userId) return json({ ok: false, error: "Unauthorized" }, 401);
+      const limited = await enforceAiQuota(admin, userId, "advisor", corsHeaders);
+      if (limited) return limited;
     }
 
     const client = createClient(

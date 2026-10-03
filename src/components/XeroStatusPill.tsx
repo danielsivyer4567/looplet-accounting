@@ -58,7 +58,7 @@ export function XeroStatusPill({
             padding: '0.1rem 0.5rem',
             background: 'transparent',
             color: '#1ab4d7',
-            border: '1px solid #1a3d6b',
+            border: '1px solid var(--border-info)',
             borderRadius: 3,
             fontSize: 11,
             cursor: repushBusy ? 'wait' : 'pointer',
@@ -72,8 +72,8 @@ export function XeroStatusPill({
         <span
           style={{
             display: 'block',
-            fontSize: 10,
-            color: '#e9a3a3',
+            fontSize: 11,
+            color: 'var(--text-danger)',
             maxWidth: 240,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
@@ -91,18 +91,18 @@ export function XeroStatusPill({
 function resolveStyle(status: string | null): { label: string; colour: string; bg: string } {
   switch (status) {
     case 'synced':
-      return { label: 'synced', colour: '#86c7a3', bg: '#0d2f1f' };
+      return { label: 'synced', colour: 'var(--text-success)', bg: 'var(--bg-success-subtle)' };
     case 'failed':
     case 'error':
-      return { label: status, colour: '#e9a3a3', bg: '#3d1818' };
+      return { label: status, colour: 'var(--text-danger)', bg: 'var(--bg-danger-subtle)' };
     case 'pending':
-      return { label: 'pending', colour: '#d2c886', bg: '#2a2510' };
+      return { label: 'pending', colour: 'var(--text-warning)', bg: 'var(--bg-warning-subtle)' };
     case 'amended':
-      return { label: 'amended', colour: '#86b4c7', bg: '#0d1f2f' };
+      return { label: 'amended', colour: 'var(--text-info)', bg: 'var(--bg-info-subtle)' };
     case 'voided':
-      return { label: 'voided', colour: '#888', bg: '#1a1a1a' };
+      return { label: 'voided', colour: 'var(--text-muted)', bg: 'var(--bg-hover)' };
     case null:
     default:
-      return { label: status ?? '—', colour: '#666', bg: '#1a1a1a' };
+      return { label: status ?? '—', colour: 'var(--text-muted)', bg: 'var(--bg-hover)' };
   }
 }

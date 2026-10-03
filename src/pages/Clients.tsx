@@ -2,6 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
 import type { Organization } from '@/contexts/org-context';
 import { Building2, ArrowRight } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 const ENTITY_LABELS: Record<string, string> = {
   sole_trader: 'Sole trader',
@@ -37,9 +39,7 @@ export function ClientsPage() {
   return (
     <div>
       <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-title)' }}>
-          Clients
-        </h1>
+        <PageHeader title="Clients" />
         <p style={{ margin: '0.35rem 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
           {accountantClientOrgs.length === 1
             ? '1 client'
@@ -49,19 +49,10 @@ export function ClientsPage() {
       </div>
 
       {accountantClientOrgs.length === 0 ? (
-        <div
-          style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            padding: '2rem',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
+        <EmptyState>
           No clients yet. When a business invites you as their accountant and you accept, they'll
           appear here.
-        </div>
+        </EmptyState>
       ) : (
         <div
           style={{
@@ -100,7 +91,7 @@ export function ClientsPage() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: 'var(--accent-primary)',
+                      color: 'var(--text-link)',
                       flexShrink: 0,
                     }}
                   >
@@ -133,7 +124,7 @@ export function ClientsPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.35rem',
-                    color: 'var(--accent-primary)',
+                    color: 'var(--text-link)',
                     fontSize: '0.82rem',
                     fontWeight: 600,
                   }}

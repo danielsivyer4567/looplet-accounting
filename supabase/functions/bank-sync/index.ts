@@ -1,28 +1,32 @@
 /**
- * bank-sync — pull latest transactions from Basiq for a connection (or all
- * active connections in an org). Idempotent: dedupes by external_id.
+ * bank-sync — import the latest Redbark bank-feed transactions for one connection, or every active Redbark connection
+ * in an organisation, then run the post-sync chain (subscriptions, intake routing, classifier, auto-reconcile).
  *
  * Input: {
  *   organization_id,
  *   bank_connection_id?: string,   // single connection
- *   days?: number = 90,            // back-window for the first sync
+ *   days?: number,                 // accepted from older callers and ignored: the window is the account's
+ *                                  // import-from date and checkpoint (bank_accounts.feed_sync_from / feed_covered_through)
  * }
- * Output: { ok, results: [{connection_id, accounts, transactions, errors}] }
+ * Output: { ok, results: [{ bank_connection_id, accounts_synced, transactions_synced, ... }], post_sync }
  *
- * Designed to be safe for cron invocation (service-role auth tolerated).
+ * Idempotent: transactions are inserted only when new on (bank_account_id, external_id = Redbark transaction id) and
+ * existing rows are never rewritten. See sync.ts. Pending rows are skipped.
+ *
+ * Callers: bank-webhook, bank-sync-all (cron) and automation-worker send the exact service-role key; a signed-in
+ * caller needs the accountant role or higher. Only organisations in REDBARK_ORGANIZATION_IDS are synced.
+ * Secrets: REDBARK_API_KEY, REDBARK_ORGANIZATION_IDS.
  */
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
-import { sha256Hex } from '../_shared/apiKeys.ts';
-import {
-  getAccountsForConnection,
-  getAllTransactionsForConnection,
-  toCents,
-  mapBasiqAccountType,
-} from '../_shared/basiq/client.ts';
-import { isExactServiceRoleBearer } from '../_shared/serviceRole.ts';
+import { authorizeOrgCaller, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
+import { FEED_NOT_ENABLED, feedOrganizationIds, isFeedOrganization } from '../_shared/bankfeed/access.ts';
+import { sha256Hex } from '../_shared/bankfeed/webhook.ts';
+import { createRedbarkClient, type FeedAccount, type FeedTransaction } from '../_shared/redbark/client.ts';
+import { feedToday } from '../_shared/redbark/history.ts';
+import { syncRedbarkConnection, type FeedConnection, type SyncStore } from './sync.ts';
 
 interface RequestBody {
   organization_id: string;
@@ -35,9 +39,6 @@ Deno.serve(async (req) => {
   if (pre) return pre;
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return json({ ok: false, error: 'Unauthorized' }, 401);
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     if (!supabaseUrl || !serviceKey) {
@@ -48,74 +49,76 @@ Deno.serve(async (req) => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    // Service-role callers must present the exact configured key. Do not trust
-    // a decoded JWT payload role claim here; verify_jwt may be disabled for
-    // server-to-server callers in some deployments.
-    const isServiceRole = isExactServiceRoleBearer(authHeader, serviceKey);
-
     const body = (await req.json()) as RequestBody;
     if (!body.organization_id) return json({ ok: false, error: 'organization_id required' }, 400);
 
-    // Caller must own org (RLS) unless service-role
-    if (!isServiceRole) {
-      const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
-      if (!anonKey) return json({ ok: false, error: 'SUPABASE_ANON_KEY not set' }, 500);
-      const userClient = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      const { data: org } = await userClient
-        .from('organizations')
-        .select('id')
-        .eq('id', body.organization_id)
-        .maybeSingle();
-      if (!org) return json({ ok: false, error: 'Organisation not accessible' }, 403);
-    }
+    // Service-role callers must present the exact configured key; a user needs an accepted accountant+ membership.
+    const access = await authorizeOrgCaller(
+      req.headers.get('Authorization'),
+      body.organization_id,
+      supabaseOrgAccessDeps(admin, serviceKey),
+      'accountant',
+    );
+    if (!access.ok) return json({ ok: false, error: access.error }, access.status);
 
-    const { data: orgRow } = await admin
-      .from('organizations')
-      .select('basiq_user_id')
-      .eq('id', body.organization_id)
-      .single();
-    if (!orgRow?.basiq_user_id) {
-      return json({ ok: false, error: 'No Basiq user — connect a bank first' }, 400);
+    if (!isFeedOrganization(feedOrganizationIds(Deno.env.get('REDBARK_ORGANIZATION_IDS')), body.organization_id)) {
+      return json({ ok: true, results: [], message: FEED_NOT_ENABLED });
     }
 
     let connQuery = admin
       .from('bank_connections')
-      .select('id, external_item_id, status, last_synced_at')
+      .select('id, organization_id, external_item_id')
       .eq('organization_id', body.organization_id)
-      .eq('provider', 'basiq')
+      .eq('provider', 'redbark')
       .eq('status', 'active');
     if (body.bank_connection_id) connQuery = connQuery.eq('id', body.bank_connection_id);
 
-    const { data: connections } = await connQuery;
+    const { data: connections, error: connErr } = await connQuery;
+    if (connErr) return json({ ok: false, error: `connections: ${connErr.message}` }, 500);
     if (!connections || connections.length === 0) {
-      return json({ ok: true, results: [], message: 'No active connections to sync' });
+      return json({ ok: true, results: [], message: 'No active bank feed connections to sync' });
     }
 
-    const days = Math.max(7, Math.min(730, body.days ?? 90));
-    const fromDate = new Date(Date.now() - days * 86400 * 1000).toISOString().slice(0, 10);
+    const apiKey = Deno.env.get('REDBARK_API_KEY');
+    if (!apiKey) {
+      return json({ ok: false, error: 'The bank feed is not configured on the server (REDBARK_API_KEY).' }, 500);
+    }
+    const client = createRedbarkClient(apiKey);
+    const store = supabaseSyncStore(admin);
 
+    // One account listing serves every connection; a failure is recorded on each connection below.
+    let feedAccounts: FeedAccount[] | null = null;
+    let feedError = '';
+    try {
+      feedAccounts = await client.accounts();
+    } catch (err) {
+      feedError = err instanceof Error ? err.message : String(err);
+    }
+
+    const today = feedToday();
     const results: Record<string, unknown>[] = [];
     const allInsertedTxnIds: string[] = [];
-    for (const c of connections) {
+    for (const c of connections as FeedConnection[]) {
       try {
-        const stats = await syncOne(
-          admin,
-          body.organization_id,
-          orgRow.basiq_user_id as string,
-          c as { id: string; external_item_id: string; last_synced_at: string | null },
-          fromDate,
-        );
+        if (!feedAccounts) throw new Error(feedError);
+        const stats = await syncRedbarkConnection(client, store, c, feedAccounts, { today });
         results.push({ bank_connection_id: c.id, ...stats });
-        if (stats.inserted_txn_ids?.length) {
-          allInsertedTxnIds.push(...stats.inserted_txn_ids);
-        }
+        allInsertedTxnIds.push(...stats.inserted_txn_ids);
+        const anySynced = stats.accounts.some((a) => !a.error);
+        await admin
+          .from('bank_connections')
+          .update({
+            ...(anySynced ? { last_synced_at: new Date().toISOString() } : {}),
+            last_error: stats.errors.length ? stats.errors.join('; ').slice(0, 500) : null,
+          })
+          .eq('id', c.id);
       } catch (err) {
+        // The connection stays active: a provider outage or rate limit is not a broken link, and the next sync
+        // resumes from each account's checkpoint.
         const msg = err instanceof Error ? err.message : String(err);
         await admin
           .from('bank_connections')
-          .update({ last_error: msg.slice(0, 500), status: 'error' })
+          .update({ last_error: msg.slice(0, 500) })
           .eq('id', c.id);
         results.push({ bank_connection_id: c.id, error: msg });
       }
@@ -232,142 +235,92 @@ async function runPostSyncFunction(
   return body;
 }
 
-async function syncOne(
-  admin: SupabaseClient,
-  orgId: string,
-  basiqUserId: string,
-  conn: { id: string; external_item_id: string; last_synced_at: string | null },
-  fromDate: string,
-) {
-  // 1. Refresh accounts (balances + status)
-  const accounts = await getAccountsForConnection(basiqUserId, conn.external_item_id);
-  let acctUpdated = 0;
-  for (const a of accounts) {
-    const { error } = await admin.from('bank_accounts').upsert(
-      {
-        organization_id: orgId,
-        bank_connection_id: conn.id,
-        external_id: a.id,
-        name: a.name,
-        account_type: mapBasiqAccountType(a.class?.type ?? 'other'),
-        current_balance_cents: toCents(a.balance),
-        available_balance_cents: toCents(a.availableFunds ?? null),
-        currency_code: a.currency ?? 'AUD',
-        is_active: true,
-      },
-      { onConflict: 'organization_id,bank_connection_id,external_id' },
-    );
-    if (!error) acctUpdated += 1;
-  }
-
-  // 2. Map Basiq account.id → our internal bank_accounts.id
-  const { data: ourAccounts } = await admin
-    .from('bank_accounts')
-    .select('id, external_id')
-    .eq('bank_connection_id', conn.id);
-  const acctMap = new Map<string, string>();
-  for (const r of (ourAccounts ?? []) as { id: string; external_id: string }[]) {
-    acctMap.set(r.external_id, r.id);
-  }
-
-  // 3. Pull transactions (incremental: from last_synced_at, else fromDate)
-  const since = conn.last_synced_at
-    ? new Date(conn.last_synced_at).toISOString().slice(0, 10)
-    : fromDate;
-  const txns = await getAllTransactionsForConnection(basiqUserId, conn.external_item_id, since);
-
-  // Batch-insert raw Basiq transaction events before normalising.
-  // Deduplicates re-syncs at the raw layer; raw_event_id links each
-  // bank_transaction back to its source payload for audit/replay.
-  const providerEventIds = txns.map((t) => `txn:${t.id}`);
-  const rawHashes = await Promise.all(txns.map((t) => sha256Hex(JSON.stringify(t))));
-  // txn.id → payload hash; used below to resolve the exact raw event row
-  // when a transaction's payload has changed (different hash = new raw row).
-  const txnHashMap = new Map<string, string>();
-  txns.forEach((t, i) => txnHashMap.set(t.id, rawHashes[i]));
-
-  const rawRows = txns.map((t, i) => ({
-    organization_id: orgId,
-    provider: 'basiq',
-    provider_event_id: providerEventIds[i],
-    payload_hash: rawHashes[i],
-    raw_payload: t as unknown as Record<string, unknown>,
-  }));
-
-  // Map key: `${provider_event_id}:${payload_hash}` — keying by event id alone
-  // would resolve to a stale raw row when a transaction's payload has evolved.
-  const rawEventMap = new Map<string, string>();
-  if (rawRows.length > 0) {
-    const { error: rawUpsertError } = await admin.from('bank_events_raw').upsert(rawRows, {
-      onConflict: 'provider,organization_id,provider_event_id,payload_hash',
-      ignoreDuplicates: true,
-    });
-    if (rawUpsertError) console.error('bank_events_raw upsert error:', rawUpsertError.message);
-    const { data: rawEventData } = await admin
-      .from('bank_events_raw')
-      .select('id, provider_event_id, payload_hash')
-      .eq('organization_id', orgId)
-      .eq('provider', 'basiq')
-      .in('provider_event_id', providerEventIds);
-    for (const row of (rawEventData ?? []) as {
-      id: string;
-      provider_event_id: string;
-      payload_hash: string;
-    }[]) {
-      rawEventMap.set(`${row.provider_event_id}:${row.payload_hash}`, row.id);
-    }
-  }
-
-  let inserted = 0;
-  let skipped = 0;
-  const insertedTxnIds: string[] = [];
-  for (const t of txns) {
-    const bankAccountId = acctMap.get(t.account);
-    if (!bankAccountId) {
-      skipped += 1;
-      continue;
-    }
-    // Basiq amounts are signed: negative = money out, positive = money in.
-    // That's already our convention (positive = money_in), so no inversion.
-    const amount = toCents(t.amount);
-    const { data: row, error } = await admin
-      .from('bank_transactions')
-      .upsert(
-        {
-          organization_id: orgId,
-          bank_account_id: bankAccountId,
-          external_id: t.id,
-          posted_at: t.postDate,
-          description: t.description ?? '(no description)',
-          amount_cents: amount,
-          running_balance_cents: t.balance != null ? toCents(t.balance) : null,
-          reference: t.reference ?? null,
-          category_external: t.subClass?.title ?? t.class ?? null,
-          raw: t,
-          raw_event_id: rawEventMap.get(`txn:${t.id}:${txnHashMap.get(t.id)}`) ?? null,
-        },
-        { onConflict: 'bank_account_id,external_id' },
-      )
-      .select('id')
-      .single();
-    if (error) skipped += 1;
-    else {
-      inserted += 1;
-      if (row?.id) insertedTxnIds.push(row.id as string);
-    }
-  }
-
-  // 4. Bump last_synced_at
-  await admin
-    .from('bank_connections')
-    .update({ last_synced_at: new Date().toISOString(), last_error: null })
-    .eq('id', conn.id);
-
+/** The sync's storage, on the service-role client. */
+function supabaseSyncStore(admin: SupabaseClient): SyncStore {
+  const RAW_CHUNK = 200;
+  const INSERT_CHUNK = 500;
   return {
-    accounts_updated: acctUpdated,
-    transactions_synced: inserted,
-    transactions_skipped: skipped,
-    inserted_txn_ids: insertedTxnIds,
+    async linkedAccounts(connection) {
+      const { data, error } = await admin
+        .from('bank_accounts')
+        .select('id, external_id, feed_sync_from, feed_covered_through')
+        .eq('organization_id', connection.organization_id)
+        .eq('bank_connection_id', connection.id)
+        .eq('is_active', true);
+      if (error) throw new Error(`linked accounts: ${error.message}`);
+      return data ?? [];
+    },
+
+    // The raw layer (bank_events_raw) keeps each source payload for audit and replay; raw_event_id links a
+    // transaction to it. A raw-layer failure is logged and does not block the import.
+    async storeRawTransactions(organizationId, transactions: FeedTransaction[]) {
+      const ids = new Map<string, string>();
+      for (let i = 0; i < transactions.length; i += RAW_CHUNK) {
+        const chunk = transactions.slice(i, i + RAW_CHUNK);
+        const hashes = await Promise.all(chunk.map((t) => sha256Hex(JSON.stringify(t.raw))));
+        const rows = chunk.map((t, j) => ({
+          organization_id: organizationId,
+          provider: 'redbark',
+          provider_event_id: `txn:${t.id}`,
+          payload_hash: hashes[j],
+          raw_payload: t.raw,
+        }));
+        const { error: upsertError } = await admin.from('bank_events_raw').upsert(rows, {
+          onConflict: 'provider,organization_id,provider_event_id,payload_hash',
+          ignoreDuplicates: true,
+        });
+        if (upsertError) console.error('bank_events_raw upsert error:', upsertError.message);
+        const { data } = await admin
+          .from('bank_events_raw')
+          .select('id, provider_event_id, payload_hash')
+          .eq('organization_id', organizationId)
+          .eq('provider', 'redbark')
+          .in('provider_event_id', rows.map((r) => r.provider_event_id));
+        // Key by event id AND hash: a transaction whose payload changed has a newer raw row.
+        const wanted = new Map(rows.map((r) => [`${r.provider_event_id}:${r.payload_hash}`, r.provider_event_id.slice(4)]));
+        for (const row of (data ?? []) as { id: string; provider_event_id: string; payload_hash: string }[]) {
+          const txnId = wanted.get(`${row.provider_event_id}:${row.payload_hash}`);
+          if (txnId) ids.set(txnId, row.id);
+        }
+      }
+      return ids;
+    },
+
+    async insertNewTransactions(rows) {
+      const inserted: { id: string; external_id: string }[] = [];
+      for (let i = 0; i < rows.length; i += INSERT_CHUNK) {
+        // ON CONFLICT DO NOTHING: existing rows (possibly matched, coded or posted) are never rewritten, and
+        // RETURNING lists only the rows inserted now.
+        const { data, error } = await admin
+          .from('bank_transactions')
+          .upsert(rows.slice(i, i + INSERT_CHUNK), { onConflict: 'bank_account_id,external_id', ignoreDuplicates: true })
+          .select('id, external_id');
+        if (error) throw new Error(`bank_transactions insert: ${error.message}`);
+        inserted.push(...((data ?? []) as { id: string; external_id: string }[]));
+      }
+      return inserted;
+    },
+
+    async saveBalance(bankAccountId, balance) {
+      const { error } = await admin
+        .from('bank_accounts')
+        .update({
+          current_balance_cents: balance.currentCents,
+          ...(balance.availableCents !== null ? { available_balance_cents: balance.availableCents } : {}),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', bankAccountId);
+      if (error) throw new Error(`balance: ${error.message}`);
+    },
+
+    async advanceCheckpoint(bankAccountId, coveredThrough) {
+      const { error } = await admin
+        .from('bank_accounts')
+        .update({ feed_covered_through: coveredThrough })
+        .eq('id', bankAccountId)
+        .or(`feed_covered_through.is.null,feed_covered_through.lt.${coveredThrough}`);
+      if (error) throw new Error(`checkpoint: ${error.message}`);
+    },
   };
 }
 

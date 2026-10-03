@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/components/SharedPrimitives.test.tsx"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  16:04:58
+   Duration  1.02s (transform 64ms, setup 60ms, import 147ms, tests 136ms, environment 477ms)
+

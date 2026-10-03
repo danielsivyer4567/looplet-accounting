@@ -33,6 +33,7 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
+import { isExactSecret } from '../_shared/serviceRole.ts';
 import { existingGmailAttachmentIds } from '../_shared/gmail/dedupe.ts';
 import { loadAndRefreshGmail } from '../_shared/gmail/auth.ts';
 import { hasRetryableGmailIngestFailure } from '../_shared/gmail/pubsub.ts';
@@ -81,7 +82,7 @@ Deno.serve(async (req) => {
   {
     const url = new URL(req.url);
     const got = url.searchParams.get('token');
-    if (got !== expectedToken) {
+    if (!isExactSecret(got, expectedToken)) {
       // Return 401 — Pub/Sub will retry, but that's intentional: a mismatch
       // means the subscription URL is wrong, not a transient error.
       return new Response('Invalid push verification token', { status: 401 });

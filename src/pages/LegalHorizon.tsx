@@ -5,8 +5,9 @@ import {
 } from '@/hooks/useLegalHorizon';
 import { SkeletonCard } from '@/components/Skeleton';
 import { CalendarClock, RefreshCw } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
 
-const MUTED = 'var(--text-muted, #6b7280)';
+const MUTED = 'var(--text-muted)';
 
 // The legislative lifecycle, rendered for humans. Open items can sit at any stage
 // (an 'enacted' open item = law just landed, not yet reconciled to the corpus).
@@ -63,8 +64,8 @@ function HorizonCard({ item }: { item: LegalHorizonRow }) {
               letterSpacing: '0.04em',
               padding: '2px 8px',
               borderRadius: 'var(--radius-sm, 6px)',
-              background: 'var(--bg-hover, #f1f5f9)',
-              color: 'var(--text-body, #334155)',
+              background: 'var(--bg-hover, var(--bg-hover))',
+              color: 'var(--text-body, var(--text-body))',
             }}
           >
             {STAGE_LABELS[item.stage]}
@@ -109,7 +110,7 @@ function HorizonCard({ item }: { item: LegalHorizonRow }) {
         <span
           style={{
             fontSize: '0.75rem',
-            color: lowConfidence ? 'var(--text-warning, #b45309)' : MUTED,
+            color: lowConfidence ? 'var(--text-warning)' : MUTED,
           }}
         >
           Confidence {pct}%{lowConfidence ? ' · low — treat with caution' : ''}
@@ -121,7 +122,7 @@ function HorizonCard({ item }: { item: LegalHorizonRow }) {
             rel="noopener noreferrer"
             style={{
               fontSize: '0.8rem',
-              color: 'var(--accent-primary, #2563eb)',
+              color: 'var(--accent-primary, var(--accent-primary))',
               fontWeight: 600,
               textDecoration: 'none',
             }}
@@ -159,7 +160,7 @@ export function LegalHorizonPage() {
             }}
           >
             <CalendarClock size={22} />
-            <h1 style={{ margin: 0 }}>Upcoming changes</h1>
+            <PageHeader title="Upcoming changes" />
           </div>
           <p style={{ color: MUTED, margin: 0 }}>
             Proposed and in-progress Australian tax and super changes detected from official

@@ -2,6 +2,18 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import type { PeriodCheck } from '@/hooks/usePeriodClose';
+import {
+  DEFAULT_TIME_ZONE,
+  addMonths,
+  daysInMonth,
+  endOfMonth,
+  formatTimestampAu,
+  localDateParts,
+  orgTimeZone,
+  parseIsoDate,
+  startOfMonth,
+  todayLocal,
+} from '@/lib/localDates';
 
 export type TaskConfidence =
   | 'auto_post'
@@ -43,25 +55,22 @@ export interface WorkstreamTask {
   created_at: string;
 }
 
+// "Today" below is the calendar date in the organisation's time zone
+// (lib/localDates.ts), so the close window opens and closes on Australian days.
+
 /**
  * Returns the last day of the current calendar month as an ISO date string
  * (YYYY-MM-DD). Used to compute whether we are near or past month-end.
  */
-function lastDayOfCurrentMonth(): string {
-  const now = new Date();
-  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  return formatLocalDate(last.getFullYear(), last.getMonth(), last.getDate());
-}
-
-function formatLocalDate(year: number, monthIndex0: number, day: number): string {
-  return `${year}-${String(monthIndex0 + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+function lastDayOfCurrentMonth(timeZone: string): string {
+  return endOfMonth(todayLocal(timeZone));
 }
 
 /**
  * Returns a human-readable month label like "June 2026".
  */
-function currentMonthLabel(): string {
-  return new Date().toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+function currentMonthLabel(timeZone: string): string {
+  return formatTimestampAu(new Date(), timeZone, { month: 'long', year: 'numeric' });
 }
 
 /**
@@ -69,11 +78,10 @@ function currentMonthLabel(): string {
  * month OR already past month-end (i.e. we are in the next month and the
  * prior-month books need closing).  Returns true when the close window is open.
  */
-function isMonthEndWindow(): boolean {
-  const now = new Date();
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+function isMonthEndWindow(timeZone: string): boolean {
+  const { year, month, day } = localDateParts(new Date(), timeZone);
   // Within last 5 days of month or day 1-3 of the next month.
-  return now.getDate() >= daysInMonth - 4 || now.getDate() <= 3;
+  return day >= daysInMonth(year, month) - 4 || day <= 3;
 }
 
 /**
@@ -82,18 +90,9 @@ function isMonthEndWindow(): boolean {
  * (last 5 days), or the PRIOR month once we've rolled into the first-3-days
  * tail — the month that actually needs closing at that point.
  */
-function targetCloseMonthStart(): string {
-  const now = new Date();
-  let year = now.getFullYear();
-  let monthIndex0 = now.getMonth();
-  if (now.getDate() <= 3) {
-    monthIndex0 -= 1;
-    if (monthIndex0 < 0) {
-      monthIndex0 = 11;
-      year -= 1;
-    }
-  }
-  return formatLocalDate(year, monthIndex0, 1);
+function targetCloseMonthStart(timeZone: string): string {
+  const today = todayLocal(timeZone);
+  return startOfMonth(parseIsoDate(today).day <= 3 ? addMonths(today, -1) : today);
 }
 
 const EMPTY_PREFLIGHT_STATUS = { failedChecks: [] as PeriodCheck[], booksHealthBlocking: false };
@@ -110,9 +109,13 @@ const EMPTY_PREFLIGHT_STATUS = { failedChecks: [] as PeriodCheck[], booksHealthB
  */
 export async function fetchPreflightStatus(
   orgId: string,
+  timeZone: string = DEFAULT_TIME_ZONE,
 ): Promise<{ failedChecks: PeriodCheck[]; booksHealthBlocking: boolean }> {
   const [checksResult, booksHealthResult] = await Promise.all([
-    supabase.rpc('period_close_checks', { p_org: orgId, p_period: targetCloseMonthStart() }),
+    supabase.rpc('period_close_checks', {
+      p_org: orgId,
+      p_period: targetCloseMonthStart(timeZone),
+    }),
     supabase.from('v_books_health').select('blocking').eq('organization_id', orgId).maybeSingle(),
   ]);
 
@@ -139,11 +142,12 @@ export function useWorkstreamTasks() {
     setError(null);
 
     const orgId = currentOrg.id;
-    const windowOpen = isMonthEndWindow();
+    const timeZone = orgTimeZone(currentOrg);
+    const windowOpen = isMonthEndWindow(timeZone);
 
     void Promise.all([
       supabase.rpc('get_workstream_tasks', { p_org_id: orgId }),
-      windowOpen ? fetchPreflightStatus(orgId) : Promise.resolve(EMPTY_PREFLIGHT_STATUS),
+      windowOpen ? fetchPreflightStatus(orgId, timeZone) : Promise.resolve(EMPTY_PREFLIGHT_STATUS),
     ]).then(([{ data, error: rpcError }, { failedChecks, booksHealthBlocking }]) => {
       if (rpcError) {
         setError(rpcError.message);
@@ -169,7 +173,7 @@ export function useWorkstreamTasks() {
       const derivedTasks: WorkstreamTask[] = [];
 
       if (!alreadyHasCloseTask && (failedChecks.length > 0 || booksHealthBlocking)) {
-        const monthLabel = currentMonthLabel();
+        const monthLabel = currentMonthLabel(timeZone);
         const checkSummary = failedChecks.map((c) => c.detail?.message ?? c.check_name).join('; ');
         const whyNow =
           failedChecks.length > 0
@@ -189,7 +193,7 @@ export function useWorkstreamTasks() {
           suggested_action: 'Resolve the failing pre-flight checks, then run the period close.',
           confidence: 'blocked_external',
           impact_cents: null,
-          due_at: lastDayOfCurrentMonth(),
+          due_at: lastDayOfCurrentMonth(timeZone),
           blocking_reason: null,
           completion_event: null,
           urgency: 80,

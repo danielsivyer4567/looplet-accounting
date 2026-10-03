@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
+import { useOrgRole } from '@/hooks/useOrgRole';
+import { ReadOnlyNotice } from '@/components/ReadOnlyNotice';
 import { useSuppliers, type SupplierRow } from '@/hooks/useSuppliers';
 import { supabase } from '@/lib/supabase';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
@@ -8,6 +10,9 @@ import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { SkeletonTable } from '@/components/Skeleton';
 import { LoadMoreButton } from '@/components/LoadMoreButton';
 import { Truck, BarChart, Plus, X } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Field } from '@/components/ui/Field';
 
 interface BarChartProps {
   items: { label: string; value: number }[];
@@ -80,6 +85,8 @@ export function SuppliersPage() {
   const { currentOrg } = useOrg();
   const { suppliers, spendMap, loading, loadingMore, error, hasMore, loadMore, refresh } =
     useSuppliers();
+  const { canWrite } = useOrgRole();
+  const readOnly = !canWrite('books');
   const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
 
@@ -113,10 +120,13 @@ export function SuppliersPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Truck size={24} style={{ color: 'var(--accent-primary)' }} />
-          Suppliers
-        </h1>
+        <PageHeader
+          title={
+            <>
+              <Truck size={24} style={{ color: 'var(--text-link)' }} /> Suppliers
+            </>
+          }
+        />
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           {!loading && (
             <div
@@ -139,6 +149,7 @@ export function SuppliersPage() {
           )}
           <button
             onClick={() => setShowCreate(true)}
+            disabled={readOnly}
             className="btn btn-primary"
             aria-label="+ New supplier"
           >
@@ -147,6 +158,8 @@ export function SuppliersPage() {
           </button>
         </div>
       </div>
+
+      {readOnly && <ReadOnlyNotice area="books" />}
 
       {showCreate && (
         <CreateSupplierForm
@@ -184,7 +197,7 @@ export function SuppliersPage() {
               gap: '0.25rem',
             }}
           >
-            <BarChart size={14} style={{ color: 'var(--accent-primary)' }} />
+            <BarChart size={14} style={{ color: 'var(--text-link)' }} />
             Top 5 Suppliers by Spend YTD
           </div>
           <HorizontalBarChart items={top5} max={chartMax} />
@@ -201,19 +214,7 @@ export function SuppliersPage() {
           {formatLoadError('suppliers', error)}
         </div>
       ) : suppliers.length === 0 ? (
-        <div
-          style={{
-            padding: '2.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-            fontSize: '0.9rem',
-          }}
-        >
-          No suppliers found for {currentOrg.name}.
-        </div>
+        <EmptyState>No suppliers found for {currentOrg.name}.</EmptyState>
       ) : (
         <>
           <div className="suppliers-table-view table-premium-container">
@@ -289,7 +290,7 @@ export function SuppliersPage() {
                     <td
                       style={{
                         textAlign: 'right',
-                        color: 'var(--accent-primary)',
+                        color: 'var(--text-link)',
                         fontWeight: 600,
                       }}
                     >
@@ -343,7 +344,7 @@ function SupplierCard({
               e.preventDefault();
               onOpen();
             }}
-            style={{ fontWeight: 700, color: 'var(--accent-primary)', textDecoration: 'none' }}
+            style={{ fontWeight: 700, color: 'var(--text-link)', textDecoration: 'none' }}
           >
             {supplier.name}
           </a>
@@ -376,7 +377,7 @@ function SupplierCard({
         </div>
         <div>
           <span>Total spend</span>
-          <strong style={{ color: 'var(--accent-primary)' }}>{formatMoney(spendCents)}</strong>
+          <strong style={{ color: 'var(--text-link)' }}>{formatMoney(spendCents)}</strong>
         </div>
       </div>
     </article>
@@ -549,16 +550,5 @@ function CreateSupplierForm({
         </div>
       </div>
     </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-        {label}
-      </span>
-      {children}
-    </label>
   );
 }

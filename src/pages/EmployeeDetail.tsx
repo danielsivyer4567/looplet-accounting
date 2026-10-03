@@ -2,11 +2,24 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { useOrgRole } from '@/hooks/useOrgRole';
+import { writeProblem } from '@/lib/roles';
+import { ReadOnlyNotice } from '@/components/ReadOnlyNotice';
 import { formatMoney } from '@/lib/money';
+import { currentStatutorySuperRatePct } from '@/lib/superGuarantee';
 import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { DetailPageSkeleton } from '@/components/Skeleton';
 import { ArchiveButton } from '@/components/ArchiveButton';
 import { EmployeeMoveToOrgButton } from '@/components/EmployeeMoveToOrgButton';
+import {
+  addDays,
+  addMonths,
+  orgTimeZone,
+  startOfCalendarQuarter,
+  startOfCalendarYear,
+  startOfMonth,
+  todayLocal,
+} from '@/lib/localDates';
 import {
   ChevronLeft,
   User,
@@ -23,8 +36,12 @@ import {
   Plus,
   Trash2,
   AlertTriangle,
-  type LucideIcon,
+  Lock,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Field } from '@/components/ui/Field';
+import { Stat } from '@/components/ui/Stat';
 
 interface WageComponents {
   base_hourly_rate?: number;
@@ -103,7 +120,7 @@ interface PaySlipLite {
 
 function computeLoadedRate(w: WageComponents): number {
   const base = (w.base_hourly_rate ?? 0) * 100;
-  const sup = (w.super_pct ?? 11.5) / 100;
+  const sup = (w.super_pct ?? currentStatutorySuperRatePct()) / 100;
   const wc = (w.workcover_pct ?? 1.5) / 100;
   const leave = (w.leave_loading_pct ?? 8) / 100;
   return Math.round(base * (1 + sup + wc + leave));
@@ -112,6 +129,9 @@ function computeLoadedRate(w: WageComponents): number {
 export function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { currentOrg } = useOrg();
+  const { canWrite } = useOrgRole();
+  const canEditPay = canWrite('pay');
+  const canLogTime = canWrite('time');
   const navigate = useNavigate();
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [recentTs, setRecentTs] = useState<Timesheet[]>([]);
@@ -126,17 +146,16 @@ export function EmployeeDetailPage() {
   const [draft, setDraft] = useState<Partial<Employee> & { wage_components?: WageComponents }>({});
   const [saving, setSaving] = useState(false);
   const [showLogTime, setShowLogTime] = useState(false);
+  // The statutory super guarantee rate for today: the default when an employee has no super rate set.
+  const sgPct = currentStatutorySuperRatePct();
 
   const refresh = useCallback(async () => {
     if (!currentOrg || !id) return;
     setLoading(true);
     setError(null);
-    const sixtyAgo = new Date();
-    sixtyAgo.setDate(sixtyAgo.getDate() - 60);
-    const sixtyStr = sixtyAgo.toISOString().slice(0, 10);
-    const yearAgo = new Date();
-    yearAgo.setFullYear(yearAgo.getFullYear() - 1);
-    const yearStr = yearAgo.toISOString().slice(0, 10);
+    const today = todayLocal(orgTimeZone(currentOrg));
+    const sixtyStr = addDays(today, -60);
+    const yearStr = addMonths(today, -12);
 
     const [empRes, recentRes, yearRes, jobsRes, leaveRes, slipsRes, excRes] = await Promise.all([
       supabase
@@ -240,10 +259,15 @@ export function EmployeeDetailPage() {
       classification_level: draft.classification_level?.toString().trim() || null,
       wage_components: wage,
     };
-    const { error: e } = await supabase.from('employees').update(payload).eq('id', employee.id);
+    // .select('id') returns the changed rows: a write refused by row-level security changes
+    // 0 rows without an error.
+    const problem = writeProblem(
+      'save this employee',
+      await supabase.from('employees').update(payload).eq('id', employee.id).select('id'),
+    );
     setSaving(false);
-    if (e) {
-      setError(formatActionError('save this employee', e.message));
+    if (problem) {
+      setError(problem);
       return;
     }
     setEditing(false);
@@ -257,9 +281,12 @@ export function EmployeeDetailPage() {
     if (patch.hours != null) {
       newPatch.total_cost_cents = Math.round(patch.hours * ts.loaded_hourly_rate_cents);
     }
-    const { error: e } = await supabase.from('timesheet_entries').update(newPatch).eq('id', tid);
-    if (e) {
-      setError(formatActionError('update this timesheet entry', e.message));
+    const problem = writeProblem(
+      'update this timesheet entry',
+      await supabase.from('timesheet_entries').update(newPatch).eq('id', tid).select('id'),
+    );
+    if (problem) {
+      setError(problem);
       return;
     }
     void refresh();
@@ -267,23 +294,28 @@ export function EmployeeDetailPage() {
 
   const deleteTimesheet = async (tid: string) => {
     if (!confirm('Delete this timesheet entry?')) return;
-    const { error: e } = await supabase
-      .from('timesheet_entries')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', tid);
-    if (e) {
-      setError(formatActionError('delete this timesheet entry', e.message));
+    const problem = writeProblem(
+      'delete this timesheet entry',
+      await supabase
+        .from('timesheet_entries')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', tid)
+        .select('id'),
+    );
+    if (problem) {
+      setError(problem);
       return;
     }
     void refresh();
   };
 
   const kpis = useMemo(() => {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-    const quarterMonth = Math.floor(now.getMonth() / 3) * 3;
-    const quarterStart = new Date(now.getFullYear(), quarterMonth, 1).toISOString().slice(0, 10);
-    const yearStart = new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
+    // Period starts as org-local dates. (Local midnight through toISOString() gave
+    // the previous day's date in Australia, so the 1st was always excluded.)
+    const today = todayLocal(orgTimeZone(currentOrg));
+    const monthStart = startOfMonth(today);
+    const quarterStart = startOfCalendarQuarter(today);
+    const yearStart = startOfCalendarYear(today);
     const sum = (since: string) =>
       allYearTs.filter((t) => t.work_date >= since).reduce((a, t) => a + Number(t.hours), 0);
     return {
@@ -291,12 +323,10 @@ export function EmployeeDetailPage() {
       quarter: sum(quarterStart),
       year: sum(yearStart),
     };
-  }, [allYearTs]);
+  }, [allYearTs, currentOrg]);
 
   const jobCostBreakdown = useMemo(() => {
-    const ninetyAgo = new Date();
-    ninetyAgo.setDate(ninetyAgo.getDate() - 90);
-    const cutoff = ninetyAgo.toISOString().slice(0, 10);
+    const cutoff = addDays(todayLocal(orgTimeZone(currentOrg)), -90);
     const map = new Map<string, { total_cost_cents: number; hours: number }>();
     for (const t of allYearTs) {
       if (t.work_date < cutoff) continue;
@@ -317,7 +347,7 @@ export function EmployeeDetailPage() {
         };
       })
       .sort((a, b) => b.total_cost_cents - a.total_cost_cents);
-  }, [allYearTs, jobs]);
+  }, [allYearTs, jobs, currentOrg]);
 
   if (!currentOrg) return null;
   if (loading) return <DetailPageSkeleton tableCols={6} />;
@@ -365,10 +395,13 @@ export function EmployeeDetailPage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <User size={24} style={{ color: 'var(--accent-primary)' }} />
-            {employee.full_name}
-          </h1>
+          <PageHeader
+            title={
+              <>
+                <User size={24} style={{ color: 'var(--text-link)' }} /> {employee.full_name}
+              </>
+            }
+          />
           {employee.role && (
             <span className="badge badge-neutral" style={{ fontSize: '0.825rem' }}>
               {employee.role}
@@ -380,13 +413,17 @@ export function EmployeeDetailPage() {
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button onClick={() => setShowLogTime(true)} className="btn btn-primary">
+          <button
+            onClick={() => setShowLogTime(true)}
+            disabled={!canLogTime}
+            className="btn btn-primary"
+          >
             <Plus size={16} />
             <span>Log time</span>
           </button>
 
           {!editing && (
-            <button onClick={startEdit} className="btn btn-secondary">
+            <button onClick={startEdit} disabled={!canEditPay} className="btn btn-secondary">
               <Edit3 size={14} />
               <span>Edit Info</span>
             </button>
@@ -415,6 +452,28 @@ export function EmployeeDetailPage() {
         </div>
       </div>
 
+      {!canEditPay && (
+        <ReadOnlyNotice area="pay">
+          {canLogTime
+            ? 'You can view this page and log time. Ask an owner or admin for the admin role to change employee details or leave balances.'
+            : undefined}
+        </ReadOnlyNotice>
+      )}
+      {error && !editing && (
+        <div
+          className="badge badge-danger"
+          role="alert"
+          style={{
+            display: 'block',
+            padding: '0.625rem',
+            marginBottom: '1rem',
+            textTransform: 'none',
+          }}
+        >
+          {error}
+        </div>
+      )}
+
       {/* KPI Cards */}
       <div
         style={{
@@ -424,13 +483,13 @@ export function EmployeeDetailPage() {
           marginBottom: '1.5rem',
         }}
       >
-        <KpiCard label="Hours (Month)" value={kpis.month.toFixed(1)} type="info" icon={Clock} />
-        <KpiCard label="Hours (Quarter)" value={kpis.quarter.toFixed(1)} type="info" icon={Clock} />
-        <KpiCard label="Hours (Year)" value={kpis.year.toFixed(1)} type="info" icon={Clock} />
-        <KpiCard
+        <Stat label="Hours (Month)" value={kpis.month.toFixed(1)} tone="info" icon={Clock} />
+        <Stat label="Hours (Quarter)" value={kpis.quarter.toFixed(1)} tone="info" icon={Clock} />
+        <Stat label="Hours (Year)" value={kpis.year.toFixed(1)} tone="info" icon={Clock} />
+        <Stat
           label="Loaded Rate"
           value={loadedRate > 0 ? formatMoney(loadedRate) : '—'}
-          type="success"
+          tone="success"
           icon={DollarSign}
           sub="incl super, leave & workcover"
         />
@@ -604,7 +663,7 @@ export function EmployeeDetailPage() {
                 <input
                   type="number"
                   step="0.1"
-                  value={draft.wage_components?.super_pct ?? 11.5}
+                  value={draft.wage_components?.super_pct ?? sgPct}
                   onChange={(e) =>
                     setDraft({
                       ...draft,
@@ -615,7 +674,19 @@ export function EmployeeDetailPage() {
                     })
                   }
                   className="form-input"
+                  aria-label="Super %"
                 />
+                {(draft.wage_components?.super_pct ?? sgPct) < sgPct && (
+                  <div
+                    style={{
+                      marginTop: '0.25rem',
+                      fontSize: '0.7rem',
+                      color: 'var(--text-warning)',
+                    }}
+                  >
+                    Below the {sgPct}% super guarantee. Pay runs use at least {sgPct}%.
+                  </div>
+                )}
               </Field>
               <Field label="Workcover %">
                 <input
@@ -697,25 +768,53 @@ export function EmployeeDetailPage() {
             marginBottom: '2rem',
           }}
         >
-          <Stat label="Email" value={employee.email ?? '—'} />
-          <Stat label="Role" value={employee.role ?? '—'} />
-          <Stat label="Status" value={employee.is_active ? 'Active' : 'Inactive'} />
+          <Stat variant="inline" label="Email" value={employee.email ?? '—'} />
+          <Stat variant="inline" label="Role" value={employee.role ?? '—'} />
           <Stat
+            variant="inline"
+            label="Status"
+            value={employee.is_active ? 'Active' : 'Inactive'}
+          />
+          <Stat
+            variant="inline"
             label="Base $/hr"
             value={w.base_hourly_rate != null ? `$${Number(w.base_hourly_rate).toFixed(2)}` : '—'}
           />
-          <Stat label="Super %" value={w.super_pct != null ? `${w.super_pct}%` : '—'} />
-          <Stat label="Workcover %" value={w.workcover_pct != null ? `${w.workcover_pct}%` : '—'} />
           <Stat
+            variant="inline"
+            label="Super %"
+            value={w.super_pct != null ? `${w.super_pct}%` : '—'}
+          />
+          <Stat
+            variant="inline"
+            label="Workcover %"
+            value={w.workcover_pct != null ? `${w.workcover_pct}%` : '—'}
+          />
+          <Stat
+            variant="inline"
             label="Leave loading %"
             value={w.leave_loading_pct != null ? `${w.leave_loading_pct}%` : '—'}
           />
-          <Stat label="Loaded $/hr" value={loadedRate > 0 ? formatMoney(loadedRate) : '—'} />
-          <Stat label="Modern award" value={employee.modern_award ?? '—'} />
-          <Stat label="Classification" value={employee.classification_level ?? '—'} />
-          <Stat label="Created" value={new Date(employee.created_at).toLocaleDateString()} />
+          <Stat
+            variant="inline"
+            label="Loaded $/hr"
+            value={loadedRate > 0 ? formatMoney(loadedRate) : '—'}
+          />
+          <Stat variant="inline" label="Modern award" value={employee.modern_award ?? '—'} />
+          <Stat
+            variant="inline"
+            label="Classification"
+            value={employee.classification_level ?? '—'}
+          />
+          <Stat
+            variant="inline"
+            label="Created"
+            value={new Date(employee.created_at).toLocaleDateString()}
+          />
         </div>
       )}
+
+      <TfnPanel organizationId={employee.organization_id} employeeId={employee.id} />
 
       {/* Log Time Popup Form */}
       {showLogTime && (
@@ -728,6 +827,7 @@ export function EmployeeDetailPage() {
           }}
         >
           <button
+            aria-label="Close"
             onClick={() => setShowLogTime(false)}
             style={{
               position: 'absolute',
@@ -769,20 +869,7 @@ export function EmployeeDetailPage() {
         Recent timesheets — last 60 days
       </h2>
       {recentTs.length === 0 ? (
-        <div
-          style={{
-            padding: '2rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '0.875rem',
-            marginBottom: '2rem',
-          }}
-        >
-          No timesheet entries in the last 60 days.
-        </div>
+        <EmptyState>No timesheet entries in the last 60 days.</EmptyState>
       ) : (
         <div className="table-premium-container" style={{ marginBottom: '2rem' }}>
           <table className="table-premium">
@@ -802,6 +889,7 @@ export function EmployeeDetailPage() {
                 <TimesheetRow
                   key={t.id}
                   ts={t}
+                  readOnly={!canLogTime}
                   onUpdate={(patch) => void updateTimesheet(t.id, patch)}
                   onDelete={() => void deleteTimesheet(t.id)}
                 />
@@ -826,20 +914,7 @@ export function EmployeeDetailPage() {
         Cost per job — last 90 days
       </h2>
       {jobCostBreakdown.length === 0 ? (
-        <div
-          style={{
-            padding: '2rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '0.875rem',
-            marginBottom: '2rem',
-          }}
-        >
-          No job-attached time logged in the last 90 days.
-        </div>
+        <EmptyState>No job-attached time logged in the last 90 days.</EmptyState>
       ) : (
         <div className="table-premium-container" style={{ marginBottom: '2rem' }}>
           <table className="table-premium">
@@ -891,6 +966,7 @@ export function EmployeeDetailPage() {
           orgId={currentOrg.id}
           employeeId={employee.id}
           balances={leave}
+          readOnly={!canEditPay}
           onChange={() => void refresh()}
         />
       </div>
@@ -910,19 +986,7 @@ export function EmployeeDetailPage() {
         Recent payslips
       </h2>
       {paySlips.length === 0 ? (
-        <div
-          style={{
-            padding: '2rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '0.875rem',
-          }}
-        >
-          No payslips yet for this employee.
-        </div>
+        <EmptyState>No payslips yet for this employee.</EmptyState>
       ) : (
         <>
           {(() => {
@@ -937,22 +1001,22 @@ export function EmployeeDetailPage() {
                   marginBottom: '1rem',
                 }}
               >
-                <KpiCard
+                <Stat
                   label="YTD Gross"
                   value={formatMoney(Number(latest.ytd_gross_cents))}
-                  type="neutral"
+                  tone="neutral"
                   icon={DollarSign}
                 />
-                <KpiCard
+                <Stat
                   label="YTD PAYG"
                   value={formatMoney(Number(latest.ytd_tax_cents))}
-                  type="danger"
+                  tone="danger"
                   icon={DollarSign}
                 />
-                <KpiCard
+                <Stat
                   label="YTD Super"
                   value={formatMoney(Number(latest.ytd_super_cents))}
-                  type="info"
+                  tone="info"
                   icon={Wallet}
                 />
               </div>
@@ -1016,107 +1080,158 @@ export function EmployeeDetailPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="form-group" style={{ marginBottom: 0 }}>
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>
-        {label}
-      </span>
-      <div style={{ marginTop: '0.25rem' }}>{children}</div>
-    </div>
-  );
+/** Masked TFN status from employee_tfn_status(): the last four digits only, never the TFN itself. */
+interface TfnStatus {
+  has_tfn: boolean;
+  tfn_masked: string | null;
+  declaration_status: string;
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.25rem',
-          color: 'var(--text-title)',
-          fontSize: '0.9rem',
-          fontWeight: 600,
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
+/** The message from a non-2xx edge function response, else the client's own error message. */
+async function functionErrorMessage(err: unknown): Promise<string> {
+  const e = err as { message?: string; context?: { json?: () => Promise<unknown> } };
+  try {
+    const body = (await e.context?.json?.()) as { error?: unknown } | undefined;
+    if (typeof body?.error === 'string' && body.error.trim()) return body.error;
+  } catch {
+    // Not JSON, or already read: fall back to the client message.
+  }
+  return e.message ?? 'Request failed';
 }
 
-function KpiCard({
-  label,
-  value,
-  type,
-  icon: Icon,
-  sub,
-}: {
-  label: string;
-  value: string;
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
-  icon: LucideIcon;
-  sub?: string;
-}) {
+/**
+ * Records the employee's TFN for STP through the employee-tfn-save edge function, which encrypts it into
+ * employee_tfn_vault (accepted admins and owners only). The full TFN is never read back: the panel shows the masked
+ * form from employee_tfn_status() and clears the field as soon as the TFN is saved.
+ */
+function TfnPanel({ organizationId, employeeId }: { organizationId: string; employeeId: string }) {
+  // null while loading; false when the viewer is not an admin or owner (the status RPC returns no row).
+  const [canManage, setCanManage] = useState<boolean | null>(null);
+  const [status, setStatus] = useState<TfnStatus | null>(null);
+  const [tfn, setTfn] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [savedMasked, setSavedMasked] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const { data, error } = await supabase.rpc('employee_tfn_status', {
+      p_org: organizationId,
+      p_employee_id: employeeId,
+    });
+    const row = !error && Array.isArray(data) ? ((data[0] as TfnStatus | undefined) ?? null) : null;
+    setCanManage(row != null);
+    setStatus(row);
+  }, [organizationId, employeeId]);
+
+  useEffect(() => void load(), [load]);
+
+  const digits = tfn.replace(/\D/g, '');
+
+  const save = async () => {
+    setErr(null);
+    setSavedMasked(null);
+    if (!/^\d{8,9}$/.test(digits)) {
+      setErr('A TFN has 8 or 9 digits.');
+      return;
+    }
+    setSaving(true);
+    const { data, error } = await supabase.functions.invoke('employee-tfn-save', {
+      body: { organization_id: organizationId, employee_id: employeeId, tfn: digits },
+    });
+    setSaving(false);
+    const result = data as { ok?: boolean; tfn_masked?: string; error?: string } | null;
+    if (error || !result?.ok) {
+      const message = error
+        ? await functionErrorMessage(error)
+        : (result?.error ?? 'unknown error');
+      setErr(formatActionError('save the TFN', message));
+      return;
+    }
+    // The full TFN leaves the page as soon as it is saved; only the masked form is shown from here on.
+    setTfn('');
+    setSavedMasked(result.tfn_masked ?? null);
+    void load();
+  };
+
   return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative',
-      }}
-    >
-      <div
+    <div className="card" style={{ marginBottom: '2rem' }} aria-label="Tax file number">
+      <h4
         style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
+          margin: '0 0 0.5rem',
+          fontSize: '0.95rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.35rem',
         }}
       >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.5rem',
-          color: 'var(--text-title)',
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        {value}
-      </div>
-      {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-          {sub}
-        </div>
+        <Lock size={14} style={{ color: 'var(--text-muted)' }} />
+        Tax file number
+      </h4>
+      {canManage === null ? (
+        <p style={{ margin: 0, fontSize: '0.825rem', color: 'var(--text-muted)' }}>Checking TFN…</p>
+      ) : !canManage ? (
+        <p style={{ margin: 0, fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+          Only an admin or owner can view or record this employee&apos;s TFN.
+        </p>
       ) : (
-        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
+        <>
+          <p style={{ margin: '0 0 0.75rem', fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+            {status?.has_tfn && status.tfn_masked ? (
+              <>
+                On file: <strong style={{ color: 'var(--text-title)' }}>{status.tfn_masked}</strong>
+                . It is stored encrypted and only the last four digits are shown.
+              </>
+            ) : (
+              <>
+                No TFN recorded. The STP file can&apos;t be prepared for this employee until one is.
+              </>
+            )}
+          </p>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <input
+              type="password"
+              inputMode="numeric"
+              autoComplete="off"
+              aria-label="Tax file number"
+              placeholder={status?.has_tfn ? 'Enter a new TFN to replace it' : 'Enter TFN'}
+              value={tfn}
+              onChange={(e) => setTfn(e.target.value)}
+              className="form-input"
+              style={{ maxWidth: '16rem' }}
+              disabled={saving}
+            />
+            <button
+              onClick={() => void save()}
+              disabled={saving || digits.length === 0}
+              className="btn btn-secondary"
+            >
+              {saving ? 'Saving TFN…' : status?.has_tfn ? 'Replace TFN' : 'Save TFN'}
+            </button>
+          </div>
+          {savedMasked && (
+            <p
+              role="status"
+              style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: 'var(--text-success)' }}
+            >
+              TFN saved. On file: {savedMasked}.
+            </p>
+          )}
+          {err && (
+            <div
+              role="alert"
+              className="badge badge-danger"
+              style={{
+                display: 'block',
+                marginTop: '0.5rem',
+                padding: '0.5rem',
+                textTransform: 'none',
+              }}
+            >
+              {err}
+            </div>
+          )}
+        </>
       )}
-      <div
-        style={{
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
-          opacity: 0.7,
-        }}
-      >
-        <Icon size={18} />
-      </div>
     </div>
   );
 }
@@ -1125,11 +1240,13 @@ function LeaveBalancesPanel({
   orgId,
   employeeId,
   balances,
+  readOnly,
   onChange,
 }: {
   orgId: string;
   employeeId: string;
   balances: LeaveBalance[];
+  readOnly: boolean;
   onChange: () => void;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
@@ -1145,11 +1262,15 @@ function LeaveBalancesPanel({
     setErr(null);
     const existing = balances.find((b) => b.leave_type === leave_type);
     if (existing) {
-      const { error: e } = await supabase
-        .from('leave_balances')
-        .update({ [field]: value })
-        .eq('id', existing.id);
-      if (e) setErr(formatActionError('update the leave balance', e.message));
+      const problem = writeProblem(
+        'update the leave balance',
+        await supabase
+          .from('leave_balances')
+          .update({ [field]: value })
+          .eq('id', existing.id)
+          .select('id'),
+      );
+      if (problem) setErr(problem);
     } else {
       const { error: e } = await supabase.from('leave_balances').insert({
         organization_id: orgId,
@@ -1183,7 +1304,7 @@ function LeaveBalancesPanel({
           >
             <div
               style={{
-                fontSize: '0.675rem',
+                fontSize: '0.6875rem',
                 color: 'var(--text-muted)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
@@ -1203,34 +1324,28 @@ function LeaveBalancesPanel({
                 marginTop: '0.25rem',
               }}
             >
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <span className="form-label" style={{ fontSize: '0.65rem' }}>
-                  Accrued
-                </span>
+              <Field label="Accrued">
                 <input
                   type="number"
                   step="0.5"
                   defaultValue={Number(b?.hours_accrued ?? 0)}
                   onBlur={(e) => void upsert(t, 'hours_accrued', parseFloat(e.target.value) || 0)}
-                  disabled={busy === `${t}:hours_accrued`}
+                  disabled={readOnly || busy === `${t}:hours_accrued`}
                   className="form-input"
                   style={{ padding: '0.35rem 0.5rem', fontSize: '0.825rem' }}
                 />
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <span className="form-label" style={{ fontSize: '0.65rem' }}>
-                  Taken
-                </span>
+              </Field>
+              <Field label="Taken">
                 <input
                   type="number"
                   step="0.5"
                   defaultValue={Number(b?.hours_taken ?? 0)}
                   onBlur={(e) => void upsert(t, 'hours_taken', parseFloat(e.target.value) || 0)}
-                  disabled={busy === `${t}:hours_taken`}
+                  disabled={readOnly || busy === `${t}:hours_taken`}
                   className="form-input"
                   style={{ padding: '0.35rem 0.5rem', fontSize: '0.825rem' }}
                 />
-              </div>
+              </Field>
             </div>
           </div>
         );
@@ -1249,10 +1364,12 @@ function LeaveBalancesPanel({
 
 function TimesheetRow({
   ts,
+  readOnly,
   onUpdate,
   onDelete,
 }: {
   ts: Timesheet;
+  readOnly: boolean;
   onUpdate: (patch: { hours?: number; notes?: string | null }) => void;
   onDelete: () => void;
 }) {
@@ -1344,6 +1461,7 @@ function TimesheetRow({
           <div style={{ display: 'inline-flex', gap: '0.25rem' }}>
             <button
               onClick={() => setEditing(true)}
+              disabled={readOnly}
               aria-label="Edit timesheet"
               className="btn btn-secondary"
               style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
@@ -1352,6 +1470,7 @@ function TimesheetRow({
             </button>
             <button
               onClick={onDelete}
+              disabled={readOnly}
               aria-label="Delete timesheet"
               className="btn btn-secondary"
               style={{
@@ -1384,7 +1503,7 @@ function LogTimeForm({
 }) {
   const { currentOrg } = useOrg();
   const [jobId, setJobId] = useState('');
-  const [workDate, setWorkDate] = useState(new Date().toISOString().slice(0, 10));
+  const [workDate, setWorkDate] = useState(() => todayLocal(orgTimeZone(currentOrg)));
   const [hours, setHours] = useState(8);
   const [notes, setNotes] = useState('');
   const [entryType, setEntryType] = useState<
@@ -1421,7 +1540,7 @@ function LogTimeForm({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.5rem' }}>
       <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <Clock size={18} style={{ color: 'var(--accent-primary)' }} />
+        <Clock size={18} style={{ color: 'var(--text-link)' }} />
         Log time — {employee.full_name}
       </h3>
 

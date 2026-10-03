@@ -10,7 +10,7 @@
  * end of every intake pipeline:
  *   - bills-extract        (after OCR completes)
  *   - bank-csv-import      (after txns inserted)
- *   - bank-sync            (after Basiq pull, batch entry point)
+ *   - bank-sync            (after the Redbark pull, batch entry point)
  *
  * Triage UI seeds the rules; this function applies them. See migration 0036
  * for the active-rules-by-priority index that backs the lookup.
@@ -72,13 +72,18 @@
  * Stops at the first applicable rule (priority order). Increments hit_count
  * and last_matched_at on the winning rule.
  *
- * Auth: service_role (called fire-and-forget by other edge fns). Defence-in-
- * depth: still verifies the target row's organization_id matches the request.
+ * Auth (auth.ts): the exact service-role key (other edge fns call this
+ * fire-and-forget), or a signed-in user with an ACCEPTED accountant-or-higher
+ * membership in `organization_id`. Anything else is refused before any
+ * service-role read or write. Defence-in-depth: still verifies the target
+ * row's organization_id matches the request.
  */
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
+import { authorizeIntakeRouting } from './auth.ts';
 
 type Target = 'bill' | 'bank_transaction';
 
@@ -172,6 +177,13 @@ Deno.serve(async (req) => {
 
     const body = (await req.json()) as RequestBody;
     if (!body.organization_id) return json({ ok: false, error: 'organization_id required' }, 400);
+
+    const access = await authorizeIntakeRouting(
+      authHeader,
+      body.organization_id,
+      supabaseOrgAccessDeps(admin, serviceKey),
+    );
+    if (!access.ok) return json({ ok: false, error: access.error }, access.status);
     if (body.target !== 'bill' && body.target !== 'bank_transaction') {
       return json({ ok: false, error: "target must be 'bill' or 'bank_transaction'" }, 400);
     }

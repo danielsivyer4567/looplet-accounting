@@ -1,0 +1,14 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "deno test --allow-env --allow-read --allow-net supabase/functions/_shared/oauthState.test.ts"
+[0m[38;5;245mrunning 8 tests from ./supabase/functions/_shared/oauthState.test.ts[0m
+a state verifies for the same provider, organisation and user within the time limit ... [0m[32mok[0m [0m[38;5;245m(8ms)[0m
+a state issued to another user, organisation or provider is refused ... [0m[32mok[0m [0m[38;5;245m(401µs)[0m
+an expired state is refused ... [0m[32mok[0m [0m[38;5;245m(154µs)[0m
+a missing, malformed, re-signed or tampered state is refused ... [0m[32mok[0m [0m[38;5;245m(295µs)[0m
+every state is unique ... [0m[32mok[0m [0m[38;5;245m(209µs)[0m
+states need a user and organisation, and signing fails closed without a secret ... [0m[32mok[0m [0m[38;5;245m(611µs)[0m
+the start functions require an accepted admin and issue a state bound to that user ... [0m[32mok[0m [0m[38;5;245m(855µs)[0m
+the callbacks require a signed-in admin and a mandatory state bound to them ... [0m[32mok[0m [0m[38;5;245m(477µs)[0m
+
+[0m[32mok[0m | 8 passed | 0 failed [0m[38;5;245m(15ms)[0m
+
+[0m[32mCheck[0m supabase/functions/_shared/oauthState.test.ts

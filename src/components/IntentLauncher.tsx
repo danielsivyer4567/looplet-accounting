@@ -48,8 +48,8 @@ const intents: Intent[] = [
   },
   {
     id: 'file-tax',
-    label: 'File tax',
-    description: 'Lodge BAS, tax returns',
+    label: 'Prepare tax',
+    description: 'Prepare BAS and returns to lodge',
     icon: FileWarning,
     to: '/lodgements',
   },
@@ -114,7 +114,7 @@ export function IntentLauncher() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: 'var(--accent-primary)',
+                  color: 'var(--text-link)',
                 }}
               >
                 <Icon size={18} />

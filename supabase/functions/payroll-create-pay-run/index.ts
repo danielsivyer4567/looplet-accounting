@@ -14,9 +14,11 @@
  * For each employee:
  *   1. Pull approved timesheet_entries in [period_start..period_end].
  *   2. Sum hours per entry_type.
- *   3. Compute gross_* from employee.wage_components.loaded_hourly_rate_cents
- *      (split: ordinary/overtime/leave).
- *   4. Call calc_payg_tax + calc_super_ote.
+ *   3. Compute gross_* from employee.wage_components.base_hourly_rate (dollars)
+ *      (split: ordinary/overtime/leave). loaded_hourly_rate_cents is the
+ *      employer's cost rate for job costing and is never paid as wages. An
+ *      employee with no base rate gets a per-employee error, not a payslip.
+ *   4. Call calc_payg_tax (table chosen by the pay date's financial year) + calc_super_ote.
  *   5. Pull YTD totals from prior pay_slips this fiscal year (1 July → 30 June).
  *   6. Insert pay_slips row.
  *
@@ -27,8 +29,9 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
-
-type EntryType = 'ordinary' | 'overtime' | 'annual_leave' | 'sick_leave' | 'public_holiday';
+import { authorizeOrgMember, supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
+import { baseHourlyRateCents, grossPay, sumHours } from './calc.ts';
+import { effectiveSuperRate, statutorySuperRatePct } from './super.ts';
 
 interface Body {
   organization_id?: string;
@@ -54,15 +57,6 @@ function fyStartFor(date: string): string {
   const year = d.getUTCFullYear();
   const fyYear = month >= 7 ? year : year - 1;
   return `${fyYear}-07-01`;
-}
-
-function statutorySuperRatePct(payDate: string): number {
-  if (payDate >= '2025-07-01') return 12;
-  if (payDate >= '2024-07-01') return 11.5;
-  if (payDate >= '2023-07-01') return 11;
-  if (payDate >= '2022-07-01') return 10.5;
-  if (payDate >= '2021-07-01') return 10;
-  return 9.5;
 }
 
 Deno.serve(async (req) => {
@@ -132,17 +126,16 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: 'frequency must be weekly|fortnightly|monthly' }, 400);
   }
 
-  // ---- Caller must be admin+ for this org -----------------------------------
-  const { data: callerMembership, error: memErr } = await userClient
-    .from('organization_memberships')
-    .select('role_enum')
-    .eq('user_id', user.id)
-    .eq('organization_id', organization_id)
-    .maybeSingle();
-  if (memErr) return json({ ok: false, error: 'Failed to verify membership' }, 500);
-  if (!callerMembership || !['admin', 'owner'].includes(callerMembership.role_enum ?? '')) {
-    return json({ ok: false, error: 'Only admin or owner can create pay runs' }, 403);
+  // The pay date sets the super guarantee rate; reject a malformed or unsupported one before anything is written.
+  try {
+    statutorySuperRatePct(pay_date);
+  } catch (e) {
+    return json({ ok: false, error: e instanceof Error ? e.message : String(e) }, 400);
   }
+
+  // ---- Caller must be an ACCEPTED admin or owner of this org -----------------
+  const access = await authorizeOrgMember(user.id, organization_id, supabaseOrgAccessDeps(admin, serviceKey), 'admin');
+  if (!access.ok) return json({ ok: false, error: 'Only an admin or owner can create pay runs' }, access.status);
 
   // ---- Fetch employees ------------------------------------------------------
   const { data: employees, error: empErr } = await admin
@@ -180,13 +173,6 @@ Deno.serve(async (req) => {
     .eq('id', organization_id)
     .maybeSingle();
   const orgSettings = (orgRow?.settings ?? {}) as { super_rate_pct?: number | string };
-  const orgSuperPct =
-    orgSettings.super_rate_pct == null || orgSettings.super_rate_pct === ''
-      ? null
-      : Number(orgSettings.super_rate_pct);
-  const defaultSuperPct = Number.isFinite(orgSuperPct)
-    ? Number(orgSuperPct)
-    : statutorySuperRatePct(pay_date);
 
   // ---- For each employee, build a payslip -----------------------------------
   let totalGross = 0,
@@ -199,10 +185,12 @@ Deno.serve(async (req) => {
     try {
       const wage = (emp.wage_components ?? {}) as {
         loaded_hourly_rate_cents?: number;
-        base_hourly_rate?: number;
-        super_pct?: number;
+        base_hourly_rate?: number | string | null;
+        super_pct?: number | string | null;
       };
-      const loadedRate = wage.loaded_hourly_rate_cents ?? 0;
+      // Wages come from the base rate. Throws (a per-employee error below) when it is missing,
+      // so a payslip is never priced at the loaded cost rate or at $0.
+      const baseRate = baseHourlyRateCents(wage);
 
       // Aggregate timesheet hours by entry_type for this employee in the period.
       const { data: ts, error: tsErr } = await admin
@@ -216,39 +204,41 @@ Deno.serve(async (req) => {
         .not('approved_at', 'is', null); // only approved time enters payroll
       if (tsErr) throw new Error(`timesheet fetch: ${tsErr.message}`);
 
-      let hOrd = 0,
-        hOt = 0,
-        hLeave = 0;
-      for (const row of ts ?? []) {
-        const h = Number(row.hours);
-        const et = (row.entry_type ?? 'ordinary') as EntryType;
-        if (et === 'ordinary' || et === 'public_holiday') hOrd += h;
-        else if (et === 'overtime') hOt += h;
-        else if (et === 'annual_leave' || et === 'sick_leave') hLeave += h;
-      }
+      const hours = sumHours(ts ?? []);
+      const hOrd = hours.ordinary;
+      const hOt = hours.overtime;
+      const hLeave = hours.leave;
 
-      // Gross splits (overtime gets 1.5x as a default loading; tweakable).
-      const grossOrd = Math.round(hOrd * loadedRate);
-      const grossOt = Math.round(hOt * loadedRate * 1.5);
-      const grossLeave = Math.round(hLeave * loadedRate);
-      const grossTotal = grossOrd + grossOt + grossLeave;
-      const ordinaryTimeEarnings = grossOrd + grossLeave;
+      // Gross splits on the base rate (overtime gets 1.5x as a default loading).
+      const gross = grossPay(hours, baseRate);
+      const grossOrd = gross.ordinaryCents;
+      const grossOt = gross.overtimeCents;
+      const grossLeave = gross.leaveCents;
+      const grossTotal = gross.totalCents;
+      const ordinaryTimeEarnings = gross.ordinaryTimeEarningsCents;
 
-      // PAYG tax via DB function.
+      // PAYG tax via DB function, from the withholding table of the pay date's financial year. It raises
+      // (a per-employee error here) when no table covers that year, rather than withholding $0.
       const { data: taxRes, error: taxErr } = await admin.rpc('calc_payg_tax', {
         p_gross_cents: grossTotal,
         p_frequency: frequency,
         p_claims_threshold: claims_threshold,
+        p_pay_date: pay_date,
       });
       if (taxErr) throw new Error(`calc_payg_tax: ${taxErr.message}`);
-      const paygTax = Number(taxRes ?? 0);
+      if (taxRes == null) throw new Error('calc_payg_tax returned no amount');
+      const paygTax = Number(taxRes);
 
-      // Super guarantee. Use OTE (ordinary + leave), excluding overtime.
-      const empSuperPct = wage.super_pct ?? null;
-      const effectiveSuperPct = empSuperPct ?? defaultSuperPct;
+      // Super guarantee. Use OTE (ordinary + leave), excluding overtime. The employee's rate, else the
+      // organisation default, but never below the statutory SG rate for the pay date.
+      const superRate = effectiveSuperRate({
+        payDate: pay_date,
+        employeePct: wage.super_pct,
+        organisationPct: orgSettings.super_rate_pct,
+      });
       const { data: supRes, error: supErr } = await admin.rpc('calc_super_ote', {
         p_ote_cents: ordinaryTimeEarnings,
-        p_rate_pct: effectiveSuperPct,
+        p_rate_pct: superRate.pct,
         p_org_id: organization_id,
       });
       if (supErr) throw new Error(`calc_super_ote: ${supErr.message}`);
@@ -290,7 +280,7 @@ Deno.serve(async (req) => {
           gross_total_cents: grossTotal,
           payg_tax_cents: paygTax,
           super_guarantee_cents: superGuarantee,
-          super_rate_pct: effectiveSuperPct,
+          super_rate_pct: superRate.pct,
           net_pay_cents: netPay,
           ytd_gross_cents: ytdGross,
           ytd_tax_cents: ytdTax,
@@ -298,9 +288,14 @@ Deno.serve(async (req) => {
           metadata: {
             frequency,
             claims_threshold,
-            loaded_hourly_rate_cents: loadedRate,
+            base_hourly_rate_cents: baseRate,
+            wage_rate_basis: 'base_hourly_rate',
             ordinary_time_earnings_cents: ordinaryTimeEarnings,
             super_basis: 'ordinary_time_earnings',
+            statutory_super_rate_pct: superRate.statutoryPct,
+            configured_super_rate_pct: superRate.configuredPct,
+            super_rate_source: superRate.source,
+            super_rate_raised_to_statutory: superRate.raisedToStatutory,
             overtime_excluded_from_super_cents: grossOt,
           },
         })

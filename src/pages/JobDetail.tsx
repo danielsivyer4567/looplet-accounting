@@ -2,6 +2,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { useOrgRole } from '@/hooks/useOrgRole';
+import { writeProblem } from '@/lib/roles';
+import { ReadOnlyNotice } from '@/components/ReadOnlyNotice';
 import { formatMoney } from '@/lib/money';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { DetailPageSkeleton } from '@/components/Skeleton';
@@ -21,8 +24,12 @@ import {
   Unlink,
   Percent,
   TrendingUp,
-  type LucideIcon,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Field } from '@/components/ui/Field';
+import { Stat } from '@/components/ui/Stat';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 interface JobRow {
   id: string;
@@ -87,6 +94,8 @@ const JOB_STATUSES = ['quoted', 'active', 'on_hold', 'completed', 'cancelled', '
 export function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { currentOrg } = useOrg();
+  const { canWrite } = useOrgRole();
+  const readOnly = !canWrite('time');
   const navigate = useNavigate();
   const [job, setJob] = useState<JobRow | null>(null);
   const [pnl, setPnl] = useState<PnlRow | null>(null);
@@ -177,10 +186,15 @@ export function JobDetailPage() {
       start_date: draft.start_date || null,
       end_date: draft.end_date || null,
     };
-    const { error: saveErr } = await supabase.from('jobs').update(payload).eq('id', job.id);
+    // .select('id') returns the changed rows: a write refused by row-level security changes
+    // 0 rows without an error.
+    const problem = writeProblem(
+      'save this job',
+      await supabase.from('jobs').update(payload).eq('id', job.id).select('id'),
+    );
     setSaving(false);
-    if (saveErr) {
-      setError(saveErr.message);
+    if (problem) {
+      setError(problem);
       return;
     }
     setEditing(false);
@@ -189,7 +203,18 @@ export function JobDetailPage() {
 
   const detachBill = async (billId: string) => {
     if (!confirm('Detach this bill from the job?')) return;
-    await supabase.from('bills').update({ job_id: null, status: 'verified' }).eq('id', billId);
+    const problem = writeProblem(
+      'detach this bill',
+      await supabase
+        .from('bills')
+        .update({ job_id: null, status: 'verified' })
+        .eq('id', billId)
+        .select('id'),
+    );
+    if (problem) {
+      setError(problem);
+      return;
+    }
     void refresh();
   };
 
@@ -248,20 +273,18 @@ export function JobDetailPage() {
         }}
       >
         <div>
-          <h1
-            style={{
-              margin: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              flexWrap: 'wrap',
-            }}
-          >
-            <code style={{ color: 'var(--text-muted)', fontSize: '1.25rem' }}>
-              {job.job_number}
-            </code>
-            <span>{job.name}</span>
-          </h1>
+          <PageHeader
+            title={
+              <>
+                <code style={{ color: 'var(--text-muted)', fontSize: '1.25rem' }}>
+                  {' '}
+                  {job.job_number}{' '}
+                </code>{' '}
+                <span>{job.name}</span>
+              </>
+            }
+            style={{ flexWrap: 'wrap' }}
+          />
           <div
             style={{
               marginTop: '0.25rem',
@@ -273,7 +296,7 @@ export function JobDetailPage() {
               flexWrap: 'wrap',
             }}
           >
-            <Pill status={job.status} />
+            <StatusBadge status={job.status} />
             <span>•</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
               <Calendar size={12} />
@@ -305,7 +328,7 @@ export function JobDetailPage() {
             </button>
           )}
           {!editing && (
-            <button onClick={startEdit} className="btn btn-secondary">
+            <button onClick={startEdit} disabled={readOnly} className="btn btn-secondary">
               <Edit3 size={14} />
               <span>Edit</span>
             </button>
@@ -333,6 +356,22 @@ export function JobDetailPage() {
           />
         </div>
       </div>
+
+      {readOnly && <ReadOnlyNotice area="time" />}
+      {error && !editing && (
+        <div
+          className="badge badge-danger"
+          role="alert"
+          style={{
+            display: 'block',
+            padding: '0.625rem',
+            marginBottom: '1rem',
+            textTransform: 'none',
+          }}
+        >
+          {error}
+        </div>
+      )}
 
       {/* Warning banner */}
       {(overBudget || lowMargin) && (
@@ -497,25 +536,25 @@ export function JobDetailPage() {
           marginBottom: '2rem',
         }}
       >
-        <Kpi label="Revenue inc GST" value={formatMoney(revenue)} type="success" icon={Wallet} />
-        <Kpi
+        <Stat label="Revenue inc GST" value={formatMoney(revenue)} tone="success" icon={Wallet} />
+        <Stat
           label="Total Cost"
           value={formatMoney(totalCost)}
-          type="danger"
+          tone="danger"
           icon={DollarSign}
           sub={`bills ${formatMoney(pnl?.cost_bills_cents ?? 0)}`}
         />
-        <Kpi
+        <Stat
           label="Gross Profit"
           value={formatMoney(grossProfit)}
-          type={grossProfit > 0 ? 'success' : 'danger'}
+          tone={grossProfit > 0 ? 'success' : 'danger'}
           icon={TrendingUp}
           sub={margin != null ? `${margin.toFixed(1)}% margin` : '—'}
         />
-        <Kpi
+        <Stat
           label="Budget"
           value={budget ? formatMoney(budget) : '—'}
-          type="info"
+          tone="info"
           icon={Briefcase}
           sub={budgetPct != null ? `${budgetPct.toFixed(0)}% used` : 'no budget set'}
         />
@@ -648,19 +687,7 @@ export function JobDetailPage() {
         Attached bills ({bills.length})
       </h2>
       {bills.length === 0 ? (
-        <div
-          style={{
-            padding: '2rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '0.875rem',
-          }}
-        >
-          No bills attached yet.
-        </div>
+        <EmptyState>No bills attached yet.</EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">
@@ -699,7 +726,7 @@ export function JobDetailPage() {
                   </td>
                   <td>{b.invoice_date ?? '—'}</td>
                   <td>
-                    <Pill status={b.status} />
+                    <StatusBadge status={b.status} />
                   </td>
                   <td style={{ textAlign: 'right', fontWeight: 600 }}>
                     {b.total_inc_gst_cents != null ? (
@@ -714,6 +741,7 @@ export function JobDetailPage() {
                         e.stopPropagation();
                         void detachBill(b.id);
                       }}
+                      disabled={!canWrite('books')}
                       className="btn btn-secondary"
                       style={{
                         padding: '0.25rem 0.5rem',
@@ -923,13 +951,13 @@ function MarginSparkline({
           />
 
           {/* Axis labels: first and last week */}
-          <text x={PAD.left} y={H - 4} fontSize={9} fill="var(--text-muted)" fontWeight={600}>
+          <text x={PAD.left} y={H - 4} fontSize={11} fill="var(--text-muted)" fontWeight={600}>
             {buckets[0]?.weekStart.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
           </text>
           <text
             x={W - PAD.right}
             y={H - 4}
-            fontSize={9}
+            fontSize={11}
             fill="var(--text-muted)"
             fontWeight={600}
             textAnchor="end"
@@ -976,93 +1004,6 @@ function Legend({ colour, label, dotted }: { colour: string; label: string; dott
       {label}
     </span>
   );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="form-group" style={{ marginBottom: 0 }}>
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>
-        {label}
-      </span>
-      <div style={{ marginTop: '0.25rem' }}>{children}</div>
-    </div>
-  );
-}
-
-function Kpi({
-  label,
-  value,
-  type,
-  icon: Icon,
-  sub,
-}: {
-  label: string;
-  value: string;
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
-  icon: LucideIcon;
-  sub?: string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.5rem',
-          color: 'var(--text-title)',
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        {value}
-      </div>
-      {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-          {sub}
-        </div>
-      ) : (
-        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
-      )}
-      <div
-        style={{
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
-          opacity: 0.7,
-        }}
-      >
-        <Icon size={18} />
-      </div>
-    </div>
-  );
-}
-
-function Pill({ status }: { status: string }) {
-  let badgeClass = 'badge-neutral';
-  if (status === 'active' || status === 'completed') badgeClass = 'badge-success';
-  else if (status === 'paused' || status === 'on_hold' || status === 'quoted')
-    badgeClass = 'badge-warning';
-  else if (status === 'cancelled' || status === 'archived') badgeClass = 'badge-danger';
-
-  return <span className={`badge ${badgeClass}`}>{status.replace('_', ' ')}</span>;
 }
 
 const breakdownRow: React.CSSProperties = {

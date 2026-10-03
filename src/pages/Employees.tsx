@@ -3,9 +3,15 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
+import { currentStatutorySuperRatePct } from '@/lib/superGuarantee';
+import { addDays, orgTimeZone, todayLocal } from '@/lib/localDates';
 import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { SkeletonTable } from '@/components/Skeleton';
-import { Contact, Plus, Wallet, Clock, X, Users, Calculator, type LucideIcon } from 'lucide-react';
+import { Contact, Plus, Wallet, Clock, X, Users, Calculator } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Field } from '@/components/ui/Field';
+import { Stat } from '@/components/ui/Stat';
 
 interface Employee {
   id: string;
@@ -58,9 +64,7 @@ export function EmployeesPage() {
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
     setLoading(true);
-    const since = new Date();
-    since.setDate(since.getDate() - 30);
-    const sinceStr = since.toISOString().slice(0, 10);
+    const sinceStr = addDays(todayLocal(orgTimeZone(currentOrg)), -30);
 
     const [empRes, jobsRes, tsRes] = await Promise.all([
       supabase
@@ -106,7 +110,7 @@ export function EmployeesPage() {
 
   const computeLoadedRate = (w: WageComponents): number => {
     const base = (w.base_hourly_rate ?? 0) * 100;
-    const sup = (w.super_pct ?? 11.5) / 100;
+    const sup = (w.super_pct ?? currentStatutorySuperRatePct()) / 100;
     const wc = (w.workcover_pct ?? 1.5) / 100;
     const leave = (w.leave_loading_pct ?? 8) / 100;
     return Math.round(base * (1 + sup + wc + leave));
@@ -128,10 +132,13 @@ export function EmployeesPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Contact size={24} style={{ color: 'var(--accent-primary)' }} />
-          Employees
-        </h1>
+        <PageHeader
+          title={
+            <>
+              <Contact size={24} style={{ color: 'var(--text-link)' }} /> Employees
+            </>
+          }
+        />
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
             onClick={() => setShowLogTime(true)}
@@ -157,22 +164,22 @@ export function EmployeesPage() {
           marginBottom: '2rem',
         }}
       >
-        <Kpi
+        <Stat
           label="Active employees"
           value={String(employees.filter((e) => e.is_active).length)}
-          type="info"
+          tone="info"
           icon={Users}
         />
-        <Kpi
+        <Stat
           label="Hours logged (30d)"
           value={hoursLast30.toFixed(1)}
-          type="neutral"
+          tone="neutral"
           icon={Clock}
         />
-        <Kpi
+        <Stat
           label="Loaded wage cost (30d)"
           value={formatMoney(totalLast30)}
-          type="danger"
+          tone="danger"
           icon={Wallet}
           sub="Loaded — incl. super/leave/workcover"
         />
@@ -219,20 +226,9 @@ export function EmployeesPage() {
           {loadError}
         </div>
       ) : employees.length === 0 ? (
-        <div
-          style={{
-            padding: '2.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-            fontSize: '0.9rem',
-            marginBottom: '2rem',
-          }}
-        >
+        <EmptyState>
           No employees added yet. Add staff to start tracking timesheets and job costs.
-        </div>
+        </EmptyState>
       ) : (
         <>
           <div
@@ -312,7 +308,7 @@ export function EmployeesPage() {
                         }}
                         style={{
                           fontWeight: 700,
-                          color: 'var(--accent-primary)',
+                          color: 'var(--text-link)',
                           textDecoration: 'none',
                         }}
                       >
@@ -357,20 +353,7 @@ export function EmployeesPage() {
         Recent timesheets (last 30 days)
       </h2>
       {timesheets.length === 0 ? (
-        <div
-          style={{
-            padding: '2.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-            fontSize: '0.9rem',
-            marginBottom: '2rem',
-          }}
-        >
-          No timesheet entries recorded in the last 30 days.
-        </div>
+        <EmptyState>No timesheet entries recorded in the last 30 days.</EmptyState>
       ) : (
         <div className="table-premium-container" style={{ marginBottom: '2.5rem' }}>
           <table className="table-premium">
@@ -413,7 +396,7 @@ export function EmployeesPage() {
                     style={{
                       textAlign: 'right',
                       fontWeight: 600,
-                      color: 'var(--accent-primary)',
+                      color: 'var(--text-link)',
                       fontFamily: 'ui-monospace, monospace',
                     }}
                   >
@@ -439,7 +422,7 @@ export function EmployeesPage() {
       >
         💡 <strong>Payroll lives in its own module:</strong> pay runs, gross-to-net with super, and
         STP export are under{' '}
-        <Link to="/payroll" style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
+        <Link to="/payroll" style={{ color: 'var(--text-link)', fontWeight: 600 }}>
           Payroll
         </Link>
         .
@@ -462,7 +445,9 @@ function AddEmployeeForm({
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('Tradie');
   const [baseRate, setBaseRate] = useState(45);
-  const [superPct, setSuperPct] = useState(11.5);
+  // New employees default to the statutory super guarantee rate for today.
+  const sgPct = currentStatutorySuperRatePct();
+  const [superPct, setSuperPct] = useState(sgPct);
   const [workcoverPct, setWorkcoverPct] = useState(1.5);
   const [leavePct, setLeavePct] = useState(8);
   const [busy, setBusy] = useState(false);
@@ -509,7 +494,12 @@ function AddEmployeeForm({
         }}
       >
         <h3 style={{ margin: 0, fontSize: '1.15rem' }}>Add Employee</h3>
-        <button onClick={onClose} className="btn btn-ghost" style={{ padding: '0.2rem 0.4rem' }}>
+        <button
+          onClick={onClose}
+          className="btn btn-ghost"
+          aria-label="Close"
+          style={{ padding: '0.2rem 0.4rem' }}
+        >
           <X size={16} />
         </button>
       </div>
@@ -599,7 +589,15 @@ function AddEmployeeForm({
                 onChange={(e) => setSuperPct(parseFloat(e.target.value) || 0)}
                 className="form-input"
                 style={{ textAlign: 'right' }}
+                aria-label="Super (%)"
               />
+              {superPct < sgPct && (
+                <div
+                  style={{ marginTop: '0.25rem', fontSize: '0.7rem', color: 'var(--text-warning)' }}
+                >
+                  Below the {sgPct}% super guarantee. Pay runs use at least {sgPct}%.
+                </div>
+              )}
             </Field>
             <Field label="Workcover (%)">
               <input
@@ -629,7 +627,7 @@ function AddEmployeeForm({
             background: 'var(--bg-success-subtle)',
             padding: '0.75rem 1rem',
             borderRadius: 'var(--radius-sm)',
-            border: '1px solid rgba(16, 185, 129, 0.2)',
+            border: '1px solid var(--border-success)',
             fontSize: '0.85rem',
             color: 'var(--text-success)',
             marginTop: '0.5rem',
@@ -688,7 +686,7 @@ function LogTimeForm({
   const { currentOrg } = useOrg();
   const [employeeId, setEmployeeId] = useState(employees[0]?.id ?? '');
   const [jobId, setJobId] = useState('');
-  const [workDate, setWorkDate] = useState(new Date().toISOString().slice(0, 10));
+  const [workDate, setWorkDate] = useState(() => todayLocal(orgTimeZone(currentOrg)));
   const [hours, setHours] = useState(8);
   const [notes, setNotes] = useState('');
   const [entryType, setEntryType] = useState<
@@ -739,7 +737,12 @@ function LogTimeForm({
         }}
       >
         <h3 style={{ margin: 0, fontSize: '1.15rem' }}>Log Hours Work</h3>
-        <button onClick={onClose} className="btn btn-ghost" style={{ padding: '0.2rem 0.4rem' }}>
+        <button
+          onClick={onClose}
+          className="btn btn-ghost"
+          aria-label="Close"
+          style={{ padding: '0.2rem 0.4rem' }}
+        >
           <X size={16} />
         </button>
       </div>
@@ -836,7 +839,7 @@ function LogTimeForm({
             background: 'var(--bg-success-subtle)',
             padding: '0.75rem 1rem',
             borderRadius: 'var(--radius-sm)',
-            border: '1px solid rgba(16, 185, 129, 0.2)',
+            border: '1px solid var(--border-success)',
             fontSize: '0.85rem',
             color: 'var(--text-success)',
             marginTop: '0.5rem',
@@ -874,83 +877,6 @@ function LogTimeForm({
             Cancel
           </button>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="form-group" style={{ marginBottom: 0 }}>
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>
-        {label}
-      </span>
-      <div style={{ marginTop: '0.25rem' }}>{children}</div>
-    </div>
-  );
-}
-
-function Kpi({
-  label,
-  value,
-  type,
-  icon: Icon,
-  sub,
-}: {
-  label: string;
-  value: string;
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
-  icon: LucideIcon;
-  sub?: string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.5rem',
-          color: 'var(--text-title)',
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        {value}
-      </div>
-      {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-          {sub}
-        </div>
-      ) : (
-        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
-      )}
-      <div
-        style={{
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
-          opacity: 0.7,
-        }}
-      >
-        <Icon size={18} />
       </div>
     </div>
   );

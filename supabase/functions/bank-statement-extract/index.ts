@@ -12,7 +12,14 @@
  * frontend can retry per-page.
  */
 
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { enforceAiQuota } from '../_shared/aiRateLimit.ts';
+import { requireSignedInCaller } from '../_shared/authGuards.ts';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
+
+// One rendered statement page. Larger bodies are refused before any paid vision call.
+export const MAX_IMAGE_BASE64_CHARS = Math.ceil((8 * 1024 * 1024 * 4) / 3); // an 8 MB image
 
 const PROMPT = `You are extracting transaction rows from a single page of an Australian bank statement (CommBank, NAB, Westpac, ANZ, Bendigo, etc.).
 
@@ -53,8 +60,16 @@ Deno.serve(async (req) => {
   if (pre) return pre;
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return json({ ok: false, error: 'Unauthorized' }, 401);
+    // Vision extraction spends Groq credit, so only signed-in users (or backend callers) may use it. A header that is
+    // merely present, such as the public anon key, is not enough.
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !serviceKey) return json({ ok: false, error: 'Server config missing' }, 500);
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const caller = await requireSignedInCaller(req.headers.get('Authorization'), supabaseOrgAccessDeps(admin, serviceKey));
+    if (!caller.ok) return json({ ok: false, error: caller.error }, caller.status);
 
     const groqKey = Deno.env.get('GROQ_API_KEY');
     if (!groqKey) return json({ ok: false, error: 'GROQ_API_KEY not set' }, 500);
@@ -62,7 +77,17 @@ Deno.serve(async (req) => {
     const baseUrl = Deno.env.get('GROQ_BASE_URL') ?? 'https://api.groq.com/openai/v1';
 
     const body = (await req.json()) as RequestBody;
-    if (!body.image_base64) return json({ ok: false, error: 'image_base64 required' }, 400);
+    if (typeof body.image_base64 !== 'string' || !body.image_base64) {
+      return json({ ok: false, error: 'image_base64 required' }, 400);
+    }
+    if (body.image_base64.length > MAX_IMAGE_BASE64_CHARS) {
+      return json({ ok: false, error: 'image_base64 is too large: send one statement page of at most 8 MB' }, 413);
+    }
+    // Each page is a paid vision call: signed-in users get an hourly quota (backend callers are not limited).
+    if (caller.caller.kind === 'user') {
+      const limited = await enforceAiQuota(admin, caller.caller.userId, 'bank_statement_extract', corsHeaders);
+      if (limited) return limited;
+    }
     const mime = body.mime_type ?? 'image/png';
     const dataUrl = `data:${mime};base64,${body.image_base64}`;
 

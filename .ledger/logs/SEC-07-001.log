@@ -1,0 +1,2 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "deno test --allow-env --allow-read --allow-net supabase/functions/_shared/cors.test.ts"
+[0m[1m[31merror[0m: Import 'file:///C:/repos/looplet-accounting/supabase/functions/_shared/cors.test.ts' failed, not found.

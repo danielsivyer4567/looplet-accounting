@@ -7,6 +7,7 @@ import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { MoveToOrgButton } from '@/components/MoveToOrgButton';
 import { DetailPageSkeleton } from '@/components/Skeleton';
 import { ArchiveButton } from '@/components/ArchiveButton';
+import { orgTimeZone, todayLocal } from '@/lib/localDates';
 import {
   ArrowLeft,
   Plus,
@@ -20,6 +21,8 @@ import {
   Clock,
   AlertCircle,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Stat } from '@/components/ui/Stat';
 
 interface Debt {
   id: string;
@@ -222,7 +225,7 @@ export function DebtDetailPage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <h1 style={{ margin: 0 }}>{debt.name}</h1>
+            <PageHeader title={debt.name} />
             <span className="badge badge-info" style={{ textTransform: 'capitalize' }}>
               {debt.kind.replace(/_/g, ' ')}
             </span>
@@ -271,19 +274,19 @@ export function DebtDetailPage() {
           gap: '1rem',
         }}
       >
-        <KpiCard
+        <Stat
           label="Current Balance"
           value={formatMoney(debt.current_balance_cents)}
           accentColor="var(--accent-danger)"
           icon={<TrendingDown className="w-5 h-5" style={{ color: 'var(--accent-danger)' }} />}
         />
-        <KpiCard
+        <Stat
           label="Original Balance"
           value={formatMoney(original)}
           accentColor="var(--text-muted)"
           icon={<DollarSign className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />}
         />
-        <KpiCard
+        <Stat
           label="Total Paid Down"
           value={formatMoney(paidDown)}
           accentColor="var(--accent-success)"
@@ -299,7 +302,7 @@ export function DebtDetailPage() {
               : undefined
           }
         />
-        <KpiCard
+        <Stat
           label="Interest Rate (APR)"
           value={
             debt.interest_rate_pct != null ? `${Number(debt.interest_rate_pct).toFixed(2)}%` : '—'
@@ -307,7 +310,7 @@ export function DebtDetailPage() {
           accentColor="var(--accent-warning)"
           icon={<Clock className="w-5 h-5" style={{ color: 'var(--accent-warning)' }} />}
         />
-        <KpiCard
+        <Stat
           label="Min Monthly Payment"
           value={debt.minimum_payment_cents != null ? formatMoney(debt.minimum_payment_cents) : '—'}
           accentColor="var(--text-muted)"
@@ -316,7 +319,7 @@ export function DebtDetailPage() {
             debt.payment_due_day != null ? `Due monthly on day ${debt.payment_due_day}` : undefined
           }
         />
-        <KpiCard
+        <Stat
           label="Payoff Projection"
           value={
             projection.kind === 'ok'
@@ -648,7 +651,7 @@ export function DebtDetailPage() {
       >
         <Info
           className="w-5 h-5 text-accent-primary"
-          style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--accent-primary)' }}
+          style={{ flexShrink: 0, marginTop: '0.1rem', color: 'var(--text-link)' }}
         />
         <div>
           <strong style={{ color: 'var(--text-title)', display: 'block', marginBottom: '0.25rem' }}>
@@ -672,7 +675,7 @@ function RecordPaymentModal({
   onRecorded: () => void;
 }) {
   const { currentOrg } = useOrg();
-  const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));
+  const [paidAt, setPaidAt] = useState(() => todayLocal(orgTimeZone(currentOrg)));
   const [total, setTotal] = useState((debt.minimum_payment_cents ?? 0) / 100);
   const [principal, setPrincipal] = useState(0);
   const [interest, setInterest] = useState(0);
@@ -730,7 +733,7 @@ function RecordPaymentModal({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        backgroundColor: 'var(--bg-scrim)',
         backdropFilter: 'blur(4px)',
         display: 'flex',
         alignItems: 'center',
@@ -765,7 +768,12 @@ function RecordPaymentModal({
             />
             Record Payment
           </h3>
-          <button className="btn btn-ghost" onClick={onClose} style={{ padding: '0.25rem' }}>
+          <button
+            className="btn btn-ghost"
+            onClick={onClose}
+            aria-label="Close"
+            style={{ padding: '0.25rem' }}
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -979,71 +987,6 @@ function StatField({
         }}
       >
         {value}
-      </div>
-    </div>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  accentColor,
-  icon,
-  sub,
-}: {
-  label: string;
-  value: string;
-  accentColor: string;
-  icon: React.ReactNode;
-  sub?: string | undefined;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        borderLeft: `4px solid ${accentColor}`,
-      }}
-    >
-      <div>
-        <div
-          style={{
-            fontSize: '0.75rem',
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            fontWeight: 600,
-            marginBottom: '0.35rem',
-          }}
-        >
-          {label}
-        </div>
-        <div
-          style={{
-            fontSize: '1.65rem',
-            color: 'var(--text-title)',
-            fontWeight: 700,
-            fontFamily: 'var(--font-title)',
-          }}
-        >
-          {value}
-        </div>
-        {sub && (
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            {sub}
-          </div>
-        )}
-      </div>
-      <div
-        style={{
-          padding: '0.5rem',
-          background: 'var(--bg-hover)',
-          borderRadius: 'var(--radius-sm)',
-        }}
-      >
-        {icon}
       </div>
     </div>
   );

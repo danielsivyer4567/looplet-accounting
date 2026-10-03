@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/components/AppShell.test.tsx"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  15:22:25
+   Duration  1.47s (transform 209ms, setup 54ms, import 362ms, tests 497ms, environment 458ms)
+

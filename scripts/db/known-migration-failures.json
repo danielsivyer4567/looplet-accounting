@@ -1,0 +1,4 @@
+{
+  "about": "Migrations that do not apply to a fresh database, each in its own transaction (as the Supabase CLI runs them). run-pg-sql-tests.mjs fails if any OTHER migration fails, or if one of these starts applying (remove it from this list then). Ledger item MIG-01 repairs the history so this list is empty; run with --strict to require that.",
+  "failures": {}
+}

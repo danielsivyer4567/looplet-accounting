@@ -30,6 +30,7 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
+import { isExactServiceRoleBearer } from "../_shared/serviceRole.ts";
 import { requireEnv } from "../_shared/env.ts";
 
 const AUTO_POST_THRESHOLD = 0.9; // plan §A.1
@@ -538,9 +539,10 @@ async function mintOrgToken(orgId: string): Promise<string | null> {
 }
 
 // Posts the bill's expense journal. allowEstimatedGst is the human-review escape
-// hatch: the auto path refuses gst_estimated bills (the GST split is unreliable),
-// but a human reviewing the bill in the queue is the gate and may clear them — the
-// net+gst==total reconciliation guard in buildLines still protects journal balance.
+// hatch: the auto path refuses gst_estimated bills (the GST split is unreliable)
+// and bills whose GST is unknown, but a human reviewing the bill in the queue is
+// the gate and may clear them — the net+gst==total reconciliation guard in
+// buildLines still protects journal balance.
 async function postBillJournal(
   admin: SupabaseClient,
   supabaseUrl: string,
@@ -562,6 +564,11 @@ async function postBillJournal(
 
   if (bill.gst_estimated && !allowEstimatedGst) {
     return { posted: false, journalEntryId: null, reason: "gst_estimated; needs human review" };
+  }
+  // GST not shown on the document (GST-01): bills-extract and receipt-webhook leave gst_cents null
+  // instead of assuming 1/11. Don't auto-post it as a GST-free expense either; a person decides.
+  if (bill.gst_cents == null && !allowEstimatedGst) {
+    return { posted: false, journalEntryId: null, reason: "gst_unknown; needs human review" };
   }
 
   const accounts = await resolveAccounts(admin, bill.organization_id, [
@@ -743,7 +750,7 @@ Deno.serve(async (req: Request) => {
     //
     // A trusted backend caller (intake-routing-apply / automation-worker) is detected
     // by EXACT comparison of the bearer against SUPABASE_SERVICE_ROLE_KEY — the same
-    // hardened pattern as bank-discover/bills-extract/subscriptions-detect. Do NOT
+    // hardened pattern as bank-sync/bills-extract/subscriptions-detect. Do NOT
     // rely on "the role travels in the JWT": with new-format API keys the injected
     // service key is `sb_secret_…` (not a JWT), so a caller-scoped PostgREST load
     // with it fails with "Expected 3 parts in JWT". The org is still derived from
@@ -752,8 +759,7 @@ Deno.serve(async (req: Request) => {
     // isn't in config.toml, so verify_jwt defaults to true — but that only proves
     // the caller holds a valid key/JWT, NOT org membership, so this scoped load is
     // the actual tenant gate for user callers.)
-    const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
-    const isServiceCaller = bearer.length > 0 && bearer === serviceKey;
+    const isServiceCaller = serviceKey.length > 0 && isExactServiceRoleBearer(req.headers.get("Authorization"), serviceKey);
     const billLoader = isServiceCaller
       ? admin
       : createClient(supabaseUrl, anonKey, {

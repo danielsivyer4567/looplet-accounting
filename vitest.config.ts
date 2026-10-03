@@ -2,6 +2,14 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
+// In GitHub Actions, also list every test file that skipped tests (mostly live suites gated on
+// Supabase secrets) in the log, as a warning and in the job summary, so a gated suite never passes
+// silently. Locally the default reporter is unchanged.
+const ciReporters =
+  process.env['GITHUB_ACTIONS'] === 'true'
+    ? { reporters: ['default', 'github-actions', './tests/support/skippedTestsReporter.ts'] }
+    : {};
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -10,24 +18,29 @@ export default defineConfig({
     },
   },
   test: {
-    /**
-     * Default environment is jsdom so React component tests in src/test/ work
-     * without per-file annotations.
-     *
-     * tests/ (integration) runs in Node — controlled via environmentMatchGlobs
-     * so the existing tenant-isolation.test.ts does not need modification.
-     */
-    environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
-    include: ['tests/**/*.test.ts', 'src/**/*.test.{ts,tsx}'],
     exclude: ['node_modules', 'dist'],
     testTimeout: 30000,
+    ...ciReporters,
 
-    environmentMatchGlobs: [
-      // Integration tests (tests/ directory) run in Node — they hit real
-      // Supabase and must not have jsdom globals in scope.
-      ['tests/**', 'node'],
+    /**
+     * Each project sets its own environment. (Vitest 4 ignores the old `environmentMatchGlobs`
+     * option, so tests/ used to run in jsdom as well.)
+     *
+     * - unit: React component and library tests in src/ run in jsdom without per-file annotations.
+     * - integration: tests/ runs in Node. These read the repo and hit real Supabase when configured,
+     *   and must not have jsdom globals in scope.
+     */
+    projects: [
+      {
+        extends: true,
+        test: { name: 'unit', environment: 'jsdom', include: ['src/**/*.test.{ts,tsx}'] },
+      },
+      {
+        extends: true,
+        test: { name: 'integration', environment: 'node', include: ['tests/**/*.test.ts'] },
+      },
     ],
 
     coverage: {

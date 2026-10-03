@@ -34,10 +34,10 @@ export function DetectedInsights() {
   const [decisions, setDecisions] = useState<Record<string, 'confirmed' | 'skipped'>>({});
 
   if (!currentOrg) return null;
-  if (loading) return <p style={{ color: '#888' }}>Looking at your inbox patterns…</p>;
+  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Looking at your inbox patterns…</p>;
   if (signals.length === 0) {
     return (
-      <p style={{ color: '#888', fontSize: 13 }}>
+      <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
         Run Auto Setup mining first — once entities are staged we'll surface detected
         business-profile signals here.
       </p>
@@ -77,7 +77,7 @@ export function DetectedInsights() {
   return (
     <div style={{ marginTop: 24 }}>
       <h2 style={{ fontSize: 16, marginBottom: 4 }}>Detected from your inbox</h2>
-      <p style={{ color: '#888', fontSize: 12, marginBottom: 16, maxWidth: 720 }}>
+      <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 16, maxWidth: 720 }}>
         We've read patterns in your last 6 months of email — these are educated guesses about your
         business. Confirm to auto-set-up, or skip and we'll just leave it for you to do manually.
       </p>
@@ -90,8 +90,8 @@ export function DetectedInsights() {
               key={s.signal_kind}
               style={{
                 padding: 12,
-                background: '#1a1a1a',
-                border: '1px solid #2a2a2a',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: 6,
                 opacity: decision ? 0.6 : 1,
               }}
@@ -111,9 +111,9 @@ export function DetectedInsights() {
                     <span
                       style={{
                         marginLeft: 8,
-                        fontSize: 10,
-                        color: s.confidence >= 0.9 ? '#86c7a3' : '#aaa',
-                        background: '#0a0a0a',
+                        fontSize: 11,
+                        color: s.confidence >= 0.9 ? 'var(--text-success)' : 'var(--text-muted)',
+                        background: 'var(--bg-panel)',
                         padding: '0.1rem 0.4rem',
                         borderRadius: 3,
                       }}
@@ -121,25 +121,34 @@ export function DetectedInsights() {
                       {Math.round(s.confidence * 100)}% confidence
                     </span>
                   </div>
-                  <div style={{ color: '#aaa', fontSize: 12, marginTop: 4, lineHeight: 1.4 }}>
+                  <div
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontSize: 12,
+                      marginTop: 4,
+                      lineHeight: 1.4,
+                    }}
+                  >
                     {s.evidence}
                   </div>
-                  <div style={{ color: '#fff', fontSize: 13, marginTop: 8 }}>{s.question}</div>
+                  <div style={{ color: 'var(--text-title)', fontSize: 13, marginTop: 8 }}>
+                    {s.question}
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {decision === 'confirmed' ? (
-                    <span style={{ color: '#86c7a3', fontSize: 12 }}>✓ confirmed</span>
+                    <span style={{ color: 'var(--text-success)', fontSize: 12 }}>✓ confirmed</span>
                   ) : decision === 'skipped' ? (
-                    <span style={{ color: '#888', fontSize: 12 }}>skipped</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>skipped</span>
                   ) : (
                     <>
                       <button
                         onClick={() => onConfirm(s)}
                         disabled={busy === s.signal_kind}
                         style={{
-                          background: '#1c5135',
-                          color: '#86c7a3',
-                          border: '1px solid #2da565',
+                          background: 'var(--bg-success-subtle)',
+                          color: 'var(--text-success)',
+                          border: '1px solid var(--accent-success)',
                           borderRadius: 3,
                           fontSize: 12,
                           padding: '0.3rem 0.7rem',
@@ -154,8 +163,8 @@ export function DetectedInsights() {
                         disabled={!!busy}
                         style={{
                           background: 'transparent',
-                          color: '#aaa',
-                          border: '1px solid #2a2a2a',
+                          color: 'var(--text-muted)',
+                          border: '1px solid var(--border-subtle)',
                           borderRadius: 3,
                           fontSize: 12,
                           padding: '0.3rem 0.7rem',
@@ -170,7 +179,7 @@ export function DetectedInsights() {
               </div>
               {s.signal_kind === 'active_jobs' && decision === 'confirmed' && (
                 <div style={{ marginTop: 8 }}>
-                  <Link to="/jobs" style={{ color: '#86c7a3', fontSize: 12 }}>
+                  <Link to="/jobs" style={{ color: 'var(--text-success)', fontSize: 12 }}>
                     View {s.metadata.count} jobs →
                   </Link>
                 </div>
@@ -179,7 +188,7 @@ export function DetectedInsights() {
           );
         })}
       </div>
-      {error && <p style={{ color: 'salmon', fontSize: 12, marginTop: 8 }}>{error}</p>}
+      {error && <p style={{ color: 'var(--text-danger)', fontSize: 12, marginTop: 8 }}>{error}</p>}
     </div>
   );
 }

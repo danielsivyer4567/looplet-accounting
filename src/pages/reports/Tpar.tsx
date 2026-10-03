@@ -1,14 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  AlertTriangle,
-  ChevronLeft,
-  ClipboardList,
-  Download,
-  FileText,
-  Hash,
-  Users,
-} from 'lucide-react';
+import { ChevronLeft, ClipboardList, Download, FileText, Hash, Users } from 'lucide-react';
 import {
   latestCompletedTparFyStartYear,
   tparFyLabel,
@@ -17,7 +9,12 @@ import {
   useTparReport,
 } from '@/hooks/useTparReport';
 import { downloadCsv } from '@/lib/csv';
+import { todayLocal } from '@/lib/localDates';
 import { formatMoney } from '@/lib/money';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Stat } from '@/components/ui/Stat';
+import { Alert } from '@/components/ui/Alert';
 
 function formatDate(value: string | null): string {
   if (!value) return '-';
@@ -38,7 +35,8 @@ export function TparReportPage() {
 
   const handleExport = () => {
     if (!tparReport || tparReport.suppliers.length === 0) return;
-    const today = new Date().toISOString().slice(0, 10);
+    // Australian date stamp for the file name (this page does not read the org context).
+    const today = todayLocal();
     const filename = `${tparReport.export.filename.replace(/\.csv$/i, '')}-export-${today}.csv`;
     downloadCsv(
       filename,
@@ -92,10 +90,13 @@ export function TparReportPage() {
         )}
       </div>
 
-      <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <ClipboardList size={24} style={{ color: 'var(--accent-primary)' }} />
-        TPAR
-      </h1>
+      <PageHeader
+        title={
+          <>
+            <ClipboardList size={24} style={{ color: 'var(--text-link)' }} /> TPAR
+          </>
+        }
+      />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -141,9 +142,9 @@ export function TparReportPage() {
       </div>
 
       {error && (
-        <Banner>
+        <Alert tone="warning">
           <strong>TPAR report unavailable.</strong> {error}
-        </Banner>
+        </Alert>
       )}
 
       {loading ? (
@@ -156,7 +157,7 @@ export function TparReportPage() {
           <EvidenceCard tparReport={tparReport} />
         </>
       ) : (
-        <Empty>No TPAR report is available for this financial year.</Empty>
+        <EmptyState>No TPAR report is available for this financial year.</EmptyState>
       )}
     </section>
   );
@@ -172,18 +173,18 @@ function Kpis({ tparReport }: { tparReport: TparReportPayload }) {
         marginBottom: '1.5rem',
       }}
     >
-      <Kpi label="Payees" value={String(tparReport.summary.supplier_count)} icon={Users} />
-      <Kpi
+      <Stat label="Payees" value={String(tparReport.summary.supplier_count)} icon={Users} />
+      <Stat
         label="Gross payments"
         value={formatMoney(tparReport.summary.gross_paid_cents)}
         icon={ClipboardList}
       />
-      <Kpi
+      <Stat
         label="GST component"
         value={formatMoney(tparReport.summary.gst_component_cents)}
         icon={FileText}
       />
-      <Kpi label="Missing ABNs" value={String(tparReport.summary.missing_abn_count)} icon={Hash} />
+      <Stat label="Missing ABNs" value={String(tparReport.summary.missing_abn_count)} icon={Hash} />
     </div>
   );
 }
@@ -192,7 +193,9 @@ function SuppliersCard({ suppliers }: { suppliers: TparSupplierRow[] }) {
   return (
     <Card title="Reportable payees" icon={Users}>
       {suppliers.length === 0 ? (
-        <Empty>No paid subcontractor bills or supplier intake rules found for this year.</Empty>
+        <EmptyState>
+          No paid subcontractor bills or supplier intake rules found for this year.
+        </EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">
@@ -261,7 +264,7 @@ function EvidenceCard({ tparReport }: { tparReport: TparReportPayload }) {
 
 function Warnings({ warnings }: { warnings: string[] }) {
   return (
-    <Banner>
+    <Alert tone="warning">
       <strong>Review before export.</strong>{' '}
       {warnings.map((warning, index) => (
         <span key={warning}>
@@ -270,36 +273,7 @@ function Warnings({ warnings }: { warnings: string[] }) {
           {index < warnings.length - 1 ? ';' : '.'}
         </span>
       ))}
-    </Banner>
-  );
-}
-
-function Kpi({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  icon: typeof ClipboardList;
-}) {
-  return (
-    <div className="card" style={{ padding: '1rem 1.1rem', position: 'relative' }}>
-      <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 700 }}>
-        {label}
-      </div>
-      <div style={{ marginTop: '0.35rem', fontSize: '1.35rem', fontWeight: 800 }}>{value}</div>
-      <Icon
-        size={18}
-        style={{
-          color: 'var(--accent-primary)',
-          opacity: 0.65,
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-        }}
-      />
-    </div>
+    </Alert>
   );
 }
 
@@ -315,7 +289,7 @@ function Card({
   return (
     <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-        <Icon size={18} style={{ color: 'var(--accent-primary)' }} />
+        <Icon size={18} style={{ color: 'var(--text-link)' }} />
         <h2 style={{ margin: 0, fontSize: '1.1rem' }}>{title}</h2>
       </div>
       {children}
@@ -349,43 +323,5 @@ function Rows({ rows, monoKeys }: { rows: [string, string][]; monoKeys?: Set<str
         </div>
       ))}
     </dl>
-  );
-}
-
-function Banner({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      className="badge badge-warning"
-      style={{
-        display: 'flex',
-        gap: '0.5rem',
-        alignItems: 'flex-start',
-        justifyContent: 'flex-start',
-        padding: '0.875rem 1rem',
-        marginBottom: '1.5rem',
-        textTransform: 'none',
-        width: '100%',
-        lineHeight: 1.45,
-      }}
-    >
-      <AlertTriangle size={16} style={{ marginTop: '2px', flexShrink: 0 }} />
-      <span>{children}</span>
-    </div>
-  );
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        padding: '1.5rem',
-        border: '1px dashed var(--border-subtle)',
-        borderRadius: 'var(--radius-md)',
-        color: 'var(--text-muted)',
-        fontSize: '0.85rem',
-      }}
-    >
-      {children}
-    </div>
   );
 }

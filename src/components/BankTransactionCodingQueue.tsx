@@ -3,6 +3,7 @@ import { Check, CheckCheck, ChevronDown, Tag, Zap } from 'lucide-react';
 import { formatMoney } from '@/lib/money';
 import { useBankCodingQueue, type CodingQueueRow } from '@/hooks/useBankCodingQueue';
 import { SkeletonTable } from '@/components/Skeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 const CATEGORY_OPTIONS = [
   { code: 'materials', label: 'Materials' },
@@ -33,8 +34,8 @@ const CATEGORY_OPTIONS = [
 
 function confidenceColor(c: number): string {
   if (c >= 0.88) return 'var(--color-success)';
-  if (c >= 0.6) return 'var(--color-warning, #f59e0b)';
-  return 'var(--color-danger, #ef4444)';
+  if (c >= 0.6) return 'var(--accent-warning)';
+  return 'var(--accent-danger)';
 }
 
 function OverrideSelect({
@@ -139,7 +140,7 @@ function CodingRow({
         </span>
       </td>
       <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-        <span style={{ color: isDebit ? 'var(--text-danger, #ef4444)' : 'var(--color-success)' }}>
+        <span style={{ color: isDebit ? 'var(--text-danger)' : 'var(--text-success)' }}>
           {isDebit ? '-' : '+'}
           {formatMoney(Math.abs(row.txn_amount_cents))}
         </span>
@@ -150,7 +151,7 @@ function CodingRow({
             className="badge"
             style={{
               background: 'var(--bg-accent-subtle)',
-              color: 'var(--accent-primary)',
+              color: 'var(--text-link)',
               fontSize: '0.75rem',
             }}
           >
@@ -263,12 +264,16 @@ export function BankTransactionCodingQueue() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Zap size={18} style={{ color: 'var(--accent-primary)' }} />
+          <Zap size={18} style={{ color: 'var(--text-link)' }} />
           <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Coding Queue</h2>
           {rows.length > 0 && (
             <span
               className="badge"
-              style={{ background: 'var(--accent-primary)', color: '#fff', fontSize: '0.7rem' }}
+              style={{
+                background: 'var(--accent-primary)',
+                color: 'var(--text-on-accent)',
+                fontSize: '0.7rem',
+              }}
             >
               {rows.length}
             </span>
@@ -301,18 +306,7 @@ export function BankTransactionCodingQueue() {
       )}
 
       {rows.length === 0 ? (
-        <div
-          style={{
-            padding: '2.5rem',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '0.875rem',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-          }}
-        >
-          No transactions waiting for coding — the classifier is up to date.
-        </div>
+        <EmptyState>No transactions waiting for coding — the classifier is up to date.</EmptyState>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table className="table" style={{ width: '100%', fontSize: '0.85rem' }}>

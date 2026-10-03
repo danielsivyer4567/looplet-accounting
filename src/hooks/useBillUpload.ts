@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { orgTimeZone, todayLocal } from '@/lib/localDates';
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const ALLOWED_MIME = new Set([
@@ -61,7 +62,7 @@ export function useBillUpload() {
     }
 
     // Build storage path: org-{uuid}/{YYYY-MM-DD}/{rand}-{filename}
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayLocal(orgTimeZone(currentOrg));
     const rand = crypto.randomUUID().slice(0, 8);
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-80);
     const storagePath = `org-${currentOrg.id}/${today}/${rand}-${safeName}`;

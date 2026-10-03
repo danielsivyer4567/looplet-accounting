@@ -1,17 +1,11 @@
-import { BrandLogo } from './BrandLogo';
-
 /**
- * Centred brand lockup used on the auth screens: the emblem above the
- * "Looplet Accounting" wordmark set in the cursive script face.
+ * Card header for the auth screens, in the Looplet sign-in style: a small product eyebrow above the screen heading.
+ * The "L" mark itself sits in the page's top bar (see AuthShell), so it is not repeated here.
  */
 export function BrandHeader() {
   return (
     <div className="auth-brand">
-      <div className="auth-brand__logo">
-        <BrandLogo size={52} />
-      </div>
-      <h1 className="auth-brand__title">Looplet Accounting</h1>
-      <p className="auth-brand__subtitle">Job-costed AP/AR for trades businesses</p>
+      <p className="auth-eyebrow">Looplet Accounting</p>
     </div>
   );
 }

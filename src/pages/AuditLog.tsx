@@ -9,6 +9,7 @@ import {
   type WorkingPapersResult,
 } from '@/hooks/useAssurance';
 import { downloadCsv } from '@/lib/csv';
+import { orgTimeZone, startOfFinancialYear, todayLocal } from '@/lib/localDates';
 import { SkeletonTable } from '@/components/Skeleton';
 import {
   CheckCircle,
@@ -27,6 +28,8 @@ import {
   Send,
   ShieldCheck,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface AuditRow {
   id: string;
@@ -259,14 +262,9 @@ function AuditRowItem({ row }: { row: AuditRow }) {
   );
 }
 
-function dateInputValue(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
-function defaultPeriodStart(): string {
-  const today = new Date();
-  const fyStartYear = today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1;
-  return `${fyStartYear}-07-01`;
+/** 1 July of the current financial year, judged on today's date in the org's time zone. */
+function defaultPeriodStart(timeZone: string): string {
+  return startOfFinancialYear(todayLocal(timeZone));
 }
 
 function formatDate(value: string | null): string {
@@ -338,7 +336,7 @@ function WorkingPapersPanel({
   return (
     <div className="card" style={{ padding: '1rem' }}>
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-        <Package size={20} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+        <Package size={20} style={{ color: 'var(--text-link)', flexShrink: 0 }} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <h2 style={{ margin: 0, fontSize: '1rem' }}>Working papers</h2>
           <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.825rem' }}>
@@ -452,7 +450,7 @@ function CorrespondencePanel({
   return (
     <div className="card" style={{ padding: '1rem' }}>
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-        <FileText size={20} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+        <FileText size={20} style={{ color: 'var(--text-link)', flexShrink: 0 }} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <h2 style={{ margin: 0, fontSize: '1rem' }}>ATO correspondence</h2>
           <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.825rem' }}>
@@ -485,18 +483,7 @@ function CorrespondencePanel({
           <SkeletonTable rows={3} cols={4} />
         </div>
       ) : correspondence.length === 0 ? (
-        <div
-          style={{
-            marginTop: '1rem',
-            padding: '1.25rem',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-          }}
-        >
-          No ATO correspondence is recorded for this organisation.
-        </div>
+        <EmptyState>No ATO correspondence is recorded for this organisation.</EmptyState>
       ) : (
         <div style={{ overflowX: 'auto', marginTop: '1rem' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem' }}>
@@ -584,7 +571,7 @@ function DraftsPanel({
   return (
     <div className="card" style={{ padding: '1rem' }}>
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-        <ShieldCheck size={20} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+        <ShieldCheck size={20} style={{ color: 'var(--text-link)', flexShrink: 0 }} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <h2 style={{ margin: 0, fontSize: '1rem' }}>Draft responses</h2>
           <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.825rem' }}>
@@ -602,18 +589,7 @@ function DraftsPanel({
           <SkeletonTable rows={3} cols={5} />
         </div>
       ) : drafts.length === 0 ? (
-        <div
-          style={{
-            marginTop: '1rem',
-            padding: '1.25rem',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-          }}
-        >
-          No draft ATO responses have been created yet.
-        </div>
+        <EmptyState>No draft ATO responses have been created yet.</EmptyState>
       ) : (
         <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
           {drafts.map((draft) => {
@@ -726,8 +702,8 @@ export function AuditLogPage() {
 
   const [actorOptions, setActorOptions] = useState<string[]>([]);
   const [resourceOptions, setResourceOptions] = useState<string[]>([]);
-  const [periodStart, setPeriodStart] = useState(defaultPeriodStart);
-  const [periodEnd, setPeriodEnd] = useState(() => dateInputValue(new Date()));
+  const [periodStart, setPeriodStart] = useState(() => defaultPeriodStart(orgTimeZone(currentOrg)));
+  const [periodEnd, setPeriodEnd] = useState(() => todayLocal(orgTimeZone(currentOrg)));
   const [requestedOutcome, setRequestedOutcome] = useState(
     'Prepare a concise draft response for registered-agent review, grounded in the notice, source documents, working papers, and current ATO guidance.',
   );
@@ -867,10 +843,13 @@ export function AuditLogPage() {
           gap: '0.75rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <ShieldCheck size={24} style={{ color: 'var(--accent-primary)' }} />
-          Assurance
-        </h1>
+        <PageHeader
+          title={
+            <>
+              <ShieldCheck size={24} style={{ color: 'var(--text-link)' }} /> Assurance
+            </>
+          }
+        />
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
             onClick={() => {
@@ -954,7 +933,7 @@ export function AuditLogPage() {
         }}
       >
         <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Search size={20} style={{ color: 'var(--accent-primary)' }} />
+          <Search size={20} style={{ color: 'var(--text-link)' }} />
           Audit trail
         </h2>
         <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
@@ -1063,18 +1042,7 @@ export function AuditLogPage() {
           <SkeletonTable rows={6} cols={6} />
         </div>
       ) : rows.length === 0 ? (
-        <div
-          style={{
-            padding: '3rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
-          No audit events found for the current filters.
-        </div>
+        <EmptyState>No audit events found for the current filters.</EmptyState>
       ) : (
         <>
           <div

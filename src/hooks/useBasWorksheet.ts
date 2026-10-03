@@ -26,10 +26,27 @@ export interface BasWorksheetPayload {
   quarter_start: string | null;
   quarter_end: string | null;
   due_date: string | null;
+  /** GST accounting basis the labels use; 'default' source = not chosen in the business profile. */
+  gst_accounting_basis?: 'accruals' | 'cash';
+  gst_accounting_basis_source?: 'business_profile' | 'default';
   gst: Record<string, number>;
-  payg_withholding: Record<string, number>;
-  payg_instalment: Record<string, number> | null;
+  payg_withholding: BasPaygWithholding;
+  payg_instalment: Record<string, number | string | null> | null;
   summary: Record<string, number>;
+  /** Items Looplet could not place in a period (for example a refund it has no record of). */
+  needs_review?: { source_type: string; document_number?: string; note: string }[];
+}
+
+/** PAYG withholding labels. W3/W4 are null: Looplet records no such withholding (see not_recorded). */
+export interface BasPaygWithholding {
+  W1?: number;
+  W2?: number;
+  W3?: number | null;
+  W4?: number | null;
+  W5?: number;
+  '4'?: number;
+  not_recorded?: string[];
+  note?: string;
 }
 
 export interface BasBlockers {

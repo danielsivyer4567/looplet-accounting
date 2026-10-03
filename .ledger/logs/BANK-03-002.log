@@ -1,0 +1,26 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "deno test --allow-env --allow-read --allow-net supabase/functions/_shared/bankfeed/webhook.test.ts supabase/functions/bank-webhook/handler.test.ts"
+[0m[38;5;245mrunning 6 tests from ./supabase/functions/_shared/bankfeed/webhook.test.ts[0m
+a signature over "<timestamp>.<body>" inside the five-minute window verifies, with or without the prefix ... [0m[32mok[0m [0m[38;5;245m(8ms)[0m
+verification fails closed: unset secret, wrong secret, tampered body, skew either way, missing or malformed parts ... [0m[32mok[0m [0m[38;5;245m(747µs)[0m
+account ids come from new and updated rows and an accountIds list, once each, ignoring junk ... [0m[32mok[0m [0m[38;5;245m(169µs)[0m
+events are parsed from the signed body; only transactions.synced names accounts to wake ... [0m[32mok[0m [0m[38;5;245m(315µs)[0m
+the body is bounded before it is verified ... [0m[32mok[0m [0m[38;5;245m(8ms)[0m
+the feed is limited to the organisations configured for it; unset means none ... [0m[32mok[0m [0m[38;5;245m(184µs)[0m
+[0m[38;5;245mrunning 8 tests from ./supabase/functions/bank-webhook/handler.test.ts[0m
+an unset secret refuses every delivery before reading it ... [0m[32mok[0m [0m[38;5;245m(14ms)[0m
+unsigned, wrongly signed, replayed or oversized deliveries are refused and nothing is stored ... [0m[32mok[0m [0m[38;5;245m(11ms)[0m
+a verified event is stored first, then one sync is dispatched per linked connection ... [0m[32mok[0m [0m[38;5;245m(710µs)[0m
+connections of organisations not allowed to use the feed are never woken ... [0m[32mok[0m [0m[38;5;245m(657µs)[0m
+a repeated delivery is recognised but still dispatches, because an earlier attempt may not have synced ... [0m[32mok[0m [0m[38;5;245m(734µs)[0m
+if the event cannot be stored the delivery is not acknowledged and nothing is dispatched ...
+[0m[38;5;245m------- post-test output -------[0m
+{"event":"bankfeed.webhook_persist_failed","message":"database unavailable"}
+[0m[38;5;245m----- post-test output end -----[0m
+if the event cannot be stored the delivery is not acknowledged and nothing is dispatched ... [0m[32mok[0m [0m[38;5;245m(923µs)[0m
+other event types and unreadable bodies are stored and acknowledged without a sync ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+a failed sync is recorded on its connection and does not fail the delivery or the other syncs ... [0m[32mok[0m [0m[38;5;245m(415µs)[0m
+
+[0m[32mok[0m | 14 passed | 0 failed [0m[38;5;245m(90ms)[0m
+
+[0m[32mCheck[0m supabase/functions/_shared/bankfeed/webhook.test.ts
+[0m[32mCheck[0m supabase/functions/bank-webhook/handler.test.ts

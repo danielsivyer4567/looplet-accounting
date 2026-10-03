@@ -67,7 +67,7 @@ describe('bank_events_raw — idempotency', () => {
       .from('bank_events_raw')
       .insert({
         organization_id: ORG_A_ID,
-        provider: 'basiq',
+        provider: 'redbark',
         provider_event_id: 'txn:test-dedup-001',
         payload_hash: 'aabbcc001',
         raw_payload: { amount: '10.00', description: 'Test txn' },
@@ -86,7 +86,7 @@ describe('bank_events_raw — idempotency', () => {
       .from('bank_events_raw')
       .insert({
         organization_id: ORG_A_ID,
-        provider: 'basiq',
+        provider: 'redbark',
         provider_event_id: 'txn:test-dedup-002',
         payload_hash: 'aabbcc002',
         raw_payload: { amount: '20.00' },
@@ -107,7 +107,7 @@ describe('bank_events_raw — idempotency', () => {
       .from('bank_events_raw')
       .insert({
         organization_id: ORG_A_ID,
-        provider: 'basiq',
+        provider: 'redbark',
         provider_event_id: 'txn:test-dedup-002',
         payload_hash: 'aabbcc002',
         raw_payload: { amount: '20.00' },
@@ -119,7 +119,7 @@ describe('bank_events_raw — idempotency', () => {
   itLive('different payload hash for same event_id creates new row', async () => {
     const base = {
       organization_id: ORG_A_ID,
-      provider: 'basiq',
+      provider: 'redbark',
       provider_event_id: 'txn:test-dedup-003',
       raw_payload: { amount: '30.00' },
     };
@@ -147,7 +147,7 @@ describe('replay_bank_event RPC', () => {
       .from('bank_events_raw')
       .insert({
         organization_id: ORG_A_ID,
-        provider: 'basiq',
+        provider: 'redbark',
         provider_event_id: 'txn:test-replay-001',
         payload_hash: 'replay-hash-001',
         raw_payload: { amount: '99.00', description: 'Replay test' },
@@ -163,7 +163,7 @@ describe('replay_bank_event RPC', () => {
     const result = data as Record<string, unknown>;
     expect(result.ok).toBe(true);
     expect(result.event_id).toBe(eventId);
-    expect(result.provider).toBe('basiq');
+    expect(result.provider).toBe('redbark');
     expect((result.raw_payload as Record<string, unknown>).amount).toBe('99.00');
   });
 
@@ -183,7 +183,7 @@ describe('replay_bank_event RPC', () => {
       .from('bank_events_raw')
       .insert({
         organization_id: ORG_B_ID,
-        provider: 'basiq',
+        provider: 'redbark',
         provider_event_id: 'txn:test-replay-isolation',
         payload_hash: 'replay-iso-hash',
         raw_payload: { amount: '1.00' },
@@ -205,7 +205,7 @@ describe('replay_bank_event RPC', () => {
       .from('bank_events_raw')
       .insert({
         organization_id: ORG_A_ID,
-        provider: 'basiq',
+        provider: 'redbark',
         provider_event_id: 'txn:test-replay-anon-denied',
         payload_hash: 'replay-anon-denied-hash',
         raw_payload: { amount: '2.00' },
@@ -229,7 +229,7 @@ describe('bank_events_raw — unmatched (null-org) events', () => {
       .from('bank_events_raw')
       .insert({
         organization_id: null,
-        provider: 'basiq',
+        provider: 'redbark',
         provider_event_id: 'connection.updated:unknown-conn-001',
         payload_hash: 'unmatched-hash-001',
         raw_payload: { type: 'connection.updated', data: {} },
@@ -247,7 +247,7 @@ describe('bank_events_raw — unmatched (null-org) events', () => {
     async () => {
       await svc().from('bank_events_raw').insert({
         organization_id: null,
-        provider: 'basiq',
+        provider: 'redbark',
         provider_event_id: 'connection.updated:unknown-conn-002',
         payload_hash: 'unmatched-hash-002',
         raw_payload: {},
@@ -262,7 +262,7 @@ describe('bank_events_raw — unmatched (null-org) events', () => {
 
       const { error: dupError } = await svc().from('bank_events_raw').insert({
         organization_id: null,
-        provider: 'basiq',
+        provider: 'redbark',
         provider_event_id: 'connection.updated:unknown-conn-002',
         payload_hash: 'unmatched-hash-002',
         raw_payload: {},
@@ -278,7 +278,7 @@ describe('bank_events_raw — unmatched (null-org) events', () => {
       .from('bank_events_raw')
       .insert({
         organization_id: null,
-        provider: 'basiq',
+        provider: 'redbark',
         provider_event_id: 'connection.updated:unknown-conn-003',
         payload_hash: 'unmatched-hash-003',
         raw_payload: {},
@@ -299,7 +299,7 @@ describe('bank_events_raw — unmatched (null-org) events', () => {
       .from('bank_events_raw')
       .insert({
         organization_id: null,
-        provider: 'basiq',
+        provider: 'redbark',
         provider_event_id: 'connection.updated:unknown-conn-004',
         payload_hash: 'unmatched-hash-004',
         raw_payload: {},
@@ -325,7 +325,7 @@ describe('bank_events_raw — org isolation', () => {
       .from('bank_events_raw')
       .insert({
         organization_id: ORG_B_ID,
-        provider: 'basiq',
+        provider: 'redbark',
         provider_event_id: 'txn:test-isolation-001',
         payload_hash: 'iso-hash-001',
         raw_payload: { amount: '50.00' },
@@ -344,7 +344,7 @@ describe('bank_events_raw — org isolation', () => {
   itLive('anon client cannot INSERT', async () => {
     const { error } = await anon().from('bank_events_raw').insert({
       organization_id: ORG_A_ID,
-      provider: 'basiq',
+      provider: 'redbark',
       provider_event_id: 'txn:anon-test',
       payload_hash: 'anon-hash',
       raw_payload: {},

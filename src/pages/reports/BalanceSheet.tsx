@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatMoney } from '@/lib/money';
 import { downloadCsv } from '@/lib/csv';
+import { formatDateAu, orgTimeZone, todayLocal } from '@/lib/localDates';
 import { SkeletonTable } from '@/components/Skeleton';
 import {
   ChevronLeft,
@@ -14,6 +15,8 @@ import {
   Info,
   type LucideIcon,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface BalanceSheetRow {
   organization_id: string;
@@ -29,7 +32,7 @@ export function BalanceSheetPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // v_balance_sheet reflects the live ledger, so the report is always "as at today".
-  const asOfDate = new Date().toISOString().slice(0, 10);
+  const asOfDate = todayLocal(orgTimeZone(currentOrg));
 
   const refresh = useCallback(async () => {
     if (!currentOrg) return;
@@ -127,7 +130,7 @@ export function BalanceSheetPage() {
         )}
       </div>
 
-      <h1 style={{ margin: 0 }}>Balance Sheet</h1>
+      <PageHeader title="Balance Sheet" />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -154,13 +157,7 @@ export function BalanceSheetPage() {
         }}
       >
         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-          As at{' '}
-          {new Date(asOfDate).toLocaleDateString('en-AU', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-          })}{' '}
-          — live position from your current ledger
+          As at {formatDateAu(asOfDate)} — live position from your current ledger
         </span>
       </div>
 
@@ -179,7 +176,7 @@ export function BalanceSheetPage() {
         <div>
           <div
             style={{
-              fontSize: '0.675rem',
+              fontSize: '0.6875rem',
               color: 'var(--text-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
@@ -227,18 +224,9 @@ export function BalanceSheetPage() {
           {error}
         </div>
       ) : rows.length === 0 ? (
-        <div
-          style={{
-            padding: '3rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
+        <EmptyState>
           No balance sheet data yet. Add bank accounts, bills, invoices, and debts.
-        </div>
+        </EmptyState>
       ) : (
         <div
           style={{
@@ -297,10 +285,7 @@ export function BalanceSheetPage() {
           alignItems: 'flex-start',
         }}
       >
-        <Info
-          size={16}
-          style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }}
-        />
+        <Info size={16} style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }} />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
           <span
             style={{
@@ -445,7 +430,7 @@ function MiniCard({
       <div>
         <div
           style={{
-            fontSize: '0.625rem',
+            fontSize: '0.6875rem',
             color: 'var(--text-muted)',
             textTransform: 'uppercase',
             letterSpacing: '0.05em',

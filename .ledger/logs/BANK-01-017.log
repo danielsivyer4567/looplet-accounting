@@ -1,0 +1,4 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/check-no-basiq.mjs"
+check-no-basiq: 1 problem(s)
+- supabase/migrations/20261003155000_bank_provider_xero.sql: 1 reference(s)
+    9: -- value for that (plaid, basiq, manual), so this adds 'xero'.

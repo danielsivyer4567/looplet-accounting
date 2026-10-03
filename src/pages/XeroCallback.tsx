@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { consumeOAuthState } from '@/lib/oauthState';
 import { useOrg } from '@/hooks/useOrg';
 
 /**
@@ -8,7 +9,8 @@ import { useOrg } from '@/hooks/useOrg';
  *
  * Xero redirects to /settings/xero-callback?code=...&state=...
  * This page:
- *   1. Validates the state matches what we stored in sessionStorage
+ *   1. Requires the state to match the one this tab stored when it started
+ *      the connection (a missing stored state is refused, not skipped)
  *   2. POSTs code + redirect_uri to xero-oauth-callback edge fn
  *   3. On success, navigates to /settings#xero-connected (triggers flash in XeroConnect)
  */
@@ -18,6 +20,8 @@ export function XeroCallbackPage() {
   const { currentOrg } = useOrg();
   const [status, setStatus] = useState('Connecting to Xero…');
   const [error, setError] = useState<string | null>(null);
+  // The code and state are single-use: handle the redirect once, even when the effect re-runs (StrictMode, org reload).
+  const handled = useRef(false);
 
   useEffect(() => {
     const code = params.get('code');
@@ -40,13 +44,15 @@ export function XeroCallbackPage() {
       return;
     }
 
-    // Validate state against sessionStorage to prevent CSRF
-    const storedState = sessionStorage.getItem('xero_oauth_state');
-    if (storedState && state !== storedState) {
-      setError('State mismatch — possible CSRF attempt. Please try connecting again.');
+    if (handled.current) return;
+    handled.current = true;
+
+    // CSRF guard: only finish a connection this tab started.
+    const stateCheck = consumeOAuthState('xero_oauth_state', state);
+    if (!stateCheck.ok) {
+      setError(stateCheck.error);
       return;
     }
-    sessionStorage.removeItem('xero_oauth_state');
 
     (async () => {
       try {
@@ -91,8 +97,8 @@ export function XeroCallbackPage() {
         <div
           style={{
             padding: '1rem',
-            background: '#3d1818',
-            color: '#e9a3a3',
+            background: 'var(--bg-danger-subtle)',
+            color: 'var(--text-danger)',
             borderRadius: 4,
             fontSize: 13,
             maxWidth: 600,
@@ -101,13 +107,13 @@ export function XeroCallbackPage() {
           <strong>Connection failed</strong>
           <div style={{ marginTop: 8 }}>{error}</div>
           <div style={{ marginTop: 12 }}>
-            <a href="/settings" style={{ color: '#86c7a3', fontSize: 12 }}>
+            <a href="/settings" style={{ color: 'var(--text-success)', fontSize: 12 }}>
               &larr; Back to Settings
             </a>
           </div>
         </div>
       ) : (
-        <p style={{ color: '#888' }}>{status}</p>
+        <p style={{ color: 'var(--text-muted)' }}>{status}</p>
       )}
     </section>
   );

@@ -10,10 +10,10 @@ const CONFIDENCE_LABELS: Record<AutomationConfidence, string> = {
 
 const CONFIDENCE_COLORS: Record<AutomationConfidence, string> = {
   auto_post: 'var(--accent-success)',
-  quick_confirm: '#0075ff',
-  review_needed: '#f59e0b',
-  advisor_required: '#ef4444',
-  blocked_external: '#dc2626',
+  quick_confirm: 'var(--accent-primary)',
+  review_needed: 'var(--accent-warning)',
+  advisor_required: 'var(--accent-danger)',
+  blocked_external: 'var(--accent-danger)',
 };
 
 interface ConfidenceBadgeProps {
@@ -26,9 +26,9 @@ export function ConfidenceBadge({ confidence, onClick }: ConfidenceBadgeProps) {
     <span
       className="badge"
       style={{
-        backgroundColor: `${CONFIDENCE_COLORS[confidence]}20`,
+        backgroundColor: `color-mix(in srgb, ${CONFIDENCE_COLORS[confidence]} 12%, transparent)`,
         color: CONFIDENCE_COLORS[confidence],
-        border: `1px solid ${CONFIDENCE_COLORS[confidence]}40`,
+        border: `1px solid color-mix(in srgb, ${CONFIDENCE_COLORS[confidence]} 25%, transparent)`,
         cursor: onClick ? 'pointer' : undefined,
       }}
       onClick={onClick}

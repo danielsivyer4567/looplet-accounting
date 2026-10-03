@@ -8,6 +8,10 @@ on 2026-07-02 after local/live reconciliation.
 Local function directories: 71. Live active functions observed: 69. Remote-only
 functions observed: 0.
 
+Retired 2026-10-03 (BANK-01): `bank-link-token`, `bank-exchange`, `bank-job-poll` and `bank-discover` served the bank-feed
+provider that never went live. Their source is removed; delete them from the live project when the Redbark functions
+are deployed (see `SETUP_BANK_FEEDS.md`).
+
 `local-only` means source exists in this branch but was not observed as an active
 live function. Do not deploy these by default; use a staging ticket and proof.
 
@@ -27,10 +31,8 @@ live function. Do not deploy these by default; use a staging ticket and proof.
 | `automation-worker`            | live-active | false           | 16           | Automation job drainer; cron/service-secret gated.                     |
 | `bank-csv-import`              | live-active | true            | 39           |                                                                        |
 | `bank-disconnect`              | local-only  | n/a             | n/a          | Pending deploy: bank connection teardown.                              |
-| `bank-discover`                | live-active | true            | 28           |                                                                        |
-| `bank-exchange`                | live-active | true            | 40           |                                                                        |
-| `bank-job-poll`                | live-active | true            | 37           |                                                                        |
-| `bank-link-token`              | live-active | true            | 41           |                                                                        |
+| `bank-feed-accounts`           | local-only  | n/a             | n/a          | Pending deploy: lists Redbark accounts for an admin (BANK-05).         |
+| `bank-feed-link`               | local-only  | n/a             | n/a          | Pending deploy: links a Redbark account with an import-from date.      |
 | `bank-statement-extract`       | live-active | true            | 37           |                                                                        |
 | `bank-sync`                    | live-active | true            | 43           |                                                                        |
 | `bank-sync-all`                | live-active | false           | 41           |                                                                        |
@@ -48,6 +50,8 @@ live function. Do not deploy these by default; use a staging ticket and proof.
 | `depreciation-run`             | live-active | false           | 1            | Deployed 2026-06-30; cron secret/service-role auth gate.               |
 | `div7a-agreement`              | live-active | true            | 1            | Deployed 2026-06-30; document generation only.                         |
 | `employee-tfn-save`            | live-active | false           | 1            | Deployed 2026-06-30; self-auth + TFN vault path.                       |
+| `entity-tfn-backfill`          | local-only  | n/a             | n/a          | Pending deploy: one-off, service-role-only encryption of legacy trust/SMSF TFNs (TFN-01). |
+| `entity-tfn-save`              | local-only  | n/a             | n/a          | Pending deploy: admin-only encrypted TFN save for trusts/SMSFs (TFN-01). |
 | `eofy-pack`                    | live-active | true            | 19           |                                                                        |
 | `gmail-backfill`               | live-active | true            | 40           |                                                                        |
 | `gmail-classify-ai`            | live-active | true            | 39           |                                                                        |

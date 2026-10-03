@@ -232,6 +232,8 @@ describe('BillDetailPage', () => {
       target: { value: 'Reviewed against supplier PDF' },
     });
 
+    // The update's .select('id') must return the changed row, or the page reports a refused save.
+    mockSupabaseResponse({ data: [{ id: 'bill-1' }], error: null });
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
     await waitFor(() => {

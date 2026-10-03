@@ -1,0 +1,8 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "deno test --allow-env --allow-read --allow-net supabase/functions/ask-bot/bas-query.test.ts"
+[0m[38;5;245mrunning 2 tests from ./supabase/functions/ask-bot/bas-query.test.ts[0m
+every column Ask AI reads from v_bas_quarterly exists in the view ... [0m[32mok[0m [0m[38;5;245m(46ms)[0m
+the query is built from that list and only for a UUID ... [0m[32mok[0m [0m[38;5;245m(580µs)[0m
+
+[0m[32mok[0m | 2 passed | 0 failed [0m[38;5;245m(49ms)[0m
+
+[0m[32mCheck[0m supabase/functions/ask-bot/bas-query.test.ts

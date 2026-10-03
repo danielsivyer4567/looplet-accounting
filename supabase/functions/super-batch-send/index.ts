@@ -6,9 +6,12 @@
 // request bound to this exact batch, so an admin can approve it.
 //
 // On approval it builds build_superstream_payload(batch), refuses if fund details
-// are incomplete, and transitions draft/approved → sent with a payload hash and
-// manual clearing-house-file response. This is the documented transport path until
-// a provider-specific API endpoint is configured; it does not pretend live payment.
+// are incomplete, and moves draft/approved → file_prepared with a payload hash and
+// the clearing-house file in the response. Nothing is sent to a fund or clearing
+// house and nothing is paid: the employer uploads the file and pays. So the batch is
+// never marked `sent` here (LODGE-01); `sent`/`confirmed` are for a real transport.
+// A file_prepared batch can be prepared again, which returns the same file to
+// download without changing its status.
 //
 // Request body: { organization_id: uuid, super_batch_id: uuid }
 // Deploy with verify_jwt=false (self-auths via getUser + membership, like
@@ -16,6 +19,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, preflight } from "../_shared/cors.ts";
+import { authorizeOrgMember, supabaseOrgAccessDeps } from "../_shared/orgRole.ts";
 
 interface RequestBody {
   organization_id?: string;
@@ -51,7 +55,12 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-Deno.serve(async (req: Request) => {
+/** Status after the clearing-house file is generated. Nothing has been sent or paid. */
+export const FILE_PREPARED = "file_prepared";
+
+if (import.meta.main) Deno.serve(handleSuperBatchSendRequest);
+
+export async function handleSuperBatchSendRequest(req: Request): Promise<Response> {
   const pre = preflight(req);
   if (pre) return pre;
 
@@ -84,14 +93,9 @@ Deno.serve(async (req: Request) => {
 
   const admin = createClient(supabaseUrl, serviceKey);
 
-  // Caller must belong to the org (the gate is org-bound; never trust the body alone).
-  const { data: membership } = await admin
-    .from("organization_memberships")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("organization_id", organization_id)
-    .maybeSingle();
-  if (!membership) return json({ ok: false, error: "Forbidden" }, 403);
+  // Super contributions are employee money: an accepted admin or owner of this org (never trust the body alone).
+  const access = await authorizeOrgMember(user.id, organization_id, supabaseOrgAccessDeps(admin, serviceKey), "admin");
+  if (!access.ok) return json({ ok: false, error: access.error }, access.status);
 
   const { data: batch, error: batchErr } = await admin
     .from("super_batches")
@@ -103,12 +107,12 @@ Deno.serve(async (req: Request) => {
     .maybeSingle<SuperBatchRow>();
   if (batchErr || !batch) return json({ ok: false, error: "Super batch not found" }, 404);
 
-  // Idempotency: an already-sent/confirmed batch is never re-sent.
+  // A batch recorded as sent/confirmed is never prepared again.
   if (batch.status === "sent" || batch.status === "confirmed") {
     return json({ ok: true, already_sent: true, status: batch.status, super_batch_id });
   }
   if (batch.line_count === 0 || batch.total_super_cents === 0) {
-    return json({ ok: false, error: "Super batch has no lines to send" }, 422);
+    return json({ ok: false, error: "Super batch has no lines to prepare" }, 422);
   }
 
   // Approval payload — bound to the batch contents so editing the batch after
@@ -151,7 +155,11 @@ Deno.serve(async (req: Request) => {
       );
     }
     return json(
-      { ok: false, error: "Approval required before sending this super batch.", approval_id: approvalId ?? null },
+      {
+        ok: false,
+        error: "Approval required before preparing this super batch's clearing-house file.",
+        approval_id: approvalId ?? null,
+      },
       403,
     );
   }
@@ -163,7 +171,7 @@ Deno.serve(async (req: Request) => {
   // authz check inside build_superstream_payload would always fail). Same fix
   // shape as request_approval above — this was the one call in this function that
   // used admin by mistake; membership was already proven above via the
-  // organization_memberships check, so re-checking via userClient here is safe
+  // authorizeOrgMember check, so re-checking via userClient here is safe
   // and correct, not redundant paranoia.
   const { data: payload, error: payloadErr } = await userClient.rpc("build_superstream_payload", {
     p_batch_id: super_batch_id,
@@ -184,12 +192,26 @@ Deno.serve(async (req: Request) => {
   }
   const payloadHash = superstreamPayload.evidence?.input_hash ?? crypto.randomUUID();
 
-  // Approved → export lifecycle. The conditional UPDATE (status IN draft/approved) is
+  // Already prepared: hand the same file back to download again; the status stays.
+  if (batch.status === FILE_PREPARED) {
+    return json({
+      ok: true,
+      already_prepared: true,
+      file_prepared: true,
+      manual_upload_required: true,
+      super_batch_id,
+      status: FILE_PREPARED,
+      payload_hash: batch.transport_payload_hash ?? payloadHash,
+      payload: superstreamPayload,
+    });
+  }
+
+  // Approved → file prepared. The conditional UPDATE (status IN draft/approved) is
   // the idempotency guard: a concurrent/repeat export matches zero rows.
   const { data: updated, error: updErr } = await admin
     .from("super_batches")
     .update({
-      status: "sent",
+      status: FILE_PREPARED,
       transport_mode: "clearing_house_file",
       transport_payload_hash: payloadHash,
       transported_at: new Date().toISOString(),
@@ -204,22 +226,22 @@ Deno.serve(async (req: Request) => {
     .in("status", ["draft", "approved"])
     .select("id, status")
     .maybeSingle();
-  if (updErr) return json({ ok: false, error: `Send failed: ${updErr.message}` }, 500);
+  if (updErr) return json({ ok: false, error: `Could not prepare the file: ${updErr.message}` }, 500);
   if (!updated) {
-    // Someone else flipped it between our read and write — idempotent success.
-    return json({ ok: true, already_sent: true, super_batch_id });
+    // Someone else prepared it between our read and write — idempotent success.
+    return json({ ok: true, already_prepared: true, super_batch_id });
   }
 
   return json({
     ok: true,
-    sent: true,
+    file_prepared: true,
     transport_mode: "clearing_house_file",
     manual_upload_required: true,
     super_batch_id,
-    status: "sent",
+    status: FILE_PREPARED,
     total_super_cents: approvalPayload.total_super_cents,
     line_count: approvalPayload.line_count,
     payload_hash: payloadHash,
     payload: superstreamPayload,
   });
-});
+}

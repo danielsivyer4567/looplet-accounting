@@ -14,7 +14,10 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { enforceAiQuota } from '../_shared/aiRateLimit.ts';
+import { requireSignedInCaller } from '../_shared/authGuards.ts';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 import {
   approveStagedEntity,
   isSafeStagedAutoApproval,
@@ -72,6 +75,9 @@ Deno.serve(async (req) => {
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
+    // Classification spends Groq credit: a signed-in user or the service role, not just any header.
+    const caller = await requireSignedInCaller(authHeader, supabaseOrgAccessDeps(admin, serviceKey));
+    if (!caller.ok) return json({ ok: false, error: caller.error }, caller.status);
 
     const body = (await req.json()) as RequestBody;
     const batch_size = Math.max(1, Math.min(50, body.batch_size ?? 25));
@@ -97,6 +103,10 @@ Deno.serve(async (req) => {
       organization_id = org.id as string;
     } else {
       return json({ ok: false, error: 'integration_id or organization_id required' }, 400);
+    }
+    if (caller.caller.kind === 'user') {
+      const limited = await enforceAiQuota(admin, caller.caller.userId, 'gmail_classify_ai', corsHeaders);
+      if (limited) return limited;
     }
 
     // Load category catalogue once (LLM uses these codes verbatim)

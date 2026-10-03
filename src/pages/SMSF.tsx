@@ -1,5 +1,4 @@
 import type { CSSProperties } from 'react';
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
 import { useSmsf, useSmsfFund, type SmsfFundRow, type SmsfMemberRow } from '@/hooks/useSmsf';
@@ -8,6 +7,8 @@ import { titleCase, formatDay, currentFyStartYear } from '@/lib/formatting';
 import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoney } from '@/lib/money';
 import { AlertTriangle, CheckCircle2, Download, FileText, PiggyBank } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Stat } from '@/components/ui/Stat';
 
 // Shared styling for the page's dashed "notice" cards (not-an-SMSF gate + empty list).
 const noticeCardStyle: CSSProperties = {
@@ -19,33 +20,6 @@ const noticeCardStyle: CSSProperties = {
   textAlign: 'center',
   fontSize: '0.9rem',
 };
-
-// A labelled figure for the financials strip.
-function Stat({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
-  return (
-    <div style={{ minWidth: '8rem' }}>
-      <div
-        style={{
-          fontSize: '0.7rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.03em',
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: '1rem',
-          fontWeight: 600,
-          color: strong ? 'var(--text-title)' : 'var(--text-body)',
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
 
 // A compliance flag chip: green when count is 0, amber when there's something to review.
 function FlagChip({ label, count }: { label: string; count: number }) {
@@ -69,15 +43,14 @@ function FlagChip({ label, count }: { label: string; count: number }) {
 
 /**
  * The per-fund panels (SC-5.N.02): financials (5.J), cap/Div293/drawdown flags (5.L), TBC
- * tracker (5.I.02), and the audit-pack (5.M) + return-draft (5.K) download actions + a
- * mark-lodged stub. The SMSF RPCs + edge fn deploy as a batch; until then the panel surfaces
+ * tracker (5.I.02), and the audit-pack (5.M) + return-draft (5.K) download actions. Looplet
+ * does not lodge the return, so there is no lodge button. The SMSF RPCs + edge fn deploy as a batch; until then the panel surfaces
  * the error (the data won't load against undeployed functions — by design, not a UI fault).
  */
 function FundPanels({ fundId }: { fundId: string }) {
   const fy = currentFyStartYear();
-  const { panels, loading, error, actionBusy, downloadAuditPack, downloadReturnDraft, markLodged } =
+  const { panels, loading, error, actionBusy, downloadAuditPack, downloadReturnDraft } =
     useSmsfFund(fundId, fy);
-  const [lodgeNote, setLodgeNote] = useState<string | null>(null);
 
   const { operating, financial, caps, drawdown, tbc } = panels;
 
@@ -109,16 +82,27 @@ function FundPanels({ fundId }: { fundId: string }) {
           {/* Financials strip (SC-5.J.01/.02) */}
           <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
             <Stat
+              variant="inline"
               label="Assessable income"
               value={formatMoney(operating?.assessable_income_cents ?? 0)}
             />
-            <Stat label="Income tax" value={formatMoney(operating?.income_tax_cents ?? 0)} />
-            <Stat label="Net result" value={formatMoney(operating?.net_result_cents ?? 0)} />
             <Stat
+              variant="inline"
+              label="Income tax"
+              value={formatMoney(operating?.income_tax_cents ?? 0)}
+            />
+            <Stat
+              variant="inline"
+              label="Net result"
+              value={formatMoney(operating?.net_result_cents ?? 0)}
+            />
+            <Stat
+              variant="inline"
               label="Total assets"
               value={formatMoney(financial?.assets?.total_assets_cents ?? 0)}
             />
             <Stat
+              variant="inline"
               label="Members' funds"
               value={formatMoney(financial?.members_funds_cents ?? 0)}
               strong
@@ -173,7 +157,7 @@ function FundPanels({ fundId }: { fundId: string }) {
             </div>
           )}
 
-          {/* Actions (SC-5.M / 5.K + the lodge stub) */}
+          {/* Actions (SC-5.M / 5.K). There is no lodge action: Looplet does not lodge. */}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <button
               className="btn btn-secondary"
@@ -190,17 +174,10 @@ function FundPanels({ fundId }: { fundId: string }) {
             >
               <Download size={14} /> {actionBusy === 'audit' ? 'Preparing…' : 'Audit pack'}
             </button>
-            <button
-              className="btn btn-secondary"
-              disabled={actionBusy !== null}
-              onClick={() => setLodgeNote(markLodged())}
-              title="Lodgement is gated by the ATO gateway (Phase 7)"
-            >
-              Lodge return
-            </button>
-            {lodgeNote && (
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{lodgeNote}</span>
-            )}
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Looplet prepares the annual return draft; it does not lodge it. Lodge it with the ATO
+              through your SMSF's tax agent or ATO online services.
+            </span>
           </div>
         </>
       )}
@@ -308,15 +285,18 @@ export function SmsfPage() {
   if (!loading && !isSmsfEntity) {
     return (
       <section className="animated-fade-in">
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <PiggyBank size={24} style={{ color: 'var(--accent-primary)' }} />
-          SMSF
-        </h1>
+        <PageHeader
+          title={
+            <>
+              <PiggyBank size={24} style={{ color: 'var(--text-link)' }} /> SMSF
+            </>
+          }
+        />
         <div style={{ ...noticeCardStyle, marginTop: '1.5rem' }}>
           The SMSF workspace applies to self-managed super funds. Set this organisation's entity
           type to <strong>SMSF</strong> in{' '}
           <span
-            style={{ color: 'var(--accent-primary)', cursor: 'pointer' }}
+            style={{ color: 'var(--text-link)', cursor: 'pointer' }}
             onClick={() => navigate('/settings')}
           >
             Business Profile
@@ -340,10 +320,13 @@ export function SmsfPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <PiggyBank size={24} style={{ color: 'var(--accent-primary)' }} />
-          SMSF
-        </h1>
+        <PageHeader
+          title={
+            <>
+              <PiggyBank size={24} style={{ color: 'var(--text-link)' }} /> SMSF
+            </>
+          }
+        />
         {!loading && (
           <div
             className="badge badge-neutral"

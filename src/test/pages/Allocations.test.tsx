@@ -142,14 +142,17 @@ describe('AllocationsPage', () => {
   });
 
   it('surfaces a categorized action error when a suggestion write fails instead of failing silently', async () => {
-    // Next supabase.from('bills').update(...).eq(...) call resolves to an RLS error.
+    // Next supabase.from('bills').update(...).eq(...).select('id') call resolves to an RLS error.
     vi.mocked(supabase.from).mockReturnValueOnce({
       update: vi.fn(() => ({
-        eq: vi.fn(() =>
-          Promise.resolve({
-            error: { message: 'new row violates row-level security policy for table "bills"' },
-          }),
-        ),
+        eq: vi.fn(() => ({
+          select: vi.fn(() =>
+            Promise.resolve({
+              data: null,
+              error: { message: 'new row violates row-level security policy for table "bills"' },
+            }),
+          ),
+        })),
       })),
     } as unknown as ReturnType<typeof supabase.from>);
 

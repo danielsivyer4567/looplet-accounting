@@ -1,0 +1,5 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npm run lint"
+
+> looplet-accounting@0.1.0 lint
+> eslint . --report-unused-disable-directives --max-warnings 0
+

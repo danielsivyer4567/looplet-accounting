@@ -18,8 +18,10 @@ import {
   FileText,
   UserMinus,
   X,
-  type LucideIcon,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Stat } from '@/components/ui/Stat';
 
 interface PayRun {
   id: string;
@@ -257,7 +259,7 @@ export function PayRunDetailPage() {
                   background: step.active ? 'var(--bg-success-subtle)' : 'var(--bg-hover)',
                   color: step.active ? 'var(--text-success)' : 'var(--text-muted)',
                   border: step.active
-                    ? '1px solid rgba(16, 185, 129, 0.2)'
+                    ? '1px solid var(--border-success)'
                     : '1px solid var(--border-subtle)',
                 }}
               >
@@ -299,10 +301,14 @@ export function PayRunDetailPage() {
         }}
       >
         <div>
-          <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Layers size={24} style={{ color: 'var(--accent-primary)' }} />
-            Pay run · {run.period_start} → {run.period_end}
-          </h1>
+          <PageHeader
+            title={
+              <>
+                <Layers size={24} style={{ color: 'var(--text-link)' }} /> Pay run ·{' '}
+                {run.period_start} → {run.period_end}
+              </>
+            }
+          />
           <div
             style={{
               display: 'flex',
@@ -414,28 +420,28 @@ export function PayRunDetailPage() {
           marginBottom: '2rem',
         }}
       >
-        <KpiCard
+        <Stat
           label="Total Gross"
           value={formatMoney(Number(run.total_gross_cents))}
-          type="neutral"
+          tone="neutral"
           icon={DollarSign}
         />
-        <KpiCard
+        <Stat
           label="Total PAYG"
           value={formatMoney(Number(run.total_tax_cents))}
-          type="danger"
+          tone="danger"
           icon={DollarSign}
         />
-        <KpiCard
+        <Stat
           label="Total Super"
           value={formatMoney(Number(run.total_super_cents))}
-          type="info"
+          tone="info"
           icon={Wallet}
         />
-        <KpiCard
+        <Stat
           label="Total Net"
           value={formatMoney(Number(run.total_net_cents))}
-          type="success"
+          tone="success"
           icon={Wallet}
         />
       </div>
@@ -454,18 +460,7 @@ export function PayRunDetailPage() {
         Payslips ({slips.length})
       </h2>
       {slips.length === 0 ? (
-        <div
-          style={{
-            padding: '2rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
-          No payslips on this run.
-        </div>
+        <EmptyState>No payslips on this run.</EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">
@@ -524,10 +519,7 @@ export function PayRunDetailPage() {
           alignItems: 'flex-start',
         }}
       >
-        <Info
-          size={16}
-          style={{ flexShrink: 0, color: 'var(--accent-primary)', marginTop: '2px' }}
-        />
+        <Info size={16} style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }} />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
           <span
             style={{
@@ -539,9 +531,10 @@ export function PayRunDetailPage() {
           >
             ATO Single Touch Payroll (STP) Phase 2
           </span>
-          STP file is generated in Phase 2 JSON format from encrypted TFN vault records and a
-          redacted draft lifecycle row is stored in the lodgement ledger. Direct ATO lodgement
-          remains disabled until SBR-gateway infrastructure is provisioned.
+          The STP file is prepared in Phase 2 JSON format for your registered tax or BAS agent, and
+          a draft record of it is kept in the lodgement ledger. Employee TFNs appear masked to the
+          last four digits; the full numbers stay encrypted in Looplet. Nothing is lodged with the
+          ATO from here.
         </div>
       </div>
     </section>
@@ -698,7 +691,7 @@ export function TerminationWizard({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.5)',
+        background: 'var(--bg-scrim)',
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
@@ -729,7 +722,7 @@ export function TerminationWizard({
           <X size={20} />
         </button>
         <h2 style={{ margin: '0 0 0.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <UserMinus size={18} style={{ color: 'var(--accent-primary)' }} />
+          <UserMinus size={18} style={{ color: 'var(--text-link)' }} />
           Record termination
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 1rem' }}>
@@ -924,72 +917,6 @@ function Row({ label, value, strong }: { label: string; value: number; strong?: 
     >
       <span style={{ color: 'var(--text-muted)' }}>{label}</span>
       <span>{formatMoney(value)}</span>
-    </div>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  type,
-  icon: Icon,
-  sub,
-}: {
-  label: string;
-  value: string;
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
-  icon: LucideIcon;
-  sub?: string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.5rem',
-          color: 'var(--text-title)',
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        {value}
-      </div>
-      {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-          {sub}
-        </div>
-      ) : (
-        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
-      )}
-      <div
-        style={{
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
-          opacity: 0.7,
-        }}
-      >
-        <Icon size={18} />
-      </div>
     </div>
   );
 }
