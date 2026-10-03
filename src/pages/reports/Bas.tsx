@@ -20,8 +20,10 @@ import {
   ShieldAlert,
   CheckCircle2,
   Loader2,
-  type LucideIcon,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Stat } from '@/components/ui/Stat';
 
 interface BasRow {
   fy_start_year: number;
@@ -172,7 +174,7 @@ export function BasReportPage() {
         )}
       </div>
 
-      <h1 style={{ margin: 0 }}>BAS Quarterly (GST)</h1>
+      <PageHeader title="BAS Quarterly (GST)" />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -229,23 +231,23 @@ export function BasReportPage() {
           marginBottom: '2rem',
         }}
       >
-        <KpiCard
+        <Stat
           label="Net GST (Lifetime)"
           value={formatMoney(totalNet)}
-          type={totalNet > 0 ? 'danger' : 'success'}
+          tone={totalNet > 0 ? 'danger' : 'success'}
           icon={Calendar}
           sub={totalNet > 0 ? 'owed to ATO' : 'refundable'}
         />
-        <KpiCard
+        <Stat
           label="Total Sales ex GST"
           value={formatMoney(totalSales)}
-          type="success"
+          tone="success"
           icon={Wallet}
         />
-        <KpiCard
+        <Stat
           label="Total Purchases ex GST"
           value={formatMoney(totalPurchases)}
-          type="neutral"
+          tone="neutral"
           icon={DollarSign}
         />
       </div>
@@ -271,18 +273,7 @@ export function BasReportPage() {
           {error}
         </div>
       ) : rows.length === 0 ? (
-        <div
-          style={{
-            padding: '3rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
-          No BAS data yet. Issue invoices and process bills to start a BAS rollup.
-        </div>
+        <EmptyState>No BAS data yet. Issue invoices and process bills to start a BAS rollup.</EmptyState>
       ) : (
         <>
           <div className="bas-table-view table-premium-container">
@@ -513,72 +504,6 @@ function renderCoverage(c: CoverageRow | undefined) {
       {c.gst_ready ? '✓ ' : '⚠ '}
       <span>{c.coverage_pct}%</span>
     </span>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  type,
-  icon: Icon,
-  sub,
-}: {
-  label: string;
-  value: string;
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
-  icon: LucideIcon;
-  sub?: string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.5rem',
-          color: 'var(--text-title)',
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        {value}
-      </div>
-      {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-          {sub}
-        </div>
-      ) : (
-        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
-      )}
-      <div
-        style={{
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
-          opacity: 0.7,
-        }}
-      >
-        <Icon size={18} />
-      </div>
-    </div>
   );
 }
 

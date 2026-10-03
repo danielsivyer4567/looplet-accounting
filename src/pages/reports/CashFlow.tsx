@@ -13,8 +13,10 @@ import {
   DollarSign,
   Wallet,
   Info,
-  type LucideIcon,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Stat } from '@/components/ui/Stat';
 
 interface FlowRow {
   week_start: string;
@@ -166,7 +168,7 @@ export function CashFlowPage() {
         )}
       </div>
 
-      <h1 style={{ margin: 0 }}>Cash Flow Forecast</h1>
+      <PageHeader title="Cash Flow Forecast" />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -190,28 +192,28 @@ export function CashFlowPage() {
           marginBottom: '2rem',
         }}
       >
-        <KpiCard
+        <Stat
           label="Opening Balance"
           value={formatMoney(openingBalance)}
-          type="neutral"
+          tone="neutral"
           icon={DollarSign}
         />
-        <KpiCard
+        <Stat
           label="Expected Receipts"
           value={formatMoney(totalIn)}
-          type="success"
+          tone="success"
           icon={Wallet}
         />
-        <KpiCard
+        <Stat
           label="Expected Payments"
           value={formatMoney(totalOut)}
-          type="danger"
+          tone="danger"
           icon={DollarSign}
         />
-        <KpiCard
+        <Stat
           label="Projected Closing"
           value={formatMoney(finalRunning)}
-          type={finalRunning >= 0 ? 'success' : 'danger'}
+          tone={finalRunning >= 0 ? 'success' : 'danger'}
           icon={TrendingUp}
         />
       </div>
@@ -227,18 +229,7 @@ export function CashFlowPage() {
           {formatLoadError('cash flow forecast', error)}
         </div>
       ) : rows.length === 0 ? (
-        <div
-          style={{
-            padding: '3rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
-          Nothing committed yet. Issue invoices and bills (with due dates) to populate the forecast.
-        </div>
+        <EmptyState>Nothing committed yet. Issue invoices and bills (with due dates) to populate the forecast.</EmptyState>
       ) : (
         <>
           <div className="cashflow-table-view table-premium-container">
@@ -413,71 +404,5 @@ export function CashFlowPage() {
         </div>
       </div>
     </section>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  type,
-  icon: Icon,
-  sub,
-}: {
-  label: string;
-  value: string;
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
-  icon: LucideIcon;
-  sub?: string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.5rem',
-          color: 'var(--text-title)',
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        {value}
-      </div>
-      {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-          {sub}
-        </div>
-      ) : (
-        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
-      )}
-      <div
-        style={{
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
-          opacity: 0.7,
-        }}
-      >
-        <Icon size={18} />
-      </div>
-    </div>
   );
 }

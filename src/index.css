@@ -3785,3 +3785,20 @@ div.badge {
 .stat-mono .stat-value {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
+
+/* An inline stat can colour its value by tone (a warning total, a failing count). */
+.stat-tone-success:not(.stat-card) .stat-value {
+  color: var(--text-success);
+}
+
+.stat-tone-danger:not(.stat-card) .stat-value {
+  color: var(--text-danger);
+}
+
+.stat-tone-warning:not(.stat-card) .stat-value {
+  color: var(--text-warning);
+}
+
+.stat-tone-info:not(.stat-card) .stat-value {
+  color: var(--text-info);
+}

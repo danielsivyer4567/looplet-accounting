@@ -15,7 +15,7 @@ export interface StatProps {
    * tile: a small bordered box, for metric grids inside a card.
    */
   variant?: 'card' | 'inline' | 'tile' | undefined;
-  /** Colours the card's left border and icon; neutral falls back to the primary accent. */
+  /** Colours the card's left border and icon (neutral falls back to the primary accent), or an inline value. */
   tone?: Tone | undefined;
   /** An explicit token (for example `var(--accent-info)`) that overrides `tone`. */
   accentColor?: string | undefined;
@@ -70,7 +70,14 @@ export function Stat({
 }: StatProps) {
   const accent = accentFor(tone, accentColor);
   const labelText = typeof label === 'string' ? label : undefined;
-  const classes = ['stat', `stat-${variant}`, strong ? 'stat-strong' : '', mono ? 'stat-mono' : '', className ?? '']
+  const classes = [
+    'stat',
+    `stat-${variant}`,
+    tone ? `stat-tone-${tone}` : '',
+    strong ? 'stat-strong' : '',
+    mono ? 'stat-mono' : '',
+    className ?? '',
+  ]
     .filter(Boolean)
     .join(' ');
   const cardStyle: CSSProperties =

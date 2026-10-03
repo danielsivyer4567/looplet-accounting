@@ -11,6 +11,7 @@ import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoney, centsToDollars } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import { Coins, Plus, Pencil, Trash2, X } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 // 0138 cgt_asset_type enum -> human label (also the add/edit select options).
 const ASSET_TYPES: { value: CgtAssetType; label: string }[] = [
@@ -151,16 +152,9 @@ export function CgtEventsPanel() {
       {loading ? (
         <SkeletonTable rows={3} cols={7} />
       ) : events.length === 0 ? (
-        <div
-          className="card"
-          style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}
-        >
-          <Coins size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
-          <p style={{ margin: 0, fontSize: '0.9rem' }}>No CGT events recorded yet.</p>
-          <p style={{ margin: '0.4rem 0 0', fontSize: '0.8rem' }}>
-            Record disposals (shares, property, crypto) so the gain can be calculated.
-          </p>
-        </div>
+        <EmptyState icon={Coins} title="No CGT events recorded yet.">
+          Record disposals (shares, property, crypto) so the gain can be calculated.
+        </EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">

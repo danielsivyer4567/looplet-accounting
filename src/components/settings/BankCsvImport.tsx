@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { Field } from '@/components/ui/Field';
 
 type Format = 'commbank' | 'nab' | 'westpac' | 'anz' | 'generic';
 type AccountType = 'checking' | 'savings' | 'credit_card' | 'loan' | 'investment' | 'other';
@@ -268,15 +269,6 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
         </div>
       )}
     </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-      <div style={{ marginBottom: 3 }}>{label}</div>
-      {children}
-    </label>
   );
 }
 

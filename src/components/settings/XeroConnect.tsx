@@ -4,6 +4,7 @@ import { rememberOAuthState } from '@/lib/oauthState';
 import { useOrg } from '@/hooks/useOrg';
 import { SkeletonCard } from '@/components/Skeleton';
 import { formatLoadError } from '@/lib/errorMessages';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 interface XeroIntegration {
   id: string;
@@ -201,7 +202,7 @@ export function XeroConnect() {
                 <span style={{ fontSize: 15, fontWeight: 600 }}>
                   {integration.xero_tenant_name}
                 </span>
-                <StatusPill status={integration.status} />
+                <StatusBadge tones={{ active: 'success', expired: 'danger', error: 'danger' }} status={integration.status} />
               </div>
               <div style={metaRow}>
                 <span style={metaLabel}>Tenant ID</span>
@@ -273,35 +274,6 @@ export function XeroConnect() {
         <p style={{ color: 'var(--text-success)', fontSize: 12, marginTop: '0.5rem' }}>{successMessage}</p>
       )}
     </div>
-  );
-}
-
-function StatusPill({ status }: { status: string }) {
-  const colour =
-    status === 'active'
-      ? 'var(--text-success)'
-      : status === 'expired' || status === 'error'
-        ? 'var(--text-danger)'
-        : 'var(--text-muted)';
-  const bg =
-    status === 'active'
-      ? 'var(--bg-success-subtle)'
-      : status === 'expired' || status === 'error'
-        ? 'var(--bg-danger-subtle)'
-        : 'var(--bg-hover)';
-  return (
-    <span
-      style={{
-        padding: '0.15rem 0.5rem',
-        fontSize: 11,
-        borderRadius: 3,
-        background: bg,
-        color: colour,
-        textTransform: 'uppercase',
-      }}
-    >
-      {status}
-    </span>
   );
 }
 

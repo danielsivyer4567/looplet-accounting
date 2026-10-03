@@ -108,24 +108,27 @@ describe('StatusBadge', () => {
 });
 
 describe('EmptyState', () => {
-  it('is a status region with title, explanation and an action', () => {
+  it('shows title, explanation and an action, and hides the decorative icon from assistive tech', () => {
     render(
       <EmptyState title="No bills yet" icon={Wallet} action={<button className="btn btn-primary">Upload a bill</button>}>
         Bills you upload or email in will show here.
       </EmptyState>,
     );
-    const region = screen.getByRole('status');
-    expect(region).toHaveClass('empty-state');
-    expect(within(region).getByText('No bills yet')).toHaveClass('empty-state-title');
-    expect(within(region).getByText(/will show here/)).toBeInTheDocument();
-    expect(within(region).getByRole('button', { name: 'Upload a bill' })).toBeInTheDocument();
+    const title = screen.getByText('No bills yet');
+    expect(title).toHaveClass('empty-state-title');
+    const block = title.closest('.empty-state') as HTMLElement;
+    expect(block).not.toBeNull();
+    // Not a live region: it mounts with its text, and pages keep role="status" for their own messages.
+    expect(block).not.toHaveAttribute('role');
+    expect(block.querySelector('.empty-state-icon')).toHaveAttribute('aria-hidden', 'true');
+    expect(within(block).getByText(/will show here/)).toBeInTheDocument();
+    expect(within(block).getByRole('button', { name: 'Upload a bill' })).toBeInTheDocument();
   });
 
   it('works with only children and a compact variant', () => {
     render(<EmptyState compact>No franking account entries for this year.</EmptyState>);
-    const region = screen.getByRole('status');
-    expect(region).toHaveClass('empty-state-compact');
-    expect(region).toHaveTextContent('No franking account entries for this year.');
+    const block = screen.getByText('No franking account entries for this year.').closest('.empty-state');
+    expect(block).toHaveClass('empty-state-compact');
   });
 });
 

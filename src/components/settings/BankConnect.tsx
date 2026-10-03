@@ -9,6 +9,7 @@ import { SkeletonTable } from '@/components/Skeleton';
 import { BankCsvImport } from './BankCsvImport';
 import { BankFeedLink } from './BankFeedLink';
 import { BankStatementImport } from './BankStatementImport';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 interface BankConnectionRow {
   id: string;
@@ -278,35 +279,10 @@ export function BankConnect() {
   );
 }
 
-function StatusPill({ status }: { status: BankConnectionRow['status'] }) {
-  const colour =
-    status === 'active'
-      ? 'var(--text-success)'
-      : status === 'expired' || status === 'revoked'
-        ? 'var(--text-danger)'
-        : status === 'error'
-          ? 'var(--text-danger)'
-          : 'var(--text-muted)';
-  return (
-    <span
-      style={{
-        padding: '0.15rem 0.5rem',
-        fontSize: 11,
-        borderRadius: 3,
-        background: 'var(--bg-hover)',
-        color: colour,
-        textTransform: 'uppercase',
-      }}
-    >
-      {status}
-    </span>
-  );
-}
-
 function BankConnectionStatus({ connection }: { connection: BankConnectionRow }) {
   return (
     <>
-      <StatusPill status={connection.status} />
+      <StatusBadge tones={{ active: 'success', expired: 'danger', revoked: 'danger', error: 'danger' }} status={connection.status} />
       {connection.last_error && (
         <div style={{ color: 'var(--text-danger)', fontSize: 10, marginTop: 4 }}>{connection.last_error}</div>
       )}

@@ -4,6 +4,8 @@ import { useOrg } from '@/hooks/useOrg';
 import { useAuth } from '@/hooks/useAuth';
 import { SkeletonTable } from '@/components/Skeleton';
 import { Clock, Mail, Activity as ActivityIcon, Layers, Info } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface Session {
   id: string;
@@ -96,10 +98,7 @@ export function MyActivityPage() {
 
   return (
     <section className="animated-fade-in" style={{ maxWidth: '950px' }}>
-      <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <ActivityIcon size={24} style={{ color: 'var(--text-link)' }} />
-        My Activity
-      </h1>
+      <PageHeader title={<><ActivityIcon size={24} style={{ color: 'var(--text-link)' }} /> My Activity</>} />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -182,19 +181,7 @@ export function MyActivityPage() {
           <SkeletonTable rows={5} cols={6} />
         </div>
       ) : sessions.length === 0 ? (
-        <div
-          style={{
-            padding: '2rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
-          No sessions yet. Sessions auto-create on your first pageview while logged in as an
-          accountant.
-        </div>
+        <EmptyState>No sessions yet. Sessions auto-create on your first pageview while logged in as an accountant.</EmptyState>
       ) : (
         <div className="table-premium-container" style={{ marginBottom: '2rem' }}>
           <table className="table-premium">
@@ -263,18 +250,7 @@ export function MyActivityPage() {
       </h2>
 
       {recent.length === 0 ? (
-        <div
-          style={{
-            padding: '2rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
-          None yet.
-        </div>
+        <EmptyState>None yet.</EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">

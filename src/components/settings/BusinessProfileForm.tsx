@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { SkeletonCard } from '@/components/Skeleton';
+import { Field } from '@/components/ui/Field';
 
 interface BusinessProfile {
   organization_id: string;
@@ -473,15 +474,6 @@ function Section({
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{children}</div>
     </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label}</span>
-      {children}
-    </label>
   );
 }
 

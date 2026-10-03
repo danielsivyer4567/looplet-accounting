@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { downloadBlob } from '@/lib/download';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrg } from '@/hooks/useOrg';
+import { Stat } from '@/components/ui/Stat';
 
 interface SessionRow {
   id: string;
@@ -466,11 +467,11 @@ export function AdvisorFinishButton() {
                   marginBottom: '1rem',
                 }}
               >
-                <Metric label="Sessions" value={summary.sessions} />
-                <Metric label="Pageviews" value={summary.pageviews} />
-                <Metric label="Actions" value={summary.actions} />
-                <Metric label="Write events" value={summary.writes} />
-                <Metric label="Resources" value={summary.resources} />
+                <Stat variant="tile" label="Sessions" value={summary.sessions} />
+                <Stat variant="tile" label="Pageviews" value={summary.pageviews} />
+                <Stat variant="tile" label="Actions" value={summary.actions} />
+                <Stat variant="tile" label="Write events" value={summary.writes} />
+                <Stat variant="tile" label="Resources" value={summary.resources} />
               </div>
 
               <div
@@ -627,26 +628,6 @@ export function AdvisorFinishButton() {
         </div>
       )}
     </>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: number }) {
-  return (
-    <div
-      style={{
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 8,
-        padding: '0.75rem',
-        background: 'var(--bg-hover)',
-      }}
-    >
-      <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 700 }}>
-        {label}
-      </div>
-      <div style={{ color: 'var(--text-title)', fontSize: '1.35rem', fontWeight: 800 }}>
-        {value}
-      </div>
-    </div>
   );
 }
 

@@ -23,6 +23,10 @@ import {
   Eye,
   AlertTriangle,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Field } from '@/components/ui/Field';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 export function PaymentRunDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -169,10 +173,7 @@ export function PaymentRunDetailPage() {
         }}
       >
         <div>
-          <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Layers size={24} style={{ color: 'var(--text-link)' }} />
-            Payment Run — {run.pay_date}
-          </h1>
+          <PageHeader title={<><Layers size={24} style={{ color: 'var(--text-link)' }} /> Payment Run — {run.pay_date}</>} />
           <div
             style={{
               display: 'flex',
@@ -189,7 +190,7 @@ export function PaymentRunDetailPage() {
               Pay Date: <strong style={{ color: 'var(--text-title)' }}>{run.pay_date}</strong>
             </span>
             <span>•</span>
-            <Pill status={run.status} />
+            <StatusBadge status={run.status} />
             <span>•</span>
             <span>{run.bill_count} bills</span>
             <span>•</span>
@@ -314,18 +315,7 @@ export function PaymentRunDetailPage() {
       </h2>
 
       {items.length === 0 ? (
-        <div
-          style={{
-            padding: '3rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
-          No items in this payment run.
-        </div>
+        <EmptyState>No items in this payment run.</EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">
@@ -418,10 +408,7 @@ function PaymentItemRow({
           <div
             style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}
           >
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <span className="form-label" style={{ fontSize: '0.725rem' }}>
-                Payee name (max 32)
-              </span>
+            <Field label="Payee name (max 32)">
               <input
                 value={draft.payee_account_name}
                 onChange={(e) =>
@@ -430,12 +417,9 @@ function PaymentItemRow({
                 className="form-input"
                 style={{ width: '200px', padding: '0.4rem 0.625rem' }}
               />
-            </div>
+            </Field>
 
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <span className="form-label" style={{ fontSize: '0.725rem' }}>
-                BSB (NNN-NNN)
-              </span>
+            <Field label="BSB (NNN-NNN)">
               <input
                 value={draft.payee_bsb}
                 onChange={(e) => setDraft((d) => ({ ...d, payee_bsb: e.target.value }))}
@@ -443,19 +427,16 @@ function PaymentItemRow({
                 className="form-input"
                 style={{ width: '100px', padding: '0.4rem 0.625rem' }}
               />
-            </div>
+            </Field>
 
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <span className="form-label" style={{ fontSize: '0.725rem' }}>
-                Account number
-              </span>
+            <Field label="Account number">
               <input
                 value={draft.payee_account_number}
                 onChange={(e) => setDraft((d) => ({ ...d, payee_account_number: e.target.value }))}
                 className="form-input"
                 style={{ width: '140px', padding: '0.4rem 0.625rem' }}
               />
-            </div>
+            </Field>
 
             <div style={{ display: 'flex', gap: '0.25rem' }}>
               <button
@@ -587,16 +568,6 @@ function PaymentItemRow({
       </td>
     </tr>
   );
-}
-
-function Pill({ status }: { status: PaymentRunRow['status'] }) {
-  let badgeClass = 'badge-neutral';
-  if (status === 'paid' || status === 'exported') badgeClass = 'badge-success';
-  else if (status === 'approved') badgeClass = 'badge-info';
-  else if (status === 'draft') badgeClass = 'badge-warning';
-  else if (status === 'cancelled') badgeClass = 'badge-danger';
-
-  return <span className={`badge ${badgeClass}`}>{status}</span>;
 }
 
 function maskAccount(acct: string): string {

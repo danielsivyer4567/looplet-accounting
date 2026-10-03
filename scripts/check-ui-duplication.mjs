@@ -26,8 +26,10 @@ const SIGNATURES = [
   {
     id: 'inline-kpi',
     primitive: 'Stat',
-    // The KPI card drawn by hand: a card with the 4px coloured left border.
-    line: /borderLeft:\s*[`'"]4px solid/,
+    // The KPI card drawn by hand: a 4px coloured left border with, close by, the uppercase small
+    // label and a display-size number. A tone stripe on a status card or list row is not a KPI.
+    window: /borderLeft:\s*[`'"]4px solid[\s\S]*textTransform:\s*'uppercase'/,
+    requires: /AnimatedNumber|fontFamily:\s*'var\(--font-title\)'|fontSize:\s*'(?:1\.[3-9]|[2-9])/,
   },
   {
     id: 'inline-status-pill',
@@ -59,13 +61,7 @@ const SIGNATURES = [
 ];
 
 /** Intentional exceptions: { path, id, reason }. Keep each reason specific. */
-const ALLOW = [
-  {
-    path: 'src/components/lodge/LodgeReadinessChecklist.tsx',
-    id: 'inline-kpi',
-    reason: 'A checklist row whose left border shows pass/fail; it is a status line, not a KPI card.',
-  },
-];
+const ALLOW = [];
 
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {

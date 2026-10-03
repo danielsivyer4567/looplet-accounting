@@ -10,6 +10,7 @@ import { SkeletonLine } from '@/components/Skeleton';
 import { ListChecks, Eye, EyeOff, CheckCircle2, X, Pencil } from 'lucide-react';
 import { recordFeedback } from '@/lib/automationDecision';
 import { noop } from '@/lib/utils';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 // Bill fields the queue needs beyond the suggestion itself: a label for the card
 // and storage_key/mime_type for the PDF preview. coding_review_queue carries only
@@ -312,7 +313,7 @@ export function CodingReviewPage() {
   if (suggestions.length === 0) {
     return (
       <section className="animated-fade-in" style={{ padding: '2rem 0' }}>
-        <h1 style={{ marginBottom: '0.5rem' }}>Coding Review</h1>
+        <PageHeader title="Coding Review" style={{ marginBottom: '0.5rem' }} />
         <div
           style={{
             padding: '2.5rem 2rem',
@@ -369,17 +370,7 @@ export function CodingReviewPage() {
         className="animated-fade-in"
       >
         <div style={{ marginBottom: '1.5rem' }}>
-          <h1
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              marginBottom: '0.25rem',
-            }}
-          >
-            <ListChecks size={24} style={{ color: 'var(--text-link)' }} />
-            Coding Review
-          </h1>
+          <PageHeader title={<><ListChecks size={24} style={{ color: 'var(--text-link)' }} /> Coding Review</>} style={{ marginBottom: '0.25rem' }} />
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
             {suggestions.length} bill{suggestions.length === 1 ? '' : 's'} the classifier wants a
             human to code.

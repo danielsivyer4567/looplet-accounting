@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { Field } from '@/components/ui/Field';
 
 interface PayerSettings {
   payer_bsb?: string;
@@ -166,15 +167,6 @@ export function PayerBankDetails() {
         {err && <span style={{ color: 'var(--text-danger)', fontSize: 12 }}>{err}</span>}
       </div>
     </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-      <div style={{ marginBottom: 3 }}>{label}</div>
-      {children}
-    </label>
   );
 }
 

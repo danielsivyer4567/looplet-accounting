@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { LegalLinks } from '@/components/LegalLinks';
 import { LEGAL_PATHS, LEGAL_VERSIONS, SUPPORT_EMAIL } from '@/lib/legal';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 /**
  * Privacy policy, terms of service and collection notice (LEGAL-01).
@@ -66,7 +67,7 @@ function LegalDocument({
         <Link to="/" style={{ color: 'var(--text-link)', fontSize: '0.85rem' }}>
           ← Back to Looplet Accounting
         </Link>
-        <h1 style={{ margin: '0.5rem 0 0' }}>{title}</h1>
+        <PageHeader title={title} style={{ margin: '0.5rem 0 0' }} />
         <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem' }}>
           Version {version}
         </p>

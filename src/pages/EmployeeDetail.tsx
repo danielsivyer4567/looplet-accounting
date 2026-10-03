@@ -34,8 +34,11 @@ import {
   Trash2,
   AlertTriangle,
   Lock,
-  type LucideIcon,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Field } from '@/components/ui/Field';
+import { Stat } from '@/components/ui/Stat';
 
 interface WageComponents {
   base_hourly_rate?: number;
@@ -374,10 +377,7 @@ export function EmployeeDetailPage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <User size={24} style={{ color: 'var(--text-link)' }} />
-            {employee.full_name}
-          </h1>
+          <PageHeader title={<><User size={24} style={{ color: 'var(--text-link)' }} /> {employee.full_name}</>} />
           {employee.role && (
             <span className="badge badge-neutral" style={{ fontSize: '0.825rem' }}>
               {employee.role}
@@ -433,13 +433,13 @@ export function EmployeeDetailPage() {
           marginBottom: '1.5rem',
         }}
       >
-        <KpiCard label="Hours (Month)" value={kpis.month.toFixed(1)} type="info" icon={Clock} />
-        <KpiCard label="Hours (Quarter)" value={kpis.quarter.toFixed(1)} type="info" icon={Clock} />
-        <KpiCard label="Hours (Year)" value={kpis.year.toFixed(1)} type="info" icon={Clock} />
-        <KpiCard
+        <Stat label="Hours (Month)" value={kpis.month.toFixed(1)} tone="info" icon={Clock} />
+        <Stat label="Hours (Quarter)" value={kpis.quarter.toFixed(1)} tone="info" icon={Clock} />
+        <Stat label="Hours (Year)" value={kpis.year.toFixed(1)} tone="info" icon={Clock} />
+        <Stat
           label="Loaded Rate"
           value={loadedRate > 0 ? formatMoney(loadedRate) : '—'}
-          type="success"
+          tone="success"
           icon={DollarSign}
           sub="incl super, leave & workcover"
         />
@@ -712,23 +712,23 @@ export function EmployeeDetailPage() {
             marginBottom: '2rem',
           }}
         >
-          <Stat label="Email" value={employee.email ?? '—'} />
-          <Stat label="Role" value={employee.role ?? '—'} />
-          <Stat label="Status" value={employee.is_active ? 'Active' : 'Inactive'} />
-          <Stat
+          <Stat variant="inline" label="Email" value={employee.email ?? '—'} />
+          <Stat variant="inline" label="Role" value={employee.role ?? '—'} />
+          <Stat variant="inline" label="Status" value={employee.is_active ? 'Active' : 'Inactive'} />
+          <Stat variant="inline"
             label="Base $/hr"
             value={w.base_hourly_rate != null ? `$${Number(w.base_hourly_rate).toFixed(2)}` : '—'}
           />
-          <Stat label="Super %" value={w.super_pct != null ? `${w.super_pct}%` : '—'} />
-          <Stat label="Workcover %" value={w.workcover_pct != null ? `${w.workcover_pct}%` : '—'} />
-          <Stat
+          <Stat variant="inline" label="Super %" value={w.super_pct != null ? `${w.super_pct}%` : '—'} />
+          <Stat variant="inline" label="Workcover %" value={w.workcover_pct != null ? `${w.workcover_pct}%` : '—'} />
+          <Stat variant="inline"
             label="Leave loading %"
             value={w.leave_loading_pct != null ? `${w.leave_loading_pct}%` : '—'}
           />
-          <Stat label="Loaded $/hr" value={loadedRate > 0 ? formatMoney(loadedRate) : '—'} />
-          <Stat label="Modern award" value={employee.modern_award ?? '—'} />
-          <Stat label="Classification" value={employee.classification_level ?? '—'} />
-          <Stat label="Created" value={new Date(employee.created_at).toLocaleDateString()} />
+          <Stat variant="inline" label="Loaded $/hr" value={loadedRate > 0 ? formatMoney(loadedRate) : '—'} />
+          <Stat variant="inline" label="Modern award" value={employee.modern_award ?? '—'} />
+          <Stat variant="inline" label="Classification" value={employee.classification_level ?? '—'} />
+          <Stat variant="inline" label="Created" value={new Date(employee.created_at).toLocaleDateString()} />
         </div>
       )}
 
@@ -786,20 +786,7 @@ export function EmployeeDetailPage() {
         Recent timesheets — last 60 days
       </h2>
       {recentTs.length === 0 ? (
-        <div
-          style={{
-            padding: '2rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '0.875rem',
-            marginBottom: '2rem',
-          }}
-        >
-          No timesheet entries in the last 60 days.
-        </div>
+        <EmptyState>No timesheet entries in the last 60 days.</EmptyState>
       ) : (
         <div className="table-premium-container" style={{ marginBottom: '2rem' }}>
           <table className="table-premium">
@@ -843,20 +830,7 @@ export function EmployeeDetailPage() {
         Cost per job — last 90 days
       </h2>
       {jobCostBreakdown.length === 0 ? (
-        <div
-          style={{
-            padding: '2rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '0.875rem',
-            marginBottom: '2rem',
-          }}
-        >
-          No job-attached time logged in the last 90 days.
-        </div>
+        <EmptyState>No job-attached time logged in the last 90 days.</EmptyState>
       ) : (
         <div className="table-premium-container" style={{ marginBottom: '2rem' }}>
           <table className="table-premium">
@@ -927,19 +901,7 @@ export function EmployeeDetailPage() {
         Recent payslips
       </h2>
       {paySlips.length === 0 ? (
-        <div
-          style={{
-            padding: '2rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '0.875rem',
-          }}
-        >
-          No payslips yet for this employee.
-        </div>
+        <EmptyState>No payslips yet for this employee.</EmptyState>
       ) : (
         <>
           {(() => {
@@ -954,22 +916,22 @@ export function EmployeeDetailPage() {
                   marginBottom: '1rem',
                 }}
               >
-                <KpiCard
+                <Stat
                   label="YTD Gross"
                   value={formatMoney(Number(latest.ytd_gross_cents))}
-                  type="neutral"
+                  tone="neutral"
                   icon={DollarSign}
                 />
-                <KpiCard
+                <Stat
                   label="YTD PAYG"
                   value={formatMoney(Number(latest.ytd_tax_cents))}
-                  type="danger"
+                  tone="danger"
                   icon={DollarSign}
                 />
-                <KpiCard
+                <Stat
                   label="YTD Super"
                   value={formatMoney(Number(latest.ytd_super_cents))}
-                  type="info"
+                  tone="info"
                   icon={Wallet}
                 />
               </div>
@@ -1030,17 +992,6 @@ export function EmployeeDetailPage() {
         </>
       )}
     </section>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="form-group" style={{ marginBottom: 0 }}>
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>
-        {label}
-      </span>
-      <div style={{ marginTop: '0.25rem' }}>{children}</div>
-    </div>
   );
 }
 
@@ -1188,100 +1139,6 @@ function TfnPanel({ organizationId, employeeId }: { organizationId: string; empl
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.25rem',
-          color: 'var(--text-title)',
-          fontSize: '0.9rem',
-          fontWeight: 600,
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  type,
-  icon: Icon,
-  sub,
-}: {
-  label: string;
-  value: string;
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
-  icon: LucideIcon;
-  sub?: string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.5rem',
-          color: 'var(--text-title)',
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        {value}
-      </div>
-      {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-          {sub}
-        </div>
-      ) : (
-        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
-      )}
-      <div
-        style={{
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
-          opacity: 0.7,
-        }}
-      >
-        <Icon size={18} />
-      </div>
-    </div>
-  );
-}
-
 function LeaveBalancesPanel({
   orgId,
   employeeId,
@@ -1364,10 +1221,7 @@ function LeaveBalancesPanel({
                 marginTop: '0.25rem',
               }}
             >
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <span className="form-label" style={{ fontSize: '0.65rem' }}>
-                  Accrued
-                </span>
+              <Field label="Accrued">
                 <input
                   type="number"
                   step="0.5"
@@ -1377,11 +1231,8 @@ function LeaveBalancesPanel({
                   className="form-input"
                   style={{ padding: '0.35rem 0.5rem', fontSize: '0.825rem' }}
                 />
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <span className="form-label" style={{ fontSize: '0.65rem' }}>
-                  Taken
-                </span>
+              </Field>
+              <Field label="Taken">
                 <input
                   type="number"
                   step="0.5"
@@ -1391,7 +1242,7 @@ function LeaveBalancesPanel({
                   className="form-input"
                   style={{ padding: '0.35rem 0.5rem', fontSize: '0.825rem' }}
                 />
-              </div>
+              </Field>
             </div>
           </div>
         );

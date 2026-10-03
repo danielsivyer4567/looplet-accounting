@@ -11,6 +11,8 @@ import { useIntakeCategories } from '@/hooks/useIntakeCategories';
 import { formatLoadError } from '@/lib/errorMessages';
 import { SkeletonTable } from '@/components/Skeleton';
 import { ChevronLeft, Globe } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export function TriagePage() {
   const { currentOrg } = useOrg();
@@ -442,7 +444,7 @@ export function TriagePage() {
         }}
       >
         <div>
-          <h1 style={{ margin: 0 }}>Onboarding Triage</h1>
+          <PageHeader title="Onboarding Triage" />
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
             Review, pre-categorise, and approve staged senders from your historical inbox messages.
           </p>
@@ -822,18 +824,7 @@ export function TriagePage() {
       )}
 
       {!loadError && entities.length === 0 && (
-        <div
-          style={{
-            padding: '3rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
-          No staged senders found yet. Run mailbox mining first.
-        </div>
+        <EmptyState>No staged senders found yet. Run mailbox mining first.</EmptyState>
       )}
     </section>
   );

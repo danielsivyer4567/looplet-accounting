@@ -22,6 +22,7 @@ import { ConfidenceBadge } from '@/components/ConfidenceBadge';
 import { recordFeedback, type AutomationConfidence } from '@/lib/automationDecision';
 import { noop } from '@/lib/utils';
 import { enqueueJob } from '@/lib/automationJobs';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 interface BankTxn {
   id: string;
@@ -330,12 +331,7 @@ export function ReconciliationPage() {
     <section className="animated-fade-in">
       {/* Header title */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <h1
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}
-        >
-          <Scale size={24} style={{ color: 'var(--text-link)' }} />
-          Reconciliation
-        </h1>
+        <PageHeader title={<><Scale size={24} style={{ color: 'var(--text-link)' }} /> Reconciliation</>} style={{ marginBottom: '0.25rem' }} />
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
           Match bank transactions to bills (money out) and invoices (money in).
         </p>

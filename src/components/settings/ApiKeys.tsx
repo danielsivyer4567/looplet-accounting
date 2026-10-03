@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Ban, CheckCircle2, Copy, KeyRound, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Ban, Copy, KeyRound, RefreshCw, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 const API_KEY_COLUMNS =
   'id, name, key_prefix, scopes, created_at, last_used_at, expires_at, revoked_at, rate_limit_per_min';
@@ -330,7 +331,7 @@ export function ApiKeys() {
                   </Td>
                   <Td>{(key.scopes ?? []).join(', ') || 'none'}</Td>
                   <Td>
-                    <StatusBadge status={keyStatus(key)} />
+                    <StatusBadge tones={{ active: 'success', expired: 'warning', revoked: 'danger' }} status={keyStatus(key)} />
                   </Td>
                   <Td>{formatDate(key.last_used_at)}</Td>
                   <Td>{key.rate_limit_per_min ?? 120}/min</Td>
@@ -395,21 +396,6 @@ function SummaryStat({ label, value }: { label: string; value: number }) {
       <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{label}</span>
       <strong style={{ color: 'var(--text-title)', fontSize: 18 }}>{value}</strong>
     </div>
-  );
-}
-
-function StatusBadge({ status }: { status: KeyStatus }) {
-  const tone =
-    status === 'active'
-      ? { color: 'var(--text-success)', bg: 'var(--bg-success-subtle)' }
-      : status === 'expired'
-        ? { color: 'var(--text-warning)', bg: 'var(--bg-warning-subtle)' }
-        : { color: 'var(--text-danger)', bg: 'var(--bg-danger-subtle)' };
-  return (
-    <span style={{ ...badgeStyle, color: tone.color, background: tone.bg }}>
-      {status === 'active' && <CheckCircle2 size={12} />}
-      {status}
-    </span>
   );
 }
 
@@ -671,16 +657,6 @@ const tdStyle: React.CSSProperties = {
   padding: '0.55rem 0.5rem',
   color: 'var(--text-title)',
   verticalAlign: 'top',
-};
-
-const badgeStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.25rem',
-  padding: '0.15rem 0.5rem',
-  fontSize: 11,
-  borderRadius: 999,
-  textTransform: 'uppercase',
 };
 
 const muted: React.CSSProperties = {

@@ -6,7 +6,6 @@ import { useSuperBatch } from '@/hooks/useSuperBatch';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
 import { SkeletonTable } from '@/components/Skeleton';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
-import { AnimatedNumber } from '@/components/AnimatedNumber';
 import {
   addDays,
   financialYearQuarter,
@@ -26,8 +25,12 @@ import {
   Send,
   CheckCircle2,
   Loader2,
-  type LucideIcon,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Field } from '@/components/ui/Field';
+import { Stat } from '@/components/ui/Stat';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface PayRun {
   id: string;
@@ -186,10 +189,7 @@ export function PayrollPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Layers size={24} style={{ color: 'var(--text-link)' }} />
-          Payroll
-        </h1>
+        <PageHeader title={<><Layers size={24} style={{ color: 'var(--text-link)' }} /> Payroll</>} />
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <button
             onClick={() => setShowCreate(true)}
@@ -211,32 +211,32 @@ export function PayrollPage() {
           marginBottom: '1.5rem',
         }}
       >
-        <KpiCard
+        <Stat
           label="YTD Gross Paid"
           value={ytdTotals.gross}
           formatter={formatMoney}
-          type="neutral"
+          tone="neutral"
           icon={DollarSign}
         />
-        <KpiCard
+        <Stat
           label="YTD PAYG Withheld"
           value={ytdTotals.tax}
           formatter={formatMoney}
-          type="danger"
+          tone="danger"
           icon={DollarSign}
         />
-        <KpiCard
+        <Stat
           label="YTD Super Guarantee"
           value={ytdTotals.sup}
           formatter={formatMoney}
-          type="info"
+          tone="info"
           icon={Wallet}
         />
-        <KpiCard
+        <Stat
           label="YTD Net Paid"
           value={ytdTotals.net}
           formatter={formatMoney}
-          type="success"
+          tone="success"
           icon={Wallet}
         />
       </div>
@@ -324,18 +324,9 @@ export function PayrollPage() {
       {loading ? (
         <SkeletonTable rows={3} cols={8} />
       ) : runs.length === 0 ? (
-        <div
-          style={{
-            padding: '3rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
+        <EmptyState>
           No pay runs yet. Approve some timesheets and click <strong>New pay run</strong> to start.
-        </div>
+        </EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">
@@ -361,7 +352,7 @@ export function PayrollPage() {
                   </td>
                   <td>{r.pay_date}</td>
                   <td>
-                    <Pill status={r.status} />
+                    <StatusBadge status={r.status} />
                   </td>
                   <td style={{ textAlign: 'right' }}>{formatMoney(Number(r.total_gross_cents))}</td>
                   <td style={{ textAlign: 'right' }}>{formatMoney(Number(r.total_tax_cents))}</td>
@@ -874,93 +865,4 @@ function fyStart(timeZone: string): string {
 function currentAuFyQuarter(timeZone: string): { fyStart: number; quarter: number } {
   const { fyStartYear, quarter } = financialYearQuarter(todayLocal(timeZone));
   return { fyStart: fyStartYear, quarter };
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="form-group" style={{ marginBottom: 0 }}>
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>
-        {label}
-      </span>
-      <div style={{ marginTop: '0.25rem' }}>{children}</div>
-    </div>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  type,
-  icon: Icon,
-  sub,
-  formatter,
-}: {
-  label: string;
-  value: number;
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
-  icon: LucideIcon;
-  sub?: string;
-  formatter?: (val: number) => string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.5rem',
-          color: 'var(--text-title)',
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        <AnimatedNumber value={value} formatter={formatter} />
-      </div>
-      {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-          {sub}
-        </div>
-      ) : (
-        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
-      )}
-      <div
-        style={{
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
-          opacity: 0.7,
-        }}
-      >
-        <Icon size={18} />
-      </div>
-    </div>
-  );
-}
-
-function Pill({ status }: { status: PayRun['status'] }) {
-  let badgeClass = 'badge-neutral';
-  if (status === 'paid') badgeClass = 'badge-success';
-  else if (status === 'approved') badgeClass = 'badge-info';
-  else if (status === 'draft') badgeClass = 'badge-warning';
-  else if (status === 'cancelled' || status === 'reversed') badgeClass = 'badge-danger';
-
-  return <span className={`badge ${badgeClass}`}>{status}</span>;
 }

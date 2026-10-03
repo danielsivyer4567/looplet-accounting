@@ -1,4 +1,4 @@
-import { cloneElement, isValidElement, useEffect, useId, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
 import { useJobs } from '@/hooks/useJobs';
@@ -9,8 +9,12 @@ import { SkeletonTable } from '@/components/Skeleton';
 import { formatMoney, formatMoneyCompact } from '@/lib/money';
 import { orgTimeZone, todayLocal } from '@/lib/localDates';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
-import { AnimatedNumber } from '@/components/AnimatedNumber';
-import { Briefcase, Plus, FileSpreadsheet, X, Activity, type LucideIcon } from 'lucide-react';
+import { Briefcase, Plus, FileSpreadsheet, X, Activity } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Field } from '@/components/ui/Field';
+import { Stat } from '@/components/ui/Stat';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 function getBillCount(val: [{ count: number }] | []): number {
   if (val.length === 0) return 0;
@@ -105,10 +109,7 @@ export function JobsPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Briefcase size={24} style={{ color: 'var(--text-link)' }} />
-          Jobs
-        </h1>
+        <PageHeader title={<><Briefcase size={24} style={{ color: 'var(--text-link)' }} /> Jobs</>} />
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           {!loading && (
             <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
@@ -185,26 +186,26 @@ export function JobsPage() {
               marginBottom: '1.5rem',
             }}
           >
-            <KpiCard label="Active Jobs" value={activeCount} type="success" icon={Briefcase} />
-            <KpiCard
+            <Stat label="Active Jobs" value={activeCount} tone="success" icon={Briefcase} />
+            <Stat
               label="Total Revenue (all-time)"
               value={totalRevenue}
               formatter={formatMoney}
-              type="info"
+              tone="info"
               icon={FileSpreadsheet}
             />
-            <KpiCard
+            <Stat
               label="Total Job Cost (all-time)"
               value={totalCost}
               formatter={formatMoney}
-              type="neutral"
+              tone="neutral"
               icon={FileSpreadsheet}
             />
-            <KpiCard
+            <Stat
               label="Gross Margin (all-time)"
               value={totalProfit}
               formatter={formatMoney}
-              type={totalProfit >= 0 ? 'success' : 'danger'}
+              tone={totalProfit >= 0 ? 'success' : 'danger'}
               icon={FileSpreadsheet}
             />
           </div>
@@ -256,18 +257,7 @@ export function JobsPage() {
           {formatLoadError('jobs', error)}
         </div>
       ) : jobs.length === 0 ? (
-        <div
-          style={{
-            padding: '3rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
-          No jobs yet for {currentOrg.name}.
-        </div>
+        <EmptyState>No jobs yet for {currentOrg.name}.</EmptyState>
       ) : (
         <>
           <div className="jobs-table-view table-premium-container">
@@ -302,7 +292,7 @@ export function JobsPage() {
                       </td>
                       <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{j.name}</td>
                       <td>
-                        <Pill status={j.status} />
+                        <StatusBadge status={j.status} />
                       </td>
                       <td style={{ textAlign: 'right', fontWeight: 600 }}>
                         {attached > 0 ? (
@@ -364,7 +354,7 @@ function JobCard({ job, onOpen }: { job: JobListRow; onOpen: () => void }) {
             Created {created}
           </div>
         </div>
-        <Pill status={job.status} />
+        <StatusBadge status={job.status} />
       </div>
       <div className="job-mobile-card__metrics">
         <div>
@@ -581,97 +571,4 @@ function CreateJobForm({
       )}
     </div>
   );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  const id = useId();
-  const control = isValidElement(children)
-    ? cloneElement(children as React.ReactElement<{ id?: string }>, { id })
-    : children;
-
-  return (
-    <div className="form-group" style={{ marginBottom: 0 }}>
-      <label htmlFor={id} className="form-label" style={{ fontSize: '0.725rem' }}>
-        {label}
-      </label>
-      <div style={{ marginTop: '0.25rem' }}>{control}</div>
-    </div>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  type,
-  icon: Icon,
-  sub,
-  formatter,
-}: {
-  label: string;
-  value: number;
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
-  icon: LucideIcon;
-  sub?: string;
-  formatter?: (val: number) => string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.5rem',
-          color: 'var(--text-title)',
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        <AnimatedNumber value={value} formatter={formatter} />
-      </div>
-      {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-          {sub}
-        </div>
-      ) : (
-        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
-      )}
-      <div
-        style={{
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
-          opacity: 0.7,
-        }}
-      >
-        <Icon size={18} />
-      </div>
-    </div>
-  );
-}
-
-function Pill({ status }: { status: string }) {
-  let badgeClass = 'badge-neutral';
-  if (status === 'active' || status === 'completed') badgeClass = 'badge-success';
-  else if (status === 'paused') badgeClass = 'badge-warning';
-  else if (status === 'cancelled' || status === 'archived') badgeClass = 'badge-danger';
-
-  return <span className={`badge ${badgeClass}`}>{status.replace('_', ' ')}</span>;
 }

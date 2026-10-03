@@ -37,6 +37,8 @@ import {
   ShieldAlert,
   CalendarClock,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 const FEED_COLORS = [1, 2, 3, 4, 5, 6, 7].map((n) => `var(--palette-${n})`);
 
@@ -301,7 +303,7 @@ export function DashboardPage() {
         >
           👋
         </div>
-        <h1 style={{ marginBottom: '1rem' }}>Welcome to Looplet</h1>
+        <PageHeader title="Welcome to Looplet" style={{ marginBottom: '1rem' }} />
         <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
           Create or select your first organisation in the header to get started. Each organisation
           is fully isolated — bills, jobs, employees, and Xero connection are yours alone.
@@ -567,17 +569,7 @@ export function DashboardPage() {
           </div>
         )}
         {!activityLoading && activityItems.length === 0 && (
-          <div
-            style={{
-              padding: '1.5rem 1.25rem',
-              textAlign: 'center',
-              color: 'var(--text-muted)',
-              fontSize: '0.85rem',
-            }}
-          >
-            No money activity yet — upload a bill, raise an invoice, or import a bank statement and
-            it shows up here.
-          </div>
+          <EmptyState>No money activity yet — upload a bill, raise an invoice, or import a bank statement and it shows up here.</EmptyState>
         )}
         {activityItems.map((tx, idx) => (
           <div

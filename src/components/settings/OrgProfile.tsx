@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
 import { formatActionError } from '@/lib/errorMessages';
 import { SkeletonCard } from '@/components/Skeleton';
+import { Field } from '@/components/ui/Field';
 
 interface OrgSettings {
   tax_rate_percent?: number;
@@ -165,14 +166,6 @@ export function OrgProfileForm() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-      <div style={{ marginBottom: 3 }}>{label}</div>
-      {children}
-    </label>
-  );
-}
 const inp: React.CSSProperties = {
   width: '100%',
   padding: '6px 8px',

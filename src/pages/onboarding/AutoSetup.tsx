@@ -6,6 +6,7 @@ import { useGmailIntegrations } from '@/hooks/useGmailIntegrations';
 import { useStagedEntities } from '@/hooks/onboarding/useStagedEntities';
 import { DetectedInsights } from '@/components/onboarding/DetectedInsights';
 import { Sparkles, Mail, ShieldAlert, ArrowRight, Play, RefreshCw } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 export function AutoSetupPage() {
   const { currentOrg } = useOrg();
@@ -152,12 +153,7 @@ export function AutoSetupPage() {
     <section className="animated-fade-in">
       {/* Header section */}
       <div style={{ marginBottom: '2rem' }}>
-        <h1
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}
-        >
-          <Sparkles size={24} style={{ color: 'var(--text-link)' }} />
-          Auto Setup
-        </h1>
+        <PageHeader title={<><Sparkles size={24} style={{ color: 'var(--text-link)' }} /> Auto Setup</>} style={{ marginBottom: '0.25rem' }} />
         <p
           style={{
             color: 'var(--text-muted)',

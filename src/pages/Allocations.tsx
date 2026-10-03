@@ -9,6 +9,7 @@ import { formatMoney } from '@/lib/money';
 import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { SkeletonLine } from '@/components/Skeleton';
 import { GitPullRequest, Eye, EyeOff, CheckCircle2, ChevronRight, X } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 // Fetch storage fields from bills table on-demand (not in v_allocation_queue)
 function BillPreviewPane({ bill, onClose }: { bill: AllocationQueueRow; onClose: () => void }) {
@@ -248,7 +249,7 @@ export function AllocationsPage() {
   if (queue.length === 0) {
     return (
       <section className="animated-fade-in" style={{ padding: '2rem 0' }}>
-        <h1 style={{ marginBottom: '0.5rem' }}>Allocations</h1>
+        <PageHeader title="Allocations" style={{ marginBottom: '0.5rem' }} />
         <div
           style={{
             padding: '2.5rem 2rem',
@@ -420,17 +421,7 @@ export function AllocationsPage() {
         className="animated-fade-in allocations-main"
       >
         <div style={{ marginBottom: '1.5rem' }}>
-          <h1
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              marginBottom: '0.25rem',
-            }}
-          >
-            <GitPullRequest size={24} style={{ color: 'var(--text-link)' }} />
-            Allocations
-          </h1>
+          <PageHeader title={<><GitPullRequest size={24} style={{ color: 'var(--text-link)' }} /> Allocations</>} style={{ marginBottom: '0.25rem' }} />
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
             {queue.length} bill{queue.length === 1 ? '' : 's'} waiting to be allocated to jobs.
           </p>

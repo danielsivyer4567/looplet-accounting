@@ -1,4 +1,4 @@
-import { cloneElement, isValidElement, useEffect, useId, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useBill, getBillFileUrl, type BillDetail as Bill } from '@/hooks/useBill';
 import { JobPicker } from '@/components/JobPicker';
@@ -33,6 +33,10 @@ import {
   Star,
   Check,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { Field } from '@/components/ui/Field';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface BillDraft {
   supplier_name_raw: string;
@@ -158,13 +162,10 @@ export function BillDetailPage() {
   }
   if (error || !bill) {
     return (
-      <section className="animated-fade-in" style={{ padding: '2rem 0', textAlign: 'center' }}>
-        <AlertTriangle size={48} style={{ color: 'var(--accent-danger)', marginBottom: '1rem' }} />
-        <h2>Bill not found</h2>
-        <p style={{ color: 'var(--text-muted)' }}>{error ?? 'No bill with that ID.'}</p>
-        <Link to="/bills" className="btn btn-secondary" style={{ marginTop: '1rem' }}>
-          <ChevronLeft size={16} /> Back to bills
-        </Link>
+      <section className="animated-fade-in">
+        <EmptyState icon={AlertTriangle} title="Bill not found" action={<Link to="/bills" className="btn btn-secondary"> <ChevronLeft size={16} /> Back to bills </Link>}>
+          {error ?? 'No bill with that ID.'}
+        </EmptyState>
       </section>
     );
   }
@@ -344,12 +345,7 @@ export function BillDetailPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileText size={24} style={{ color: 'var(--text-link)' }} />
-          {bill.supplier_name_raw ?? (
-            <span style={{ color: 'var(--text-muted)' }}>Bill {bill.id.slice(0, 8)}</span>
-          )}
-        </h1>
+        <PageHeader title={<><FileText size={24} style={{ color: 'var(--text-link)' }} /> {bill.supplier_name_raw ?? ( <span style={{ color: 'var(--text-muted)' }}>Bill {bill.id.slice(0, 8)}</span> )}</>} />
 
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
           {savedFlash && (
@@ -599,15 +595,15 @@ export function BillDetailPage() {
             <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
               {editing && draft ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <EditField label="Supplier">
+                  <Field label="Supplier">
                     <input
                       value={draft.supplier_name_raw}
                       onChange={(e) => setField('supplier_name_raw', e.target.value)}
                       className="form-input"
                       placeholder="Supplier name"
                     />
-                  </EditField>
-                  <EditField label="ABN">
+                  </Field>
+                  <Field label="ABN">
                     <input
                       value={draft.supplier_abn}
                       onChange={(e) => setField('supplier_abn', e.target.value)}
@@ -615,8 +611,8 @@ export function BillDetailPage() {
                       style={{ fontFamily: 'ui-monospace, monospace' }}
                       placeholder="XX XXX XXX XXX"
                     />
-                  </EditField>
-                  <EditField label="Invoice #">
+                  </Field>
+                  <Field label="Invoice #">
                     <input
                       value={draft.invoice_number}
                       onChange={(e) => setField('invoice_number', e.target.value)}
@@ -624,24 +620,24 @@ export function BillDetailPage() {
                       style={{ fontFamily: 'ui-monospace, monospace' }}
                       placeholder="INV-001"
                     />
-                  </EditField>
-                  <EditField label="Invoice Date">
+                  </Field>
+                  <Field label="Invoice Date">
                     <input
                       type="date"
                       value={draft.invoice_date}
                       onChange={(e) => setField('invoice_date', e.target.value)}
                       className="form-input"
                     />
-                  </EditField>
-                  <EditField label="Due Date">
+                  </Field>
+                  <Field label="Due Date">
                     <input
                       type="date"
                       value={draft.due_date}
                       onChange={(e) => setField('due_date', e.target.value)}
                       className="form-input"
                     />
-                  </EditField>
-                  <EditField
+                  </Field>
+                  <Field
                     label="Total inc GST"
                     hint="Leave GST and subtotal blank if the bill doesn't show them: GST stays unknown and no GST credit is claimed"
                   >
@@ -652,15 +648,15 @@ export function BillDetailPage() {
                       style={{ fontWeight: 600 }}
                       placeholder="0.00"
                     />
-                  </EditField>
-                  <EditField label="GST Share">
+                  </Field>
+                  <Field label="GST Share">
                     <input
                       value={draft.gst_dollars}
                       onChange={(e) => setField('gst_dollars', e.target.value)}
                       className="form-input"
                       placeholder="As shown on the bill"
                     />
-                  </EditField>
+                  </Field>
                   <div
                     style={{
                       display: 'flex',
@@ -700,15 +696,15 @@ export function BillDetailPage() {
                       No GST (supplier not registered or GST-free)
                     </button>
                   </div>
-                  <EditField label="Subtotal ex GST">
+                  <Field label="Subtotal ex GST">
                     <input
                       value={draft.subtotal_ex_gst_dollars}
                       onChange={(e) => setField('subtotal_ex_gst_dollars', e.target.value)}
                       className="form-input"
                       placeholder="0.00"
                     />
-                  </EditField>
-                  <EditField label="Job Reference">
+                  </Field>
+                  <Field label="Job Reference">
                     <input
                       value={draft.job_reference_raw}
                       onChange={(e) => setField('job_reference_raw', e.target.value)}
@@ -716,8 +712,8 @@ export function BillDetailPage() {
                       style={{ fontFamily: 'ui-monospace, monospace' }}
                       placeholder="e.g. JOB-042"
                     />
-                  </EditField>
-                  <EditField label="Internal Notes">
+                  </Field>
+                  <Field label="Internal Notes">
                     <textarea
                       value={draft.notes}
                       onChange={(e) => setField('notes', e.target.value)}
@@ -725,16 +721,16 @@ export function BillDetailPage() {
                       style={{ minHeight: '60px' }}
                       placeholder="Internal notes…"
                     />
-                  </EditField>
+                  </Field>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <Field label="Supplier" value={bill.supplier_name_raw} />
-                  <Field label="ABN" value={bill.supplier_abn} mono />
-                  <Field label="Invoice #" value={bill.invoice_number} mono />
-                  <Field label="Date" value={bill.invoice_date} />
-                  <Field label="Due" value={bill.due_date} />
-                  <Field
+                  <DetailRow label="Supplier" value={bill.supplier_name_raw} />
+                  <DetailRow label="ABN" value={bill.supplier_abn} mono />
+                  <DetailRow label="Invoice #" value={bill.invoice_number} mono />
+                  <DetailRow label="Date" value={bill.invoice_date} />
+                  <DetailRow label="Due" value={bill.due_date} />
+                  <DetailRow
                     label="Total inc GST"
                     value={
                       bill.total_inc_gst_cents != null
@@ -743,7 +739,7 @@ export function BillDetailPage() {
                     }
                     highlight
                   />
-                  <Field
+                  <DetailRow
                     label="GST"
                     value={
                       bill.gst_cents != null
@@ -753,7 +749,7 @@ export function BillDetailPage() {
                           : null
                     }
                   />
-                  <Field
+                  <DetailRow
                     label="Subtotal ex GST"
                     value={
                       bill.subtotal_ex_gst_cents != null
@@ -761,9 +757,9 @@ export function BillDetailPage() {
                         : null
                     }
                   />
-                  <Field label="Job Reference" value={bill.job_reference_raw} mono />
-                  {bill.notes && <Field label="Notes" value={bill.notes} />}
-                  <Field
+                  <DetailRow label="Job Reference" value={bill.job_reference_raw} mono />
+                  {bill.notes && <DetailRow label="Notes" value={bill.notes} />}
+                  <DetailRow
                     label="OCR Intake Info"
                     value={
                       bill.ocr_provider
@@ -1090,11 +1086,6 @@ function PersonalToggle({ bill, onChange }: { bill: Bill; onChange: () => void }
 }
 
 function StatusBar({ bill }: { bill: Bill }) {
-  let badgeClass = 'badge-neutral';
-  if (bill.status === 'attached') badgeClass = 'badge-success';
-  else if (bill.status === 'paid') badgeClass = 'badge-info';
-  else if (bill.status === 'verified') badgeClass = 'badge-warning';
-
   return (
     <div
       style={{
@@ -1107,7 +1098,7 @@ function StatusBar({ bill }: { bill: Bill }) {
         flexWrap: 'wrap',
       }}
     >
-      <span className={`badge ${badgeClass}`}>{bill.status}</span>
+      <StatusBadge status={bill.status} tones={{ paid: 'info' }} />
       <span>·</span>
       <span>Uploaded: {new Date(bill.created_at).toLocaleString('en-AU')}</span>
       <span>·</span>
@@ -1118,53 +1109,7 @@ function StatusBar({ bill }: { bill: Bill }) {
   );
 }
 
-function EditField({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  const id = useId();
-  const control = isValidElement(children)
-    ? cloneElement(children as React.ReactElement<{ id?: string }>, { id })
-    : children;
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        padding: '0.35rem 0',
-        borderBottom: '1px solid var(--border-subtle)',
-        gap: 12,
-      }}
-    >
-      <div style={{ width: 130, flexShrink: 0, paddingTop: 6 }}>
-        <label htmlFor={id} className="form-label" style={{ fontSize: '0.725rem' }}>
-          {label}
-        </label>
-        {hint && (
-          <div
-            style={{
-              fontSize: '0.675rem',
-              color: 'var(--text-muted)',
-              marginTop: 2,
-              lineHeight: 1.3,
-            }}
-          >
-            {hint}
-          </div>
-        )}
-      </div>
-      <div style={{ flex: 1 }}>{control}</div>
-    </div>
-  );
-}
-
-function Field({
+function DetailRow({
   label,
   value,
   mono,

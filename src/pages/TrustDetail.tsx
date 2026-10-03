@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   Banknote,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 const cardStyle: CSSProperties = {
   background: 'var(--bg-card)',
@@ -179,18 +180,7 @@ export function TrustDetailPage() {
         </div>
       ) : (
         <>
-          <h1
-            style={{ margin: '0 0 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-          >
-            <Landmark size={24} style={{ color: 'var(--text-link)' }} />
-            {trust.name}
-            <span
-              className="badge badge-neutral"
-              style={{ fontSize: '11px', textTransform: 'none' }}
-            >
-              {titleCase(trust.trust_type)}
-            </span>
-          </h1>
+          <PageHeader title={<><Landmark size={24} style={{ color: 'var(--text-link)' }} /> {trust.name} <span className="badge badge-neutral" style={{ fontSize: '11px', textTransform: 'none' }} > {titleCase(trust.trust_type)} </span></>} style={{ margin: '0 0 1.5rem' }} />
 
           {/* Trust summary */}
           <div style={cardStyle}>

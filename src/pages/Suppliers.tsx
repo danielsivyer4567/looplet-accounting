@@ -8,6 +8,9 @@ import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { SkeletonTable } from '@/components/Skeleton';
 import { LoadMoreButton } from '@/components/LoadMoreButton';
 import { Truck, BarChart, Plus, X } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Field } from '@/components/ui/Field';
 
 interface BarChartProps {
   items: { label: string; value: number }[];
@@ -113,10 +116,7 @@ export function SuppliersPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Truck size={24} style={{ color: 'var(--text-link)' }} />
-          Suppliers
-        </h1>
+        <PageHeader title={<><Truck size={24} style={{ color: 'var(--text-link)' }} /> Suppliers</>} />
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           {!loading && (
             <div
@@ -201,19 +201,7 @@ export function SuppliersPage() {
           {formatLoadError('suppliers', error)}
         </div>
       ) : suppliers.length === 0 ? (
-        <div
-          style={{
-            padding: '2.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-            fontSize: '0.9rem',
-          }}
-        >
-          No suppliers found for {currentOrg.name}.
-        </div>
+        <EmptyState>No suppliers found for {currentOrg.name}.</EmptyState>
       ) : (
         <>
           <div className="suppliers-table-view table-premium-container">
@@ -549,16 +537,5 @@ function CreateSupplierForm({
         </div>
       </div>
     </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-        {label}
-      </span>
-      {children}
-    </label>
   );
 }

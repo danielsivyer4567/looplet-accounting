@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 // Explains how bank-feed data reaches Looplet and how to stop it. Linked from Settings → Bank accounts. Plain
 // language, no auth-gated content, so it reads the same whether the viewer is signed in or not.
@@ -9,7 +10,7 @@ export function DataSharingPage() {
       style={{ display: 'grid', gap: '1.25rem', maxWidth: '760px' }}
     >
       <div>
-        <h1 style={{ margin: 0 }}>Managing your bank data sharing</h1>
+        <PageHeader title="Managing your bank data sharing" />
         <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>
           Looplet Accounting reads bank transactions through{' '}
           <a href="https://redbark.com" target="_blank" rel="noreferrer">

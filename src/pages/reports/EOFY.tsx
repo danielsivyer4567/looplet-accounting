@@ -17,6 +17,9 @@ import {
   ShieldAlert,
   Loader2,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Stat } from '@/components/ui/Stat';
+import { Alert } from '@/components/ui/Alert';
 
 /**
  * EOFY Pack wizard (SC-4.C.03) — walks one AU FY through readiness → generate →
@@ -102,7 +105,7 @@ export function EofyReportPage() {
         <span>Reports</span>
       </Link>
 
-      <h1 style={{ margin: 0 }}>EOFY Pack</h1>
+      <PageHeader title="EOFY Pack" />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -182,7 +185,7 @@ export function EofyReportPage() {
 
       {/* Recoverable books-health block (409) */}
       {blocked && error && (
-        <Banner tone="warning" icon={ShieldAlert}>
+        <Alert tone="warning" icon={ShieldAlert}>
           <strong>Books not ready:</strong> {error} Fix the flagged items on{' '}
           <Link
             to="/quality"
@@ -191,14 +194,14 @@ export function EofyReportPage() {
             Quality
           </Link>{' '}
           before generating the pack.
-        </Banner>
+        </Alert>
       )}
 
       {/* Terminal error (403 / generation failure) */}
       {error && !blocked && (
-        <Banner tone="danger" icon={AlertTriangle}>
+        <Alert tone="danger" icon={AlertTriangle}>
           {error}
-        </Banner>
+        </Alert>
       )}
 
       {/* Step 1 result — readiness */}
@@ -231,25 +234,25 @@ export function EofyReportPage() {
               marginBottom: readiness.blockers.length > 0 ? '1.25rem' : 0,
             }}
           >
-            <Stat
+            <Stat variant="tile"
               label="Open periods"
               value={String(readiness.open_period_count)}
-              warn={readiness.open_period_count > 0}
+              tone={readiness.open_period_count > 0 ? 'warning' : undefined}
             />
-            <Stat
+            <Stat variant="tile"
               label="Unreconciled"
               value={String(readiness.unreconciled_count)}
-              warn={readiness.unreconciled_count > 0}
+              tone={readiness.unreconciled_count > 0 ? 'warning' : undefined}
             />
-            <Stat
+            <Stat variant="tile"
               label="Uncoded"
               value={String(readiness.uncoded_count)}
-              warn={readiness.uncoded_count > 0}
+              tone={readiness.uncoded_count > 0 ? 'warning' : undefined}
             />
-            <Stat
+            <Stat variant="tile"
               label="Trial balance"
               value={readiness.trial_balance_balanced ? 'Balanced' : 'Out'}
-              warn={!readiness.trial_balance_balanced}
+              tone={!readiness.trial_balance_balanced ? 'warning' : undefined}
             />
           </div>
 
@@ -308,23 +311,23 @@ export function EofyReportPage() {
               marginBottom: '1.25rem',
             }}
           >
-            <Stat
+            <Stat variant="tile"
               label="Net profit"
               value={formatMoney(bundle.statements.profit_and_loss.net_profit_cents)}
               strong
             />
-            <Stat
+            <Stat variant="tile"
               label="Total assets"
               value={formatMoney(bundle.statements.balance_sheet.total_assets_cents)}
             />
-            <Stat
+            <Stat variant="tile"
               label="Total liabilities"
               value={formatMoney(bundle.statements.balance_sheet.total_liabilities_cents)}
             />
-            <Stat
+            <Stat variant="tile"
               label="Balance sheet"
               value={bundle.statements.balance_sheet.balances ? 'Balances' : 'Out of balance'}
-              warn={!bundle.statements.balance_sheet.balances}
+              tone={!bundle.statements.balance_sheet.balances ? 'warning' : undefined}
             />
           </div>
 
@@ -440,49 +443,6 @@ function StepPill({
   );
 }
 
-function Stat({
-  label,
-  value,
-  strong,
-  warn,
-}: {
-  label: string;
-  value: string;
-  strong?: boolean;
-  warn?: boolean;
-}) {
-  return (
-    <div
-      style={{
-        background: 'var(--bg-hover)',
-        borderRadius: 'var(--radius-sm)',
-        padding: '0.75rem',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '0.7rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.04em',
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: strong ? '1.25rem' : '1rem',
-          fontWeight: strong ? 800 : 600,
-          color: warn ? 'var(--text-danger)' : 'var(--text-title)',
-          marginTop: '0.2rem',
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
 function Check({ ok, label }: { ok: boolean; label: string }) {
   return (
     <div
@@ -497,37 +457,6 @@ function Check({ ok, label }: { ok: boolean; label: string }) {
     >
       {ok ? <CheckCircle2 size={15} /> : <ShieldAlert size={15} />}
       <span>{label}</span>
-    </div>
-  );
-}
-
-function Banner({
-  tone,
-  icon: Icon,
-  children,
-}: {
-  tone: 'warning' | 'danger';
-  icon: typeof AlertTriangle;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className={`badge badge-${tone}`}
-      style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: '0.5rem',
-        padding: '0.875rem 1rem',
-        marginBottom: '1.5rem',
-        textTransform: 'none',
-        fontSize: '0.875rem',
-        lineHeight: '1.4',
-        width: '100%',
-        justifyContent: 'flex-start',
-      }}
-    >
-      <Icon size={16} style={{ marginTop: '2px', flexShrink: 0 }} />
-      <span>{children}</span>
     </div>
   );
 }

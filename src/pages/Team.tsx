@@ -5,6 +5,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useOrg } from '@/hooks/useOrg';
 import { SkeletonTable } from '@/components/Skeleton';
 import { ChevronLeft, Users, Plus, Trash2, CheckCircle, Clock } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Field } from '@/components/ui/Field';
 
 type OrgRole = 'viewer' | 'employee' | 'accountant' | 'admin' | 'owner';
 
@@ -158,10 +160,7 @@ function InviteModal({
           }}
           style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
         >
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <span className="form-label" style={{ fontSize: '0.725rem' }}>
-              Email Address
-            </span>
+          <Field label="Email Address">
             <input
               type="email"
               value={email}
@@ -171,12 +170,9 @@ function InviteModal({
               style={{ marginTop: '0.25rem' }}
               placeholder="name@company.com"
             />
-          </div>
+          </Field>
 
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <span className="form-label" style={{ fontSize: '0.725rem' }}>
-              Role
-            </span>
+          <Field label="Role">
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as OrgRole)}
@@ -189,7 +185,7 @@ function InviteModal({
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
 
           <div
             style={{
@@ -361,10 +357,7 @@ export function TeamPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Users size={24} style={{ color: 'var(--text-link)' }} />
-          Team Members
-        </h1>
+        <PageHeader title={<><Users size={24} style={{ color: 'var(--text-link)' }} /> Team Members</>} />
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           {isAdminPlus && (
             <button className="btn btn-primary" onClick={() => setShowInvite(true)}>

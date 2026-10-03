@@ -7,7 +7,11 @@ import { currentStatutorySuperRatePct } from '@/lib/superGuarantee';
 import { addDays, orgTimeZone, todayLocal } from '@/lib/localDates';
 import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { SkeletonTable } from '@/components/Skeleton';
-import { Contact, Plus, Wallet, Clock, X, Users, Calculator, type LucideIcon } from 'lucide-react';
+import { Contact, Plus, Wallet, Clock, X, Users, Calculator } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Field } from '@/components/ui/Field';
+import { Stat } from '@/components/ui/Stat';
 
 interface Employee {
   id: string;
@@ -128,10 +132,7 @@ export function EmployeesPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Contact size={24} style={{ color: 'var(--text-link)' }} />
-          Employees
-        </h1>
+        <PageHeader title={<><Contact size={24} style={{ color: 'var(--text-link)' }} /> Employees</>} />
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
             onClick={() => setShowLogTime(true)}
@@ -157,22 +158,22 @@ export function EmployeesPage() {
           marginBottom: '2rem',
         }}
       >
-        <Kpi
+        <Stat
           label="Active employees"
           value={String(employees.filter((e) => e.is_active).length)}
-          type="info"
+          tone="info"
           icon={Users}
         />
-        <Kpi
+        <Stat
           label="Hours logged (30d)"
           value={hoursLast30.toFixed(1)}
-          type="neutral"
+          tone="neutral"
           icon={Clock}
         />
-        <Kpi
+        <Stat
           label="Loaded wage cost (30d)"
           value={formatMoney(totalLast30)}
-          type="danger"
+          tone="danger"
           icon={Wallet}
           sub="Loaded — incl. super/leave/workcover"
         />
@@ -219,20 +220,7 @@ export function EmployeesPage() {
           {loadError}
         </div>
       ) : employees.length === 0 ? (
-        <div
-          style={{
-            padding: '2.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-            fontSize: '0.9rem',
-            marginBottom: '2rem',
-          }}
-        >
-          No employees added yet. Add staff to start tracking timesheets and job costs.
-        </div>
+        <EmptyState>No employees added yet. Add staff to start tracking timesheets and job costs.</EmptyState>
       ) : (
         <>
           <div
@@ -357,20 +345,7 @@ export function EmployeesPage() {
         Recent timesheets (last 30 days)
       </h2>
       {timesheets.length === 0 ? (
-        <div
-          style={{
-            padding: '2.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-            fontSize: '0.9rem',
-            marginBottom: '2rem',
-          }}
-        >
-          No timesheet entries recorded in the last 30 days.
-        </div>
+        <EmptyState>No timesheet entries recorded in the last 30 days.</EmptyState>
       ) : (
         <div className="table-premium-container" style={{ marginBottom: '2.5rem' }}>
           <table className="table-premium">
@@ -882,83 +857,6 @@ function LogTimeForm({
             Cancel
           </button>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="form-group" style={{ marginBottom: 0 }}>
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>
-        {label}
-      </span>
-      <div style={{ marginTop: '0.25rem' }}>{children}</div>
-    </div>
-  );
-}
-
-function Kpi({
-  label,
-  value,
-  type,
-  icon: Icon,
-  sub,
-}: {
-  label: string;
-  value: string;
-  type: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
-  icon: LucideIcon;
-  sub?: string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        borderLeft: `4px solid var(--accent-${type === 'neutral' ? 'primary' : type})`,
-        position: 'relative',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.5rem',
-          color: 'var(--text-title)',
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        {value}
-      </div>
-      {sub ? (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-          {sub}
-        </div>
-      ) : (
-        <div style={{ height: '0.725rem', marginTop: '0.25rem' }} />
-      )}
-      <div
-        style={{
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-          color: `var(--accent-${type === 'neutral' ? 'primary' : type})`,
-          opacity: 0.7,
-        }}
-      >
-        <Icon size={18} />
       </div>
     </div>
   );

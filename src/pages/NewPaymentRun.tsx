@@ -8,6 +8,9 @@ import { formatMoney } from '@/lib/money';
 import { addDays, orgTimeZone, todayLocal, weekdayOf } from '@/lib/localDates';
 import { SkeletonTable } from '@/components/Skeleton';
 import { ChevronLeft, Layers, CheckCircle, AlertTriangle } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Field } from '@/components/ui/Field';
 
 export function NewPaymentRunPage() {
   const { currentOrg } = useOrg();
@@ -121,10 +124,7 @@ export function NewPaymentRunPage() {
         <span>Payment runs</span>
       </Link>
 
-      <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <Layers size={24} style={{ color: 'var(--text-link)' }} />
-        New Payment Run
-      </h1>
+      <PageHeader title={<><Layers size={24} style={{ color: 'var(--text-link)' }} /> New Payment Run</>} />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -144,10 +144,7 @@ export function NewPaymentRunPage() {
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}
       >
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <span className="form-label" style={{ fontSize: '0.725rem' }}>
-              Payment Date
-            </span>
+          <Field label="Payment Date">
             <input
               type="date"
               value={payDate}
@@ -155,7 +152,7 @@ export function NewPaymentRunPage() {
               className="form-input"
               style={{ width: '160px', marginTop: '0.25rem' }}
             />
-          </div>
+          </Field>
 
           {selected.size > 0 && (
             <div
@@ -192,18 +189,7 @@ export function NewPaymentRunPage() {
           {formatLoadError('unpaid bills', error)}
         </div>
       ) : bills.length === 0 ? (
-        <div
-          style={{
-            padding: '3rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
-          No unpaid bills ready for payment (status "attached", not yet in a run).
-        </div>
+        <EmptyState>No unpaid bills ready for payment (status "attached", not yet in a run).</EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">

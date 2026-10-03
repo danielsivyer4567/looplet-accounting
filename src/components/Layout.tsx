@@ -53,6 +53,7 @@ import {
 import { TagDropProvider, useTagDrop } from '@/hooks/useTagDrop';
 import { TagDropManager } from '@/components/tag-drop/TagDropManager';
 import { Toaster } from '@/components/ui/toaster';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 interface NavItem {
   to: string;
@@ -495,16 +496,7 @@ export function Layout() {
               )}
 
               {/* Dynamic Page Title (large white bold font) */}
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: '1.5rem',
-                  fontWeight: 800,
-                  color: 'var(--text-title)',
-                }}
-              >
-                {pageTitle === 'Home' ? 'Home' : pageTitle}
-              </h1>
+              <PageHeader title={pageTitle === 'Home' ? 'Home' : pageTitle} />
             </div>
 
             <div

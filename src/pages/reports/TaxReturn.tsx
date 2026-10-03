@@ -30,6 +30,10 @@ import {
   Clock,
   Loader2,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Stat } from '@/components/ui/Stat';
+import { Alert } from '@/components/ui/Alert';
 
 /**
  * Tax return draft (SC-4.I.02) + approve-to-finalise gate (SC-4.I.03) — the entity-aware
@@ -191,10 +195,7 @@ export function TaxReturnPage() {
         <span>Reports</span>
       </Link>
 
-      <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <Layers size={24} style={{ color: 'var(--text-link)' }} />
-        Tax Return (Draft)
-      </h1>
+      <PageHeader title={<><Layers size={24} style={{ color: 'var(--text-link)' }} /> Tax Return (Draft)</>} />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -271,10 +272,10 @@ export function TaxReturnPage() {
 
       {/* RPC error banner (partial — book_to_tax / build_return can fail independently). */}
       {!loading && errors.length > 0 && (
-        <Banner tone="warning" icon={AlertTriangle}>
+        <Alert tone="warning" icon={AlertTriangle}>
           <strong>Some figures are unavailable.</strong> {errors.join(' · ')} — apply the Phase-4
           tax migrations (0138–0150) to enable the full draft return.
-        </Banner>
+        </Alert>
       )}
 
       {/* Headline KPIs */}
@@ -286,18 +287,18 @@ export function TaxReturnPage() {
           marginBottom: '2rem',
         }}
       >
-        <Kpi
+        <Stat
           label="Taxable income"
           value={taxableIncome == null ? '—' : formatMoney(taxableIncome)}
           icon={Scale}
-          type="neutral"
+          tone="neutral"
         />
         <NetTaxKpi taxPayable={taxPayable} loading={loading} />
-        <Kpi
+        <Stat
           label="Net capital gain"
           value={cgt == null ? '—' : formatMoney(cgt.net_capital_gain_cents)}
           icon={Calculator}
-          type={cgt && cgt.net_capital_gain_cents > 0 ? 'warning' : 'neutral'}
+          tone={cgt && cgt.net_capital_gain_cents > 0 ? 'warning' : 'neutral'}
           sub={cgt ? `${cgt.event_count} CGT event${cgt.event_count === 1 ? '' : 's'}` : undefined}
         />
       </div>
@@ -315,10 +316,10 @@ export function TaxReturnPage() {
             </Card>
           ) : (
             <Card title="Return labels" icon={FileText}>
-              <Empty>
+              <EmptyState>
                 No mapped return for this entity / year. build_return does not map SMSF or
                 profile-less entities — record the entity type and book activity first.
-              </Empty>
+              </EmptyState>
             </Card>
           )}
 
@@ -843,93 +844,33 @@ function Card({
   );
 }
 
-function Kpi({
-  label,
-  value,
-  icon: Icon,
-  type,
-  sub,
-}: {
-  label: string;
-  value: string;
-  icon: typeof FileText;
-  type: 'success' | 'danger' | 'warning' | 'neutral';
-  sub?: string | undefined;
-}) {
-  const accent = `var(--accent-${type === 'neutral' ? 'primary' : type})`;
-  return (
-    <div
-      className="card"
-      style={{ padding: '1.25rem', borderLeft: `4px solid ${accent}`, position: 'relative' }}
-    >
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.5rem',
-          color: 'var(--text-title)',
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        {value}
-      </div>
-      <div
-        style={{
-          marginTop: '0.25rem',
-          fontSize: '0.725rem',
-          color: 'var(--text-muted)',
-          minHeight: '0.9rem',
-        }}
-      >
-        {sub ?? ''}
-      </div>
-      <div
-        style={{ position: 'absolute', right: '1rem', bottom: '1rem', color: accent, opacity: 0.7 }}
-      >
-        <Icon size={18} />
-      </div>
-    </div>
-  );
-}
-
 function NetTaxKpi({ taxPayable, loading }: { taxPayable: TaxPayable | null; loading: boolean }) {
   if (!taxPayable) {
-    return <Kpi label="Net tax" value={loading ? '…' : '—'} icon={Scale} type="neutral" />;
+    return <Stat label="Net tax" value={loading ? '…' : '—'} icon={Scale} tone="neutral" />;
   }
   if (taxPayable.result === 'refundable') {
     return (
-      <Kpi
+      <Stat
         label="Net tax"
         value={formatMoney(taxPayable.net_refund_cents)}
         icon={Scale}
-        type="success"
+        tone="success"
         sub="refundable"
       />
     );
   }
   if (taxPayable.result === 'payable') {
     return (
-      <Kpi
+      <Stat
         label="Net tax"
         value={formatMoney(taxPayable.net_tax_payable_cents)}
         icon={Scale}
-        type="danger"
+        tone="danger"
         sub="payable to ATO"
       />
     );
   }
-  return <Kpi label="Net tax" value={formatMoney(0)} icon={Scale} type="neutral" sub="nil" />;
+  return <Stat label="Net tax" value={formatMoney(0)} icon={Scale} tone="neutral" sub="nil" />;
 }
 
 function MiniStat({
@@ -976,55 +917,6 @@ function MiniStat({
           {sub}
         </div>
       )}
-    </div>
-  );
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        padding: '2rem 1.5rem',
-        border: '1px dashed var(--border-subtle)',
-        borderRadius: 'var(--radius-md)',
-        textAlign: 'center',
-        color: 'var(--text-muted)',
-        fontSize: '0.85rem',
-        lineHeight: '1.5',
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-function Banner({
-  tone,
-  icon: Icon,
-  children,
-}: {
-  tone: 'warning' | 'danger';
-  icon: typeof AlertTriangle;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className={`badge badge-${tone}`}
-      style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: '0.5rem',
-        padding: '0.875rem 1rem',
-        marginBottom: '1.5rem',
-        textTransform: 'none',
-        fontSize: '0.875rem',
-        lineHeight: '1.4',
-        width: '100%',
-        justifyContent: 'flex-start',
-      }}
-    >
-      <Icon size={16} style={{ marginTop: '2px', flexShrink: 0 }} />
-      <span>{children}</span>
     </div>
   );
 }

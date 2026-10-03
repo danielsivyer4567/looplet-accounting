@@ -22,6 +22,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { isTagMentionNotification } from '@/lib/notificationMeta';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface NotificationRow {
   id: string;
@@ -219,10 +221,7 @@ export function NotificationsPage() {
         }}
       >
         <div>
-          <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Bell size={24} style={{ color: 'var(--text-link)' }} />
-            Notifications
-          </h1>
+          <PageHeader title={<><Bell size={24} style={{ color: 'var(--text-link)' }} /> Notifications</>} />
           <p
             style={{
               color: 'var(--text-muted)',
@@ -333,20 +332,7 @@ export function NotificationsPage() {
           {error}
         </div>
       ) : filtered.length === 0 ? (
-        <div
-          style={{
-            padding: '3rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
-          {rows.length === 0
-            ? "You're all caught up — no notifications."
-            : 'No notifications match the current filters.'}
-        </div>
+        <EmptyState>{rows.length === 0 ? "You're all caught up — no notifications." : 'No notifications match the current filters.'}</EmptyState>
       ) : (
         <ul
           style={{

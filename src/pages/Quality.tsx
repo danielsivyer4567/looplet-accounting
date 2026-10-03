@@ -21,6 +21,8 @@ import {
   RefreshCw,
   ShieldAlert,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Stat } from '@/components/ui/Stat';
 
 interface DupGroup {
   organization_id: string;
@@ -119,7 +121,7 @@ export function QualityPage() {
       style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}
     >
       <div>
-        <h1 style={{ margin: 0 }}>Data Quality</h1>
+        <PageHeader title="Data Quality" />
         <p
           style={{
             color: 'var(--text-muted)',
@@ -145,7 +147,7 @@ export function QualityPage() {
           gap: '1rem',
         }}
       >
-        <KpiCard
+        <Stat
           label="Duplicate Groups"
           value={String(duplicates.length)}
           accentColor={duplicates.length > 0 ? 'var(--accent-danger)' : 'var(--accent-success)'}
@@ -158,7 +160,7 @@ export function QualityPage() {
           }
           sub={`${duplicates.reduce((a, d) => a + d.dup_count, 0)} bills involved`}
         />
-        <KpiCard
+        <Stat
           label="Needs OCR Review"
           value={String(lowConf.length)}
           accentColor={lowConf.length > 0 ? 'var(--accent-warning)' : 'var(--accent-success)'}
@@ -890,71 +892,6 @@ function HealthMetric({ label, value, warn }: { label: string; value: string; wa
         }}
       >
         {value}
-      </div>
-    </div>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  icon,
-  accentColor,
-  sub,
-}: {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  accentColor: string;
-  sub?: string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        borderLeft: `4px solid ${accentColor}`,
-      }}
-    >
-      <div>
-        <div
-          style={{
-            fontSize: '0.75rem',
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            fontWeight: 600,
-            marginBottom: '0.35rem',
-          }}
-        >
-          {label}
-        </div>
-        <div
-          style={{
-            fontSize: '1.65rem',
-            color: 'var(--text-title)',
-            fontWeight: 700,
-            fontFamily: 'var(--font-title)',
-          }}
-        >
-          {value}
-        </div>
-        {sub && (
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            {sub}
-          </div>
-        )}
-      </div>
-      <div
-        style={{
-          padding: '0.5rem',
-          background: 'var(--bg-hover)',
-          borderRadius: 'var(--radius-sm)',
-        }}
-      >
-        {icon}
       </div>
     </div>
   );

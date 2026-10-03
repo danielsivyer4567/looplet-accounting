@@ -5,6 +5,7 @@ import {
 } from '@/hooks/useLegalHorizon';
 import { SkeletonCard } from '@/components/Skeleton';
 import { CalendarClock, RefreshCw } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 const MUTED = 'var(--text-muted)';
 
@@ -159,7 +160,7 @@ export function LegalHorizonPage() {
             }}
           >
             <CalendarClock size={22} />
-            <h1 style={{ margin: 0 }}>Upcoming changes</h1>
+            <PageHeader title="Upcoming changes" />
           </div>
           <p style={{ color: MUTED, margin: 0 }}>
             Proposed and in-progress Australian tax and super changes detected from official

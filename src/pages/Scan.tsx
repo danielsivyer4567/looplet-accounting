@@ -14,8 +14,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { InsightAreaChart, InsightBarList, InsightPanel } from '@/components/InsightCharts';
-import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { SkeletonTable } from '@/components/Skeleton';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Stat } from '@/components/ui/Stat';
 
 interface Finding {
   id: string;
@@ -219,7 +220,7 @@ export function ScanPage() {
         }}
       >
         <div>
-          <h1 style={{ margin: 0 }}>Data checks</h1>
+          <PageHeader title="Data checks" />
           <p
             style={{
               color: 'var(--text-muted)',
@@ -622,77 +623,17 @@ function FindingRow({ f, onMute }: { f: Finding; onMute: (id: string, muted: boo
   );
 }
 
+/** A severity count at the top of the page; critical reads as danger. */
 function SummaryCard({
   label,
   value,
   type,
-  icon: Icon,
+  icon,
 }: {
   label: string;
   value: number;
   type: 'critical' | 'warning' | 'info';
   icon: LucideIcon;
 }) {
-  const colors = {
-    critical: {
-      text: 'var(--text-danger)',
-      border: 'var(--border-danger)',
-      bg: 'var(--bg-danger-subtle)',
-    },
-    warning: {
-      text: 'var(--text-warning)',
-      border: 'var(--border-warning)',
-      bg: 'var(--bg-warning-subtle)',
-    },
-    info: {
-      text: 'var(--text-info)',
-      border: 'var(--border-info)',
-      bg: 'var(--bg-info-subtle)',
-    },
-  }[type];
-
-  return (
-    <div
-      className="card"
-      style={{
-        padding: '1.25rem',
-        borderLeft: `4px solid ${type === 'critical' ? 'var(--accent-danger)' : type === 'warning' ? 'var(--accent-warning)' : 'var(--accent-info)'}`,
-        position: 'relative',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '0.675rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: '0.35rem',
-          fontSize: '1.75rem',
-          color: colors.text,
-          fontWeight: 800,
-          fontFamily: 'var(--font-title)',
-        }}
-      >
-        <AnimatedNumber value={value} />
-      </div>
-      <div
-        style={{
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-          color: colors.text,
-          opacity: 0.6,
-        }}
-      >
-        <Icon size={20} />
-      </div>
-    </div>
-  );
+  return <Stat label={label} value={value} tone={type === 'critical' ? 'danger' : type} icon={icon} />;
 }

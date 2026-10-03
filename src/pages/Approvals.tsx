@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useApprovals, type ApprovalRow } from '@/hooks/useApprovals';
 import { SkeletonCard } from '@/components/Skeleton';
 import { ShieldCheck, CheckCircle2, X } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 const MUTED = 'var(--text-muted)';
 
@@ -146,7 +147,7 @@ export function ApprovalsPage() {
         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}
       >
         <ShieldCheck size={22} />
-        <h1 style={{ margin: 0 }}>Approvals</h1>
+        <PageHeader title="Approvals" />
       </div>
       <p style={{ color: MUTED, marginTop: 0 }}>
         Payments, payroll and super files, and prepared returns that need sign-off before they run.

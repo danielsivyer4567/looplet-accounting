@@ -3,6 +3,7 @@ import { useState, useRef } from 'react';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
+import { Field } from '@/components/ui/Field';
 
 type AccountType = 'checking' | 'savings' | 'credit_card' | 'loan' | 'investment' | 'other';
 
@@ -349,15 +350,6 @@ async function blobToBase64(blob: Blob): Promise<string> {
     r.onerror = reject;
     r.readAsDataURL(blob);
   });
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-      <div style={{ marginBottom: 3 }}>{label}</div>
-      {children}
-    </label>
-  );
 }
 
 const inp: React.CSSProperties = {

@@ -7,6 +7,9 @@ import { supabase } from '@/lib/supabase';
 import { formatLoadError, formatActionError } from '@/lib/errorMessages';
 import { SkeletonTable } from '@/components/Skeleton';
 import { Plus, Users, X } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Field } from '@/components/ui/Field';
+import { Stat } from '@/components/ui/Stat';
 
 function formatAddress(addr: BillingAddress | null): string {
   if (!addr) return '—';
@@ -42,10 +45,7 @@ export function CustomersPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Users size={24} style={{ color: 'var(--text-link)' }} />
-          Customers
-        </h1>
+        <PageHeader title={<><Users size={24} style={{ color: 'var(--text-link)' }} /> Customers</>} />
         <button
           onClick={() => setShowCreate(true)}
           className="btn btn-primary"
@@ -69,43 +69,12 @@ export function CustomersPage() {
 
       {/* Customer Count Card */}
       {!loading && !error && (
-        <div
-          className="card"
-          style={{
-            display: 'inline-flex',
-            flexDirection: 'column',
-            padding: '1rem 1.5rem',
-            borderLeft: '4px solid var(--accent-primary)',
-            marginBottom: '1.5rem',
-            minWidth: '180px',
-          }}
-        >
-          <span
-            style={{
-              fontSize: '0.675rem',
-              color: 'var(--text-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              fontWeight: 700,
-            }}
-          >
-            Total Customers
-          </span>
-          <span
-            style={{
-              fontSize: '2rem',
-              fontWeight: 800,
-              color: 'var(--text-title)',
-              marginTop: '0.25rem',
-              fontFamily: 'var(--font-title)',
-            }}
-          >
-            {customers.length}{' '}
-            <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)' }}>
-              {customers.length === 1 ? 'customer' : 'customers'}
-            </span>
-          </span>
-        </div>
+        <Stat
+          label="Total customers"
+          value={String(customers.length)}
+          sub={customers.length === 1 ? 'customer' : 'customers'}
+          style={{ display: 'inline-flex', marginBottom: '1.5rem', minWidth: '180px' }}
+        />
       )}
 
       {loading ? (
@@ -438,17 +407,6 @@ function CreateCustomerForm({
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="form-group" style={{ marginBottom: 0 }}>
-      <span className="form-label" style={{ fontSize: '0.725rem' }}>
-        {label}
-      </span>
-      <div style={{ marginTop: '0.25rem' }}>{children}</div>
     </div>
   );
 }

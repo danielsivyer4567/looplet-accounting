@@ -20,6 +20,12 @@ import {
   History,
   CreditCard,
 } from 'lucide-react';
+import { Stat, type Tone } from '@/components/ui/Stat';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { PageHeader } from '@/components/ui/PageHeader';
+
+const SUBSCRIPTION_TONES: Partial<Record<string, Tone>> = { confirmed: 'success', detected: 'info', cancelled: 'neutral', paused: 'warning' };
+const SUBSCRIPTION_LABELS: Record<string, string> = { confirmed: 'Confirmed', detected: 'Detected', cancelled: 'Cancelled', paused: 'Paused' };
 
 interface Subscription {
   id: string;
@@ -272,8 +278,8 @@ export function SubscriptionDetailPage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <h1 style={{ margin: 0 }}>{sub.merchant_name}</h1>
-            <StatusPill status={sub.status} />
+            <PageHeader title={sub.merchant_name} />
+            <StatusBadge status={sub.status} tones={SUBSCRIPTION_TONES} label={SUBSCRIPTION_LABELS[sub.status]} />
           </div>
 
           {!editing && (
@@ -336,39 +342,39 @@ export function SubscriptionDetailPage() {
           gap: '1rem',
         }}
       >
-        <KpiCard
+        <Stat
           label="Recurring Amount"
           value={formatMoney(sub.amount_cents)}
           accentColor="var(--accent-warning)"
           icon={<CreditCard className="w-5 h-5" style={{ color: 'var(--accent-warning)' }} />}
           sub={sub.cadence}
         />
-        <KpiCard
+        <Stat
           label="Monthly Run Rate"
           value={formatMoney(monthly)}
           accentColor="var(--accent-info)"
           icon={<Calendar className="w-5 h-5" style={{ color: 'var(--accent-info)' }} />}
         />
-        <KpiCard
+        <Stat
           label="Annual Cost Equivalent"
           value={formatMoney(annual)}
           accentColor="var(--accent-success)"
           icon={<TrendingUp className="w-5 h-5" style={{ color: 'var(--accent-success)' }} />}
         />
-        <KpiCard
+        <Stat
           label="Next Billing Cycle"
           value={sub.next_expected_at ?? '—'}
           accentColor="var(--text-muted)"
           icon={<Clock className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />}
         />
-        <KpiCard
+        <Stat
           label="Observed Count"
           value={String(sub.observed_count)}
           accentColor="var(--text-muted)"
           icon={<History className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />}
           sub="bank matches"
         />
-        <KpiCard
+        <Stat
           label="Lifetime Spend to Date"
           value={formatMoney(sub.total_spent_cents)}
           accentColor="var(--accent-danger)"
@@ -750,84 +756,4 @@ function StatField({
       </div>
     </div>
   );
-}
-
-function KpiCard({
-  label,
-  value,
-  accentColor,
-  icon,
-  sub,
-}: {
-  label: string;
-  value: string;
-  accentColor: string;
-  icon: React.ReactNode;
-  sub?: string;
-}) {
-  return (
-    <div
-      className="card"
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        borderLeft: `4px solid ${accentColor}`,
-      }}
-    >
-      <div>
-        <div
-          style={{
-            fontSize: '0.75rem',
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            fontWeight: 600,
-            marginBottom: '0.35rem',
-          }}
-        >
-          {label}
-        </div>
-        <div
-          style={{
-            fontSize: '1.65rem',
-            color: 'var(--text-title)',
-            fontWeight: 700,
-            fontFamily: 'var(--font-title)',
-          }}
-        >
-          {value}
-        </div>
-        {sub && (
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            {sub}
-          </div>
-        )}
-      </div>
-      <div
-        style={{
-          padding: '0.5rem',
-          background: 'var(--bg-hover)',
-          borderRadius: 'var(--radius-sm)',
-        }}
-      >
-        {icon}
-      </div>
-    </div>
-  );
-}
-
-function StatusPill({ status }: { status: string }) {
-  switch (status) {
-    case 'confirmed':
-      return <span className="badge badge-success">Confirmed</span>;
-    case 'detected':
-      return <span className="badge badge-info">Detected</span>;
-    case 'cancelled':
-      return <span className="badge badge-neutral">Cancelled</span>;
-    case 'paused':
-      return <span className="badge badge-warning">Paused</span>;
-    default:
-      return <span className="badge badge-neutral">{status}</span>;
-  }
 }

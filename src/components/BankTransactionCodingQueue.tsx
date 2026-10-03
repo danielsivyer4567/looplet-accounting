@@ -3,6 +3,7 @@ import { Check, CheckCheck, ChevronDown, Tag, Zap } from 'lucide-react';
 import { formatMoney } from '@/lib/money';
 import { useBankCodingQueue, type CodingQueueRow } from '@/hooks/useBankCodingQueue';
 import { SkeletonTable } from '@/components/Skeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 const CATEGORY_OPTIONS = [
   { code: 'materials', label: 'Materials' },
@@ -301,18 +302,7 @@ export function BankTransactionCodingQueue() {
       )}
 
       {rows.length === 0 ? (
-        <div
-          style={{
-            padding: '2.5rem',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '0.875rem',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-          }}
-        >
-          No transactions waiting for coding — the classifier is up to date.
-        </div>
+        <EmptyState>No transactions waiting for coding — the classifier is up to date.</EmptyState>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table className="table" style={{ width: '100%', fontSize: '0.85rem' }}>

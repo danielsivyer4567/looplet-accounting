@@ -7,6 +7,8 @@ import { titleCase, formatDay, currentFyStartYear } from '@/lib/formatting';
 import { formatLoadError } from '@/lib/errorMessages';
 import { formatMoney } from '@/lib/money';
 import { AlertTriangle, CheckCircle2, Download, FileText, PiggyBank } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Stat } from '@/components/ui/Stat';
 
 // Shared styling for the page's dashed "notice" cards (not-an-SMSF gate + empty list).
 const noticeCardStyle: CSSProperties = {
@@ -18,33 +20,6 @@ const noticeCardStyle: CSSProperties = {
   textAlign: 'center',
   fontSize: '0.9rem',
 };
-
-// A labelled figure for the financials strip.
-function Stat({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
-  return (
-    <div style={{ minWidth: '8rem' }}>
-      <div
-        style={{
-          fontSize: '0.7rem',
-          color: 'var(--text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.03em',
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: '1rem',
-          fontWeight: 600,
-          color: strong ? 'var(--text-title)' : 'var(--text-body)',
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
 
 // A compliance flag chip: green when count is 0, amber when there's something to review.
 function FlagChip({ label, count }: { label: string; count: number }) {
@@ -106,17 +81,17 @@ function FundPanels({ fundId }: { fundId: string }) {
         <>
           {/* Financials strip (SC-5.J.01/.02) */}
           <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-            <Stat
+            <Stat variant="inline"
               label="Assessable income"
               value={formatMoney(operating?.assessable_income_cents ?? 0)}
             />
-            <Stat label="Income tax" value={formatMoney(operating?.income_tax_cents ?? 0)} />
-            <Stat label="Net result" value={formatMoney(operating?.net_result_cents ?? 0)} />
-            <Stat
+            <Stat variant="inline" label="Income tax" value={formatMoney(operating?.income_tax_cents ?? 0)} />
+            <Stat variant="inline" label="Net result" value={formatMoney(operating?.net_result_cents ?? 0)} />
+            <Stat variant="inline"
               label="Total assets"
               value={formatMoney(financial?.assets?.total_assets_cents ?? 0)}
             />
-            <Stat
+            <Stat variant="inline"
               label="Members' funds"
               value={formatMoney(financial?.members_funds_cents ?? 0)}
               strong
@@ -299,10 +274,7 @@ export function SmsfPage() {
   if (!loading && !isSmsfEntity) {
     return (
       <section className="animated-fade-in">
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <PiggyBank size={24} style={{ color: 'var(--text-link)' }} />
-          SMSF
-        </h1>
+        <PageHeader title={<><PiggyBank size={24} style={{ color: 'var(--text-link)' }} /> SMSF</>} />
         <div style={{ ...noticeCardStyle, marginTop: '1.5rem' }}>
           The SMSF workspace applies to self-managed super funds. Set this organisation's entity
           type to <strong>SMSF</strong> in{' '}
@@ -331,10 +303,7 @@ export function SmsfPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <PiggyBank size={24} style={{ color: 'var(--text-link)' }} />
-          SMSF
-        </h1>
+        <PageHeader title={<><PiggyBank size={24} style={{ color: 'var(--text-link)' }} /> SMSF</>} />
         {!loading && (
           <div
             className="badge badge-neutral"

@@ -6,6 +6,7 @@ import { SkeletonTable } from '@/components/Skeleton';
 import { titleCase, formatDay } from '@/lib/formatting';
 import { formatLoadError } from '@/lib/errorMessages';
 import { Landmark } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 // Shared styling for the page's dashed "notice" cards (not-a-trust gate + empty list).
 const noticeCardStyle: CSSProperties = {
@@ -30,10 +31,7 @@ export function TrustsPage() {
   if (!loading && !isTrustEntity) {
     return (
       <section className="animated-fade-in">
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Landmark size={24} style={{ color: 'var(--text-link)' }} />
-          Trusts
-        </h1>
+        <PageHeader title={<><Landmark size={24} style={{ color: 'var(--text-link)' }} /> Trusts</>} />
         <div style={{ ...noticeCardStyle, marginTop: '1.5rem' }}>
           The Trusts workspace applies to trust entities. Set this organisation's entity type to{' '}
           <strong>Trust</strong> in{' '}
@@ -62,10 +60,7 @@ export function TrustsPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Landmark size={24} style={{ color: 'var(--text-link)' }} />
-          Trusts
-        </h1>
+        <PageHeader title={<><Landmark size={24} style={{ color: 'var(--text-link)' }} /> Trusts</>} />
         {!loading && (
           <div
             className="badge badge-neutral"

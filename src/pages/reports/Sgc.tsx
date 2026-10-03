@@ -18,6 +18,10 @@ import {
   useSgcStatement,
 } from '@/hooks/useSgcStatement';
 import { formatMoney } from '@/lib/money';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Stat } from '@/components/ui/Stat';
+import { Alert } from '@/components/ui/Alert';
 
 function formatDate(value: string | null): string {
   if (!value) return '-';
@@ -58,10 +62,7 @@ export function SgcReportPage() {
         <span>Reports</span>
       </Link>
 
-      <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <PiggyBank size={24} style={{ color: 'var(--text-link)' }} />
-        SGC Statement
-      </h1>
+      <PageHeader title={<><PiggyBank size={24} style={{ color: 'var(--text-link)' }} /> SGC Statement</>} />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -126,9 +127,9 @@ export function SgcReportPage() {
       </div>
 
       {error && (
-        <Banner>
+        <Alert tone="warning">
           <strong>SGC statement unavailable.</strong> {error}
-        </Banner>
+        </Alert>
       )}
 
       {loading ? (
@@ -142,7 +143,7 @@ export function SgcReportPage() {
           <EvidenceCard sgcStatement={sgcStatement} />
         </>
       ) : (
-        <Empty>No SGC statement is available for this quarter.</Empty>
+        <EmptyState>No SGC statement is available for this quarter.</EmptyState>
       )}
     </section>
   );
@@ -158,22 +159,22 @@ function Kpis({ sgcStatement }: { sgcStatement: SgcStatementPayload }) {
         marginBottom: '1.5rem',
       }}
     >
-      <Kpi
+      <Stat
         label="OTE"
         value={formatMoney(sgcStatement.summary.ordinary_time_earnings_cents)}
         icon={Calculator}
       />
-      <Kpi
+      <Stat
         label="Required SG"
         value={formatMoney(sgcStatement.summary.required_super_cents)}
         icon={ShieldCheck}
       />
-      <Kpi
+      <Stat
         label="Payroll SG"
         value={formatMoney(sgcStatement.summary.payroll_super_cents)}
         icon={PiggyBank}
       />
-      <Kpi
+      <Stat
         label="Shortfall"
         value={formatMoney(sgcStatement.summary.calculation_shortfall_cents)}
         icon={AlertTriangle}
@@ -204,7 +205,7 @@ function EmployeesCard({ employees }: { employees: SgcEmployeeRow[] }) {
   return (
     <Card title="Employee shortfall review" icon={Users}>
       {employees.length === 0 ? (
-        <Empty>No approved or paid pay slips found for this quarter.</Empty>
+        <EmptyState>No approved or paid pay slips found for this quarter.</EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">
@@ -293,7 +294,7 @@ function rateRange(sgcStatement: SgcStatementPayload): string {
 
 function Warnings({ warnings }: { warnings: string[] }) {
   return (
-    <Banner>
+    <Alert tone="warning">
       <strong>Review before lodging externally.</strong>{' '}
       {warnings.map((warning, index) => (
         <span key={warning}>
@@ -302,36 +303,7 @@ function Warnings({ warnings }: { warnings: string[] }) {
           {index < warnings.length - 1 ? ';' : '.'}
         </span>
       ))}
-    </Banner>
-  );
-}
-
-function Kpi({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  icon: typeof PiggyBank;
-}) {
-  return (
-    <div className="card" style={{ padding: '1rem 1.1rem', position: 'relative' }}>
-      <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 700 }}>
-        {label}
-      </div>
-      <div style={{ marginTop: '0.35rem', fontSize: '1.35rem', fontWeight: 800 }}>{value}</div>
-      <Icon
-        size={18}
-        style={{
-          color: 'var(--text-link)',
-          opacity: 0.65,
-          position: 'absolute',
-          right: '1rem',
-          bottom: '1rem',
-        }}
-      />
-    </div>
+    </Alert>
   );
 }
 
@@ -381,43 +353,5 @@ function Rows({ rows, monoKeys }: { rows: [string, string][]; monoKeys?: Set<str
         </div>
       ))}
     </dl>
-  );
-}
-
-function Banner({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      className="badge badge-warning"
-      style={{
-        display: 'flex',
-        gap: '0.5rem',
-        alignItems: 'flex-start',
-        justifyContent: 'flex-start',
-        padding: '0.875rem 1rem',
-        marginBottom: '1.5rem',
-        textTransform: 'none',
-        width: '100%',
-        lineHeight: 1.45,
-      }}
-    >
-      <AlertTriangle size={16} style={{ marginTop: '2px', flexShrink: 0 }} />
-      <span>{children}</span>
-    </div>
-  );
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        padding: '1.5rem',
-        border: '1px dashed var(--border-subtle)',
-        borderRadius: 'var(--radius-md)',
-        color: 'var(--text-muted)',
-        fontSize: '0.85rem',
-      }}
-    >
-      {children}
-    </div>
   );
 }

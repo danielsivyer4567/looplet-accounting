@@ -28,6 +28,8 @@ import {
   Send,
   ShieldCheck,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface AuditRow {
   id: string;
@@ -481,18 +483,7 @@ function CorrespondencePanel({
           <SkeletonTable rows={3} cols={4} />
         </div>
       ) : correspondence.length === 0 ? (
-        <div
-          style={{
-            marginTop: '1rem',
-            padding: '1.25rem',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-          }}
-        >
-          No ATO correspondence is recorded for this organisation.
-        </div>
+        <EmptyState>No ATO correspondence is recorded for this organisation.</EmptyState>
       ) : (
         <div style={{ overflowX: 'auto', marginTop: '1rem' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem' }}>
@@ -598,18 +589,7 @@ function DraftsPanel({
           <SkeletonTable rows={3} cols={5} />
         </div>
       ) : drafts.length === 0 ? (
-        <div
-          style={{
-            marginTop: '1rem',
-            padding: '1.25rem',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-          }}
-        >
-          No draft ATO responses have been created yet.
-        </div>
+        <EmptyState>No draft ATO responses have been created yet.</EmptyState>
       ) : (
         <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
           {drafts.map((draft) => {
@@ -863,10 +843,7 @@ export function AuditLogPage() {
           gap: '0.75rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <ShieldCheck size={24} style={{ color: 'var(--text-link)' }} />
-          Assurance
-        </h1>
+        <PageHeader title={<><ShieldCheck size={24} style={{ color: 'var(--text-link)' }} /> Assurance</>} />
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
             onClick={() => {
@@ -1059,18 +1036,7 @@ export function AuditLogPage() {
           <SkeletonTable rows={6} cols={6} />
         </div>
       ) : rows.length === 0 ? (
-        <div
-          style={{
-            padding: '3rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
-          No audit events found for the current filters.
-        </div>
+        <EmptyState>No audit events found for the current filters.</EmptyState>
       ) : (
         <>
           <div

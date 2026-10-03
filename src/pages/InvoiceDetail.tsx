@@ -1,11 +1,7 @@
 import {
-  cloneElement,
-  isValidElement,
   useCallback,
   useEffect,
-  useId,
   useState,
-  type ReactNode,
 } from 'react';
 import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -37,6 +33,10 @@ import {
   Download,
   Share2,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Field } from '@/components/ui/Field';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface Customer {
   id: string;
@@ -455,15 +455,10 @@ export function InvoiceDetailPage() {
   }
   if (!isNew && !invoice) {
     return (
-      <section className="animated-fade-in" style={{ padding: '2rem 0', textAlign: 'center' }}>
-        <AlertCircle size={48} style={{ color: 'var(--accent-danger)', marginBottom: '1rem' }} />
-        <h2>Invoice not found</h2>
-        <p style={{ color: 'var(--text-muted)' }}>
+      <section className="animated-fade-in">
+        <EmptyState icon={AlertCircle} title="Invoice not found" action={<Link to="/invoices" className="btn btn-secondary"> <ChevronLeft size={16} /> Back to invoices </Link>}>
           No invoice details were found under this organization.
-        </p>
-        <Link to="/invoices" className="btn btn-secondary" style={{ marginTop: '1rem' }}>
-          <ChevronLeft size={16} /> Back to invoices
-        </Link>
+        </EmptyState>
       </section>
     );
   }
@@ -497,14 +492,11 @@ export function InvoiceDetailPage() {
           gap: '1rem',
         }}
       >
-        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileSpreadsheet size={24} style={{ color: 'var(--text-link)' }} />
-          {isNew ? 'New invoice' : <code>{invoice?.invoice_number}</code>}
-        </h1>
+        <PageHeader title={<><FileSpreadsheet size={24} style={{ color: 'var(--text-link)' }} /> {isNew ? 'New invoice' : <code>{invoice?.invoice_number}</code>}</>} />
 
         {!isNew && invoice && (
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <StatusPill status={invoice.status} />
+            <StatusBadge status={invoice.status} />
 
             {invoice.status === 'draft' && (
               <button onClick={markSent} disabled={busy} className="btn btn-primary">
@@ -1135,26 +1127,6 @@ function TaxInvoicePanel({ input, status }: { input: InvoiceDocumentInput; statu
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  const generatedId = useId();
-  const child = isValidElement<{ id?: string }>(children) ? children : null;
-  const labelable =
-    child && typeof child.type === 'string' && ['input', 'select', 'textarea'].includes(child.type);
-  const controlId =
-    labelable && child ? (child.props.id ?? `invoice-field-${generatedId}`) : undefined;
-  const labelledChild =
-    labelable && child && controlId ? cloneElement(child, { id: controlId }) : children;
-
-  return (
-    <div className="form-group">
-      <label className="form-label" htmlFor={controlId} style={{ fontSize: '0.725rem' }}>
-        {label}
-      </label>
-      <div style={{ marginTop: '0.25rem' }}>{labelledChild}</div>
-    </div>
-  );
-}
-
 function Total({
   label,
   value,
@@ -1181,19 +1153,5 @@ function Total({
       <span style={{ color: 'var(--text-muted)' }}>{label}</span>
       <span>{value}</span>
     </div>
-  );
-}
-
-function StatusPill({ status }: { status: string }) {
-  let badgeClass = 'badge-neutral';
-  if (status === 'paid') badgeClass = 'badge-success';
-  else if (status === 'sent') badgeClass = 'badge-info';
-  else if (status === 'partially_paid') badgeClass = 'badge-warning';
-  else if (status === 'overdue') badgeClass = 'badge-danger';
-
-  return (
-    <span className={`badge ${badgeClass}`} style={{ alignSelf: 'center' }}>
-      {status.replace('_', ' ')}
-    </span>
   );
 }

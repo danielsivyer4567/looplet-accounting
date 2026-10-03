@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useOrg } from '@/hooks/useOrg';
 import { useBillUpload, type UploadResult } from '@/hooks/useBillUpload';
 import { GmailConnect } from '@/components/settings/GmailConnect';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 export function BillUploadPage() {
   const { currentOrg } = useOrg();
@@ -47,7 +48,7 @@ export function BillUploadPage() {
       <Link to="/bills" style={{ color: 'var(--text-muted)', fontSize: 13 }}>
         ← back to bills
       </Link>
-      <h1 style={{ marginTop: '0.5rem' }}>Upload bill</h1>
+      <PageHeader title="Upload bill" style={{ marginTop: '0.5rem' }} />
       <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: '1.5rem' }}>
         PDF, PNG, JPG, HEIC, or WEBP. Max 25 MB. Born-digital PDFs extract in ~100ms with no OCR
         cost; photos and scans run vision OCR.

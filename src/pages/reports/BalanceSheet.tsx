@@ -15,6 +15,8 @@ import {
   Info,
   type LucideIcon,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface BalanceSheetRow {
   organization_id: string;
@@ -128,7 +130,7 @@ export function BalanceSheetPage() {
         )}
       </div>
 
-      <h1 style={{ margin: 0 }}>Balance Sheet</h1>
+      <PageHeader title="Balance Sheet" />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -224,18 +226,7 @@ export function BalanceSheetPage() {
           {error}
         </div>
       ) : rows.length === 0 ? (
-        <div
-          style={{
-            padding: '3rem 1.5rem',
-            background: 'var(--bg-card)',
-            border: '1px dashed var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
-          No balance sheet data yet. Add bank accounts, bills, invoices, and debts.
-        </div>
+        <EmptyState>No balance sheet data yet. Add bank accounts, bills, invoices, and debts.</EmptyState>
       ) : (
         <div
           style={{
