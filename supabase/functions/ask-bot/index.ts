@@ -20,6 +20,7 @@ import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supa
 import { enforceAiQuota } from '../_shared/aiRateLimit.ts';
 import { requireSignedInCaller } from '../_shared/authGuards.ts';
 import { corsHeaders, preflight } from '../_shared/cors.ts';
+import { basQuarterSql } from './basQuery.ts';
 import { supabaseOrgAccessDeps } from '../_shared/orgRole.ts';
 import { embedTexts } from '../_shared/ocr/openai.ts';
 import {
@@ -61,7 +62,7 @@ bank_transactions (id, organization_id, posted_at, description, amount_cents big
 subscriptions (id, organization_id, merchant_name, supplier_id, cadence, amount_cents bigint, status, is_personal bool, is_business bool)
 
 -- Aggregated views (PREFER THESE for summaries)
-v_bas_quarterly (organization_id, fy_start_year, quarter_num, quarter_start, quarter_end, due_date, sales_inc_gst_cents bigint, sales_ex_gst_cents bigint, gst_collected_cents bigint, purchases_inc_gst_cents bigint, purchases_ex_gst_cents bigint, gst_paid_cents bigint, net_gst_owed_cents bigint)
+v_bas_quarterly (organization_id, fy_start_year, quarter_num, quarter_start, quarter_end, due_date, sales_inc_gst_cents bigint, sales_ex_gst_cents bigint, gst_collected_cents bigint, purchases_inc_gst_cents bigint, purchases_ex_gst_cents bigint, gst_paid_cents bigint, net_gst_cents bigint)
 v_organization_realtime_pnl (organization_id, organization_name, revenue_inc_gst_cents bigint, revenue_ex_gst_cents bigint, total_cost_cents bigint, gross_profit_cents bigint, gst_set_aside_cents bigint, tax_set_aside_cents bigint, really_yours_cents bigint)
 v_job_pnl (job_id, organization_id, job_number, job_name, revenue_inc_gst_cents bigint, total_cost_cents bigint, gross_profit_cents bigint, budget_cents bigint, currency_code)
 v_unpaid_bills_for_payment_run (id, organization_id, supplier_name, supplier_id, invoice_date, due_date, total_inc_gst_cents bigint, days_overdue int)
@@ -266,10 +267,7 @@ async function loadBusinessContext(
     client.from('v_organization_realtime_pnl').select('*').eq('organization_id', orgId).maybeSingle(),
     // Most recent BAS quarter
     client.rpc('ask_bot_query', {
-      p_sql: `SELECT fy_start_year, quarter_num, quarter_start, quarter_end, due_date,
-                     sales_inc_gst_cents, gst_collected_cents, gst_paid_cents, net_gst_owed_cents
-              FROM v_bas_quarterly WHERE organization_id = '${orgId}'
-              ORDER BY fy_start_year DESC, quarter_num DESC LIMIT 1`,
+      p_sql: basQuarterSql(orgId),
       p_max_rows: 1,
     }),
     // Tax calendar — personalized obligations (BAS, super, TPAR, FBT, income tax, EOFY,
@@ -357,7 +355,7 @@ async function loadBusinessContext(
     parts.push('');
     parts.push('=== MOST RECENT BAS QUARTER ===');
     parts.push(`FY${bas.fy_start_year}-Q${bas.quarter_num} (${bas.quarter_start} to ${bas.quarter_end}, due ${bas.due_date})`);
-    parts.push(`  Sales inc GST: ${fmt(bas.sales_inc_gst_cents)}, GST collected: ${fmt(bas.gst_collected_cents)}, GST paid: ${fmt(bas.gst_paid_cents)}, NET GST owed: ${fmt(bas.net_gst_owed_cents)}`);
+    parts.push(`  Sales inc GST: ${fmt(bas.sales_inc_gst_cents)}, GST collected: ${fmt(bas.gst_collected_cents)}, GST paid: ${fmt(bas.gst_paid_cents)}, Net GST: ${fmt(bas.net_gst_cents)}`);
   }
 
   // TAX CALENDAR — time-aware obligations so the bot can be proactive about deadlines.
