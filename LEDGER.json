@@ -1955,7 +1955,7 @@
       "title": "Redbark client pages accounts and transactions, splits truncated date windows, converts dollars to exact cents and skips pending rows",
       "area": "bank",
       "priority": 41,
-      "status": "in_progress",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/redbark/client.test.ts\""
       ],
@@ -1988,6 +1988,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-02-002.log",
           "log_sha256": "4f25f313f0ee26192b12c629be3e46ff9b994a31b3a34bd28b77f9d9d597e778"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/redbark/client.test.ts\"",
+          "exit": 0,
+          "head": "62a46f2a959dfddd82b3de70cca558933c1d122d",
+          "dirty": [],
+          "at": "2026-10-03T00:48:39.788Z",
+          "ms": 879,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-02-003.log",
+          "log_sha256": "51dd5b1801521dc021f9da1377bab0c8d448cc30fe350a0b829b6047dcce5330"
         }
       ],
       "notes": [],
@@ -2034,8 +2047,30 @@
           "files": [
             "supabase/functions/_shared/redbark/client.ts"
           ]
+        },
+        {
+          "at": "2026-10-03T00:48:39.789Z",
+          "event": "run",
+          "head": "62a46f2a959dfddd82b3de70cca558933c1d122d",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:48:39.910Z",
+          "event": "done",
+          "head": "62a46f2a959dfddd82b3de70cca558933c1d122d",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T00:48:39.895Z",
+        "head": "62a46f2a959dfddd82b3de70cca558933c1d122d",
+        "by": "claude-worker",
+        "runs": [
+          3
+        ]
+      }
     },
     {
       "id": "BANK-03",
@@ -2129,7 +2164,7 @@
       "title": "bank-sync imports Redbark transactions idempotently on (bank account, provider id) and keeps the post-sync chain",
       "area": "bank",
       "priority": 43,
-      "status": "in_progress",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bank-sync/sync.test.ts\""
       ],
@@ -2164,6 +2199,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-04-002.log",
           "log_sha256": "71213851db49ff5ede1a72347660cfda6334ffb7f2652286bed0ab9503ab64c4"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bank-sync/sync.test.ts\"",
+          "exit": 0,
+          "head": "62a46f2a959dfddd82b3de70cca558933c1d122d",
+          "dirty": [],
+          "at": "2026-10-03T00:48:41.062Z",
+          "ms": 929,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-04-003.log",
+          "log_sha256": "c9aeebd21ce6574821d748a7e74e3dc1fad4ec80d1e30a3b0815d7a0e89ca80b"
         }
       ],
       "notes": [],
@@ -2210,8 +2258,30 @@
           "files": [
             "supabase/functions/_shared/redbark/client.ts"
           ]
+        },
+        {
+          "at": "2026-10-03T00:48:41.063Z",
+          "event": "run",
+          "head": "62a46f2a959dfddd82b3de70cca558933c1d122d",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:48:41.273Z",
+          "event": "done",
+          "head": "62a46f2a959dfddd82b3de70cca558933c1d122d",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T00:48:41.258Z",
+        "head": "62a46f2a959dfddd82b3de70cca558933c1d122d",
+        "by": "claude-worker",
+        "runs": [
+          3
+        ]
+      }
     },
     {
       "id": "BANK-05",
@@ -3536,5 +3606,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T00:48:10.258Z"
+  "updated_at": "2026-10-03T00:48:41.289Z"
 }
