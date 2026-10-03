@@ -15,7 +15,7 @@
 | SEC-05 | Writes to money tables (payees, bills, invoices, journals, period locks, employees, payment runs) need an accountant or admin role; viewers are read-only | done | done @ 6f46b943, awaiting independent verify |
 | SEC-06 | CI uses least-privilege permissions, SHA-pinned actions and a deploy job separate from build | open | not run |
 | SEC-07 | Hardening: CORS allow-list, constant-time secret checks, bundled pdf.js worker, cron secrets in headers, generic error responses | open | not run |
-| PAY-01 | Pay runs calculate wages from the base hourly rate, not the loaded cost rate | done | done @ 43f7603e, awaiting independent verify |
+| PAY-01 | Pay runs calculate wages from the base hourly rate, not the loaded cost rate | done | done @ 702f63c0, awaiting independent verify |
 | PAY-02 | Super defaults to the statutory rate (12%) and a pay run never applies less than the SG rate for the pay date | done | done @ 23e8aa88, awaiting independent verify |
 | PAY-03 | PAYG withholding uses the financial year of the pay date and fails loudly instead of returning $0 when no table applies | open | not run |
 | PAY-04 | FY2026-27 PAYG withholding tables match the ATO schedule (NAT 1004) worked examples | open | not run |
@@ -28,7 +28,7 @@
 | AI-01 | AI answers and advice are labelled general information, and the model is allowed to recommend an accountant | open | not run |
 | TFN-01 | TFNs are never returned to the browser or stored in plain text | open | not run |
 | LODGE-01 | Nothing claims to lodge with the ATO or send to a super fund when it only prepares a file | open | not run |
-| BANK-01 | Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs | done | done @ 06930950, awaiting independent verify |
+| BANK-01 | Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs | done | done @ 702f63c0, awaiting independent verify |
 | BANK-02 | Redbark client pages accounts and transactions, splits truncated date windows, converts dollars to exact cents and skips pending rows | done | done @ 62a46f2a, awaiting independent verify |
 | BANK-03 | bank-webhook verifies Redbark signatures and timestamps, stores the event before acting and dispatches one sync per linked connection | done | done @ 6468e475, awaiting independent verify |
 | BANK-04 | bank-sync imports Redbark transactions idempotently on (bank account, provider id) and keeps the post-sync chain | done | done @ 62a46f2a, awaiting independent verify |

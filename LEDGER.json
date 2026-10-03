@@ -1539,6 +1539,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/PAY-01-002.log",
           "log_sha256": "d7fd456f9fa98c9958fd92c9ad53d63cd0a2f0c3ce37449a141dbe00c890eac9"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/payroll-create-pay-run/calc.test.ts\"",
+          "exit": 0,
+          "head": "702f63c0991f30ba618646ffa4dd2d6391765daa",
+          "dirty": [],
+          "at": "2026-10-03T00:49:33.235Z",
+          "ms": 772,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-01-003.log",
+          "log_sha256": "0948bd6e35933e136f04dea290716032d84893244ff382e0f675dcc60945040c"
         }
       ],
       "notes": [],
@@ -1576,14 +1589,39 @@
           "event": "done",
           "head": "43f7603e28cfa042b947c92a53fc52632a03330d",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:49:31.313Z",
+          "event": "stale",
+          "head": "702f63c0991f30ba618646ffa4dd2d6391765daa",
+          "actor": "claude-worker",
+          "files": [
+            "supabase/functions/payroll-create-pay-run/index.ts",
+            "supabase/functions/payroll-create-pay-run/super.test.ts",
+            "supabase/functions/payroll-create-pay-run/super.ts"
+          ]
+        },
+        {
+          "at": "2026-10-03T00:49:33.236Z",
+          "event": "run",
+          "head": "702f63c0991f30ba618646ffa4dd2d6391765daa",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:49:33.401Z",
+          "event": "done",
+          "head": "702f63c0991f30ba618646ffa4dd2d6391765daa",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T00:48:44.911Z",
-        "head": "43f7603e28cfa042b947c92a53fc52632a03330d",
+        "at": "2026-10-03T00:49:33.384Z",
+        "head": "702f63c0991f30ba618646ffa4dd2d6391765daa",
         "by": "claude-worker",
         "runs": [
-          2
+          3
         ]
       }
     },
@@ -2094,6 +2132,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/BANK-01-005.log",
           "log_sha256": "74afbf2c82f8785c0994c43fed865c456fef05094dd2a2a3e924ea80d0de8439"
+        },
+        {
+          "n": 6,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 0,
+          "head": "702f63c0991f30ba618646ffa4dd2d6391765daa",
+          "dirty": [],
+          "at": "2026-10-03T00:49:34.357Z",
+          "ms": 804,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-01-006.log",
+          "log_sha256": "aa24f1706ccaebcae9d78fdb5f9697843112fc3acd1fd58ae16b5ffe0ca98f17"
         }
       ],
       "notes": [],
@@ -2173,14 +2224,44 @@
           "event": "done",
           "head": "069309509dc834770ff18ec780b0a5cde14acfae",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:49:31.500Z",
+          "event": "stale",
+          "head": "702f63c0991f30ba618646ffa4dd2d6391765daa",
+          "actor": "claude-worker",
+          "files": [
+            "src/lib/superGuarantee.ts",
+            "src/pages/EmployeeDetail.tsx",
+            "src/pages/Employees.tsx",
+            "src/test/db/sgcStatement.test.ts",
+            "src/test/pages/EmployeeSuperDefault.test.tsx",
+            "supabase/functions/payroll-create-pay-run/index.ts",
+            "supabase/functions/payroll-create-pay-run/super.test.ts",
+            "supabase/functions/payroll-create-pay-run/super.ts"
+          ]
+        },
+        {
+          "at": "2026-10-03T00:49:34.358Z",
+          "event": "run",
+          "head": "702f63c0991f30ba618646ffa4dd2d6391765daa",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:49:34.963Z",
+          "event": "done",
+          "head": "702f63c0991f30ba618646ffa4dd2d6391765daa",
+          "actor": "claude-worker"
         }
       ],
       "done": {
-        "at": "2026-10-03T00:49:22.871Z",
-        "head": "069309509dc834770ff18ec780b0a5cde14acfae",
+        "at": "2026-10-03T00:49:34.754Z",
+        "head": "702f63c0991f30ba618646ffa4dd2d6391765daa",
         "by": "claude-worker",
         "runs": [
-          5
+          6
         ]
       }
     },
@@ -3840,5 +3921,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T00:49:30.886Z"
+  "updated_at": "2026-10-03T00:49:35.066Z"
 }
