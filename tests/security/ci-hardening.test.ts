@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  asList,
   asMap,
   jobsOf,
   loadWorkflows,
@@ -202,67 +201,34 @@ describe('CI workflows (SEC-06)', () => {
   }
 });
 
-describe('ci.yml deploys the build job artifact from a separate job (SEC-06)', () => {
-  const ci = byName('ci.yml');
-  const jobs = new Map(jobsOf(ci));
+describe('ci.yml builds an artifact and never deploys (SEC-06, CI-02)', () => {
+  const jobs = new Map(jobsOf(byName('ci.yml')));
 
   it('builds and uploads dist in a job without deploy secrets', () => {
     const build = must(jobs.get('build'), 'build job');
     for (const secret of DEPLOY_SECRETS) expect(refsSecret(build, secret), secret).toBe(false);
     const steps = stepsOf(build, 'build');
-    const buildAt = steps.findIndex((s) => s['run'] === 'npm run build');
-    const uploadAt = steps.findIndex((s) =>
-      String(s['uses'] ?? '').startsWith('actions/upload-artifact@'),
-    );
+    const buildAt = steps.findIndex((s) => /npm run build/.test(String(s['run'] ?? '')));
+    const uploadAt = steps.findIndex((s) => String(s['uses'] ?? '').startsWith('actions/upload-artifact@'));
     expect(buildAt).toBeGreaterThanOrEqual(0);
     expect(uploadAt).toBeGreaterThan(buildAt);
     expect(asMap(must(steps[uploadAt], 'upload step')['with'], 'upload with')).toMatchObject({
       name: 'dist',
       path: 'dist',
-      'if-no-files-found': 'error',
     });
   });
 
-  it('deploys only on a push to main, after build and tenant isolation, without building', () => {
-    const deploy = must(jobs.get('deploy'), 'deploy job');
-    expect(deploy['if']).toBe("github.ref == 'refs/heads/main' && github.event_name == 'push'");
-    expect(asList(deploy['needs'], 'deploy needs')).toEqual(
-      expect.arrayContaining(['build', 'tenant-isolation']),
-    );
-    const steps = stepsOf(deploy, 'deploy');
-    // No shell steps at all: the job only checks out wrangler.toml, downloads dist and runs wrangler.
-    expect(steps.filter((s) => s['run'] !== undefined)).toEqual([]);
-    const checkout = asMap(
-      must(
-        steps.find((s) => String(s['uses']).startsWith('actions/checkout@')),
-        'checkout',
-      )['with'],
-      'checkout with',
-    );
-    expect(checkout).toMatchObject({
-      'sparse-checkout': 'wrangler.toml',
-      'sparse-checkout-cone-mode': 'false',
-      'persist-credentials': 'false',
-    });
-    const download = must(
-      steps.find((s) => String(s['uses']).startsWith('actions/download-artifact@')),
-      'download step',
-    );
-    expect(asMap(download['with'], 'download with')).toMatchObject({ name: 'dist', path: 'dist' });
-    const wrangler = must(
-      steps.find((s) => String(s['uses']).startsWith('cloudflare/wrangler-action@')),
-      'wrangler step',
-    );
-    expect(asMap(wrangler['with'], 'wrangler with')['command']).toBe(
-      'pages deploy ./dist --project-name=looplet-accounting --branch=main',
-    );
-    expect(steps.indexOf(download)).toBeLessThan(steps.indexOf(wrangler));
-  });
-
-  it('holds the Cloudflare secrets in the deploy job only', () => {
-    for (const [id, job] of jobs) {
-      for (const secret of ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID'])
-        expect(refsSecret(job, secret), `${id} ${secret}`).toBe(id === 'deploy');
+  it('has no deploy job: Cloudflare Pages deploys main through its Git integration', () => {
+    // A second production path in CI needed a long-lived Cloudflare API token in GitHub, which the August
+    // implant could read. Production is published only by merging to main.
+    expect(jobs.has('deploy')).toBe(false);
+    for (const [name, job] of jobs) {
+      for (const secret of ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID']) {
+        expect(refsSecret(job, secret), `${name} references ${secret}`).toBe(false);
+      }
+      const steps = stepsOf(job, name);
+      expect(steps.some((s) => String(s['uses'] ?? '').startsWith('cloudflare/wrangler-action@')), `${name} runs wrangler`).toBe(false);
+      expect(steps.some((s) => /pages deploy/.test(String(s['run'] ?? ''))), `${name} runs pages deploy`).toBe(false);
     }
   });
 });

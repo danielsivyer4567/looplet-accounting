@@ -6,7 +6,7 @@ import SkippedTestsReporter, {
   formatSkipReport,
   skippedFiles,
 } from '../support/skippedTestsReporter';
-import { asList, asMap, jobsOf, loadWorkflows, must, stepsOf } from './workflowYaml';
+import { asMap, jobsOf, loadWorkflows, must, stepsOf } from './workflowYaml';
 
 // CI-01. CI must run the Deno edge-function tests, run tests/ in Node (Vitest 4 ignores the old
 // environmentMatchGlobs option), and say which test files skipped instead of passing them silently.
@@ -156,11 +156,12 @@ describe('CI runs the Deno edge-function tests (CI-01)', () => {
     expect(JSON.stringify(job)).not.toContain('secrets.');
   });
 
-  it('blocks the deploy when the Deno tests fail', () => {
-    const deploy = must(jobs.get('deploy'), 'deploy job');
-    expect(asList(deploy['needs'], 'deploy needs')).toContain('edge-functions');
-    expect(asMap(jobs.get('edge-functions')?.['permissions'], 'permissions')).toEqual({
-      contents: 'read',
-    });
+  it('runs the Deno job on every push and pull request with read-only permissions', () => {
+    // There is no deploy job any more (CI-02): Cloudflare Pages deploys main itself, so the Deno job guards the
+    // pull request check rather than a deploy step.
+    expect(jobs.has('deploy')).toBe(false);
+    const edge = must(jobs.get('edge-functions'), 'edge-functions job');
+    expect(edge['if']).toBeUndefined();
+    expect(asMap(edge['permissions'], 'permissions')).toEqual({ contents: 'read' });
   });
 });
