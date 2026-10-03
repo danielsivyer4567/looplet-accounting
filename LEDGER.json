@@ -2152,7 +2152,7 @@
       "title": "Payday Super (from 1 July 2026) drives super due dates instead of quarterly batching",
       "area": "payroll",
       "priority": 24,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payday-super.sql\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/PaydaySuper.test.tsx\""
@@ -2161,7 +2161,60 @@
         "supabase/migrations",
         "src/pages/Payroll.tsx"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payday-super.sql\"",
+          "exit": 1,
+          "head": "8792b7f3b4b4c603535ba6df6a38979b91d49179",
+          "dirty": [],
+          "at": "2026-10-03T01:00:17.147Z",
+          "ms": 336,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-05-001.log",
+          "log_sha256": "770e6024b2930827382b941b0d6fa5ac46967c8f642a869d86949af8fb35537a"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/PaydaySuper.test.tsx\"",
+          "exit": 1,
+          "head": "8792b7f3b4b4c603535ba6df6a38979b91d49179",
+          "dirty": [],
+          "at": "2026-10-03T01:00:18.559Z",
+          "ms": 1411,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-05-002.log",
+          "log_sha256": "3e05ef30ab87fdf848cd4c98756f6bb5288bf83b27b6bf4173a8d66db0032fff"
+        },
+        {
+          "n": 3,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payday-super.sql\"",
+          "exit": 0,
+          "head": "a732ca7ab7de1257bff361b5e101acafec6f4ab6",
+          "dirty": [],
+          "at": "2026-10-03T01:01:03.161Z",
+          "ms": 43737,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-05-003.log",
+          "log_sha256": "d3eabba9f2b32ae9eccc9048a63a4f0e95d84cccb6aa18ff3d637576fe65d93c"
+        },
+        {
+          "n": 4,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/PaydaySuper.test.tsx\"",
+          "exit": 0,
+          "head": "a732ca7ab7de1257bff361b5e101acafec6f4ab6",
+          "dirty": [],
+          "at": "2026-10-03T01:01:05.985Z",
+          "ms": 2823,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-05-004.log",
+          "log_sha256": "1eafa4e47046401dd1dec6ecad2f8fae1177ad6f971134dae5fc120e1cc7e2e7"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -2184,8 +2237,45 @@
           "head": "8f1a89f1754e886f18107c58b7eb8e7331fa27b0",
           "actor": "claude-worker",
           "why": ""
+        },
+        {
+          "at": "2026-10-03T01:00:16.677Z",
+          "event": "start",
+          "head": "8792b7f3b4b4c603535ba6df6a38979b91d49179",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T01:00:18.560Z",
+          "event": "run",
+          "head": "8792b7f3b4b4c603535ba6df6a38979b91d49179",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:01:05.985Z",
+          "event": "run",
+          "head": "a732ca7ab7de1257bff361b5e101acafec6f4ab6",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T01:01:06.111Z",
+          "event": "done",
+          "head": "a732ca7ab7de1257bff361b5e101acafec6f4ab6",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T01:01:06.096Z",
+        "head": "a732ca7ab7de1257bff361b5e101acafec6f4ab6",
+        "by": "claude-worker",
+        "runs": [
+          3,
+          4
+        ]
+      }
     },
     {
       "id": "XERO-01",
@@ -4778,5 +4868,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T01:00:15.180Z"
+  "updated_at": "2026-10-03T01:01:06.126Z"
 }
