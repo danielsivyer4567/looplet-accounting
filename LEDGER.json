@@ -7618,7 +7618,7 @@
       "title": "Every migration applies in order to a fresh database, so the history can rebuild the schema (no known failures left)",
       "area": "database",
       "priority": 30,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs --strict\""
       ],
@@ -7626,7 +7626,34 @@
         "supabase/migrations",
         "scripts/db/known-migration-failures.json"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs --strict\"",
+          "exit": 1,
+          "head": "455f271e4111fb594833c2c61ed87a84f6a4dd7c",
+          "dirty": [],
+          "at": "2026-10-03T02:12:33.981Z",
+          "ms": 42193,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/MIG-01-001.log",
+          "log_sha256": "dd097798a9319d2784a046b888bacd93b3c8a74f118265e1a6600228cf1635d6"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs --strict\"",
+          "exit": 0,
+          "head": "eaea3fe4adebbd664bc57498f32a0b12ec17a709",
+          "dirty": [],
+          "at": "2026-10-03T02:13:16.843Z",
+          "ms": 42503,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/MIG-01-002.log",
+          "log_sha256": "29cc5ac98636a1661c72a63bcdea807f2aedd4bd89035b31871748f86b527f72"
+        }
+      ],
       "notes": [
         {
           "at": "2026-10-02T23:52:28.870Z",
@@ -7640,8 +7667,44 @@
           "event": "added",
           "head": "d8455163c489993ca76cfc775c9307322ad7c3a3",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:11:51.493Z",
+          "event": "start",
+          "head": "455f271e4111fb594833c2c61ed87a84f6a4dd7c",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:12:33.982Z",
+          "event": "run",
+          "head": "455f271e4111fb594833c2c61ed87a84f6a4dd7c",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:13:16.843Z",
+          "event": "run",
+          "head": "eaea3fe4adebbd664bc57498f32a0b12ec17a709",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:13:16.970Z",
+          "event": "done",
+          "head": "eaea3fe4adebbd664bc57498f32a0b12ec17a709",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T02:13:16.953Z",
+        "head": "eaea3fe4adebbd664bc57498f32a0b12ec17a709",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "SEC-10",
@@ -8873,5 +8936,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T02:11:49.248Z"
+  "updated_at": "2026-10-03T02:13:16.986Z"
 }

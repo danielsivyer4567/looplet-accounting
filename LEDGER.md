@@ -54,7 +54,7 @@
 | DEPLOY | Production (accounting.looplet.com.au and the edge functions) serves the verified build after Daniel says go | blocked | BLOCKED: Production changes need the owner's explicit approval. (needs: Daniel reviews screenshots and the verified ledger, then says go for the production deploy.) |
 | SEC-08 | bills-allocate-batch checks the caller's own accepted membership and needs accountant or higher to change allocations | verified | verified by claude-verifier (independent subagent) @ bbdacc04 |
 | SEC-09 | accountant-email-query matches the sender's accepted accountant memberships by role_enum, so the emailed activity digest works | verified | verified by claude-verifier (independent subagent) @ bbdacc04 |
-| MIG-01 | Every migration applies in order to a fresh database, so the history can rebuild the schema (no known failures left) | open | not run |
+| MIG-01 | Every migration applies in order to a fresh database, so the history can rebuild the schema (no known failures left) | done | done @ eaea3fe4, awaiting independent verify |
 | SEC-10 | SECURITY DEFINER functions that users call and that write money tables check the caller's role | done | done @ 61a3686d, awaiting independent verify |
 | SEC-11 | Bills only reference suppliers of their own organisation, so payment runs never copy another organisation's payee bank details | done | done @ 61a3686d, awaiting independent verify |
 
