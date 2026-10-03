@@ -56,6 +56,6 @@
 | SEC-09 | accountant-email-query matches the sender's accepted accountant memberships by role_enum, so the emailed activity digest works | done | done @ 0e7befa3, awaiting independent verify |
 | MIG-01 | Every migration applies in order to a fresh database, so the history can rebuild the schema (no known failures left) | open | not run |
 | SEC-10 | SECURITY DEFINER functions that users call and that write money tables check the caller's role | done | done @ 7e16c71b, awaiting independent verify |
-| SEC-11 | Bills only reference suppliers of their own organisation, so payment runs never copy another organisation's payee bank details | open | not run |
+| SEC-11 | Bills only reference suppliers of their own organisation, so payment runs never copy another organisation's payee bank details | in_progress | last run pass @ ed0a07df |
 
 Acceptance commands, every run, exit codes and log hashes are in LEDGER.json; logs are in .ledger/logs/.

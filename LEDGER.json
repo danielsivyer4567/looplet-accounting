@@ -2588,7 +2588,7 @@
       "title": "Bills only reference suppliers of their own organisation, so payment runs never copy another organisation's payee bank details",
       "area": "security",
       "priority": 14,
-      "status": "open",
+      "status": "in_progress",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bill-supplier-same-org.sql\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\""
@@ -2598,7 +2598,34 @@
         "tests/db-sql/bill-supplier-same-org.sql",
         "supabase/functions/payment-runs-create"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/bill-supplier-same-org.sql\"",
+          "exit": 1,
+          "head": "ed0a07df4948003cf8721367d33d1aacd4005cdc",
+          "dirty": [],
+          "at": "2026-10-03T00:21:14.038Z",
+          "ms": 488,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-11-001.log",
+          "log_sha256": "aaab3364dde543ef629b00724a32c6b228157ad1e670d7cab79343bc1fd93267"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\"",
+          "exit": 0,
+          "head": "ed0a07df4948003cf8721367d33d1aacd4005cdc",
+          "dirty": [],
+          "at": "2026-10-03T00:21:16.447Z",
+          "ms": 2408,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-11-002.log",
+          "log_sha256": "4742f76523aa23b8a78f0f2c302f195c962c9b2ec1323d1606fce674ffa40031"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -2606,9 +2633,23 @@
           "event": "added",
           "head": "3d5a319a48c4a9aef84a4d44a01b569fec1523c0",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:21:13.428Z",
+          "event": "start",
+          "head": "ed0a07df4948003cf8721367d33d1aacd4005cdc",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:21:16.448Z",
+          "event": "run",
+          "head": "ed0a07df4948003cf8721367d33d1aacd4005cdc",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
         }
       ]
     }
   ],
-  "updated_at": "2026-10-03T00:20:59.064Z"
+  "updated_at": "2026-10-03T00:21:16.462Z"
 }
