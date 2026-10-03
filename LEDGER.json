@@ -713,7 +713,7 @@
       "title": "Payment-run, ABA export, mark-paid, super-batch and termination functions require an accepted admin or owner",
       "area": "security",
       "priority": 12,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/orgRole.test.ts\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\""
@@ -804,6 +804,32 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-03-006.log",
           "log_sha256": "8eeb05cb60c76c57ac9a5d3e82b22cf6017dfbad40f3f46af73f80a2fee5b787"
+        },
+        {
+          "n": 7,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/_shared/orgRole.test.ts\"",
+          "exit": 0,
+          "head": "0adf087f68195af8946ade7f8c9cff3e23c48588",
+          "dirty": [],
+          "at": "2026-10-03T00:06:42.407Z",
+          "ms": 760,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-03-007.log",
+          "log_sha256": "e9aabcf3b10dfad5aee5c79c6f9d0906510206cded9548c591f6f1e83f00f2b8"
+        },
+        {
+          "n": 8,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/payment-role-guards.test.ts\"",
+          "exit": 0,
+          "head": "0adf087f68195af8946ade7f8c9cff3e23c48588",
+          "dirty": [],
+          "at": "2026-10-03T00:06:44.527Z",
+          "ms": 2119,
+          "actor": "claude-verifier",
+          "log": ".ledger/logs/SEC-03-008.log",
+          "log_sha256": "a684828fa7542e0b9210ff989022ee3818f67a10d5968201e3a7ddd5e9a3ed25"
         }
       ],
       "notes": [
@@ -876,6 +902,13 @@
           "event": "done",
           "head": "73ce785cb5e43ea6f144d70d3fa0fe90a5d0c1c5",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:06:44.561Z",
+          "event": "verified",
+          "head": "0adf087f68195af8946ade7f8c9cff3e23c48588",
+          "actor": "claude-verifier",
+          "by": "claude-verifier (independent subagent)"
         }
       ],
       "done": {
@@ -885,6 +918,16 @@
         "runs": [
           5,
           6
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T00:06:44.544Z",
+        "head": "0adf087f68195af8946ade7f8c9cff3e23c48588",
+        "by": "claude-verifier (independent subagent)",
+        "note": "Read all eight functions and team-invite in full: every membership check now goes through authorizeOrgMember (accepted_at required, admin minimum), every service-role write is scoped by organization_id or by ids loaded under an org filter, deno check passes for all nine, and the 14 test files that reference these functions pass (incl. the pinned TFN message). Residual (not role gating): payment-runs-create embeds the supplier through bills.supplier_id with the service role, so a bill pointing at another org's supplier UUID copies that supplier's payee BSB/account into the caller's run; payer_bank_account_id is unvalidated, and the ABA-export and STP item loads are not org-filtered, relying on the SEC-05 same-org triggers.",
+        "runs": [
+          7,
+          8
         ]
       }
     },
@@ -2283,5 +2326,5 @@
       ]
     }
   ],
-  "updated_at": "2026-10-02T23:52:36.645Z"
+  "updated_at": "2026-10-03T00:06:44.579Z"
 }
