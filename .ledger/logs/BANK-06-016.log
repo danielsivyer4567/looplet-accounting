@@ -1,0 +1,4 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/db/run-pg-sql-tests.mjs tests/db-sql/redbark-migrations.sql"
+migrations: 300 applied, 0 known failures, 0 problems (300 files)
+PASS tests/db-sql/redbark-migrations.sql
+  NOTICE:  redbark migrations: 3 schema checks and 26 write/read probes as expected
