@@ -8110,14 +8110,41 @@
       "title": "PDF previews and the microphone feature work under the production security headers",
       "area": "broken",
       "priority": 51,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/csp-headers.test.ts\""
       ],
       "paths": [
         "public/_headers"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/csp-headers.test.ts\"",
+          "exit": 1,
+          "head": "9849b9b0a4e1f474f69686a47c213b9aa413fff2",
+          "dirty": [],
+          "at": "2026-10-03T02:43:57.190Z",
+          "ms": 1245,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/CSP-01-001.log",
+          "log_sha256": "4b952b56c0858d66928f699089e7c2700e08f2ca9aa4cec9938c59b83d8d5add"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/csp-headers.test.ts\"",
+          "exit": 0,
+          "head": "efc4faf6045d8b60958bfb3fd757425d0254dcc3",
+          "dirty": [],
+          "at": "2026-10-03T02:44:33.571Z",
+          "ms": 1529,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/CSP-01-002.log",
+          "log_sha256": "40219c3fc363aa59e909cbebe3e83286df6d638185272de56dad14e09877fa50"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -8125,8 +8152,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:43:55.826Z",
+          "event": "start",
+          "head": "9849b9b0a4e1f474f69686a47c213b9aa413fff2",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T02:43:57.191Z",
+          "event": "run",
+          "head": "9849b9b0a4e1f474f69686a47c213b9aa413fff2",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:44:33.572Z",
+          "event": "run",
+          "head": "efc4faf6045d8b60958bfb3fd757425d0254dcc3",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T02:44:33.701Z",
+          "event": "done",
+          "head": "efc4faf6045d8b60958bfb3fd757425d0254dcc3",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T02:44:33.685Z",
+        "head": "efc4faf6045d8b60958bfb3fd757425d0254dcc3",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "BAS-01",
@@ -11975,5 +12038,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T02:43:53.824Z"
+  "updated_at": "2026-10-03T02:44:33.716Z"
 }
