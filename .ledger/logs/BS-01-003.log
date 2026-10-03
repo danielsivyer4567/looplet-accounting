@@ -1,0 +1,38 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/db/run-pg-sql-tests.mjs tests/db-sql/balance-sheet-debts.sql"
+migrations: 284 applied, 9 known failures, 0 problems (293 files)
+FAIL tests/db-sql/balance-sheet-debts.sql
+   check 
+  -------
+  (1 row)
+   check 
+  -------
+  (1 row)
+   check 
+  -------
+  (1 row)
+   check 
+  -------
+  (1 row)
+   check 
+  -------
+  (1 row)
+   check 
+  -------
+  (1 row)
+   check 
+  -------
+  (1 row)
+   check 
+  -------
+  (1 row)
+   check 
+  -------
+  (1 row)
+  ERROR:  Balance sheet debts: 6 of 9 checks failed:
+  Cash at bank = everyday account only: got NULL, want 1000000
+  card without a debt record shows once as a liability: got NULL, want 40000
+  Net equity: got -2370000, want -1410000
+  liabilities total: got 2370000, want 2410000
+  assets total: got NULL, want 1000000
+  summary liabilities: got 2370000, want 2410000
+  CONTEXT:  PL/pgSQL function inline_code_block line 10 at RAISE
