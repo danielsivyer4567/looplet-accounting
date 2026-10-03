@@ -83,6 +83,17 @@ Deno.test('an empty configured service key never matches an empty bearer', async
   assertEquals(result.ok ? 'allowed' : result.status, 401);
 });
 
+Deno.test('the edge function authorises the caller before its first database read or write', async () => {
+  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const guard = src.indexOf('authorizeIntakeRouting(');
+  const handler = src.indexOf('Deno.serve(');
+  const firstRead = src.indexOf(".from('", handler);
+  const batch = src.indexOf('routeBatch(admin', handler);
+  assertEquals(guard > handler, true, 'guard missing from the handler');
+  assertEquals(firstRead === -1 || guard < firstRead, true, 'a read happens before the guard');
+  assertEquals(guard < batch, true, 'routing starts before the guard');
+});
+
 Deno.test('the supabase-js adapter reads the caller membership row and treats a rejected token as signed out', async () => {
   const calls: string[] = [];
   const query = {

@@ -13,7 +13,7 @@ CREATE TEMP TABLE audit AS
 SELECT p.proname,
        (SELECT string_agg(t, ',') FROM unnest(ARRAY['bills','invoices','journal_entries','journal_lines','period_locks','suppliers',
                'customers','bank_accounts','employees','payment_runs','payment_run_items','super_batches','pay_runs','pay_slips',
-               'bank_transactions','credit_notes']) t
+               'bank_transactions','credit_notes','chart_of_accounts','invoice_line_items','invoice_payments','timesheet_entries','wage_entries','super_batch_lines']) t
          WHERE p.prosrc ~* ('(insert\s+into|update|delete\s+from)\s+(public\.)?' || t || '\M')) AS writes,
        p.prosrc ~* '(require_role|can_write_org)' AS role_check
   FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
@@ -41,7 +41,7 @@ BEGIN
     WHEN insufficient_privilege THEN outcome := 'denied';
     WHEN OTHERS THEN
       IF SQLERRM = 'gate-rollback' THEN NULL;
-      ELSIF SQLERRM ~* '^(not a member of organization|not authorized to post journal entry)' THEN outcome := 'denied';
+      ELSIF SQLERRM ~* '^(not a member of organization|not authorized to post journal entry|not authorized to seed chart of accounts)' THEN outcome := 'denied';
       ELSE outcome := 'allowed';  -- the gate let the caller through; a later data check stopped it
       END IF;
   END;
@@ -110,7 +110,8 @@ INSERT INTO cases VALUES
   ('reconcile_undo_match', 'accountant', format('SELECT to_jsonb(public.reconcile_undo_match(%L))', pg_temp.id('txn'))),
   ('bulk_accept_job_suggestions', 'accountant', format('SELECT to_jsonb(public.bulk_accept_job_suggestions(%L, 0.85))', pg_temp.id('org_a'))),
   ('rematch_unallocated_bills', 'accountant', format('SELECT to_jsonb(public.rematch_unallocated_bills(%L, 10))', pg_temp.id('org_a'))),
-  ('move_employee_to_org', 'admin', format('SELECT to_jsonb(public.move_employee_to_org(%L, %L))', pg_temp.id('staff'), pg_temp.id('org_b')));
+  ('move_employee_to_org', 'admin', format('SELECT to_jsonb(public.move_employee_to_org(%L, %L))', pg_temp.id('staff'), pg_temp.id('org_b'))),
+  ('seed_default_chart_of_accounts', 'accountant', format('SELECT to_jsonb(public.seed_default_chart_of_accounts(%L))', pg_temp.id('org_a')));
 
 CREATE TEMP TABLE ranks (role text PRIMARY KEY, rank int);
 INSERT INTO ranks VALUES ('viewer', 0), ('employee', 1), ('accountant', 2), ('admin', 3), ('owner', 4);

@@ -279,7 +279,7 @@ INSERT INTO open_tables VALUES
   ('organizations'), ('accountant_sessions'), ('accountant_activity_log'), ('notifications'), ('data_completeness_findings'),
   ('staged_entities'), ('receipt_identities'), ('tag_attachments'), ('tag_drafts'), ('tag_rate_limits'), ('tag_replies'), ('tag_staff'), ('tags'),
   ('automation_artifacts'), ('automation_dead_letters'), ('automation_decisions'), ('automation_feedback'), ('automation_job_steps'), ('automation_jobs'),
-  ('confidence_policies'), ('obligation_status'), ('bas_worksheet_snapshots'), ('xero_account_codes'), ('xero_sync_log');
+  ('confidence_policies'), ('xero_sync_log');
 CREATE TEMP TABLE audit AS
 SELECT c.relname,
        bool_or(p.permissive = 'RESTRICTIVE' AND (coalesce(p.qual,'') || coalesce(p.with_check,'')) ~ 'can_write_org') AS guarded
