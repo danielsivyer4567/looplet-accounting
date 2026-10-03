@@ -67,3 +67,11 @@ Deno.test('the pay run prices every payslip with these helpers on the base rate'
   assertMatch(src, /base_hourly_rate_cents: baseRate/);
   assertEquals(/loaded_hourly_rate_cents \?\? 0|\* loadedRate/.test(src), false);
 });
+
+Deno.test('PAYG is withheld from the table of the pay date, not today', async () => {
+  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const call = src.slice(src.indexOf("admin.rpc('calc_payg_tax'"));
+  assertMatch(call.slice(0, 300), /p_pay_date: pay_date,/);
+  // A missing amount is an error, never $0 withheld.
+  assertEquals(/Number\(taxRes \?\? 0\)/.test(src), false);
+});

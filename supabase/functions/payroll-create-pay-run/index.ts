@@ -18,7 +18,7 @@
  *      (split: ordinary/overtime/leave). loaded_hourly_rate_cents is the
  *      employer's cost rate for job costing and is never paid as wages. An
  *      employee with no base rate gets a per-employee error, not a payslip.
- *   4. Call calc_payg_tax + calc_super_ote.
+ *   4. Call calc_payg_tax (table chosen by the pay date's financial year) + calc_super_ote.
  *   5. Pull YTD totals from prior pay_slips this fiscal year (1 July → 30 June).
  *   6. Insert pay_slips row.
  *
@@ -217,14 +217,17 @@ Deno.serve(async (req) => {
       const grossTotal = gross.totalCents;
       const ordinaryTimeEarnings = gross.ordinaryTimeEarningsCents;
 
-      // PAYG tax via DB function.
+      // PAYG tax via DB function, from the withholding table of the pay date's financial year. It raises
+      // (a per-employee error here) when no table covers that year, rather than withholding $0.
       const { data: taxRes, error: taxErr } = await admin.rpc('calc_payg_tax', {
         p_gross_cents: grossTotal,
         p_frequency: frequency,
         p_claims_threshold: claims_threshold,
+        p_pay_date: pay_date,
       });
       if (taxErr) throw new Error(`calc_payg_tax: ${taxErr.message}`);
-      const paygTax = Number(taxRes ?? 0);
+      if (taxRes == null) throw new Error('calc_payg_tax returned no amount');
+      const paygTax = Number(taxRes);
 
       // Super guarantee. Use OTE (ordinary + leave), excluding overtime. The employee's rate, else the
       // organisation default, but never below the statutory SG rate for the pay date.
