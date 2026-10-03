@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/pages/SettingsConsent.test.tsx"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  12:42:51
+   Duration  1.38s (transform 184ms, setup 60ms, import 313ms, tests 415ms, environment 486ms)
+
