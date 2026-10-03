@@ -77,7 +77,9 @@ function tableQuery(data: unknown, error: { message: string } | null = null) {
     eq: vi.fn(() => query),
     is: vi.fn(() => query),
     order: vi.fn(() => query),
-    then: vi.fn((resolve: (value: unknown) => unknown) => Promise.resolve({ data, error }).then(resolve)),
+    then: vi.fn((resolve: (value: unknown) => unknown) =>
+      Promise.resolve({ data, error }).then(resolve),
+    ),
   };
   return query;
 }

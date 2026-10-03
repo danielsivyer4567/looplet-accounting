@@ -234,22 +234,26 @@ export function EofyReportPage() {
               marginBottom: readiness.blockers.length > 0 ? '1.25rem' : 0,
             }}
           >
-            <Stat variant="tile"
+            <Stat
+              variant="tile"
               label="Open periods"
               value={String(readiness.open_period_count)}
               tone={readiness.open_period_count > 0 ? 'warning' : undefined}
             />
-            <Stat variant="tile"
+            <Stat
+              variant="tile"
               label="Unreconciled"
               value={String(readiness.unreconciled_count)}
               tone={readiness.unreconciled_count > 0 ? 'warning' : undefined}
             />
-            <Stat variant="tile"
+            <Stat
+              variant="tile"
               label="Uncoded"
               value={String(readiness.uncoded_count)}
               tone={readiness.uncoded_count > 0 ? 'warning' : undefined}
             />
-            <Stat variant="tile"
+            <Stat
+              variant="tile"
               label="Trial balance"
               value={readiness.trial_balance_balanced ? 'Balanced' : 'Out'}
               tone={!readiness.trial_balance_balanced ? 'warning' : undefined}
@@ -311,20 +315,24 @@ export function EofyReportPage() {
               marginBottom: '1.25rem',
             }}
           >
-            <Stat variant="tile"
+            <Stat
+              variant="tile"
               label="Net profit"
               value={formatMoney(bundle.statements.profit_and_loss.net_profit_cents)}
               strong
             />
-            <Stat variant="tile"
+            <Stat
+              variant="tile"
               label="Total assets"
               value={formatMoney(bundle.statements.balance_sheet.total_assets_cents)}
             />
-            <Stat variant="tile"
+            <Stat
+              variant="tile"
               label="Total liabilities"
               value={formatMoney(bundle.statements.balance_sheet.total_liabilities_cents)}
             />
-            <Stat variant="tile"
+            <Stat
+              variant="tile"
               label="Balance sheet"
               value={bundle.statements.balance_sheet.balances ? 'Balances' : 'Out of balance'}
               tone={!bundle.statements.balance_sheet.balances ? 'warning' : undefined}

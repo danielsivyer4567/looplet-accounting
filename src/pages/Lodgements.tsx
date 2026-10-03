@@ -91,7 +91,11 @@ function DetailPanel({
           </div>
           <h2 style={{ margin: '0.2rem 0 0', fontSize: '1.15rem' }}>{lodgement.period_label}</h2>
         </div>
-        <StatusBadge status={lodgement.status} tone={statusTone(lodgement.status)} label={humanize(lodgement.status)} />
+        <StatusBadge
+          status={lodgement.status}
+          tone={statusTone(lodgement.status)}
+          label={humanize(lodgement.status)}
+        />
       </div>
 
       {canDownloadPack && (
@@ -185,7 +189,13 @@ export function LodgementsPage() {
         }}
       >
         <div>
-          <PageHeader title={<><FileCheck2 size={24} style={{ color: 'var(--text-link)' }} /> Prepared returns</>} />
+          <PageHeader
+            title={
+              <>
+                <FileCheck2 size={24} style={{ color: 'var(--text-link)' }} /> Prepared returns
+              </>
+            }
+          />
           <p style={{ color: MUTED, margin: '0.35rem 0 0', maxWidth: '48rem' }}>
             Returns and statements Looplet has prepared for you, with their status and the payload
             kept for review. Looplet does not lodge with the ATO: lodge them yourself or through
@@ -227,7 +237,9 @@ export function LodgementsPage() {
           Lodgement history unavailable: {error}
         </div>
       ) : lodgements.length === 0 ? (
-        <EmptyState>Nothing prepared yet. Prepared BAS, STP and other returns will be listed here.</EmptyState>
+        <EmptyState>
+          Nothing prepared yet. Prepared BAS, STP and other returns will be listed here.
+        </EmptyState>
       ) : (
         <div style={{ display: 'grid', gap: '1rem' }}>
           <div className="table-premium-container">
@@ -249,7 +261,11 @@ export function LodgementsPage() {
                     <td style={{ fontWeight: 600 }}>{TYPE_LABELS[item.lodgement_type]}</td>
                     <td>{item.period_label}</td>
                     <td>
-                      <StatusBadge status={item.status} tone={statusTone(item.status)} label={humanize(item.status)} />
+                      <StatusBadge
+                        status={item.status}
+                        tone={statusTone(item.status)}
+                        label={humanize(item.status)}
+                      />
                     </td>
                     <td>{item.ato_receipt_id ?? <span style={{ color: MUTED }}>-</span>}</td>
                     <td style={{ fontSize: '0.825rem' }}>{formatDateTime(item.submitted_at)}</td>

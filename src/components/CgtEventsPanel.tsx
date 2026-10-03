@@ -341,7 +341,12 @@ function CgtEventForm({
         }}
       >
         <h3 style={{ margin: 0 }}>{event ? 'Edit CGT event' : 'Add CGT event'}</h3>
-        <button className="btn btn-ghost" onClick={onCancel} aria-label="Close" style={{ padding: '0.25rem' }}>
+        <button
+          className="btn btn-ghost"
+          onClick={onCancel}
+          aria-label="Close"
+          style={{ padding: '0.25rem' }}
+        >
           <X size={18} />
         </button>
       </div>

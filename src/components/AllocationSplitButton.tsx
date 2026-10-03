@@ -190,7 +190,8 @@ export function AllocationSplitButton({
           padding: '0.3rem 0.75rem',
           background: splits.length > 0 ? 'var(--bg-info-subtle)' : 'transparent',
           color: splits.length > 0 ? 'var(--accent-info)' : 'var(--text-muted)',
-          border: '1px solid ' + (splits.length > 0 ? 'var(--accent-info)' : 'var(--border-subtle)'),
+          border:
+            '1px solid ' + (splits.length > 0 ? 'var(--accent-info)' : 'var(--border-subtle)'),
           borderRadius: 3,
           fontSize: 12,
           cursor: busy ? 'wait' : 'pointer',
@@ -238,7 +239,9 @@ export function AllocationSplitButton({
                 <span style={{ color: 'var(--text-success)' }}>
                   ★ {hostOrgName} <span style={{ color: 'var(--text-muted)' }}>(host)</span>
                 </span>
-                <span style={{ color: 'var(--text-success)', fontWeight: 600 }}>{hostShare.toFixed(2)}%</span>
+                <span style={{ color: 'var(--text-success)', fontWeight: 600 }}>
+                  {hostShare.toFixed(2)}%
+                </span>
               </div>
 
               {splits.map((s) => {
@@ -369,7 +372,8 @@ export function AllocationSplitButton({
                     padding: '0.4rem',
                     background: overTotal ? 'var(--bg-danger-subtle)' : 'var(--bg-info-subtle)',
                     color: 'var(--text-title)',
-                    border: '1px solid ' + (overTotal ? 'var(--accent-danger)' : 'var(--accent-info)'),
+                    border:
+                      '1px solid ' + (overTotal ? 'var(--accent-danger)' : 'var(--accent-info)'),
                     borderRadius: 3,
                     fontSize: 12,
                     fontWeight: 600,
@@ -394,7 +398,11 @@ export function AllocationSplitButton({
                   cancel
                 </button>
               </div>
-              {err && <p style={{ margin: '0.5rem 0 0', color: 'var(--text-danger)', fontSize: 11 }}>{err}</p>}
+              {err && (
+                <p style={{ margin: '0.5rem 0 0', color: 'var(--text-danger)', fontSize: 11 }}>
+                  {err}
+                </p>
+              )}
             </>
           )}
         </div>

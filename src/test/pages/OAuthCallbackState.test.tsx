@@ -8,9 +8,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // someone else) must never reach the server with its code.
 
 const h = vi.hoisted(() => ({
-  currentOrg: { id: 'org-1', name: 'Test Org', organization_type: 'standard' } as
-    | { id: string; name: string; organization_type: string }
-    | null,
+  currentOrg: { id: 'org-1', name: 'Test Org', organization_type: 'standard' } as {
+    id: string;
+    name: string;
+    organization_type: string;
+  } | null,
 }));
 
 vi.mock('@/lib/supabase', () => ({
@@ -39,8 +41,20 @@ import { GmailCallbackPage } from '@/pages/GmailCallback';
 import { XeroCallbackPage } from '@/pages/XeroCallback';
 
 const PAGES: { name: string; Page: ComponentType; key: string; path: string; fn: string }[] = [
-  { name: 'Xero', Page: XeroCallbackPage, key: 'xero_oauth_state', path: '/settings/xero-callback', fn: 'xero-oauth-callback' },
-  { name: 'Gmail', Page: GmailCallbackPage, key: 'gmail_oauth_state', path: '/settings/gmail-callback', fn: 'gmail-oauth-callback' },
+  {
+    name: 'Xero',
+    Page: XeroCallbackPage,
+    key: 'xero_oauth_state',
+    path: '/settings/xero-callback',
+    fn: 'xero-oauth-callback',
+  },
+  {
+    name: 'Gmail',
+    Page: GmailCallbackPage,
+    key: 'gmail_oauth_state',
+    path: '/settings/gmail-callback',
+    fn: 'gmail-oauth-callback',
+  },
 ];
 
 function renderAt(Page: ComponentType, path: string, query: string) {
@@ -61,8 +75,16 @@ let fetchMock: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   sessionStorage.clear();
   h.currentOrg = { id: 'org-1', name: 'Test Org', organization_type: 'standard' };
-  fetchMock = vi.fn(async () =>
-    new Response(JSON.stringify({ ok: true, tenant: { name: 'Demo Co' }, gmail_address: 'bills@example.com' }), { status: 200 }),
+  fetchMock = vi.fn(
+    async () =>
+      new Response(
+        JSON.stringify({
+          ok: true,
+          tenant: { name: 'Demo Co' },
+          gmail_address: 'bills@example.com',
+        }),
+        { status: 200 },
+      ),
   );
   vi.stubGlobal('fetch', fetchMock);
 });
@@ -81,7 +103,9 @@ describe.each(PAGES)('$name callback page', ({ Page, key, path, fn }) => {
   it('refuses a state that differs from the one this tab stored', async () => {
     sessionStorage.setItem(key, 'state-from-this-tab');
     renderAt(Page, path, 'code=attacker-code&state=state-from-elsewhere');
-    expect(await screen.findByText(/does not match the connection started here/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/does not match the connection started here/i),
+    ).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
     expect(sessionStorage.getItem(key)).toBeNull();
   });
@@ -92,10 +116,16 @@ describe.each(PAGES)('$name callback page', ({ Page, key, path, fn }) => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toContain(`/functions/v1/${fn}`);
-    expect(JSON.parse(String(init.body))).toMatchObject({ organization_id: 'org-1', code: 'good-code', state: 'signed-state' });
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      organization_id: 'org-1',
+      code: 'good-code',
+      state: 'signed-state',
+    });
     expect(sessionStorage.getItem(key)).toBeNull();
     expect(await screen.findByText(/Redirecting/)).toBeInTheDocument();
-    expect(screen.queryByText(/Connection failed|not started|does not match/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Connection failed|not started|does not match/i),
+    ).not.toBeInTheDocument();
   });
 
   it('waits for the organisation to load before using the state', async () => {
@@ -118,18 +148,39 @@ describe.each(PAGES)('$name callback page', ({ Page, key, path, fn }) => {
 
 describe('Gmail connect button', () => {
   it('stores the issued state so the callback page can finish the connection', async () => {
-    fetchMock.mockImplementationOnce(async () =>
-      new Response(JSON.stringify({ ok: true, url: 'https://accounts.google.com/o/oauth2/v2/auth?state=issued', state: 'issued-state' }), {
-        status: 200,
-      }),
+    fetchMock.mockImplementationOnce(
+      async () =>
+        new Response(
+          JSON.stringify({
+            ok: true,
+            url: 'https://accounts.google.com/o/oauth2/v2/auth?state=issued',
+            state: 'issued-state',
+          }),
+          {
+            status: 200,
+          },
+        ),
     );
     const assign = vi.fn();
     const original = window.location;
-    Object.defineProperty(window, 'location', { configurable: true, value: { ...original, origin: original.origin, set href(v: string) { assign(v); } } });
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        ...original,
+        origin: original.origin,
+        set href(v: string) {
+          assign(v);
+        },
+      },
+    });
     try {
       render(<GmailConnect />);
       fireEvent.click(screen.getByRole('button', { name: /connect gmail/i }));
-      await waitFor(() => expect(assign).toHaveBeenCalledWith('https://accounts.google.com/o/oauth2/v2/auth?state=issued'));
+      await waitFor(() =>
+        expect(assign).toHaveBeenCalledWith(
+          'https://accounts.google.com/o/oauth2/v2/auth?state=issued',
+        ),
+      );
       expect(sessionStorage.getItem('gmail_oauth_state')).toBe('issued-state');
       expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/functions/v1/gmail-oauth-start');
     } finally {

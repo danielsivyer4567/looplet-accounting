@@ -98,7 +98,13 @@ export function MyActivityPage() {
 
   return (
     <section className="animated-fade-in" style={{ maxWidth: '950px' }}>
-      <PageHeader title={<><ActivityIcon size={24} style={{ color: 'var(--text-link)' }} /> My Activity</>} />
+      <PageHeader
+        title={
+          <>
+            <ActivityIcon size={24} style={{ color: 'var(--text-link)' }} /> My Activity
+          </>
+        }
+      />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -181,7 +187,10 @@ export function MyActivityPage() {
           <SkeletonTable rows={5} cols={6} />
         </div>
       ) : sessions.length === 0 ? (
-        <EmptyState>No sessions yet. Sessions auto-create on your first pageview while logged in as an accountant.</EmptyState>
+        <EmptyState>
+          No sessions yet. Sessions auto-create on your first pageview while logged in as an
+          accountant.
+        </EmptyState>
       ) : (
         <div className="table-premium-container" style={{ marginBottom: '2rem' }}>
           <table className="table-premium">
@@ -293,10 +302,7 @@ export function MyActivityPage() {
           alignItems: 'flex-start',
         }}
       >
-        <Info
-          size={16}
-          style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }}
-        />
+        <Info size={16} style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }} />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
           <span
             style={{

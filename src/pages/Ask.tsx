@@ -368,7 +368,14 @@ export function AskPage() {
           }}
         >
           <div>
-            <PageHeader title={<><Sparkles size={24} style={{ color: 'var(--text-link)' }} /> Ask AI</>} style={{ marginBottom: '0.25rem' }} />
+            <PageHeader
+              title={
+                <>
+                  <Sparkles size={24} style={{ color: 'var(--text-link)' }} /> Ask AI
+                </>
+              }
+              style={{ marginBottom: '0.25rem' }}
+            />
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
               Ask anything about your books or Australian tax regulations. Powered by live
               accounting records + citation search.
@@ -459,7 +466,8 @@ export function AskPage() {
                     alignSelf: 'flex-end',
                     maxWidth: '80%',
                     padding: '0.75rem 1.25rem',
-                    background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-hover) 100%)',
+                    background:
+                      'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-hover) 100%)',
                     color: 'var(--text-title)',
                     borderRadius: 'var(--radius-md) var(--radius-md) 0 var(--radius-md)',
                     fontSize: '0.9rem',

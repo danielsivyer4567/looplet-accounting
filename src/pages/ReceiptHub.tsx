@@ -1536,7 +1536,12 @@ function ReceiptEventDrawer({
             <span>Receipt event</span>
             <h3>{event?.merchant_name ?? 'Receipt'}</h3>
           </div>
-          <button type="button" className="receipt-panel-action" onClick={onClose} aria-label="Close">
+          <button
+            type="button"
+            className="receipt-panel-action"
+            onClick={onClose}
+            aria-label="Close"
+          >
             <X size={16} />
           </button>
         </div>

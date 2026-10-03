@@ -41,8 +41,8 @@ export function AuthShell({ children }: { children: ReactNode }) {
             <br />A trusted way in.
           </h1>
           <p className="auth-intro__lead">
-            Job-costed AP/AR for trades businesses. One place to see the money, understand the work and decide what
-            comes next.
+            Job-costed AP/AR for trades businesses. One place to see the money, understand the work
+            and decide what comes next.
           </p>
           <div className="auth-intro__note">
             <span aria-hidden="true">✓</span>

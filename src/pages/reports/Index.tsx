@@ -99,7 +99,14 @@ const REPORTS = [
 export function ReportsIndexPage() {
   return (
     <section className="animated-fade-in">
-      <PageHeader title={<><FileSpreadsheet size={24} style={{ color: 'var(--text-link)' }} /> Reports</>} style={{ marginBottom: '0.5rem' }} />
+      <PageHeader
+        title={
+          <>
+            <FileSpreadsheet size={24} style={{ color: 'var(--text-link)' }} /> Reports
+          </>
+        }
+        style={{ marginBottom: '0.5rem' }}
+      />
       <p
         style={{
           color: 'var(--text-muted)',

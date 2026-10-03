@@ -301,7 +301,14 @@ export function PayRunDetailPage() {
         }}
       >
         <div>
-          <PageHeader title={<><Layers size={24} style={{ color: 'var(--text-link)' }} /> Pay run · {run.period_start} → {run.period_end}</>} />
+          <PageHeader
+            title={
+              <>
+                <Layers size={24} style={{ color: 'var(--text-link)' }} /> Pay run ·{' '}
+                {run.period_start} → {run.period_end}
+              </>
+            }
+          />
           <div
             style={{
               display: 'flex',
@@ -512,10 +519,7 @@ export function PayRunDetailPage() {
           alignItems: 'flex-start',
         }}
       >
-        <Info
-          size={16}
-          style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }}
-        />
+        <Info size={16} style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }} />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
           <span
             style={{
@@ -527,10 +531,10 @@ export function PayRunDetailPage() {
           >
             ATO Single Touch Payroll (STP) Phase 2
           </span>
-          The STP file is prepared in Phase 2 JSON format for your registered tax or BAS agent, and a
-          draft record of it is kept in the lodgement ledger. Employee TFNs appear masked to the last
-          four digits; the full numbers stay encrypted in Looplet. Nothing is lodged with the ATO from
-          here.
+          The STP file is prepared in Phase 2 JSON format for your registered tax or BAS agent, and
+          a draft record of it is kept in the lodgement ledger. Employee TFNs appear masked to the
+          last four digits; the full numbers stay encrypted in Looplet. Nothing is lodged with the
+          ATO from here.
         </div>
       </div>
     </section>

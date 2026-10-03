@@ -202,7 +202,10 @@ export function XeroConnect() {
                 <span style={{ fontSize: 15, fontWeight: 600 }}>
                   {integration.xero_tenant_name}
                 </span>
-                <StatusBadge tones={{ active: 'success', expired: 'danger', error: 'danger' }} status={integration.status} />
+                <StatusBadge
+                  tones={{ active: 'success', expired: 'danger', error: 'danger' }}
+                  status={integration.status}
+                />
               </div>
               <div style={metaRow}>
                 <span style={metaLabel}>Tenant ID</span>
@@ -271,7 +274,9 @@ export function XeroConnect() {
         </div>
       )}
       {successMessage && (
-        <p style={{ color: 'var(--text-success)', fontSize: 12, marginTop: '0.5rem' }}>{successMessage}</p>
+        <p style={{ color: 'var(--text-success)', fontSize: 12, marginTop: '0.5rem' }}>
+          {successMessage}
+        </p>
       )}
     </div>
   );

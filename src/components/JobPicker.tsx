@@ -64,7 +64,9 @@ export function JobPicker({
           }}
         >
           {loading && (
-            <div style={{ padding: '0.5rem 0.75rem', color: 'var(--text-muted)', fontSize: 13 }}>Searching…</div>
+            <div style={{ padding: '0.5rem 0.75rem', color: 'var(--text-muted)', fontSize: 13 }}>
+              Searching…
+            </div>
           )}
           {results.map((job) => (
             <button
@@ -99,7 +101,9 @@ export function JobPicker({
                 <code style={{ color: 'var(--text-success)' }}>{job.job_number}</code>{' '}
                 <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>{job.name}</span>
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{job.status}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                {job.status}
+              </div>
             </button>
           ))}
           {!loading && results.length === 0 && query.length > 0 && (

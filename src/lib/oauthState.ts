@@ -22,18 +22,24 @@ export function consumeOAuthState(key: OAuthStateKey, returned: string | null): 
     stored = null;
   }
   if (!returned) {
-    return { ok: false, error: 'The sign-in provider did not return a state. Please start the connection again from Settings.' };
+    return {
+      ok: false,
+      error:
+        'The sign-in provider did not return a state. Please start the connection again from Settings.',
+    };
   }
   if (!stored) {
     return {
       ok: false,
-      error: 'This connection was not started in this browser tab. For your security, start it again from Settings.',
+      error:
+        'This connection was not started in this browser tab. For your security, start it again from Settings.',
     };
   }
   if (stored !== returned) {
     return {
       ok: false,
-      error: 'This response does not match the connection started here. For your security, start it again from Settings.',
+      error:
+        'This response does not match the connection started here. For your security, start it again from Settings.',
     };
   }
   return { ok: true };

@@ -116,7 +116,13 @@ export function SuppliersPage() {
           gap: '1rem',
         }}
       >
-        <PageHeader title={<><Truck size={24} style={{ color: 'var(--text-link)' }} /> Suppliers</>} />
+        <PageHeader
+          title={
+            <>
+              <Truck size={24} style={{ color: 'var(--text-link)' }} /> Suppliers
+            </>
+          }
+        />
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           {!loading && (
             <div

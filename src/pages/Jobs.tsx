@@ -109,7 +109,13 @@ export function JobsPage() {
           gap: '1rem',
         }}
       >
-        <PageHeader title={<><Briefcase size={24} style={{ color: 'var(--text-link)' }} /> Jobs</>} />
+        <PageHeader
+          title={
+            <>
+              <Briefcase size={24} style={{ color: 'var(--text-link)' }} /> Jobs
+            </>
+          }
+        />
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           {!loading && (
             <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
@@ -132,7 +138,8 @@ export function JobsPage() {
             position: 'relative',
           }}
         >
-          <button aria-label="Close"
+          <button
+            aria-label="Close"
             onClick={() => setShowCreate(false)}
             style={{
               position: 'absolute',

@@ -1,8 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
@@ -456,7 +452,16 @@ export function InvoiceDetailPage() {
   if (!isNew && !invoice) {
     return (
       <section className="animated-fade-in">
-        <EmptyState icon={AlertCircle} title="Invoice not found" action={<Link to="/invoices" className="btn btn-secondary"> <ChevronLeft size={16} /> Back to invoices </Link>}>
+        <EmptyState
+          icon={AlertCircle}
+          title="Invoice not found"
+          action={
+            <Link to="/invoices" className="btn btn-secondary">
+              {' '}
+              <ChevronLeft size={16} /> Back to invoices{' '}
+            </Link>
+          }
+        >
           No invoice details were found under this organization.
         </EmptyState>
       </section>
@@ -492,7 +497,14 @@ export function InvoiceDetailPage() {
           gap: '1rem',
         }}
       >
-        <PageHeader title={<><FileSpreadsheet size={24} style={{ color: 'var(--text-link)' }} /> {isNew ? 'New invoice' : <code>{invoice?.invoice_number}</code>}</>} />
+        <PageHeader
+          title={
+            <>
+              <FileSpreadsheet size={24} style={{ color: 'var(--text-link)' }} />{' '}
+              {isNew ? 'New invoice' : <code>{invoice?.invoice_number}</code>}
+            </>
+          }
+        />
 
         {!isNew && invoice && (
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>

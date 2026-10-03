@@ -157,9 +157,7 @@ export function BalanceSheetPage() {
         }}
       >
         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-          As at{' '}
-          {formatDateAu(asOfDate)}{' '}
-          — live position from your current ledger
+          As at {formatDateAu(asOfDate)} — live position from your current ledger
         </span>
       </div>
 
@@ -226,7 +224,9 @@ export function BalanceSheetPage() {
           {error}
         </div>
       ) : rows.length === 0 ? (
-        <EmptyState>No balance sheet data yet. Add bank accounts, bills, invoices, and debts.</EmptyState>
+        <EmptyState>
+          No balance sheet data yet. Add bank accounts, bills, invoices, and debts.
+        </EmptyState>
       ) : (
         <div
           style={{
@@ -285,10 +285,7 @@ export function BalanceSheetPage() {
           alignItems: 'flex-start',
         }}
       >
-        <Info
-          size={16}
-          style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }}
-        />
+        <Info size={16} style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }} />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
           <span
             style={{

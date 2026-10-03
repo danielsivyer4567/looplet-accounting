@@ -151,7 +151,9 @@ export function GmailConnect({
   return (
     <div style={{ marginTop: showContainerSpacing ? '2rem' : 0 }}>
       <h2 style={{ fontSize: 18, marginBottom: '0.5rem' }}>{title}</h2>
-      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: '1rem' }}>{description}</p>
+      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: '1rem' }}>
+        {description}
+      </p>
 
       {disconnected.length > 0 && (
         <div
@@ -321,7 +323,9 @@ export function GmailConnect({
                   <strong>{formatDate(g.watch_expires_at)}</strong>
                 </div>
                 {g.last_error && (
-                  <div style={{ color: 'var(--text-danger)', fontSize: 11, marginTop: 4 }}>{g.last_error}</div>
+                  <div style={{ color: 'var(--text-danger)', fontSize: 11, marginTop: 4 }}>
+                    {g.last_error}
+                  </div>
                 )}
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
                   {g.is_active ? (
@@ -382,9 +386,13 @@ export function GmailConnect({
         </>
       )}
 
-      {error && <p style={{ color: 'var(--text-danger)', fontSize: 12, marginTop: '0.5rem' }}>{error}</p>}
+      {error && (
+        <p style={{ color: 'var(--text-danger)', fontSize: 12, marginTop: '0.5rem' }}>{error}</p>
+      )}
       {backfillStatus && (
-        <p style={{ color: 'var(--text-success)', fontSize: 12, marginTop: '0.5rem' }}>{backfillStatus}</p>
+        <p style={{ color: 'var(--text-success)', fontSize: 12, marginTop: '0.5rem' }}>
+          {backfillStatus}
+        </p>
       )}
     </div>
   );

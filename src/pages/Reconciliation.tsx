@@ -331,7 +331,14 @@ export function ReconciliationPage() {
     <section className="animated-fade-in">
       {/* Header title */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <PageHeader title={<><Scale size={24} style={{ color: 'var(--text-link)' }} /> Reconciliation</>} style={{ marginBottom: '0.25rem' }} />
+        <PageHeader
+          title={
+            <>
+              <Scale size={24} style={{ color: 'var(--text-link)' }} /> Reconciliation
+            </>
+          }
+          style={{ marginBottom: '0.25rem' }}
+        />
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
           Match bank transactions to bills (money out) and invoices (money in).
         </p>

@@ -143,7 +143,9 @@ export function ScanPage() {
       setSummary(data as ScanSummary);
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred during the scan.');
+      setError(
+        err instanceof Error ? err.message : 'An unexpected error occurred during the scan.',
+      );
     } finally {
       setScanning(false);
     }
@@ -266,8 +268,7 @@ export function ScanPage() {
         >
           {SCAN_CHECKS.map((check) => (
             <li key={check.code} data-check-code={check.code}>
-              {check.label}{' '}
-              <span style={{ color: 'var(--text-muted)' }}>({check.severity})</span>
+              {check.label} <span style={{ color: 'var(--text-muted)' }}>({check.severity})</span>
             </li>
           ))}
         </ul>
@@ -329,8 +330,8 @@ export function ScanPage() {
             lineHeight: '1.4',
           }}
         >
-          Last run: {summary.critical} critical, {summary.warning} warnings,{' '}
-          {summary.info} info · {summary.resolved_this_run} auto-resolved · ran{' '}
+          Last run: {summary.critical} critical, {summary.warning} warnings, {summary.info} info ·{' '}
+          {summary.resolved_this_run} auto-resolved · ran{' '}
           {new Date(summary.scanned_at).toLocaleString('en-AU')}
         </div>
       )}
@@ -635,5 +636,7 @@ function SummaryCard({
   type: 'critical' | 'warning' | 'info';
   icon: LucideIcon;
 }) {
-  return <Stat label={label} value={value} tone={type === 'critical' ? 'danger' : type} icon={icon} />;
+  return (
+    <Stat label={label} value={value} tone={type === 'critical' ? 'danger' : type} icon={icon} />
+  );
 }

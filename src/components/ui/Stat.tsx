@@ -42,7 +42,10 @@ function accentFor(tone: Tone | undefined, accentColor: string | undefined): str
 function renderIcon(icon: StatProps['icon']): ReactNode {
   if (!icon) return null;
   if (isValidElement(icon)) return icon;
-  if (typeof icon === 'function' || (typeof icon === 'object' && icon !== null && 'render' in icon)) {
+  if (
+    typeof icon === 'function' ||
+    (typeof icon === 'object' && icon !== null && 'render' in icon)
+  ) {
     const Icon = icon as LucideIcon;
     return <Icon size={18} />;
   }

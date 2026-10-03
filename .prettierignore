@@ -1,0 +1,7 @@
+# Generated or tool-owned files: the finish-line ledger rewrites its own records, npm owns the lockfile.
+LEDGER.json
+LEDGER.md
+.ledger/
+package-lock.json
+dist/
+node_modules/

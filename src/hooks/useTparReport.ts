@@ -73,7 +73,10 @@ export interface TparReportPayload {
 }
 
 /** Most recent completed AU financial year start year. FY runs 1 July - 30 June, judged in Australian time. */
-export function latestCompletedTparFyStartYear(today = new Date(), timeZone = DEFAULT_TIME_ZONE): number {
+export function latestCompletedTparFyStartYear(
+  today = new Date(),
+  timeZone = DEFAULT_TIME_ZONE,
+): number {
   const { year, month } = localDateParts(today, timeZone);
   return month >= 7 ? year - 1 : year - 2;
 }

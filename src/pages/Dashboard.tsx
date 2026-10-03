@@ -569,7 +569,10 @@ export function DashboardPage() {
           </div>
         )}
         {!activityLoading && activityItems.length === 0 && (
-          <EmptyState>No money activity yet — upload a bill, raise an invoice, or import a bank statement and it shows up here.</EmptyState>
+          <EmptyState>
+            No money activity yet — upload a bill, raise an invoice, or import a bank statement and
+            it shows up here.
+          </EmptyState>
         )}
         {activityItems.map((tx, idx) => (
           <div
@@ -707,7 +710,8 @@ export function DashboardPage() {
                   <span>Australian dollar</span>
                 </div>
               </div>
-              <button aria-label="Close"
+              <button
+                aria-label="Close"
                 onClick={() => setDrawerOpen(false)}
                 style={{
                   background: 'var(--bg-hover)',
@@ -832,10 +836,7 @@ export function DashboardPage() {
                     }}
                   >
                     Add your organisation&apos;s bank details in{' '}
-                    <Link
-                      to="/settings"
-                      style={{ color: 'var(--text-link)', fontWeight: 600 }}
-                    >
+                    <Link to="/settings" style={{ color: 'var(--text-link)', fontWeight: 600 }}>
                       Settings → Payments
                     </Link>{' '}
                     to show and share your receiving account here.
@@ -991,7 +992,9 @@ function DetailRow({
           style={{
             fontSize: '0.85rem',
             color:
-              label.includes('BSB') || label.includes('Account') ? 'var(--accent-primary)' : 'var(--text-title)',
+              label.includes('BSB') || label.includes('Account')
+                ? 'var(--accent-primary)'
+                : 'var(--text-title)',
             fontWeight: 600,
             lineHeight: 1.4,
             wordBreak: 'break-word',
@@ -1233,7 +1236,9 @@ function TodayFeed({ tasks, loading }: { tasks: WorkstreamTask[]; loading: boole
                       alignItems: 'center',
                     }}
                   >
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-link)', fontWeight: 600 }}>
+                    <span
+                      style={{ fontSize: '0.75rem', color: 'var(--text-link)', fontWeight: 600 }}
+                    >
                       {task.suggested_action}
                     </span>
                     {task.impact_cents != null && task.impact_cents !== 0 && (
@@ -1272,7 +1277,9 @@ function AdvisoryItem({ icon, text, link }: { icon: string; text: string; link?:
         {link ? (
           <>
             {text.replace(link, '')}
-            <span style={{ color: 'var(--text-link)', cursor: 'pointer', fontWeight: 600 }}>{link}</span>
+            <span style={{ color: 'var(--text-link)', cursor: 'pointer', fontWeight: 600 }}>
+              {link}
+            </span>
           </>
         ) : (
           text

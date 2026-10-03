@@ -59,7 +59,10 @@ function partsFormatter(timeZone: string): Intl.DateTimeFormat {
 }
 
 /** The wall-clock calendar date of `now` in `timeZone`. */
-export function localDateParts(now: Date = new Date(), timeZone = DEFAULT_TIME_ZONE): LocalDateParts {
+export function localDateParts(
+  now: Date = new Date(),
+  timeZone = DEFAULT_TIME_ZONE,
+): LocalDateParts {
   const parts: Record<string, string> = {};
   for (const p of partsFormatter(timeZone).formatToParts(now)) parts[p.type] = p.value;
   return {

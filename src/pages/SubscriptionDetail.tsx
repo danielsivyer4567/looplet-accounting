@@ -24,8 +24,18 @@ import { Stat, type Tone } from '@/components/ui/Stat';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PageHeader } from '@/components/ui/PageHeader';
 
-const SUBSCRIPTION_TONES: Partial<Record<string, Tone>> = { confirmed: 'success', detected: 'info', cancelled: 'neutral', paused: 'warning' };
-const SUBSCRIPTION_LABELS: Record<string, string> = { confirmed: 'Confirmed', detected: 'Detected', cancelled: 'Cancelled', paused: 'Paused' };
+const SUBSCRIPTION_TONES: Partial<Record<string, Tone>> = {
+  confirmed: 'success',
+  detected: 'info',
+  cancelled: 'neutral',
+  paused: 'warning',
+};
+const SUBSCRIPTION_LABELS: Record<string, string> = {
+  confirmed: 'Confirmed',
+  detected: 'Detected',
+  cancelled: 'Cancelled',
+  paused: 'Paused',
+};
 
 interface Subscription {
   id: string;
@@ -279,7 +289,11 @@ export function SubscriptionDetailPage() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             <PageHeader title={sub.merchant_name} />
-            <StatusBadge status={sub.status} tones={SUBSCRIPTION_TONES} label={SUBSCRIPTION_LABELS[sub.status]} />
+            <StatusBadge
+              status={sub.status}
+              tones={SUBSCRIPTION_TONES}
+              label={SUBSCRIPTION_LABELS[sub.status]}
+            />
           </div>
 
           {!editing && (

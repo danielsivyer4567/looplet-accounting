@@ -23,14 +23,30 @@ vi.mock('@/lib/supabase', () => {
     const resolved = () => h.tables[table] ?? { data: [], error: null };
     const chain: Record<string, unknown> = {};
     const pass = () => chain;
-    ['select', 'eq', 'neq', 'gt', 'lt', 'gte', 'lte', 'in', 'is', 'not', 'or', 'order', 'limit', 'range'].forEach(
-      (m) => {
-        chain[m] = pass;
-      },
-    );
+    [
+      'select',
+      'eq',
+      'neq',
+      'gt',
+      'lt',
+      'gte',
+      'lte',
+      'in',
+      'is',
+      'not',
+      'or',
+      'order',
+      'limit',
+      'range',
+    ].forEach((m) => {
+      chain[m] = pass;
+    });
     const single = () => {
       const r = resolved();
-      return Promise.resolve({ data: Array.isArray(r.data) ? (r.data[0] ?? null) : r.data, error: r.error });
+      return Promise.resolve({
+        data: Array.isArray(r.data) ? (r.data[0] ?? null) : r.data,
+        error: r.error,
+      });
     };
     chain['single'] = single;
     chain['maybeSingle'] = single;
@@ -42,7 +58,8 @@ vi.mock('@/lib/supabase', () => {
       from: (t: string) => builder(t),
       rpc: (fn: string, args: unknown) => {
         h.rpcs.push({ fn, args });
-        if (fn === 'employee_tfn_status') return Promise.resolve({ data: h.tfnStatus, error: null });
+        if (fn === 'employee_tfn_status')
+          return Promise.resolve({ data: h.tfnStatus, error: null });
         return Promise.resolve({ data: null, error: null });
       },
       functions: {
@@ -112,7 +129,8 @@ async function renderLoaded() {
   });
 }
 
-const tfnInput = () => screen.getByLabelText('Tax file number', { selector: 'input' }) as HTMLInputElement;
+const tfnInput = () =>
+  screen.getByLabelText('Tax file number', { selector: 'input' }) as HTMLInputElement;
 
 /** Neither the page text nor any field may hold the full TFN, in any spacing. */
 function expectNoFullTfn() {
@@ -134,14 +152,21 @@ describe('employee TFN capture (STP-01)', () => {
     expect(tfnInput()).toHaveAttribute('autocomplete', 'off');
 
     h.invokeResult = {
-      data: { ok: true, employee_id: 'emp-1', tfn_masked: '*****6782', declaration_status: 'declared' },
+      data: {
+        ok: true,
+        employee_id: 'emp-1',
+        tfn_masked: '*****6782',
+        declaration_status: 'declared',
+      },
       error: null,
     };
     h.tfnStatus = status('*****6782');
     fireEvent.change(tfnInput(), { target: { value: '123 456 782' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save TFN' }));
 
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('TFN saved. On file: *****6782.'));
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('TFN saved. On file: *****6782.'),
+    );
     expect(h.invokes).toEqual([
       {
         fn: 'employee-tfn-save',
@@ -150,7 +175,9 @@ describe('employee TFN capture (STP-01)', () => {
     ]);
     expect(tfnInput().value).toBe('');
     // The status is re-read from the masked RPC.
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Replace TFN' })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Replace TFN' })).toBeInTheDocument(),
+    );
     expect(h.rpcs.filter((r) => r.fn === 'employee_tfn_status')).toHaveLength(2);
     expectNoFullTfn();
     // The page never reads the vault table directly.
@@ -161,7 +188,9 @@ describe('employee TFN capture (STP-01)', () => {
     h.tfnStatus = status('*****6782');
     await renderLoaded();
     expect(screen.getByText('*****6782')).toBeInTheDocument();
-    expect(screen.getByText(/stored encrypted and only the last four digits are shown/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/stored encrypted and only the last four digits are shown/),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Replace TFN' })).toBeInTheDocument();
     expect(tfnInput().value).toBe('');
   });
@@ -180,12 +209,17 @@ describe('employee TFN capture (STP-01)', () => {
       data: null,
       error: {
         message: 'Edge Function returned a non-2xx status code',
-        context: { json: () => Promise.resolve({ ok: false, error: 'Only admin or owner can store employee TFNs' }) },
+        context: {
+          json: () =>
+            Promise.resolve({ ok: false, error: 'Only admin or owner can store employee TFNs' }),
+        },
       },
     };
     fireEvent.change(tfnInput(), { target: { value: '123456782' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save TFN' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Only admin or owner can store employee TFNs');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Only admin or owner can store employee TFNs',
+    );
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(screen.getByText(/No TFN recorded/)).toBeInTheDocument();
   });
@@ -193,7 +227,11 @@ describe('employee TFN capture (STP-01)', () => {
   it('offers no TFN field to someone who is not an admin or owner', async () => {
     h.tfnStatus = [];
     await renderLoaded();
-    expect(screen.getByText(/Only an admin or owner can view or record this employee's TFN/)).toBeInTheDocument();
-    expect(screen.queryByLabelText('Tax file number', { selector: 'input' })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Only an admin or owner can view or record this employee's TFN/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Tax file number', { selector: 'input' }),
+    ).not.toBeInTheDocument();
   });
 });

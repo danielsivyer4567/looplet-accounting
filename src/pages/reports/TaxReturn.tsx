@@ -195,7 +195,13 @@ export function TaxReturnPage() {
         <span>Reports</span>
       </Link>
 
-      <PageHeader title={<><Layers size={24} style={{ color: 'var(--text-link)' }} /> Tax Return (Draft)</>} />
+      <PageHeader
+        title={
+          <>
+            <Layers size={24} style={{ color: 'var(--text-link)' }} /> Tax Return (Draft)
+          </>
+        }
+      />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -395,10 +401,7 @@ export function TaxReturnPage() {
           alignItems: 'flex-start',
         }}
       >
-        <Archive
-          size={16}
-          style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }}
-        />
+        <Archive size={16} style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }} />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
           <span
             style={{

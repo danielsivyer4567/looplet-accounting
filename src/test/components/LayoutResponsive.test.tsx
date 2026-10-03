@@ -117,7 +117,11 @@ describe('Layout responsive shell', () => {
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
-        matches: /max-width/.test(query) ? mobile : /min-width:\s*1440px/.test(query) ? wide : false,
+        matches: /max-width/.test(query)
+          ? mobile
+          : /min-width:\s*1440px/.test(query)
+            ? wide
+            : false,
         media: query,
         onchange: null,
         addListener: vi.fn(),

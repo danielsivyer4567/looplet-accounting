@@ -6,14 +6,7 @@ import { formatMoney } from '@/lib/money';
 import { downloadCsv } from '@/lib/csv';
 import { formatLoadError } from '@/lib/errorMessages';
 import { SkeletonTable } from '@/components/Skeleton';
-import {
-  ChevronLeft,
-  Download,
-  TrendingUp,
-  DollarSign,
-  Wallet,
-  Info,
-} from 'lucide-react';
+import { ChevronLeft, Download, TrendingUp, DollarSign, Wallet, Info } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Stat } from '@/components/ui/Stat';
@@ -198,12 +191,7 @@ export function CashFlowPage() {
           tone="neutral"
           icon={DollarSign}
         />
-        <Stat
-          label="Expected Receipts"
-          value={formatMoney(totalIn)}
-          tone="success"
-          icon={Wallet}
-        />
+        <Stat label="Expected Receipts" value={formatMoney(totalIn)} tone="success" icon={Wallet} />
         <Stat
           label="Expected Payments"
           value={formatMoney(totalOut)}
@@ -229,7 +217,9 @@ export function CashFlowPage() {
           {formatLoadError('cash flow forecast', error)}
         </div>
       ) : rows.length === 0 ? (
-        <EmptyState>Nothing committed yet. Issue invoices and bills (with due dates) to populate the forecast.</EmptyState>
+        <EmptyState>
+          Nothing committed yet. Issue invoices and bills (with due dates) to populate the forecast.
+        </EmptyState>
       ) : (
         <>
           <div className="cashflow-table-view table-premium-container">
@@ -384,10 +374,7 @@ export function CashFlowPage() {
           alignItems: 'flex-start',
         }}
       >
-        <Info
-          size={16}
-          style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }}
-        />
+        <Info size={16} style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }} />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
           <span
             style={{

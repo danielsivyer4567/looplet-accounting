@@ -155,7 +155,9 @@ describe('Settings connector responsive layouts', () => {
     expect(loading).toBeInTheDocument();
     expect(loading).toHaveAttribute('aria-busy', 'true');
     // While loading, neither the bank-feed panel nor a load error should show.
-    expect(screen.queryByRole('button', { name: /show redbark accounts/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /show redbark accounts/i }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
@@ -172,7 +174,9 @@ describe('Settings connector responsive layouts', () => {
       /could not load bank connections\. access policy blocked this request/i,
     );
     // A failed load must NOT fall through to the "no bank connected yet" bank-feed panel.
-    expect(screen.queryByRole('button', { name: /show redbark accounts/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /show redbark accounts/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders Gmail integrations as mobile cards as well as the desktop table', () => {
@@ -231,7 +235,9 @@ describe('Settings connector responsive layouts', () => {
     // Disabling is server-mediated (signed-in users cannot write Redbark links directly), and the
     // confirmation says plainly that the bank connection in Redbark itself is not changed.
     expect(mocks.operations).toEqual([]);
-    expect(vi.mocked(window.confirm).mock.calls[0]?.[0]).toMatch(/connection in Redbark is not changed/);
+    expect(vi.mocked(window.confirm).mock.calls[0]?.[0]).toMatch(
+      /connection in Redbark is not changed/,
+    );
 
     fetchMock.mockRestore();
   });

@@ -162,7 +162,14 @@ export function MoveToOrgButton({
             cancel
           </button>
           {err && (
-            <p style={{ margin: 0, padding: '0.4rem 0.75rem', color: 'var(--text-danger)', fontSize: 11 }}>
+            <p
+              style={{
+                margin: 0,
+                padding: '0.4rem 0.75rem',
+                color: 'var(--text-danger)',
+                fontSize: 11,
+              }}
+            >
               {err}
             </p>
           )}

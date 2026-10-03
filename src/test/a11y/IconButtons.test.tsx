@@ -31,7 +31,14 @@ import { CgtEventsPanel } from '@/components/CgtEventsPanel';
 vi.mock('@/lib/supabase', () => import('@/test/mocks/supabase'));
 
 vi.mock('@/hooks/useCgtEvents', () => ({
-  useCgtEvents: () => ({ events: [], loading: false, error: null, create: vi.fn(), update: vi.fn(), remove: vi.fn() }),
+  useCgtEvents: () => ({
+    events: [],
+    loading: false,
+    error: null,
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+  }),
   costBaseCents: () => 0,
 }));
 
@@ -48,7 +55,12 @@ vi.mock('@/hooks/useAccountantHeartbeat', () => ({
   useAccountantHeartbeat: () => undefined,
 }));
 
-const org = { id: 'org-1', name: 'Affordable Fencing', organization_type: 'standard', role_enum: 'owner' };
+const org = {
+  id: 'org-1',
+  name: 'Affordable Fencing',
+  organization_type: 'standard',
+  role_enum: 'owner',
+};
 vi.mock('@/hooks/useOrg', () => ({
   useOrg: () => ({
     organizations: [org],

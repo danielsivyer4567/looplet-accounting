@@ -153,7 +153,14 @@ export function AutoSetupPage() {
     <section className="animated-fade-in">
       {/* Header section */}
       <div style={{ marginBottom: '2rem' }}>
-        <PageHeader title={<><Sparkles size={24} style={{ color: 'var(--text-link)' }} /> Auto Setup</>} style={{ marginBottom: '0.25rem' }} />
+        <PageHeader
+          title={
+            <>
+              <Sparkles size={24} style={{ color: 'var(--text-link)' }} /> Auto Setup
+            </>
+          }
+          style={{ marginBottom: '0.25rem' }}
+        />
         <p
           style={{
             color: 'var(--text-muted)',
@@ -295,7 +302,8 @@ export function AutoSetupPage() {
               style={{
                 padding: '0.75rem 1.5rem',
                 alignSelf: 'flex-start',
-                background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-hover) 100%)',
+                background:
+                  'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-hover) 100%)',
                 fontSize: '0.9rem',
                 borderRadius: 'var(--radius-md)',
                 boxShadow: 'var(--shadow-md)',

@@ -124,7 +124,13 @@ export function NewPaymentRunPage() {
         <span>Payment runs</span>
       </Link>
 
-      <PageHeader title={<><Layers size={24} style={{ color: 'var(--text-link)' }} /> New Payment Run</>} />
+      <PageHeader
+        title={
+          <>
+            <Layers size={24} style={{ color: 'var(--text-link)' }} /> New Payment Run
+          </>
+        }
+      />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -189,7 +195,9 @@ export function NewPaymentRunPage() {
           {formatLoadError('unpaid bills', error)}
         </div>
       ) : bills.length === 0 ? (
-        <EmptyState>No unpaid bills ready for payment (status "attached", not yet in a run).</EmptyState>
+        <EmptyState>
+          No unpaid bills ready for payment (status "attached", not yet in a run).
+        </EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">

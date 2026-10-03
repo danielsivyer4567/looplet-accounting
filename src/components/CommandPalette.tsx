@@ -31,7 +31,15 @@ function score(item: CommandItem, query: string): number {
   const keywords = (item.keywords ?? '').toLowerCase();
   let worst = 0;
   for (const word of words) {
-    const s = label.startsWith(word) ? 0 : label.includes(word) ? 1 : hint.includes(word) ? 2 : keywords.includes(word) ? 3 : -1;
+    const s = label.startsWith(word)
+      ? 0
+      : label.includes(word)
+        ? 1
+        : hint.includes(word)
+          ? 2
+          : keywords.includes(word)
+            ? 3
+            : -1;
     if (s < 0) return -1;
     worst = Math.max(worst, s);
   }
@@ -171,7 +179,11 @@ export function CommandPalette({ open, onClose, items }: CommandPaletteProps) {
                         item.run();
                       }}
                     >
-                      {Icon ? <Icon size={16} aria-hidden="true" /> : <span className="palette-option-spacer" aria-hidden="true" />}
+                      {Icon ? (
+                        <Icon size={16} aria-hidden="true" />
+                      ) : (
+                        <span className="palette-option-spacer" aria-hidden="true" />
+                      )}
                       <span className="palette-option-label">{item.label}</span>
                       {item.hint ? <span className="palette-option-hint">{item.hint}</span> : null}
                     </div>

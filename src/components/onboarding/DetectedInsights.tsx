@@ -121,10 +121,19 @@ export function DetectedInsights() {
                       {Math.round(s.confidence * 100)}% confidence
                     </span>
                   </div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4, lineHeight: 1.4 }}>
+                  <div
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontSize: 12,
+                      marginTop: 4,
+                      lineHeight: 1.4,
+                    }}
+                  >
                     {s.evidence}
                   </div>
-                  <div style={{ color: 'var(--text-title)', fontSize: 13, marginTop: 8 }}>{s.question}</div>
+                  <div style={{ color: 'var(--text-title)', fontSize: 13, marginTop: 8 }}>
+                    {s.question}
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {decision === 'confirmed' ? (

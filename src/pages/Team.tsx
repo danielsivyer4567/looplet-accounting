@@ -357,7 +357,13 @@ export function TeamPage() {
           gap: '1rem',
         }}
       >
-        <PageHeader title={<><Users size={24} style={{ color: 'var(--text-link)' }} /> Team Members</>} />
+        <PageHeader
+          title={
+            <>
+              <Users size={24} style={{ color: 'var(--text-link)' }} /> Team Members
+            </>
+          }
+        />
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           {isAdminPlus && (
             <button className="btn btn-primary" onClick={() => setShowInvite(true)}>

@@ -273,7 +273,9 @@ export function BasReportPage() {
           {error}
         </div>
       ) : rows.length === 0 ? (
-        <EmptyState>No BAS data yet. Issue invoices and process bills to start a BAS rollup.</EmptyState>
+        <EmptyState>
+          No BAS data yet. Issue invoices and process bills to start a BAS rollup.
+        </EmptyState>
       ) : (
         <>
           <div className="bas-table-view table-premium-container">
@@ -421,10 +423,7 @@ export function BasReportPage() {
           alignItems: 'flex-start',
         }}
       >
-        <Info
-          size={16}
-          style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }}
-        />
+        <Info size={16} style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }} />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
           <span
             style={{

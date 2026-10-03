@@ -23,10 +23,22 @@ export interface PageHeaderProps {
  * existing toolbar row); with a description or actions it becomes the full header row and
  * takes the page's spacing below.
  */
-export function PageHeader({ title, description, eyebrow, meta, actions, children, as = 'h1', className, style }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  description,
+  eyebrow,
+  meta,
+  actions,
+  children,
+  as = 'h1',
+  className,
+  style,
+}: PageHeaderProps) {
   const Heading = as;
   const full = Boolean(description || actions || eyebrow || children);
-  const classes = ['page-header', full ? 'page-header-full' : '', className ?? ''].filter(Boolean).join(' ');
+  const classes = ['page-header', full ? 'page-header-full' : '', className ?? '']
+    .filter(Boolean)
+    .join(' ');
   return (
     <header className={classes} style={style}>
       <div className="page-header-row">

@@ -170,7 +170,13 @@ export function SupplierDetailPage() {
           gap: '1rem',
         }}
       >
-        <PageHeader title={<><Building2 size={24} style={{ color: 'var(--text-link)' }} /> {supplier.name}</>} />
+        <PageHeader
+          title={
+            <>
+              <Building2 size={24} style={{ color: 'var(--text-link)' }} /> {supplier.name}
+            </>
+          }
+        />
 
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
@@ -333,9 +339,22 @@ export function SupplierDetailPage() {
           <Stat variant="inline" label="ABN" value={supplier.abn ?? '—'} />
           <Stat variant="inline" label="Email" value={supplier.email ?? '—'} />
           <Stat variant="inline" label="Phone" value={supplier.contact_phone ?? '—'} />
-          <Stat variant="inline" label="Default Account Code" value={supplier.default_account_code ?? '—'} mono />
-          <Stat variant="inline" label="Payment Terms" value={`${supplier.payment_terms_days} days`} />
-          <Stat variant="inline" label="Created" value={new Date(supplier.created_at).toLocaleDateString()} />
+          <Stat
+            variant="inline"
+            label="Default Account Code"
+            value={supplier.default_account_code ?? '—'}
+            mono
+          />
+          <Stat
+            variant="inline"
+            label="Payment Terms"
+            value={`${supplier.payment_terms_days} days`}
+          />
+          <Stat
+            variant="inline"
+            label="Created"
+            value={new Date(supplier.created_at).toLocaleDateString()}
+          />
         </div>
       )}
 
@@ -406,7 +425,10 @@ export function SupplierDetailPage() {
                   <td>{b.invoice_date ?? '—'}</td>
                   <td>{b.due_date ?? '—'}</td>
                   <td>
-                    <StatusBadge tones={{ attached: 'info', verified: 'success' }} status={b.status} />
+                    <StatusBadge
+                      tones={{ attached: 'info', verified: 'success' }}
+                      status={b.status}
+                    />
                   </td>
                   <td>
                     {b.job_id ? (

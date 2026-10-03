@@ -1,13 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  ChevronLeft,
-  ClipboardList,
-  Download,
-  FileText,
-  Hash,
-  Users,
-} from 'lucide-react';
+import { ChevronLeft, ClipboardList, Download, FileText, Hash, Users } from 'lucide-react';
 import {
   latestCompletedTparFyStartYear,
   tparFyLabel,
@@ -97,7 +90,13 @@ export function TparReportPage() {
         )}
       </div>
 
-      <PageHeader title={<><ClipboardList size={24} style={{ color: 'var(--text-link)' }} /> TPAR</>} />
+      <PageHeader
+        title={
+          <>
+            <ClipboardList size={24} style={{ color: 'var(--text-link)' }} /> TPAR
+          </>
+        }
+      />
       <p
         style={{
           color: 'var(--text-muted)',
@@ -194,7 +193,9 @@ function SuppliersCard({ suppliers }: { suppliers: TparSupplierRow[] }) {
   return (
     <Card title="Reportable payees" icon={Users}>
       {suppliers.length === 0 ? (
-        <EmptyState>No paid subcontractor bills or supplier intake rules found for this year.</EmptyState>
+        <EmptyState>
+          No paid subcontractor bills or supplier intake rules found for this year.
+        </EmptyState>
       ) : (
         <div className="table-premium-container">
           <table className="table-premium">

@@ -163,7 +163,16 @@ export function BillDetailPage() {
   if (error || !bill) {
     return (
       <section className="animated-fade-in">
-        <EmptyState icon={AlertTriangle} title="Bill not found" action={<Link to="/bills" className="btn btn-secondary"> <ChevronLeft size={16} /> Back to bills </Link>}>
+        <EmptyState
+          icon={AlertTriangle}
+          title="Bill not found"
+          action={
+            <Link to="/bills" className="btn btn-secondary">
+              {' '}
+              <ChevronLeft size={16} /> Back to bills{' '}
+            </Link>
+          }
+        >
           {error ?? 'No bill with that ID.'}
         </EmptyState>
       </section>
@@ -345,7 +354,16 @@ export function BillDetailPage() {
           gap: '1rem',
         }}
       >
-        <PageHeader title={<><FileText size={24} style={{ color: 'var(--text-link)' }} /> {bill.supplier_name_raw ?? ( <span style={{ color: 'var(--text-muted)' }}>Bill {bill.id.slice(0, 8)}</span> )}</>} />
+        <PageHeader
+          title={
+            <>
+              <FileText size={24} style={{ color: 'var(--text-link)' }} />{' '}
+              {bill.supplier_name_raw ?? (
+                <span style={{ color: 'var(--text-muted)' }}>Bill {bill.id.slice(0, 8)}</span>
+              )}
+            </>
+          }
+        />
 
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
           {savedFlash && (

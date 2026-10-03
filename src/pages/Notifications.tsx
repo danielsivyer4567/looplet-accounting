@@ -221,7 +221,13 @@ export function NotificationsPage() {
         }}
       >
         <div>
-          <PageHeader title={<><Bell size={24} style={{ color: 'var(--text-link)' }} /> Notifications</>} />
+          <PageHeader
+            title={
+              <>
+                <Bell size={24} style={{ color: 'var(--text-link)' }} /> Notifications
+              </>
+            }
+          />
           <p
             style={{
               color: 'var(--text-muted)',
@@ -332,7 +338,11 @@ export function NotificationsPage() {
           {error}
         </div>
       ) : filtered.length === 0 ? (
-        <EmptyState>{rows.length === 0 ? "You're all caught up — no notifications." : 'No notifications match the current filters.'}</EmptyState>
+        <EmptyState>
+          {rows.length === 0
+            ? "You're all caught up — no notifications."
+            : 'No notifications match the current filters.'}
+        </EmptyState>
       ) : (
         <ul
           style={{
@@ -488,10 +498,7 @@ export function NotificationsPage() {
           alignItems: 'flex-start',
         }}
       >
-        <Info
-          size={16}
-          style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }}
-        />
+        <Info size={16} style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }} />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
           <span
             style={{

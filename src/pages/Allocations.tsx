@@ -126,7 +126,9 @@ function BillPreviewPane({ bill, onClose }: { bill: AllocationQueueRow; onClose:
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', background: 'var(--bg-hover)' }}>
+      <div
+        style={{ flex: 1, overflow: 'hidden', position: 'relative', background: 'var(--bg-hover)' }}
+      >
         {urlError ? (
           <div
             style={{
@@ -421,7 +423,14 @@ export function AllocationsPage() {
         className="animated-fade-in allocations-main"
       >
         <div style={{ marginBottom: '1.5rem' }}>
-          <PageHeader title={<><GitPullRequest size={24} style={{ color: 'var(--text-link)' }} /> Allocations</>} style={{ marginBottom: '0.25rem' }} />
+          <PageHeader
+            title={
+              <>
+                <GitPullRequest size={24} style={{ color: 'var(--text-link)' }} /> Allocations
+              </>
+            }
+            style={{ marginBottom: '0.25rem' }}
+          />
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
             {queue.length} bill{queue.length === 1 ? '' : 's'} waiting to be allocated to jobs.
           </p>

@@ -173,13 +173,17 @@ export function AllocationQueuePanel() {
             <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.25rem 0 0' }}>
               {autoAcceptCount > 0 && (
                 <>
-                  <span style={{ color: 'var(--text-success)' }}>{autoAcceptCount} ready to auto-accept</span>
+                  <span style={{ color: 'var(--text-success)' }}>
+                    {autoAcceptCount} ready to auto-accept
+                  </span>
                   {(needsReviewCount > 0 || unmatchedCount > 0) && ' · '}
                 </>
               )}
               {needsReviewCount > 0 && (
                 <>
-                  <span style={{ color: 'var(--text-warning)' }}>{needsReviewCount} need review</span>
+                  <span style={{ color: 'var(--text-warning)' }}>
+                    {needsReviewCount} need review
+                  </span>
                   {unmatchedCount > 0 && ' · '}
                 </>
               )}

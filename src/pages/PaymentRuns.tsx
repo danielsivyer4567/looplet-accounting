@@ -35,7 +35,13 @@ export function PaymentRunsPage() {
           gap: '1rem',
         }}
       >
-        <PageHeader title={<><Layers size={24} style={{ color: 'var(--text-link)' }} /> Payment Runs</>} />
+        <PageHeader
+          title={
+            <>
+              <Layers size={24} style={{ color: 'var(--text-link)' }} /> Payment Runs
+            </>
+          }
+        />
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <Link to="/payment-runs/new" className="btn btn-primary">
             <Plus size={16} />

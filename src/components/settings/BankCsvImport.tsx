@@ -145,7 +145,9 @@ export function BankCsvImport({ onImported }: { onImported?: () => void }) {
           </select>
         </Field>
       </div>
-      <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 8px' }}>{FORMAT_HINTS[format]}</p>
+      <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 8px' }}>
+        {FORMAT_HINTS[format]}
+      </p>
 
       <div className="bank-import-grid" style={grid2}>
         <Field label="Account name">

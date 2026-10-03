@@ -537,7 +537,9 @@ export function SettingsPage() {
               </p>
 
               {policyError && (
-                <div style={{ color: 'var(--color-error, var(--text-danger))', fontSize: '0.8rem' }}>
+                <div
+                  style={{ color: 'var(--color-error, var(--text-danger))', fontSize: '0.8rem' }}
+                >
                   {policyError}
                 </div>
               )}
@@ -785,10 +787,7 @@ export function SettingsPage() {
           alignItems: 'flex-start',
         }}
       >
-        <Info
-          size={16}
-          style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }}
-        />
+        <Info size={16} style={{ flexShrink: 0, color: 'var(--text-link)', marginTop: '2px' }} />
         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
           <span
             style={{

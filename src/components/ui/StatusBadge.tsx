@@ -77,7 +77,16 @@ export interface StatusBadgeProps {
 }
 
 /** The status pill: `.badge badge-<tone>` with the status in sentence case. */
-export function StatusBadge({ status, tone, tones, label, icon, className, style, title }: StatusBadgeProps) {
+export function StatusBadge({
+  status,
+  tone,
+  tones,
+  label,
+  icon,
+  className,
+  style,
+  title,
+}: StatusBadgeProps) {
   const resolved: Tone = tone ?? tones?.[status] ?? DEFAULT_STATUS_TONES[status] ?? 'neutral';
   const classes = ['badge', `badge-${resolved === 'primary' ? 'info' : resolved}`, className ?? '']
     .filter(Boolean)

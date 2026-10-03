@@ -112,7 +112,10 @@ export async function fetchPreflightStatus(
   timeZone: string = DEFAULT_TIME_ZONE,
 ): Promise<{ failedChecks: PeriodCheck[]; booksHealthBlocking: boolean }> {
   const [checksResult, booksHealthResult] = await Promise.all([
-    supabase.rpc('period_close_checks', { p_org: orgId, p_period: targetCloseMonthStart(timeZone) }),
+    supabase.rpc('period_close_checks', {
+      p_org: orgId,
+      p_period: targetCloseMonthStart(timeZone),
+    }),
     supabase.from('v_books_health').select('blocking').eq('organization_id', orgId).maybeSingle(),
   ]);
 

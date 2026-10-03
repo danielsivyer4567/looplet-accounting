@@ -101,7 +101,10 @@ export function BillUploadPage() {
               {stage.result?.bill_id && (
                 <>
                   {' · '}
-                  <Link to={`/bills/${stage.result.bill_id}`} style={{ color: 'var(--text-danger)' }}>
+                  <Link
+                    to={`/bills/${stage.result.bill_id}`}
+                    style={{ color: 'var(--text-danger)' }}
+                  >
                     open the partial bill
                   </Link>
                 </>
@@ -211,7 +214,9 @@ function ProgressBox({
           <div style={{ fontSize: 12, color: 'var(--text-success)', marginTop: '0.25rem' }}>
             Extraction method: <strong>{r.method ?? '—'}</strong>
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: '0.5rem' }}>Opening bill…</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+            Opening bill…
+          </div>
         </div>
       )}
     </div>

@@ -1,4 +1,11 @@
-import { cloneElement, isValidElement, useId, type CSSProperties, type ReactElement, type ReactNode } from 'react';
+import {
+  cloneElement,
+  isValidElement,
+  useId,
+  type CSSProperties,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
 
 export interface FieldProps {
   label: ReactNode;
@@ -26,13 +33,25 @@ interface ControlProps {
  * A labelled form control with optional hint and error, wired for assistive tech: the label
  * is associated with the control, and the hint and error are read with it.
  */
-export function Field({ label, children, hint, error, required, htmlFor, className, style }: FieldProps) {
+export function Field({
+  label,
+  children,
+  hint,
+  error,
+  required,
+  htmlFor,
+  className,
+  style,
+}: FieldProps) {
   const generated = useId();
-  const single = isValidElement<ControlProps>(children) ? (children as ReactElement<ControlProps>) : null;
+  const single = isValidElement<ControlProps>(children)
+    ? (children as ReactElement<ControlProps>)
+    : null;
   const controlId = htmlFor ?? single?.props.id ?? generated;
   const hintId = hint ? `${controlId}-hint` : undefined;
   const errorId = error ? `${controlId}-error` : undefined;
-  const describedBy = [single?.props['aria-describedby'], hintId, errorId].filter(Boolean).join(' ') || undefined;
+  const describedBy =
+    [single?.props['aria-describedby'], hintId, errorId].filter(Boolean).join(' ') || undefined;
 
   const control = single
     ? cloneElement(single, {
@@ -43,7 +62,9 @@ export function Field({ label, children, hint, error, required, htmlFor, classNa
       })
     : children;
 
-  const classes = ['form-group', 'field', error ? 'field-invalid' : '', className ?? ''].filter(Boolean).join(' ');
+  const classes = ['form-group', 'field', error ? 'field-invalid' : '', className ?? '']
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <div className={classes} style={style}>

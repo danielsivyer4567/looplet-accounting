@@ -158,12 +158,21 @@ export function NotificationBell() {
             }}
           >
             <strong style={{ fontSize: 13, color: 'var(--text-body)' }}>Notifications</strong>
-            {unread > 0 && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{unread} unread</span>}
+            {unread > 0 && (
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{unread} unread</span>
+            )}
           </div>
 
           <div style={{ overflowY: 'auto', flex: 1 }}>
             {recent.length === 0 ? (
-              <div style={{ padding: 24, color: 'var(--text-muted)', fontSize: 12, textAlign: 'center' }}>
+              <div
+                style={{
+                  padding: 24,
+                  color: 'var(--text-muted)',
+                  fontSize: 12,
+                  textAlign: 'center',
+                }}
+              >
                 You're all caught up.
               </div>
             ) : (
@@ -263,7 +272,14 @@ export function NotificationBell() {
                           View tag
                         </span>
                       )}
-                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
+                      <span
+                        style={{
+                          display: 'block',
+                          fontSize: 11,
+                          color: 'var(--text-muted)',
+                          marginTop: 3,
+                        }}
+                      >
                         {new Date(n.created_at).toLocaleString()}
                       </span>
                     </span>

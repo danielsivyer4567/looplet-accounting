@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrg } from '@/hooks/useOrg';
@@ -73,39 +81,166 @@ interface NavItem {
   keywords?: string;
 }
 
-const SECTION_ORDER: NavArea[] = ['Today', 'Money', 'Jobs', 'Assets', 'People', 'Tax', 'Advisor', 'Setup'];
+const SECTION_ORDER: NavArea[] = [
+  'Today',
+  'Money',
+  'Jobs',
+  'Assets',
+  'People',
+  'Tax',
+  'Advisor',
+  'Setup',
+];
 /** Sections shown only when "Advanced tools" is on. */
 const ADVANCED_AREAS: NavArea[] = ['Advisor', 'Setup'];
 
 const navItems: NavItem[] = [
-  { to: '/', label: 'Today', icon: LayoutDashboard, area: 'Today', end: true, keywords: 'home dashboard' },
-  { to: '/ask', label: 'Ask AI', icon: MessageSquare, area: 'Today', badge: 'New', keywords: 'question help' },
+  {
+    to: '/',
+    label: 'Today',
+    icon: LayoutDashboard,
+    area: 'Today',
+    end: true,
+    keywords: 'home dashboard',
+  },
+  {
+    to: '/ask',
+    label: 'Ask AI',
+    icon: MessageSquare,
+    area: 'Today',
+    badge: 'New',
+    keywords: 'question help',
+  },
   { to: '/notifications', label: 'Notifications', icon: Bell, area: 'Today', keywords: 'alerts' },
-  { to: '/bills', label: 'Bills', icon: Receipt, area: 'Money', keywords: 'supplier invoices payable' },
-  { to: '/payment-runs', label: 'Payment runs', icon: DollarSign, area: 'Money', keywords: 'pay aba' },
-  { to: '/invoices', label: 'Invoices', icon: FileText, area: 'Money', keywords: 'sales receivable' },
-  { to: '/credit-notes', label: 'Credit notes', icon: FileMinus2, area: 'Money', keywords: 'credits refunds' },
-  { to: '/reconciliation', label: 'Reconciliation', icon: Scale, area: 'Money', keywords: 'match bank' },
+  {
+    to: '/bills',
+    label: 'Bills',
+    icon: Receipt,
+    area: 'Money',
+    keywords: 'supplier invoices payable',
+  },
+  {
+    to: '/payment-runs',
+    label: 'Payment runs',
+    icon: DollarSign,
+    area: 'Money',
+    keywords: 'pay aba',
+  },
+  {
+    to: '/invoices',
+    label: 'Invoices',
+    icon: FileText,
+    area: 'Money',
+    keywords: 'sales receivable',
+  },
+  {
+    to: '/credit-notes',
+    label: 'Credit notes',
+    icon: FileMinus2,
+    area: 'Money',
+    keywords: 'credits refunds',
+  },
+  {
+    to: '/reconciliation',
+    label: 'Reconciliation',
+    icon: Scale,
+    area: 'Money',
+    keywords: 'match bank',
+  },
   { to: '/debts', label: 'Debts', icon: TrendingDown, area: 'Money', keywords: 'loans' },
   { to: '/jobs', label: 'Jobs', icon: Briefcase, area: 'Jobs', keywords: 'projects' },
   { to: '/customers', label: 'Customers', icon: Users, area: 'Jobs', keywords: 'clients' },
-  { to: '/allocations', label: 'Allocations', icon: GitCommit, area: 'Jobs', keywords: 'allocate costs' },
+  {
+    to: '/allocations',
+    label: 'Allocations',
+    icon: GitCommit,
+    area: 'Jobs',
+    keywords: 'allocate costs',
+  },
   { to: '/suppliers', label: 'Suppliers', icon: Truck, area: 'Jobs', keywords: 'vendors' },
-  { to: '/fixed-assets', label: 'Fixed assets', icon: Boxes, area: 'Assets', keywords: 'gear equipment depreciation' },
-  { to: '/subscriptions', label: 'Subscriptions', icon: RefreshCw, area: 'Assets', keywords: 'subs recurring' },
+  {
+    to: '/fixed-assets',
+    label: 'Fixed assets',
+    icon: Boxes,
+    area: 'Assets',
+    keywords: 'gear equipment depreciation',
+  },
+  {
+    to: '/subscriptions',
+    label: 'Subscriptions',
+    icon: RefreshCw,
+    area: 'Assets',
+    keywords: 'subs recurring',
+  },
   { to: '/employees', label: 'Employees', icon: Contact, area: 'People', keywords: 'people staff' },
-  { to: '/payroll', label: 'Payroll', icon: CreditCard, area: 'People', keywords: 'payday pay run super' },
-  { to: '/reports', label: 'Reports', icon: BarChart3, area: 'Tax', keywords: 'tax bas balance sheet' },
+  {
+    to: '/payroll',
+    label: 'Payroll',
+    icon: CreditCard,
+    area: 'People',
+    keywords: 'payday pay run super',
+  },
+  {
+    to: '/reports',
+    label: 'Reports',
+    icon: BarChart3,
+    area: 'Tax',
+    keywords: 'tax bas balance sheet',
+  },
   // "Prepare", not "Lodge": the app prepares lodgement packs; it does not lodge with the ATO.
-  { to: '/lodgements', label: 'Prepare', icon: Send, area: 'Tax', keywords: 'lodgements lodgement pack ato' },
-  { to: '/legal-horizon', label: 'Legal horizon', icon: CalendarClock, area: 'Tax', badge: 'New', keywords: 'upcoming law changes' },
-  { to: '/receipt-hub', label: 'Receipts', icon: ReceiptText, area: 'Advisor', badge: 'MVP', keywords: 'pos' },
+  {
+    to: '/lodgements',
+    label: 'Prepare',
+    icon: Send,
+    area: 'Tax',
+    keywords: 'lodgements lodgement pack ato',
+  },
+  {
+    to: '/legal-horizon',
+    label: 'Legal horizon',
+    icon: CalendarClock,
+    area: 'Tax',
+    badge: 'New',
+    keywords: 'upcoming law changes',
+  },
+  {
+    to: '/receipt-hub',
+    label: 'Receipts',
+    icon: ReceiptText,
+    area: 'Advisor',
+    badge: 'MVP',
+    keywords: 'pos',
+  },
   { to: '/scan', label: 'Scan document', icon: Scan, area: 'Advisor', keywords: 'ocr' },
-  { to: '/coding-review', label: 'Coding review', icon: ListChecks, area: 'Advisor', keywords: 'categorise' },
+  {
+    to: '/coding-review',
+    label: 'Coding review',
+    icon: ListChecks,
+    area: 'Advisor',
+    keywords: 'categorise',
+  },
   { to: '/approvals', label: 'Approvals', icon: ShieldCheck, area: 'Advisor' },
-  { to: '/quality', label: 'Quality', icon: CheckCircle, area: 'Advisor', keywords: 'books health period close' },
-  { to: '/onboarding', label: 'Auto setup', icon: Sparkles, area: 'Setup', keywords: 'onboarding gmail' },
-  { to: '/settings', label: 'Settings', icon: Settings, area: 'Setup', keywords: 'preferences connections' },
+  {
+    to: '/quality',
+    label: 'Quality',
+    icon: CheckCircle,
+    area: 'Advisor',
+    keywords: 'books health period close',
+  },
+  {
+    to: '/onboarding',
+    label: 'Auto setup',
+    icon: Sparkles,
+    area: 'Setup',
+    keywords: 'onboarding gmail',
+  },
+  {
+    to: '/settings',
+    label: 'Settings',
+    icon: Settings,
+    area: 'Setup',
+    keywords: 'preferences connections',
+  },
 ];
 
 const LS_COLLAPSED = 'looplet_sidebar_collapsed';
@@ -142,9 +277,21 @@ interface SidebarContentProps {
   userMenu: UserMenuProps;
 }
 
-function SidebarContent({ items, collapsed, drawer, onNavClick, onToggleCollapsed, onExpand, userMenu }: SidebarContentProps) {
-  const [showAdvanced, setShowAdvanced] = useState(() => localStorage.getItem(LS_ADVANCED) === 'true');
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => readJson(LS_SECTIONS, {}));
+function SidebarContent({
+  items,
+  collapsed,
+  drawer,
+  onNavClick,
+  onToggleCollapsed,
+  onExpand,
+  userMenu,
+}: SidebarContentProps) {
+  const [showAdvanced, setShowAdvanced] = useState(
+    () => localStorage.getItem(LS_ADVANCED) === 'true',
+  );
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>
+    readJson(LS_SECTIONS, {}),
+  );
   const sectionIds = useId();
 
   useEffect(() => {
@@ -159,7 +306,10 @@ function SidebarContent({ items, collapsed, drawer, onNavClick, onToggleCollapse
     });
   };
 
-  const sections = SECTION_ORDER.map((area) => ({ area, items: items.filter((i) => i.area === area) }))
+  const sections = SECTION_ORDER.map((area) => ({
+    area,
+    items: items.filter((i) => i.area === area),
+  }))
     .filter((s) => s.items.length > 0)
     .filter((s) => showAdvanced || !ADVANCED_AREAS.includes(s.area));
 
@@ -219,9 +369,14 @@ function SidebarContent({ items, collapsed, drawer, onNavClick, onToggleCollapse
                         title={collapsed ? item.label : undefined}
                       >
                         <Icon size={18} aria-hidden="true" />
-                        <span className={collapsed ? 'sr-only' : 'sidebar-link-label'}>{item.label}</span>
+                        <span className={collapsed ? 'sr-only' : 'sidebar-link-label'}>
+                          {item.label}
+                        </span>
                         {item.badge ? (
-                          <span className="sidebar-badge" aria-hidden={collapsed ? 'true' : undefined}>
+                          <span
+                            className="sidebar-badge"
+                            aria-hidden={collapsed ? 'true' : undefined}
+                          >
                             {item.badge}
                           </span>
                         ) : null}
@@ -244,7 +399,12 @@ function SidebarContent({ items, collapsed, drawer, onNavClick, onToggleCollapse
         >
           <Wrench size={12} aria-hidden="true" />
           {!collapsed && <span>Advanced tools</span>}
-          {!collapsed && (showAdvanced ? <ChevronUp size={12} aria-hidden="true" /> : <ChevronDown size={12} aria-hidden="true" />)}
+          {!collapsed &&
+            (showAdvanced ? (
+              <ChevronUp size={12} aria-hidden="true" />
+            ) : (
+              <ChevronDown size={12} aria-hidden="true" />
+            ))}
         </button>
       </nav>
 
@@ -269,7 +429,14 @@ interface UserMenuProps {
   collapsed?: boolean;
 }
 
-function UserMenu({ email, theme, onToggleTheme, onSignOut, onNavigate, collapsed }: UserMenuProps) {
+function UserMenu({
+  email,
+  theme,
+  onToggleTheme,
+  onSignOut,
+  onNavigate,
+  collapsed,
+}: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const menuId = useId();
@@ -335,7 +502,13 @@ function UserMenu({ email, theme, onToggleTheme, onSignOut, onNavigate, collapse
         {!collapsed && <ChevronUp size={14} aria-hidden="true" />}
       </button>
       {open ? (
-        <div id={menuId} role="menu" aria-label="Account" className="user-menu-list" onKeyDown={onMenuKeyDown}>
+        <div
+          id={menuId}
+          role="menu"
+          aria-label="Account"
+          className="user-menu-list"
+          onKeyDown={onMenuKeyDown}
+        >
           <div className="user-menu-identity">{email}</div>
           <Link
             role="menuitem"
@@ -357,7 +530,11 @@ function UserMenu({ email, theme, onToggleTheme, onSignOut, onNavigate, collapse
               onToggleTheme();
             }}
           >
-            {theme === 'light' ? <Moon size={16} aria-hidden="true" /> : <Sun size={16} aria-hidden="true" />}
+            {theme === 'light' ? (
+              <Moon size={16} aria-hidden="true" />
+            ) : (
+              <Sun size={16} aria-hidden="true" />
+            )}
             {theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
           </button>
           <button
@@ -409,7 +586,11 @@ function Breadcrumbs({ items }: { items: NavItem[] }) {
       <ol>
         {crumbs.map((crumb, i) => (
           <li key={`${crumb.label}-${i}`}>
-            {crumb.to ? <Link to={crumb.to}>{crumb.label}</Link> : <span aria-current="page">{crumb.label}</span>}
+            {crumb.to ? (
+              <Link to={crumb.to}>{crumb.label}</Link>
+            ) : (
+              <span aria-current="page">{crumb.label}</span>
+            )}
           </li>
         ))}
       </ol>
@@ -471,7 +652,13 @@ export function Layout() {
   // jump to the picker. Accountant-only users land on /clients directly (HomeRoute).
   const items: NavItem[] = useMemo(() => {
     if (accountantClientOrgs.length === 0) return navItems;
-    const clientsItem: NavItem = { to: '/clients', label: 'Clients', icon: Building2, area: 'Advisor', keywords: 'accountant' };
+    const clientsItem: NavItem = {
+      to: '/clients',
+      label: 'Clients',
+      icon: Building2,
+      area: 'Advisor',
+      keywords: 'accountant',
+    };
     return navItems.flatMap((item, i) => (i === 0 ? [item, clientsItem] : [item]));
   }, [accountantClientOrgs.length]);
 
@@ -545,8 +732,22 @@ export function Layout() {
         keywords: `${item.area} ${item.keywords ?? ''}`,
         run: () => navigate(item.to),
       })),
-      { id: 'act:new-invoice', label: 'New invoice', hint: '/invoices/new', group: 'Actions', icon: FileText, run: () => navigate('/invoices/new') },
-      { id: 'act:upload-bill', label: 'Upload a bill', hint: '/bills/upload', group: 'Actions', icon: Receipt, run: () => navigate('/bills/upload') },
+      {
+        id: 'act:new-invoice',
+        label: 'New invoice',
+        hint: '/invoices/new',
+        group: 'Actions',
+        icon: FileText,
+        run: () => navigate('/invoices/new'),
+      },
+      {
+        id: 'act:upload-bill',
+        label: 'Upload a bill',
+        hint: '/bills/upload',
+        group: 'Actions',
+        icon: Receipt,
+        run: () => navigate('/bills/upload'),
+      },
       {
         id: 'act:theme',
         label: theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode',
@@ -571,9 +772,26 @@ export function Layout() {
         keywords: 'navigation menu',
         run: toggleCollapsed,
       },
-      { id: 'act:signout', label: 'Sign out', group: 'Actions', icon: LogOut, keywords: 'log out', run: () => void signOut() },
+      {
+        id: 'act:signout',
+        label: 'Sign out',
+        group: 'Actions',
+        icon: LogOut,
+        keywords: 'log out',
+        run: () => void signOut(),
+      },
     ],
-    [items, navigate, theme, toggleTheme, timelineOpen, setTimeline, collapsed, toggleCollapsed, signOut],
+    [
+      items,
+      navigate,
+      theme,
+      toggleTheme,
+      timelineOpen,
+      setTimeline,
+      collapsed,
+      toggleCollapsed,
+      signOut,
+    ],
   );
 
   const userMenu: UserMenuProps = {
@@ -611,11 +829,27 @@ export function Layout() {
         {isMobile && drawerOpen && (
           <>
             <div className="drawer-backdrop" onClick={closeDrawer} />
-            <aside className="sidebar sidebar-drawer animated-fade-in" role="dialog" aria-modal="true" aria-label="Navigation">
-              <button type="button" className="btn btn-ghost btn-icon drawer-close" onClick={closeDrawer} aria-label="Close navigation">
+            <aside
+              className="sidebar sidebar-drawer animated-fade-in"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation"
+            >
+              <button
+                type="button"
+                className="btn btn-ghost btn-icon drawer-close"
+                onClick={closeDrawer}
+                aria-label="Close navigation"
+              >
                 <X size={18} />
               </button>
-              <SidebarContent items={items} collapsed={false} drawer onNavClick={closeDrawer} userMenu={userMenu} />
+              <SidebarContent
+                items={items}
+                collapsed={false}
+                drawer
+                onNavClick={closeDrawer}
+                userMenu={userMenu}
+              />
             </aside>
           </>
         )}
@@ -623,7 +857,12 @@ export function Layout() {
         <div className="app-body">
           <header className="topbar">
             {isMobile && (
-              <button type="button" onClick={() => setDrawerOpen(true)} aria-label="Open navigation" className="btn btn-ghost btn-icon topbar-icon-btn">
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                aria-label="Open navigation"
+                className="btn btn-ghost btn-icon topbar-icon-btn"
+              >
                 <Menu size={18} />
               </button>
             )}
@@ -678,7 +917,9 @@ export function Layout() {
                   loading={tlLoading}
                   error={tlError}
                   onHide={() => setTimeline(false)}
-                  onAsk={(o, intent) => navigate('/ask', { state: { askPrompt: buildObligationPrompt(o, intent) } })}
+                  onAsk={(o, intent) =>
+                    navigate('/ask', { state: { askPrompt: buildObligationPrompt(o, intent) } })
+                  }
                 />
               </aside>
             )}
@@ -687,13 +928,23 @@ export function Layout() {
 
         {/* Collapsed rail: the edge pill brings the timeline back. */}
         {showRail && !timelineOpen && (
-          <button type="button" onClick={() => setTimeline(true)} title="Show timeline" aria-label="Show timeline" className="timeline-pill">
+          <button
+            type="button"
+            onClick={() => setTimeline(true)}
+            title="Show timeline"
+            aria-label="Show timeline"
+            className="timeline-pill"
+          >
             <CalendarClock size={16} aria-hidden="true" />
             <span>Timeline</span>
           </button>
         )}
 
-        <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} items={paletteItems} />
+        <CommandPalette
+          open={paletteOpen}
+          onClose={() => setPaletteOpen(false)}
+          items={paletteItems}
+        />
         <GlobalTagDrop />
         <Toaster />
       </div>

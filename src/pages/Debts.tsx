@@ -70,10 +70,7 @@ function getDebtIcon(kind: string) {
     case 'personal_loan':
     case 'business_loan':
       return (
-        <Landmark
-          className="w-4 h-4 text-accent-primary"
-          style={{ color: 'var(--text-link)' }}
-        />
+        <Landmark className="w-4 h-4 text-accent-primary" style={{ color: 'var(--text-link)' }} />
       );
     case 'mortgage':
       return (
@@ -301,7 +298,8 @@ export function DebtsPage() {
               />
               Add New Debt Account
             </h3>
-            <button aria-label="Close"
+            <button
+              aria-label="Close"
               className="btn btn-ghost"
               onClick={() => setShowAdd(false)}
               style={{ padding: '0.25rem' }}
@@ -332,7 +330,10 @@ export function DebtsPage() {
             {loadError}
           </div>
         ) : debts.length === 0 ? (
-          <EmptyState icon={Landmark} title="No debts tracked yet. Add one to start watching the cash bleed." />
+          <EmptyState
+            icon={Landmark}
+            title="No debts tracked yet. Add one to start watching the cash bleed."
+          />
         ) : (
           <>
             <div className="debts-table-view table-premium-container">

@@ -70,7 +70,10 @@ export interface FbtReturnPayload {
 }
 
 /** The FBT year ends 31 March; the latest completed one, judged on the date in Australian time. */
-export function latestCompletedFbtYearEndYear(today = new Date(), timeZone = DEFAULT_TIME_ZONE): number {
+export function latestCompletedFbtYearEndYear(
+  today = new Date(),
+  timeZone = DEFAULT_TIME_ZONE,
+): number {
   const { year, month } = localDateParts(today, timeZone);
   return month >= 4 ? year : year - 1;
 }

@@ -234,7 +234,9 @@ export function ConnectorApiKeys({ organizationId }: ConnectorApiKeysProps) {
       </div>
 
       {error && (
-        <div style={{ color: 'var(--color-error, var(--text-danger))', fontSize: '0.8rem' }}>{error}</div>
+        <div style={{ color: 'var(--color-error, var(--text-danger))', fontSize: '0.8rem' }}>
+          {error}
+        </div>
       )}
 
       {issuedSecret && (

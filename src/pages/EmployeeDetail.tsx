@@ -377,7 +377,13 @@ export function EmployeeDetailPage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <PageHeader title={<><User size={24} style={{ color: 'var(--text-link)' }} /> {employee.full_name}</>} />
+          <PageHeader
+            title={
+              <>
+                <User size={24} style={{ color: 'var(--text-link)' }} /> {employee.full_name}
+              </>
+            }
+          />
           {employee.role && (
             <span className="badge badge-neutral" style={{ fontSize: '0.825rem' }}>
               {employee.role}
@@ -627,7 +633,13 @@ export function EmployeeDetailPage() {
                   aria-label="Super %"
                 />
                 {(draft.wage_components?.super_pct ?? sgPct) < sgPct && (
-                  <div style={{ marginTop: '0.25rem', fontSize: '0.7rem', color: 'var(--text-warning)' }}>
+                  <div
+                    style={{
+                      marginTop: '0.25rem',
+                      fontSize: '0.7rem',
+                      color: 'var(--text-warning)',
+                    }}
+                  >
                     Below the {sgPct}% super guarantee. Pay runs use at least {sgPct}%.
                   </div>
                 )}
@@ -714,21 +726,47 @@ export function EmployeeDetailPage() {
         >
           <Stat variant="inline" label="Email" value={employee.email ?? '—'} />
           <Stat variant="inline" label="Role" value={employee.role ?? '—'} />
-          <Stat variant="inline" label="Status" value={employee.is_active ? 'Active' : 'Inactive'} />
-          <Stat variant="inline"
+          <Stat
+            variant="inline"
+            label="Status"
+            value={employee.is_active ? 'Active' : 'Inactive'}
+          />
+          <Stat
+            variant="inline"
             label="Base $/hr"
             value={w.base_hourly_rate != null ? `$${Number(w.base_hourly_rate).toFixed(2)}` : '—'}
           />
-          <Stat variant="inline" label="Super %" value={w.super_pct != null ? `${w.super_pct}%` : '—'} />
-          <Stat variant="inline" label="Workcover %" value={w.workcover_pct != null ? `${w.workcover_pct}%` : '—'} />
-          <Stat variant="inline"
+          <Stat
+            variant="inline"
+            label="Super %"
+            value={w.super_pct != null ? `${w.super_pct}%` : '—'}
+          />
+          <Stat
+            variant="inline"
+            label="Workcover %"
+            value={w.workcover_pct != null ? `${w.workcover_pct}%` : '—'}
+          />
+          <Stat
+            variant="inline"
             label="Leave loading %"
             value={w.leave_loading_pct != null ? `${w.leave_loading_pct}%` : '—'}
           />
-          <Stat variant="inline" label="Loaded $/hr" value={loadedRate > 0 ? formatMoney(loadedRate) : '—'} />
+          <Stat
+            variant="inline"
+            label="Loaded $/hr"
+            value={loadedRate > 0 ? formatMoney(loadedRate) : '—'}
+          />
           <Stat variant="inline" label="Modern award" value={employee.modern_award ?? '—'} />
-          <Stat variant="inline" label="Classification" value={employee.classification_level ?? '—'} />
-          <Stat variant="inline" label="Created" value={new Date(employee.created_at).toLocaleDateString()} />
+          <Stat
+            variant="inline"
+            label="Classification"
+            value={employee.classification_level ?? '—'}
+          />
+          <Stat
+            variant="inline"
+            label="Created"
+            value={new Date(employee.created_at).toLocaleDateString()}
+          />
         </div>
       )}
 
@@ -744,7 +782,8 @@ export function EmployeeDetailPage() {
             position: 'relative',
           }}
         >
-          <button aria-label="Close"
+          <button
+            aria-label="Close"
             onClick={() => setShowLogTime(false)}
             style={{
               position: 'absolute',
@@ -1056,7 +1095,9 @@ function TfnPanel({ organizationId, employeeId }: { organizationId: string; empl
     setSaving(false);
     const result = data as { ok?: boolean; tfn_masked?: string; error?: string } | null;
     if (error || !result?.ok) {
-      const message = error ? await functionErrorMessage(error) : (result?.error ?? 'unknown error');
+      const message = error
+        ? await functionErrorMessage(error)
+        : (result?.error ?? 'unknown error');
       setErr(formatActionError('save the TFN', message));
       return;
     }
@@ -1091,11 +1132,13 @@ function TfnPanel({ organizationId, employeeId }: { organizationId: string; empl
           <p style={{ margin: '0 0 0.75rem', fontSize: '0.825rem', color: 'var(--text-muted)' }}>
             {status?.has_tfn && status.tfn_masked ? (
               <>
-                On file: <strong style={{ color: 'var(--text-title)' }}>{status.tfn_masked}</strong>.
-                It is stored encrypted and only the last four digits are shown.
+                On file: <strong style={{ color: 'var(--text-title)' }}>{status.tfn_masked}</strong>
+                . It is stored encrypted and only the last four digits are shown.
               </>
             ) : (
-              <>No TFN recorded. The STP file can&apos;t be prepared for this employee until one is.</>
+              <>
+                No TFN recorded. The STP file can&apos;t be prepared for this employee until one is.
+              </>
             )}
           </p>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1120,7 +1163,10 @@ function TfnPanel({ organizationId, employeeId }: { organizationId: string; empl
             </button>
           </div>
           {savedMasked && (
-            <p role="status" style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: 'var(--text-success)' }}>
+            <p
+              role="status"
+              style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: 'var(--text-success)' }}
+            >
               TFN saved. On file: {savedMasked}.
             </p>
           )}
@@ -1128,7 +1174,12 @@ function TfnPanel({ organizationId, employeeId }: { organizationId: string; empl
             <div
               role="alert"
               className="badge badge-danger"
-              style={{ display: 'block', marginTop: '0.5rem', padding: '0.5rem', textTransform: 'none' }}
+              style={{
+                display: 'block',
+                marginTop: '0.5rem',
+                padding: '0.5rem',
+                textTransform: 'none',
+              }}
             >
               {err}
             </div>

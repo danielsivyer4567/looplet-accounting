@@ -129,7 +129,14 @@ export function FixedAssetsPage() {
       style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}
     >
       <div>
-        <PageHeader title={<><Boxes size={24} style={{ color: 'var(--text-link)' }} /> Fixed Assets</>} style={{ marginBottom: '0.25rem' }} />
+        <PageHeader
+          title={
+            <>
+              <Boxes size={24} style={{ color: 'var(--text-link)' }} /> Fixed Assets
+            </>
+          }
+          style={{ marginBottom: '0.25rem' }}
+        />
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
           {assets.length} asset{assets.length === 1 ? '' : 's'} on the register
           {assets.length > 0 && <> · {formatMoney(totalCostBase)} total cost base</>}
@@ -181,8 +188,8 @@ export function FixedAssetsPage() {
         )}
         {assets.length === 0 ? (
           <EmptyState icon={Boxes} title="No assets on the register yet.">
-          Capital purchases the classifier detects appear above as proposals to confirm.
-        </EmptyState>
+            Capital purchases the classifier detects appear above as proposals to confirm.
+          </EmptyState>
         ) : (
           <div className="table-premium-container">
             <table className="table-premium">

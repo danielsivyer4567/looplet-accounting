@@ -25,7 +25,9 @@ describe('PageHeader', () => {
       />,
     );
     expect(screen.getByRole('heading', { level: 1, name: 'Bills' })).toBeInTheDocument();
-    expect(screen.getByText('Supplier bills and what they owe.')).toHaveClass('page-header-description');
+    expect(screen.getByText('Supplier bills and what they owe.')).toHaveClass(
+      'page-header-description',
+    );
     expect(screen.getByRole('button', { name: 'Upload bill' })).toBeInTheDocument();
     expect(screen.getByRole('banner')).toHaveClass('page-header', 'page-header-full');
   });
@@ -41,7 +43,16 @@ describe('PageHeader', () => {
 
 describe('Stat', () => {
   it('labels the card as a group, animates numbers and colours the accent by tone', () => {
-    render(<Stat label="Outstanding" value={125000} tone="danger" icon={Wallet} sub="3 overdue" formatter={(v) => `$${v / 100}`} />);
+    render(
+      <Stat
+        label="Outstanding"
+        value={125000}
+        tone="danger"
+        icon={Wallet}
+        sub="3 overdue"
+        formatter={(v) => `$${v / 100}`}
+      />,
+    );
     const group = screen.getByRole('group', { name: 'Outstanding' });
     expect(group).toHaveClass('stat', 'stat-card');
     expect(group).toHaveStyle({ borderLeftColor: 'var(--accent-danger)' });
@@ -67,7 +78,9 @@ describe('Stat', () => {
     );
     expect(screen.getByRole('group', { name: 'ABN' })).toHaveClass('stat-inline', 'stat-strong');
     expect(screen.getByRole('group', { name: 'Monthly' })).toHaveClass('stat-tile');
-    expect(screen.getByRole('group', { name: 'Health' })).toHaveStyle({ borderLeftColor: 'var(--accent-info)' });
+    expect(screen.getByRole('group', { name: 'Health' })).toHaveStyle({
+      borderLeftColor: 'var(--accent-info)',
+    });
   });
 });
 
@@ -110,7 +123,11 @@ describe('StatusBadge', () => {
 describe('EmptyState', () => {
   it('shows title, explanation and an action, and hides the decorative icon from assistive tech', () => {
     render(
-      <EmptyState title="No bills yet" icon={Wallet} action={<button className="btn btn-primary">Upload a bill</button>}>
+      <EmptyState
+        title="No bills yet"
+        icon={Wallet}
+        action={<button className="btn btn-primary">Upload a bill</button>}
+      >
         Bills you upload or email in will show here.
       </EmptyState>,
     );
@@ -127,7 +144,9 @@ describe('EmptyState', () => {
 
   it('works with only children and a compact variant', () => {
     render(<EmptyState compact>No franking account entries for this year.</EmptyState>);
-    const block = screen.getByText('No franking account entries for this year.').closest('.empty-state');
+    const block = screen
+      .getByText('No franking account entries for this year.')
+      .closest('.empty-state');
     expect(block).toHaveClass('empty-state-compact');
   });
 });
@@ -152,7 +171,11 @@ describe('Alert', () => {
   it('keeps information and success as polite status, with optional actions and no icon', () => {
     render(
       <>
-        <Alert tone="info" icon={null} actions={<button className="btn btn-secondary">Learn more</button>}>
+        <Alert
+          tone="info"
+          icon={null}
+          actions={<button className="btn btn-secondary">Learn more</button>}
+        >
           Bank feeds are paused while the old app is the product.
         </Alert>
         <Alert tone="success">Saved.</Alert>

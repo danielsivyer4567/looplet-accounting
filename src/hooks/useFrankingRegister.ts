@@ -67,7 +67,10 @@ export interface FrankingRegisterPayload {
 }
 
 /** Most recent completed AU financial year start year, judged on the date in Australian time. */
-export function latestCompletedFrankingFyStartYear(today = new Date(), timeZone = DEFAULT_TIME_ZONE): number {
+export function latestCompletedFrankingFyStartYear(
+  today = new Date(),
+  timeZone = DEFAULT_TIME_ZONE,
+): number {
   const { year, month } = localDateParts(today, timeZone);
   return month >= 7 ? year - 1 : year - 2;
 }

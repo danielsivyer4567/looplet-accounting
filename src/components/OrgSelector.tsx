@@ -24,8 +24,14 @@ function initialsOf(name: string): string {
  * organisations, plus "New organisation" for owners. Accountants only ever see client orgs.
  */
 export function OrgSelector({ compact, onExpand }: OrgSelectorProps) {
-  const { organizations, currentOrg, setCurrentOrg, createOrganization, loading, isAccountantOnly } =
-    useOrg();
+  const {
+    organizations,
+    currentOrg,
+    setCurrentOrg,
+    createOrganization,
+    loading,
+    isAccountantOnly,
+  } = useOrg();
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -41,10 +47,22 @@ export function OrgSelector({ compact, onExpand }: OrgSelectorProps) {
   }
 
   if (compact) {
-    const label = currentOrg ? `Organisation: ${currentOrg.name}. Expand the sidebar to switch.` : 'No organisation yet. Expand the sidebar to create one.';
+    const label = currentOrg
+      ? `Organisation: ${currentOrg.name}. Expand the sidebar to switch.`
+      : 'No organisation yet. Expand the sidebar to create one.';
     return (
-      <button type="button" className="org-selector-compact" aria-label={label} title={currentOrg?.name ?? 'No organisation yet'} onClick={onExpand}>
-        {currentOrg ? <span aria-hidden="true">{initialsOf(currentOrg.name) || <Building2 size={16} />}</span> : <Building2 size={16} aria-hidden="true" />}
+      <button
+        type="button"
+        className="org-selector-compact"
+        aria-label={label}
+        title={currentOrg?.name ?? 'No organisation yet'}
+        onClick={onExpand}
+      >
+        {currentOrg ? (
+          <span aria-hidden="true">{initialsOf(currentOrg.name) || <Building2 size={16} />}</span>
+        ) : (
+          <Building2 size={16} aria-hidden="true" />
+        )}
       </button>
     );
   }
@@ -53,7 +71,11 @@ export function OrgSelector({ compact, onExpand }: OrgSelectorProps) {
     return (
       <div className="org-selector">
         <p className="org-selector-empty">No organisation yet</p>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setCreating(true)}>
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          onClick={() => setCreating(true)}
+        >
           Create one
         </button>
       </div>
@@ -92,7 +114,11 @@ export function OrgSelector({ compact, onExpand }: OrgSelectorProps) {
             {busy ? 'Creating…' : 'Create'}
           </button>
           {organizations.length > 0 && (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setCreating(false)}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => setCreating(false)}
+            >
               Cancel
             </button>
           )}
@@ -124,7 +150,11 @@ export function OrgSelector({ compact, onExpand }: OrgSelectorProps) {
       {/* Accountants are non-billable client-only users — never nudge them to
           create their own (billable) org. See docs/ACCOUNTANT_PORTAL.md. */}
       {!isAccountantOnly && (
-        <button type="button" className="btn btn-ghost btn-sm org-selector-new" onClick={() => setCreating(true)}>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm org-selector-new"
+          onClick={() => setCreating(true)}
+        >
           <Plus size={14} aria-hidden="true" /> New organisation
         </button>
       )}

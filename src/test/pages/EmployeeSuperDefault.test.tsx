@@ -112,7 +112,9 @@ describe('new employee super default', () => {
     today(2025, 9, 3);
     const superInput = await openAddEmployee();
     fireEvent.change(superInput, { target: { value: '11.5' } });
-    expect(screen.getByText('Below the 12% super guarantee. Pay runs use at least 12%.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Below the 12% super guarantee. Pay runs use at least 12%.'),
+    ).toBeInTheDocument();
   });
 });
 

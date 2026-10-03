@@ -62,7 +62,13 @@ export function SgcReportPage() {
         <span>Reports</span>
       </Link>
 
-      <PageHeader title={<><PiggyBank size={24} style={{ color: 'var(--text-link)' }} /> SGC Statement</>} />
+      <PageHeader
+        title={
+          <>
+            <PiggyBank size={24} style={{ color: 'var(--text-link)' }} /> SGC Statement
+          </>
+        }
+      />
       <p
         style={{
           color: 'var(--text-muted)',

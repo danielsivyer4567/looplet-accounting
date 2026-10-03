@@ -86,7 +86,10 @@ export interface SgcPeriod {
 }
 
 /** The latest completed SG quarter, judged on the date in Australian time. */
-export function latestCompletedSgcPeriod(today = new Date(), timeZone = DEFAULT_TIME_ZONE): SgcPeriod {
+export function latestCompletedSgcPeriod(
+  today = new Date(),
+  timeZone = DEFAULT_TIME_ZONE,
+): SgcPeriod {
   const { year, month } = localDateParts(today, timeZone);
 
   if (month >= 10) return { fyStartYear: year, quarter: 1 };

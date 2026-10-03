@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Calculator,
-  ChevronLeft,
-  Clock,
-  FileText,
-  Loader2,
-  ShieldCheck,
-} from 'lucide-react';
+import { Calculator, ChevronLeft, Clock, FileText, Loader2, ShieldCheck } from 'lucide-react';
 import { useApprovals } from '@/hooks/useApprovals';
 import {
   fbtYearLabel,
@@ -115,7 +108,13 @@ export function FbtReportPage() {
         <span>Reports</span>
       </Link>
 
-      <PageHeader title={<><Calculator size={24} style={{ color: 'var(--text-link)' }} /> FBT Return</>} />
+      <PageHeader
+        title={
+          <>
+            <Calculator size={24} style={{ color: 'var(--text-link)' }} /> FBT Return
+          </>
+        }
+      />
       <p
         style={{
           color: 'var(--text-muted)',

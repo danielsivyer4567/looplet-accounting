@@ -189,7 +189,13 @@ export function PayrollPage() {
           gap: '1rem',
         }}
       >
-        <PageHeader title={<><Layers size={24} style={{ color: 'var(--text-link)' }} /> Payroll</>} />
+        <PageHeader
+          title={
+            <>
+              <Layers size={24} style={{ color: 'var(--text-link)' }} /> Payroll
+            </>
+          }
+        />
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <button
             onClick={() => setShowCreate(true)}
@@ -283,7 +289,8 @@ export function PayrollPage() {
             position: 'relative',
           }}
         >
-          <button aria-label="Close"
+          <button
+            aria-label="Close"
             onClick={() => setShowCreate(false)}
             style={{
               position: 'absolute',
@@ -377,9 +384,9 @@ export function PayrollPage() {
           >
             Super due is the date the employee&apos;s fund must receive the super guarantee. For pay
             dates from 1 July 2026 (Payday Super) that is 7 business days after payday, or 20 for a
-            new employee&apos;s first contribution to a fund. Before then it was 28 days after the end
-            of the quarter. Public holidays are only counted once recorded in Looplet, so a date can
-            be earlier than the legal deadline but never later.
+            new employee&apos;s first contribution to a fund. Before then it was 28 days after the
+            end of the quarter. Public holidays are only counted once recorded in Looplet, so a date
+            can be earlier than the legal deadline but never later.
           </p>
         </div>
       )}
@@ -815,10 +822,7 @@ function CreatePayRunForm({
           alignItems: 'flex-start',
         }}
       >
-        <Info
-          size={14}
-          style={{ flexShrink: 0, marginTop: '2px', color: 'var(--text-link)' }}
-        />
+        <Info size={14} style={{ flexShrink: 0, marginTop: '2px', color: 'var(--text-link)' }} />
         <span>
           The run will pull <strong>approved</strong> timesheets in [{periodStart} → {periodEnd}],
           split into ordinary / overtime / leave hours by <code>entry_type</code>, and compute PAYG

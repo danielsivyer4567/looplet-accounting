@@ -252,7 +252,18 @@ export function JobDetailPage() {
         }}
       >
         <div>
-          <PageHeader title={<><code style={{ color: 'var(--text-muted)', fontSize: '1.25rem' }}> {job.job_number} </code> <span>{job.name}</span></>} style={{ flexWrap: 'wrap' }} />
+          <PageHeader
+            title={
+              <>
+                <code style={{ color: 'var(--text-muted)', fontSize: '1.25rem' }}>
+                  {' '}
+                  {job.job_number}{' '}
+                </code>{' '}
+                <span>{job.name}</span>
+              </>
+            }
+            style={{ flexWrap: 'wrap' }}
+          />
           <div
             style={{
               marginTop: '0.25rem',

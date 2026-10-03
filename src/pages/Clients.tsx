@@ -49,7 +49,10 @@ export function ClientsPage() {
       </div>
 
       {accountantClientOrgs.length === 0 ? (
-        <EmptyState>No clients yet. When a business invites you as their accountant and you accept, they'll appear here.</EmptyState>
+        <EmptyState>
+          No clients yet. When a business invites you as their accountant and you accept, they'll
+          appear here.
+        </EmptyState>
       ) : (
         <div
           style={{

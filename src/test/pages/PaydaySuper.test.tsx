@@ -126,11 +126,17 @@ describe('Payday Super due dates on the pay run list', () => {
   it('explains the rule honestly, including that unrecorded public holidays can only make a date early', async () => {
     renderPage();
     expect(
-      await screen.findByText(/For pay\s+dates from 1 July 2026 \(Payday Super\) that is 7 business days after payday/),
+      await screen.findByText(
+        /For pay\s+dates from 1 July 2026 \(Payday Super\) that is 7 business days after payday/,
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByText(/20 for a\s+new employee's first contribution to a fund/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/20 for a\s+new employee's first contribution to a fund/),
+    ).toBeInTheDocument();
     expect(screen.getByText(/28 days after the end\s+of the quarter/)).toBeInTheDocument();
-    expect(screen.getByText(/can\s+be earlier than the legal deadline but never later/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/can\s+be earlier than the legal deadline but never later/),
+    ).toBeInTheDocument();
   });
 
   it('shows a dash rather than a guessed date when due dates are unavailable', async () => {

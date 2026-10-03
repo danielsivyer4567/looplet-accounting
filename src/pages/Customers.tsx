@@ -45,7 +45,13 @@ export function CustomersPage() {
           gap: '1rem',
         }}
       >
-        <PageHeader title={<><Users size={24} style={{ color: 'var(--text-link)' }} /> Customers</>} />
+        <PageHeader
+          title={
+            <>
+              <Users size={24} style={{ color: 'var(--text-link)' }} /> Customers
+            </>
+          }
+        />
         <button
           onClick={() => setShowCreate(true)}
           className="btn btn-primary"
@@ -284,7 +290,12 @@ function CreateCustomerForm({
         }}
       >
         <h3 style={{ margin: 0, fontSize: '1.15rem' }}>New Customer</h3>
-        <button onClick={onClose} className="btn btn-ghost" aria-label="Close" style={{ padding: '0.2rem 0.4rem' }}>
+        <button
+          onClick={onClose}
+          className="btn btn-ghost"
+          aria-label="Close"
+          style={{ padding: '0.2rem 0.4rem' }}
+        >
           <X size={16} />
         </button>
       </div>

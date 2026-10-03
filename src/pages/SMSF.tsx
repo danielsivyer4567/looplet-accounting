@@ -81,17 +81,28 @@ function FundPanels({ fundId }: { fundId: string }) {
         <>
           {/* Financials strip (SC-5.J.01/.02) */}
           <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-            <Stat variant="inline"
+            <Stat
+              variant="inline"
               label="Assessable income"
               value={formatMoney(operating?.assessable_income_cents ?? 0)}
             />
-            <Stat variant="inline" label="Income tax" value={formatMoney(operating?.income_tax_cents ?? 0)} />
-            <Stat variant="inline" label="Net result" value={formatMoney(operating?.net_result_cents ?? 0)} />
-            <Stat variant="inline"
+            <Stat
+              variant="inline"
+              label="Income tax"
+              value={formatMoney(operating?.income_tax_cents ?? 0)}
+            />
+            <Stat
+              variant="inline"
+              label="Net result"
+              value={formatMoney(operating?.net_result_cents ?? 0)}
+            />
+            <Stat
+              variant="inline"
               label="Total assets"
               value={formatMoney(financial?.assets?.total_assets_cents ?? 0)}
             />
-            <Stat variant="inline"
+            <Stat
+              variant="inline"
               label="Members' funds"
               value={formatMoney(financial?.members_funds_cents ?? 0)}
               strong
@@ -274,7 +285,13 @@ export function SmsfPage() {
   if (!loading && !isSmsfEntity) {
     return (
       <section className="animated-fade-in">
-        <PageHeader title={<><PiggyBank size={24} style={{ color: 'var(--text-link)' }} /> SMSF</>} />
+        <PageHeader
+          title={
+            <>
+              <PiggyBank size={24} style={{ color: 'var(--text-link)' }} /> SMSF
+            </>
+          }
+        />
         <div style={{ ...noticeCardStyle, marginTop: '1.5rem' }}>
           The SMSF workspace applies to self-managed super funds. Set this organisation's entity
           type to <strong>SMSF</strong> in{' '}
@@ -303,7 +320,13 @@ export function SmsfPage() {
           gap: '1rem',
         }}
       >
-        <PageHeader title={<><PiggyBank size={24} style={{ color: 'var(--text-link)' }} /> SMSF</>} />
+        <PageHeader
+          title={
+            <>
+              <PiggyBank size={24} style={{ color: 'var(--text-link)' }} /> SMSF
+            </>
+          }
+        />
         {!loading && (
           <div
             className="badge badge-neutral"

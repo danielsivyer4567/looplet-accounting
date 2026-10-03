@@ -121,7 +121,9 @@ function BillPreviewPane({ bill, onClose }: { bill: BillInfo; onClose: () => voi
         </div>
       </div>
 
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', background: 'var(--bg-hover)' }}>
+      <div
+        style={{ flex: 1, overflow: 'hidden', position: 'relative', background: 'var(--bg-hover)' }}
+      >
         {!loaded ? (
           <div
             style={{
@@ -146,10 +148,7 @@ function BillPreviewPane({ bill, onClose }: { bill: BillInfo; onClose: () => voi
           >
             <p style={{ margin: 0, fontWeight: 'bold' }}>Could not load preview.</p>
             <p style={{ marginTop: 12 }}>
-              <Link
-                to={`/bills/${bill.id}`}
-                style={{ color: 'var(--text-link)', fontWeight: 600 }}
-              >
+              <Link to={`/bills/${bill.id}`} style={{ color: 'var(--text-link)', fontWeight: 600 }}>
                 Open bill detail page instead &rarr;
               </Link>
             </p>
@@ -370,7 +369,14 @@ export function CodingReviewPage() {
         className="animated-fade-in"
       >
         <div style={{ marginBottom: '1.5rem' }}>
-          <PageHeader title={<><ListChecks size={24} style={{ color: 'var(--text-link)' }} /> Coding Review</>} style={{ marginBottom: '0.25rem' }} />
+          <PageHeader
+            title={
+              <>
+                <ListChecks size={24} style={{ color: 'var(--text-link)' }} /> Coding Review
+              </>
+            }
+            style={{ marginBottom: '0.25rem' }}
+          />
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
             {suggestions.length} bill{suggestions.length === 1 ? '' : 's'} the classifier wants a
             human to code.

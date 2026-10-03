@@ -40,7 +40,9 @@ function tableQuery(data: unknown, error: { message: string } | null = null) {
     is: vi.fn(() => query),
     order: vi.fn(() => query),
     limit: vi.fn(() => query),
-    then: vi.fn((resolve: (value: unknown) => unknown) => Promise.resolve({ data, error }).then(resolve)),
+    then: vi.fn((resolve: (value: unknown) => unknown) =>
+      Promise.resolve({ data, error }).then(resolve),
+    ),
   };
   return query;
 }

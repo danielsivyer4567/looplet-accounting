@@ -196,7 +196,13 @@ export function CustomerDetailPage() {
           gap: '1rem',
         }}
       >
-        <PageHeader title={<><Users size={24} style={{ color: 'var(--text-link)' }} /> {customer.name}</>} />
+        <PageHeader
+          title={
+            <>
+              <Users size={24} style={{ color: 'var(--text-link)' }} /> {customer.name}
+            </>
+          }
+        />
 
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button

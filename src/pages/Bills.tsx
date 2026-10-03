@@ -12,14 +12,7 @@ import { ConfidenceBadge } from '@/components/ConfidenceBadge';
 import type { AutomationConfidence } from '@/lib/automationDecision';
 import { AllocationQueuePanel } from '@/components/AllocationQueuePanel';
 import { LoadMoreButton } from '@/components/LoadMoreButton';
-import {
-  Plus,
-  Eye,
-  AlertTriangle,
-  FileText,
-  Wallet,
-  DollarSign,
-} from 'lucide-react';
+import { Plus, Eye, AlertTriangle, FileText, Wallet, DollarSign } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Stat } from '@/components/ui/Stat';
 import { StatusBadge } from '@/components/ui/StatusBadge';

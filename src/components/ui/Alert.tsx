@@ -39,7 +39,16 @@ function renderIcon(icon: AlertProps['icon'], tone: AlertTone): ReactNode {
  * An inline message block (the old per-page "Banner"): tinted background, tone icon, optional
  * title and actions. Warnings and problems are announced; information is not interruptive.
  */
-export function Alert({ tone = 'info', title, children, icon, actions, role, className, style }: AlertProps) {
+export function Alert({
+  tone = 'info',
+  title,
+  children,
+  icon,
+  actions,
+  role,
+  className,
+  style,
+}: AlertProps) {
   const liveRole = role ?? (tone === 'warning' || tone === 'danger' ? 'alert' : 'status');
   const classes = ['alert', `alert-${tone}`, className ?? ''].filter(Boolean).join(' ');
   const iconNode = renderIcon(icon, tone);

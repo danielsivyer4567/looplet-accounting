@@ -132,7 +132,13 @@ export function EmployeesPage() {
           gap: '1rem',
         }}
       >
-        <PageHeader title={<><Contact size={24} style={{ color: 'var(--text-link)' }} /> Employees</>} />
+        <PageHeader
+          title={
+            <>
+              <Contact size={24} style={{ color: 'var(--text-link)' }} /> Employees
+            </>
+          }
+        />
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
             onClick={() => setShowLogTime(true)}
@@ -220,7 +226,9 @@ export function EmployeesPage() {
           {loadError}
         </div>
       ) : employees.length === 0 ? (
-        <EmptyState>No employees added yet. Add staff to start tracking timesheets and job costs.</EmptyState>
+        <EmptyState>
+          No employees added yet. Add staff to start tracking timesheets and job costs.
+        </EmptyState>
       ) : (
         <>
           <div
@@ -486,7 +494,12 @@ function AddEmployeeForm({
         }}
       >
         <h3 style={{ margin: 0, fontSize: '1.15rem' }}>Add Employee</h3>
-        <button onClick={onClose} className="btn btn-ghost" aria-label="Close" style={{ padding: '0.2rem 0.4rem' }}>
+        <button
+          onClick={onClose}
+          className="btn btn-ghost"
+          aria-label="Close"
+          style={{ padding: '0.2rem 0.4rem' }}
+        >
           <X size={16} />
         </button>
       </div>
@@ -579,7 +592,9 @@ function AddEmployeeForm({
                 aria-label="Super (%)"
               />
               {superPct < sgPct && (
-                <div style={{ marginTop: '0.25rem', fontSize: '0.7rem', color: 'var(--text-warning)' }}>
+                <div
+                  style={{ marginTop: '0.25rem', fontSize: '0.7rem', color: 'var(--text-warning)' }}
+                >
                   Below the {sgPct}% super guarantee. Pay runs use at least {sgPct}%.
                 </div>
               )}
@@ -722,7 +737,12 @@ function LogTimeForm({
         }}
       >
         <h3 style={{ margin: 0, fontSize: '1.15rem' }}>Log Hours Work</h3>
-        <button onClick={onClose} className="btn btn-ghost" aria-label="Close" style={{ padding: '0.2rem 0.4rem' }}>
+        <button
+          onClick={onClose}
+          className="btn btn-ghost"
+          aria-label="Close"
+          style={{ padding: '0.2rem 0.4rem' }}
+        >
           <X size={16} />
         </button>
       </div>

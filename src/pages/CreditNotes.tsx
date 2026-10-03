@@ -147,7 +147,13 @@ export function CreditNotesPage() {
           marginBottom: '1.5rem',
         }}
       >
-        <PageHeader title={<><FileMinus2 size={24} style={{ color: 'var(--text-link)' }} /> Credit notes</>} />
+        <PageHeader
+          title={
+            <>
+              <FileMinus2 size={24} style={{ color: 'var(--text-link)' }} /> Credit notes
+            </>
+          }
+        />
       </div>
 
       <div

@@ -31,7 +31,13 @@ export function TrustsPage() {
   if (!loading && !isTrustEntity) {
     return (
       <section className="animated-fade-in">
-        <PageHeader title={<><Landmark size={24} style={{ color: 'var(--text-link)' }} /> Trusts</>} />
+        <PageHeader
+          title={
+            <>
+              <Landmark size={24} style={{ color: 'var(--text-link)' }} /> Trusts
+            </>
+          }
+        />
         <div style={{ ...noticeCardStyle, marginTop: '1.5rem' }}>
           The Trusts workspace applies to trust entities. Set this organisation's entity type to{' '}
           <strong>Trust</strong> in{' '}
@@ -60,7 +66,13 @@ export function TrustsPage() {
           gap: '1rem',
         }}
       >
-        <PageHeader title={<><Landmark size={24} style={{ color: 'var(--text-link)' }} /> Trusts</>} />
+        <PageHeader
+          title={
+            <>
+              <Landmark size={24} style={{ color: 'var(--text-link)' }} /> Trusts
+            </>
+          }
+        />
         {!loading && (
           <div
             className="badge badge-neutral"

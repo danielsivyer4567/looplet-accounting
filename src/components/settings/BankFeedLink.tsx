@@ -37,7 +37,11 @@ const EARLIEST_IMPORT_FROM = '2000-01-01';
 /** A refusal the function explained itself (4xx), shown in its own words rather than as a connection failure. */
 class FunctionRefusal extends Error {}
 
-function describeError(action: string, e: unknown, format: (action: string, detail: string) => string): string {
+function describeError(
+  action: string,
+  e: unknown,
+  format: (action: string, detail: string) => string,
+): string {
   if (e instanceof FunctionRefusal) return `Could not ${action}: ${e.message}`;
   return format(action, e instanceof Error ? e.message : String(e));
 }
@@ -49,7 +53,10 @@ async function callFunction<T>(name: string, body: Record<string, unknown>): Pro
   if (!session) throw new Error('Not signed in');
   const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${name}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
     body: JSON.stringify(body),
   });
   const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string } & T;
@@ -82,7 +89,11 @@ export function BankFeedLink({
       });
       setAccounts(result.accounts);
     } catch (e) {
-      setError(describeError('load Redbark accounts', e, (_action, detail) => formatLoadError('Redbark accounts', detail)));
+      setError(
+        describeError('load Redbark accounts', e, (_action, detail) =>
+          formatLoadError('Redbark accounts', detail),
+        ),
+      );
     } finally {
       setLoading(false);
     }
@@ -133,8 +144,8 @@ export function BankFeedLink({
       </h3>
       <p style={muted}>
         Link accounts from the Redbark login set up for this business. Looplet imports posted
-        transactions dated on or after the date you choose; pending transactions are left until
-        they post. Only admins and owners can link accounts.
+        transactions dated on or after the date you choose; pending transactions are left until they
+        post. Only admins and owners can link accounts.
       </p>
 
       {accounts === null && !loading && (
@@ -174,7 +185,14 @@ export function BankFeedLink({
             const label = [account.institution, account.name].filter(Boolean).join(' · ');
             return (
               <li key={account.account_id} style={card}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    flexWrap: 'wrap',
+                  }}
+                >
                   <strong>{label}</strong>
                   {account.account_last4 && <span style={muted}>•••• {account.account_last4}</span>}
                 </div>
@@ -258,8 +276,8 @@ function FeedAccountState({
         </button>
       </div>
       <p style={{ ...muted, margin: 0 }}>
-        If you have already imported statements for this account, choose the day after the last
-        one so nothing is imported twice.
+        If you have already imported statements for this account, choose the day after the last one
+        so nothing is imported twice.
       </p>
     </div>
   );
@@ -276,8 +294,18 @@ const panel: React.CSSProperties = {
   maxWidth: 720,
 };
 const muted: React.CSSProperties = { color: 'var(--text-muted)', fontSize: 12, margin: 0 };
-const statusLine: React.CSSProperties = { color: 'var(--text-body)', fontSize: 12, margin: '6px 0 0' };
-const list: React.CSSProperties = { listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 8 };
+const statusLine: React.CSSProperties = {
+  color: 'var(--text-body)',
+  fontSize: 12,
+  margin: '6px 0 0',
+};
+const list: React.CSSProperties = {
+  listStyle: 'none',
+  padding: 0,
+  margin: 0,
+  display: 'grid',
+  gap: 8,
+};
 const card: React.CSSProperties = {
   border: '1px solid var(--border-subtle)',
   borderRadius: 4,

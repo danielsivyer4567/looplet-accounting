@@ -180,7 +180,21 @@ export function TrustDetailPage() {
         </div>
       ) : (
         <>
-          <PageHeader title={<><Landmark size={24} style={{ color: 'var(--text-link)' }} /> {trust.name} <span className="badge badge-neutral" style={{ fontSize: '11px', textTransform: 'none' }} > {titleCase(trust.trust_type)} </span></>} style={{ margin: '0 0 1.5rem' }} />
+          <PageHeader
+            title={
+              <>
+                <Landmark size={24} style={{ color: 'var(--text-link)' }} /> {trust.name}{' '}
+                <span
+                  className="badge badge-neutral"
+                  style={{ fontSize: '11px', textTransform: 'none' }}
+                >
+                  {' '}
+                  {titleCase(trust.trust_type)}{' '}
+                </span>
+              </>
+            }
+            style={{ margin: '0 0 1.5rem' }}
+          />
 
           {/* Trust summary */}
           <div style={cardStyle}>

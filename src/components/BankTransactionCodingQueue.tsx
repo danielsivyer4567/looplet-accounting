@@ -269,7 +269,11 @@ export function BankTransactionCodingQueue() {
           {rows.length > 0 && (
             <span
               className="badge"
-              style={{ background: 'var(--accent-primary)', color: 'var(--text-on-accent)', fontSize: '0.7rem' }}
+              style={{
+                background: 'var(--accent-primary)',
+                color: 'var(--text-on-accent)',
+                fontSize: '0.7rem',
+              }}
             >
               {rows.length}
             </span>

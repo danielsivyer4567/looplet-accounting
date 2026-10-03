@@ -1,13 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  ChevronLeft,
-  FileText,
-  Landmark,
-  Scale,
-  ShieldCheck,
-  Users,
-} from 'lucide-react';
+import { ChevronLeft, FileText, Landmark, Scale, ShieldCheck, Users } from 'lucide-react';
 import {
   frankingFyLabel,
   latestCompletedFrankingFyStartYear,
@@ -61,7 +54,13 @@ export function FrankingReportPage() {
         <span>Reports</span>
       </Link>
 
-      <PageHeader title={<><Landmark size={24} style={{ color: 'var(--text-link)' }} /> Franking Register</>} />
+      <PageHeader
+        title={
+          <>
+            <Landmark size={24} style={{ color: 'var(--text-link)' }} /> Franking Register
+          </>
+        }
+      />
       <p
         style={{
           color: 'var(--text-muted)',

@@ -235,7 +235,9 @@ export function ApiKeys() {
       {issuedKey && (
         <div style={secretPanel}>
           <div>
-            <div style={{ fontSize: 12, color: 'var(--text-warning)', fontWeight: 700 }}>One-time secret</div>
+            <div style={{ fontSize: 12, color: 'var(--text-warning)', fontWeight: 700 }}>
+              One-time secret
+            </div>
             <code style={secretCode}>{issuedKey.api_key}</code>
           </div>
           <button type="button" onClick={() => void copyIssuedKey()} style={smallButton}>
@@ -331,7 +333,10 @@ export function ApiKeys() {
                   </Td>
                   <Td>{(key.scopes ?? []).join(', ') || 'none'}</Td>
                   <Td>
-                    <StatusBadge tones={{ active: 'success', expired: 'warning', revoked: 'danger' }} status={keyStatus(key)} />
+                    <StatusBadge
+                      tones={{ active: 'success', expired: 'warning', revoked: 'danger' }}
+                      status={keyStatus(key)}
+                    />
                   </Td>
                   <Td>{formatDate(key.last_used_at)}</Td>
                   <Td>{key.rate_limit_per_min ?? 120}/min</Td>

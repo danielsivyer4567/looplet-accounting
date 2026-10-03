@@ -282,9 +282,14 @@ export function BankConnect() {
 function BankConnectionStatus({ connection }: { connection: BankConnectionRow }) {
   return (
     <>
-      <StatusBadge tones={{ active: 'success', expired: 'danger', revoked: 'danger', error: 'danger' }} status={connection.status} />
+      <StatusBadge
+        tones={{ active: 'success', expired: 'danger', revoked: 'danger', error: 'danger' }}
+        status={connection.status}
+      />
       {connection.last_error && (
-        <div style={{ color: 'var(--text-danger)', fontSize: 11, marginTop: 4 }}>{connection.last_error}</div>
+        <div style={{ color: 'var(--text-danger)', fontSize: 11, marginTop: 4 }}>
+          {connection.last_error}
+        </div>
       )}
     </>
   );
@@ -355,7 +360,12 @@ function BankAccountDetails({
             style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}
           >
             <strong>{account.name}</strong>
-            <span style={{ color: account.is_active ? 'var(--text-success)' : 'var(--text-muted)', fontSize: 11 }}>
+            <span
+              style={{
+                color: account.is_active ? 'var(--text-success)' : 'var(--text-muted)',
+                fontSize: 11,
+              }}
+            >
               {account.is_active ? 'active' : 'inactive'}
               {account.is_primary ? ' · primary' : ''}
             </span>

@@ -53,7 +53,12 @@ export function Modal({
           <strong id={titleId} className="modal-title">
             {title}
           </strong>
-          <button type="button" onClick={onClose} aria-label="Close" className="btn btn-ghost btn-icon">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="btn btn-ghost btn-icon"
+          >
             <X size={18} />
           </button>
         </div>

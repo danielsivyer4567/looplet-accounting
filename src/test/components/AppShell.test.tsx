@@ -114,7 +114,9 @@ describe('App shell', () => {
     fireEvent.click(money);
     expect(money).toHaveAttribute('aria-expanded', 'false');
     expect(within(nav).queryByRole('link', { name: 'Bills' })).not.toBeInTheDocument();
-    expect(JSON.parse(localStorage.getItem('looplet_nav_sections') ?? '{}')).toMatchObject({ Money: false });
+    expect(JSON.parse(localStorage.getItem('looplet_nav_sections') ?? '{}')).toMatchObject({
+      Money: false,
+    });
 
     // Org switcher sits in the sidebar, above the navigation.
     const sidebar = screen.getByRole('complementary', { name: 'Sidebar' });
@@ -130,7 +132,9 @@ describe('App shell', () => {
     expect(sidebar).toHaveClass('sidebar-collapsed');
     expect(localStorage.getItem('looplet_sidebar_collapsed')).toBe('true');
     expect(screen.getByRole('link', { name: 'Bills' })).toBeInTheDocument();
-    expect(within(sidebar).getByRole('button', { name: /organisation: affordable fencing/i })).toBeInTheDocument();
+    expect(
+      within(sidebar).getByRole('button', { name: /organisation: affordable fencing/i }),
+    ).toBeInTheDocument();
     fireEvent.click(within(sidebar).getByRole('button', { name: /expand sidebar/i }));
     expect(sidebar).not.toHaveClass('sidebar-collapsed');
   });
@@ -160,9 +164,13 @@ describe('App shell', () => {
     expect(within(crumbs).getByRole('link', { name: 'Today' })).toHaveAttribute('href', '/');
     expect(within(crumbs).getByRole('link', { name: 'Bills' })).toHaveAttribute('href', '/bills');
     expect(within(crumbs).getByText('Upload')).toHaveAttribute('aria-current', 'page');
-    expect(within(topbar).getByRole('button', { name: /search pages and actions/i })).toBeInTheDocument();
+    expect(
+      within(topbar).getByRole('button', { name: /search pages and actions/i }),
+    ).toBeInTheDocument();
     expect(within(topbar).getByRole('button', { name: /notifications/i })).toBeInTheDocument();
-    expect(within(topbar).getByRole('button', { name: /switch to dark mode/i })).toBeInTheDocument();
+    expect(
+      within(topbar).getByRole('button', { name: /switch to dark mode/i }),
+    ).toBeInTheDocument();
     expect(screen.queryByTitle(/app switcher/i)).not.toBeInTheDocument();
     expect(screen.queryByText('CRM')).not.toBeInTheDocument();
     // One h1 per page: the shell no longer renders its own.
@@ -194,7 +202,9 @@ describe('App shell', () => {
 
     // The trigger button opens it too, and Escape closes it.
     fireEvent.click(screen.getByRole('button', { name: /search pages and actions/i }));
-    fireEvent.keyDown(screen.getByRole('combobox', { name: /search pages and actions/i }), { key: 'Escape' });
+    fireEvent.keyDown(screen.getByRole('combobox', { name: /search pages and actions/i }), {
+      key: 'Escape',
+    });
     expect(screen.queryByRole('dialog', { name: /command palette/i })).not.toBeInTheDocument();
   });
 

@@ -27,8 +27,18 @@ function renderIcon(icon: EmptyStateProps['icon']): ReactNode {
  * It is ordinary content, not a live region: it mounts with its text, so there is no change for
  * a live region to announce, and pages keep `role="status"` for their own save/refusal messages.
  */
-export function EmptyState({ title, children, icon, action, compact, className, style }: EmptyStateProps) {
-  const classes = ['empty-state', compact ? 'empty-state-compact' : '', className ?? ''].filter(Boolean).join(' ');
+export function EmptyState({
+  title,
+  children,
+  icon,
+  action,
+  compact,
+  className,
+  style,
+}: EmptyStateProps) {
+  const classes = ['empty-state', compact ? 'empty-state-compact' : '', className ?? '']
+    .filter(Boolean)
+    .join(' ');
   return (
     <div className={classes} data-empty-state="" style={style}>
       {icon ? (

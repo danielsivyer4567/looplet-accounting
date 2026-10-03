@@ -24,8 +24,22 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 
-const SUBSCRIPTION_TONES: Partial<Record<string, Tone>> = { confirmed: 'success', candidate: 'info', detected: 'info', cancelled: 'neutral', dismissed: 'warning', paused: 'warning' };
-const SUBSCRIPTION_LABELS: Record<string, string> = { confirmed: 'Confirmed', candidate: 'Candidate', detected: 'Candidate', cancelled: 'Cancelled', dismissed: 'Dismissed', paused: 'Dismissed' };
+const SUBSCRIPTION_TONES: Partial<Record<string, Tone>> = {
+  confirmed: 'success',
+  candidate: 'info',
+  detected: 'info',
+  cancelled: 'neutral',
+  dismissed: 'warning',
+  paused: 'warning',
+};
+const SUBSCRIPTION_LABELS: Record<string, string> = {
+  confirmed: 'Confirmed',
+  candidate: 'Candidate',
+  detected: 'Candidate',
+  cancelled: 'Cancelled',
+  dismissed: 'Dismissed',
+  paused: 'Dismissed',
+};
 
 interface Subscription {
   id: string;
@@ -310,7 +324,10 @@ export function SubscriptionsPage() {
             <SkeletonTable rows={6} cols={10} />
           </>
         ) : subs.length === 0 ? (
-          <EmptyState icon={Calendar} title="No subscriptions detected matching the status filter. Run a scan or sync your bank feeds to detect payments." />
+          <EmptyState
+            icon={Calendar}
+            title="No subscriptions detected matching the status filter. Run a scan or sync your bank feeds to detect payments."
+          />
         ) : (
           <>
             <div className="subscriptions-table-view table-premium-container">
@@ -414,7 +431,12 @@ export function SubscriptionsPage() {
                           <td>
                             <div style={{ display: 'flex', gap: '0.25rem' }}>
                               {Array.from(distinctStatuses).map((s) => (
-                                <StatusBadge key={s} status={s} tones={SUBSCRIPTION_TONES} label={SUBSCRIPTION_LABELS[s]} />
+                                <StatusBadge
+                                  key={s}
+                                  status={s}
+                                  tones={SUBSCRIPTION_TONES}
+                                  label={SUBSCRIPTION_LABELS[s]}
+                                />
                               ))}
                             </div>
                           </td>
@@ -547,7 +569,11 @@ function SubRow({
       <td style={{ textAlign: 'right' }}>{monthly > 0 ? formatMoney(monthly) : '—'}</td>
       <td style={{ textAlign: 'right' }}>{annual > 0 ? formatMoney(annual) : '—'}</td>
       <td>
-        <StatusBadge status={s.status} tones={SUBSCRIPTION_TONES} label={SUBSCRIPTION_LABELS[s.status]} />
+        <StatusBadge
+          status={s.status}
+          tones={SUBSCRIPTION_TONES}
+          label={SUBSCRIPTION_LABELS[s.status]}
+        />
       </td>
       <td>
         <ClassificationControls s={s} setFlag={setFlag} />
@@ -608,13 +634,25 @@ function SubscriptionCard({
             {sourceHint}
           </div>
         </div>
-        <StatusBadge status={s.status} tones={SUBSCRIPTION_TONES} label={SUBSCRIPTION_LABELS[s.status]} />
+        <StatusBadge
+          status={s.status}
+          tones={SUBSCRIPTION_TONES}
+          label={SUBSCRIPTION_LABELS[s.status]}
+        />
       </div>
 
       <div className="subscription-mobile-card__metrics">
         <Stat variant="inline" label="Cadence" value={s.cadence} />
-        <Stat variant="inline" label="Amount" value={s.amount_cents > 0 ? formatMoney(s.amount_cents) : '—'} />
-        <Stat variant="inline" label="Monthly Eq." value={monthly > 0 ? formatMoney(monthly) : '—'} />
+        <Stat
+          variant="inline"
+          label="Amount"
+          value={s.amount_cents > 0 ? formatMoney(s.amount_cents) : '—'}
+        />
+        <Stat
+          variant="inline"
+          label="Monthly Eq."
+          value={monthly > 0 ? formatMoney(monthly) : '—'}
+        />
         <Stat variant="inline" label="Annual Eq." value={annual > 0 ? formatMoney(annual) : '—'} />
       </div>
 
