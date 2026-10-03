@@ -1787,7 +1787,7 @@
       "title": "Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs",
       "area": "bank",
       "priority": 40,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\""
       ],
@@ -1799,7 +1799,34 @@
         "docs",
         ".env.example"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 1,
+          "head": "8993b6d919471abee72652eff803791240899623",
+          "dirty": [],
+          "at": "2026-10-03T00:44:49.960Z",
+          "ms": 1502,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-01-001.log",
+          "log_sha256": "a316a8ade74a8d0d631a8722dcd1430269f00eab81eefa89f5f512768fe7209e"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 0,
+          "head": "a1e9a3b99fa0d738a8d1ea72e9eb060331444fdc",
+          "dirty": [],
+          "at": "2026-10-03T00:44:53.609Z",
+          "ms": 2230,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/BANK-01-002.log",
+          "log_sha256": "8153a59751afa561ff37c5447a7349fd598d36fe57f9fb5cd3618a20ee6dcd42"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -1807,8 +1834,44 @@
           "event": "added",
           "head": "2735b7e745b002ebdf4c836f5d2a130d8f991a74",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:44:47.617Z",
+          "event": "start",
+          "head": "8993b6d919471abee72652eff803791240899623",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:44:49.961Z",
+          "event": "run",
+          "head": "8993b6d919471abee72652eff803791240899623",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:44:53.610Z",
+          "event": "run",
+          "head": "a1e9a3b99fa0d738a8d1ea72e9eb060331444fdc",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:44:54.393Z",
+          "event": "done",
+          "head": "a1e9a3b99fa0d738a8d1ea72e9eb060331444fdc",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T00:44:54.317Z",
+        "head": "a1e9a3b99fa0d738a8d1ea72e9eb060331444fdc",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "BANK-02",
@@ -3326,5 +3389,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T00:44:46.437Z"
+  "updated_at": "2026-10-03T00:44:54.459Z"
 }
