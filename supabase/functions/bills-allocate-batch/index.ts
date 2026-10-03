@@ -1,6 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, preflight } from '../_shared/cors.ts'
+import { supabaseOrgAccessDeps } from '../_shared/orgRole.ts'
+import { authorizeAllocationBatch } from './auth.ts'
 
 interface RequestBody {
   org_id: string
@@ -67,24 +69,12 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // Verify org membership — fail fast before any heavy RPCs
-    const { data: memberData, error: memberError } = await client
-      .from('organization_memberships')
-      .select('organization_id')
-      .eq('organization_id', org_id)
-      .maybeSingle()
-
-    if (memberError) {
+    // The caller's own ACCEPTED membership, with the role the mode needs (auth.ts) — before any query or RPC.
+    const access = await authorizeAllocationBatch(authHeader, org_id, mode, supabaseOrgAccessDeps(client, ''))
+    if (!access.ok) {
       return new Response(
-        JSON.stringify({ error: 'Failed to verify org membership', detail: memberError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      )
-    }
-
-    if (!memberData) {
-      return new Response(
-        JSON.stringify({ error: 'Forbidden: caller is not a member of this organisation' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        JSON.stringify({ error: access.error }),
+        { status: access.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
 
