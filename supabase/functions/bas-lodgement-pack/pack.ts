@@ -74,6 +74,20 @@ function money(cents: unknown): string {
   }`;
 }
 
+/** A label Looplet has no figure for (null/absent) is shown as such, never as $0.00. */
+function labelMoney(cents: unknown, blank: string): string {
+  return cents === null || cents === undefined ? blank : money(cents);
+}
+
+const NOT_RECORDED = "Not recorded in Looplet (blank)";
+const NOT_ENTERED = "Not entered";
+
+function basisText(value: unknown): string {
+  if (value === "cash") return "cash basis";
+  if (value === "accruals") return "accruals (non-cash) basis";
+  return "basis not stated";
+}
+
 function pdfText(value: unknown): string {
   return String(value ?? "")
     .replace(/[^\x20-\x7e]/g, "?")
@@ -158,7 +172,9 @@ export function toBasLodgementWorksheetDoc(
     },
     {
       heading: "GST",
-      caption: "From the exact BAS worksheet payload stored on the lodgement row.",
+      caption: `From the exact BAS worksheet payload stored on the lodgement row (${
+        basisText(payload.gst_accounting_basis)
+      }).`,
       rows: [
         { label: "G1   Total sales (inc GST)", value: money(gst["G1"]) },
         { label: "G10  Capital purchases", value: money(gst["G10"]) },
@@ -172,7 +188,8 @@ export function toBasLodgementWorksheetDoc(
       rows: [
         { label: "W1   Total salary, wages and payments", value: money(payg["W1"]) },
         { label: "W2   Amounts withheld from W1", value: money(payg["W2"]) },
-        { label: "W4   Amounts withheld (no ABN)", value: money(payg["W4"]) },
+        { label: "W3   Other amounts withheld", value: labelMoney(payg["W3"], NOT_RECORDED) },
+        { label: "W4   Amounts withheld (no ABN)", value: labelMoney(payg["W4"], NOT_RECORDED) },
         { label: "W5   Total amounts withheld", value: money(payg["W5"]) },
         { label: "4    PAYG tax withheld", value: money(payg["4"]) },
       ],
@@ -183,9 +200,12 @@ export function toBasLodgementWorksheetDoc(
     sections.push({
       heading: "PAYG instalment",
       rows: [
-        { label: "T7   PAYG instalment amount", value: money(instalment["T7"]) },
-        { label: "5A   PAYG income tax instalment", value: money(instalment["5A"]) },
-        { label: "5B   Credit from PAYG instalment variation", value: money(instalment["5B"]) },
+        { label: "T7   PAYG instalment amount", value: labelMoney(instalment["T7"], NOT_ENTERED) },
+        { label: "5A   PAYG income tax instalment", value: labelMoney(instalment["5A"], NOT_ENTERED) },
+        {
+          label: "5B   Credit from PAYG instalment variation",
+          value: labelMoney(instalment["5B"], NOT_ENTERED),
+        },
       ],
     });
   }

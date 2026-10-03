@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useOrg } from '@/hooks/useOrg';
-import { useBasWorksheet } from '@/hooks/useBasWorksheet';
+import { useBasWorksheet, type BasWorksheetPayload } from '@/hooks/useBasWorksheet';
 import { formatMoney } from '@/lib/money';
 import { formatLoadError } from '@/lib/errorMessages';
 import { downloadCsv } from '@/lib/csv';
@@ -452,6 +452,48 @@ export function BasReportPage() {
   );
 }
 
+/** Basis used, labels Looplet does not record, and items it could not place. */
+function BasWorksheetNotes({ worksheet }: { worksheet: BasWorksheetPayload }) {
+  const basis = worksheet.gst_accounting_basis === 'cash' ? 'Cash' : 'Accruals (non-cash)';
+  const basisSource =
+    worksheet.gst_accounting_basis_source === 'business_profile'
+      ? 'from your business profile'
+      : 'not chosen yet; set it in Settings > Business profile';
+  const notRecorded = worksheet.payg_withholding?.not_recorded ?? [];
+  const review = worksheet.needs_review ?? [];
+  return (
+    <div
+      style={{
+        fontSize: '0.8rem',
+        color: 'var(--text-muted)',
+        lineHeight: 1.5,
+        marginBottom: '1.25rem',
+      }}
+    >
+      <div>
+        GST accounting method: <strong style={{ color: 'var(--text-title)' }}>{basis}</strong> (
+        {basisSource}).
+      </div>
+      {notRecorded.length > 0 && (
+        <div>
+          {notRecorded.join(' and ')} not recorded in Looplet. If you withheld any of these amounts,
+          add them yourself before lodging.
+        </div>
+      )}
+      {review.length > 0 && (
+        <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }} aria-label="BAS items to check">
+          {review.map((item, i) => (
+            <li key={`${item.source_type}-${item.document_number ?? i}`}>
+              {item.document_number ? <strong>{item.document_number}: </strong> : null}
+              {item.note}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function renderCoverage(c: CoverageRow | undefined) {
   if (!c || c.bills_in_scope === 0) return <span style={{ color: 'var(--text-muted)' }}>—</span>;
   const badgeClass = c.gst_ready ? 'badge-success' : 'badge-warning';
@@ -681,6 +723,8 @@ export function BasPrepCard({
               strong
             />
           </div>
+
+          <BasWorksheetNotes worksheet={worksheet} />
 
           <div style={{ marginBottom: '1.25rem' }}>
             <BlockerRow

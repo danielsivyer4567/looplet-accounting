@@ -13,6 +13,7 @@ interface BusinessProfile {
   is_gst_registered: boolean;
   gst_registered_since: string | null;
   bas_frequency: string | null;
+  gst_accounting_basis: 'accruals' | 'cash' | null;
   bas_paygw_included: boolean;
   aggregated_turnover_bracket: string | null;
   estimated_annual_turnover_cents: number | null;
@@ -39,6 +40,7 @@ const EMPTY_PROFILE: BusinessProfile = {
   is_gst_registered: false,
   gst_registered_since: null,
   bas_frequency: null,
+  gst_accounting_basis: null,
   bas_paygw_included: false,
   aggregated_turnover_bracket: null,
   estimated_annual_turnover_cents: null,
@@ -264,6 +266,23 @@ export function BusinessProfileForm() {
               <option value="quarterly">Quarterly</option>
               <option value="annual">Annual</option>
               <option value="not_required">Not required</option>
+            </select>
+          </Field>
+          <Field label="GST accounting method">
+            <select
+              value={profile.gst_accounting_basis ?? ''}
+              onChange={(e) =>
+                set(
+                  'gst_accounting_basis',
+                  (e.target.value || null) as BusinessProfile['gst_accounting_basis'],
+                )
+              }
+              style={selectStyle}
+              disabled={!profile.is_gst_registered}
+            >
+              <option value="">Not set (BAS uses accruals)</option>
+              <option value="accruals">Accruals (non-cash)</option>
+              <option value="cash">Cash</option>
             </select>
           </Field>
           <Toggle
