@@ -30,7 +30,7 @@
 | LODGE-01 | Nothing claims to lodge with the ATO or send to a super fund when it only prepares a file | open | not run |
 | BANK-01 | Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs | open | not run |
 | BANK-02 | Redbark client pages accounts and transactions, splits truncated date windows, converts dollars to exact cents and skips pending rows | done | done @ 7c9ecc42, awaiting independent verify |
-| BANK-03 | bank-webhook verifies Redbark signatures and timestamps, stores the event before acting and dispatches one sync per linked connection | open | not run |
+| BANK-03 | bank-webhook verifies Redbark signatures and timestamps, stores the event before acting and dispatches one sync per linked connection | done | done @ 6468e475, awaiting independent verify |
 | BANK-04 | bank-sync imports Redbark transactions idempotently on (bank account, provider id) and keeps the post-sync chain | open | not run |
 | BANK-05 | Admins can list Redbark accounts and link each one to a bank account with an import-from date | open | not run |
 | BANK-06 | Redbark migrations apply cleanly and enforce one organisation per Redbark connection | done | done @ 61c93125, awaiting independent verify |
