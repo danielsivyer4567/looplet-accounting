@@ -2647,7 +2647,7 @@
       "title": "CI uses least-privilege permissions, SHA-pinned actions and a deploy job separate from build",
       "area": "security",
       "priority": 15,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\""
       ],
@@ -2758,6 +2758,19 @@
           "actor": "claude-fable",
           "log": ".ledger/logs/SEC-06-008.log",
           "log_sha256": "3246fddd00bec01e5b14a04e4245c1e67b5d34c2119293851e6ea60b36e4b697"
+        },
+        {
+          "n": 9,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:35:59.042Z",
+          "ms": 1475,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/SEC-06-009.log",
+          "log_sha256": "03ef6817d5d74a59344d045414fa455b20d4d435f9807d8557854816e12e05b2"
         }
       ],
       "notes": [],
@@ -2902,6 +2915,13 @@
           "event": "done",
           "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
           "actor": "claude-fable"
+        },
+        {
+          "at": "2026-10-03T05:35:59.072Z",
+          "event": "verified",
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "actor": "verifier-G",
+          "by": "verifier-G"
         }
       ],
       "done": {
@@ -2910,6 +2930,15 @@
         "by": "claude-fable",
         "runs": [
           8
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:35:59.057Z",
+        "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+        "by": "verifier-G",
+        "note": "Diff since F's verification head 07abc2a is f8a7c5b only: ci.yml 3 comment lines (no YAML semantics; git diff checked), a11y scanner rewrite, JobDetail.tsx:916,922 + SubscriptionDetail.tsx:724 SVG fontSize 9/10->11, prettier-only TaxInvoiceIssue test (diff -w empty), plus ledger files. Acceptance re-run green at f3ea6a7. SEC-06 test still asserts least-privilege permissions and SHA pins on the surviving jobs.",
+        "runs": [
+          9
         ]
       }
     },
@@ -7703,7 +7732,7 @@
       "title": "A privacy policy, terms of service and collection notice are published, linked, and accepted at sign-up",
       "area": "legitimacy",
       "priority": 34,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LegalPages.test.tsx\""
       ],
@@ -7867,6 +7896,19 @@
           "actor": "claude-fable",
           "log": ".ledger/logs/LEGAL-01-012.log",
           "log_sha256": "7d04f7418ef9774fadabc82bba70d119fd8ee8b5dcd2247567f20c8e9b536aa7"
+        },
+        {
+          "n": 13,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LegalPages.test.tsx\"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:36:17.590Z",
+          "ms": 2571,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/LEGAL-01-013.log",
+          "log_sha256": "9167ecff6d77d05ee0ef23fb8890e246ae2c1f693693a280effa3e1fa1c4164f"
         }
       ],
       "notes": [
@@ -8160,6 +8202,13 @@
           "event": "done",
           "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
           "actor": "claude-fable"
+        },
+        {
+          "at": "2026-10-03T05:36:17.620Z",
+          "event": "verified",
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "actor": "verifier-G",
+          "by": "verifier-G"
         }
       ],
       "done": {
@@ -8168,6 +8217,15 @@
         "by": "claude-fable",
         "runs": [
           12
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:36:17.606Z",
+        "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+        "by": "verifier-G",
+        "note": "Diff since E's verification head 77778a0 restricted to this item's paths is JobDetail.tsx:916,922 and SubscriptionDetail.tsx:724 SVG fontSize 9/10->11 only (f8a7c5b); LegalLinks.tsx 8->11px (fa2aa55) is outside the paths. Acceptance re-run green at f3ea6a7.",
+        "runs": [
+          13
         ]
       }
     },
@@ -9746,7 +9804,7 @@
       "title": "Nothing claims to lodge with the ATO or send to a super fund when it only prepares a file",
       "area": "legitimacy",
       "priority": 37,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LodgementWording.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/super-batch-send/status.test.ts\""
@@ -10095,6 +10153,32 @@
           "actor": "claude-fable",
           "log": ".ledger/logs/LODGE-01-026.log",
           "log_sha256": "7c80ccc8fa3a487b3b6f855fc9ccbec4f346d22511561b4b54dcd1e7c7ce14e0"
+        },
+        {
+          "n": 27,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/LodgementWording.test.tsx\"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:36:20.357Z",
+          "ms": 2528,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/LODGE-01-027.log",
+          "log_sha256": "53902bd0cde24fc5b057def5d9ecf13c103f0c53b31e71eb3e47867dc2cd3b56"
+        },
+        {
+          "n": 28,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/super-batch-send/status.test.ts\"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:36:20.692Z",
+          "ms": 334,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/LODGE-01-028.log",
+          "log_sha256": "007bb527ad38ea9c2e1315620f44c82512f323f2c8a3910124ed33add8303118"
         }
       ],
       "notes": [],
@@ -10404,6 +10488,13 @@
           "event": "done",
           "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
           "actor": "claude-fable"
+        },
+        {
+          "at": "2026-10-03T05:36:20.720Z",
+          "event": "verified",
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "actor": "verifier-G",
+          "by": "verifier-G"
         }
       ],
       "done": {
@@ -10414,6 +10505,16 @@
           25,
           26
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:36:20.706Z",
+        "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+        "by": "verifier-G",
+        "note": "Diff since E's verification head 77778a0 restricted to this item's paths is JobDetail.tsx:916,922 and SubscriptionDetail.tsx:724 SVG fontSize 9/10->11 only (f8a7c5b); LegalLinks.tsx 8->11px (fa2aa55) is outside the paths. Acceptance re-run green at f3ea6a7.",
+        "runs": [
+          27,
+          28
+        ]
       }
     },
     {
@@ -10421,7 +10522,7 @@
       "title": "Basiq is fully removed: functions, client, callback page, copy, CSP, MCP entry, env vars and docs",
       "area": "bank",
       "priority": 40,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\""
       ],
@@ -10991,6 +11092,19 @@
           "ms": 574,
           "actor": "claude-fable",
           "log": ".ledger/logs/BANK-01-043.log",
+          "log_sha256": "edc1bd7c8759844a84242bb9335ed94322807eb215736a9943114a974db9c069"
+        },
+        {
+          "n": 44,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-no-basiq.mjs\"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:36:10.303Z",
+          "ms": 2157,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/BANK-01-044.log",
           "log_sha256": "edc1bd7c8759844a84242bb9335ed94322807eb215736a9943114a974db9c069"
         }
       ],
@@ -11979,6 +12093,13 @@
           "event": "done",
           "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
           "actor": "claude-fable"
+        },
+        {
+          "at": "2026-10-03T05:36:10.550Z",
+          "event": "verified",
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "actor": "verifier-G",
+          "by": "verifier-G"
         }
       ],
       "done": {
@@ -11987,6 +12108,15 @@
         "by": "claude-fable",
         "runs": [
           43
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:36:10.455Z",
+        "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+        "by": "verifier-G",
+        "note": "Diff since F's verification head 07abc2a is f8a7c5b only: ci.yml 3 comment lines (no YAML semantics; git diff checked), a11y scanner rewrite, JobDetail.tsx:916,922 + SubscriptionDetail.tsx:724 SVG fontSize 9/10->11, prettier-only TaxInvoiceIssue test (diff -w empty), plus ledger files. Acceptance re-run green at f3ea6a7. No Basiq string reintroduced.",
+        "runs": [
+          44
         ]
       }
     },
@@ -15903,7 +16033,7 @@
       "title": "Default dates use Australian local time, not UTC",
       "area": "broken",
       "priority": 56,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/localDates.test.ts\""
       ],
@@ -16016,6 +16146,19 @@
           "actor": "claude-fable",
           "log": ".ledger/logs/DATE-01-008.log",
           "log_sha256": "7a23173e214cab084a3b038a3a761423debd252cc1bad992430f07e329b58569"
+        },
+        {
+          "n": 9,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/lib/localDates.test.ts\"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:36:22.759Z",
+          "ms": 1835,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/DATE-01-009.log",
+          "log_sha256": "0c5b69ddf39f3108a6db8cdb744215973cc381d474a662a55c6d061f099f6109"
         }
       ],
       "notes": [],
@@ -16212,6 +16355,13 @@
           "event": "done",
           "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
           "actor": "claude-fable"
+        },
+        {
+          "at": "2026-10-03T05:36:22.792Z",
+          "event": "verified",
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "actor": "verifier-G",
+          "by": "verifier-G"
         }
       ],
       "done": {
@@ -16220,6 +16370,15 @@
         "by": "claude-fable",
         "runs": [
           8
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:36:22.776Z",
+        "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+        "by": "verifier-G",
+        "note": "Diff since E's verification head 77778a0 restricted to this item's paths is JobDetail.tsx:916,922 and SubscriptionDetail.tsx:724 SVG fontSize 9/10->11 only (f8a7c5b); LegalLinks.tsx 8->11px (fa2aa55) is outside the paths. Acceptance re-run green at f3ea6a7.",
+        "runs": [
+          9
         ]
       }
     },
@@ -17337,7 +17496,7 @@
       "title": "CI runs the Deno edge-function tests and reports environment-gated test files instead of skipping them silently",
       "area": "broken",
       "priority": 60,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-test-coverage.test.ts\""
       ],
@@ -17436,6 +17595,19 @@
           "actor": "claude-fable",
           "log": ".ledger/logs/CI-01-007.log",
           "log_sha256": "7732a84f7b320b87c401488af40619773ded1792536e9a4d9100ac5468ccdacf"
+        },
+        {
+          "n": 8,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-test-coverage.test.ts\"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:36:00.843Z",
+          "ms": 1566,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/CI-01-008.log",
+          "log_sha256": "c9f0f46642cfa372f58c7736ed804f38078e9e87a38a85946cdbe3c4c60df9d7"
         }
       ],
       "notes": [],
@@ -17557,6 +17729,13 @@
           "event": "done",
           "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
           "actor": "claude-fable"
+        },
+        {
+          "at": "2026-10-03T05:36:00.915Z",
+          "event": "verified",
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "actor": "verifier-G",
+          "by": "verifier-G"
         }
       ],
       "done": {
@@ -17566,6 +17745,15 @@
         "runs": [
           7
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:36:00.876Z",
+        "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+        "by": "verifier-G",
+        "note": "Diff since F's verification head 07abc2a is f8a7c5b only: ci.yml 3 comment lines (no YAML semantics; git diff checked), a11y scanner rewrite, JobDetail.tsx:916,922 + SubscriptionDetail.tsx:724 SVG fontSize 9/10->11, prettier-only TaxInvoiceIssue test (diff -w empty), plus ledger files. Acceptance re-run green at f3ea6a7.",
+        "runs": [
+          8
+        ]
       }
     },
     {
@@ -17573,7 +17761,7 @@
       "title": "Light theme polish: themed colours everywhere, no hard-coded dark-only colours, auth screens in the new style",
       "area": "ui",
       "priority": 70,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-hardcoded-colours.mjs\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AuthMobile.test.tsx\""
@@ -17817,6 +18005,32 @@
           "actor": "claude-fable",
           "log": ".ledger/logs/UI-01-018.log",
           "log_sha256": "b17677c3c94b30d8769f1dad39691a30b40294134cef7aaf213dfd191ecd9f26"
+        },
+        {
+          "n": 19,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-hardcoded-colours.mjs\"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:36:12.530Z",
+          "ms": 779,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/UI-01-019.log",
+          "log_sha256": "73325d2d7d8202f3cb7a7239aba4205ddc4431e15e6ee99fdd5879a2352c188b"
+        },
+        {
+          "n": 20,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/AuthMobile.test.tsx\"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:36:14.777Z",
+          "ms": 2246,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/UI-01-020.log",
+          "log_sha256": "0aa1326c310a49dbeb6107cf89d7708946e588769a879d7d5f50079dc298564d"
         }
       ],
       "notes": [
@@ -18019,6 +18233,13 @@
           "event": "done",
           "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
           "actor": "claude-fable"
+        },
+        {
+          "at": "2026-10-03T05:36:14.806Z",
+          "event": "verified",
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "actor": "verifier-G",
+          "by": "verifier-G"
         }
       ],
       "done": {
@@ -18029,6 +18250,16 @@
           17,
           18
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:36:14.792Z",
+        "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+        "by": "verifier-G",
+        "note": "Diff since F's verification head 07abc2a is f8a7c5b only: ci.yml 3 comment lines (no YAML semantics; git diff checked), a11y scanner rewrite, JobDetail.tsx:916,922 + SubscriptionDetail.tsx:724 SVG fontSize 9/10->11, prettier-only TaxInvoiceIssue test (diff -w empty), plus ledger files. Acceptance re-run green at f3ea6a7. The resized labels keep var(--text-muted)/var(--accent-primary) fills; hard-coded-colour gate green.",
+        "runs": [
+          19,
+          20
+        ]
       }
     },
     {
@@ -18036,7 +18267,7 @@
       "title": "Shared PageHeader, Stat, StatusBadge, EmptyState, Alert and Field replace page-local copies",
       "area": "ui",
       "priority": 71,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/SharedPrimitives.test.tsx\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-ui-duplication.mjs\""
@@ -18202,6 +18433,32 @@
           "actor": "claude-fable",
           "log": ".ledger/logs/UI-02-012.log",
           "log_sha256": "4b95bcee0909937d331b1b2f4bf188529c4ad3fb56914ec0f0b5e6ce192611b9"
+        },
+        {
+          "n": 13,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/components/SharedPrimitives.test.tsx\"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:36:25.199Z",
+          "ms": 2098,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/UI-02-013.log",
+          "log_sha256": "5de6c0bf08411a670fc2f05e7e590e36830bf1cf936515b07d29d853bd6afd7f"
+        },
+        {
+          "n": 14,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-ui-duplication.mjs\"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:36:25.571Z",
+          "ms": 371,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/UI-02-014.log",
+          "log_sha256": "4b95bcee0909937d331b1b2f4bf188529c4ad3fb56914ec0f0b5e6ce192611b9"
         }
       ],
       "notes": [],
@@ -18334,6 +18591,13 @@
           "event": "done",
           "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
           "actor": "claude-fable"
+        },
+        {
+          "at": "2026-10-03T05:36:25.601Z",
+          "event": "verified",
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "actor": "verifier-G",
+          "by": "verifier-G"
         }
       ],
       "done": {
@@ -18343,6 +18607,16 @@
         "runs": [
           11,
           12
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:36:25.586Z",
+        "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+        "by": "verifier-G",
+        "note": "Diff since E's verification head 77778a0 restricted to this item's paths is JobDetail.tsx:916,922 and SubscriptionDetail.tsx:724 SVG fontSize 9/10->11 only (f8a7c5b); LegalLinks.tsx 8->11px (fa2aa55) is outside the paths. Acceptance re-run green at f3ea6a7.",
+        "runs": [
+          13,
+          14
         ]
       }
     },
@@ -18685,7 +18959,7 @@
       "title": "Accessibility: contrast-safe colour tokens, keyboard focus everywhere, labelled icon buttons, no text under 11px",
       "area": "ui",
       "priority": 73,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-a11y-tokens.mjs\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/a11y/IconButtons.test.tsx\""
@@ -18826,6 +19100,32 @@
           "actor": "claude-fable",
           "log": ".ledger/logs/UI-04-010.log",
           "log_sha256": "d0626a328204ed2ec8ac5feb8c2435c9160d408d5c11c7007b0d5e5cd8f5cbcc"
+        },
+        {
+          "n": 11,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/check-a11y-tokens.mjs\"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:36:58.017Z",
+          "ms": 313,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/UI-04-011.log",
+          "log_sha256": "69d7f9e473c9074637c14e659b913c76e0fd4050853b404c681d97303af61b15"
+        },
+        {
+          "n": 12,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/a11y/IconButtons.test.tsx\"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:37:03.013Z",
+          "ms": 4995,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/UI-04-012.log",
+          "log_sha256": "d7211a9bbd95dc7b4ea8839953cea8a4aec56f546b305aefc3b78bf275cfd0ad"
         }
       ],
       "notes": [],
@@ -18934,6 +19234,13 @@
           "event": "done",
           "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
           "actor": "claude-fable"
+        },
+        {
+          "at": "2026-10-03T05:37:03.045Z",
+          "event": "verified",
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "actor": "verifier-G",
+          "by": "verifier-G"
         }
       ],
       "done": {
@@ -18944,6 +19251,16 @@
           9,
           10
         ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:37:03.029Z",
+        "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+        "by": "verifier-G",
+        "note": "Read f8a7c5b in full and the new scanner. Probe src/__ProbeG.tsx (deleted): all 8 single-line forms flagged (ternary 2nd branch, numeric ternary, template literal, JSX {N}, 0.5rem, clamp(6px..), Math.max(8,n), text-[9px]); lineHeight:8 / padding:4 beside fontSize NOT flagged (top-level comma stops the expression). Non-vacuous: new scanner on f8a7c5b^ tree fails on exactly JobDetail:916,922 and SubscriptionDetail:724 while the old scanner passed it. Known blind spots, none present in src today (grep): value on the next line (fontSize:\\n 8, multi-line JSX), CSS font: shorthand, Tailwind text-[Nrem]. Charts not rendered; by geometry MonthlyBars (66px slot, centred) and the sparkline (2 end-anchored labels in 600 units) cannot overlap at 11px. Residual: sparkline is viewBox-scaled (width 100%), so 11 user units render smaller than 11px on narrow screens; TaxTimeline at 0.7/0.72rem is above the 11px gate but below the 12px the audit backlog named.",
+        "runs": [
+          11,
+          12
+        ]
       }
     },
     {
@@ -18951,7 +19268,7 @@
       "title": "Ship gate: typecheck, lint, the full test suite (Vitest and Deno) and the production build all pass",
       "area": "release",
       "priority": 90,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run typecheck\"",
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run lint\"",
@@ -19553,6 +19870,71 @@
           "actor": "claude-fable",
           "log": ".ledger/logs/SHIP-045.log",
           "log_sha256": "fcc7c2ef2c752bdff3b706c71f75d154c19a2e45f0106c091895a773acb69144"
+        },
+        {
+          "n": 46,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run typecheck\"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:37:56.864Z",
+          "ms": 793,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/SHIP-046.log",
+          "log_sha256": "9f5cc03fa5f6d70ef3898d510b782ffb4ffec080f039ffbb1aaa9375c4bb371d"
+        },
+        {
+          "n": 47,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run lint\"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:38:02.818Z",
+          "ms": 5953,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/SHIP-047.log",
+          "log_sha256": "fb1147ae1e108c498719100358b5d776e11e7168031d1934c3037b1b4b98ff76"
+        },
+        {
+          "n": 48,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"set -a && . ./.env.production && set +a && npx vitest run \"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:38:17.274Z",
+          "ms": 14456,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/SHIP-048.log",
+          "log_sha256": "102724194944a28bfa60bedf4fabc117ed7c5e20fa57aa8cfa1f150e70239dea"
+        },
+        {
+          "n": 49,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions\"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:39:03.295Z",
+          "ms": 46021,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/SHIP-049.log",
+          "log_sha256": "9d3245d9669df3045a13d85d27f1045533ca0f083741961e4092d918e0eae07b"
+        },
+        {
+          "n": 50,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npm run build\"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:39:05.168Z",
+          "ms": 1873,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/SHIP-050.log",
+          "log_sha256": "152c5322ef2f6fcedc9ffdb126af2e1e7513a5b3b67fd3bed61fe9582545eb62"
         }
       ],
       "notes": [],
@@ -19715,6 +20097,13 @@
           "event": "done",
           "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
           "actor": "claude-fable"
+        },
+        {
+          "at": "2026-10-03T05:39:05.202Z",
+          "event": "verified",
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "actor": "verifier-G",
+          "by": "verifier-G"
         }
       ],
       "done": {
@@ -19727,6 +20116,19 @@
           43,
           44,
           45
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:39:05.186Z",
+        "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+        "by": "verifier-G",
+        "note": "Ran scratchpad/ship-gate.sh myself at f3ea6a7 with FIX_FORMAT=0 (log: verifierG-ship-gate.log): all 9 gates PASS incl. format (the TaxInvoiceIssue test F saw unformatted is now clean, diff -w vs f8a7c5b^ empty), vitest 164 files/946 tests passed with .env.production loaded (29 files skipped = live suites gated on secrets, listed by CI's skippedTestsReporter), deno suite, build (3.6M), integrity, no-basiq, migrations --strict 304/304. Only code since D's and F's gate runs is f8a7c5b (reviewed in full). Acceptance re-run by this verify.",
+        "runs": [
+          46,
+          47,
+          48,
+          49,
+          50
         ]
       }
     },
@@ -22572,7 +22974,7 @@
       "title": "One production deploy path: Cloudflare Pages Git integration deploys main; the CI wrangler deploy step is removed and the Cloudflare token leaves GitHub",
       "area": "ci",
       "priority": 36,
-      "status": "done",
+      "status": "verified",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\""
       ],
@@ -22631,6 +23033,19 @@
           "actor": "claude-fable",
           "log": ".ledger/logs/CI-02-004.log",
           "log_sha256": "09a79d74c89c6f778c50c7fcfdcb14ffbd5e2f69366d64b795ae0f21dae8ed2a"
+        },
+        {
+          "n": 5,
+          "role": "verifier",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run tests/security/ci-hardening.test.ts\"",
+          "exit": 0,
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "dirty": [],
+          "at": "2026-10-03T05:36:06.343Z",
+          "ms": 3957,
+          "actor": "verifier-G",
+          "log": ".ledger/logs/CI-02-005.log",
+          "log_sha256": "4da18a23b7bcb23990ed27af7c91592ce862700dd77449dc311068d54bb4482c"
         }
       ],
       "notes": [
@@ -22709,6 +23124,13 @@
           "event": "done",
           "head": "f8a7c5b36e5a6eb8436dbe00bc4a7bca5aa17c88",
           "actor": "claude-fable"
+        },
+        {
+          "at": "2026-10-03T05:36:06.583Z",
+          "event": "verified",
+          "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+          "actor": "verifier-G",
+          "by": "verifier-G"
         }
       ],
       "done": {
@@ -22717,6 +23139,15 @@
         "by": "claude-fable",
         "runs": [
           4
+        ]
+      },
+      "verified": {
+        "at": "2026-10-03T05:36:06.501Z",
+        "head": "f3ea6a74f60f4e3ccfbd75d2e9e05053594a5790",
+        "by": "verifier-G",
+        "note": "Diff since F's verification head 07abc2a is f8a7c5b only: ci.yml 3 comment lines (no YAML semantics; git diff checked), a11y scanner rewrite, JobDetail.tsx:916,922 + SubscriptionDetail.tsx:724 SVG fontSize 9/10->11, prettier-only TaxInvoiceIssue test (diff -w empty), plus ledger files. Acceptance re-run green at f3ea6a7. The 3 comment edits describe the Pages-deploys-main model the item introduced; no job/step/secret changed.",
+        "runs": [
+          5
         ]
       }
     },
@@ -22869,5 +23300,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T05:31:32.555Z"
+  "updated_at": "2026-10-03T05:39:05.219Z"
 }

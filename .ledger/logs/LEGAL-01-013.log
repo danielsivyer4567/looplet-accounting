@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/pages/LegalPages.test.tsx"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  15:36:16
+   Duration  1.40s (transform 283ms, setup 58ms, import 436ms, tests 346ms, environment 460ms)
+
