@@ -22883,7 +22883,7 @@
       "title": "FY2025-26 PAYG withholding rows match the official 2025 schedule (F2025L00647) worked examples",
       "area": "payroll",
       "priority": 22,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-2025-26-ato-examples.sql\""
       ],
@@ -22891,7 +22891,34 @@
         "supabase/migrations",
         "tests/db-sql/payg-2025-26-ato-examples.sql"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-2025-26-ato-examples.sql\"",
+          "exit": 1,
+          "head": "f1c77cb45a9db35c561aea2ef97cc326170350ae",
+          "dirty": [],
+          "at": "2026-10-03T05:51:45.681Z",
+          "ms": 334,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-06-001.log",
+          "log_sha256": "c799b20b461d1b75dcf8329368c7b54d8fdb32d497564ae031e143a9223e965f"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-2025-26-ato-examples.sql\"",
+          "exit": 0,
+          "head": "f101a67839930ce4138b3be17e4e665b152364cb",
+          "dirty": [],
+          "at": "2026-10-03T05:52:31.458Z",
+          "ms": 45357,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/PAY-06-002.log",
+          "log_sha256": "799d62e657b4cb7bb01eea196f64289418b9c588742b25ddc77f3b623f7eba2c"
+        }
+      ],
       "notes": [
         {
           "at": "2026-10-03T03:05:40.653Z",
@@ -22905,8 +22932,44 @@
           "event": "added",
           "head": "8e82fd1aa6198f7a512c66bbafbcd1edb40d982c",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:51:45.186Z",
+          "event": "start",
+          "head": "f1c77cb45a9db35c561aea2ef97cc326170350ae",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T05:51:45.682Z",
+          "event": "run",
+          "head": "f1c77cb45a9db35c561aea2ef97cc326170350ae",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:52:31.459Z",
+          "event": "run",
+          "head": "f101a67839930ce4138b3be17e4e665b152364cb",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T05:52:31.705Z",
+          "event": "done",
+          "head": "f101a67839930ce4138b3be17e4e665b152364cb",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T05:52:31.692Z",
+        "head": "f101a67839930ce4138b3be17e4e665b152364cb",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "UX-01",
@@ -23300,5 +23363,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T05:39:05.219Z"
+  "updated_at": "2026-10-03T05:52:31.720Z"
 }

@@ -1,0 +1,4 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "node scripts/db/run-pg-sql-tests.mjs tests/db-sql/payg-2025-26-ato-examples.sql"
+migrations: 305 applied, 0 known failures, 0 problems (305 files)
+PASS tests/db-sql/payg-2025-26-ato-examples.sql
+  NOTICE:  payg-2025-26-ato-examples: ATO Schedule 1 examples 1 and 3 reproduced ($250 weekly; $222 weekly, $962 monthly); 144 sample data rows match for Scales 1 and 2; FY2025-26 rows complete and continuous

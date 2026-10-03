@@ -58,7 +58,7 @@
 | SEC-10 | SECURITY DEFINER functions that users call and that write money tables check the caller's role | verified | verified by claude-verifier (independent subagent) @ 77778a05 |
 | SEC-11 | Bills only reference suppliers of their own organisation, so payment runs never copy another organisation's payee bank details | verified | verified by claude-verifier (independent subagent) @ 77778a05 |
 | SEC-12 | Data-completeness sweep functions can only be run by the service role, not by signed-in users | verified | verified by claude-verifier (independent subagent) @ 77778a05 |
-| PAY-06 | FY2025-26 PAYG withholding rows match the official 2025 schedule (F2025L00647) worked examples | open | not run |
+| PAY-06 | FY2025-26 PAYG withholding rows match the official 2025 schedule (F2025L00647) worked examples | done | done @ f101a678, awaiting independent verify |
 | UX-01 | Lower roles see a clear 'read-only' state instead of silent no-op saves on bills, jobs, allocations, payment runs, employees, customers and suppliers | open | not run |
 | INV-02 | Looplet can email a tax invoice PDF to the customer from a verified sender, and marks it sent only after the email is accepted | open | not run |
 | CI-02 | One production deploy path: Cloudflare Pages Git integration deploys main; the CI wrangler deploy step is removed and the Cloudflare token leaves GitHub | verified | verified by verifier-G @ f3ea6a74 |
