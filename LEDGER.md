@@ -2,7 +2,7 @@
 
 **Goal:** Old Looplet Accounting (accounting.looplet.com.au) made legitimate, secure, modern and connected to Redbark bank feeds. Local proof first; production deploys, migrations and credential use need Daniel's explicit yes.
 
-**Progress:** 43/56 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
+**Progress:** 43/57 verified. Generated from LEDGER.json by ledger.mjs; do not edit by hand.
 
 | ID | Item | Status | Proof |
 |---|---|---|---|
@@ -62,5 +62,6 @@
 | UX-01 | Lower roles see a clear 'read-only' state instead of silent no-op saves on bills, jobs, allocations, payment runs, employees, customers and suppliers | open | not run |
 | INV-02 | Looplet can email a tax invoice PDF to the customer from a verified sender, and marks it sent only after the email is accepted | open | not run |
 | CI-02 | One production deploy path: Cloudflare Pages Git integration deploys main; the CI wrangler deploy step is removed and the Cloudflare token leaves GitHub | open | not run |
+| FIX-01 | Ask AI's BAS answer reads columns that v_bas_quarterly actually has | open | not run |
 
 Acceptance commands, every run, exit codes and log hashes are in LEDGER.json; logs are in .ledger/logs/.

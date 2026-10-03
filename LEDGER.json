@@ -15445,7 +15445,36 @@
           "actor": "claude-worker"
         }
       ]
+    },
+    {
+      "id": "FIX-01",
+      "title": "Ask AI's BAS answer reads columns that v_bas_quarterly actually has",
+      "area": "broken",
+      "priority": 44,
+      "status": "open",
+      "accept": [
+        "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/ask-bot/bas-query.test.ts\""
+      ],
+      "paths": [
+        "supabase/functions/ask-bot"
+      ],
+      "runs": [],
+      "notes": [
+        {
+          "at": "2026-10-03T04:02:37.222Z",
+          "by": "claude-worker",
+          "text": "Found by Verifier B: supabase/functions/ask-bot/index.ts:271 queries v_bas_quarterly for sales_inc_gst_cents and net_gst_owed_cents, which neither the old (0080) nor the new view has; advisoryFacts.ts:183 already falls back to net_gst_cents."
+        }
+      ],
+      "history": [
+        {
+          "at": "2026-10-03T04:02:37.045Z",
+          "event": "added",
+          "head": "321b5fa7fe8cecbc5fac3a2070e64f52b6a46f43",
+          "actor": "claude-worker"
+        }
+      ]
     }
   ],
-  "updated_at": "2026-10-03T04:01:20.636Z"
+  "updated_at": "2026-10-03T04:02:37.222Z"
 }
