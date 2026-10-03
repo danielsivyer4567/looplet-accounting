@@ -2226,7 +2226,7 @@
       "title": "bills-allocate-batch checks the caller's own accepted membership and needs accountant or higher to change allocations",
       "area": "security",
       "priority": 14,
-      "status": "in_progress",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bills-allocate-batch/auth.test.ts\""
       ],
@@ -2246,6 +2246,19 @@
           "actor": "claude-worker",
           "log": ".ledger/logs/SEC-08-001.log",
           "log_sha256": "ec3264b72cc9dbd240e81d222140da231ca0b3a484855f21d10d8bc440305dd5"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/bills-allocate-batch/auth.test.ts\"",
+          "exit": 0,
+          "head": "89cb803aff9db40d30bab791e097f025c74d760f",
+          "dirty": [],
+          "at": "2026-10-03T00:08:56.297Z",
+          "ms": 658,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-08-002.log",
+          "log_sha256": "b0a2a58f3ae9f14823fd2b1aae49982b246c8558d5cec770c6777e281cabf036"
         }
       ],
       "notes": [],
@@ -2269,8 +2282,30 @@
           "actor": "claude-worker",
           "ok": false,
           "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:08:56.298Z",
+          "event": "run",
+          "head": "89cb803aff9db40d30bab791e097f025c74d760f",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:08:56.448Z",
+          "event": "done",
+          "head": "89cb803aff9db40d30bab791e097f025c74d760f",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T00:08:56.432Z",
+        "head": "89cb803aff9db40d30bab791e097f025c74d760f",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "SEC-09",
@@ -2326,5 +2361,5 @@
       ]
     }
   ],
-  "updated_at": "2026-10-03T00:06:44.579Z"
+  "updated_at": "2026-10-03T00:08:56.464Z"
 }

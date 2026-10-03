@@ -1,0 +1,11 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "deno test --allow-env --allow-read --allow-net supabase/functions/bills-allocate-batch/auth.test.ts"
+[0m[38;5;245mrunning 5 tests from ./supabase/functions/bills-allocate-batch/auth.test.ts[0m
+stats is read-only and open to any accepted member; the write modes need accountant or higher ... [0m[32mok[0m [0m[38;5;245m(655µs)[0m
+pending invites, other organisations and non-members are refused even for stats ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+no token, the anon key or an empty bearer is refused with 401, and an empty service key never matches ... [0m[32mok[0m [0m[38;5;245m(101µs)[0m
+the membership lookup reads the caller's own row, not any member of the organisation ... [0m[32mok[0m [0m[38;5;245m(243µs)[0m
+the edge function checks the caller for the requested mode before any query or RPC ... [0m[32mok[0m [0m[38;5;245m(697µs)[0m
+
+[0m[32mok[0m | 5 passed | 0 failed [0m[38;5;245m(12ms)[0m
+
+[0m[32mCheck[0m supabase/functions/bills-allocate-batch/auth.test.ts
