@@ -179,7 +179,8 @@ describe('accounting engine source contracts', () => {
     expect(abaExport).toMatch(/return json\(\s*\{[\s\S]*Approval required before exporting this payment run/i);
   });
 
-  it('binds super batch send to a Tier-2 approval payload before marking sent', () => {
+  // LODGE-01: super-batch-send only prepares a clearing-house file: file_prepared, not sent.
+  it('binds super batch send to a Tier-2 approval payload before marking the file prepared', () => {
     expect(superBatchSend).toMatch(/super_batch_id,/);
     expect(superBatchSend).toMatch(/total_super_cents: batch\.total_super_cents/);
     expect(superBatchSend).toMatch(/line_count: batch\.line_count/);
@@ -187,8 +188,10 @@ describe('accounting engine source contracts', () => {
     expect(superBatchSend).toMatch(/p_resource_type:\s*"super_batch"/);
     expect(superBatchSend).toMatch(/p_payload:\s*approvalPayload/);
     expect(superBatchSend).toMatch(/userClient\.rpc\("request_approval"/);
-    expect(superBatchSend).toMatch(/Approval required before sending this super batch/);
-    expect(superBatchSend).toMatch(/update\(\{\s*status:\s*"sent"/);
+    expect(superBatchSend).toMatch(/Approval required before preparing this super batch/);
+    expect(superBatchSend).toMatch(/export const FILE_PREPARED = "file_prepared";/);
+    expect(superBatchSend).toMatch(/update\(\{\s*status:\s*FILE_PREPARED/);
+    expect(superBatchSend).not.toMatch(/status:\s*"sent"/);
     expect(superBatchSend).toMatch(/transport_mode:\s*"clearing_house_file"/);
     expect(superBatchSend).toMatch(/live_dispatch_enabled:\s*false/);
     expect(superBatchSend).toMatch(/manual_upload_required:\s*true/);
