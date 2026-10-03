@@ -21896,6 +21896,11 @@
           "at": "2026-10-03T03:05:41.140Z",
           "by": "claude-worker",
           "text": "The Pages project is Git-connected (production branch main, previews for every branch, builds with npm run build). CI's wrangler-action also deploys ./dist to production, a second path that needs a long-lived Cloudflare API token in GitHub. The tenant-isolation job also holds the production service-role key; point it at a test project or skip it without secrets."
+        },
+        {
+          "at": "2026-10-03T05:10:01.138Z",
+          "by": "claude-worker",
+          "text": "GitHub Actions secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID deleted on 2026-10-03 after the deploy job was removed; the Cloudflare account holds no Pages-capable user token. SUPABASE_SERVICE_ROLE_KEY stays until the tenant-isolation job points at a test project."
         }
       ],
       "history": [
@@ -22063,5 +22068,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T05:09:56.950Z"
+  "updated_at": "2026-10-03T05:10:01.138Z"
 }
