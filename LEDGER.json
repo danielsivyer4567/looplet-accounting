@@ -2312,14 +2312,41 @@
       "title": "accountant-email-query matches the sender's accepted accountant memberships by role_enum, so the emailed activity digest works",
       "area": "security",
       "priority": 14,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/accountant-email-query/match.test.ts\""
       ],
       "paths": [
         "supabase/functions/accountant-email-query"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/accountant-email-query/match.test.ts\"",
+          "exit": 1,
+          "head": "7e16e70f01fcd16a5bcd5ff6206ae565e422b20b",
+          "dirty": [],
+          "at": "2026-10-03T00:09:04.035Z",
+          "ms": 217,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-09-001.log",
+          "log_sha256": "64b9362b4b0f25efe6af073cd5d86dfe7c0e5716939f2591175519766bc86bbb"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"deno test --allow-env --allow-read --allow-net supabase/functions/accountant-email-query/match.test.ts\"",
+          "exit": 0,
+          "head": "0e7befa3e3ebe7857f2caaa4fb8579ac34964baf",
+          "dirty": [],
+          "at": "2026-10-03T00:09:05.177Z",
+          "ms": 712,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/SEC-09-002.log",
+          "log_sha256": "7647aae78e52caba58994d38adc719e0c845bb6102d394145436277e65e8725c"
+        }
+      ],
       "notes": [],
       "history": [
         {
@@ -2327,8 +2354,44 @@
           "event": "added",
           "head": "beae7c897cb3b14217e7007916fe23ce2cceede2",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:09:03.696Z",
+          "event": "start",
+          "head": "7e16e70f01fcd16a5bcd5ff6206ae565e422b20b",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T00:09:04.037Z",
+          "event": "run",
+          "head": "7e16e70f01fcd16a5bcd5ff6206ae565e422b20b",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:09:05.178Z",
+          "event": "run",
+          "head": "0e7befa3e3ebe7857f2caaa4fb8579ac34964baf",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T00:09:05.303Z",
+          "event": "done",
+          "head": "0e7befa3e3ebe7857f2caaa4fb8579ac34964baf",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T00:09:05.285Z",
+        "head": "0e7befa3e3ebe7857f2caaa4fb8579ac34964baf",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "MIG-01",
@@ -2361,5 +2424,5 @@
       ]
     }
   ],
-  "updated_at": "2026-10-03T00:08:56.464Z"
+  "updated_at": "2026-10-03T00:09:05.322Z"
 }
