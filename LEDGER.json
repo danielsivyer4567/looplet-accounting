@@ -23574,7 +23574,7 @@
       "title": "Lower roles see a clear 'read-only' state instead of silent no-op saves on bills, jobs, allocations, payment runs, employees, customers and suppliers",
       "area": "ui",
       "priority": 41,
-      "status": "open",
+      "status": "done",
       "accept": [
         "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ReadOnlyRoles.test.tsx\""
       ],
@@ -23583,7 +23583,34 @@
         "src/hooks",
         "src/lib/roles.ts"
       ],
-      "runs": [],
+      "runs": [
+        {
+          "n": 1,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ReadOnlyRoles.test.tsx\"",
+          "exit": 1,
+          "head": "1b3b8ed3885b64eb795278ea43926f87a7fbd69a",
+          "dirty": [],
+          "at": "2026-10-03T06:04:26.523Z",
+          "ms": 1264,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UX-01-001.log",
+          "log_sha256": "5e2dcff7dfd07eed0fbe9aae6d9bc8a5d1b2ebdff8b01ed13065be804ffbbe4a"
+        },
+        {
+          "n": 2,
+          "role": "worker",
+          "cmd": "\"C:/Program Files/Git/bin/bash.exe\" -lc \"npx vitest run src/test/pages/ReadOnlyRoles.test.tsx\"",
+          "exit": 0,
+          "head": "6d8bba141477f28da9f74fe70954ce0229efec35",
+          "dirty": [],
+          "at": "2026-10-03T06:04:30.305Z",
+          "ms": 3390,
+          "actor": "claude-worker",
+          "log": ".ledger/logs/UX-01-002.log",
+          "log_sha256": "7e42dcec2558c80b14861f10aead528d2b3b188188761660ad0202639e382393"
+        }
+      ],
       "notes": [
         {
           "at": "2026-10-03T03:05:40.815Z",
@@ -23597,8 +23624,44 @@
           "event": "added",
           "head": "8e82fd1aa6198f7a512c66bbafbcd1edb40d982c",
           "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T06:04:25.087Z",
+          "event": "start",
+          "head": "1b3b8ed3885b64eb795278ea43926f87a7fbd69a",
+          "actor": "claude-worker"
+        },
+        {
+          "at": "2026-10-03T06:04:26.524Z",
+          "event": "run",
+          "head": "1b3b8ed3885b64eb795278ea43926f87a7fbd69a",
+          "actor": "claude-worker",
+          "ok": false,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T06:04:30.306Z",
+          "event": "run",
+          "head": "6d8bba141477f28da9f74fe70954ce0229efec35",
+          "actor": "claude-worker",
+          "ok": true,
+          "role": "worker"
+        },
+        {
+          "at": "2026-10-03T06:04:30.465Z",
+          "event": "done",
+          "head": "6d8bba141477f28da9f74fe70954ce0229efec35",
+          "actor": "claude-worker"
         }
-      ]
+      ],
+      "done": {
+        "at": "2026-10-03T06:04:30.448Z",
+        "head": "6d8bba141477f28da9f74fe70954ce0229efec35",
+        "by": "claude-worker",
+        "runs": [
+          2
+        ]
+      }
     },
     {
       "id": "INV-02",
@@ -23961,5 +24024,5 @@
       }
     }
   ],
-  "updated_at": "2026-10-03T06:04:22.119Z"
+  "updated_at": "2026-10-03T06:04:30.481Z"
 }

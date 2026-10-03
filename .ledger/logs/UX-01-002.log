@@ -1,0 +1,10 @@
+$ "C:/Program Files/Git/bin/bash.exe" -lc "npx vitest run src/test/pages/ReadOnlyRoles.test.tsx"
+
+ RUN  v4.1.9 C:/repos/looplet-accounting
+
+
+ Test Files  1 passed (1)
+      Tests  20 passed (20)
+   Start at  16:04:28
+   Duration  1.63s (transform 239ms, setup 59ms, import 382ms, tests 569ms, environment 504ms)
+

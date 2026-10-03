@@ -59,7 +59,7 @@
 | SEC-11 | Bills only reference suppliers of their own organisation, so payment runs never copy another organisation's payee bank details | done | done @ 255070fc, awaiting independent verify |
 | SEC-12 | Data-completeness sweep functions can only be run by the service role, not by signed-in users | done | done @ 255070fc, awaiting independent verify |
 | PAY-06 | FY2025-26 PAYG withholding rows match the official 2025 schedule (F2025L00647) worked examples | done | done @ f101a678, awaiting independent verify |
-| UX-01 | Lower roles see a clear 'read-only' state instead of silent no-op saves on bills, jobs, allocations, payment runs, employees, customers and suppliers | open | not run |
+| UX-01 | Lower roles see a clear 'read-only' state instead of silent no-op saves on bills, jobs, allocations, payment runs, employees, customers and suppliers | done | done @ 6d8bba14, awaiting independent verify |
 | INV-02 | Looplet can email a tax invoice PDF to the customer from a verified sender, and marks it sent only after the email is accepted | open | not run |
 | CI-02 | One production deploy path: Cloudflare Pages Git integration deploys main; the CI wrangler deploy step is removed and the Cloudflare token leaves GitHub | verified | verified by verifier-G @ f3ea6a74 |
 | FIX-01 | Ask AI's BAS answer reads columns that v_bas_quarterly actually has | verified | verified by claude-verifier F (independent subagent, round 3) @ 07abc2af |
